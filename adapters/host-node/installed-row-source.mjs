@@ -277,9 +277,22 @@ export async function createInstalledRowSource({moon, declaration,
     'actql-query-acquisition.json', 'actql-query-process-evidence.json',
   ].map(name => readFile(new URL(name, contractRoot), 'utf8')));
   const sourceRefs = new Set(declared.views.map(view => view.source_ref));
+  if (!['maxPages', 'maxPageBytes', 'maxPageRows', 'maxCaptureRows']
+    .every(key => Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
+      limits[key] <= 2_147_483_647)) {
+    fail('InvalidInstalledRowSourceLimits');
+  }
+  const maxTransferBytes = BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
   const preparations = new WeakMap();
   const sourceAccess = Object.freeze({authorization,
-    connection: site.connection});
+    connection: site.connection,
+    ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
+  // Read disclosure and held-Run authority are per declared view. The
+  // acquisition access stays installation-scoped; its checked preparation
+  // supplies the one exact view and read tuple before provider I/O.
+  const sourceReadAccesses = Object.freeze(declared.views.map(view =>
+    Object.freeze({authorization, connection: site.connection,
+      sourceRef: view.source_ref, resource: view.resource})));
   const decideRead = (prepared, access, signal) =>
     access.authorization.authorize('acquisition', prepared.readTuple, {
       subjectCid: cid({version: 'actql-row-source-acquisition-read/0.1',
@@ -295,19 +308,28 @@ export async function createInstalledRowSource({moon, declaration,
   };
 
   async function prepare({preparedProgram, preparedEffect, registry, values,
-    fragment, ordered, sourceAccess: access = sourceAccess}) {
+    fragment, ordered, sourceAccess: access = sourceAccess,
+    occurrence = {stage: 0, input: 0, task: 0}}) {
     if ((preparedProgram === undefined) === (preparedEffect === undefined)) {
       fail('InvalidInstalledSourcePreparation');
+    }
+    if (![occurrence.stage, occurrence.input, occurrence.task].every(Number.isSafeInteger) ||
+        occurrence.stage < 0 || occurrence.stage > 1 ||
+        occurrence.input !== 0 || occurrence.task !== occurrence.stage) {
+      fail('InvalidAcquisitionOccurrence');
     }
     const effectful = preparedEffect !== undefined;
     const checkedOwner = preparedEffect ?? preparedProgram;
     checked(effectful
-      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner, 0, 0)
-      : moon.clientProgramPrepareQueryAcquisition(checkedOwner, 0, 0));
+      ? moon.clientProgramEffectPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input)
+      : moon.clientProgramPrepareQueryAcquisition(checkedOwner,
+        occurrence.stage, occurrence.input));
     const requirement = checked(effectful
-      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner, 0,
-        0, registry, values, fragment, ordered)
-      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner, 0, 0,
+      ? moon.clientProgramEffectPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input, registry, values, fragment, ordered)
+      : moon.clientProgramPrepareLocalQueryRequirement(checkedOwner,
+        occurrence.stage, occurrence.input,
         registry, values, fragment, ordered));
     const facts = checked(
       moon.clientProgramQueryRequirementSourceEvidenceFacts(requirement));
@@ -334,6 +356,8 @@ export async function createInstalledRowSource({moon, declaration,
         operation: 'read'}),
       physicalBinding: physicalTarget(resource, fields),
     });
+    const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+      declaration, requirement, queryContract, evidenceContract));
     const decision = await decideRead(prepared, access);
     const refused = decision?.action === 'deny'
       ? authorizationRuntimeCode(decision) : undefined;
@@ -342,38 +366,42 @@ export async function createInstalledRowSource({moon, declaration,
         authorization: decision});
     }
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
-      requirement, resource, access}));
+      requirement, resource, access, acquisition,
+      occurrence: Object.freeze({...occurrence})}));
     return prepared;
   }
 
   async function open(options) {
-    const state = {started: false, closeFailed: false};
+    const state = {started: false, closeFailed: false, recovery: undefined};
     try {
       return await acquire(state, options);
     } catch (error) {
-      throw acquisitionFailure(error, !state.started ? 'not_started'
-        : state.closeFailed ? 'unknown' : 'stopped');
+      throw acquisitionFailure(error, state.closeFailed ? 'unknown'
+        : !state.started ? 'not_started' : 'stopped', state.recovery);
     }
   }
 
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource, retainedRelationOutput = false}) {
+    preparedSource, retainedRelationOutput = false,
+    occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
-      sourceAccess: access});
+      sourceAccess: access, occurrence});
     const owner = preparations.get(prepared);
     if (owner === undefined ||
         owner.checkedOwner !== (preparedEffect ?? preparedProgram) ||
         owner.effectful !== (preparedEffect !== undefined) ||
-        owner.access !== access) {
+        owner.access !== access ||
+        owner.occurrence.stage !== occurrence.stage ||
+        owner.occurrence.input !== occurrence.input ||
+        owner.occurrence.task !== occurrence.task) {
       fail('InstalledSourcePreparationMismatch');
     }
     const decision = await currentRead(prepared, access, signal);
     const granted = decision.basis === 'resumed_approval'
       ? site.admitCheckpointReadApproval(decision) : decision;
-    const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
-      declaration, owner.requirement, queryContract, evidenceContract));
+    const acquisition = owner.acquisition;
     const columns = [...moon.clientProgramRowSourceColumns(acquisition)];
     const nonce = randomUUID();
     const runInvocationCid = cid({version: 'actql-row-source-acquisition/0.1',
@@ -381,13 +409,21 @@ export async function createInstalledRowSource({moon, declaration,
     const dispatchRequestCid = cid({
       version: 'actql-row-source-acquisition-dispatch/0.1', runInvocationCid});
     const settled = new Set();
-    const run = checked(moon.clientProgramRowSourceStart(acquisition, nonce,
-      attempt => settled.has(attempt)));
+    const capacity = ledger === undefined ? undefined :
+      {transferBytes: maxTransferBytes,
+        executionBytes: BigInt(limits.maxPageBytes)};
+    const run = checked(ledger === undefined
+      ? moon.clientProgramRowSourceStart(acquisition, nonce,
+        attempt => settled.has(attempt))
+      : moon.clientProgramRowSourceStartAccounted(acquisition, nonce,
+        attempt => settled.has(attempt), ledger, capacity.transferBytes,
+        capacity.executionBytes));
     let closed = false;
     const close = () => {
       if (closed) return;
+      if (ledger === undefined) moon.clientProgramRowSourceClose(run);
+      else checked(moon.clientProgramRowSourceCloseAccounted(run));
       closed = true;
-      moon.clientProgramRowSourceClose(run);
     };
     try {
       checked(moon.clientProgramRowSourceBegin(run, limits.maxPageBytes,
@@ -414,8 +450,12 @@ export async function createInstalledRowSource({moon, declaration,
         moon.clientProgramRowSourceCaptureSource(capture));
       const {checkedOwner, effectful} = owner;
       if ((effectful
-        ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner, source())
-        : moon.clientProgramCapturedSourceMatches(checkedOwner, source()))
+        ? occurrence.task === 0
+          ? moon.clientProgramEffectCapturedSourceMatches(checkedOwner, source())
+          : moon.clientProgramEffectCapturedSourceMatchesAt(checkedOwner,
+            source(), occurrence.task)
+        : moon.clientProgramCapturedTaskSourceMatches(checkedOwner,
+          source(), occurrence.task))
         !== true) {
         fail('InstalledSourceProgramMismatch');
       }
@@ -423,21 +463,27 @@ export async function createInstalledRowSource({moon, declaration,
         ? moon.clientProgramIdentifyCapturedEffectSourceRelation(source())
         : moon.clientProgramIdentifyCapturedSourceRelation(source()));
       const logicalInput = checked(effectful
-        ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement)
-        : moon.clientProgramIssueCapturedSourceLogical(checkedOwner,
-          source(), identity, owner.requirement));
+        ? occurrence.task === 0
+          ? moon.clientProgramEffectIssueCapturedSourceLogical(checkedOwner,
+            source(), identity, owner.requirement)
+          : moon.clientProgramEffectIssueCapturedSourceLogicalAt(checkedOwner,
+            source(), identity, owner.requirement, occurrence.task)
+        : moon.clientProgramIssueCapturedTaskSourceLogical(checkedOwner,
+          source(), identity, owner.requirement, occurrence.task));
       const openHost = retainedRelationOutput
         ? moon.clientProgramOpenCapturedLocalRetainedHost
         : moon.clientProgramOpenCapturedLocalHost;
-      const setup = effectful ? undefined : openHost(checkedOwner, source(),
+      const setup = effectful || ledger !== undefined ? undefined : openHost(checkedOwner, source(),
         registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
-      if (!effectful && setup === undefined) {
+      if (!effectful && ledger === undefined && setup === undefined) {
         fail('InstalledSourceHostUnavailable');
       }
       return Object.freeze({checkedSource: prepared.checkedSource, identity,
         logicalInput, requirement: owner.requirement, setup,
-        capture: Object.freeze({source}),
+        occurrence: owner.occurrence,
+        capture: Object.freeze({source,
+          ...(ledger === undefined ? {} : {retainTask: (dag, task) => checked(
+            moon.clientProgramRowSourceRetainCapturedTask(capture, dag, task))})}),
         issueSourceEvidence: async ({authorityScopeCid,
           effectiveDataPolicyCid}) => {
           await currentRead(prepared, access, signal);
@@ -448,7 +494,14 @@ export async function createInstalledRowSource({moon, declaration,
         close});
     } catch (error) {
       try { close(); }
-      catch { state.closeFailed = true; }
+      catch {
+        state.closeFailed = true;
+        state.recovery = Object.freeze({
+          close() {},
+          async cleanup() { close(); return true; },
+          cleanupPending: () => !closed,
+        });
+      }
       throw error;
     }
   }
@@ -464,7 +517,20 @@ export async function createInstalledRowSource({moon, declaration,
       accountConfiguration: authorization.accountConfiguration,
       context: authorization.context}),
     sourceAccess,
+    sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    ledgerCapacity(prepared) {
+      const owner = preparations.get(prepared);
+      if (owner === undefined) fail('InstalledSourcePreparationMismatch');
+      const capacity = moon.clientProgramInstalledRowCaptureCapacity(
+        owner.acquisition);
+      if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
+      return Object.freeze({
+        capacity,
+        transferBytes: maxTransferBytes,
+        executionBytes: BigInt(limits.maxPageBytes),
+      });
+    },
     prepare, open,
     close: () => site.close(),
   });

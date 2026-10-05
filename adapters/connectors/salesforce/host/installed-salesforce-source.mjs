@@ -318,7 +318,7 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
 
   async function acquire(state, {preparedProgram, preparedEffect, registry,
     values, fragment, ordered, sourceAccess: access = sourceAccess, signal,
-    preparedSource}) {
+    preparedSource, retainedRelationOutput = false}) {
     const prepared = preparedSource ?? await prepare({preparedProgram,
       preparedEffect, registry, values, fragment, ordered,
       sourceAccess: access});
@@ -414,9 +414,11 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
           source(), identity, owner.requirement));
       // An Effect Run's computation is opened by the common Host only after
       // durable Run admission; the acquisition does not open it.
-      const setup = effectful ? undefined :
-        moon.clientProgramOpenCapturedLocalHost(checkedOwner, source(),
-          registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
+      const openHost = retainedRelationOutput
+        ? moon.clientProgramOpenCapturedLocalRetainedHost
+        : moon.clientProgramOpenCapturedLocalHost;
+      const setup = effectful ? undefined : openHost(checkedOwner, source(),
+        registry, values, 1n, 0n, 0n, 0n, fragment, ordered);
       if (!effectful && setup === undefined) {
         fail('InstalledSourceHostUnavailable');
       }
@@ -442,6 +444,7 @@ function installedSalesforceAdapter({moon, queryMoon, site, authorization,
 
   return Object.freeze({
     realizationKey: 'salesforce-acquired',
+    supportsRetainedRelationOutput: true,
     // The installed implementation's own identification; the Host refuses
     // the installation when its declared registration differs.
     connectorRegistration: site.connectorRegistration,

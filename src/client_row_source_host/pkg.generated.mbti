@@ -6,6 +6,8 @@ import {
   "actql/actql/encode_core",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
+  "actql/actql/physical_strategy",
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/value_admission",
@@ -22,6 +24,8 @@ pub fn accept_row_run_values(RowRun, Array[String], Array[Array[@value_admission
 pub fn begin_row_run(RowRun, Int, Int, Int) -> Result[Unit, RowHostIssue]
 
 pub fn capture_row_run(RowRun) -> Result[RowSourceCapture, RowHostIssue]
+
+pub fn close_accounted_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
 pub fn close_row_run(RowRun) -> Unit
 
@@ -45,7 +49,15 @@ pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> R
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
+pub fn retain_row_capture_task(RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, RowHostIssue]
+
 pub fn row_acquisition_columns(RowAcquisition) -> Array[String]
+
+pub fn row_acquisition_execution_capacity(RowAcquisition) -> Int64
+
+pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequirement
+
+pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
 
 pub fn row_capture_source(RowSourceCapture) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
@@ -64,6 +76,8 @@ pub fn row_source_columns(RowSourcePreparation) -> Array[String]
 pub fn row_source_requirement(RowSourcePreparation) -> @query_planning.QueryRequirement
 
 pub fn row_source_target(RowDeclaration, @query_planning.QueryRequirement) -> Result[(String, Array[String]), RowHostIssue]
+
+pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]
 
 pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
@@ -163,6 +177,7 @@ pub(all) enum RowHostIssue {
   Attempt(RowAttemptIssue)
   Consumer(@execution_query.CapturedSourceIssue)
   SourceEvidence(RowSourceEvidenceIssue)
+  Physical(@physical_resources.LedgerIssue)
   InvalidState
 }
 

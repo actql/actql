@@ -26,6 +26,51 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+Two independently installed GitHub row sources can now occupy the two checked
+captured input tasks of one retained-output Program. The Host prepares each
+source at its own occurrence, checks both capacities against one Local ledger,
+charges the page transfer, and transfers each captured holding to its exact
+task before Join. A public HTTPS Program joins distinct repositories, publishes
+the Join and two downstream consumer Named Results to the real retained Store,
+and reads them again after Host reopen without provider I/O. Later-source
+failure, cancellation after the first capture, and a failed cleanup followed
+by retry leave no partial Result or lost holding and do not reacquire a source.
+The existing two-DuckDB-source retained route remains covered separately.
+The same public HTTPS fixture now combines a GitHub row source and a DuckDB
+source in both Program acquisition orders. Each run reads its independent
+expected Join rows from the real retained Store, and resend and reopened-Host
+attach do not reacquire either provider. This is evidence for those installed
+source pairs and the shared two-input owner, not every provider combination,
+every Join variant, or exact/one-short physical limits for the row capture.
+The installed GitHub source also has a public retained-Store 100/101-row
+boundary: 100 rows publish exact ordered Named Results, while 101 reaches
+the typed `GitHubReadRowLimit`, publishes nothing, and a same-request resend
+does not fetch again. This proves the connector's total-row ceiling through
+the public route; it does not isolate the downstream row-capture ceiling,
+which is also 100 in this installation.
+The checked Program-to-RowAcquisition owner has a separate 2/1 capture-row
+boundary test: the same two-row page passes with capacity two and yields a
+capture, while capacity one gives typed `CaptureLimit` and cannot finish or
+expose a partial capture. This isolates the common capture owner but is not
+a public retained-Store 2/1 configuration test.
+For a row connector with multiple declared views, the two-installation Host
+now carries each view's source reference and read tuple into Check disclosure
+and pre-acquisition Checkpoint selection. The installed source still prepares
+the selected occurrence and physical target before any read. Focused adapter,
+Check, and Checkpoint tests cover this binding, including an unused declared
+view. The installed Salesforce adapter now uses the checked retained
+Host factory when output retention is configured. A public HTTPS fixture
+selects the non-first view from a two-view Salesforce declaration, reads
+independently expected producer and downstream consumer Named Results from
+the real retained Store, and observes `retained-file` for both outputs.
+Resend and reopened-Host attach do not issue another Salesforce query. This
+closes the selected multi-view capture route. A retained-mode provider error
+after the read starts publishes nothing and is not reread after resend or
+Host reopen. Cancellation at the captured-input handoff retains the source
+through stop and cleanup and publishes nothing. These tests do not establish
+two simultaneous Salesforce captures, a Store writer fault, or cancellation
+after positive Compute work.
+
 The installed full-family Host now declares TEA and VecA to the common checker,
 matching its already registered bounded providers. This does not make a
 checker declaration an execution offer: the exact selected task and its

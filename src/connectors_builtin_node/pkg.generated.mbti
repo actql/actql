@@ -698,7 +698,11 @@ pub fn client_program_install_model_provider(String, (@model_execution.ModelRequ
 
 pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
+pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
+
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
+
+pub fn client_program_installed_row_capture_capacity(@client_row_source_host.RowAcquisition) -> @client_local_host.ClientInstalledCaptureCapacity?
 
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
@@ -950,6 +954,8 @@ pub fn client_program_prepare_multi_captured_local_acquisition_ledger(@run_publi
 
 pub fn client_program_prepare_multi_captured_local_capacity_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_multi_captured_local_installed_ledger(@run_publication_host.PreparedClientProgram, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -1068,6 +1074,8 @@ pub fn client_program_row_source_capture_source(@client_row_source_host.RowSourc
 
 pub fn client_program_row_source_close(@client_row_source_host.RowRun) -> Unit
 
+pub fn client_program_row_source_close_accounted(@client_row_source_host.RowRun) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_columns(@client_row_source_host.RowAcquisition) -> Array[String]
 
 pub fn client_program_row_source_declaration_json(@client_row_source_host.RowDeclaration) -> String
@@ -1082,7 +1090,11 @@ pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDecl
 
 pub fn client_program_row_source_restore_declaration(String, String, String, String, String?) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
+pub fn client_program_row_source_retain_captured_task(@client_row_source_host.RowSourceCapture, @physical_strategy.CapturedDAG, Int) -> Result[Unit, @client_row_source_host.RowHostIssue]
+
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 

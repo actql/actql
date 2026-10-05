@@ -6590,6 +6590,42 @@ pub fn client_program_row_source_start(
 }
 
 ///|
+#export_name("clientProgramRowSourceStartAccounted")
+pub fn client_program_row_source_start_accounted(
+  acquisition : @client_row_source_host.RowAcquisition,
+  nonce : String,
+  verify : (@client_row_source_host.RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[
+  @client_row_source_host.RowRun,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.start_accounted_row_acquisition(
+    acquisition, nonce, verify, ledger, transfer_bytes, execution_scratch,
+  )
+}
+
+///|
+#export_name("clientProgramRowSourceRetainCapturedTask")
+pub fn client_program_row_source_retain_captured_task(
+  capture : @client_row_source_host.RowSourceCapture,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.retain_row_capture_task(capture, dag, task)
+}
+
+///|
+#export_name("clientProgramRowSourceCloseAccounted")
+pub fn client_program_row_source_close_accounted(
+  run : @client_row_source_host.RowRun,
+) -> Result[Unit, @client_row_source_host.RowHostIssue] {
+  @client_row_source_host.close_accounted_row_run(run)
+}
+
+///|
 #export_name("clientProgramRowSourceAttempt")
 pub fn client_program_row_source_attempt(
   run : @client_row_source_host.RowRun,

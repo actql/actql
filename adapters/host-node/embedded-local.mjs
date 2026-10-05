@@ -40,7 +40,8 @@ import {installedEffectIdentity, loadInstalledEffect,
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
-import {installedSourceIdentity, installedSourcePaths, loadInstalledSources, installedSourceFor,
+import {installedSourceIdentity, installedSourcePaths, loadInstalledSources,
+  installedSourceFor, installedSourceReadAccesses,
   publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
@@ -387,7 +388,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     publication: sourcePublication,
     sourceAccesses: (sourceProfile?.sources ??
       (sourceProfile === undefined ? [] : [sourceProfile]))
-      .map(source => source.sourceAccess)});
+      .flatMap(installedSourceReadAccesses)});
   // Checking dispatches nothing and reads no source rows; the audience is
   // the authenticated caller this connection admits.
   const check = async ({principalId: actual, connection, input, parameters,
@@ -408,8 +409,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         {...authorization, observe: diagnostic},
       ...(sourceProfile?.sources === undefined
         ? {source: sourceProfile?.readAuthorization}
-        : {sources: sourceProfile.sources.map(source => ({
-          sourceRef: source.sourceAccess.sourceRef, ...source.readAuthorization}))})});
+        : {sources: sourceProfile.sources.flatMap(source =>
+          installedSourceReadAccesses(source).map(access => ({
+            sourceRef: access.sourceRef, ...source.readAuthorization})))})});
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {

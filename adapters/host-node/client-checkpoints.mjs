@@ -116,8 +116,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
   }
+  // Two installed row declarations may each publish up to 64 views.
   if (sources !== undefined && (source !== undefined ||
-      !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+      !Array.isArray(sources) || sources.length < 1 || sources.length > 128 ||
       sources.some(item => typeof item?.sourceRef !== 'string' ||
         item.sourceRef.length === 0) ||
       new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
@@ -1849,4 +1850,3 @@ export async function installRemoteCheckpoints({root, namespaceId,
       {journal, store: evidence});
   }
 }
-

@@ -16,6 +16,7 @@ pub(all) enum RowHostIssue {
   Attempt(RowAttemptIssue)
   Consumer(@query.CapturedSourceIssue)
   SourceEvidence(RowSourceEvidenceIssue)
+  Physical(@resources.LedgerIssue)
   InvalidState
 }
 
@@ -306,11 +307,45 @@ pub fn row_acquisition_columns(value : RowAcquisition) -> Array[String] {
 }
 
 ///|
+/// The selected capture's canonical row-wire allowance. This is an upper
+/// bound for the simultaneously retained scan and output, not a heap estimate.
+pub fn row_acquisition_retained_capacity(value : RowAcquisition) -> Int64 {
+  value.configuration.limits.retention.retained_wire_bytes.to_int64()
+}
+
+///|
+/// The selected capture's bounded parse, residual and evidence allowance.
+pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
+  let limits = value.configuration.limits
+  (limits.retention.received_wire_bytes +
+  limits.retention.retained_wire_bytes +
+  limits.records.max_bytes +
+  limits.capture.max_bytes).to_int64()
+}
+
+///|
+pub fn row_acquisition_requirement(
+  value : RowAcquisition,
+) -> @planning.QueryRequirement {
+  value.preparation.requirement
+}
+
+///|
 struct RowRun {
   configuration : RowHostConfiguration
   issuer : RowIssuer
   attempt : RowAttempt
   mut closed : Bool
+  mut physical : RowPhysical?
+}
+
+///|
+priv struct RowPhysical {
+  ledger : @resources.Ledger
+  reservation : @resources.Reservation
+  execution_scratch : Int64
+  mut holding : @resources.Holding?
+  mut dag : (@strategy.CapturedDAG, Int)?
 }
 
 ///|
@@ -352,7 +387,52 @@ pub fn start_row_acquisition(
     issuer,
     attempt: { preparation, authority: { issuer, token, }, state: Pending, },
     closed: false,
+    physical: None,
   })
+}
+
+///|
+/// Reserve the checked row capture before the Site starts its read. The
+/// physical page bound is charged separately from the canonical row budget.
+pub fn start_accounted_row_acquisition(
+  value : RowAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[RowRun, RowHostIssue] {
+  if transfer_bytes < 0L ||
+    execution_scratch < 0L ||
+    execution_scratch >
+    9223372036854775807L - row_acquisition_execution_capacity(value) {
+    return Err(Physical(InvalidLimits))
+  }
+  let run = match start_row_acquisition(value, nonce, verify) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let reservation = match
+    @resources.reserve_attempt(
+      ledger,
+      transfer_bytes,
+      row_acquisition_retained_capacity(value),
+      row_acquisition_execution_capacity(value) + execution_scratch,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      close_row_run(run)
+      return Err(Physical(issue))
+    }
+  }
+  run.physical = Some({
+    ledger,
+    reservation,
+    execution_scratch,
+    holding: None,
+    dag: None,
+  })
+  Ok(run)
 }
 
 ///|
@@ -370,6 +450,10 @@ pub fn begin_row_run(
 ) -> Result[Unit, RowHostIssue] {
   if run.closed {
     return Err(InvalidState)
+  }
+  if run.physical is Some(physical) &&
+    max_page_bytes.to_int64() > physical.execution_scratch {
+    return Err(Physical(InvalidCharge))
   }
   let attempt = run.attempt
   guard attempt.state is Pending else { return Err(InvalidState) }
@@ -409,6 +493,20 @@ pub fn accept_row_run_page(
 ) -> Result[Int, RowHostIssue] {
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
+  }
+  if run.physical is Some(physical) {
+    match
+      @resources.charge_transfer(
+        physical.ledger,
+        physical.reservation,
+        bytes.length().to_int64(),
+      ) {
+      Ok(_) => ()
+      Err(issue) => {
+        abort_row_attempt(run.attempt)
+        return Err(Physical(issue))
+      }
+    }
   }
   match accept_row_source_page(read, bytes) {
     Ok(count) => Ok(count)
@@ -453,6 +551,31 @@ pub fn close_row_run(run : RowRun) -> Unit {
 }
 
 ///|
+/// Stop the accounted source first, then release only the resources still
+/// owned by this issuer. A transferred DAG allocation remains with its task.
+pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
+  guard run.physical is Some(physical) else { return Err(InvalidState) }
+  close_row_run(run)
+  if physical.dag is Some((dag, task)) {
+    @strategy.close_captured_task_output(dag, task)
+    @strategy.refresh_captured_retention(dag)
+  }
+  if physical.holding is Some(holding) {
+    match @resources.release_allocation(physical.ledger, holding) {
+      Ok(_) => physical.holding = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  if @resources.reservation_open(physical.reservation) {
+    match @resources.settle_reservation(physical.ledger, physical.reservation) {
+      Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
 /// One exact completed observation and its live captured source.
 struct RowSourceCapture {
   run : RowRun
@@ -470,10 +593,52 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  match row_captured_source(run.issuer, run.attempt, observation) {
-    Ok(source) => Ok({ run, observation, source, })
-    Err(issue) => Err(Consumer(issue))
+  let source = match row_captured_source(run.issuer, run.attempt, observation) {
+    Ok(value) => value
+    Err(issue) => return Err(Consumer(issue))
   }
+  if run.physical is Some(physical) {
+    let bytes = observation.records.retention.measured.retained_bytes.to_int64()
+    let holding = match
+      @resources.retain_allocation(physical.ledger, physical.reservation, bytes) {
+      Ok(value) => value
+      Err(issue) => return Err(Physical(issue))
+    }
+    physical.holding = Some(holding)
+    match @resources.settle_reservation(physical.ledger, physical.reservation) {
+      Ok(_) => ()
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok({ run, observation, source, })
+}
+
+///|
+/// Transfer the exact captured input and allocation to its checked task.
+pub fn retain_row_capture_task(
+  capture : RowSourceCapture,
+  dag : @strategy.CapturedDAG,
+  task : Int,
+) -> Result[Unit, RowHostIssue] {
+  let run = capture.run
+  guard !run.closed &&
+    run.physical is Some(physical) &&
+    physical.holding is Some(holding) &&
+    physical.dag is None &&
+    physical_equal(physical.ledger, @strategy.captured_dag_ledger(dag)) &&
+    @strategy.captured_task_source_matches(dag, task, capture.source) else {
+    return Err(Physical(ForeignOwner))
+  }
+  match
+    @strategy.retain_captured_task_allocation(dag, task, holding, release_confirmed=fn() {
+      run.closed
+    }) {
+    Ok(_) => ()
+    Err(issue) => return Err(Physical(issue))
+  }
+  physical.dag = Some((dag, task))
+  physical.holding = None
+  Ok(())
 }
 
 ///|
