@@ -5,6 +5,7 @@
 ///|
 fn acquisition_runtime_transfer_consumer(
   materials : @host.ClientRunMaterials,
+  admission : @resident.ResidentRunAdmission,
   configuration : @resident.ResidentSourceComputeConfiguration,
   compilation : @host.ClientTaskCompilation,
   caller : @host.ClientRequestIdentity,
@@ -23,6 +24,7 @@ fn acquisition_runtime_transfer_consumer(
   consumer_start_expiry? : Bool = false,
   producer_cleanup_at_handoff? : Bool = false,
   cleanup_after_preparation? : Bool = false,
+  cancel_producer_before_handoff? : Bool = false,
 ) -> Unit raise {
   let facts = producer_runtime
     .inspect_output_facts(producer_dispatch, material_id)
@@ -37,8 +39,8 @@ fn acquisition_runtime_transfer_consumer(
     transfer_attempt: "actual-runtime-transfer",
     transfer_max_bytes: physical.referenced_bytes,
     transfer_expires_unix_ms: 4102444800000L,
-    source_grant_cid: selected.evidence_issuer_capability_cid,
-    destination_grant_cid: selected.grant_cid,
+    source_grant_cid: retained_compute_cid("7"),
+    destination_grant_cid: retained_compute_cid("8"),
     route_capability_cid: retained_compute_cid("6"),
   }).unwrap()
   let envelope = @remote.remote_poll_retained_input_plan_json(intent).unwrap()
@@ -49,14 +51,37 @@ fn acquisition_runtime_transfer_consumer(
   assert_false(@remote.remote_poll_operation_is_output_plan(operation))
   assert_false(@remote.remote_poll_operation_is_output(operation))
   let intent = @remote.remote_poll_retained_input_intent(poll)
+  let context = @resident.prepare_resident_retained_producer_context(
+    producer_journal, admission, intent, "2026-10-05T00:00:00.000Z",
+  ).unwrap()
+  let local_delegation : @resident_protocol.ResidentRetainedInputDelegation = {
+    dispatch: {
+      coordinator_authority: retained_compute_cid("c"),
+      site_key: selected.site_key,
+      runtime_bundle_cid: selected.runtime_bundle_cid,
+      connector_registration: selected.connector_registration,
+      connector_revision: selected.connector_revision,
+      strategy_revision: selected.strategy_revision,
+      grant_cid: selected.grant_cid,
+      evidence_issuer_capability_cid: selected.evidence_issuer_capability_cid,
+      budget_cids: [selected.budget_cid],
+    },
+    source_grant_cid: retained_compute_cid("7"),
+    destination_grant_cid: retained_compute_cid("8"),
+    route_capability_cid: retained_compute_cid("6"),
+  }
   let planner_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
     () => 1791158400000L,
     (_, request) => {
-      @transfer.request_projection(request)[10] ==
-      selected.evidence_issuer_capability_cid &&
-      @transfer.request_projection(request)[11] == selected.grant_cid
+      @resident.resident_retained_producer_authorized(
+        context,
+        local_delegation,
+        request,
+        @site.site_generation(site),
+        "2026-10-05T00:00:00.000Z",
+      )
     },
   )
   let before_plan = @site.site_status(site)
@@ -111,7 +136,11 @@ fn acquisition_runtime_transfer_consumer(
     is Err(@resident.Input(@host.TransferExpired)),
   )
   let plan = @resident.plan_resident_retained_input_transfer(
-    producer_runtime, producer, intent, planner_current, site,
+    producer_runtime,
+    @resident.resident_retained_producer(context),
+    intent,
+    planner_current,
+    site,
   ).unwrap()
   let restored_plan = @remote.admit_remote_retained_input_plan_json(
     @remote.remote_retained_input_plan_json(plan),
@@ -159,6 +188,24 @@ fn acquisition_runtime_transfer_consumer(
     is Err(@remote.InvalidDispatch),
   )
   assert_eq(@site.site_status(site)[6], before_plan[6])
+  assert_false(
+    @resident.resident_retained_producer_authorized(
+      context,
+      { ..local_delegation, source_grant_cid: retained_compute_cid("0"), },
+      request,
+      @site.site_generation(site),
+      "2026-10-05T00:00:00.000Z",
+    ),
+  )
+  assert_false(
+    @resident.resident_retained_producer_authorized(
+      context,
+      local_delegation,
+      request,
+      @site.site_generation(site),
+      "2100-01-01T00:00:00.000Z",
+    ),
+  )
   let root = @filesystem.open_root(root_path).unwrap()
   let path = root_path + "/" + name + ".actual-transfer.sqlite"
   let destination_journal = @journal.open_journal(
@@ -174,6 +221,15 @@ fn acquisition_runtime_transfer_consumer(
     () => retained_compute_cid("c"),
     () => 1791158400000L,
     (_, _) => {
+      // Observe delegation first, then inject an actual concurrent producer
+      // release before returning that earlier authorization observation.
+      let delegated = @resident.resident_retained_producer_authorized(
+        context,
+        local_delegation,
+        request,
+        @site.site_generation(site),
+        "2026-10-05T00:00:00.000Z",
+      )
       if cleanup_now.val {
         cleanup_now.val = false
         cleanup_confirmed.val = producer_runtime
@@ -181,6 +237,7 @@ fn acquisition_runtime_transfer_consumer(
           .unwrap()
       }
       authorized.val &&
+      delegated &&
       (
         !deny_after_admission ||
         destination_journal.require(request)
@@ -233,6 +290,27 @@ fn acquisition_runtime_transfer_consumer(
   }
   let transfer = prepared_transfer.unwrap()
   let before = @site.site_status(site)
+  if cancel_producer_before_handoff {
+    producer_journal.request_cancellation(producer_dispatch).unwrap() |> ignore
+    assert_true(
+      producer_journal.cancellation_requested(producer_dispatch).unwrap(),
+    )
+    assert_true(
+      transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    // The cancellation request withholds movement. It does not rewrite the
+    // completed producer as unexecuted or release its original holding.
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_true(destination_journal.close())
+    return
+  }
   authorized.val = false
   assert_true(
     transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),

@@ -320,3 +320,31 @@ or borrow. Physical progress, pending chunks, exact receipt and capacity remain
 with the existing Direct Transfer journal and Site holding owner. Cleanup of an
 already acquired receiver duty is still possible after producer release or
 authorization expiry, and only its confirmed cleanup returns that reservation.
+
+The resident control process relays an internal planning envelope only to the
+live holder of that exact original producer dispatch. The holder rebuilds the
+original admitted Run from its saved Site-journal envelope and selects the
+checked producer using the durable completion evidence and managed subject.
+This reconstruction creates no reader, reservation or borrow. Missing envelope,
+foreign checked edge or absent completion evidence is a refusal, not permission
+to reacquire the Source.
+
+Local internal movement requires three explicit delegated identities:
+`--retained-source-grant-cid`, `--retained-destination-grant-cid` and
+`--retained-route-capability-cid`. All three must be configured together. The
+execution grant and evidence issuer are not substitutes for these roles. The
+holder rechecks the configured dispatch authority and live Site generation,
+Run lifetime, original intent and fresh producer journal before handoff.
+A durable cancellation request withholds movement; it is neither a cancellation
+terminal nor proof of physical stop or cleanup. A failed journal read withholds
+movement while retaining existing resource responsibilities.
+
+The plan is reported as its exact canonical body through the existing
+authenticated observation transport. Its HTTP acknowledgement is neither a
+receiver commit nor a consumer execution claim. Coordinator persistence and
+current authorization remain required before physical handoff; the local
+delegation cannot replace the Cloud grant Owner or its revision fence. A
+reported plan alone does not publish a Result or release either task.
+
+Native callers without this installed checked producer planning port reject
+the operation explicitly and retain the producer responsibility.
