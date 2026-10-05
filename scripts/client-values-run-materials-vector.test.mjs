@@ -447,8 +447,18 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('6eadd94b7226575a88196089cb8a63fe54e0a01630d1dfbf7252806f3474d36e'),
     cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('205f8330784cae5c7af4cde8f6269e947b46d1f679ed1653512f3e8ef6b7d829'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(pin('f2bfb4752851d8bf2d92ccb6a239800ffa662d49a60903f6bc9aee7247f8bfad'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('d5bd82839e01d0e9866db382b248ce9ed02d24a83dc17f1165403bac604fa5c2'));
+  // Preserve each Graph feature parent's complete grammar-bound Run vector.
+  assert.equal(vector(pin('064c917539e8fdbf2e0de59a9cfd553e9d645623a56d39ea710f6e2e348193c2'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('012fc2e9a94494173838836f5347a3d2e2aa1cd87d8f3da01a8410ce7cd32a9d'));
+  assert.equal(vector(pin('2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
+    pin('975bce1f654d8967d1f28f3370e3a89cf27c40745749f99d5bebca82bc5d7e15'));
+  assert.equal(current.run.run_definition_cid,
+    pin('51ecc5fb9c556efbca40505459a5432303d0bc368879a6859bda4098d38b9166'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

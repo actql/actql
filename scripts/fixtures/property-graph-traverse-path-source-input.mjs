@@ -66,6 +66,11 @@ const source = 'DATA n = SELECT 1 AS node_key; ' +
   'EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES, ' +
   'f AS F KEY (edge_key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
 const seeds = 'DATA seeds = FROM g |> node_rows() |> SELECT id AS element; ';
+// The union must execute the actual shared boundary, not merely its two
+// component corpora. Match returns the same admitted identity to the existing
+// Relation selector; neither the match nor traversal changes the Graph domain.
+const matchedSeeds = seeds.replace('node_rows()',
+  "match_nodes(definition: 'N', bindings: {identity: 'id'}, where: {literal: true}, fields: ['id'])");
 const call = (mode = 'trail', minimum = 2, maximum = 2) =>
   "traverse(start: {from: seeds, id: 'element'}, direction: 'out', min_hops: " + minimum +
   ', max_hops: ' + maximum + ", path_mode: '" + mode + "', emit: 'paths', max_output_rows: 10)";
@@ -88,6 +93,9 @@ const control = JSON.stringify({version: 'actql/0.1', id: 'fixture.traverse_path
 export const graphTraversePathSuccesses = [
   {name: 'graph-traverse-paths-json-control', format: 'json', text: control,
     results: results(jsonDomain, trail), sourceReadCount: 0},
+  {name: 'graph-traverse-paths-named-match-selector', format: 'aql-text',
+    text: source + matchedSeeds + 'FROM g |> ' + call() + tail,
+    results: results(sourceDomain, trail), sourceReadCount: 0},
   ...[['walk', 2, walk], ['trail', 2, trail], ['acyclic', 0, [[]]], ['acyclic', 1, []]]
     .map(([mode, minimum, sequences]) => ({
       name: 'graph-traverse-paths-' + mode + '-' + minimum, format: 'aql-text',
@@ -125,3 +133,8 @@ for (const name of ['depth', 'node_id']) graphTraversePathRefusals.push({
   name: 'graph-traverse-paths-node-field-' + name, format: 'aql-text',
   text: source + seeds + 'FROM g |> ' + call() + ' |> SELECT ' + name + ' |> RESULT paths',
 });
+graphTraversePathRefusals.push(...[
+  ['matched-missing-selector-column', call().replace("id: 'element'", "id: 'missing'") + tail],
+  ['matched-node-only-output', call() + ' |> SELECT depth |> RESULT paths'],
+].map(([name, suffix]) => ({name: 'graph-traverse-paths-' + name,
+  format: 'aql-text', text: source + matchedSeeds + 'FROM g |> ' + suffix})));
