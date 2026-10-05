@@ -1,5 +1,10 @@
 # Native calibrated selection performance
 
+Current conclusion: actual planner/Owner and independent acceptance are
+connected; Native execution-performance improvement remains unestablished.
+The source-open experiment below retains its inconclusive result. #507 stays
+Draft and #170 is not complete.
+
 G owns this second performance unit. The dependency #493, fixed at
 `7b48ed3140b05c906c6c5f875712bc4bd81f3dfd`, was merged into main as
 `5d52b3a970984f3cdad554b9030a0c25fa8ac887`. The final target and PR base are main.
@@ -55,24 +60,104 @@ identify a next change rather than accepting another timing-only observation.
 
 ## Files and ownership
 
-Changes stay in the Native benchmark profile, calibration, pair/admission and
-timing scripts and their tests/documentation. Planned additional files are a
-bounded one-case Native selection comparison runner and its assessment. Native
+Changes stay in the Native benchmark probe, profile, calibration, pair/admission
+and timing scripts and their tests/documentation. The source-open experiment
+changes the probe's acquisition configuration, not the production Owner. Native
 Owner, Ledger, cancellation, Model/Effect values, expression work and CI job
 selection are unchanged. Relevant benchmark overlap should be reconciled at the
 specific function, not by a second selector or Owner.
 
-The new worktree borrows main's root and DuckDB adapter `node_modules` and pinned
-`.toolchains`. Its Native probe is an owned byte-for-byte copy of #493's verified
+The worktree borrows main's root and DuckDB adapter `node_modules` and pinned
+`.toolchains`. Earlier experiments used an owned copy of #493's verified
 release artifact, digest
 `sha256:eb6ba72cab3d04a337bfa8573de9ba3bb702223e3931d392e86591a6ed7dde5f`.
-Native compile inputs must remain unchanged from that source revision. Required
-JS comparator modules will be built only for the selected consumer boundary.
+Those experiments required unchanged Native compile inputs. The source-open
+experiment below instead builds the selected Native probe and required JS
+comparator modules at its own fixed source. The old Native binary remains at
+`_build/repro/native-probe-7b48ed314.exe`.
 No full Core, packed or performance matrix is needed for this one-case unit.
 
 The larger Native/Broad public acceptance, physical-memory bounds and #412's
 actual isolated-image mutations/restoration/final-consumer acceptance remain
 separate. Observation or profile admission alone does not complete #170.
+
+## Current-main source-open experiment: no improvement
+
+Normal main integration `bbcb79e88fe3a356a61db2b0ce256e785f9fe777` retains
+main parent `64046e37a1cadb2148edeab7cbf85b96d125b518` and all existing
+declarations. Actual retained-history validation passed (`run-ibocV1`).
+D/H/A's cancellation, values, Ledger and bounded-execution changes are not
+duplicated.
+
+Clean experiment source: `f8c6876389430490cdfd09c3e576d77c6d227d06`.
+The selected Native release build (`run-ZiLwqt`) produced 12,405,152 bytes,
+`sha256:18c389007dcdd78638895b9b3d6a88c36783a342c8a1667ffe8a8c849a5a9830`.
+Seven required JS modules were rebuilt (`run-qNI2kG`), combined digest
+`e779e2a5c747cc3f7d821adcf2bce9c38c15b0732ba6c9171c51f4d3725b4b88`.
+The earlier Native build failed at the added mode-print expression; failed
+`run-jdiE5v` is retained separately from the corrected successful build.
+
+The immutable acquisition database previously opened read-write. The existing
+`open_native_read_only_source_acquisition` establishes its read-only contract.
+The probe now defaults to read-only and exposes the prior mode as an explicit
+bounded comparison control. Capture still precedes source-connection close;
+fresh/resident Compute databases and Owner/cleanup are unchanged. This aligns
+the acquisition access mode, **not a demonstrated speedup** or public API change.
+
+Calibration (`run-fq6iYK`): three training rounds plus held-out selection;
+Local `[1,1,1]`, fresh `[6,5,5]`, resident `[2,1,2]` ms, preparation/cleanup
+`4/1` ms, imports `[1,1,Unknown,Unknown]`. Ordinary selection was all Local.
+Initial acquisition-open preparation is outside these matched Compute rates.
+
+Seven fixed alternating pairs (`run-IxVmLs`) used one binary, qualified profile,
+immutable source and unchanged limits. All fourteen legs passed independent
+equivalent-obligation admission. Exact holdings, work, usage, attempt mapping,
+intermediate reservations and actual candidate/choice/explanation observations
+matched across controls. Both original applicable warm/cold comparator gates
+passed. Source SHA-256:
+`6f7a6da0ec42ac80a2aae1d086f953a8d378702e75985487ad56153e77e61ff1`.
+
+| Read-only minus prior read-write | Mean | 95% paired interval |
+| --- | ---: | ---: |
+| Complete Native cycle plus qualification | +2.600 ms | -4.472 to +12.183 ms |
+| Database-start to acquisition-start | +0.929 ms | -0.359 to +3.063 ms |
+| Native execution through completion | +2.659 ms | -2.876 to +10.774 ms |
+| Within-Run warm interval | +0.163 ms | -0.011 to +0.382 ms |
+| Physical cleanup | -0.035 ms | -0.131 to +0.030 ms |
+| Entire benchmark pair | -1.785 ms | -22.736 to +17.349 ms |
+
+Every verdict is indeterminate. Source preparation: 173.181 ms; offline
+calibration: 3,490.533 ms. Qualification/full-byte hashes/observation remain
+charged. All samples, including the slower final after leg, remain included;
+its cause is unestablished. Each process is new; OS-cache coldness is uncontrolled.
+
+The existing calibrated release pair passed (`run-gw5Lkx`). Bounded Node-host
+Native/Broad acceptance passed **1/1** via the official nonzero wrapper
+(`run-S5WCtG`, `focused-test-PUslqC`). The earlier direct `test-execution.mjs`
+helper invocation executed no tests and is excluded from acceptance. Changed
+observation/statistical checks passed **27/27** on the precommit working diff
+(`run-J34Rvf`); those blobs match the experiment source. No full Core, packed,
+all-target or performance matrix was run.
+
+Protected local originals:
+
+- `_build/repro/calibration-f8c687638.json`: 2,483,571 bytes,
+  `sha256:9731ea6fe95d9d434184e52058f7d866ae560d452a23e8e80daaf62b55b88a1f`.
+- `_build/repro/source-open-comparison-f8c687638.json`: 2,933,344 bytes,
+  `sha256:23a6c1e5c358fd8108b57cff6517dab298876125212719a1f1d586cd0f4b335a`.
+- `_build/repro/artifacts-f8c687638.json` binds toolchain, commands, receipts,
+  main/source/binary identities and preserved `native-probe-f8c687638.exe`.
+
+Controllers: `native-resident-estimate-calibration.mjs <profile-output>` then
+`run-native-source-open-comparison.mjs <profile> <comparison-output>`, through
+the bounded local guard, from the fixed source. A different candidate needs
+its own calibration; never retag the original profile. Documentation-only
+integration does not justify a new campaign.
+
+Next: separate actual file-read/UTF-8 assembly from portable contract admission
+within application construction. The growing per-byte array in the existing
+bounded reader is a candidate, not yet a measured Native root cause. Preserve
+generation checks, reader finish/close, value bytes, work/quantum and limits.
 
 ## First measured result: improvement not established
 
