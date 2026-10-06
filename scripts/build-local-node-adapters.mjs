@@ -2,6 +2,7 @@ import {mkdirSync, readFileSync, readdirSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {buildSync} from 'esbuild';
+import {rewriteLocalNodePackageImports} from './local-node-package-imports.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const destination = join(root, 'packages/local-node');
@@ -37,24 +38,12 @@ if (sourcePaths.length < entries.length ||
     entries.some(path => !sourcePaths.includes(path))) {
   throw new Error('IncompleteLocalNodeAdapterGraph');
 }
-const replacements = new Map([
-  ["'../../packages/client-wire/index.mjs'", "'@actql/client-wire'"],
-  ["'../../packages/sdk/index.mjs'", "'@actql/sdk'"],
-  ["'../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'"],
-  ["'../../packages/run-host-core/index.mjs'", "'@actql/run-host-core'"],
-]);
 const expected = new Set();
 for (const path of sourcePaths) {
   const output = join(destination, path);
   let bytes = readFileSync(join(root, path));
   if (path.endsWith('.mjs')) {
-    let code = bytes.toString('utf8');
-    for (const [source, target] of replacements) {
-      code = code.replaceAll(source, target);
-    }
-    if (code.includes("'../../packages/")) {
-      throw new Error(`UnpackagedLocalNodeImport:${path}`);
-    }
+    const code = rewriteLocalNodePackageImports(bytes.toString('utf8'), path);
     bytes = Buffer.from(code);
   }
   expected.add(path);

@@ -56,6 +56,25 @@ unverified until the clean-HEAD normal-pack producer and this consumer complete.
 The submitted PR body records the actual fixed SHA, package manifests, receipt
 and result; syntax/checker success alone is not execution evidence.
 
+## Installed-package blocker
+
+The first normal-pack acceptance at `bd7e3080a501c8dab4b977d09eb8635cb8ea4acd`
+stopped during the installed-package audit, before either transport ran source
+cases. A main adapter imports the exact-value SDK export from four directories
+above it. The old packaging copier only rewrites the two-directory spelling,
+leaving a checkout-relative import in the tarball. Receipt
+`public-query-evidence-LOA6RD` records the unresolved
+`../../../../packages/sdk/host-port.mjs` import; it is not statistics execution
+failure or acceptance success.
+
+The isolated packaging repair applies the existing export allowlist at any
+adapter nesting depth, preserves quote style and rejects unknown package paths.
+A regression uses the actual nested Salesforce source and verifies that only
+the import spelling changes. No Salesforce/Effect value logic, common owner,
+SDK export or package dependency is changed. The focused Node selection with
+this regression passed 13/13 (`run-ztPiFy`). The next clean-HEAD pack must prove
+the actual installed-package graph and public source execution together.
+
 ## Identity and remaining scope
 
 Only the query text rules change the grammar manifest:
