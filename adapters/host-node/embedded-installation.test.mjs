@@ -21,6 +21,7 @@ import './public-set-value-retention.test.mjs';
 import './public-distinct-value-retention.test.mjs';
 import './public-expression-comparison-retention.test.mjs';
 import './public-text-functions.test.mjs';
+import './public-aggregate-filter-reuse.test.mjs';
 import './public-pool-key-retention.test.mjs';
 import './public-vector-record-retention.test.mjs';
 import './public-nearest-key-retention.test.mjs';
