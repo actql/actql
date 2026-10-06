@@ -23,13 +23,16 @@ fn emission_start(
   control : @bounded.Control,
   slots : Int,
   work : Int,
+  clock? : String = "occurred_at",
 ) -> (EmissionFixture, @records.ProducerRead) {
   let owner = match kind {
     0 => watermark_owner(producer, "mark")
     1 => event_window_owner(producer, "{\"kind\":\"fixed\",\"size\":10}")
     2 =>
       dedupe_owner(
-        producer, "[\"event_id\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
+        producer,
+        "[\"event_id\"]",
+        "[{\"field\":\"" + clock + "\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
       )
     _ => session_owner(producer, "[\"event_id\"]")
   }
@@ -196,13 +199,14 @@ test "Events record emission keeps independent control and workspace limits" {
   // Watermark: 7 outer + 46 + 9 = 62. Fixed window: 13 + 40 + 9 = 62.
   // Dedupe: 31 + 28 + 9 = 68. Session: 44 + 46 + 9 = 99.
   // Cursor 16+3*width+identities+3*depth, caller scratch, next row coexist.
-  // Peaks: 65+7+8=80; 62+10+7=79; 56+9+5=70; 65+17+8=90.
+  // Name position adds one reserved slot to each caller's emission scratch.
+  // Peaks: 65+8+8=81; 62+11+7=80; 56+10+5=71; 65+18+8=91.
   for
     (kind, work, slots, logical) in [
-      (0, 62, 80, 28),
-      (1, 62, 79, 24),
-      (2, 68, 70, 16),
-      (3, 99, 90, 28),
+      (0, 62, 81, 28),
+      (1, 62, 80, 24),
+      (2, 68, 71, 16),
+      (3, 99, 91, 28),
     ] {
     let producer = producer_owner(false)
     let source = emission_source(producer)

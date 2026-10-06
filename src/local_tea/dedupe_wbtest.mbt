@@ -110,9 +110,9 @@ test "event dedupe view retains exact work and workspace boundaries" {
   )
   for
     (work, workspace, accepted) in [
-      (59, 70, true),
-      (58, 70, false),
-      (59, 69, false),
+      (59, 71, true),
+      (58, 71, false),
+      (59, 70, false),
     ] {
     let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
     let execution = start_dedupe_view(
@@ -142,7 +142,7 @@ test "event dedupe view retains exact work and workspace boundaries" {
           }
           DedupeFailed(DedupeWorkspaceLimit, ..) => {
             assert_false(accepted)
-            assert_eq(workspace, 69)
+            assert_eq(workspace, 70)
             terminal = true
           }
           _ => fail("unexpected dedupe view result")
@@ -316,7 +316,7 @@ test "event dedupe admits scratch before allocation and observes cancellation" {
       sequence(owner),
       0,
       too_small,
-      limits(workspace=19),
+      limits(workspace=20),
       4096L,
       fn() { true },
     )
@@ -330,7 +330,7 @@ test "event dedupe admits scratch before allocation and observes cancellation" {
     sequence(owner),
     0,
     input,
-    limits(workspace=20),
+    limits(workspace=21),
     4096L,
     fn() { true },
   ).unwrap()
@@ -366,7 +366,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
       sequence(owner),
       0,
       read,
-      limits(workspace=40, max_input_records=7),
+      limits(workspace=41, max_input_records=7),
       4096L,
       fn() { true },
     )
@@ -378,7 +378,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
     sequence(owner),
     0,
     read,
-    limits(workspace=40),
+    limits(workspace=41),
     4096L,
     fn() { true },
   ).unwrap()
@@ -414,7 +414,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
     sequence(owner),
     0,
     stopped_read,
-    limits(workspace=40),
+    limits(workspace=41),
     4096L,
     fn() { true },
   ).unwrap()
@@ -501,8 +501,8 @@ test "event dedupe admits exact and one-short output workspace" {
   )
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Five sorting slots + three borrowed fields + append handle = nine.
-  // Cursor 16+3*3+1+3*10=56, next retained row five: peak 70.
-  for (workspace, accepted) in [(70, true), (69, false)] {
+  // Cursor 56, next row five, caller nine, name position one: peak 71.
+  for (workspace, accepted) in [(71, true), (70, false)] {
     let execution = start_dedupe(
       @bounded.control(),
       sequence(owner),

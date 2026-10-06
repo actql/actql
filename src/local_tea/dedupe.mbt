@@ -45,6 +45,7 @@ priv struct DedupeState {
   mut record : Int
   mut field : Int
   mut term : Int
+  mut name_offset : Int
   mut current : (@schema.FieldName, @value.CheckedValue)?
   mut cells : Array[@value.CheckedValue?]
   mut source_order : Array[Int]
@@ -317,6 +318,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
       }
       state.current = Some(value)
       state.term = 0
+      state.name_offset = 0
       state.phase = LoadTerm
       Ok(())
     }
@@ -325,7 +327,10 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
         dedupe_term_name(state, state.term) is Some(expected) else {
         return Err(InvalidDedupeRecord(state.record))
       }
-      if @schema.reference_name(name) == @schema.reference_name(expected) {
+      let (equal, next) = event_name_equal(name, expected, state.name_offset)
+      state.name_offset = next
+      guard equal is Some(equal) else { return Ok(()) }
+      if equal {
         state.cells[state.record * state.terms + state.term] = Some(value)
       }
       state.term += 1
@@ -701,6 +706,7 @@ fn cleanup_dedupe_state(state : DedupeState) -> Bool {
     state.output = None
   }
   state.current = None
+  state.name_offset = 0
   state.cells = []
   state.source_order = []
   state.target_order = []
@@ -744,7 +750,8 @@ fn start_dedupe_source(
   guard dedupe_checked_add(keys, order) is Some(terms) &&
     terms > 0 &&
     dedupe_checked_multiply(records, terms) is Some(cell_count) &&
-    dedupe_scratch(records, terms) is Some(scratch_slots) else {
+    dedupe_scratch(records, terms) is Some(base_scratch) &&
+    dedupe_checked_add(base_scratch, 1) is Some(scratch_slots) else {
     return Err(DedupeWorkspaceLimit)
   }
   if scratch_slots > limits.max_workspace_slots {
@@ -777,6 +784,7 @@ fn start_dedupe_source(
     record: 0,
     field: 0,
     term: 0,
+    name_offset: 0,
     current: None,
     cells: [],
     source_order: [],
