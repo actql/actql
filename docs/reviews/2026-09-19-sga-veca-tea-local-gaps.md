@@ -5882,9 +5882,10 @@ The Relation Pool fixture fixes control 313/312 and workspace 55/54. Ordinary
 installed Host evidence uses real retained output, three explicit Named Results,
 request reuse, and cancellation inside the name at poll 256 before collection.
 
-Runtime JSON name validation regains the synchronous owner's NFC/LF refusal,
-but its long-name normalization is still synchronous. This closes declared
-Object matching/byte scans, not every name/Map/schema boundary. Legacy drains,
+Opaque JSON member names retain exact data spelling in both recheck paths;
+declared Object identifiers still require canonical admission. Long opaque
+JSON name scanning remains synchronous. This closes declared Object
+matching/byte scans, not every name/Map/schema boundary. Legacy drains,
 runtime buffer assembly, whole-Run physical accounting and unexecuted
 target/packed campaigns remain distinct. See the
 [Object-name evidence](2026-10-06-local-object-name-rechecks.md).

@@ -101,7 +101,7 @@ node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
 
 ## Remaining obligations
 
-Long runtime JSON identifier normalization, Carrier field/schema lookup and Map
+Long opaque JSON member-name scanning, Carrier field/schema lookup and Map
 hashing, legacy synchronous drains, runtime buffer assembly and aggregate
 intermediate-byte custody remain separate boundaries. This unit is not a
 whole-Run physical Ledger/latency proof or full retained-path completion.

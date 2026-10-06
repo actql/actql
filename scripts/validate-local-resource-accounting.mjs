@@ -1378,7 +1378,7 @@ export function validateResourceAccounting({
         'pool_record_contract_pair_limits', 'pool_record_contract_binding',
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
         'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
-        'pool_object_name_shared_limits', 'pool_json_name_canonical_refusal']) {
+        'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('pool_output_public_store')) {

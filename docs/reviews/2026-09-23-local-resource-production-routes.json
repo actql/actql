@@ -10204,11 +10204,11 @@
           "fixture": "typed Object name recheck steps before visiting the child"
         },
         {
-          "role": "pool_json_name_canonical_refusal",
+          "role": "pool_object_identifier_json_data_separation",
           "suite": "moon:value_admission",
           "targets": ["js", "wasm", "native"],
           "path": "src/value_admission/recheck_object_names_wbtest.mbt",
-          "fixture": "runtime JSON names retain the canonical identifier refusal"
+          "fixture": "Object identifier refusal stays separate from opaque JSON member data"
         },
         {
           "role": "pool_output_record_limits",
