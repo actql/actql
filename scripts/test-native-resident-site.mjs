@@ -886,12 +886,23 @@ try {
       const producerDispatch = dispatchFor('retained-producer', 1);
       await ensureOutputReceiver(producerDispatch);
       let cancellationRequested = false;
+      const rootRequest = runHost.prepareTaskRequest(retainedPrepared,
+        retainedCompilation, coordinatorAuthority, 'retained-request');
+      const prepareTaskStart = (dispatch, task) => runHost.prepareTaskPhysicalStart(
+        retainedPrepared, retainedCompilation, retainedAdmission, retainedDefinition,
+        coordinatorAuthority, [...retainedCoordinatorRecords.values()].map(value => value.wire),
+        rootRequest, rootRequest, {taskKey: runHost.taskKeys(retainedPrepared, retainedCompilation)[task],
+          dispatchCid: siteControl.identity(dispatch), definitionCid: definition.identity,
+          reserved: true, unstarted: true, authorized: true,
+          cancelled: cancellationRequested, failed: false});
       const inspectProgress = () => runHost.projectTaskSiteRun(retainedPrepared,
         retainedCompilation, retainedAdmission, retainedDefinition, coordinatorAuthority,
         [...retainedCoordinatorRecords.values()].map(value => value.wire),
         new Date().toISOString(), cancellationRequested);
       assert.equal(inspectProgress().nextTask, undefined,
         'persisted producer intent cannot be selected for another start');
+      assert.equal(prepareTaskStart(producerDispatch, 0), true,
+        'checked producer start precedes the real Site exclusive claim');
       await within(gateway.dispatch({dispatch: producerDispatch, inputBindingBody: bindingBody,
         dispatchEnvelope: materialsEnvelope(producerDispatch)}), 'retained producer');
       await settledQuery(producerDispatch, 'retained producer');
@@ -1028,6 +1039,8 @@ try {
       let resultCid;
       if (retainedCancelBeforeConsumer) {
         cancellationRequested = true;
+        assert.equal(prepareTaskStart(consumerDispatch, 1), false,
+          'the same checked start Owner applies the cancellation fence');
         const cancelled = await within(gateway.cancel({dispatch: consumerDispatch}),
           'cancel retained consumer before handout');
         assert.deepEqual(cancelled.state, [5, 0, 2, 0, 0]);
@@ -1047,6 +1060,8 @@ try {
         assert.equal(inspectProgress().executionComplete, false);
         assert.equal(inspectProgress().nextTask, undefined);
       } else {
+        assert.equal(prepareTaskStart(consumerDispatch, 1), true,
+          'checked dependency proof admits only the saved consumer intent');
         await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
           dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
         const terminal = await settledQuery(consumerDispatch, 'retained consumer');
@@ -1125,6 +1140,7 @@ try {
         pendingIntents: 0, siteCapacity: capacity,
         coordinatorReconstructed: retainedCoordinatorReconstruction,
         checkedRunProjection: true,
+        checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
         producerHolderRecreated: false,

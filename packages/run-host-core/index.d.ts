@@ -882,6 +882,15 @@ export function projectTaskSiteRun(prepared: PreparedProgram,
       nextWork: 'none' | 'cleanup' | 'publication' | 'reconcile' | 'cancel' | 'release'}>[];
   }>;
 
+/** Prepares eligibility only. Atomically persist the task claim in the existing
+ * Run/cancellation CAS domain before sending; this grants no input custody. */
+export function prepareTaskPhysicalStart(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission, definition: RunDefinition,
+  authority: string, durableWires: readonly string[], requested: RequestIdentity,
+  retained: RequestIdentity, claim: Readonly<{taskKey: string; dispatchCid: string;
+    definitionCid: string; reserved: boolean; unstarted: boolean;
+    authorized: boolean; cancelled: boolean; failed: boolean}>): boolean;
+
 /** Authenticated storage is supplied by the Host; this grants no execution. */
 export function projectSiteRun(prepared: PreparedProgram,
   compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
