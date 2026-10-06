@@ -76,3 +76,37 @@ preparation retains its directory and CID custody for diagnosis; if the outer
 supervisor itself is killed, inspect that custody and the exact owner before
 manually removing anything. Preserve logs/manifests/receipts before discarding
 reproducible image-context bytes.
+
+## Fixed local result
+
+At clean `fc2962f43431e5c4c86cb47970251aa4c7c7f98c`, the command above passed
+all 13 original mutations, each with one executed assertion failure, restored the
+original source bytes and passed the shared scientific consumer. The bounded
+receipt is `run-pdtqf3`. The immutable image was
+`sha256:77517c7d1d58cb71eedd75358a9da6e8b470eeb49b8e030314b1509d93a6c2a7`.
+All four installed core metadata paths were absent from its actual inventory.
+Owner-authenticated container/image cleanup also completed.
+
+The original unmodified acceptance JSON is retained in
+[evidence/2026-10-06-local-isolated-session-fc2962f43.json.gz](evidence/2026-10-06-local-isolated-session-fc2962f43.json.gz),
+compressed losslessly. Uncompressed SHA-256:
+`e61d9c3c69c012fe4613644e3bc7b084ec402b6506aad4bf569660ab1a429ee4`.
+Compressed SHA-256:
+`cc079452b131981000b43cf96d29d2f2ab1937215975b3ff1ac7bf03b77a519d`.
+It includes actual raw logs, root inventories, image/configuration, command
+arguments, source identities, residuals and observations, rather than only a
+success summary. `local-isolated-replay.test.mjs` reopens these exact bytes using
+the existing real consumer and rejects tampered detection/restoration/residuals.
+It separately checks that later evidence-only commits preserve the selected
+physical inputs; it does not rewrite the original execution revision.
+
+Observed local phases were 18,254 ms preparation, 11,132 ms scratch build,
+169,906 ms execution, 2,728 ms inspection and 359 ms cleanup. Outer wall time was
+about 210 seconds, including orchestration. These are one local amd64 execution
+on an arm64 OrbStack host, with external builder/toolchain preparation already
+completed. They are not a calibrated comparison, hosted runner savings or an
+estimate of the full CI matrix.
+
+Earlier attempts remain failures of the local entry before mutation execution:
+one launcher-name mismatch, one unexpected actual environment rejection, and one
+heavy-lock refusal. None counts as a killed mutation or a performance failure.
