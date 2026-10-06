@@ -175,7 +175,8 @@ fn bounded_set_compare_step(
     (match (left, right) {
       (@admitted.Array(_), @admitted.Array(_))
       | (@admitted.Object(_), @admitted.Object(_))
-      | (@admitted.Vector(_), @admitted.Vector(_)) => true
+      | (@admitted.Vector(_), @admitted.Vector(_))
+      | (@admitted.JsonData(_), @admitted.JsonData(_)) => true
       _ => false
     }) {
     match

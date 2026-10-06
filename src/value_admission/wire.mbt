@@ -8,6 +8,7 @@ priv enum WireFrame {
   ObjectValueNext(FrozenArray[(String, Value)], Int)
   VectorNext(FrozenArray[Double], Int)
   ReferenceNext(@identity.CanonicalEmit)
+  JsonEnd
 }
 
 ///|
@@ -49,7 +50,8 @@ pub fn canonical_scalar_text(
     Number(v) => v.to_string()
     Text(v) | Date(v) | Timestamp(v) => v
     Decimal(v) => decimal_wire_text(v)
-    Null | Array(_) | Object(_) | Vector(_) | Reference(_) => return None
+    Null | Array(_) | Object(_) | JsonData(_) | Vector(_) | Reference(_) =>
+      return None
   }
   match @scalar.admit_utf8_length(text, max_utf8_bytes) {
     Ok(_) => Some(text)
@@ -160,6 +162,12 @@ pub fn advance_wire_emit(
           cursor.reference_frames = @identity.emit_pending_frames(canonical)
           pending.push(ReferenceNext(canonical))
         }
+        JsonData(value) => {
+          @encode.begin_object(output)
+          @encode.key(output, "$json")
+          pending.push(JsonEnd)
+          pending.push(Read(value))
+        }
       }
     TextNext(text) =>
       if !@encode.advance_string_value(text) {
@@ -215,6 +223,7 @@ pub fn advance_wire_emit(
         cursor.reference_frames = @identity.emit_pending_frames(reference)
       }
     }
+    JsonEnd => @encode.end_object(output)
   }
   pending.is_empty()
 }

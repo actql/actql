@@ -60,6 +60,9 @@ function checkedBinding(value) {
   });
 }
 
+// An installed durable receiver returns an owner-backed synchronous
+// canRetireCancellationDelivery() projection for Cancel. Missing confirmation
+// retains the waiter. Without a receiver this is only a transport gateway.
 export async function startHttpsOutboundSiteGateway({
   host = '127.0.0.1',
   port = 0,
@@ -517,11 +520,12 @@ export async function startHttpsOutboundSiteGateway({
         admitted,
         {statusReply},
       );
+      let observationReceipt;
       if (receiveObservation !== undefined) {
         // Commit admission and replay history before resolving a waiter or
         // sending ACK. A failed/unknown commit leaves the waiter pending.
         observationAdmissionAttempted = true;
-        await receiveObservation(Object.freeze({body, binding}));
+        observationReceipt = await receiveObservation(Object.freeze({body, binding}));
       }
       if (matched.operation === 'dispatch' && !statusReply &&
           projected.state.every(value => value === 0)) {
@@ -530,7 +534,13 @@ export async function startHttpsOutboundSiteGateway({
         return;
       }
       if (matched.operation === 'cancel' &&
-          !control.responseCanRetireCancellationDelivery(admitted)) {
+          !(receiveObservation === undefined
+            ? control.responseCanRetireCancellationDelivery(admitted)
+            : typeof observationReceipt?.canRetireCancellationDelivery === 'function' &&
+              observationReceipt.canRetireCancellationDelivery() === true)) {
+        // With a durable receiver, only its latest committed projection may
+        // retire delivery; a known old released reply is not current evidence.
+        // The receiver-free gateway retains its transport-only contract.
         // Ordinary status (even after an offer) cannot prove that the Site
         // saved Cancel. Admit the observation, but keep offering the exact
         // cancellation until the common owner admits terminal execution and

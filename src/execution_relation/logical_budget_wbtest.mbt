@@ -37,18 +37,20 @@ test "logical budget spans rows bindings expressions and repeated operands" {
 
 ///|
 test "aliases count separate live roots while transfer and release do not refund work" {
-  let b = test_logical_budget(20L, 14L)
+  // {"$json":{"x":1}} is 17 bytes per independently retained root.
+  // The JSON domain wrapper does not add logical value work.
+  let b = test_logical_budget(20L, 34L)
   let shared = logical_literal("{\"x\":1}")
   let first = retain_logical_value(b, shared).unwrap()
   let second = retain_logical_value(b, shared).unwrap()
-  assert_eq((b.live, b.peak, b.work), (14L, 14L, 6L))
+  assert_eq((b.live, b.peak, b.work), (34L, 34L, 6L))
   let transferred = first
   release_logical_root(b, transferred).unwrap()
-  assert_eq((b.live, b.work), (7L, 6L))
+  assert_eq((b.live, b.work), (17L, 6L))
   let third = retain_logical_value(b, shared).unwrap()
-  assert_eq((b.live, b.work), (14L, 9L))
+  assert_eq((b.live, b.work), (34L, 9L))
   assert_true(retain_logical_value(b, shared) is Err(LiveValueLimit))
-  assert_eq(b.live, 14L)
+  assert_eq(b.live, 34L)
   release_logical_root(b, second).unwrap()
   release_logical_root(b, third).unwrap()
   assert_eq(b.live, 0L)

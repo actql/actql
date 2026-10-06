@@ -227,3 +227,6 @@ export declare function validResourcePeek(value: unknown,
   expected: Readonly<{resourceConnection: string; resource: string;
     fields: readonly string[]; maxRows: number; maxBytes: number}>):
   value is WireResourcePeek;
+
+/** Detach a JSON check request; throws before lossy source-number conversion. */
+export declare function snapshotCheckRequest(value: unknown): unknown;

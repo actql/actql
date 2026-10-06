@@ -18,6 +18,7 @@ priv struct Frame {
   container : Container
   mut phase : Phase
   mut key : (String, Span)?
+  mut skip_key : Bool
 }
 
 ///|
@@ -74,7 +75,13 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
           ObjectFields([], @shape.key_admission())
         }
         ignore(self.advance_scalar(self.path))
-        frames.push({ start, container, phase: First, key: None, })
+        frames.push({
+          start,
+          container,
+          phase: First,
+          key: None,
+          skip_key: false,
+        })
       }
       Some(0x6e) => {
         self.consume_literal("null", self.path)
@@ -114,8 +121,11 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
       ArrayItems(items) => items.push(node)
       ObjectFields(fields, _) => {
         let (key, key_span) = parent.key.unwrap()
-        fields.push({ key, key_span, value: node, })
+        if !parent.skip_key {
+          fields.push({ key, key_span, value: node, })
+        }
         parent.key = None
+        parent.skip_key = false
       }
     }
     ignore(self.path.pop())
@@ -157,12 +167,16 @@ fn JsonDocument::step(document : JsonDocument) -> Node? raise ParseAbort {
       let (key, key_span) = self.parse_string(self.path, key=true)
       self.path.push(Key(key))
       if !@shape.admit_key(keys, key) {
-        raise ParseAbort({
-          issue: DuplicateKey(key),
-          source_path: self.source_path,
-          location: Source(key_span),
-          path: Some(self.path.copy()),
-        })
+        if self.literal_json {
+          frame.skip_key = true
+        } else {
+          raise ParseAbort({
+            issue: DuplicateKey(key),
+            source_path: self.source_path,
+            location: Source(key_span),
+            path: Some(self.path.copy()),
+          })
+        }
       }
       self.skip_space()
       if self.peek() != Some(0x3a) {

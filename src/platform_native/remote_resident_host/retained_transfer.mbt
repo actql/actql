@@ -20,6 +20,10 @@ pub struct ResidentRetainedTransfer {
   producer : @host.ClientRetainedInputProducer
   request : @transfer.RemoteTransferRequest
   current : @host.ClientRetainedInputCurrent
+  mut plan : (
+    @remote.RemoteRetainedInputIntent,
+    @remote.RemoteRetainedInputPlan,
+  )?
   site : @site.ExecutionSite
   mut journal : @transfer_journal.Journal
   root : @filesystem.Root
@@ -94,6 +98,7 @@ pub fn prepare_resident_retained_transfer(
     producer,
     request,
     current,
+    plan: None,
     site,
     journal,
     root,
@@ -112,6 +117,50 @@ pub fn prepare_resident_retained_transfer(
 }
 
 ///|
+/// Join the Coordinator's exact saved plan to the original checked producer
+/// before entering the existing physical Transfer owner. Keep that plan with
+/// the owner so each physical advance rechecks its edge and current custody.
+/// Construction creates no reader, receiver record, reservation or borrow.
+pub fn prepare_resident_retained_plan_transfer(
+  runtime : @runtime.NativeRemoteRuntime,
+  producer : @host.ClientRetainedInputProducer,
+  intent : @remote.RemoteRetainedInputIntent,
+  plan : @remote.RemoteRetainedInputPlan,
+  current : @host.ClientRetainedInputCurrent,
+  site : @site.ExecutionSite,
+  journal : @transfer_journal.Journal,
+  root : @filesystem.Root,
+  max_chunk_bytes : Int,
+  max_destination_bytes : Int64,
+  max_destination_objects : Int64,
+) -> Result[ResidentRetainedTransfer, ResidentRetainedTransferIssue] {
+  match
+    @host.validate_client_retained_input_plan(producer, intent, plan, current) {
+    Ok(_) => ()
+    Err(issue) => return Err(Input(issue))
+  }
+  let owner = match
+    prepare_resident_retained_transfer(
+      runtime,
+      @host.client_retained_input_producer_dispatch(producer),
+      producer,
+      @remote.remote_retained_input_plan_transfer(plan),
+      current,
+      site,
+      journal,
+      root,
+      max_chunk_bytes,
+      max_destination_bytes,
+      max_destination_objects,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  owner.plan = Some((intent, plan))
+  owner.require_current().map(_ => owner)
+}
+
+///|
 /// Advance at most one exact physical chunk. False means more handoff work,
 /// true means the existing receiver Owner has durably committed its receipt.
 /// Neither result starts a consumer or releases the producer holding.
@@ -121,14 +170,9 @@ pub fn ResidentRetainedTransfer::advance(
   if self.reclaimed || self.cleanup_started {
     return Err(CleanupPending)
   }
-  match
-    @host.validate_client_retained_input_transfer_current(
-      self.producer,
-      self.request,
-      self.current,
-    ) {
+  match self.require_current() {
     Ok(_) => ()
-    Err(issue) => return Err(Input(issue))
+    Err(issue) => return Err(issue)
   }
   if self.holding is None {
     self.holding = @site.retain_site_holding(
@@ -212,14 +256,9 @@ pub fn ResidentRetainedTransfer::advance(
         Ok(_) => self.pending = None
         Err(issue) => return Err(Destination(issue))
       }
-      match
-        @host.validate_client_retained_input_transfer_current(
-          self.producer,
-          self.request,
-          self.current,
-        ) {
+      match self.require_current() {
         Ok(_) => return Ok(false)
-        Err(issue) => return Err(Input(issue))
+        Err(issue) => return Err(issue)
       }
     }
     match reader.finish() {
@@ -227,14 +266,9 @@ pub fn ResidentRetainedTransfer::advance(
       Err(issue) => return Err(Output(issue))
     }
   }
-  match
-    @host.validate_client_retained_input_transfer_current(
-      self.producer,
-      self.request,
-      self.current,
-    ) {
+  match self.require_current() {
     Ok(_) => ()
-    Err(issue) => return Err(Input(issue))
+    Err(issue) => return Err(issue)
   }
   match
     @transfer_client.commit_durable_direct_destination(
@@ -259,11 +293,21 @@ pub fn ResidentRetainedTransfer::advance(
 fn ResidentRetainedTransfer::require_current(
   self : ResidentRetainedTransfer,
 ) -> Result[Unit, ResidentRetainedTransferIssue] {
-  @host.validate_client_retained_input_transfer_current(
-    self.producer,
-    self.request,
-    self.current,
-  ).map_err(issue => Input(issue))
+  match self.plan {
+    Some((intent, plan)) =>
+      @host.validate_client_retained_input_plan(
+        self.producer,
+        intent,
+        plan,
+        self.current,
+      ).map_err(issue => Input(issue))
+    None =>
+      @host.validate_client_retained_input_transfer_current(
+        self.producer,
+        self.request,
+        self.current,
+      ).map_err(issue => Input(issue))
+  }
 }
 
 ///|
@@ -310,14 +354,9 @@ pub fn ResidentRetainedTransfer::reopen_completed_destination(
     return Err(ForeignProducer)
   }
   if !self.cleanup_started {
-    match
-      @host.validate_client_retained_input_transfer_current(
-        self.producer,
-        self.request,
-        self.current,
-      ) {
+    match self.require_current() {
       Ok(_) => ()
-      Err(issue) => return Err(Input(issue))
+      Err(issue) => return Err(issue)
     }
   }
   self.journal = journal

@@ -3,6 +3,7 @@ import test from 'node:test';
 import './effect-cleanup-composition.test.mjs';
 import './effect-authorization-cleanup.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
 import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
@@ -305,6 +306,41 @@ test('a failed capture read leaves no unobserved physical continuation',
     assert.equal(reads, 1);
     assert.equal(stopped, 1);
   });
+
+// A write driver is checked when the installed row Effect is created: a
+// composition whose recovery would need a hook it lacks is refused then, as
+// InvalidInstalledRowEffectDriver, never later as a TypeError.
+{
+  const hook = () => {};
+  const createWithRecovery = {kinds: ['create'], prepareRequest: hook,
+    requestFacts: hook, writeOperation: hook, send: hook, project: hook,
+    footprint: hook, recoveryEntry: hook, recoverRequests: hook,
+    requestCid: hook};
+  const update = {...createWithRecovery, kinds: ['update'],
+    targetRead: {operation: 'read'}, observeTargets: hook};
+  const drivers = {'a create driver with its own recovery':
+    createWithRecovery, 'an update driver': update};
+  const refusedCode = async driver => createInstalledRowEffect({driver})
+    .then(() => 'created', error => error?.code ?? String(error));
+  for (const [label, complete] of Object.entries(drivers)) {
+    test(`${label} missing any required hook is refused at registration`,
+      async () => {
+        // The complete driver passes the driver check; creation then fails
+        // only on the other (absent) arguments.
+        assert.notEqual(await refusedCode(complete),
+          'InvalidInstalledRowEffectDriver');
+        const required = ['prepareRequest', 'requestFacts', 'writeOperation',
+          'send', 'project', 'footprint', 'recoveryEntry', 'recoverRequests',
+          'requestCid',
+          ...(complete === update ? ['targetRead', 'observeTargets'] : [])];
+        for (const name of required) {
+          const {[name]: _omitted, ...driver} = complete;
+          assert.equal(await refusedCode(driver),
+            'InvalidInstalledRowEffectDriver', `without ${name}`);
+        }
+      });
+  }
+}
 
 function continuationFixture() {
   const original = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
