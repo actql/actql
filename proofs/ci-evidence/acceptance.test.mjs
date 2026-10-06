@@ -13,9 +13,12 @@ import {sealAcceptance, checkAcceptance, readAcceptance, readyActions, acceptanc
 import {checkCostObservation} from './costs.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
-function fixture(event = 'push') {
-  const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
-  catalog.actions.forEach(action => { action.dependencies = []; });
+function fixture(event = 'push', fullCatalog = false) {
+  const catalog = readCatalog();
+  if (!fullCatalog) {
+    catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
+    catalog.actions.forEach(action => { action.dependencies = []; });
+  }
   const context = {repository: 'actql/actql', repositoryId: 1, headRepositoryId: 1, workflowId: 2,
     candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40), runId: 3, runAttempt: 4, ancestors: []};
   const origin = {...context, testedRevision: context.candidateRevision, workflowPath: '.github/workflows/ci.yml',
@@ -26,6 +29,9 @@ function fixture(event = 'push') {
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => [`src/${path}/moon.pkg`, '']),
     ['src/example/moon.pkg', ''], ['src/example/value.mbt', 'numeric deterministic fixture'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
+    files.set(`proofs/events-bridge/${name}`, name);
+  for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');
   const tree = {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])), read: path => Buffer.from(files.get(path))};
   const required = [], applications = [], receiptDigests = [], members = new Map(), receipts = [];
   const runtime = {profile: 'controlled-test-runtime', unresolved: []};
@@ -35,7 +41,8 @@ function fixture(event = 'push') {
   for (const action of catalog.actions) {
     const inputs = actionInputs({tree, revision: context.candidateRevision, action, runtime});
     // The deterministic JS observation fixture records all thirteen identities.
-    const output = action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' :
+    const output = action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
+      action.id !== 'mutations-js' ? `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n` :
       ['stale-token-reuse', 'zero-quantum', 'terminal-resume', 'cleanup-changed-as-complete', 'cumulative-as-delta',
         'reset-budget-history', 'accept-backward-work', 'adapter-terminal-resume', 'premature-cleanup-success',
         'cleanup-retry-reruns-callback', 'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']
@@ -128,6 +135,23 @@ test('manual acceptance preserves actual receipt triggers and cannot relabel a p
   assert.equal((await checkAcceptance(manual)).length, 1);
   const push = fixture(); push.report.event = 'workflow_dispatch';
   await assert.rejects(checkAcceptance(push));
+});
+
+test('main applicability reconstructs costs for all 30 obligations and rejects omitted Bridge costs or receipts', async () => {
+  // Controlled admission fixture: this executes the actual cost/acceptance
+  // consumers, not the MoonBit commands or the Lean kernel.
+  const f = fixture('workflow_dispatch', true);
+  assert.equal((await checkAcceptance(f)).length, 1);
+  assert.equal(f.report.result.costObservation.actions.length, 30);
+  assert.equal(f.report.result.costObservation.knownProducerMilliseconds, 301);
+  for (const id of ['events-model', 'events-connection-js', 'events-connection-wasm', 'events-connection-native']) {
+    const absentCost = fixture('workflow_dispatch', true);
+    absentCost.report.result.costObservation.actions = absentCost.report.result.costObservation.actions.filter(row => row.actionId !== id);
+    await assert.rejects(checkAcceptance(absentCost), /Wrong accepted cost correspondence/u);
+    const absentReceipt = fixture('workflow_dispatch', true);
+    absentReceipt.members.delete(`receipts/${id}.json`);
+    await assert.rejects(checkAcceptance(absentReceipt), /Missing actual source member/u);
+  }
 });
 
 test('main acceptance rejects missing or substituted costs and historical costs presented as current execution', async () => {

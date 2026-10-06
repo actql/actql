@@ -67,15 +67,25 @@ originals cannot silently qualify under this new policy. Neither the cost
 checker nor its controlled fixtures authenticates an origin by itself; the
 existing provenance, receipt, runtime and executed Lean checks remain required.
 
+After ordinary integration with main `0e810449cc1a5d330fb244d7651617366ef135f3`,
+the complete catalog contains 30 required actions, including the Events model
+and JS/Wasm/Native connections. The cost and final main-applicability consumers
+are exercised with all 30 receipts and unchanged dependency declarations. Each
+Events cost/receipt omission rejects; the optional reused mutation remains the
+only row with null current execution. These are controlled source/receipt
+fixtures, not execution of the 30 physical actions or the Lean kernel.
+
 The regressions include negative acquisition/collection bindings, isolated
 owner substitutions, omitted measurements, historical/current relabeling,
 invalid costs under a resealed outer certificate and forged savings/residuals
 through the actual `checkAcceptance()` consumer, as well as independent ZIP/API
 fixtures for push/main and workflow_dispatch/main.
 
-Completion of the overall goal still requires real image acceptance, compatible
-successful main originals, ordinary PR reuse, relevant-input fresh execution
-and positive net runner savings including producer/final job spans and transfers.
+Local real-image mutation acceptance is submitted separately in Draft #605;
+that diagnostic does not authorize hosted reuse or replace authenticated final
+admission. Completion of the overall goal still requires compatible successful
+main originals, ordinary PR reuse, relevant-input fresh execution and positive
+net runner savings including producer/final job spans and transfers.
 Controlled cost fixtures are not physical execution or economic evidence.
 
 ## Enclosing runner observations

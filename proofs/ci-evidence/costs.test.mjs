@@ -7,10 +7,13 @@ import {sealReceipt, canonicalReceipt, mutationIds} from './receipts.mjs';
 import {checkCostObservation} from './costs.mjs';
 
 const bytes = value => Buffer.from(`${encode(value)}\n`);
-function fixture(reused = false) {
+function fixture(reused = false, fullCatalog = false) {
   // Hand-authored timing/receipt fixture, not an isolated mutation execution.
-  const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
-  catalog.actions.forEach(action => {action.dependencies = [];});
+  const catalog = readCatalog();
+  if (!fullCatalog) {
+    catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
+    catalog.actions.forEach(action => {action.dependencies = [];});
+  }
   const context = {candidateRevision: 'b'.repeat(40), runId: 30, runAttempt: 1};
   const origin = {repository: 'actql/actql', repositoryId: 1, workflowId: 2, workflowPath: '.github/workflows/ci.yml',
     testedRevision: context.candidateRevision, runHeadRevision: context.candidateRevision,
@@ -19,15 +22,19 @@ function fixture(reused = false) {
   const files = new Map([...sharedFiles, ...mutationSnapshotExtras,
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(path => `proofs/bounded-session/${path}`),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => `src/${path}/moon.pkg`)].map(path => [path, path]));
+  for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
+    files.set(`proofs/events-bridge/${name}`, name);
+  for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');
   const tree = {entries: new Map([...files.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])),
     read: path => Buffer.from(path.endsWith('moon.pkg') ? '' : files.get(path))};
   const receipts = catalog.actions.map(action => {
     const from = reused && action.id === 'mutations-js' ? {...origin, testedRevision: 'a'.repeat(40),
       runHeadRevision: 'a'.repeat(40), runId: 3, runAttempt: 2, event: 'workflow_dispatch', branch: 'main'} : origin;
     return sealReceipt({origin: {...from}, action: structuredClone(action), inputs: actionInputs({tree, revision: from.testedRevision, action, runtime}),
-      output: action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' :
-        mutationIds.map(id => `${id}: detected by replacement tests`).join('\n'),
-      status: 0, milliseconds: action.id === 'model' ? 11 : 17});
+      output: action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
+        action.id === 'mutations-js' ? mutationIds.map(id => `${id}: detected by replacement tests`).join('\n') :
+          `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n`,
+      status: 0, milliseconds: action.kind === 'formal-model' ? 11 : 17});
   });
   const acquisition = {context, milliseconds: 7, actions: receipts.map(receipt => ({actionId: receipt.action.id,
     acquisition: reused && receipt.action.id === 'mutations-js' ? 'reused' : 'fresh', candidateActionKey: receipt.inputs.key,
@@ -41,6 +48,27 @@ function fixture(reused = false) {
     buildMilliseconds: 4, executionMilliseconds: 6, inspectionMilliseconds: 2, closeMilliseconds: 2}};
   return {state, catalog, acquisition, comparison, receipts, collectionBytes, certificate, isolatedExecution};
 }
+
+test('the complete 30-action catalog retains every fresh cost alongside one optional reused action', () => {
+  for (const reused of [false, true]) {
+    const request = fixture(reused, true), result = checkCostObservation(request);
+    assert.equal(result.actions.length, 30);
+    assert.equal(result.knownProducerMilliseconds, reused ? 511 : 525);
+    const bridge = result.actions.filter(row => row.actionId.startsWith('events-'));
+    assert.deepEqual(bridge.map(row => row.actionId), ['events-model', 'events-connection-js', 'events-connection-wasm', 'events-connection-native']);
+    assert.deepEqual(bridge.map(row => row.currentMilliseconds), [11, 17, 17, 17]);
+    assert(bridge.every(row => row.acquisition === 'fresh' && row.observation === 'executed'));
+    assert.equal(result.actions.filter(row => row.currentMilliseconds === null).length, reused ? 1 : 0);
+    for (const id of bridge.map(row => row.actionId)) {
+      const missingReceipt = fixture(reused, true);
+      missingReceipt.receipts = missingReceipt.receipts.filter(receipt => receipt.action.id !== id);
+      assert.throws(() => checkCostObservation(missingReceipt), /Incomplete cost receipt inventory/u);
+      const missingAcquisition = fixture(reused, true);
+      missingAcquisition.acquisition.actions = missingAcquisition.acquisition.actions.filter(row => row.actionId !== id);
+      assert.throws(() => checkCostObservation(missingAcquisition), /Incomplete cost acquisition/u);
+    }
+  }
+});
 
 test('fresh preparation is counted once and nested comparison costs are not summed twice', () => {
   const request = fixture(), originals = request.receipts.map(canonicalReceipt);
