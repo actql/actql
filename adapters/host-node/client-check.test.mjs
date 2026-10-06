@@ -3663,6 +3663,56 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: check formats retain submitted coordinates and protected equivalence`, async t => {
+    const client = await open(t, configurations.denied);
+    const outcome = await client.check('\ufeff/*😀*/\r\nSELECT (', {format: 'sql'});
+    const json = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+    assert.equal(json.observation.report.verdict, 'invalid', '[check-mutation:format-verdict]');
+    assert.deepEqual(json.entries[0].location, {kind: 'text', documentId: 'source',
+      revision: outcome.report.inputs[0].revision, startByte: 21, endByte: 21, precision: 'exact',
+      positionEncoding: 'utf-16', range: {start: {line: 1, character: 8}, end: {line: 1, character: 8}}},
+    '[check-mutation:format-location]');
+    const copied = JSON.parse(sdk.formatCheckOutcome(JSON.parse(JSON.stringify(outcome)), {format: 'json'}));
+    assert.equal(Object.hasOwn(copied.entries[0], 'location'), false, '[check-mutation:format-stale]');
+    const input = getCheckInput(outcome, 'source');
+    for (const currentInputs of [[], [{...input, text: 'SELECT 1 AS n'}],
+      [{...input, revision: 'rev:' + '0'.repeat(64)}]]) {
+      const stale = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false, '[check-mutation:format-stale]');
+      assert.equal(stale.observation.report.verdict, 'invalid');
+    }
+    assert.deepEqual(JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [input]})), json);
+    let reads = 0;
+    const changing = {...input, get text() { return ++reads <= 2 ? input.text : ' '.repeat(21); }};
+    const owned = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [changing]}));
+    assert.deepEqual(owned.entries[0].location.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}}, '[check-mutation:format-owned-input]');
+
+    for (const format of ['text', 'html', 'json']) {
+      const views = [];
+      for (const configuration of [configurations.absent, configurations.denied]) {
+        const selected = await contextClient(t, entrance, sourceEnvironment, {
+          aliases: configuration.aliases,
+          ...(configuration.aliases.length ? {readOutcome: configuration.readOutcome} : {})});
+        const check = await selected.check('SELECT @x AS n FROM records', {format: 'sql',
+          parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 'private-supplied-value'}});
+        const rendered = sdk.formatCheckOutcome(check, {format});
+        assert.doesNotMatch(rendered, /private-supplied-value|records\.duckdb/u, '[check-mutation:format-input]');
+        views.push(rendered);
+      }
+      assert.equal(views[0], views[1], '[check-mutation:format-disclosure]');
+      if (format === 'json') {
+        const model = JSON.parse(views[0]);
+        assert.equal(model.observation.report.verdict, 'invalid');
+        assert.deepEqual(model.entries.map(x => x.kind), ['violation', 'unresolved']);
+      }
+    }
+    client.assertNoExecution();
+  });
+}
+
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: raw check ingress refuses lossy source numbers`, async t => {
     let post, checked = 0;
