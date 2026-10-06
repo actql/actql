@@ -132,6 +132,7 @@ export function packageImports(source) {
 export function packageSourceInputs({tree, packages, target}) {
   const paths = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(), configurations = [];
   const visited = new Set();
+  let pending = [...packages];
   const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
   function add(path) {
     if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
@@ -161,7 +162,7 @@ export function packageSourceInputs({tree, packages, target}) {
       if (dependency.startsWith('actql/actql/')) {
         const child = `src/${dependency.slice('actql/actql/'.length)}`;
         if (!validPath(child)) { unresolved.add(`invalid local dependency: ${manifest}`); continue; }
-        visit(child);
+        pending.push(child);
       } else if (dependency.startsWith('moonbitlang/core/')) external.add(dependency);
       else unresolved.add(`unmodelled external dependency: ${dependency}`);
     }
@@ -172,7 +173,17 @@ export function packageSourceInputs({tree, packages, target}) {
       }
     }
   }
-  packages.forEach(visit);
+  while (pending.length) {
+    const frontier = [...new Set(pending)].filter(directory => !visited.has(directory));
+    pending = [];
+    // Only already discovered dependency manifests are fetched. The tree's
+    // bounded, object-verified batch reader retains exact immutable bytes;
+    // no unrelated package or cross-call closure cache is introduced.
+    const manifests = frontier.map(directory => `${directory}/moon.pkg`)
+      .filter(path => tree.entries.get(path)?.kind === 'blob');
+    if (manifests.length) tree.prefetch?.(manifests);
+    frontier.forEach(visit);
+  }
   return {paths: [...paths].sort(), directories: [...listings].sort(([a], [b]) => a.localeCompare(b))
     .map(([path, members]) => ({path, members})), externalPackages: [...external].sort(),
     packageConfigurations: configurations.sort((a, b) => a.path.localeCompare(b.path)), unresolved: [...unresolved].sort()};
