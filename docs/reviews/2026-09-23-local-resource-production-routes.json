@@ -8360,6 +8360,50 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "window_control_work_exact_one_short",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8389,6 +8433,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained window publishes and cancels inside record emission"
+        },
         {
           "role": "window_fixed_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -8440,6 +8493,50 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "watermark_control_work_exact_one_short",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8469,6 +8566,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained watermark publishes and cancels inside record emission"
+        },
         {
           "role": "watermark_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -8549,6 +8655,50 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "session_incremental_initialization_cancel_cleanup",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8627,6 +8777,22 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained session publishes and cancels inside record emission"
+        },
+        {
+          "role": "events_input_name_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained session publishes and cancels inside input-name matching"
+        },
         {
           "role": "session_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -9043,6 +9209,50 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "dedupe_incremental_initialization_cancel_cleanup",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -9072,6 +9282,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained dedupe publishes and cancels inside record emission"
+        },
         {
           "role": "dedupe_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -9590,6 +9809,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/normalize_wbtest.mbt",
           "fixture": "normalize observes cancellation between component work units"
+        },
+        {
+          "role": "normalize_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "normalize_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "normalize_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "normalize_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
         }
       ],
       "environment_tests": [
@@ -9599,6 +9846,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-normalize"
+        },
+        {
+          "role": "normalize_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Normalize publishes and cancels inside provisional record emission"
         },
         {
           "role": "installed_retained_vectors_named_results",
@@ -9691,6 +9945,41 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/score_wbtest.mbt",
           "fixture": "score observes cancellation between bounded work units"
+        },
+        {
+          "role": "score_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "score_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "score_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "score_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
+        },
+        {
+          "role": "score_key_stop_order",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Score typed Text identity validation and ties keep bounded cursors"
         }
       ],
       "environment_tests": [
@@ -9700,6 +9989,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-score"
+        },
+        {
+          "role": "score_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Score publishes and cancels inside provisional record emission"
         }
       ],
       "path_assurance": {
@@ -9830,6 +10126,27 @@
           "fixture": "runtime vector recheck yields between components with exact node usage"
         },
         {
+          "role": "nearest_name_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest borrowed names keep independent Carrier and Relation limits"
+        },
+        {
+          "role": "nearest_name_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest public name barrier retains Relation inputs until confirmed stop"
+        },
+        {
+          "role": "nearest_name_qualification",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/nearest_name_roles_wbtest.mbt",
+          "fixture": "nearest identity matching keeps qualification separate from spelling"
+        },
+        {
           "role": "nearest_direct_relation_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9935,6 +10252,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
           "fixture": "public retained nearest admits Relation inputs and cancels inside unused array"
+        },
+        {
+          "role": "nearest_name_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest borrows long role names and cancels inside component lookup"
         },
         {
           "role": "nearest_relation_host_in_flight_cancel",
@@ -10671,6 +10995,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
           "fixture": "runtime JSON recheck yields within nested data Text without normalization"
+        },
+        {
+          "role": "ranking_name_match_common",
+          "suite": "moon:relation_schema",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/relation_schema/reference_steps_wbtest.mbt",
+          "fixture": "reference spelling fragments retain raw UTF16 and virtual qualification"
+        },
+        {
+          "role": "ranking_name_match_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching retains input and output scan custody"
+        },
+        {
+          "role": "ranking_name_match_wide_overlap",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching bounds wide and overlapping role lists"
+        },
+        {
+          "role": "ranking_name_match_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking public name barrier has independent work workspace and stop custody"
         }
       ],
       "environment_tests": [
@@ -10708,6 +11060,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
           "fixture": "public retained ranking publishes and cancels inside unused array recheck"
+        },
+        {
+          "role": "ranking_name_match_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside reference name matching"
         }
       ],
       "path_assurance": {
@@ -10935,6 +11294,7 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_rows_to_events"
       },
+      "notes": "start_rows_to_records owns the shared stepped value recheck and RecordAppend. Large-value limits and cancellation are paired with independent total polls, so an atomic recheck drain cannot preserve the claimed cancellation coordinates. The ordinary installed Events case exercises this owner with retained Store; it does not establish all Bridge paths or a packed campaign.",
       "boundary_tests": [
         {
           "role": "to_events_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -10942,6 +11302,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "rows to Events admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [
@@ -10951,6 +11325,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "to-events-bridge"
+        },
+        {
+          "role": "bridge_record_value_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained Events bridge stops during unused Array recheck"
         }
       ],
       "path_assurance": {
@@ -10987,7 +11368,29 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_events_to_rows"
       },
+      "notes": "Required Events record rows use fragmented reference matching and the shared AdmittedOutputRow cursor. Large Text/Array and long-name fixtures independently fix cumulative control, logical output and workspace limits. Conditional Graph rows retain their separate presence owner; this does not claim that owner is stepped.",
       "boundary_tests": [
+        {
+          "role": "record_projection_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection preserves logical limits across stepped values"
+        },
+        {
+          "role": "record_projection_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection keeps input through stopped recheck and measurement"
+        },
+        {
+          "role": "record_projection_name_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection fragments name matching without hashing pending fields"
+        },
         {
           "role": "events_projection_value_width_and_kernel_cancel_cleanup",
           "suite": "moon:query_integration",
@@ -10997,6 +11400,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "record_projection_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained Events projection stops inside unused Array admission"
+        },
         {
           "role": "events_projection_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
@@ -11039,6 +11449,7 @@
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_rows_to_vectors"
       },
+      "notes": "The Vectors entry delegates to the same start_rows_to_records, advance_rows_to_events and cleanup_rows_to_events owner. Its own two-component vector fixture fixes logical work 28, physical work 70 and workspace 65. The large Text/Array evidence is reused only for that shared input/append discipline, not as an independent public Vectors large-value acceptance claim.",
       "boundary_tests": [
         {
           "role": "to_vectors_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -11046,6 +11457,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "rows to Vectors admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [
@@ -11091,7 +11516,29 @@
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_vectors_to_rows"
       },
+      "notes": "Vectors projection delegates to start_records_to_rows and the same EventsToRowsExecution advance/cleanup owner. Shared large Text/Array and name fixtures cover this input/row discipline; the Vectors-specific two-component fixture retains its own result and logical limits. This is not independent public large-value Vectors acceptance.",
       "boundary_tests": [
+        {
+          "role": "record_projection_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection preserves logical limits across stepped values"
+        },
+        {
+          "role": "record_projection_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection keeps input through stopped recheck and measurement"
+        },
+        {
+          "role": "record_projection_name_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection fragments name matching without hashing pending fields"
+        },
         {
           "role": "vectors_projection_value_width_and_kernel_cancel_cleanup",
           "suite": "moon:query_integration",

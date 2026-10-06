@@ -363,14 +363,15 @@ test "vector normalize view enforces exact workspace and work" {
   let source = source_vectors(producer, Ref(true), "[3,4]")
   let material = @records.completed_material(source).unwrap()
   let owner = consumer_owner(producer)
-  // One begin, two field reads, two folds, divisor, two emissions, commit,
-  // and finish consume ten units. Two fields and two vector components need
-  // eight overlapping workspace slots.
+  // Ten kernel polls plus 25 shared append polls: fields 3, required 3,
+  // identity 2, key 3, record begin 1, scalar field 4, Vector field 7,
+  // record finish and commit 2. Workspace: temporary 8, append 53,
+  // retained row 4, name position and append handle 2 = 67.
   for
     (work, workspace, accepted) in [
-      (10, 8, true),
-      (9, 8, false),
-      (10, 7, false),
+      (35, 67, true),
+      (34, 67, false),
+      (35, 66, false),
     ] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, producer,
@@ -386,7 +387,7 @@ test "vector normalize view enforces exact workspace and work" {
       control_work_limit=Some(work),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<16 {
+    for _ in 0..<40 {
       if !terminal {
         match advance_normalize(execution, 1).unwrap() {
           Continue(..) => ()
@@ -397,12 +398,12 @@ test "vector normalize view enforces exact workspace and work" {
           }
           Failed(WorkLimit, ..) => {
             assert_false(accepted)
-            assert_eq(work, 9)
+            assert_eq(work, 34)
             terminal = true
           }
           Failed(WorkspaceLimit, ..) => {
             assert_false(accepted)
-            assert_eq(workspace, 7)
+            assert_eq(workspace, 66)
             terminal = true
           }
           _ => fail("unexpected normalize view result")
@@ -454,7 +455,7 @@ test "normalize admits workspace before building record temporaries" {
     sequence(owner),
     0,
     input,
-    limits(workspace=7),
+    limits(workspace=66),
     2048L,
     fn() { true },
   ).unwrap()
@@ -471,13 +472,13 @@ test "normalize accepts its exact temporary workspace" {
   let source = source_vectors(producer, Ref(true), "[3,4]")
   let owner = consumer_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  // Two field tuples, two transient slots, and two vector components overlap.
+  // Temporary 8 + append (16+6+1+30) + retained row 4 + custody 2.
   let execution = start_normalize(
     @bounded.control(),
     sequence(owner),
     0,
     input,
-    limits(workspace=8),
+    limits(workspace=67),
     2048L,
     fn() { true },
   ).unwrap()
@@ -530,9 +531,8 @@ test "normalize enforces cumulative control work across resumes" {
     )
     is Err(WorkLimit),
   )
-  // One begin, two field reads, two norm folds, one divisor, two component
-  // emissions, one record commit, and one finish are ten control units.
-  for (ceiling, accepted) in [(10, true), (9, false)] {
+  // Ten kernel polls plus the independently enumerated 25 append polls.
+  for (ceiling, accepted) in [(35, true), (34, false)] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_normalize_with_control_work_limit(
       @bounded.control(),
@@ -546,7 +546,7 @@ test "normalize enforces cumulative control work across resumes" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<16 {
+    for _ in 0..<40 {
       if !terminal {
         match advance_normalize(execution, 1).unwrap() {
           Continue(work=next, ..) => {
