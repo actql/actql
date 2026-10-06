@@ -734,6 +734,8 @@ pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Resu
 
 pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relation.GeneratedSequence, Int, Int, @query_planning.QueryLogicalGuards, @query_planning.QueryMaterialLimits) -> Result[@query_planning.QueryRequirement, ClientQueryRequirementIssue]
 
+pub fn prepare_client_remote_task_physical_start(ClientRemoteTaskProgress, String, String, ClientRequestIdentity, ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRemoteTaskStartIssue]
+
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
@@ -1434,6 +1436,8 @@ pub(all) enum ClientQueryRequirementIssue {
 }
 
 pub struct ClientRemoteTaskProgress {
+  prepared : PreparedClientProgram
+  authority : String
   definition : @run_publication.PublicationContract
   result_names : Array[String]
   completed : Array[Bool]
@@ -1441,6 +1445,7 @@ pub struct ClientRemoteTaskProgress {
   requests : Array[@remote_site_protocol.DispatchRequest?]
   observations : Array[@remote_site_protocol.CoordinatorExecutionObservation?]
   next_task : Int?
+  dependency_ready_task : Int?
   execution_complete : Bool
   cleanup_complete : Bool
   result_tasks : Array[Int]
@@ -1468,6 +1473,13 @@ pub(all) enum ClientRemoteTaskRunProjectionIssue {
   InvalidStartClaims
   MissingRunId
   State(@run_publication.RunStateIssue)
+}
+
+pub(all) enum ClientRemoteTaskStartIssue {
+  ForeignTask
+  ForeignDispatch
+  Request(ClientRequestIdentityIssue)
+  Start(ClientRunStartIssue)
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)

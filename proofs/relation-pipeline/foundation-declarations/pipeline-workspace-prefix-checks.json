@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pipeline-workspace-prefix-checks",
+  "kind": "change",
+  "revision": "7c88eca06d1c956cf85059600b45aa07f119e169",
+  "parents": [
+    "25f132c9da9c9e2bc1690097b6add335d300986b"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/workspaces.mjs",
+      "before": [
+        {
+          "revision": "25f132c9da9c9e2bc1690097b6add335d300986b",
+          "mode": "100644",
+          "digest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d"
+        }
+      ],
+      "afterDigest": "77eaf528a157551837fc1a08b1427e28b47ade5d48ffb3ef26d93e644ea52557",
+      "afterMode": "100644",
+      "reason": "Inspect each unique inventoried path prefix once per workspace check while preserving complete source byte hashing, recursive source/build link refusal, workspace/build inode custody and subsequent-call reinspection. Retain mutation, pristine replay and new-owner restoration obligations. Add a regression for newly inventoried members and ancestor replacement after successful checks."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.test.mjs",
+      "before": [
+        {
+          "revision": "25f132c9da9c9e2bc1690097b6add335d300986b",
+          "mode": "100644",
+          "digest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1"
+        }
+      ],
+      "afterDigest": "d277897d20a6803ad29256d205a10405de649ec4fbda5665587e116e7cc98285",
+      "afterMode": "100644",
+      "reason": "Inspect each unique inventoried path prefix once per workspace check while preserving complete source byte hashing, recursive source/build link refusal, workspace/build inode custody and subsequent-call reinspection. Retain mutation, pristine replay and new-owner restoration obligations. Add a regression for newly inventoried members and ancestor replacement after successful checks."
+    }
+  ]
+}

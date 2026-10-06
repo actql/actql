@@ -1,5 +1,7 @@
 import {optionalOutputAsSuccesses, optionalOutputAsRefusals, optionalOutputAsExecutionFailures}
   from './optional-output-as-source-input.mjs';
+import {analyticOutputScopeSuccesses, analyticOutputScopeRefusals} from './analytic-output-scope-source-input.mjs';
+import {selectAllSuccesses, selectAllRefusals} from './select-all-source-input.mjs';
 import {booleanCastSuccesses, booleanCastRefusals, booleanCastExecutionFailures}
   from './boolean-cast-source-input.mjs';
 import {graphDeltaSourceControls, graphDeltaSourceRefusals, graphDeltaSourceExecutionFailures}
@@ -153,7 +155,9 @@ const analyticPartitionPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PARTITION_
 const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
 const analyticFrameParameterOnly = process.env.ACTQL_TEST_ANALYTIC_FRAME_PARAMETER_ONLY === '1';
-const scopeOnly = optionalOutputAsOnly || booleanCastOnly || graphDifferenceOnly || graphDeltaOnly || jsonSourceOnly || limitParameterOnly || typedJsonOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
+const selectAllOnly = process.env.ACTQL_TEST_SELECT_ALL_ONLY === '1';
+const analyticOutputScopeOnly = process.env.ACTQL_TEST_ANALYTIC_OUTPUT_SCOPE_ONLY === '1';
+const scopeOnly = optionalOutputAsOnly || analyticOutputScopeOnly || selectAllOnly || booleanCastOnly || graphDifferenceOnly || graphDeltaOnly || jsonSourceOnly || limitParameterOnly || typedJsonOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -174,7 +178,9 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals}
+const scopeInputs = analyticOutputScopeOnly ? {successes: analyticOutputScopeSuccesses, refusals: analyticOutputScopeRefusals}
+  : selectAllOnly ? {successes: selectAllSuccesses, refusals: selectAllRefusals}
+  : limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals}
   : jsonSourceOnly ? {successes: jsonLiteralSourceSuccesses, refusals: jsonLiteralSourceRefusals}
   : typedJsonOnly ? {successes: typedJsonLiteralSuccesses, refusals: typedJsonLiteralRefusals}
   : graphDeltaOnly ? {successes: graphDeltaSourceSuccesses, refusals: graphDeltaSourceRefusals, executionFailures: graphDeltaSourceExecutionFailures}
@@ -239,6 +245,10 @@ const scopeInputs = limitParameterOnly ? {successes: limitParameterSuccesses, re
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...analyticOutputScopeSuccesses);
+  scopeInputs.refusals.push(...analyticOutputScopeRefusals);
+  scopeInputs.successes.push(...selectAllSuccesses);
+  scopeInputs.refusals.push(...selectAllRefusals);
   scopeInputs.successes.push(...graphDeltaSourceSuccesses);
   scopeInputs.refusals.push(...graphDeltaSourceRefusals);
   scopeInputs.executionFailures.push(...graphDeltaSourceExecutionFailures);

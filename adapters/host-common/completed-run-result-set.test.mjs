@@ -100,6 +100,7 @@ test('explicit prepared release is single-flight and retryable', async () => {
   let releases = 0;
   let retries = 0;
   let failRelease = true;
+  let custodyRetirements = 0;
   const prepared = {
     status: () => ({pending}),
     async release() {
@@ -124,7 +125,12 @@ test('explicit prepared release is single-flight and retryable', async () => {
     },
   };
   const stored = await storeCompletedRunResultSet({
-    execution, store: {}, control,
+    execution, store: {async retireEffectCaptureCustody(run) {
+      assert.equal(run.identity, cid('2'));
+      assert.equal(pending, false, 'payload release precedes capture retirement');
+      custodyRetirements++;
+      return false;
+    }}, control,
     runDefinition: contract(cid('2')), invocation: contract(cid('3')),
     results: [{retention, evidenceContext: {}}],
     outputLimits: {}, contractLimits: limits,
@@ -135,11 +141,14 @@ test('explicit prepared release is single-flight and retryable', async () => {
   await assert.rejects(first, {cleanupPending: true});
   assert.equal(releases, 1);
   assert.equal(pending, true);
+  assert.equal(custodyRetirements, 0);
   assert.equal(await releaseCompletedRunPreparedPayloads(stored, control), true);
   assert.equal(retries, 1);
   assert.equal(pending, false);
+  assert.equal(custodyRetirements, 1);
   assert.equal(await releaseCompletedRunPreparedPayloads(stored, control), false);
   assert.equal(releases, 1);
+  assert.equal(custodyRetirements, 1);
   assert.throws(() => releaseCompletedRunPreparedPayloads(stored, {}),
     {code: 'InvalidCompletedRunResultSetOwner'});
 });

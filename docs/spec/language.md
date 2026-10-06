@@ -316,12 +316,24 @@ Source decoding interprets the selected source syntax's escapes and, for YAML,
 its scalar folding/chomping. The resulting well-formed Unicode string values are
 preserved exactly, including CR, LF, CRLF and composed/decomposed sequences.
 Builder-provided JSON-model strings already are values and receive no second
-escape interpretation. Object member names use the separate identifier rule:
-Unicode 16.0 NFC, then CRLF and lone CR to LF; colliding names are rejected.
+escape interpretation. Object member names use the separate identifier rule,
+except inside the quoted Effect literal payloads specified below: Unicode 16.0
+NFC, then CRLF and lone CR to LF; colliding names are rejected.
 Identifier-valued members are admitted by their grammar-owned identifier rules,
 not by normalization of every String. Admission of a purportedly canonical
 machine artifact rejects noncanonical identifiers or bytes rather than repairing
 signed or hashed material. A data string need not be NFC or LF-normalized.
+
+At a grammar-owned `EffectValue` position, the explicit `{literal: value}`
+wrapper quotes the complete value subtree. Member names inside that subtree
+retain their exact decoded Unicode scalar sequences and CR/LF for source and
+Program identity, including when a later checked target contract is an Object.
+Exact decoded duplicate keys remain source errors; distinct keys that would
+collide only after identifier normalization remain distinct source keys there.
+Program syntax, the `literal` wrapper, Effect names and target-field names retain
+their existing identifier rules. This exception does not select the payload's
+type or change any other source position. Contract-directed admission of the
+payload follows [Effect declarations](#effects).
 
 <a id="document-structure"></a>
 
@@ -8006,6 +8018,15 @@ set:
   Reason: {field: risk_reason}
 ```
 
+The complete payload of an Effect `{literal: value}` retains its source keys as
+specified in [Source representation](#source-representation). After the target
+contract is checked, a JSON payload preserves those exact data keys; a typed
+Object applies its existing field-name normalization, collision rejection and
+closed-contract matching. Neither interpretation changes the already-bound
+source identity. Member names within the payload do not select a type, and an
+object containing `$json` remains authored data. This rule adds no
+`typed_literal` alternative to `EffectValue` and does not expand Values types.
+
 <!-- requirement-block: effects.bare-values-are-rejected-with-a-deterministic-explicit-replacement-and effects.a-bare-effect-value-must-be-rejected-before-lowering effects.its-diagnostic-must-expose-only-explicit-literal-and-schema-valid effects.check-must-not-guess-between-those-meanings effects.check-must-reject-unknown-result-fields effects.preview-must-reject-missing-row-values-target-fields-not-declared effects.it-must-compute-separate-strength-appropriate-state-evidence-and-a-target -->
 All literal values use the explicit `{literal: value}` form. Bare values are
 rejected with a deterministic explicit replacement and MUST NOT be interpreted
@@ -9294,8 +9315,14 @@ in [Result delivery](protocols/artifacts.md#result-delivery).
 
 ActQL semantic identities use that pinned AoA Kernel canonical JSON contract: Unicode
 string values are preserved and object member names are normalized at the
-boundaries specified in [Source representation](#source-representation). Object
-keys are ordered by canonical code units, finite numbers use the AoA normalized
+boundaries specified in [Source representation](#source-representation), with
+the quoted Effect literal source-key exception defined there. Exact decoded
+keys in those payloads participate in Stage and Program semantic preimages
+before external target contracts are resolved. Composed and decomposed keys,
+or keys differing in CR/LF, therefore give different source identities even
+when later typed Object admission yields the same field. This does not make
+Program identity depend on a Mapping contract. Object keys are ordered by
+canonical code units, finite numbers use the AoA normalized
 number spelling, and negative zero is invalid. The ActQL CID is SHA-256 over the
 UTF-8 canonical serialization of its semantic envelope. Formatting, source key
 order, and comments do not affect this identity. A source-text

@@ -40,6 +40,8 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/analytic-output-scope-source-input.mjs', 'analytic-output-scope-source-input.mjs'],
+  ['scripts/fixtures/select-all-source-input.mjs', 'select-all-source-input.mjs'],
   ['scripts/fixtures/limit-parameter-source-input.mjs', 'limit-parameter-source-input.mjs'],
   ['scripts/fixtures/having-object-property-source-input.mjs', 'having-object-property-source-input.mjs'],
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
@@ -165,6 +167,9 @@ if (process.argv.includes('--typed-json-literal-only')) {
 if (process.argv.includes('--having-object-property-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY = '1';
 }
+if (process.argv.includes('--analytic-output-scope-only')) {
+  runtimeEnvironment.ACTQL_TEST_ANALYTIC_OUTPUT_SCOPE_ONLY = '1';
+}
 if (process.argv.includes('--property-graph-source-only')) {
   runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
 }
@@ -173,6 +178,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 }
 if (process.argv.includes('--grouped-in-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
+}
+if (process.argv.includes('--select-all-only')) {
+  runtimeEnvironment.ACTQL_TEST_SELECT_ALL_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -367,7 +375,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--optional-output-as-only', '--boolean-cast-only', '--graph-delta-source-only', '--json-literal-source-only', '--limit-parameter-only', '--typed-json-literal-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--select-all-only', '--optional-output-as-only', '--analytic-output-scope-only', '--boolean-cast-only', '--graph-delta-source-only', '--json-literal-source-only', '--limit-parameter-only', '--typed-json-literal-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -413,6 +421,8 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (process.argv.includes('--analytic-output-scope-only')) return;
+if (process.argv.includes('--select-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only') || process.argv.includes('--optional-output-as-only') || process.argv.includes('--boolean-cast-only')) return;
