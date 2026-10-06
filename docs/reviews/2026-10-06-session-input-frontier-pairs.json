@@ -1,0 +1,184 @@
+{
+  "authority": "local-controlled-input-extraction",
+  "reuseAuthorized": false,
+  "candidate": "9ad58b9cda6d00f44b3a11690d28369c33e01d3f",
+  "referenceRevision": "92fb7a94b1c9776ce13eb516723dd3471f6152f3",
+  "referenceDigest": "cfa1a15317836ec9e4a0d0df3adb5f512a1d8027100ef957a18de1185fae58b6",
+  "candidateExtractorDigest": "5f8b362ee49107426ac6a9d6cc7075c7262951055f906354f1101a65893f247e",
+  "conditions": {
+    "actions": 30,
+    "tree": "fresh per invocation; immutable candidate Git blobs",
+    "warmupPairs": 2,
+    "measuredPairs": 9,
+    "caches": "OS/filesystem warm; no closure cache across invocations",
+    "referenceImports": "only two relative imports relocated to the same candidate dependencies",
+    "target": "source extraction only; no Moon/Lean/compiler/Actions execution"
+  },
+  "counts": {
+    "before": {
+      "batches": 177,
+      "objects": 3836,
+      "keys": [
+        "30c6e0c9c8f524d742692a29adb9aa42d1b701508548930c929ad92d71a5b144",
+        "a5682c686378d15f3d893a9fd9337134c10d95cf6b744fb44624c6d2526dc604",
+        "deafba8ab14628be54600751bcbc64667a60a4ff516a07f199612129770af7c1",
+        "b734d86169e9c251e2a5687d6fcf5dcbe8104b3c2d5ea3b46d48f31624c6c41c",
+        "467064d2ce07debcca7d6eb30393e642f799eb935d79bb761f9767df94ed8455",
+        "10cc704a7be7d6da9e0ec4da14b95e35973761a0b18fa081873d9284125177b7",
+        "f4a92994f545b448c49b95066c562f965359fe9a2b1c09329315c598c7b867f5",
+        "c907bba796acb38b714863faf32bbf7886d0860cd407ae1c322657882e61a6e5",
+        "4d76c8f382ef0784a38591d39fbbd2407efb8d8c391c2b161ec90bf469eaf3e2",
+        "0986286f5d37926b98f6742e044c9870fa984a6c915a1dfd1bc3454a481990c1",
+        "514c6c5918b0ffdbdd8a1af2bbf4576e12ad48850c1b9b51cfe79e1b4b561952",
+        "88dac3662c3e2b3d22c3d860e491baee9ff2e45d4eab05360ae383e798b893ec",
+        "630805a4998ded4ff6a9a01bc92366e324f60bbc48e9e81dd98b67df5cbe065c",
+        "a16686eebc315ee5425371ec1234913b8e5fc5c3bde2f68d08d06b31ec9987aa",
+        "2c4b88a40ae6ec338556ec48ba2eb6abc9f18c808388b1500a7e7c1ae6b7bc9e",
+        "416795a9bb2f8c57e4c4a6d5f07d30daf029985ff55de4d25b6814c8469962cd",
+        "145643fa246e512e56a429d693f343e13c2513c5d7f9b000d8bb03f4a821f529",
+        "424ec20f7d7e37b4f828deb5ad06d96c47a1adb8ad3deb0e9c5b912bc3919b16",
+        "ae4f862082f10b3aabd444c04bb761303dc3ef37df0f6a3ad72006039c5dcab6",
+        "df71140e4100d25a18f8c8f9163f2381f7ca6321fe1f83966d74c07e8fdf5711",
+        "a20c6d76249595abc46644b506268d6977b1401385163078aea19671ba57dda9",
+        "dd6506eda74634f556cef2cade5557683973050466fe6b24e5d21e520b5e1f92",
+        "5a477f732b9c384d4314b61965476e05de57d514272a98d3a8755d7f2141955f",
+        "1172b39828dde82e9607853af4b4ee2014a7165121c0d9e973caafceb67cf6d3",
+        "b78bac1aaf88c66026cc22e2f32f029ee1bfd7893f5ffce3df8f2bb744d6fe28",
+        "561a19fab8fd4539afb2abf39466c6536af8657793751a6240b2a7f25f3c959b",
+        "7212352b55c8b8626e41172bcbc84a99c967c7df6e5eebf5ec57a9eb66a88b1a",
+        "5ec894dcee4d1dcf1e64e6460b80b5ac51b3b0ced363dcb6625e42d747db825d",
+        "80c1cc4b46f3f04d3e8fad904fed81274b43ae0eaae57923be209a51699dd7ec",
+        "dac9882d4902deed4ba9a3626a7845892550c89ba067d22d6718a0f9531b700b"
+      ]
+    },
+    "after": {
+      "batches": 29,
+      "objects": 3836,
+      "keys": [
+        "30c6e0c9c8f524d742692a29adb9aa42d1b701508548930c929ad92d71a5b144",
+        "a5682c686378d15f3d893a9fd9337134c10d95cf6b744fb44624c6d2526dc604",
+        "deafba8ab14628be54600751bcbc64667a60a4ff516a07f199612129770af7c1",
+        "b734d86169e9c251e2a5687d6fcf5dcbe8104b3c2d5ea3b46d48f31624c6c41c",
+        "467064d2ce07debcca7d6eb30393e642f799eb935d79bb761f9767df94ed8455",
+        "10cc704a7be7d6da9e0ec4da14b95e35973761a0b18fa081873d9284125177b7",
+        "f4a92994f545b448c49b95066c562f965359fe9a2b1c09329315c598c7b867f5",
+        "c907bba796acb38b714863faf32bbf7886d0860cd407ae1c322657882e61a6e5",
+        "4d76c8f382ef0784a38591d39fbbd2407efb8d8c391c2b161ec90bf469eaf3e2",
+        "0986286f5d37926b98f6742e044c9870fa984a6c915a1dfd1bc3454a481990c1",
+        "514c6c5918b0ffdbdd8a1af2bbf4576e12ad48850c1b9b51cfe79e1b4b561952",
+        "88dac3662c3e2b3d22c3d860e491baee9ff2e45d4eab05360ae383e798b893ec",
+        "630805a4998ded4ff6a9a01bc92366e324f60bbc48e9e81dd98b67df5cbe065c",
+        "a16686eebc315ee5425371ec1234913b8e5fc5c3bde2f68d08d06b31ec9987aa",
+        "2c4b88a40ae6ec338556ec48ba2eb6abc9f18c808388b1500a7e7c1ae6b7bc9e",
+        "416795a9bb2f8c57e4c4a6d5f07d30daf029985ff55de4d25b6814c8469962cd",
+        "145643fa246e512e56a429d693f343e13c2513c5d7f9b000d8bb03f4a821f529",
+        "424ec20f7d7e37b4f828deb5ad06d96c47a1adb8ad3deb0e9c5b912bc3919b16",
+        "ae4f862082f10b3aabd444c04bb761303dc3ef37df0f6a3ad72006039c5dcab6",
+        "df71140e4100d25a18f8c8f9163f2381f7ca6321fe1f83966d74c07e8fdf5711",
+        "a20c6d76249595abc46644b506268d6977b1401385163078aea19671ba57dda9",
+        "dd6506eda74634f556cef2cade5557683973050466fe6b24e5d21e520b5e1f92",
+        "5a477f732b9c384d4314b61965476e05de57d514272a98d3a8755d7f2141955f",
+        "1172b39828dde82e9607853af4b4ee2014a7165121c0d9e973caafceb67cf6d3",
+        "b78bac1aaf88c66026cc22e2f32f029ee1bfd7893f5ffce3df8f2bb744d6fe28",
+        "561a19fab8fd4539afb2abf39466c6536af8657793751a6240b2a7f25f3c959b",
+        "7212352b55c8b8626e41172bcbc84a99c967c7df6e5eebf5ec57a9eb66a88b1a",
+        "5ec894dcee4d1dcf1e64e6460b80b5ac51b3b0ced363dcb6625e42d747db825d",
+        "80c1cc4b46f3f04d3e8fad904fed81274b43ae0eaae57923be209a51699dd7ec",
+        "dac9882d4902deed4ba9a3626a7845892550c89ba067d22d6718a0f9531b700b"
+      ]
+    }
+  },
+  "pairs": [
+    {
+      "index": 0,
+      "order": [
+        "before",
+        "after"
+      ],
+      "beforeMilliseconds": 5421.958417000002,
+      "afterMilliseconds": 3769.3140830000048,
+      "savedMilliseconds": 1652.644333999997
+    },
+    {
+      "index": 1,
+      "order": [
+        "after",
+        "before"
+      ],
+      "afterMilliseconds": 4343.455957999999,
+      "beforeMilliseconds": 5923.496666999999,
+      "savedMilliseconds": 1580.0407090000008
+    },
+    {
+      "index": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "beforeMilliseconds": 5422.799208000004,
+      "afterMilliseconds": 5045.091084,
+      "savedMilliseconds": 377.7081240000043
+    },
+    {
+      "index": 3,
+      "order": [
+        "after",
+        "before"
+      ],
+      "afterMilliseconds": 3720.9162499999948,
+      "beforeMilliseconds": 7546.572750000007,
+      "savedMilliseconds": 3825.656500000012
+    },
+    {
+      "index": 4,
+      "order": [
+        "before",
+        "after"
+      ],
+      "beforeMilliseconds": 7048.81970800001,
+      "afterMilliseconds": 4255.973792000004,
+      "savedMilliseconds": 2792.8459160000057
+    },
+    {
+      "index": 5,
+      "order": [
+        "after",
+        "before"
+      ],
+      "afterMilliseconds": 4089.743291999999,
+      "beforeMilliseconds": 6359.968334000005,
+      "savedMilliseconds": 2270.2250420000055
+    },
+    {
+      "index": 6,
+      "order": [
+        "before",
+        "after"
+      ],
+      "beforeMilliseconds": 4855.955833,
+      "afterMilliseconds": 3340.4429579999996,
+      "savedMilliseconds": 1515.5128750000003
+    },
+    {
+      "index": 7,
+      "order": [
+        "after",
+        "before"
+      ],
+      "afterMilliseconds": 3486.5388749999984,
+      "beforeMilliseconds": 4002.2625830000034,
+      "savedMilliseconds": 515.723708000005
+    },
+    {
+      "index": 8,
+      "order": [
+        "before",
+        "after"
+      ],
+      "beforeMilliseconds": 3488.3463749999937,
+      "afterMilliseconds": 2406.9669580000045,
+      "savedMilliseconds": 1081.3794169999892
+    }
+  ],
+  "netRunnerSavingsMilliseconds": null
+}
