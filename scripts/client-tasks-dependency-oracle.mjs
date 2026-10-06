@@ -29,7 +29,10 @@ export function tasksDependencyOracle({legacy=false}={}) {
     const local = {version:'actql-stage-semantics/0.1',binding_references:[],bindings:{},
       parameter_references:acquired ? [{name:'minimum',path:'/steps/0/filter/gt/1',
         type:declarations.minimum}] : [],parameters:declarations,
-      expression_contract_cid:hash(read('spec/contracts/actql-expressions.json')),
+      expression_contract_cid:legacy
+        ? read('scripts/fixtures/pre-typed-json-values-contracts.json')
+          .contract_cids['spec/contracts/actql-expressions.json#']
+        : hash(read('spec/contracts/actql-expressions.json')),
       local_body:{effects:{},inputs:stage.inputs,results:stage.results,
         steps:[{...stage.steps[0],filter:expression},stage.steps[1]]}};
     const contracts = relationFixtureContracts({legacy,acquired});

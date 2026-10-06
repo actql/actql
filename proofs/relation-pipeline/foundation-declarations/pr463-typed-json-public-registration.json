@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr463-typed-json-public-registration",
+  "kind": "change",
+  "revision": "46944c33e9a28511bba714cc907db2cda9ad44fa",
+  "parents": [
+    "0e1b87d05e356abed132ef0fb2acfc6ee39ed937"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "0e1b87d05e356abed132ef0fb2acfc6ee39ed937",
+          "digest": "bf9fc411951dfbb0d7db3674046add5eb448079c035ee276d0e0935f37e5ee2a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "56b6d254e1133f3d837d98a51436ab646750e979f20b711ecd1ded0905223217",
+      "afterMode": "100644",
+      "reason": "Register the typed JSON public Result publication regression in the existing distribution-client gate while retaining prior coverage."
+    }
+  ]
+}
