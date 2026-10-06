@@ -320,6 +320,17 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The 2026-10-07 constructed-Object follow-up now sizes and charges long member
+names through the existing frame and appends through the existing Value owner
+bound to immutable admitted contract names. The real retained Host harness
+constructs long-prefix members, verifies producer/two-consumer Results and
+delivers post-progress cancellation. Independent work/live/workspace and both
+name-phase cleanup proofs remain required. #681 is now adopted on main;
+#683 combines the Field and Object-name units with final target main. See the
+[Object-name record](2026-10-07-local-object-name-cursor.md). Initial row-map
+preparation, short-name collision behavior and raw Text child conversion
+remain distinct residuals; no whole-Local completion is asserted.
+
 The dependent 2026-10-07 field-name follow-up now splits long authored Field
 charging and exact input lookup in the same expression frame, preserving
 prior-slot binding, successful work totals and caller-owned input custody.
@@ -327,8 +338,8 @@ The retained public Program shares the existing property harness and verifies
 three independent Named Results plus delivered post-progress cancellation.
 Initial row-map construction, short-name collision behavior and Object
 construction-name measurement are not closed by this unit. See the
-[field-name record](2026-10-07-local-field-name-cursor.md); #681 remains its
-unmerged parent until adopted on main.
+[field-name record](2026-10-07-local-field-name-cursor.md). Its original
+unmerged-parent dependency was subsequently resolved by #681's main adoption.
 
 The 2026-10-07 property-name follow-up now resumes member-name UTF-8 charging
 and exact spelling comparison in the existing expression frame. The receiver
