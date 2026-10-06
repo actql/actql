@@ -113,6 +113,25 @@ single object column. Explicit selection uses the existing nullable-object
 property contracts where applicable. The selected reference is [GoogleSQL
 UNNEST](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest_operator);
 this connection does not establish complete ARRAY/STRUCT or value-table support.
+`CAST(value AS BOOLEAN)` uses the same existing boolean target as
+`CAST(value AS BOOL)`, following the [GoogleSQL BOOL/BOOLEAN alias](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#boolean_type).
+Type names are ASCII case-insensitive. This is a source spelling for the same
+checked cast; it does not widen the common conversion domains, make failing
+casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
+NULL remains a typed nullable boolean, including on empty Relations.
+
+An explicit output alias may omit `AS`, for example `SELECT id + 1 next_id`,
+`SELECT COUNT(*) n FROM records`, or `FROM records |> EXTEND id + 1 next_id`.
+This adopts the [pinned GoogleSQL SELECT alias spelling](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#explicit_alias_syntax)
+and the same projection spelling in Pipe SELECT, EXTEND and AGGREGATE.
+The omitted keyword does not change name resolution, sibling visibility,
+aggregate/window demand, output column order or type. Quoted aliases use
+backticks, including reserved words; an unquoted alias without AS cannot be a
+[reserved GoogleSQL keyword](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#reserved_keywords).
+Clause starters therefore remain syntax, including currently unsupported clauses.
+Unnamed function/computed columns remain an explicit unsupported coverage gap;
+this connection still requires names for aggregate and analytic outputs and does
+not manufacture a public name or change the ordinary Result contract.
 
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
@@ -150,6 +169,22 @@ the first duplicate decoded key and exact strings/keys, rejects precision
 loss, and applies complete-input size/node/depth ceilings. Unsupported wide
 numbers are refused rather than rounded. The JSON parser and runtime are not
 duplicated in the Frontend. JSON literals are not limited to Graph Delta.
+
+## SELECT row quantifier
+
+SQL SELECT and the Pipe SELECT operator accept one optional `ALL` or
+`DISTINCT` quantifier. `SELECT ALL` explicitly selects the existing ordinary,
+duplicate-preserving projection; it has the same meaning as omitting the
+quantifier. It does not add DISTINCT, change NULL values, infer a key, or
+change the declared column order, WHERE, ORDER BY or LIMIT/OFFSET. Repeated or
+combined quantifiers are syntax errors. Quoted identifiers such as ``ALL``
+remain identifiers. Aggregate-call modifiers are a separate grammar.
+
+This connection follows [GoogleSQL SELECT ALL](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_all).
+The pinned GoogleSQL parser (`d82db99a923a46571f543a13899dc791a7b6f743`,
+`googlesql/parser/googlesql.tm`) shares `select_clause` and
+`opt_all_or_distinct` between ordinary SELECT and `pipe_select`; this is
+selected language-reference support, not a claim about every deployed service.
 
 ## Scope and lowering
 

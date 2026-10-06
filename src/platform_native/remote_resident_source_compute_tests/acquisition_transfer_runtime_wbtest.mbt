@@ -19,6 +19,8 @@ fn acquisition_runtime_transfer_consumer(
   sqlite : @sqlite.Library,
   root_path : String,
   name : String,
+  through_consumer_holder? : Bool = false,
+  cancel_consumer_before_start? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
@@ -150,6 +152,14 @@ fn acquisition_runtime_transfer_consumer(
     4096,
     536870912L,
   ).unwrap()
+  let handoff_wire = @remote.remote_poll_retained_input_transfer_json(
+    restored_plan,
+  ).unwrap()
+  let operation = @remote.admit_remote_poll_operation_json(handoff_wire).unwrap()
+  guard operation is @remote.RetainedTransfer(handoff) else {
+    fail("expected retained transfer handoff")
+  }
+  let restored_plan = @remote.remote_poll_retained_transfer_plan(handoff)
   let request = @remote.remote_retained_input_plan_transfer(restored_plan)
   assert_true(
     @remote.admit_remote_retained_input_plan_json(
@@ -289,6 +299,7 @@ fn acquisition_runtime_transfer_consumer(
     return
   }
   let transfer = prepared_transfer.unwrap()
+  assert_true(transfer.result() is Err(@resident.CleanupPending))
   let before = @site.site_status(site)
   if cancel_producer_before_handoff {
     producer_journal.request_cancellation(producer_dispatch).unwrap() |> ignore
@@ -404,6 +415,33 @@ fn acquisition_runtime_transfer_consumer(
     @transfer.record_revision(destination_journal.require(request).unwrap()),
     revision,
   )
+  let report = transfer.result().unwrap()
+  let report_wire = @remote.remote_retained_input_result_json(report)
+  let report_cid = @remote.remote_retained_input_result_identity(report)
+  let admitted_report = @remote.admit_remote_retained_input_result_json(
+    report_wire, report_cid, restored_plan,
+  ).unwrap()
+  assert_eq(
+    @transfer.record_request_identity(
+      @remote.remote_retained_input_result_record(admitted_report),
+    ),
+    @transfer.request_cid(request),
+  )
+  assert_eq(
+    @transfer.record_revision(
+      @remote.remote_retained_input_result_record(admitted_report),
+    ),
+    revision,
+  )
+  // At the report boundary, a retry uses immutable receiver evidence, never
+  // bytes or acquisition. This case does not perform an HTTP exchange.
+  // Historical reporting is still possible after revocation.
+  authorized.val = false
+  assert_eq(
+    @remote.remote_retained_input_result_json(transfer.result().unwrap()),
+    report_wire,
+  )
+  authorized.val = true
   let bytes = physical.referenced_bytes
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
@@ -449,6 +487,47 @@ fn acquisition_runtime_transfer_consumer(
     common_input,
     common_current,
   ).unwrap()
+  if through_consumer_holder {
+    retained_consumer_holder_case(
+      transfer,
+      producer_journal,
+      materials,
+      admission,
+      configuration,
+      common_input,
+      dispatch,
+      @host.prepare_client_retained_task_dispatch(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        caller,
+        1,
+        2,
+        "foreign-holder-consumer",
+        selected,
+        common_input,
+        common_current,
+      ).unwrap(),
+      site,
+      sqlite,
+      root_path,
+      name + ".consumer-holder",
+      destination_journal,
+      bytes,
+      cancel_before_start=cancel_consumer_before_start,
+    )
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_true(destination_journal.close())
+    return
+  }
   let material = @transfer_client.pin_durable_direct_destination_material(
     destination_journal,
     root,
@@ -588,6 +667,14 @@ fn acquisition_runtime_transfer_consumer(
   assert_true(transfer.reclaim().unwrap())
   assert_false(transfer.reclaim().unwrap())
   assert_eq(@site.site_status(site)[6], before[6])
+  assert_eq(
+    @remote.remote_retained_input_result_identity(transfer.result().unwrap()),
+    report_cid,
+  )
+  assert_eq(
+    @remote.remote_retained_input_result_json(transfer.result().unwrap()),
+    report_wire,
+  )
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     0L,

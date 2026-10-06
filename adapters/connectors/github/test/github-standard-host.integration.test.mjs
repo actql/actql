@@ -37,7 +37,7 @@ await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
 execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
-  '-subj', '/CN=localhost',
+  '-subj', '/CN=github-standard-host-fixture',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
 {cwd: tlsRoot, stdio: 'ignore'});
 const tlsKey = await readFile(join(tlsRoot, 'host.key'));

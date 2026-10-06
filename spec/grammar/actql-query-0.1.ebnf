@@ -39,7 +39,7 @@ sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
 cte_pipe      = "FROM", ( source | unnest_source ), { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call ;
-select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", ( source, { join } | unnest_source ) ],
+select_core   = "SELECT", [ "ALL" | "DISTINCT" ], select_list, [ "FROM", ( source, { join } | unnest_source ) ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
@@ -82,7 +82,7 @@ group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = "*" | path, ".", "*"
-              | expression, [ "AS", identifier ] ;
+              | expression, [ [ "AS" ], identifier ] ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
@@ -114,7 +114,7 @@ assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
-relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" ], select_list
+relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "ALL" | "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }

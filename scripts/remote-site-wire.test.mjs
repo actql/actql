@@ -90,3 +90,26 @@ test('Retained input wire pins enforce exact fields and separate value identity'
   assert.notEqual(hash(canonical({...intent, transfer_attempt: 'e\u0301\r\n'})),
     hash(canonical({...intent, transfer_attempt: 'é\n'})));
 });
+
+
+test('Retained handoff preserves the saved plan and exact committed receipt', () => {
+  const fixed = read('spec/fixtures/remote-retained-input-wire-vectors.json').vectors;
+  const byName = Object.fromEntries(fixed.map(vector => [vector.name, vector]));
+  const poll = byName.poll_transfer.body;
+  const result = byName.result.body;
+  assert.equal(poll.plan_json, byName.plan.canonical);
+  assert.equal(poll.plan_cid, byName.plan.cid);
+  assert.equal(poll.intent_json, byName.plan_intent.canonical);
+  assert.equal(hash(poll.request_json), poll.dispatch_request_cid);
+  assert.equal(result.plan_cid, poll.plan_cid);
+  assert.equal(result.intent_cid, poll.intent_cid);
+  assert.equal(result.dispatch_request_cid, poll.dispatch_request_cid);
+  const receipt = JSON.parse(result.destination_receipt_json);
+  assert.equal(hash(result.destination_receipt_json), result.destination_receipt_cid);
+  assert.equal(receipt.request_cid, result.transfer_request_cid);
+  assert.equal(receipt.physical_manifest_cid, byName.plan.body.physical_manifest_cid);
+  const reply = JSON.parse(result.transfer_reply_json);
+  assert.equal(reply.requestCid, result.transfer_request_cid);
+  // DirectStream has no Store object use; that release bit is true at admission.
+  assert.deepEqual(reply.state, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
+});

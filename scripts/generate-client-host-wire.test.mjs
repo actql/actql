@@ -272,3 +272,21 @@ test('request response derivation fails closed on ambiguous or unsupported bindi
     assert.throws(() => buildClientHostWire(changed, protocol), /InvalidClientHostRequestResponseRule/);
   }
 });
+
+test('check protocol discriminants derive from the registered schema without another validator', async () => {
+  const {checkOutcomeProtocol} = await import('../packages/client-wire/index.mjs');
+  assert.deepEqual(checkOutcomeProtocol, {version: 'actql-check-outcome/0.1',
+    reasonSchemaCid: protocol.artifact_schema_cids.check_reason,
+    outcomeSchemaCid: protocol.artifact_schema_cids.check_outcome,
+    outcomes: ['completed', 'failed', 'unavailable']});
+  assert.equal(Object.isFrozen(checkOutcomeProtocol.outcomes), true);
+  const changed = structuredClone(protocol);
+  const additional = structuredClone(changed.artifact_schemas.check_outcome.oneOf[0]);
+  additional.properties.outcome.const = 'future_fixture';
+  changed.artifact_schemas.check_outcome.oneOf.push(additional);
+  const generated = buildClientHostWire(registry, changed);
+  const future = await import('data:text/javascript;base64,' + Buffer.from(generated.module).toString('base64'));
+  assert.deepEqual(future.checkOutcomeProtocol.outcomes, ['completed', 'failed', 'unavailable', 'future_fixture']);
+  additional.properties.version.const = 'different_fixture';
+  assert.throws(() => buildClientHostWire(registry, changed), /InvalidCheckOutcomeDiscriminants/);
+});

@@ -15,9 +15,11 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedInputProducerAvailable, retainedInputProducerFacts,
   prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
   retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
-  retainedInputPlanFacts,
+  retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
+  retainedInputResultFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
-  retainedTaskInputFacts, issueRetainedTaskDispatch}
+  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
+  prepareTaskPhysicalStart}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -103,14 +105,14 @@ test('retained edge rejects absent edges, foreign Run owners and forged handles'
   }
 });
 
-function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid('7')) {
+function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid('7'), issuedOverride) {
   const authority = cid('c');
   const selection = {taskAttempt, dispatchId: `producer-${taskAttempt}`,
     siteKey: 'site-a', siteGeneration: 1, runtimeBundleCid: cid('a'),
     connectorRegistration: 'local', connectorRevision: 'local/1',
     strategyRevision: 'strategy/1', obligationsCid: cid('1'),
     budgetCid: cid('2'), evidenceIssuerCapabilityCid: cid('3'), grantCid: cid('4')};
-  const issued = issueTaskDispatch(original.prepared, original.compilation,
+  const issued = issuedOverride ?? issueTaskDispatch(original.prepared, original.compilation,
     original.admission, original.definition,
     prepareTaskRequest(original.prepared, original.compilation, authority,
       'original-request'), 0, selection);
@@ -456,6 +458,77 @@ const issueConsumer = (original, fixture, input, selection = fixture.completed.s
       fixture.completed.authority, 'original-request'), 1,
     {...selection, dispatchId: 'consumer-1'}, input);
 
+test('checked remote task progress separates producer completion from Run and cleanup completion', () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  const progress = (...records) => inspectTaskProgress(original.prepared, original.compilation,
+    original.admission, original.definition, fixture.completed.authority,
+    records.map(value => value.current().durableRecordWire));
+  const empty = progress();
+  assert.equal(empty.nextTask, 0);
+  assert.equal(empty.executionComplete, false);
+  assert.equal(empty.cleanupComplete, false);
+  assert.deepEqual(empty.resultTasks, [1]);
+  const producer = progress(fixture.completed);
+  assert.equal(producer.nextTask, 1);
+  assert.equal(producer.executionComplete, false);
+  assert.equal(producer.cleanupComplete, false);
+  assert.deepEqual(producer.tasks.map(value => value.execution), ['settled', 'unobserved']);
+  assert.equal(producer.tasks[0].dispatchCid, fixture.completed.issued.cid);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'), issueConsumer(original, fixture, input));
+  assert.equal(progress(fixture.completed, consumer).nextTask, undefined,
+    'persisted consumer intent is reconciled, never selected for another start');
+  consumer.observe([3, 2, 0, 1, 0], 5, false);
+  assert.equal(progress(fixture.completed, consumer).executionComplete, false,
+    'physical settlement without admitted output evidence cannot finish the checked graph');
+  consumer.observe([3, 2, 0, 1, 0], 6);
+  let complete = progress(consumer, fixture.completed);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, false);
+  assert.equal(complete.nextTask, undefined);
+  assert(Object.isFrozen(complete));
+  assert(Object.isFrozen(complete.tasks));
+  assert(Object.isFrozen(complete.tasks[0].executionScope));
+  for (const record of [fixture.completed, consumer]) {
+    record.observe([3, 2, 1, 1, 0], 7);
+    assert.equal(progress(fixture.completed, consumer).cleanupComplete, false);
+    record.observe([3, 2, 2, 0, 0], 8);
+  }
+  complete = progress(fixture.completed, consumer);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, true);
+  assert.deepEqual(complete.tasks.map(value => value.cleanup), ['released', 'released']);
+});
+
+test('checked remote task progress rejects foreign and competing observations and does not restart unknown work', () => {
+  const original = run();
+  const fixture = coordinatorProducerFixture(original);
+  const inspect = (records, authority = fixture.authority) => inspectTaskProgress(
+    original.prepared, original.compilation, original.admission, original.definition,
+    authority, records);
+  const saved = fixture.current().durableRecordWire;
+  assert.equal(inspect([saved]).nextTask, undefined, 'unobserved original intent has a reconciliation owner');
+  assert.throws(() => inspect([saved], cid('f')), {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => inspect([saved, saved]), {code: 'RunHostTaskProgressRejected'});
+  const otherAttempt = coordinatorProducerFixture(original, 2).current().durableRecordWire;
+  assert.throws(() => inspect([saved, otherAttempt]), {code: 'RunHostTaskProgressRejected'});
+  const foreign = coordinatorProducerFixture(run(document.replace('id > 2', 'id > 1')));
+  assert.throws(() => inspect([foreign.current().durableRecordWire]), {code: 'RunHostTaskProgressRejected'});
+  fixture.observe([6, 0, 3, 0, 0], 1, false);
+  const unknown = inspect([fixture.current().durableRecordWire]);
+  assert.equal(unknown.nextTask, undefined);
+  assert.equal(unknown.executionComplete, false);
+  assert.equal(unknown.cleanupComplete, false);
+  assert.equal(unknown.tasks[0].execution, 'unknown');
+  assert.equal(unknown.tasks[0].cleanup, 'unknown');
+  for (const records of [null, ['invalid'], [saved, 1]]) {
+    assert.throws(() => inspect(records));
+  }
+});
+
 test('retained consumer dispatch joins exact committed destination and restores current custody', () => {
   const original = run();
   const fixture = retainedTransferFixture(original);
@@ -543,4 +616,322 @@ test('retained input refuses disappearing Transfer custody across admission and 
   assert.throws(() => prepareRetainedTaskInput(fixture.producer, fixture.receipt,
     'receiver-use', {...fixture.current, authorized: () => Promise.resolve(true)}, inputLimits),
   {message: 'InvalidRunHostRetainedAuthorization'});
+});
+
+
+// Independent protocol response only: actual receiver bytes and cleanup have
+// separate Native evidence. This fixture cannot establish current custody.
+function retainedResultFixture(fixture, changes = {}) {
+  const body = {destination_receipt_cid: fixture.receipt.cid,
+    destination_receipt_json: fixture.receipt.wire,
+    dispatch_request_cid: fixture.completed.issued.cid,
+    intent_cid: fixture.savedIntent.cid, plan_cid: fixture.reply.cid,
+    transfer_reply_json: identifyRetainedWire({requestCid: fixture.requestWire.cid,
+      state: [3, 2, 0, 1, 0, 1, 1, 1, 1]}).wire,
+    transfer_request_cid: fixture.requestWire.cid,
+    version: 'actql-remote-retained-input-result/0.1', ...changes};
+  return identifyRetainedWire(body);
+}
+
+test('retained transfer envelope joins original plan and refuses revoked delivery before send', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const before = fixture.wire();
+  const body = JSON.parse(retainedInputTransferEnvelope(plan));
+  assert.deepEqual(body, {dispatch_request_cid: fixture.completed.issued.cid,
+    intent_cid: fixture.savedIntent.cid, intent_json: fixture.savedIntent.wire,
+    plan_cid: fixture.reply.cid, plan_json: fixture.reply.wire,
+    request_json: fixture.completed.issued.wire,
+    version: 'actql-remote-poll-retained-input-transfer/0.1'});
+  assert.equal(fixture.wire(), before);
+  let sent = 0;
+  fixture.authorized(false);
+  assert.throws(() => {retainedInputTransferEnvelope(plan); sent++;},
+    {code: 'RunHostRetainedInputPlanRejected'});
+  assert.equal(sent, 0);
+  fixture.authorized(true);
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.throws(() => {retainedInputTransferEnvelope(plan); sent++;},
+    {code: 'RunHostRetainedInputPlanRejected'});
+  assert.equal(sent, 0);
+});
+
+test('retained result restores exact immutable receipt without authorizing current input', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const saved = retainedResultFixture(fixture);
+  const before = fixture.wire();
+  const result = admitRetainedInputResult(plan, saved);
+  const facts = retainedInputResultFacts(result);
+  assert.equal(facts.cid, saved.cid);
+  assert.equal(facts.wire, saved.wire);
+  assert.equal(facts.planCid, fixture.reply.cid);
+  assert.deepEqual(facts.receipt, fixture.receipt);
+  assert.equal(facts.transferReply.requestCid, fixture.requestWire.cid);
+  assert.equal(fixture.wire(), before);
+  assert(Object.isFrozen(result));
+  assert(Object.isFrozen(facts));
+  assert(Object.isFrozen(facts.transferReply));
+  assert(Object.isFrozen(facts.receipt));
+  // A committed historical report does not replace the current Transfer Owner.
+  assert.throws(() => prepareRetainedTaskInput(fixture.producer, facts.receipt,
+    'receiver-use', fixture.current, inputLimits), {code: 'RunHostRetainedTaskInputRejected'});
+  fixture.authorized(false);
+  assert.deepEqual(retainedInputResultFacts(admitRetainedInputResult(plan, saved)), facts);
+  assert.throws(() => retainedInputTransferEnvelope(plan), {code: 'RunHostRetainedInputPlanRejected'});
+  assert.throws(() => validateRetainedTaskInput(result), {message: 'ForeignRunHostHandle'});
+  assert.equal(fixture.wire(), before);
+});
+
+test('retained result refuses uncommitted and substituted reports and forged handles', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const saved = retainedResultFixture(fixture);
+  for (const changes of [{plan_cid: cid('f')}, {intent_cid: cid('f')},
+    {dispatch_request_cid: cid('f')}, {transfer_request_cid: cid('f')},
+    {destination_receipt_cid: cid('f')},
+    {transfer_reply_json: identifyRetainedWire({requestCid: fixture.requestWire.cid,
+      state: [0, 0, 0, 0, 0, 0, 0, 1, 0]}).wire}]) {
+    assert.throws(() => admitRetainedInputResult(plan, retainedResultFixture(fixture, changes)),
+      {code: 'RunHostRetainedInputResultRejected'});
+  }
+  assert.throws(() => admitRetainedInputResult(plan, {...saved, wire: saved.wire + ' '}),
+    {code: 'RunHostRetainedInputResultRejected'});
+  for (const malformed of [{}, {...saved, extra: true}, {...saved, cid: 1}]) {
+    assert.throws(() => admitRetainedInputResult(plan, malformed),
+      {message: 'InvalidRunHostRetainedInputResultWire'});
+  }
+  for (const forged of [fixture.intent, fixture.reply, retainedInputPlanFacts(plan)]) {
+    assert.throws(() => retainedInputTransferEnvelope(forged), {message: 'ForeignRunHostHandle'});
+  }
+  for (const forged of [plan, saved, retainedInputResultFacts(admitRetainedInputResult(plan, saved))]) {
+    assert.throws(() => retainedInputResultFacts(forged), {message: 'ForeignRunHostHandle'});
+  }
+});
+
+
+const projectionAt = '2026-10-06T01:00:00.000Z';
+const projectionFixture = () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'),
+    issueConsumer(original, fixture, input));
+  const keys = taskKeys(original.prepared, original.compilation);
+  const project = (records, cancellationRequested = false, claims = keys) =>
+    projectTaskSiteRun(original.prepared, original.compilation, original.admission,
+      original.definition, fixture.completed.authority,
+      records.map(value => value.current().durableRecordWire), projectionAt,
+      cancellationRequested, claims);
+  return {original, fixture, consumer, keys, project};
+};
+
+test('checked whole Run projection requires both task proofs and keeps cleanup separate from publication', () => {
+  const {fixture, consumer, keys, project} = projectionFixture();
+  const producer = project([fixture.completed], false, [keys[0]]);
+  assert.equal(producer.publicationReady, false);
+  assert.equal(producer.executionComplete, false);
+  assert.equal(producer.nextTask, 1);
+  assert.equal(JSON.parse(producer.stateWire).status, 'running');
+  assert.deepEqual(producer.tasks.map(task => task.nextWork), ['none', 'none']);
+  let pending = project([fixture.completed, consumer]);
+  assert.equal(pending.execution, 'unknown');
+  assert.equal(pending.nextTask, undefined);
+  assert.equal(JSON.parse(pending.stateWire).status, 'needs_reconciliation');
+  assert.equal(pending.tasks[1].nextWork, 'reconcile');
+  consumer.observe([3, 2, 0, 1, 0], 5, false);
+  pending = project([fixture.completed, consumer]);
+  assert.equal(pending.publicationReady, false);
+  assert.equal(pending.tasks[1].nextWork, 'reconcile');
+  consumer.observe([3, 2, 0, 1, 0], 6);
+  let complete = project([consumer, fixture.completed]);
+  assert.equal(complete.execution, 'settled');
+  assert.equal(complete.publicationReady, true);
+  assert.equal(complete.cleanupComplete, false);
+  assert.equal(JSON.parse(complete.stateWire).status, 'running',
+    'settled execution is still unpublished until the existing publication Owner commits');
+  assert(complete.stateWire.includes('not_published'));
+  assert.deepEqual(complete.resultTasks, [1]);
+  assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'publication']);
+  for (const record of [fixture.completed, consumer]) {
+    record.observe([3, 2, 1, 1, 0], 7);
+    assert.equal(project([fixture.completed, consumer]).cleanupComplete, false);
+    record.observe([3, 2, 2, 0, 0], 8);
+  }
+  complete = project([fixture.completed, consumer]);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, true);
+  assert.deepEqual(complete.tasks.map(task => task.cleanup), ['released', 'released']);
+  // Producer: settlement + release-start + release-confirmed. Consumer also
+  // admitted a separate proofless settlement before its full evidence.
+  assert.deepEqual(complete.tasks.map(task => task.revision), [3, 4]);
+  assert(Object.isFrozen(complete));
+  assert(Object.isFrozen(complete.tasks));
+  assert(Object.isFrozen(complete.tasks[0]));
+});
+
+test('checked whole Run projection preserves unknown claims and refuses foreign task ownership', () => {
+  const {original, fixture, keys, project} = projectionFixture();
+  const preparing = project([], false, []);
+  assert.equal(preparing.execution, 'unobserved');
+  assert.equal(JSON.parse(preparing.stateWire).status, 'preparing');
+  assert.equal(preparing.nextTask, 0);
+  assert.equal(preparing.publicationReady, false);
+  const absent = project([], false, [keys[0]]);
+  assert.equal(absent.execution, 'unknown');
+  assert.equal(absent.nextTask, undefined);
+  assert.equal(absent.publicationReady, false);
+  assert.equal(absent.cleanupComplete, false);
+  assert.equal(absent.tasks[0].nextWork, 'reconcile');
+  assert.equal(JSON.parse(absent.stateWire).status, 'needs_reconciliation');
+  for (const claims of [[keys[0], keys[0]], ['foreign-task'], [keys[1], 'foreign-task']]) {
+    assert.throws(() => project([], false, claims), {code: 'RunHostTaskRunProjectionRejected'});
+  }
+  assert.throws(() => project([], false, [1]), {message: 'InvalidRunHostTaskRunProjection'});
+  const foreign = coordinatorProducerFixture(run(document.replace('id > 2', 'id > 1')));
+  assert.throws(() => project([foreign]), {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => project([fixture.completed, fixture.completed]),
+    {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => projectTaskSiteRun(original.prepared, original.compilation,
+    original.admission, original.definition, fixture.completed.authority, [], 'invalid', false, []),
+  {code: 'RunHostTaskRunProjectionRejected'});
+  assert.throws(() => projectSiteRun(original.prepared, original.compilation, original.admission,
+    original.definition, fixture.completed.authority,
+    fixture.completed.current().durableRecordWire, projectionAt),
+  {code: 'RunHostSiteProjectionRejected'}, 'the old one-task projection guard remains intact');
+});
+
+test('checked whole Run projection retains failure and cancellation cleanup without claiming a request is terminal', () => {
+  const failed = projectionFixture();
+  failed.consumer.observe([4, 0, 0, 0, 0], 1, false);
+  const failure = failed.project([failed.fixture.completed, failed.consumer]);
+  assert.equal(failure.execution, 'failed');
+  assert.equal(JSON.parse(failure.stateWire).status, 'failed');
+  assert.equal(failure.nextTask, undefined);
+  assert.equal(failure.publicationReady, false);
+  assert.equal(failure.cleanupComplete, false);
+  assert.deepEqual(failure.tasks.map(task => task.nextWork), ['release', 'cleanup']);
+  const cancelled = projectionFixture();
+  const requested = cancelled.project([cancelled.fixture.completed], true, [cancelled.keys[0]]);
+  assert.notEqual(JSON.parse(requested.stateWire).status, 'cancelled');
+  assert.equal(requested.nextTask, undefined);
+  assert.equal(requested.publicationReady, false);
+  assert.equal(requested.cleanupComplete, false);
+  cancelled.consumer.observe([5, 0, 0, 0, 0], 1, false);
+  let pending = cancelled.project([cancelled.fixture.completed, cancelled.consumer], true);
+  assert.notEqual(pending.execution, 'cancelled');
+  assert.equal(pending.cleanupComplete, false);
+  assert.deepEqual(pending.tasks.map(task => task.nextWork), ['release', 'cleanup']);
+  cancelled.fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  cancelled.fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  cancelled.consumer.observe([5, 0, 1, 0, 0], 2, false);
+  cancelled.consumer.observe([5, 0, 2, 0, 0], 3, false);
+  const complete = cancelled.project([cancelled.fixture.completed, cancelled.consumer], true);
+  assert.equal(complete.execution, 'cancelled');
+  assert.equal(JSON.parse(complete.stateWire).status, 'cancelled');
+  assert.equal(complete.cleanupComplete, true);
+  assert.equal(complete.publicationReady, false);
+  assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'none']);
+});
+
+
+test('checked whole Run projection distinguishes recovered custody from normal Released', () => {
+  const {fixture, consumer, project} = projectionFixture();
+  consumer.observe([3, 2, 0, 1, 0], 5);
+  fixture.completed.observe([3, 2, 4, 0, 1], 6);
+  let state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, false);
+  assert.equal(state.tasks[0].cleanup, 'force_lost');
+  assert.equal(state.tasks[1].cleanup, 'active');
+  fixture.completed.observe([3, 2, 5, 0, 0], 7);
+  state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, false);
+  assert.equal(state.tasks[0].cleanup, 'recovered_after_loss');
+  consumer.observe([3, 2, 1, 1, 0], 6);
+  consumer.observe([3, 2, 2, 0, 0], 7);
+  state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, true);
+  assert.deepEqual(state.tasks.map(task => task.cleanup), ['recovered_after_loss', 'released']);
+  assert.notDeepEqual(state.tasks.map(task => task.cleanup), ['released', 'released']);
+  // Formal recovery can discharge its owner, but never proves normal release
+  // or resolves an unrelated historical Run such as the #88 recovery ledger.
+});
+
+
+const taskStartFixture = () => {
+  const original = run();
+  const producer = coordinatorProducerFixture(original);
+  const request = prepareTaskRequest(original.prepared, original.compilation,
+    producer.authority, 'original-request');
+  const keys = taskKeys(original.prepared, original.compilation);
+  const claim = {taskKey: keys[0], dispatchCid: producer.issued.cid,
+    definitionCid: privateRunDefinition(original.definition).cid,
+    reserved: true, unstarted: true, authorized: true, cancelled: false, failed: false};
+  const start = (records = [producer], changes = {}, requested = request, retained = request) =>
+    prepareTaskPhysicalStart(original.prepared, original.compilation, original.admission,
+      original.definition, producer.authority, records.map(value => value.current().durableRecordWire),
+      requested, retained, {...claim, ...changes});
+  return {original, producer, request, keys, claim, start};
+};
+
+test('checked task physical start requires exact saved intent and retains exclusive claim responsibility', () => {
+  const {producer, start} = taskStartFixture();
+  const before = producer.current().durableRecordWire;
+  assert.equal(start([]), false, 'no missing intent may authorize a start');
+  assert.equal(start(), true, 'the unobserved original intent is eligible for one Host CAS claim');
+  for (const changes of [{reserved: false}, {unstarted: false}, {cancelled: true}, {failed: true}]) {
+    assert.equal(start([producer], changes), false);
+  }
+  assert.throws(() => start([producer], {authorized: false}), {code: 'RunHostTaskStartRejected'});
+  assert.equal(producer.current().durableRecordWire, before,
+    'eligibility never commits a claim, starts execution or changes custody');
+});
+
+test('checked task physical start rejects foreign task dispatch Run and matching foreign request pairs', () => {
+  const {original, producer, keys, start} = taskStartFixture();
+  for (const changes of [{taskKey: 'foreign-task'}, {dispatchCid: cid('f')},
+    {definitionCid: cid('f')}]) {
+    assert.throws(() => start([producer], changes), {code: 'RunHostTaskStartRejected'});
+  }
+  const changed = run(document.replace('id > 2', 'id > 1'));
+  const foreign = prepareTaskRequest(changed.prepared, changed.compilation,
+    producer.authority, 'original-request');
+  assert.throws(() => start([producer], {}, foreign, foreign), {code: 'RunHostTaskStartRejected'});
+  const otherRequest = prepareTaskRequest(original.prepared, original.compilation,
+    producer.authority, 'another-request');
+  assert.throws(() => start([producer], {}, otherRequest), {code: 'RunHostTaskStartRejected'});
+  const otherScope = prepareTaskRequest(original.prepared, original.compilation,
+    cid('f'), 'original-request');
+  assert.throws(() => start([producer], {}, otherScope, otherScope), {code: 'RunHostTaskStartRejected'});
+  assert.equal(start([], {taskKey: keys[1]}), false);
+});
+
+test('checked task physical start never treats historical Accepted running or unknown as unstarted', () => {
+  for (const state of [[1, 0, 0, 0, 0], [2, 0, 0, 0, 0], [6, 0, 3, 0, 0]]) {
+    const {producer, start} = taskStartFixture();
+    producer.observe(state, 1, false);
+    assert.equal(start(), false, 'observation overrides an erroneous Host unstarted assertion');
+  }
+});
+
+test('checked task physical start uses producer proof for the exact dependent consumer', () => {
+  const {original, producer, keys, start} = taskStartFixture();
+  const fixture = retainedTransferFixture(original);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'),
+    issueConsumer(original, fixture, input));
+  const changes = {taskKey: keys[1], dispatchCid: consumer.issued.cid};
+  assert.equal(start([producer, consumer], changes), false, 'unsettled producer prevents consumer start');
+  producer.observe([3, 2, 0, 1, 0], 1, false);
+  assert.equal(start([producer, consumer], changes), false, 'settlement without admitted proof is insufficient');
+  producer.observe([3, 2, 0, 1, 0], 2);
+  assert.equal(start([producer, consumer], changes), true);
+  assert.equal(start([producer, consumer], {...changes, unstarted: false}), false);
+  assert.equal(start([producer, consumer], {...changes, cancelled: true}), false);
+  consumer.observe([1, 0, 0, 0, 0], 1, false);
+  assert.equal(start([producer, consumer], changes), false);
 });

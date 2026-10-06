@@ -718,7 +718,7 @@ fn ExpressionParser::expression(
         let target = match name.value {
           Word(word) =>
             match upper_ascii(word) {
-              "BOOL" => CastType::Boolean
+              "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
               "FLOAT64" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp

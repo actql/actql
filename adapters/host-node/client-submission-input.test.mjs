@@ -158,9 +158,9 @@ for (const entrance of ['local', 'https']) {
         if (committed) {
           assert.equal(stored[0].caller_request_id, 'saved-request');
           // Independently assembled current Values Program semantics and
-          // Definition preimages include the adopted expression contract.
+          // Definition preimages include the adopted typed-JSON expression contract.
           assert.equal(stored[0].program_definition_cid,
-            'sha256:1be70a67bfbb6438998862777b118114f9c091a9bb4312a14963dd85edc228cd');
+            'sha256:666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac');
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }
@@ -191,6 +191,15 @@ for (const entrance of ['local', 'https']) {
         };
         assert.deepEqual(explanation, expectedExplanation,
           '[check-mutation:submission-explanation]');
+        const callsBeforeLocale = [...f.operations];
+        const japanese = {...expectedExplanation, summary: loss
+          ? '送信の受理を確認できません。処理は既に始まっている可能性があります。'
+          : 'Hostは検証済みのRun参照を返しました。実行の進行はRunの現在状態で確認してください。'};
+        assert.deepEqual(sdk.explainSubmission(result, {locale: 'ja-JP'}), japanese,
+          '[check-mutation:operation-submit-public-locale]');
+        assert.equal(sdk.explainSubmission(result, {get locale() {throw new Error('private-locale');}}), explanation);
+        assert.equal(sdk.explainSubmission({...result}, {locale: 'ja'}), undefined);
+        assert.deepEqual(f.operations, callsBeforeLocale, '[check-mutation:operation-submit-public-passive]');
         assert.equal(Object.isFrozen(explanation), true);
         assert.equal(Object.isFrozen(explanation.next), true);
         for (const privateText of ['private-token', 'private-submission-cause', 'client-values']) {
