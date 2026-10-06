@@ -918,3 +918,22 @@ stays uncertain. An unresolved Effect stays unresolved even when computation
 stop is separately confirmed. Translation cannot grant retry or reconciliation
 permission; inspect the original Owner through the retained reference and current
 authorization when the caller explicitly chooses to do so.
+
+When response decoding, schema admission or original-input binding fails,
+`client.check` still rejects with `InvalidHostCheckOutcome`.
+`explainCheckFailure(error, {locale})` explains only the original error produced
+by that SDK call. It distinguishes `uninterpretable/unknown_outcome` from
+`protocol_failure/malformed_response` and `protocol_failure/contract_mismatch`.
+A valid unknown reason code continues to use `explainCheckReason`'s safe unknown
+explanation; malformed facts for a known reason never become a valid unknown
+reason. These failure explanations contain no verdict, scope, location,
+correlation reference or retry instruction. They perform no I/O.
+
+`getCheckFailureInput(error)` explicitly returns the detached submitted text,
+format, declarations and parameter snapshot for that call. It adds no document
+revision and cannot resolve positions or apply fixes. Copied, serialized and
+foreign errors cannot recover the snapshot. Error serialization and explanation
+omit both the original input and all rejected Host payload fields. Input stays
+in memory through a weak association to the error; retaining the error retains
+that input. The SDK imposes the existing check-request admission limits, adds no
+persistent storage, and promises no timed retention or destruction interval.

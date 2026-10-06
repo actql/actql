@@ -1205,3 +1205,37 @@ retention or automatic I/O is introduced. Existing delivery and cancellation
 certainty limits remain in force; localized presentation does not establish a
 successful Run, an accepted cancellation operation identity, physical release or
 authoritative reconciliation support.
+
+## Rejected check protocol observations
+
+The existing wire validator remains the only response admission decision.
+After rejection, the SDK retains a separate safe failure explanation under the
+original `InvalidHostCheckOutcome` error. A complete matching protocol header
+with an unknown top-level outcome becomes an `uninterpretable/unknown_outcome`
+observation. String-valued but mismatched registered identities become
+`protocol_failure/contract_mismatch`. Missing or unusable headers, malformed
+known facts, decoding failures, clone/revalidation failures and original-input
+binding violations become `protocol_failure/malformed_response`. None becomes
+a check verdict or permission to retry or execute. Unknown Run-state handling
+is a separate boundary, not established by this check-only connection.
+
+The known top-level discriminants and header identities are generated from the
+registered outcome schema by the existing wire generator. This presentation
+vocabulary never admits a value rejected by that schema or adds a second
+checker. Header classification reads only own data properties, omits rejected
+payloads, and does not evaluate accessors again. The SDK retains no unvalidated
+Host revision, correlation reference, context, location or fix from the reply.
+
+`getCheckFailureInput` is explicit access to this call's already detached
+submitted input. Its immutable snapshot predates credentials and transport. It
+has no Host document revision and is not position custody. Its weak association
+is unavailable to copied or forged errors; serialization exposes no input.
+Existing request bounds still apply, and retention lasts only as the application
+retains the error: no Host persistence, retrieval endpoint, public content hash,
+expiry interval or cleanup guarantee is introduced. Locale, exception message,
+severity and caller edits do not change the retained classification.
+
+This SDK presentation extension changes neither response schemas nor their
+registered CIDs and pins. The generated vocabulary follows the current schema;
+preceding incompatible SDK/Host contracts still reject explicitly. The English
+and Japanese translation revisions advance independently of wire identities.

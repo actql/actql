@@ -45,6 +45,18 @@ export type CheckFormatOptions = CheckExplanationOptions & Readonly<{
 export declare function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions): string | undefined;
 export declare function explainCheckOutcome(outcome: unknown,
   options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
+/** A rejected check observation, never a verdict, accepted report or retry grant. */
+export type CheckFailureExplanation = Readonly<{summary: string; hint: string}> & (
+  Readonly<{kind: 'uninterpretable'; problem: 'unknown_outcome'}> |
+  Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response'}>);
+/** Available only for the original SDK error from response decoding/admission. */
+export declare function explainCheckFailure(error: unknown,
+  options?: CheckExplanationOptions): CheckFailureExplanation | undefined;
+/** Detached input actually submitted by this call; no Host document revision. */
+export type CheckFailureInput = Readonly<{text: string; format: ClientSourceFormat;
+  parameterDeclarations?: unknown; parameters: unknown}>;
+/** Explicit access only; copied/foreign errors cannot recover the original input. */
+export declare function getCheckFailureInput(error: unknown): CheckFailureInput | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
