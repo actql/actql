@@ -1146,7 +1146,14 @@ async function connectSelected(selected, port) {
         body = freezeInput(JSON.parse(JSON.stringify({input: {text, format: options.format,
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})},
-          parameters: options.parameters ?? null})));
+          parameters: options.parameters ?? null}, (_key, value) => {
+            // JSON.stringify would silently replace these source numbers.
+            if (typeof value === 'number' &&
+                (!Number.isFinite(value) || Object.is(value, -0))) {
+              fail('InvalidCheckRequest');
+            }
+            return value;
+          })));
       } catch { fail('InvalidCheckRequest'); }
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');
