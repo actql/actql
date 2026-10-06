@@ -23,6 +23,8 @@ test('check formats keep invalid, missing and limited observations distinct', ()
     const json = JSON.parse(formatCheckOutcome(outcome, {format: 'json'}));
     assert.deepEqual(json.observation, explainCheckOutcome(outcome), '[check-mutation:format-verdict]');
     assert.equal(json.omittedEntries, 0);
+    assert.equal(json.reasonSchemaCid, outcome.reason_schema_cid);
+    assert.equal(json.outcomeSchemaCid, outcome.outcome_schema_cid);
     assert.match(formatCheckOutcome(outcome), new RegExp('^completed/' + outcome.report.verdict));
     assert.match(formatCheckOutcome(outcome, {format: 'html'}), /^<section><h2>completed\//u);
   }

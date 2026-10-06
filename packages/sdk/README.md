@@ -731,7 +731,8 @@ release.
 formats the validated public check observation for terminal output, HTML display,
 or structured agent data. Text is the default. It delegates summaries to the
 existing explanation helpers and preserves the Owner verdict, scope, completeness
-and context. Requirements, limits and protected unresolved boundaries stay distinct
+and context. Agent JSON keeps reason/outcome schema CIDs separately from the
+selected translation revision. Requirements, limits and protected unresolved boundaries stay distinct
 from violations. Unknown reasons have generic explanations; malformed known facts,
 wrong schema identities and unknown outcomes return `undefined`.
 

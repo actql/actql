@@ -346,7 +346,8 @@ export function formatCheckOutcome(outcome, options) {
       ({kind: 'unresolved', reason: {code: reason}, boundary})),
   ];
   const entries = [];
-  const model = () => ({observation, presentation, entries, omittedEntries: rows.length - entries.length});
+  const model = () => ({observation, presentation, entries, omittedEntries: rows.length - entries.length,
+    reasonSchemaCid: snapshot.reason_schema_cid, outcomeSchemaCid: snapshot.outcome_schema_cid});
   const line = entry => entry.kind + ': ' + checkDisplayString(entry.code) + ' ' + entry.summary +
     (entry.hint === undefined ? '' : ' ' + entry.hint) +
     (entry.facts === undefined ? '' : ' facts=' + checkDisplayString(entry.facts)) +
