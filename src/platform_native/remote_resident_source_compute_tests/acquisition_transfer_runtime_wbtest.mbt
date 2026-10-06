@@ -10,6 +10,7 @@ fn acquisition_runtime_transfer_consumer(
   caller : @host.ClientRequestIdentity,
   selected : @host.ClientValuesSiteSelection,
   producer_runtime : @runtime.NativeRemoteRuntime,
+  producer_journal : @dispatch_journal.Journal,
   producer_dispatch : @remote.DispatchRequest,
   producer : @host.ClientRetainedInputProducer,
   material_id : String,
@@ -19,6 +20,7 @@ fn acquisition_runtime_transfer_consumer(
   name : String,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
+  consumer_start_expiry? : Bool = false,
 ) -> Unit raise {
   let reader = producer_runtime
     .open_output_manifest_reader(producer_dispatch, material_id, 128)
@@ -289,6 +291,58 @@ fn acquisition_runtime_transfer_consumer(
     cleanup,
     bytes,
     retained_site_usage=producer_usage,
+    through_resident=true,
+    expire_at_start=consumer_start_expiry,
+    restore_input=(rebuilt, saved) => {
+      guard rebuilt.compilation is @host.Tasks(compilation) else {
+        return Err(@output.InvalidBinding)
+      }
+      let edge = match
+        @host.prepare_client_retained_input_edge(
+          rebuilt.prepared,
+          compilation,
+          rebuilt.admission,
+          rebuilt.run_definition,
+          1,
+          0,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(@output.InvalidBinding)
+      }
+      let observation = match producer_journal.observation(producer_dispatch) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      guard @dispatch_journal.recovered_site_dispatch_evidence(observation)
+        is Some(evidence) &&
+        @dispatch_journal.recovered_site_dispatch_subject(observation)
+        is Some(subject) else {
+        return Err(@output.ProducerUnavailable)
+      }
+      let record = match producer_journal.require(producer_dispatch) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      let producer = match
+        @host.prepare_client_retained_input_producer(
+          edge, record, evidence, subject,
+        ) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ProducerUnavailable)
+      }
+      let committed = match destination_journal.require(request) {
+        Ok(value) => value
+        Err(_) => return Err(@output.ForeignTransfer)
+      }
+      let receipt = match
+        destination_journal.inspect_destination_receipt(request) {
+        Ok(Some(value)) => value
+        _ => return Err(@output.ForeignTransfer)
+      }
+      @output.admit_native_remote_retained_task_input(
+        saved, producer, committed, receipt, "direct-destination", current, 262144,
+      )
+    },
   )
   assert_true(@host.client_retained_input_producer_available(producer))
   authorized.val = false
