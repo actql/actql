@@ -8960,6 +8960,14 @@ pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorCanRetireCancellationDelivery")
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
+}
+
+///|
 #export_name("strategyModule_duckdb_Registration")
 pub fn duckdb_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
