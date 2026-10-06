@@ -3990,6 +3990,44 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+
+for (const entrance of ['local', 'http']) {
+  for (const [property, transition] of [
+    ['document_id', 'close'], ['kind', 'edit'], ['start_byte', 'edit'],
+    ['end_byte', 'edit'], ['document_id', 'newer-check'],
+  ]) {
+    test(`${entrance}: session range rejects ${transition} from a ${property} accessor`, async t => {
+      const client = await contextClient(t, entrance, absentEnvironment);
+      const text = '\ufeff/*😀*/SELECT (';
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      t.after(() => session.close());
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: 15}, end: {line: 0, character: 15}});
+      let changed = false, newer;
+      const changingLocation = {...location};
+      Object.defineProperty(changingLocation, property, {enumerable: true, get() {
+        if (!changed) {
+          changed = true;
+          if (transition === 'edit') session.update('SELECT 1 AS n', 2);
+          else if (transition === 'close') session.close();
+          else newer = session.check({format: 'sql'});
+        }
+        return location[property];
+      }});
+      const resolved = session.resolveTextRange(observation, changingLocation);
+      if (newer) await newer;
+      assert.equal(changed, true);
+      assert.equal(session.resolveTextRange(observation, location), undefined);
+      assert.equal(getCheckInput(observation.outcome, 'source').text, text);
+      assert.equal(observation.outcome.report.verdict, 'invalid');
+      assert.equal(resolved, undefined, '[check-mutation:document-public-range-callback]');
+    });
+  }
+}
+
 // Independent context oracle: literal public fixture selections and registered
 // manifests, with an ordinary sorted JSON encoder. No product canonicalizer,
 // compiler accessor or returned reference constructs the expected preimage.
