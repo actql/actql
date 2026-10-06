@@ -1241,6 +1241,28 @@ preceding incompatible SDK/Host contracts still reject explicitly. The English
 and Japanese translation revisions advance independently of wire identities.
 
 
+### Located function-lowering limits
+
+The existing lowerer's UnsupportedFunction conflates unknown names, quoted or
+qualified forms and implementation gaps. Public checking keeps implementation_limit
+in coverage and never infers author blame from that issue. Its optional closed
+facts identify function_lowering_unresolved, with an existing original Authored
+call range. The generic code-only limit and its required payload remain unchanged.
+
+The bridge consumes the typed origin directly. Unknown/generated origins remain
+unlocated; no text search, second parser, rerun resolution or lowered JSON path
+supplies an SQL position. Exact original source revisions/UTF-8 ranges survive
+Local/HTTPS and SDK, including repeated names/comments, non-BMP/combining text and
+CRLF. Located coverage limits receive the same revision, bounds and UTF-8-boundary
+admission as violations/Requirements; malformed transported material is a protocol
+failure. No fix or operation permission follows from this support limit.
+
+A protected relation can stop lowering before a dependent function issue exists.
+It cannot manufacture a function fact or position. Public violations still survive;
+unsupported-only checks remain undetermined. Reason/Outcome schema bodies, pins,
+producer, validators, generated types, SDK and independent fixtures change together.
+Legacy diagnostics and unrelated schema bodies remain separate. No compatibility
+path, new source custody, retention or lowerer implementation is introduced.
 ### Reserved reporting and Requirement enumeration
 
 Checking completion is separate from enumeration completion. The existing
@@ -1371,3 +1393,20 @@ The current Graph contracts and their identities are used without old aliases,
 fallbacks or reinterpretation of stored Run identities. This boundary completes
 only the rejected Run-observation part of X6; durable write/cancellation/Delivery
 contracts and their other diagnostic obligations remain separate.
+
+### Catalog representation and presentation
+
+The public check catalog owns the existing closed Reason schema and current
+safe default/conditional English templates. The existing outcome generator
+consumes that schema, and Host wire generation verifies generated SDK metadata,
+types and reference documentation. The catalog does not inspect input, resolve
+names, check expressions or decide verdicts. Typed causes and disclosure remain
+at the existing common projection before serialization.
+
+Catalog revision, public facts schema identity and translation revision are
+separate. Source/Program/Run/Result identities are unchanged by presentation.
+SDK metadata exposes immutable condition, disclosure, location-role, severity
+and family data without authorization or action claims. Unknown codes retain
+safe fallback; malformed known transported facts still reject through the
+existing wire/SDK admission. No legacy compiler catalog or operation outcome
+is relabelled as this public check catalog.

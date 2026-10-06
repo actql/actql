@@ -37,7 +37,61 @@ function fieldProgram(id) {
   return value;
 }
 
-async function verifyRetainedNames(t,label,makeProgram){
+function objectProgram(id) {
+  const value=program(id);
+  value.stages[0].steps[0].values={schema:{
+    id:{type:'number',nullable:false},payload:{type:'number',nullable:true}},
+    rows:[{id:1,payload:7},{id:2,payload:null}]};
+  value.stages[1].steps[0].derive.value={object:{[member]:{field:'payload'},
+    [`${member}z`]:{literal:9}}};
+  return value;
+}
+const objectExpected=[{id:1,value:{[member]:7,[`${member}z`]:9}},
+  {id:2,value:{[member]:null,[`${member}z`]:9}}];
+const objectContract={type:'object',nullable:false,additional_properties:false,fields:{
+  [member]:{type:'number',nullable:true},[`${member}z`]:{type:'number',nullable:false}}};
+
+const rawText='x'.repeat(1024)+'😀e\u0301\r\n';
+function textObjectProgram(id) {
+  const value=program(id);
+  value.stages[0].steps[0].values={schema:{id:{type:'number',nullable:false},
+    payload:{type:'string',nullable:true}},rows:[{id:1,payload:rawText},{id:2,payload:null}]};
+  value.stages[1].steps[0].derive.value={object:{p:{field:'payload'}}};
+  return value;
+}
+const textObjectExpected=[{id:1,value:{p:rawText}},{id:2,value:{p:null}}];
+const textObjectContract={type:'object',nullable:false,additional_properties:false,
+  fields:{p:{type:'string',nullable:true}}};
+function textArrayProgram(id) {
+  const value=textObjectProgram(id);
+  // Ordered aggregation needs the Program's explicit input key proof.
+  value.stages[0].steps.push({assert_rows:{unique_by:['id']},as:'keyed'});
+  value.stages[0].results.rows.from='keyed';
+  value.stages[1].steps[0]={group:{by:['id'],aggregates:{value:{fn:'array_agg',
+    field:'payload',order_by:[{field:'id',dir:'asc',nulls:'first'}],max_items:2}}},as:'derived'};
+  return value;
+}
+const textArrayExpected=[{id:1,value:[rawText]},{id:2,value:[]}];
+const textArrayContract={type:'array',nullable:false,items:{type:'string',nullable:false}};
+const aggregateDelimiter='d'.repeat(256);
+function textStringProgram(id) {
+  const value=textArrayProgram(id);
+  value.stages[0].steps[0].values.schema.bucket={type:'number',nullable:false};
+  value.stages[0].steps[0].values.rows=[{id:1,bucket:1,payload:rawText},
+    {id:2,bucket:1,payload:'end'},{id:3,bucket:2,payload:null}];
+  value.stages[0].results.rows.fields=['id','bucket','payload'];
+  value.stages[1].steps=[
+    {group:{by:['bucket'],aggregates:{value:{fn:'string_agg',field:'payload',
+      order_by:[{field:'id',dir:'asc',nulls:'first'}],delimiter:aggregateDelimiter,max_bytes:4096}}},as:'aggregated'},
+    {rename:{bucket:'id'},as:'renamed'},
+    {select:['id','value'],as:'out'}];
+  return value;
+}
+const textStringExpected=[{id:1,value:rawText+aggregateDelimiter+'end'},
+  {id:2,value:null}];
+
+async function verifyRetainedNames(t,label,makeProgram,rows=expected,
+  valueContract={type:'number',nullable:true}){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
     const reached=Promise.withResolvers(),release=Promise.withResolvers();
     let client, cancelling=false, dispatches=0, advances=0, completions=0;
@@ -71,10 +125,10 @@ async function verifyRetainedNames(t,label,makeProgram){
     const status=await run.wait({signal:AbortSignal.timeout(45_000)});
     assert.equal(status.status,'succeeded',JSON.stringify(status));
     assert.deepEqual(Object.keys(status.result_availability).sort(),names.toSorted());
-    for(const name of names)assert.deepEqual(await run.result(name).all(),expected);
+    for(const name of names)assert.deepEqual(await run.result(name).all(),rows);
     assert.deepEqual((await run.result('published').describe()).columns,
       [{name:'id',contract:{type:'number',nullable:false}},
-        {name:'value',contract:{type:'number',nullable:true}}]);
+        {name:'value',contract:valueContract}]);
     const count=dispatches;
     assert.deepEqual((await client.aql(source,{format:'json',requestId:'property-name-success'})).ref,run.ref);
     assert.equal(dispatches,count);
@@ -103,3 +157,12 @@ test('public retained property names publish NULL and deliver cancellation after
   {timeout:90_000},t=>verifyRetainedNames(t,'property',program));
 test('public retained field names publish NULL and deliver cancellation after progress',
   {timeout:90_000},t=>verifyRetainedNames(t,'field',fieldProgram));
+test('public retained constructed object names publish NULL and deliver cancellation after progress',
+  {timeout:90_000},t=>verifyRetainedNames(t,'object',objectProgram,objectExpected,objectContract));
+test('public retained raw Text Object children preserve data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-object',textObjectProgram,textObjectExpected,textObjectContract));
+test('public retained raw Text array aggregation preserves data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-array',textArrayProgram,textArrayExpected,textArrayContract));
+test('public retained string aggregation preserves delimiters data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-string',textStringProgram,textStringExpected,
+    {type:'string',nullable:true}));

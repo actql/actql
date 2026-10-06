@@ -2883,7 +2883,19 @@ fn compile_steps(
             continue
           }
           let expression = projection.expression.unwrap()
-          if !references.any(path => same_name(path[0], name)) {
+          if !references.any(path => {
+              // A qualified input receiver keeps its range meaning even
+              // when followed by nested property access. The common lowerer
+              // resolves that two-part prefix before a one-part alias.
+              !(path.length() > 1 &&
+              pipe_slot(
+                path[:2].to_owned(),
+                input_scope.visible,
+                input_scope.ranges,
+              )
+              is Some(_)) &&
+              same_name(path[0], name)
+            }) {
             continue
           }
           let cached = qualify_cached_slot(

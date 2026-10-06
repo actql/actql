@@ -57,6 +57,38 @@ test "QUALIFY shares evaluated scalar aliases with the final SELECT" {
 }
 
 ///|
+test "QUALIFY qualified input ranges do not demand colliding SELECT aliases" {
+  let text = checked_join_order(
+    "SELECT 1 / (x - 1) AS t, ROW_NUMBER() OVER (ORDER BY x) AS n FROM t QUALIFY t.x > 1 ORDER BY n",
+  )
+  let filters = text.split("\"filter\":").collect()
+  let divisions = text.split("\"divide\":").collect()
+  assert_eq(filters.length(), 2)
+  assert_eq(divisions.length(), 2)
+  let filter = filters[0].length()
+  let divide = divisions[0].length()
+  assert_true(filter < divide)
+}
+
+///|
+test "QUALIFY qualified nullable object paths do not demand colliding SELECT aliases" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT 1 / (id - 1) AS objects, ROW_NUMBER() OVER (ORDER BY id) AS n FROM objects QUALIFY objects.id > 1 AND objects.payload.score > 5 ORDER BY n",
+      syntax_limits(),
+    ).unwrap(),
+    analytic_property_context(),
+    construction_limits(),
+  ).unwrap()
+  let text = semantic(program)
+  let filters = text.split("\"filter\":").collect()
+  let divisions = text.split("\"divide\":").collect()
+  assert_eq(filters.length(), 2)
+  assert_eq(divisions.length(), 2)
+  assert_true(filters[0].length() < divisions[0].length())
+}
+
+///|
 test "QUALIFY hidden calls grouping and composed scopes reach the common checker" {
   for
     source in [

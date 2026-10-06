@@ -439,7 +439,11 @@ exhaustion are not author errors. Inaccessible and absent installed Source alias
 share unresolved coverage; an independent public violation remains visible.
 
 `getCheckRequirementFrontier(outcome)` retains the known public parameter
-Requirements of this exact completed SDK response. `equalCheckRequirementFrontiers(a, b)`
+Requirements of this exact completed SDK response. Each typed requirement also
+retains its optional `facts.admission` as `CheckParameterAdmission`, including
+the checked contract, constraints and supplying role. This is the same disclosed
+condition shape returned by `getCheckParameterAdmission`; it adds no validation
+or execution permission. `equalCheckRequirementFrontiers(a, b)`
 compares their bound scope, opaque context reference, reason schema, typed
 obligation set and outstanding coverage. Requirement order, duplicates, fact-key
 order and optional presentation locations do not establish progress. Changed
@@ -939,6 +943,28 @@ that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
 
 
+### Located function-lowering limits
+
+The existing lowerer's UnsupportedFunction conflates unknown names, quoted or
+qualified forms and implementation gaps. Public checking keeps implementation_limit
+in coverage and never infers author blame from that issue. Its optional closed
+facts identify function_lowering_unresolved, with an existing original Authored
+call range. The generic code-only limit and its required payload remain unchanged.
+
+The bridge consumes the typed origin directly. Unknown/generated origins remain
+unlocated; no text search, second parser, rerun resolution or lowered JSON path
+supplies an SQL position. Exact original source revisions/UTF-8 ranges survive
+Local/HTTPS and SDK, including repeated names/comments, non-BMP/combining text and
+CRLF. Located coverage limits receive the same revision, bounds and UTF-8-boundary
+admission as violations/Requirements; malformed transported material is a protocol
+failure. No fix or operation permission follows from this support limit.
+
+A protected relation can stop lowering before a dependent function issue exists.
+It cannot manufacture a function fact or position. Public violations still survive;
+unsupported-only checks remain undetermined. Reason/Outcome schema bodies, pins,
+producer, validators, generated types, SDK and independent fixtures change together.
+Legacy diagnostics and unrelated schema bodies remain separate. No compatibility
+path, new source custody, retention or lowerer implementation is introduced.
 ### Bounded known Requirement enumeration
 
 A completed check may include `report.omissions: {requirements: true}` when the
@@ -1058,3 +1084,19 @@ The current Graph contracts and their identities are used without old aliases,
 fallbacks or reinterpretation of stored Run identities. This boundary completes
 only the rejected Run-observation part of X6; durable write/cancellation/Delivery
 contracts and their other diagnostic obligations remain separate.
+
+### Public check Reason catalog
+
+`getCheckReasonCatalogInfo()` identifies the public check catalog revision and
+its facts schema separately from translation revisions. `getCheckReasonCatalogEntry(code)`
+returns immutable semantic-condition, disclosure, original-location-role and
+presentation metadata for a known code; unknown codes return undefined.
+Severity and family describe presentation, never the check verdict, action
+permission, Run outcome or a retry policy. The existing checker/disclosure
+projection emits facts before the generated SDK advice selects a template.
+
+The catalog's closed Reason schema feeds the existing outcome/wire generator,
+which also checks generated SDK metadata/types and the [reference catalog](../../docs/reference/check-reasons.md).
+Literal scenario expectations remain independent tests. This public catalog is
+separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
+does not claim a legacy compiler catalog body or complete diagnostics coverage.

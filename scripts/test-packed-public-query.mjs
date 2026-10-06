@@ -42,6 +42,7 @@ run('bash', ['-eu', '-c', quickstart.install], root,
 for (const [source, destination] of [
   ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
   ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
+  ['scripts/fixtures/right-join-source-input.mjs', 'right-join-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
   ['scripts/fixtures/replace-call-source-input.mjs', 'replace-call-source-input.mjs'],
@@ -299,6 +300,9 @@ if (process.argv.includes('--star-exclusion-only')) {
 if (process.argv.includes('--qualified-star-only')) {
   runtimeEnvironment.ACTQL_TEST_QUALIFIED_STAR_ONLY = '1';
 }
+if (process.argv.includes('--right-join-only')) {
+  runtimeEnvironment.ACTQL_TEST_RIGHT_JOIN_ONLY = '1';
+}
 if (process.argv.includes('--star-replace-only')) {
   runtimeEnvironment.ACTQL_TEST_STAR_REPLACE_ONLY = '1';
 }
@@ -413,6 +417,7 @@ const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
+  '--right-join-only',
   '--star-replace-only',
   '--qualify-only',
   '--named-window-only',
@@ -463,6 +468,7 @@ try {
 }
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
+if (process.argv.includes('--right-join-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--named-window-only')) return;

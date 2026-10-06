@@ -1,5 +1,5 @@
 import {createCheckSupplementationSession, getCheckRequirementFrontier,
-  equalCheckRequirementFrontiers, type Client, type CheckOutcome} from '@actql/sdk';
+  equalCheckRequirementFrontiers, type Client, type CheckOutcome, type CheckParameterAdmission} from '@actql/sdk';
 
 declare const client: Client;
 declare const outcome: CheckOutcome;
@@ -11,6 +11,28 @@ if (frontier) {
   for (const requirement of frontier.requirements) {
     const parameter: string = requirement.facts.parameter;
     const expectedType: string = requirement.facts.expected_type;
+    const admission: CheckParameterAdmission | undefined = requirement.facts.admission;
+    if (admission) {
+      const supplier: 'caller' = admission.supplier;
+      const schema: string = admission.contract_schema_cid;
+      const kind: 'parameter_declaration' = admission.kind;
+      for (const constraint of admission.constraints) {
+        if (constraint.kind === 'numeric') {
+          const minimum: number | undefined = constraint.minimum;
+          const integer: boolean = constraint.integer;
+          void minimum; void integer;
+        }
+        if (constraint.kind === 'array_length') {
+          const length: number = constraint.length;
+          void length;
+        }
+      }
+      // @ts-expect-error Public conditions retain their original immutable supplier.
+      admission.supplier = 'operator';
+      // @ts-expect-error Declaration conditions confer no execution permission.
+      admission.next;
+      void supplier; void schema; void kind;
+    }
     void parameter; void expectedType;
     // @ts-expect-error Missing input has no fabricated actual supplied type.
     requirement.facts.actual_type;

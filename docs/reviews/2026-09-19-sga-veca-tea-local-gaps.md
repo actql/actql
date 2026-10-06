@@ -320,6 +320,38 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
+whole-Text sizing and final join with the same finisher's scalar phases and
+existing exact-capacity StringBuilder. Original byte/control totals, raw data,
+unused-delimiter demand and empty-group NULL remain unchanged. Real retained
+Host producer/two-consumer reads and post-progress custody are required evidence,
+alongside exact work/capacity/workspace and four-phase stop fixtures. See the
+[string aggregation record](2026-10-07-local-string-aggregate-cursor.md).
+Initial row-map/name preparation, VM allocation costs and Native stop latency
+are not closed by this algorithmic unit; no all-Local completion is asserted.
+
+The 2026-10-07 raw Text follow-up connects Object child conversion and
+array_agg to the existing resumed Value recheck owner, preserves original byte
+charges/data spelling, and uses the existing ArrayBuilder without a final
+whole-array copy. The real retained Host fixtures read producer/two-consumer
+results and exercise post-progress custody. Exact work/live/workspace and both
+conversion-phase stops are required evidence. See the
+[Text child record](2026-10-07-local-text-child-admission.md). Initial row-map
+preparation, short-name collisions and AggregateString's synchronous scans/join
+remain separate; no all-Local completion is asserted.
+
+The 2026-10-07 constructed-Object follow-up now sizes and charges long member
+names through the existing frame and appends through the existing Value owner
+bound to immutable admitted contract names. The real retained Host harness
+constructs long-prefix members, verifies producer/two-consumer Results and
+delivers post-progress cancellation. Independent work/live/workspace and both
+name-phase cleanup proofs remain required. #681 and #683's Field-only source
+are adopted on main. The Object-name follow-up uses its own main-targeted PR
+on feat/local-object-name-cursor. See the
+[Object-name record](2026-10-07-local-object-name-cursor.md). Initial row-map
+preparation, short-name collision behavior and raw Text child conversion
+remain distinct residuals; no whole-Local completion is asserted.
+
 The dependent 2026-10-07 field-name follow-up now splits long authored Field
 charging and exact input lookup in the same expression frame, preserving
 prior-slot binding, successful work totals and caller-owned input custody.
@@ -327,8 +359,8 @@ The retained public Program shares the existing property harness and verifies
 three independent Named Results plus delivered post-progress cancellation.
 Initial row-map construction, short-name collision behavior and Object
 construction-name measurement are not closed by this unit. See the
-[field-name record](2026-10-07-local-field-name-cursor.md); #681 remains its
-unmerged parent until adopted on main.
+[field-name record](2026-10-07-local-field-name-cursor.md). Its original
+unmerged-parent dependency was subsequently resolved by #681's main adoption.
 
 The 2026-10-07 property-name follow-up now resumes member-name UTF-8 charging
 and exact spelling comparison in the existing expression frame. The receiver

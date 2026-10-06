@@ -68,6 +68,7 @@ source        = path, [ source_alias ]
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
+                | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
                 "JOIN", source, ( "ON", expression
                 | "USING", "(", identifier, { ",", identifier }, ")" ),

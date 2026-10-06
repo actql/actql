@@ -36,3 +36,13 @@ This establishes SDK archive/load closure, not Local/HTTPS query acceptance.
 Named-WINDOW source acceptance must resume with new normal five-package
 distributions after adopting the fix. No full Core, all-packed, CI retry or
 merge was performed for this repair.
+
+## Adopted main delivery fix and remaining regression
+
+Main `be30c8fdf2b3133219f7becc74c5667619806c70` includes the equivalent
+package files-list repair from #682. This branch normally merged that main;
+there is now no SDK implementation/package-files difference against the base.
+The remaining PR unit is the normal archive/import-closure regression and this
+historical evidence, not another claim to deliver the already merged fix.
+Post-merge targeted Node tests pass 2/2 (`focused-test-cQE9Zv`). No additional
+runtime campaign was run merely for this merge.

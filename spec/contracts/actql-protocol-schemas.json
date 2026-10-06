@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:d215662e3f525d4378aed225b500437d1f6b867e57759f981efa40cb36d6a2dd",
+  "artifact_registry_cid": "sha256:416a46af7f51811a216c7fb2e76ce075229fd9320718065f83d1867938f6fe0c",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:b002dc7c0cb0776ae062ee693db51c0a150d5bdc440acb53f5073a15bf4f73b8",
-    "check_reason": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e",
+    "check_outcome": "sha256:bb3a54f131d67760e678d78e79aa6b906c23740c5af44419c6e322bb77084180",
+    "check_reason": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -75605,17 +75605,86 @@
                     "limits": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "code"
-                        ],
-                        "properties": {
-                          "code": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code",
+                              "facts"
+                            ],
+                            "properties": {
+                              "code": {
+                                "const": "implementation_limit"
+                              },
+                              "facts": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "issue"
+                                ],
+                                "properties": {
+                                  "issue": {
+                                    "const": "function_lowering_unresolved"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "document_id",
+                                  "revision",
+                                  "start_byte",
+                                  "end_byte",
+                                  "precision"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "text"
+                                  },
+                                  "document_id": {
+                                    "const": "source"
+                                  },
+                                  "revision": {
+                                    "type": "string",
+                                    "pattern": "^rev:[0-9a-f]{64}$"
+                                  },
+                                  "start_byte": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1048576
+                                  },
+                                  "end_byte": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1048576
+                                  },
+                                  "precision": {
+                                    "enum": [
+                                      "exact",
+                                      "approximate"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
                           }
-                        }
+                        ]
                       }
                     },
                     "unresolved": {
@@ -76260,7 +76329,8 @@
                                   "unknown_reference",
                                   "invalid_arguments",
                                   "expected_boolean",
-                                  "invalid_bounds"
+                                  "invalid_bounds",
+                                  "function_lowering_unresolved"
                                 ]
                               }
                             }
@@ -76269,6 +76339,39 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -76952,7 +77055,8 @@
                                   "query_frame_invalid",
                                   "graph_operation_invalid",
                                   "operation_parameter_invalid",
-                                  "expression_type_mismatch"
+                                  "expression_type_mismatch",
+                                  "implementation_limit"
                                 ]
                               }
                             }
@@ -77589,7 +77693,8 @@
                                   "unknown_reference",
                                   "invalid_arguments",
                                   "expected_boolean",
-                                  "invalid_bounds"
+                                  "invalid_bounds",
+                                  "function_lowering_unresolved"
                                 ]
                               }
                             }
@@ -77598,6 +77703,39 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -78281,7 +78419,8 @@
                                   "query_frame_invalid",
                                   "graph_operation_invalid",
                                   "operation_parameter_invalid",
-                                  "expression_type_mismatch"
+                                  "expression_type_mismatch",
+                                  "implementation_limit"
                                 ]
                               }
                             }
@@ -78324,7 +78463,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
+              "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78523,17 +78662,86 @@
                     "limits": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "code"
-                        ],
-                        "properties": {
-                          "code": {
-                            "type": "string",
-                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code"
+                            ],
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "code",
+                              "facts"
+                            ],
+                            "properties": {
+                              "code": {
+                                "const": "implementation_limit"
+                              },
+                              "facts": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "issue"
+                                ],
+                                "properties": {
+                                  "issue": {
+                                    "const": "function_lowering_unresolved"
+                                  }
+                                }
+                              },
+                              "location": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "kind",
+                                  "document_id",
+                                  "revision",
+                                  "start_byte",
+                                  "end_byte",
+                                  "precision"
+                                ],
+                                "properties": {
+                                  "kind": {
+                                    "const": "text"
+                                  },
+                                  "document_id": {
+                                    "const": "source"
+                                  },
+                                  "revision": {
+                                    "type": "string",
+                                    "pattern": "^rev:[0-9a-f]{64}$"
+                                  },
+                                  "start_byte": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1048576
+                                  },
+                                  "end_byte": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 1048576
+                                  },
+                                  "precision": {
+                                    "enum": [
+                                      "exact",
+                                      "approximate"
+                                    ]
+                                  }
+                                }
+                              }
+                            }
                           }
-                        }
+                        ]
                       }
                     },
                     "unresolved": {
@@ -79178,7 +79386,8 @@
                                   "unknown_reference",
                                   "invalid_arguments",
                                   "expected_boolean",
-                                  "invalid_bounds"
+                                  "invalid_bounds",
+                                  "function_lowering_unresolved"
                                 ]
                               }
                             }
@@ -79187,6 +79396,39 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -79870,7 +80112,8 @@
                                   "query_frame_invalid",
                                   "graph_operation_invalid",
                                   "operation_parameter_invalid",
-                                  "expression_type_mismatch"
+                                  "expression_type_mismatch",
+                                  "implementation_limit"
                                 ]
                               }
                             }
@@ -80507,7 +80750,8 @@
                                   "unknown_reference",
                                   "invalid_arguments",
                                   "expected_boolean",
-                                  "invalid_bounds"
+                                  "invalid_bounds",
+                                  "function_lowering_unresolved"
                                 ]
                               }
                             }
@@ -80516,6 +80760,39 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -81199,7 +81476,8 @@
                                   "query_frame_invalid",
                                   "graph_operation_invalid",
                                   "operation_parameter_invalid",
-                                  "expression_type_mismatch"
+                                  "expression_type_mismatch",
+                                  "implementation_limit"
                                 ]
                               }
                             }
@@ -81260,7 +81538,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
+              "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -81306,7 +81584,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
+              "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -81932,7 +82210,8 @@
                     "unknown_reference",
                     "invalid_arguments",
                     "expected_boolean",
-                    "invalid_bounds"
+                    "invalid_bounds",
+                    "function_lowering_unresolved"
                   ]
                 }
               }
@@ -81941,6 +82220,39 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "implementation_limit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "const": "function_lowering_unresolved"
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -82624,7 +82936,8 @@
                     "query_frame_invalid",
                     "graph_operation_invalid",
                     "operation_parameter_invalid",
-                    "expression_type_mismatch"
+                    "expression_type_mismatch",
+                    "implementation_limit"
                   ]
                 }
               }

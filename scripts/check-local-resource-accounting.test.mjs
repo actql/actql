@@ -3810,9 +3810,35 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
   }), /RelA derive: ordinary derive Host timer evidence is missing/);
 });
 
+test('string aggregation assurance requires limits stop and public evidence', () => {
+  for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
+    ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {
+    assert.match(run(undefined, routes => {
+      const group=routes.routes.find(entry=>entry.family==='RelA'&&entry.operation==='group');
+      group[kind]=group[kind].filter(entry=>entry.role!==role);
+    }), /(?:group_string_cursor_(?:limits|stop)|string cursor public) fixture is missing/u);
+  }
+});
+
+test('raw Text conversion assurance requires common and public evidence', () => {
+  for (const [operation,kind,role] of [
+    ['derive','boundary_tests','derive_raw_text_child_limits'],
+    ['derive','boundary_tests','derive_raw_text_child_stop'],
+    ['derive','environment_tests','derive_raw_text_child_public'],
+    ['group','boundary_tests','group_raw_text_array_limits_stop'],
+    ['group','environment_tests','group_raw_text_array_public'],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:raw Text.*|derive_raw_text_child_(?:limits|stop)) fixture is missing/u);
+  }
+});
+
 test('derive loses bounded assurance when a resource proof is removed', () => {
   for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
-    'derive_field_name_limits', 'derive_field_name_stop']) {
+    'derive_field_name_limits', 'derive_field_name_stop',
+    'derive_object_name_limits', 'derive_object_name_stop']) {
     assert.match(run(undefined, routes => {
       const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
       derive.boundary_tests = derive.boundary_tests.filter(item => item.role !== role);
@@ -3826,6 +3852,10 @@ test('derive loses bounded assurance when a resource proof is removed', () => {
     const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
     derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_field_name_public');
   }), /RelA derive: field name public fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_object_name_public');
+  }), /RelA derive: constructed object name public fixture is missing/u);
   for (const role of [
     'derive_scalar_work_exact_one_short',
     'derive_scalar_workspace_exact_one_short',
