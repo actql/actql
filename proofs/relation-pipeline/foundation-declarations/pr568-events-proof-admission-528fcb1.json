@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr568-events-proof-admission-528fcb1",
+  "kind": "change",
+  "revision": "528fcb18be3d7186d8c407d0997ebdd54d478769",
+  "parents": [
+    "b089642827e7c354195ecfec79e5e0aa3fa532b2"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/proof-check.test.mjs",
+      "before": [
+        {
+          "revision": "b089642827e7c354195ecfec79e5e0aa3fa532b2",
+          "digest": "333487b035111fb195c919906cc1a879adb8f9ff9e7957adcfe983ad1a64c015",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "7f0a97f6cb74cb39616292c57b735cedd91af571b2e2202206de6c3f388df5a8",
+      "afterMode": "100644",
+      "reason": "Admit concrete Events composition evidence through the existing bounded Session checker and collector while retaining the original obligations and strict proof acceptance."
+    }
+  ]
+}

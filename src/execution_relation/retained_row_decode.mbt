@@ -221,10 +221,11 @@ fn decode_retained_presence_cells(
             max_depth: limits.max_depth,
             max_text_units: limits.max_text_bytes,
           },
+          wire=true,
         )
       }
       None =>
-        @admitted.admit(contract, cell, {
+        @admitted.admit_wire(contract, cell, {
           max_nodes: limits.max_nodes,
           max_text_bytes: limits.max_text_bytes,
           max_depth: limits.max_depth,

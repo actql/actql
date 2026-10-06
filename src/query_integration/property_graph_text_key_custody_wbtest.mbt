@@ -109,11 +109,11 @@ test "typed node and edge identity sorting yields during long comparisons and pr
       for index, key in [first, second] {
         assert_eq(
           @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
-          "{\"element\":{\"definition\":\"E\",\"domain\":\"" +
+          "{\"element\":{\"$json\":{\"definition\":\"E\",\"domain\":\"" +
           domain +
           "\",\"key\":[\"" +
           key +
-          "\"],\"key_types\":[{\"kind\":\"string\"}]}}",
+          "\"],\"key_types\":[{\"kind\":\"string\"}]}}}",
         )
       }
       assert_true(@local_sga.cleanup_match_edges(complete).unwrap())
@@ -163,11 +163,11 @@ test "typed node and edge identity sorting yields during long comparisons and pr
       for index, key in [first, second] {
         assert_eq(
           @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
-          "{\"element\":{\"definition\":\"N\",\"domain\":\"" +
+          "{\"element\":{\"$json\":{\"definition\":\"N\",\"domain\":\"" +
           domain +
           "\",\"key\":[\"" +
           key +
-          "\"],\"key_types\":[{\"kind\":\"string\"}]}}",
+          "\"],\"key_types\":[{\"kind\":\"string\"}]}}}",
         )
       }
       assert_true(@local_sga.cleanup_match_nodes(complete).unwrap())
@@ -232,12 +232,12 @@ test "typed node and edge identity sorting yields during long comparisons and pr
   let output = finish_traverse(complete).unwrap()
   assert_eq(@execution.completed_row_count(output), 4)
   for index, key in [first, second] {
-    let node = identity(key)
-    let edge = "{\"definition\":\"E\",\"domain\":\"" +
+    let node = "{\"$json\":" + identity(key) + "}"
+    let edge = "{\"$json\":{\"definition\":\"E\",\"domain\":\"" +
       domain +
       "\",\"key\":[\"" +
       key +
-      "\"],\"key_types\":[{\"kind\":\"string\"}]}"
+      "\"],\"key_types\":[{\"kind\":\"string\"}]}}"
     for depth in [0, 1] {
       let edge_ids = if depth == 0 { "[]" } else { "[" + edge + "]" }
       let node_ids = if depth == 0 {
@@ -415,7 +415,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
     assert_eq(
       @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
       "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
-      identity(key) +
+      ("{\"$json\":" + identity(key) + "}") +
       "}",
     )
   }
@@ -446,7 +446,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
   assert_eq(
     @execution.completed_output_row_wire(combined_output, 0, 10000, 10000, 50).unwrap(),
     "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
-    identity(first) +
+    ("{\"$json\":" + identity(first) + "}") +
     "}",
   )
   assert_true(@local_sga.cleanup_graph_bounds(combined_exact).unwrap())
@@ -538,7 +538,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
   assert_eq(
     @execution.completed_output_row_wire(viewed_output, 0, 10000, 10000, 50).unwrap(),
     "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
-    identity(first) +
+    ("{\"$json\":" + identity(first) + "}") +
     "}",
   )
   assert_true(@local_sga.cleanup_graph_bounds(viewed).unwrap())
@@ -568,7 +568,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
       50,
     ).unwrap(),
     "{\"actual\":2,\"kind\":\"degree\",\"max\":1,\"node_id\":" +
-    identity(first) +
+    ("{\"$json\":" + identity(first) + "}") +
     "}",
   )
   assert_true(@local_sga.cleanup_graph_bounds(view_exact).unwrap())
@@ -686,7 +686,7 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
         "{\"degree\":" +
         expected_degree.to_string() +
         ",\"node\":" +
-        identity(key) +
+        ("{\"$json\":" + identity(key) + "}") +
         "}",
       )
     }
@@ -731,7 +731,9 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           10000,
           50,
         ).unwrap(),
-        "{\"degree\":0,\"node\":" + identity(first) + "}",
+        "{\"degree\":0,\"node\":" +
+        ("{\"$json\":" + identity(first) + "}") +
+        "}",
       )
       assert_true(@local_sga.cleanup_graph_degree(combined_exact).unwrap())
       let combined_short = combined_degree(759)
@@ -814,7 +816,9 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           @local_sga.GraphDegreeComplete(output, ..) => {
             assert_eq(
               @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
-              "{\"degree\":0,\"node\":" + identity(first) + "}",
+              "{\"degree\":0,\"node\":" +
+              ("{\"$json\":" + identity(first) + "}") +
+              "}",
             )
             viewed_complete = true
             break
@@ -860,7 +864,9 @@ test "Graph bounds yields during typed identity ordering and rejects partial out
           10000,
           50,
         ).unwrap(),
-        "{\"degree\":0,\"node\":" + identity(first) + "}",
+        "{\"degree\":0,\"node\":" +
+        ("{\"$json\":" + identity(first) + "}") +
+        "}",
       )
       assert_true(@local_sga.cleanup_graph_degree(view_exact).unwrap())
       let view_combined_short = combined_degree_view(759)
@@ -1012,7 +1018,11 @@ test "Graph diagnostics count typed edge definitions and self-loop incidences" {
           10000,
           50,
         ).unwrap(),
-        "{\"degree\":" + degree.to_string() + ",\"node\":" + identity(key) + "}",
+        "{\"degree\":" +
+        degree.to_string() +
+        ",\"node\":" +
+        ("{\"$json\":" + identity(key) + "}") +
+        "}",
       )
     }
     assert_true(@local_sga.cleanup_graph_degree(active).unwrap())
@@ -1054,7 +1064,7 @@ test "Graph diagnostics count typed edge definitions and self-loop incidences" {
   assert_eq(
     @execution.completed_output_row_wire(output.unwrap(), 1, 10000, 10000, 50).unwrap(),
     "{\"actual\":6,\"kind\":\"degree\",\"max\":3,\"node_id\":" +
-    identity(first) +
+    ("{\"$json\":" + identity(first) + "}") +
     "}",
   )
   assert_true(@local_sga.cleanup_graph_bounds(active).unwrap())

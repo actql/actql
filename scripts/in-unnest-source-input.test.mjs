@@ -28,7 +28,9 @@ test('normal packed acceptance registers the array predicate and its bounded nar
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'inUnnestSuccesses'], ['refusals', 'inUnnestRefusals'],
     ['executionFailures', 'inUnnestExecutionFailures']]) {
-    assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
+    const registration = `scopeInputs.${kind}.push(...${group})`;
+    assert.equal(fixture.split(registration).length - 1, 1,
+      `${group} must be registered exactly once in the normal corpus`);
   }
   assert.ok(fixture.includes('const scopeOnly = inUnnestOnly ||'));
   assert.ok(fixture.includes('inUnnestOnly ? {successes: inUnnestSuccesses'));

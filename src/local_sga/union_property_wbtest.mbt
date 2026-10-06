@@ -378,3 +378,139 @@ test "union property meters retained order bytes and bounded candidate keys inde
     }
   }
 }
+
+///|
+test "union set sorting holds long token comparisons and clears them on cancellation" {
+  let contract = @contract.array_contract(
+    @contract.primitive(StringType, nullable=false),
+    nullable=false,
+  ).unwrap()
+  let prefix = "x".repeat(512)
+  let original = "[\"" + prefix + "\ue000\",\"" + prefix + "𐀀\"]"
+  let left = union_property_test_value(contract, original)
+  let right = union_property_test_value(contract, "[]")
+  for quantum in [1, 7, 256] {
+    let active = union_property_test_cursor(
+      left,
+      Some(right),
+      contract,
+      @graph_type.UnionSetUnion,
+    )
+    for _ in 0..<10000 {
+      if active.phase is CompareItemOrder {
+        break
+      }
+      assert_true(advance_union_property(active, 1) is PropertyContinue(1))
+    } nobreak {
+      abort("set ordering comparison was not reached")
+    }
+    // ["text"," is nine UTF-16 units, followed by 512 x units. The next
+    // comparison distinguishes D800 from E000. One fewer leaves both the
+    // insertion and the two admitted inputs untouched.
+    let before_decision = 9 + 512
+    let mut work = 0
+    while work < before_decision {
+      let budget = Int::min(quantum, before_decision - work)
+      assert_true(
+        advance_union_property(active, budget) is PropertyContinue(used) &&
+        used == budget,
+      )
+      work += budget
+    }
+    assert_true(
+      active.phase is CompareItemOrder && active.comparison is Some(_),
+    )
+    assert_eq(
+      union_property_test_wire(active.items[0].value),
+      "\"" + prefix + "\ue000\"",
+    )
+    assert_true(advance_union_property(active, 1) is PropertyContinue(1))
+    assert_true(active.phase is SortItem && active.comparison is None)
+    assert_eq(
+      union_property_test_wire(active.items[0].value),
+      "\"" + prefix + "𐀀\"",
+    )
+    cleanup_union_property(active)
+    assert_true(active.comparison is None && active.items.is_empty())
+    assert_eq(union_property_test_wire(left), original)
+  }
+  let cancelled = union_property_test_cursor(
+    left,
+    Some(right),
+    contract,
+    @graph_type.UnionSetUnion,
+  )
+  for _ in 0..<10000 {
+    if cancelled.phase is CompareItemOrder {
+      break
+    }
+    assert_true(advance_union_property(cancelled, 1) is PropertyContinue(1))
+  } nobreak {
+    abort("set ordering comparison was not reached")
+  }
+  assert_true(advance_union_property(cancelled, 7) is PropertyContinue(7))
+  assert_true(
+    cancelled.phase is CompareItemOrder && cancelled.comparison is Some(_),
+  )
+  cleanup_union_property(cancelled)
+  cleanup_union_property(cancelled)
+  assert_true(cancelled.comparison is None && cancelled.items.is_empty())
+  assert_eq(cancelled.candidate_order, "")
+  assert_eq(cancelled.retained_order_bytes, 0)
+  assert_true(
+    advance_union_property(cancelled, 1)
+    is PropertyFailed(InvalidUnionProperty, 0),
+  )
+  assert_eq(union_property_test_wire(left), original)
+  assert_eq(union_property_test_wire(right), "[]")
+}
+
+///|
+test "union set long token sorting preserves independent output and work across quantums" {
+  let contract = @contract.array_contract(
+    @contract.primitive(StringType, nullable=false),
+    nullable=false,
+  ).unwrap()
+  let prefix = "x".repeat(512)
+  let left = union_property_test_value(
+    contract,
+    "[\"" + prefix + "\ue000\",\"" + prefix + "𐀀\",\"" + prefix + "\"]",
+  )
+  let right = union_property_test_value(contract, "[\"" + prefix + "𐀀\"]")
+  let mut union_work = None
+  let mut difference_work = None
+  for quantum in [1, 7, 256] {
+    for
+      (strategy, expected) in [
+        (
+          @graph_type.UnionSetUnion,
+          "[\"" + prefix + "\",\"" + prefix + "𐀀\",\"" + prefix + "\ue000\"]",
+        ),
+        (
+          @graph_type.UnionSetDifference,
+          "[\"" + prefix + "\",\"" + prefix + "\ue000\"]",
+        ),
+      ] {
+      let active = union_property_test_cursor(
+        left,
+        Some(right),
+        contract,
+        strategy,
+      )
+      let (result, work) = union_property_test_finish(active, quantum)
+      assert_eq(union_property_test_wire(result), expected)
+      if strategy == @graph_type.UnionSetUnion {
+        if union_work is Some(prior) {
+          assert_eq(work, prior)
+        } else {
+          union_work = Some(work)
+        }
+      } else if difference_work is Some(prior) {
+        assert_eq(work, prior)
+      } else {
+        difference_work = Some(work)
+      }
+      assert_true(active.comparison is None && active.items.is_empty())
+    }
+  }
+}

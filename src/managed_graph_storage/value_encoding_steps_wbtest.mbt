@@ -35,15 +35,15 @@ fn complete_value_encoding(
 ///|
 test "Storage wire encoding resumes without reinterpreting construction limits" {
   let values = [encoded_fixture_value()]
-  let expected = "[{\"a\":{\"d\":[true]},\"z\":[null,2]}]"
+  let expected = "[{\"$json\":{\"a\":{\"d\":[true]},\"z\":[null,2]}}]"
   for quantum in [1, 7, 64] {
     let builder = prepare(property_fixture(), DeclaredNodes, {
       ..property_limits(),
-      max_work: 8,
+      max_work: 9,
     }).unwrap()
     let encoding = start_value_encoding(builder, values, 0, 0)
     let (text, bytes, nodes, steps) = complete_value_encoding(encoding, quantum).unwrap()
-    assert_eq((text, bytes, nodes), (expected, 33, 8))
+    assert_eq((text, bytes, nodes), (expected, 43, 9))
     assert_true(steps > nodes)
     assert_eq(builder.work, 0)
     assert_true(builder.open && builder.owns_private)
@@ -57,9 +57,9 @@ test "Storage wire encoding resumes without reinterpreting construction limits" 
   }
   let builder = prepare(property_fixture(), DeclaredNodes, {
     ..property_limits(),
-    max_work: 8,
+    max_work: 9,
   }).unwrap()
-  assert_eq(encoded_values(builder, values, 0, 0), Ok((expected, 33, 8)))
+  assert_eq(encoded_values(builder, values, 0, 0), Ok((expected, 43, 9)))
   assert_eq(encoded_values(builder, values, 0, 1), Err(WorkLimit))
   assert_true(cancel(builder))
 }
@@ -130,7 +130,7 @@ test "Storage wire cancellation preserves borrowed values and original builder" 
     assert_true(builder.open && builder.owns_private)
     assert_eq(
       encoded_values(builder, values, 0, 0),
-      Ok(("[{\"a\":{\"d\":[true]},\"z\":[null,2]}]", 33, 8)),
+      Ok(("[{\"$json\":{\"a\":{\"d\":[true]},\"z\":[null,2]}}]", 43, 9)),
     )
     assert_true(cancel(builder))
   }

@@ -23,6 +23,7 @@ struct RecheckCursor {
   limits : Limits
   budget : RecheckBudget
   stack : Array[RecheckFrame]
+  mut text_counts : (Int64, Int64)?
   mut finished : Bool
 }
 
@@ -52,6 +53,7 @@ pub fn start_recheck_runtime_value(
       max_depth: limits.max_depth,
     },
     stack: [CheckNode(value, contract, 0)],
+    text_counts: None,
     finished: false,
   })
 }
@@ -209,7 +211,7 @@ fn recheck_node_step(
       cursor.stack.push(VectorItems(values.values, 0))
       true
     }
-    (_, @contract.Json) => {
+    (JsonData(value), @contract.Json) => {
       budget.nodes += 1
       recheck_json_step(cursor, value, depth)
     }
@@ -270,6 +272,7 @@ fn recheck_text_units(
     cursor.stack.push(TextUnits(value, bounds, index, count, byte_count))
     true
   } else {
+    cursor.text_counts = Some((count, byte_count))
     (bounds.min_length is None || count >= bounds.min_length.unwrap()) &&
     (bounds.max_codepoints is None || count <= bounds.max_codepoints.unwrap()) &&
     (

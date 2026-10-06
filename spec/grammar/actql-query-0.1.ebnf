@@ -139,7 +139,8 @@ pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
-expression    = ? closed query expression grammar in query-text.md, including search_value [NOT] IN UNNEST(array_expression) ? ;
+expression    = ? closed query expression grammar in query-text.md, including json_literal and search_value [NOT] IN UNNEST(array_expression) ? ;
+json_literal  = "JSON", query_string ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
 numeric_token = ? existing query numeric token; exact admission is separate ? ;

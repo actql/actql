@@ -3,7 +3,7 @@ import {join} from 'node:path';
 
 // Compile the selected wire schemas to ordinary MoonBit predicates. This is a
 // build-time projection, not a schema interpreter in the Native executable.
-export function nativeClientWire(schemas, rules) {
+export function nativeClientWire(schemas, rules, requestRules) {
   const functions = [];
   let serial = 0;
   const quote = JSON.stringify;
@@ -65,7 +65,8 @@ export function nativeClientWire(schemas, rules) {
     functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['connection','profile','admission','run_ref']) emit(schemas[name], `wire_${name}_shape`);
+  for (const name of ['connection','profile','admission','run_ref',
+    'lookup_found','lookup_not_found','lookup_unknown','held']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');
   for (const [name, rule] of Object.entries(rules)) {
     const lines = [`if !wire_connection_shape(selected) || !wire_${name}_shape(value) { return Some(InvalidShape) }`,
@@ -75,6 +76,19 @@ export function nativeClientWire(schemas, rules) {
     for (const [field, requested] of Object.entries(rule.requireRequested)) lines.push(`if connection.get(${quote(field)}) == Some(Json::string(${quote(requested)})) && fields.get(${quote(field)}) != Some(Json::string(${quote(requested)})) { return Some(RequestedValueUnavailable) }`);
     functions.push(`///|\nfn wire_${name}_issue(value : Json, selected : Json) -> WireResponseIssue? {\n  ${lines.join('\n  ')}\n  None\n}\n`);
     if (name === 'admission') functions.push(`///|\nfn wire_${name}(value : Json, selected : Json) -> Bool {\n  wire_${name}_issue(value, selected) is None\n}\n`);
+  }
+  for (const [name, rule] of Object.entries(requestRules)) {
+    const expected = emit(schemas[rule.expectedSchema].properties[rule.matchRequest]);
+    const alternatives = rule.schemas.map(schema => {
+      const shape = `wire_${schema}_shape(value)`;
+      return Object.hasOwn(schemas[schema].properties, rule.matchRequest)
+        ? `(${shape} && fields.get(${quote(rule.matchRequest)}) == Some(Json::string(expected)))`
+        : shape;
+    });
+    functions.push(`///|\nfn wire_${name}(value : Json, expected : String) -> Bool {\n` +
+      `  if !${expected}(Json::string(expected)) { return false }\n` +
+      '  guard value is Object(fields) else { return false }\n' +
+      `  ${alternatives.join(' ||\n  ')}\n}\n`);
   }
   const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' + functions.join('\n');
   // Use the repository's pinned formatter, also required by the CI formatting gate.
@@ -96,4 +110,49 @@ export function responseRules(registry) {
 
 export function jsResponseRules(rules) {
   return Object.entries(rules).map(([name,rule]) => `export const valid${name === 'profile' ? 'Profile' : 'Admission'}Contract = (value, selected) =>\n  validConnectionShape(selected) && valid${name === 'profile' ? 'Profile' : 'Admission'}Shape(value)${rule.matchConnection.map(field => ` &&\n  value.${field} === selected.${field}`).join('')}${Object.entries(rule.requireRequested).map(([field,value]) => ` &&\n  !(selected.${field} === ${JSON.stringify(value)} && value.${field} !== ${JSON.stringify(value)})`).join('')};\n`).join('');
+}
+
+// The requested identity uses the same field contract as the reply. Every
+// correlated variant must require that field with an identical definition;
+// uncorrelated closed variants still validate the caller's expected identity.
+export function requestResponseRules(registry, schemas) {
+  const rules = registry.request_response_rules;
+  const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const canonical = value => Array.isArray(value) ? value.map(canonical) :
+    record(value) ? Object.fromEntries(Object.keys(value).sort().map(key =>
+      [key, canonical(value[key])])) : value;
+  const invalid = () => { throw new Error('InvalidClientHostRequestResponseRule'); };
+  if (!record(rules) || Object.keys(rules).sort().join() !== 'held,request_lookup') invalid();
+  return Object.fromEntries(Object.entries(rules).map(([name, rule]) => {
+    if (!record(rule) || Object.keys(rule).sort().join() !== 'matchRequest,schemas' ||
+        typeof rule.matchRequest !== 'string' || !/^[a-zA-Z][a-zA-Z0-9]*$/u.test(rule.matchRequest) ||
+        !Array.isArray(rule.schemas) || rule.schemas.length === 0 ||
+        new Set(rule.schemas).size !== rule.schemas.length ||
+        rule.schemas.some(schema => !['lookup_found', 'lookup_not_found', 'lookup_unknown', 'held'].includes(schema) ||
+          schemas[schema]?.type !== 'object' || !record(schemas[schema].properties) ||
+          schemas[schema].additionalProperties !== false)) invalid();
+    const correlated = rule.schemas.filter(schema =>
+      Object.hasOwn(schemas[schema].properties, rule.matchRequest));
+    if (correlated.length === 0) invalid();
+    const field = schemas[correlated[0]].properties[rule.matchRequest];
+    if (field.type !== 'string' || correlated.some(schema =>
+      !schemas[schema].required?.includes(rule.matchRequest) ||
+      JSON.stringify(canonical(schemas[schema].properties[rule.matchRequest])) !==
+        JSON.stringify(canonical(field)))) invalid();
+    return [name, {...rule, expectedSchema: correlated[0]}];
+  }));
+}
+
+export function jsRequestResponseRules(schemas, rules) {
+  return Object.entries(rules).map(([name, rule]) => {
+    const exportName = name === 'held' ? 'Held' : 'RequestLookup';
+    const alternatives = rule.schemas.map(schema => {
+      const shape = `valid(value, schemas.${schema})`;
+      return Object.hasOwn(schemas[schema].properties, rule.matchRequest)
+        ? `(${shape} && value.${rule.matchRequest} === expected)` : shape;
+    });
+    return `export const valid${exportName}Contract = (value, expected) =>\n` +
+      `  valid(expected, schemas.${rule.expectedSchema}.properties.${rule.matchRequest}) &&\n` +
+      `  (${alternatives.join(' ||\n   ')});\n`;
+  }).join('');
 }

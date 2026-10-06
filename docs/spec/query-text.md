@@ -105,6 +105,13 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+`CAST(value AS BOOLEAN)` uses the same existing boolean target as
+`CAST(value AS BOOL)`, following the [GoogleSQL BOOL/BOOLEAN alias](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#boolean_type).
+Type names are ASCII case-insensitive. This is a source spelling for the same
+checked cast; it does not widen the common conversion domains, make failing
+casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
+NULL remains a typed nullable boolean, including on empty Relations.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
@@ -127,6 +134,20 @@ contract's positive distances. GoogleSQL also permits zero numeric boundaries;
 that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
+
+`JSON` followed by a STRING literal constructs a typed JSON value in ordinary
+SQL and Pipe expressions. The STRING chunks use the decoding rules above;
+their concatenated text is passed unchanged to the common
+`{typed_literal:{type:"json",value:text}}` expression. The common owner parses
+and checks every JSON root, including null, number, string, boolean, object
+and array. JSON null is a non-SQL-NULL JSON value; `NULL` retains SQL NULL
+semantics. JSON scalars do not acquire ordinary scalar types.
+
+The selected [common JSON profile](../design/typed-json-literals.md) retains
+the first duplicate decoded key and exact strings/keys, rejects precision
+loss, and applies complete-input size/node/depth ceilings. Unsupported wide
+numbers are refused rather than rounded. The JSON parser and runtime are not
+duplicated in the Frontend. JSON literals are not limited to Graph Delta.
 
 ## Scope and lowering
 
