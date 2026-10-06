@@ -171,7 +171,7 @@ function report(verdicts) {
   return {
     allOf: [
       {if: {properties: {verdict: {const: 'verified'}}},
-        then: {properties: {reasons: empty, requirements: empty, coverage: emptyCoverage}}},
+        then: {not: {required: ['omissions']}, properties: {reasons: empty, requirements: empty, coverage: emptyCoverage}}},
       {if: {properties: {verdict: {const: 'invalid'}}},
         then: {properties: {reasons: {type: 'array', items: {}, minItems: 1}}}},
       {if: {properties: {verdict: {const: 'undetermined'}}},
@@ -182,6 +182,8 @@ function report(verdicts) {
     required: ['context_ref', 'coverage', 'inputs', 'reasons', 'requirements', 'scope', 'verdict'],
     properties: {
       context_ref: opaqueRef,
+      omissions: {type: 'object', additionalProperties: false, required: ['requirements'],
+        properties: {requirements: {const: true}}},
       inputs: {type: 'array', minItems: 1, maxItems: 3, items: {
         type: 'object', additionalProperties: false,
         required: ['document_id', 'revision', 'kind', 'byte_length'],

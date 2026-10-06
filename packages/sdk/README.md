@@ -939,6 +939,24 @@ that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
 
 
+### Bounded known Requirement enumeration
+
+A completed check may include `report.omissions: {requirements: true}` when the
+reserved reporting budget omits known input requirements. Its verdict and
+bound-input scope still account for the full originally submitted input; the
+flag is not a new analysis limit or a verified partial report. Safe violations
+and protected coverage remain in the report. No omitted count is exposed.
+Absence of the flag means this known Requirement enumeration was not truncated.
+
+`explainCheckOutcome` retains that flag separately from operation completeness.
+Text/HTML displays mark Host omissions; JSON retains the typed flag. Renderer
+`omittedEntries` counts only disclosed entries that its own display budget
+omits, and cannot estimate Host omissions. `getCheckRequirementFrontier` refuses
+truncated enumeration, so a check supplementation session stops rather than
+mistaking a prefix for a complete admission frontier. A valid old report remains
+bound to its original input/context; no more checking or supplementation is
+performed by presentation.
+
 ### Passive operation diagnostic formats
 
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and

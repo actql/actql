@@ -96,3 +96,18 @@ is claimed. Interface generation is not backend execution evidence.
 [STRUCT contract gap](2026-10-07-struct-contract-gap.md) records the ordered,
 possibly anonymous/duplicate-field STRUCT representation still missing from
 the common contract. It is not approximated by an object mapping in this PR.
+# Subsequent main integration
+
+Main `e3c85c7b7b7a98e94ebe919764e05225f83d8dd9` includes #673. The branch
+merged that main normally, preserving its closed Graph Program schema and
+retained SDK diagnostic contracts. The PR can now target main; no parent
+branch merge is used as completion. Conflict resolution preserved both
+published grammar histories and regenerated imports/fixtures from the
+combined source. Independent canonical calculation gives the integrated
+grammar manifest `sha256:ebd855090f5f4695042910f4f0471a460929aeb4e26de36609b965b6c4623922`.
+
+Focused post-merge checks: `star_replace_test.mbt` JS 3/3 and Node fixture/
+manifest tests 9/9 passed (`focused-test-orJveL`, `focused-test-NF24iY`). No
+packed or full-Core verification was added merely because main was merged.
+The earlier packed success remains evidence for its recorded source SHA;
+integrated-HEAD packed execution and required CI remain unverified.

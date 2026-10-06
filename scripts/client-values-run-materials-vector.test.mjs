@@ -620,8 +620,13 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'));
   assert.equal(currentDependencies.resultPlan,
     pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the schema-closure predecessor before qualified-star text routing.
+  assert.equal(vector(pin('1b837dfa56c76782890525a6a4d39239a5675d719223c7de0c70231f89efd7d7'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
+  assert.equal(current.run.run_definition_cid,
+    pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

@@ -4,4 +4,4 @@
 let check_reason_schema_cid = "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
 
 ///|
-let check_outcome_schema_cid = "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c"
+let check_outcome_schema_cid = "sha256:7181dffdbd45b7a5692d5f4f34a353625fe9805f31e495b57a0498b26b0e8376"

@@ -315,6 +315,9 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
@@ -460,6 +463,9 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
