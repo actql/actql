@@ -6,7 +6,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -20,6 +20,40 @@ const checkInputs = new WeakMap();
 // Rejected transport observations retain only a safe classification and this
 // call's own input. No unvalidated reply, revision or location gains custody.
 const checkFailures = new WeakMap();
+const runObservationFailures = new WeakMap();
+
+// Only a rejected observation of this SDK's attached Run retains its lookup
+// candidate. No rejected state, effect, revision or write permission is kept.
+export function explainRunObservationFailure(error, options) {
+  return localizeOperation(runObservationFailures.get(error), 'observation', options);
+}
+
+const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
+  const error = new ClientError(code);
+  const summaries = {
+    unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
+    contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
+    malformed_response: 'The Run reply violates the registered state contract.',
+  };
+  runObservationFailures.set(error, freezeInput({
+    kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
+    problem, operation, summary: summaries[problem],
+    hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
+    next: {operation: 'status', ref: {...ref}},
+  }));
+  return error;
+};
+
+const rejectedRunProblem = value => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'malformed_response';
+    const version = Object.getOwnPropertyDescriptor(value, 'version')?.value;
+    const status = Object.getOwnPropertyDescriptor(value, 'status')?.value;
+    if (typeof version !== 'string' || !version || typeof status !== 'string' || !status) return 'malformed_response';
+    if (version !== runStateProtocol.version) return 'contract_mismatch';
+    return runStateProtocol.statuses.includes(status) ? 'malformed_response' : 'unknown_state';
+  } catch { return 'malformed_response'; }
+};
 
 export function getCheckFailureInput(error) {
   return checkFailures.get(error)?.input;
@@ -1066,6 +1100,26 @@ async function connectSelected(selected, port) {
       }
     };
 
+    const readRunObservation = async (operation, body, signal) => {
+      // Credential/transport refusals occur before interpreting a received
+      // observation and retain their existing operation-specific behavior.
+      const response = await runRequest(operation, body, signal);
+      let state;
+      try { state = await controlValue(response); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
+      const problem = rejectedRunProblem(state);
+      try {
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        // Each observation owns its value even if a Local port reuses a reply.
+        state = structuredClone(state);
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        return retainEffectUncertainty(state, ref);
+      } catch (cause) {
+        if (runObservationFailures.has(cause)) throw cause;
+        throw rejectedRunObservation(ref, operation, 'malformed_response');
+      }
+    };
+
     const result = name => {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
       const rows = (options = {}) => {
@@ -1338,14 +1392,10 @@ async function connectSelected(selected, port) {
     return Object.freeze({
       ref, profile: runProfile, result,
       status: async ({signal} = {}) => {
-        const state = await readControl('status', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('status', {}, signal);
       },
       wait: async ({until, signal} = {}) => {
-        const state = await readControl('wait', {until: until ?? null}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('wait', {until: until ?? null}, signal);
       },
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
@@ -1378,9 +1428,7 @@ async function connectSelected(selected, port) {
       // unknown Effect outcome stays `needs_reconciliation` until the Host
       // has provider evidence; nothing is resent to find out.
       reconcile: async ({signal} = {}) => {
-        const state = await readControl('reconcile', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('reconcile', {}, signal);
       },
     });
   };

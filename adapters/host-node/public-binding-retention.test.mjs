@@ -49,8 +49,10 @@ function expectedBindingRows(document) {
     producer_definitions: steps.slice(0, 3).map(step =>
       ({body: {values: step.values}, dependencies: []})),
     version: 'actql-graph-definition/0.1'});
-  const id = (definition, key, kinds) => ({definition, domain, key,
-    key_types: kinds.map(kind => ({kind}))});
+  // Graph identities have a JSON contract. Both persisted Relation rows and
+  // published typed cells use the normative closed JSON envelope.
+  const id = (definition, key, kinds) => ({$json: {definition, domain, key,
+    key_types: kinds.map(kind => ({kind}))}});
   const before = [
     {company_key: 3, id: id('M', [3], ['number']), labels: []},
     {id: id('N', [1, 'a'], ['number', 'string']), labels: ['Owner', 'Person'],
@@ -112,6 +114,9 @@ test('public binding rows retain absent NULL and long Text through Store and two
     for (const name of ['source', 'first', 'second']) {
       assert.deepEqual(await run.result(name).all(), expected[name]);
     }
+    assert.deepEqual((await run.result('first').describe()).columns
+      .find(column => column.name === 'id').contract,
+    {nullable: false, type: 'json'});
     assert.ok(computed.outputRepresentations.some(entry =>
       entry.representation === 'retained-file'));
     assertSnapshot(computed.relationSnapshots, 4, expected.before);

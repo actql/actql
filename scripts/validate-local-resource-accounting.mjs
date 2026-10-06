@@ -1440,6 +1440,7 @@ export function validateResourceAccounting({
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
         'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
         'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
+        'pool_json_name_limits_stop', 'pool_json_name_shared_limits',
         'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
         'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -1461,6 +1462,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('pool_object_name_public_store')) {
         fail(`${label}: Pool Object name public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_json_name_public_store')) {
+        fail(`${label}: Pool JSON name public Store fixture is missing`);
       }
       if (!environmentRoles.has('pool_field_binding_public_store')) {
         fail(`${label}: Pool field binding public Store fixture is missing`);
