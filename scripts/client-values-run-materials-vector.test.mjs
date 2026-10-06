@@ -621,7 +621,11 @@ test('baseline preimages and changed normative pins independently determine the 
   // Keep each independently calculated parent Run bound to its own grammar.
   assert.equal(vector('sha256:fa861e86e6e0859bd5a77f5c070b79a1dfe3c7211477bba7a7bba1da8c283530', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:b11522eb94f1e774a9deaf27c104e3b34ab17081491fe8d218c6a02cecb4e3e2');
   assert.equal(vector('sha256:0d2511e37b6a90115493a17569622104a2834b4c0959f17f10930cd291038c0e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:19ff185221b8829f0a11b917131897c92134a6b19468b2e140303d4d75a49263');
-  assert.equal(current.run.run_definition_cid, 'sha256:bb55c1bd750ef5d854aa6ad64256b3385cf7d489b9ad94a8b9dd1508b9a406cc');
+  // Preserve the aggregate-filter parent Run under its original grammar.
+  assert.equal(vector('sha256:8ccb3fc5856a12a6f195f60959e446ff0c46bd67cee78c5065b344cc5d2f5446', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:d60f040f1285fd7f1e792c0b70da904e0c906d6549fcd53caa305f6cfda82c08');
+  // Preserve the standalone UNNEST main Run under its original grammar.
+  assert.equal(vector('sha256:dee0db72375546136e83760f9f72991315716410bb0c9b6cb66451f944bd13b7', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:bb55c1bd750ef5d854aa6ad64256b3385cf7d489b9ad94a8b9dd1508b9a406cc');
+  assert.equal(current.run.run_definition_cid, 'sha256:41ab991390341493877830470d3fcbaeeb4963f92a2a5c22ad3d748d4444f2b4');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

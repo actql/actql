@@ -108,6 +108,7 @@ pub fn usage(Tokens, Resource) -> Int
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?

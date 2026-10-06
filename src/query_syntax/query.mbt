@@ -20,6 +20,7 @@ pub(all) struct Projection {
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?
@@ -1030,6 +1031,12 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     self.keyword("IGNORE")
     self.keyword("NULLS")
   }
+  let filter = if self.has("WHERE") {
+    self.keyword("WHERE")
+    Some(self.expression())
+  } else {
+    None
+  }
   let order_by = if function_name == "ARRAY_AGG" ||
     function_name == "STRING_AGG" {
     self.keyword("ORDER")
@@ -1047,7 +1054,7 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   if distinct && ["COUNTIF", "MIN", "MAX"].contains(function_name) {
     raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
   }
-  { function_name, argument, distinct, order_by, delimiter, }
+  { function_name, argument, filter, distinct, order_by, delimiter, }
 }
 
 ///|
