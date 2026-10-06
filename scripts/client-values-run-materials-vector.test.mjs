@@ -625,8 +625,13 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
-  assert.equal(current.run.run_definition_cid,
+  // Freeze the qualified-star predecessor before adding REPLACE grammar.
+  assert.equal(vector(pin('efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
+  assert.equal(current.run.run_definition_cid,
+    pin('153db85cd63535b928be69f85e7f043df52b8dc02f96b80dba8dedb5f5266ba5'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
