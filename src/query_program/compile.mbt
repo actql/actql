@@ -1012,6 +1012,7 @@ fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
 ///|
 // SQL's parser records ORDER-only calls as private Group projections. Their
 // references occur in ORDER, never as authored SELECT aliases or inputs.
+// SELECT ownership must use the same expanded replacement projections as Group.
 fn order_aggregate_calls(
   query : @query.Query,
   projections : Array[@query.Projection],
@@ -1466,6 +1467,13 @@ fn lower_analytic(
   derives : Array[(String, @builder.Node)],
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
+  if projections.any(projection => {
+      projection.analytic
+      .map(call => call.window.reference is Some(_))
+      .unwrap_or(false)
+    }) {
+    raise Abort(UnsupportedAnalytic)
+  }
   let partitions : Array[@builder.Node] = []
   for expression in call.window.partition_by {
     let field = analytic_partition_field(
@@ -2111,21 +2119,6 @@ fn compile_steps(
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        let hidden_calls = match @query.operation_at(query, i + 1) {
-          Some(Having(_, calls)) => calls.copy()
-          _ => []
-        }
-        for next in (i + 1)..<@query.operation_count(query) {
-          match @query.operation_at(query, next) {
-            Some(Qualify(_, calls)) => hidden_calls.append(calls)
-            Some(Select(_, _)) => break
-            _ => ()
-          }
-        }
-        grouped_keys.clear()
-        having_values.clear()
-        having_aggregate_slots.clear()
-        order_aggregate_slots.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
@@ -2140,9 +2133,19 @@ fn compile_steps(
             max_work,
           )
         }
-        // Classify ORDER-only calls against the expanded SELECT. A star
-        // replacement aggregate still reads the SELECT input snapshot.
-        let order_calls = if sql_group_projection {
+        let hidden_calls = match @query.operation_at(query, i + 1) {
+          Some(Having(_, calls)) => calls.copy()
+          _ => []
+        }
+        for next in (i + 1)..<@query.operation_count(query) {
+          match @query.operation_at(query, next) {
+            Some(Qualify(_, calls)) => hidden_calls.append(calls)
+            Some(Select(_, _)) => break
+            _ => ()
+          }
+        }
+        // Classify against expanded SELECT aggregates, preserving input aliases.
+        let order_calls = if grouping_scope == @query.SqlSelect {
           order_aggregate_calls(
             query, projections, sql_group_selected_projections,
           )
@@ -2150,6 +2153,10 @@ fn compile_steps(
           []
         }
         hidden_calls.append(order_calls)
+        grouped_keys.clear()
+        having_values.clear()
+        having_aggregate_slots.clear()
+        order_aggregate_slots.clear()
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
