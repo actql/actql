@@ -10010,6 +10010,69 @@
           "fixture": "Pool output Vector encoding yields with exact work and confirmed stop"
         },
         {
+          "role": "pool_identity_hash_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity hash keeps exact wire limits without assembled Text"
+        },
+        {
+          "role": "pool_identity_collision_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity collision equality yields and retains cleanup custody"
+        },
+        {
+          "role": "pool_identity_collision_equality",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity digest collisions never replace exact wire equality"
+        },
+        {
+          "role": "pool_identity_output_control_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_identity_output_wbtest.mbt",
+          "fixture": "Pool output identity hashing keeps independent control and stop boundaries"
+        },
+        {
+          "role": "pool_record_contract_names",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record append resumes contract names with unchanged construction limits"
+        },
+        {
+          "role": "pool_record_contract_workspace",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract stack reserves exact extra custody before allocation"
+        },
+        {
+          "role": "pool_record_contract_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract cancellation retains prior rows until owner cleanup"
+        },
+        {
+          "role": "pool_record_contract_pair_limits",
+          "suite": "moon:value_contract",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_contract/equality_steps_wbtest.mbt",
+          "fixture": "type equality yields across wide objects without changing pair limits"
+        },
+        {
+          "role": "pool_record_contract_binding",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract continuation binds the field it actually validated"
+        },
+        {
           "role": "pool_output_record_limits",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10129,6 +10192,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside output Vector encoding"
+        },
+        {
+          "role": "pool_identity_output_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside output identity hashing"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",
