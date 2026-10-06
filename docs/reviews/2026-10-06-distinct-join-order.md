@@ -108,3 +108,52 @@ under a lower declared construction ceiling, range-name collision refusal,
 one declared acquired input, and nullable selected-property ordering through
 the ordinary checker. Normal committed-source packing must be repeated because
 compiled inputs changed; the previous tarballs are not relabeled as this source.
+
+## LIMIT/OFFSET capacity boundary remains open
+
+Normal clean-source packing at `4435dd8637b41e4b42da3e56b6a5712a6faaf22c`
+produced receipt `public-query-evidence-Jzshqr` (`run-442aUJ`). The independent
+JSON control and raw SQL alias-collision case passed Embedded Local. The Pipe
+LIMIT/OFFSET case was accepted but ended without publication. Later normal cases,
+refusals, execution-failure cases and HTTPS were not reached in this invocation.
+A same-package retained rerun (`public-query-evidence-r3QMdX`, `run-25fHYz`)
+confirmed the same failure; it is not additional completion evidence.
+
+A one-request diagnostic reused that exact installed package/runtime. It used
+public installation authorization/observation and a diagnostic-only in-memory
+loader to print existing checked Program, capacity and stored execution errors.
+Package files, generated Program, provider behavior, limits and expectations were
+not modified. This loader diagnostic is distinct from pristine packed acceptance.
+`run-UoarjU` exposed `LocalManagedStart -> Execution -> Physical(ExecutionLimit)`;
+`run-zjOkAD` recorded the capacity below. Task 1
+required 546,445,568 execution/scratch bytes, with 14,240,000 retained bytes and
+1,000,000 transfer bytes. The installed execution budget remains 536,870,912 bytes.
+Acquisition completed; no Compute task completed. The subsequent
+`StrategyNotComplete` and `ACTQL_E_UNPUBLISHED_RUN` are downstream symptoms.
+
+The captured [checked Program](fixtures/distinct-join-order-pipe-limit.program.json)
+is retained as generated reproduction material, **not** as an independent
+lowering oracle. It preserves JOIN ceiling 25, `l.id > 0`, DISTINCT over the
+selected amount, ORDER over the evaluated alias, and take count 2 / offset 1.
+Its [expected rows](fixtures/distinct-join-order-pipe-limit.expected.json) are
+independently authored. No budget, expected row, sort or LIMIT is removed.
+Common reservation/capacity changes remain the execution owner's boundary;
+this evidence does not establish that the derivation is excessive.
+
+Current main `ccf8d0b340578756ab6889debc047c20db24883d` was normally merged
+without conflicts before continued verification. Previous-SHA results stay
+attached to their original source/package manifest; they are not relabeled as
+integrated-HEAD acceptance.
+
+The saved generated Program was also submitted unchanged with `format: 'json'`
+through the same retained public installation. It reproduced the identical
+546,445,568-byte task reservation and `Physical(ExecutionLimit)`, without invoking
+query lowering. This isolates the rejection after frontend preparation; it does
+not prove that capacity should be reduced. All nine main-stage operations retain
+needed JOIN fields, the authored predicate, selected projection, DISTINCT,
+post-DISTINCT ORDER helper, sorting, take, and public-column removal. No redundant
+frontend operation has been established by this inspection.
+
+Integrated-tree focused checks passed 42/42 JS (`run-wBjIiy`,
+`focused-test-oyrqzi`) and 9/9 Node. The direct JSON capacity diagnostic was
+`run-Cfp7IA`. These checks do not establish the outstanding public Pipe execution.
