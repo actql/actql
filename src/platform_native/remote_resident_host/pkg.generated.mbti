@@ -54,6 +54,8 @@ pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, S
 
 pub fn plan_resident_retained_input_transfer(@remote_runtime.NativeRemoteRuntime, @run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite) -> Result[@remote_site_protocol.RemoteRetainedInputPlan, ResidentRetainedTransferIssue]
 
+pub fn prepare_resident_completed_attempt(@remote_journal.Journal, ResidentExecution, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, () -> String, () -> Bool) -> Result[ResidentCompletedAttempt, ResidentExecutionFailure]
+
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn prepare_resident_retained_consumer(ResidentRetainedTransfer, @remote_journal.Journal, ResidentRunAdmission, @remote_site_protocol.RemotePollDispatch, String, @remote_standard_host.NativeRemoteStandardTransferBindingLimits) -> Result[ResidentRetainedConsumer, ResidentRetainedExecutionFailure]
@@ -87,6 +89,24 @@ pub(all) enum ResidentAcceptance {
   Accepted(String, @remote_site_protocol.DispatchRequest)
   Refused(@remote_resident_site.ResidentDispatchRefusal)
   AlreadyStarted(String)
+}
+
+pub struct ResidentCompletedAttempt {
+  runtime : @remote_runtime.NativeRemoteRuntime
+  request : @remote_site_protocol.DispatchRequest
+  binding : @remote_site_protocol.RemoteInputBinding
+  result_definition_cid : String?
+  root : String
+  max_bytes : Int64
+  current : () -> Bool
+}
+pub fn ResidentCompletedAttempt::advance(Self) -> ResidentCompletedRestoration
+pub fn ResidentCompletedAttempt::runtime(Self) -> @remote_runtime.NativeRemoteRuntime
+
+pub(all) enum ResidentCompletedRestoration {
+  ResidentCompletedReady(ResidentExecuted)
+  ResidentCompletedPending(ResidentHostIssue)
+  ResidentCompletedRefused(ResidentHostIssue)
 }
 
 pub(all) struct ResidentDelivery {

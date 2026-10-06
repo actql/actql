@@ -3272,29 +3272,49 @@ fn run_holder(
   }
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
-  let result = @resident_host.execute_resident_attempt(
-    environment.journal,
-    execution,
-    run_admission(matches),
-    required(holder, "attempt"),
-    claimant,
-    // Read the holder clock at each authority check, not before rebuilding
-    // materials/claiming. An invalid clock is fail-closed, without throwing
-    // past the runtime's cleanup owner.
-    () => {
-      start_checks[0] += 1
-      if start_checks[0] == 2 {
-        // This point is reached by the runtime's mandatory barrier after
-        // claim/Running persistence, not by the executor evidence observer.
-        holder_checkpoint(resources)("before-physical-start")
+  let attempt = required(holder, "attempt")
+  let saved_completion = match environment.journal.dispatch_envelope(attempt) {
+    Ok(Some(body)) =>
+      match @remote.admit_remote_poll_dispatch_json(body) {
+        Ok(dispatch) =>
+          match
+            environment.journal.require(
+              @remote.remote_poll_dispatch_request(dispatch),
+            ) {
+            Ok(record) => @remote.dispatch_record_state_codes(record)[0] == 3
+            Err(_) => false
+          }
+        Err(_) => false
       }
-      start_timestamp(matches)
-    },
-    observer,
-  )
+    _ => false
+  }
+  let result = if saved_completion {
+    restore_holder_attempt(matches, environment, execution, slot, attempt)
+  } else {
+    @resident_host.execute_resident_attempt(
+      environment.journal,
+      execution,
+      run_admission(matches),
+      attempt,
+      claimant,
+      // Read the holder clock at each authority check, not before rebuilding
+      // materials/claiming. An invalid clock is fail-closed, without throwing
+      // past the runtime's cleanup owner.
+      () => {
+        start_checks[0] += 1
+        if start_checks[0] == 2 {
+          // This point is reached by the runtime's mandatory barrier after
+          // claim/Running persistence, not by the executor evidence observer.
+          holder_checkpoint(resources)("before-physical-start")
+        }
+        start_timestamp(matches)
+      },
+      observer,
+    )
+  }
   let code = match result {
     Ok(executed) => {
-      report("executed", [
+      report(if saved_completion { "holder-restored" } else { "executed" }, [
         ("request_cid", executed.completion.dispatch_request_cid),
         ("revision", executed.completion.revision.to_string()),
       ])
@@ -3357,6 +3377,53 @@ fn run_holder(
   ignore(slot.close())
   if code != 0 {
     stop("execute exited with " + code.to_string())
+  }
+}
+
+///|
+/// A recreated holder reuses its saved completion, never the start path.
+/// Keep one Runtime across pending acquisition; only confirmed cleanup can
+/// discharge it. This loop does not release the exclusive slot or admit work.
+fn restore_holder_attempt(
+  matches : @argparse.Matches,
+  environment : SiteEnvironment,
+  execution : @resident_host.ResidentExecution,
+  slot : @slot.NativeExecutorSlot,
+  attempt : String,
+) -> Result[
+  @resident_host.ResidentExecuted,
+  @resident_host.ResidentExecutionFailure,
+] raise CommandStop {
+  let owner = match
+    @resident_host.prepare_resident_completed_attempt(
+      environment.journal,
+      execution,
+      run_admission(matches),
+      delegation(matches, budget(matches)),
+      attempt,
+      () => start_timestamp(matches),
+      () => slot.verify_current_hold() == Ok(()),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut wait_ms = 50
+  while true {
+    match owner.advance() {
+      @resident_host.ResidentCompletedReady(value) => return Ok(value)
+      @resident_host.ResidentCompletedRefused(issue) =>
+        return Err({ issue, pending_runtime: Some(owner.runtime()), })
+      @resident_host.ResidentCompletedPending(issue) => {
+        report("holder-restoration-pending", [("reason", host_code(issue))])
+        if owner.runtime().cleanup_pending() {
+          return Err({ issue, pending_runtime: Some(owner.runtime()), })
+        }
+        @slot.native_wait_milliseconds(wait_ms)
+        wait_ms = if wait_ms * 2 > 5000 { 5000 } else { wait_ms * 2 }
+      }
+    }
+  } nobreak {
+    abort("restoration loop ended without an ownership result")
   }
 }
 
