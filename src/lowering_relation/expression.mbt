@@ -43,6 +43,7 @@ pub(all) enum UnaryOperator {
   IsTrue
   IsFalse
   IsUnknown
+  Length
 } derive(Eq, Debug)
 
 ///|
@@ -71,6 +72,7 @@ pub(all) enum ManyOperator {
   Coalesce
   Concat
   ConcatStrict
+  Replace
 } derive(Eq, Debug)
 
 ///|
@@ -204,6 +206,8 @@ fn expression_tag(
     | "coalesce"
     | "concat"
     | "concat_strict"
+    | "len"
+    | "replace"
     | "vector_score"
     | "vector_concat"
     | "cast"
@@ -246,6 +250,7 @@ fn expression_children(
     | "is_true"
     | "is_false"
     | "is_unknown" => [body]
+    "len" => [body]
     "case" => {
       let obj = @decode.open_object(body).unwrap()
       let clauses = @decode.lookup(obj, "when").unwrap()
@@ -800,6 +805,7 @@ fn lower_typed_expression_measured(
           }
         }
         "negate" => Unary(Negate, args[0])
+        "len" => Unary(Length, args[0])
         "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
@@ -839,6 +845,7 @@ fn lower_typed_expression_measured(
         "coalesce" => Many(Coalesce, args)
         "concat" => Many(Concat, args)
         "concat_strict" => Many(ConcatStrict, args)
+        "replace" => Many(Replace, args)
         "if" => Conditional(args[0], args[1], args[2])
         "case" => {
           let count = args.length() / 2
