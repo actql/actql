@@ -3341,6 +3341,101 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+// Parser failures carry original structural paths even when no decoded cursor
+// can be admitted. These are caller input paths, never serialized SQL spans.
+const invalidParsedBindings = [
+  {document: 'parameters', code: 'supplied_parameters_invalid',
+    options: key => ({parameterDeclarations: {payload: {type: 'number'}},
+      parameters: {payload: {[key]: ['safe', '\ud800']}}}),
+    prefix: '/payload/'},
+  {document: 'parameter_declarations', code: 'parameter_declarations_invalid',
+    options: key => ({parameterDeclarations: {payload: {type: 'number',
+      default: {[key]: ['safe', '\udfff']}}}}),
+    prefix: '/payload/default/'},
+];
+
+for (const entrance of ['local', 'http']) {
+  for (const fixture of invalidParsedBindings) {
+    test(`${entrance}: JSON parser location survives ${fixture.document} failure`, async t => {
+      const client = await contextClient(t, entrance, sourceEnvironment);
+      for (const [key, token] of [['a/~é😀', 'a~1~0é😀'], ['a/~e\u0301😀', 'a~1~0e\u0301😀']]) {
+        const result = await client.check('SELECT @payload AS n',
+          {format: 'sql', ...fixture.options(key)}).catch(error => ({protocolFailure: error.code}));
+        assert.equal(result.outcome, 'completed', '[check-mutation:json-parser-outcome]');
+        assert.equal(result.report.verdict, 'invalid', '[check-mutation:json-parser-verdict]');
+        const input = getCheckInput(result, fixture.document);
+        assert.ok(input);
+        const location = {kind: 'structured', document_id: fixture.document,
+          revision: input.revision, pointer: fixture.prefix + token + '/1'};
+        assert.deepEqual(result.report.reasons, [{code: fixture.code, location}],
+          '[check-mutation:json-parser-location]');
+        assert.equal(resolveCheckLocation(result, location).input, input);
+        assert.equal(resolveCheckTextRange(result, location), undefined);
+        assert.equal(resolveCheckLocation(result, location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
+        assert.equal(JSON.stringify(result).includes('safe'), false);
+      }
+
+      // A preserving read may reach a later Unicode error after a normalized
+      // duplicate key. It cannot replace the authoritative failure's location.
+      const collision = fixture.document === 'parameters'
+        ? {parameterDeclarations: {payload: {type: 'number'}},
+          parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}
+        : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
+      const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
+      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code}]);
+      // A malformed member name has the parser's known enclosing root path,
+      // not a fabricated location at a member that could not be decoded.
+      const options = fixture.document === 'parameters'
+        ? {parameterDeclarations: {payload: {type: 'number'}}, parameters: {'\ud800': 'safe'}}
+        : {parameterDeclarations: {'\ud800': {type: 'number'}}};
+      const root = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
+      const input = getCheckInput(root, fixture.document);
+      assert.deepEqual(root.report.reasons, [{code: fixture.code,
+        location: {kind: 'structured', document_id: fixture.document,
+          revision: input.revision, pointer: ''}}]);
+    });
+  }
+
+  test(`${entrance}: JSON parser failures retain protected-source equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const fixture of invalidParsedBindings) {
+      const results = await Promise.all(clients.map(client => client.check('SELECT id FROM records',
+        {format: 'sql', ...fixture.options('a/~é😀')})));
+      assert.deepEqual(results[0], results[1], '[check-mutation:json-parser-disclosure]');
+      assert.deepEqual(results[0], results[2], '[check-mutation:json-parser-disclosure]');
+      assert.equal(results[0].report.verdict, 'invalid');
+      assert.equal(results[0].report.reasons[0].code, fixture.code);
+      if (fixture.document === 'parameters') {
+        assert.deepEqual(results[0].report.coverage.unresolved,
+          [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+      }
+    }
+  });
+
+  test(`${entrance}: JSON parser budgets stay unlocated checking limits`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    const nested = depth => {
+      let value = 'leaf';
+      for (let i = 0; i < depth; i++) value = [value];
+      return value;
+    };
+    for (const options of [
+      {parameterDeclarations: {payload: {type: 'number'}}, parameters: {payload: nested(70)}},
+      {parameterDeclarations: {payload: {type: 'number', default: nested(40)}}},
+    ]) {
+      const result = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
+      assert.equal(result.outcome, 'completed');
+      assert.equal(result.report.verdict, 'undetermined');
+      assert.deepEqual(result.report.reasons, []);
+      assert.deepEqual(result.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    }
+  });
+}
+
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: unavailable checking contexts hide every protected Source variant`, async t => {
     const clients = [];
