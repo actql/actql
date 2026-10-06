@@ -157,3 +157,20 @@ frontend operation has been established by this inspection.
 Integrated-tree focused checks passed 42/42 JS (`run-wBjIiy`,
 `focused-test-oyrqzi`) and 9/9 Node. The direct JSON capacity diagnostic was
 `run-Cfp7IA`. These checks do not establish the outstanding public Pipe execution.
+
+## Failure fixture input custody
+
+A selected diagnostic at integrated runtime `f0167c3c77134e3693ecc227282adc0fded29591`
+reached all six normal cases other than the known Pipe capacity rejection on
+Embedded Local. It then exposed an acceptance-helper defect: execution-failure
+fixtures discarded their authored `sourceRows` and reset the Source to the default
+rows. For this corpus those defaults contain no amount 2, so the intended zero
+in `1 / (amount + 2)` never occurs. The resulting success is not evidence that the
+runtime hid an expression failure.
+
+The shared public acceptance helper now passes each execution-failure fixture's
+rows to its existing Source installer, just as for normal cases, and removes
+`sourceRows` from Client options. Fixtures without custom rows keep the existing
+default. A focused boundary test retains same-request replay, one acquisition,
+failed Result denial, and client closure. Node checks passed 10/10 (`run-URw2Tq`,
+`focused-test-5TT0gY`). Expected values and expressions were not changed.
