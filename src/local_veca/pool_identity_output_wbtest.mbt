@@ -14,7 +14,7 @@ test "Pool output identity hashing keeps independent control and stop boundaries
     65536L,
     fn() { true },
   ).unwrap()
-  let text = String::make(16384, 'g')
+  let text = String::make(8096, 'g')
   let group = @value.checked_text_value(
     text,
     @contract.primitive(@contract.StringType, nullable=false),
@@ -27,12 +27,13 @@ test "Pool output identity hashing keeps independent control and stop boundaries
   let source = @records.finish_output(builder).unwrap()
   let owner = pool_owner(producer)
   let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  // The scalar fixture needs 61 control units. A 16,384-unit group adds
-  // 16,383 validation units and 256 wire polls (one Text setup and 256
+  // The scalar fixture needs 61 control units. An 8,096-unit group adds
+  // 8,095 validation units and 127 wire polls (one Text setup and 127
   // chunks instead of one scalar poll, in both key and record emission).
-  // Exact total: 61+16,383+512=16,956, independent of quantum.
+  // Exact total: 61+8,095+254=8,410, independent of quantum. This key
+  // also fits the standard installed Host's unchanged 10,000-byte ceiling.
   for quantum in [1, 7, 256] {
-    for (limit, success) in [(16956, true), (16955, false)] {
+    for (limit, success) in [(8410, true), (8409, false)] {
       let active = start_pool_with_control_work_limit(
         @bounded.control(),
         sequence(owner),
@@ -50,7 +51,7 @@ test "Pool output identity hashing keeps independent control and stop boundaries
             PoolContinue(..) => ()
             PoolComplete(output, work~, ..) => {
               assert_true(success)
-              assert_eq(work, 16956L)
+              assert_eq(work, 8410L)
               let stored = @records.completed_storage(output).unwrap()
               assert_eq(@storage.construction_work(stored), 18)
               guard pool_field(stored, 0, "group").value is @value.Text(actual) else {
@@ -67,7 +68,7 @@ test "Pool output identity hashing keeps independent control and stop boundaries
             PoolFailed(issue, work~, ..) => {
               assert_false(success)
               assert_eq(issue, PoolWorkLimit)
-              assert_eq(work, 16955L)
+              assert_eq(work, 8409L)
               done = true
             }
             _ => fail("identity hashing had an unrelated terminal outcome")
@@ -88,13 +89,13 @@ test "Pool output identity hashing keeps independent control and stop boundaries
     limits,
     65536L,
     fn() { true },
-    16956,
+    8410,
   ).unwrap()
-  // Before append: 30+16,383=16,413. Field/presence/identity phases
+  // Before append: 30+8,095=8,125. Field/presence/identity phases
   // and BeginKey add 11; Text setup adds one. Key chunks occupy
-  // 16,426..16,681, so the 65th 256-unit quantum (16,640) is inside
+  // 8,138..8,264, so the 32nd 256-unit quantum (8,192) is inside
   // identity hashing, not input validation or record output emission.
-  for _ in 0..<65 {
+  for _ in 0..<32 {
     assert_true(advance_pool(active, 256).unwrap() is PoolContinue(..))
   }
   assert_true(active.state.phase is AppendOutput)
@@ -110,7 +111,7 @@ test "Pool output identity hashing keeps independent control and stop boundaries
   assert_true(@records.producer_read_available(read))
   assert_true(
     advance_pool(active, 1).unwrap()
-    is PoolStopped(@bounded.Cancelled, work=16640L, progress=1L),
+    is PoolStopped(@bounded.Cancelled, work=8192L, progress=1L),
   )
   assert_eq(cleanup_pool(active), Ok(true))
   assert_true(active.state.output is None)

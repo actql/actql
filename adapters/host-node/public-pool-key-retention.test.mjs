@@ -27,7 +27,7 @@ function program(id, direct = false, outputScan = false, identityScan = false) {
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
       rows: (outputScan || identityScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
-      id: index + 1, group: outputScan ? 1 : identityScan ? 'g'.repeat(16384) : prefix + suffix,
+      id: index + 1, group: outputScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
@@ -72,7 +72,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     let representations;
     const fixtureId = identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
-    const expectedRows = identityScan ? [{group: 'g'.repeat(16384), embedding: [1, 2],
+    const expectedRows = identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
       member_count: 1}] : outputScan ? [{group: 1,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
@@ -110,9 +110,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
           poolWork += Number(detail.work);
           poolProgress += Number(detail.progress);
           assert.ok(Number(detail.work) <= 256);
-          // The matching kernel derives 16,640 inside canonical identity
-          // hashing for the 16,384-unit group, before record emission.
-          const boundary = identityScan ? 16640 : 1280;
+          // The matching kernel derives 8,192 inside canonical identity
+          // hashing for the 8,096-unit group, before record emission.
+          const boundary = identityScan ? 8192 : 1280;
           if (poolWork < boundary) return;
           assert.equal(poolWork, boundary);
           assert.equal(poolProgress, 1);
