@@ -64,3 +64,20 @@ Result/describe, stream completion, hidden-column absence, source once and
 same-request/read/attach replay checks. No full Core, all-target, proof,
 performance, Cloud or manual CI campaign is claimed. Keep Draft pending review
 and actual submitted-HEAD CI; earlier SHA successes are not current CI evidence.
+
+## Initial public control correction
+
+Normal five packages from `4a9cb7b83be34101616ffaeaa4dbd79109412e3e`
+passed the original 13 Local successes, then refused the newly authored JSON
+control before admission (`ClientProgramRejected`). HTTPS and subsequent new
+cases were not reached. Evidence: `worktrees/.codex-scratch/public-query-evidence-AvBE82`.
+The control attempted to overwrite the existing amount through derive, which
+is an additive operation. It now derives a fresh `incremented_amount` slot,
+then selects it as amount. Expected rows/contracts/order are unchanged.
+
+A direct diagnostic against the normally built bridge and query-amount fixture
+environment found that rejection at main step 1 derive.amount; all four source
+forms prepared successfully. The corrected JSON control also prepares through
+the same bridge. This is a fixture authoring correction, not evidence of a new
+product bug or public acceptance success. The tracked source change is confined
+to the JSON control and this report; the frontend implementation is unchanged.
