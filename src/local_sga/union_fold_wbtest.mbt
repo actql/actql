@@ -233,11 +233,11 @@ test "union fold aligns shared node and edge properties and retains parallel ide
       )
     }
     for edge in 0..<2 {
-      let expected = "{\"definition\":\"E\",\"domain\":\"sha256:" +
+      let expected = "{\"$json\":{\"definition\":\"E\",\"domain\":\"sha256:" +
         "0".repeat(64) +
         "\",\"key\":[" +
         (edge + 10).to_string() +
-        "],\"key_types\":[{\"kind\":\"number\"}]}"
+        "],\"key_types\":[{\"kind\":\"number\"}]}}"
       assert_eq(
         union_property_test_wire(@storage.edge_identity(output, edge).unwrap()),
         expected,
