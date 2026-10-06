@@ -1448,3 +1448,18 @@ test('check refuses lossy numeric serialization before credentials or exchange',
     assert.equal(exchanges, 0);
   }
 });
+
+test('binding JSON explanations keep parser facts distinct from budgets and unknown reasons', () => {
+  for (const document of ['parameters', 'parameter_declarations']) {
+    assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue: 'invalid_unicode'}}),
+      {kind: 'known', summary: 'The binding JSON contains invalid Unicode text.',
+        hint: 'Use valid Unicode scalar values in member names and string values.'});
+    assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue: 'duplicate_key'}}),
+      {kind: 'known', summary: 'Two binding JSON member names compare equal under the admitted key rules.',
+        hint: 'Choose distinct member names under the input normalization rules.'});
+    for (const issue of ['depth_limit', 'future_json_issue', 'private-parser-message']) {
+      assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue}}),
+        {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+    }
+  }
+});

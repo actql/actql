@@ -1061,8 +1061,11 @@ for (const [entrance, open] of Object.entries(entrances)) {
           assert.deepEqual(withoutContext(outcomes[index]).report, {
             context_ref: '<ctx>', scope: {kind: 'bound_input'},
             verdict: invalid ? 'invalid' : 'verified',
-            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            reasons: invalid ? [{code: 'binding_json_invalid'}] : [],
             coverage: {limits: [], unresolved: []}});
+          if (invalid) assert.deepEqual(outcomes[index].report.reasons, [{code: 'binding_json_invalid',
+            facts: {document: 'parameter_declarations', issue: 'duplicate_key'}}],
+          '[check-mutation:json-parser-fallback-facts]');
           assert.deepEqual(await run(texts[index]), outcomes[index]);
         }
         assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
@@ -3344,11 +3347,11 @@ for (const entrance of ['local', 'http']) {
 // Parser failures carry original structural paths even when no decoded cursor
 // can be admitted. These are caller input paths, never serialized SQL spans.
 const invalidParsedBindings = [
-  {document: 'parameters', code: 'supplied_parameters_invalid',
+  {document: 'parameters', code: 'binding_json_invalid',
     options: key => ({parameterDeclarations: {payload: {type: 'number'}},
       parameters: {payload: {[key]: ['safe', '\ud800']}}}),
     prefix: '/payload/'},
-  {document: 'parameter_declarations', code: 'parameter_declarations_invalid',
+  {document: 'parameter_declarations', code: 'binding_json_invalid',
     options: key => ({parameterDeclarations: {payload: {type: 'number',
       default: {[key]: ['safe', '\udfff']}}}}),
     prefix: '/payload/default/'},
@@ -3367,8 +3370,12 @@ for (const entrance of ['local', 'http']) {
         assert.ok(input);
         const location = {kind: 'structured', document_id: fixture.document,
           revision: input.revision, pointer: fixture.prefix + token + '/1'};
-        assert.deepEqual(result.report.reasons, [{code: fixture.code, location}],
+        assert.deepEqual(result.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'}, location}],
           '[check-mutation:json-parser-location]');
+        assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
+          summary: 'The binding JSON contains invalid Unicode text.',
+          hint: 'Use valid Unicode scalar values in member names and string values.'},
+        '[check-mutation:json-parser-explanation]');
         assert.equal(resolveCheckLocation(result, location).input, input);
         assert.equal(resolveCheckTextRange(result, location), undefined);
         assert.equal(resolveCheckLocation(result, location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
@@ -3382,7 +3389,7 @@ for (const entrance of ['local', 'http']) {
           parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}
         : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
       const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
-      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code}]);
+      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'duplicate_key'}}]);
       // A malformed member name has the parser's known enclosing root path,
       // not a fabricated location at a member that could not be decoded.
       const options = fixture.document === 'parameters'
@@ -3390,7 +3397,7 @@ for (const entrance of ['local', 'http']) {
         : {parameterDeclarations: {'\ud800': {type: 'number'}}};
       const root = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
       const input = getCheckInput(root, fixture.document);
-      assert.deepEqual(root.report.reasons, [{code: fixture.code,
+      assert.deepEqual(root.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'},
         location: {kind: 'structured', document_id: fixture.document,
           revision: input.revision, pointer: ''}}]);
     });
@@ -3429,7 +3436,7 @@ for (const entrance of ['local', 'http']) {
     ]) {
       const result = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
       assert.equal(result.outcome, 'completed');
-      assert.equal(result.report.verdict, 'undetermined');
+      assert.equal(result.report.verdict, 'undetermined', '[check-mutation:json-parser-budget]');
       assert.deepEqual(result.report.reasons, []);
       assert.deepEqual(result.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
     }

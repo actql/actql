@@ -1137,3 +1137,14 @@ explanation. The verdict continues to come from the existing classification.
 The current flattened checker location does not retain an authored/generated
 origin kind; this projection omits its location instead of treating a decoded
 expression range or generated Program path as the original SQL position.
+
+### Binding JSON admission explanations
+
+The public projector retains the existing JSON parser's closed issue family as
+`binding_json_invalid` with `facts.document` and `facts.issue`. Declaration and
+supplied-value inputs use distinct submitted identities. Duplicate names and
+string values remain private input data, not diagnostic facts. An original
+structured pointer is optional: a preserving path read cannot replace the
+primary parser's issue, and a mismatch leaves the reason unlocated. Budgets
+remain `analysis_budget_exhausted`; other admission/decode failures keep their
+generic reasons. SDK explanations are advisory and never change the verdict.
