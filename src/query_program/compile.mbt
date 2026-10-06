@@ -1002,8 +1002,8 @@ fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
 fn order_aggregate_calls(
   query : @query.Query,
   projections : Array[@query.Projection],
+  selected : Array[@query.Projection],
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
-  let selected = selected_projections(query)
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Order(terms)) {
@@ -1015,7 +1015,11 @@ fn order_aggregate_calls(
   projections.filter_map(projection => {
     guard projection.name is Some(name) &&
       projection.aggregate is Some(call) &&
-      !selected.any(item => item.name == Some(name)) &&
+      !selected.any(item => {
+        item.aggregate is Some(_) &&
+        item.name is Some(selected_name) &&
+        same_name(selected_name, name)
+      }) &&
       references.any(path => path.length() == 1 && path[0] == name) else {
       return None
     }
@@ -2096,12 +2100,6 @@ fn compile_steps(
           Some(Having(_, calls)) => calls.copy()
           _ => []
         }
-        let order_calls = if grouping_scope == @query.SqlSelect {
-          order_aggregate_calls(query, projections)
-        } else {
-          []
-        }
-        hidden_calls.append(order_calls)
         grouped_keys.clear()
         having_values.clear()
         having_aggregate_slots.clear()
@@ -2120,6 +2118,16 @@ fn compile_steps(
             max_work,
           )
         }
+        // Classify ORDER-only calls against the expanded SELECT. A star
+        // replacement aggregate still reads the SELECT input snapshot.
+        let order_calls = if sql_group_projection {
+          order_aggregate_calls(
+            query, projections, sql_group_selected_projections,
+          )
+        } else {
+          []
+        }
+        hidden_calls.append(order_calls)
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
