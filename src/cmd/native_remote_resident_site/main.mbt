@@ -3310,6 +3310,14 @@ fn run_holder(
         start_timestamp(matches)
       },
       observer,
+      source_observe=event => {
+        if event is @resident_host.AcquisitionEntered {
+          // A physical acquisition boundary, separate from executor entry
+          // and the later durable successful Source observation.
+          report("source-acquisition-entered", [("attempt", attempt)])
+        }
+        true
+      },
     )
   }
   let code = match result {
