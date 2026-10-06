@@ -69,7 +69,7 @@ filter-gated failing argument, qualified input, retained pre-SET alias value,
 analytic caller, and ordered keyed array. Five preparation refusals fix type,
 missing/undeclared name, sibling alias and removed range failures. A TRUE-filter
 failing argument must terminate without successful Result publication. Exact
-fresh-package execution evidence is recorded after the clean-HEAD public run.
+fresh-package execution evidence follows below.
 
 ## Identity and remaining boundaries
 
@@ -86,3 +86,47 @@ MIN/MAX DISTINCT, arbitrary aggregate HAVING/LIMIT, or aggregate calls nested
 inside scalar expressions. Pending aggregate-expression PRs retain their own
 scope. Ordinary common key, order, domain and capacity requirements continue to
 apply. Other frontend and common-runtime gaps remain separate work units.
+
+## Public package evidence
+
+Runtime/fixture SHA: `12149b986d8c0e0d2c4ca3eb65a42a98af1bd76f`. The later
+report-only commit does not represent another package execution. Ordinary five-
+package prepack and the outside-checkout consumer passed under shared heavy
+guard `run-9K0oiw`; complete terminal output and released locks are recorded.
+
+Commands, with the repository-pinned MoonBit and Node toolchains:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-aggregate-filter-pack-m4zclR
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-aggregate-filter-pack-m4zclR node scripts/test-packed-public-query.mjs --aggregate-filter-only
+```
+
+Embedded Local and HTTPS each passed 10 successes (one independent JSON Program
+and nine authored sources), five preparation refusals, and one admitted
+execution failure. Named Result rows, complete column contracts and order, stream
+termination, identical-request replay/reattachment, and actual source read
+sessions are asserted by the existing public harness. Preparation refusals
+leave Run admission/provider I/O unchanged. The demanded division failure
+publishes no successful Result; FALSE-filter division instead returns typed NULL.
+The empty input retains its typed one-row global aggregate. The analytic and
+keyed-array cases also reached Named Result with their independent expectations.
+
+Original receipt: `worktrees/.codex-scratch/public-query-evidence-A0M6MS`,
+`summary.json` passed/complete and command `008` exit 0. Success cleanup removed
+only its generated installation/Store; receipt/logs remain. Protected local
+copies: `review-artifacts/b-aggregate-filters-2026-10-06/`. The receipt's general
+source observation says dirty because that protected, untracked evidence exists;
+the ordinary producer/consumer clean-input checks passed, and no tracked source
+changed during the gate.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `68e1aa6b3539f5833630693a5a10e084f61a2ab7f4e2e4f978722a33ce6e9e90` |
+| sdk | `17cd9ca8052385592ec3f4f934a363bf12aec2467e36c7f3b8cdf69dbd99ad24` |
+| run-host-core | `05965826eacda62e32448537f699220506c1310a8c7f75d346e97d24845bbe5b` |
+| local-node | `92a6fad3aae8f378f6cc381ff9d913842600e5e08f768fac713bbdc64c397d3b` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+This is focused local package evidence, not CI success or full aggregate
+conformance. Wasm/Native execution, full Core and unrelated packed matrices were
+not rerun. Submitted-HEAD automatic CI is recorded separately in the PR.
