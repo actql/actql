@@ -104,6 +104,7 @@ pub(all) enum QueryOperation {
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
+  Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -417,6 +418,15 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         ),
       )
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
+    Qualify(e, calls) =>
+      Some(
+        Qualify(
+          e,
+          calls.map(pair => {
+            (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), })
+          }),
+        ),
+      )
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
@@ -717,6 +727,7 @@ fn QueryParser::optional_source_alias(
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
+      "QUALIFY", "WINDOW",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -1539,11 +1550,31 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }
     operations.push(Having(predicate, calls))
   }
-  if projections.any(projection => {
-      projection.analytic is Some(_) ||
-      projection.replacements.any(value => value.analytic is Some(_))
-    }) {
-    operations.push(Analytic(projections))
+  let selected_windows = projections.any(projection => {
+    projection.analytic is Some(_) ||
+    projection.replacements.any(value => value.analytic is Some(_))
+  })
+  let qualifier = if self.has("QUALIFY") {
+    self.keyword("QUALIFY")
+    self.node()
+    let (predicate, windows, calls) = self.qualify_expression()
+    if !selected_windows && windows.is_empty() {
+      raise QueryAbort("QUALIFY requires a window function", self.peek().start)
+    }
+    if !calls.is_empty() &&
+      !operations.any(operation => operation is Group(_, _, _)) {
+      operations.push(Group([], group_projections, SqlSelect))
+    }
+    Some((predicate, windows, calls))
+  } else {
+    None
+  }
+  let windows = qualifier.map(value => value.1).unwrap_or([])
+  if selected_windows || !windows.is_empty() {
+    operations.push(Analytic(projections + windows))
+  }
+  if qualifier is Some((predicate, _, calls)) {
+    operations.push(Qualify(predicate, calls))
   }
   operations.push(Select(projections, distinct))
   {

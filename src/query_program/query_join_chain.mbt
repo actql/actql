@@ -12,7 +12,7 @@ priv struct JoinChainScope {
 // projection-only specialization cannot supply that scope or HAVING values.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Group(_, _, _)) {
+    if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, _)) &&
