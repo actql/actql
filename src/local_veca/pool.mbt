@@ -56,6 +56,7 @@ priv enum PoolPhase {
 ///|
 priv struct PoolState {
   source : PoolSource
+  caller_workspace_slots : Int
   vectors : @carrier.Vectors
   output_vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
@@ -1005,7 +1006,12 @@ fn build_pool_output_field(state : PoolState) -> Result[Unit, PoolIssue] {
 ///|
 fn commit_pool_output(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.output is Some(output) else { return Err(InvalidPoolKernel) }
-  match @records.start_record_append(output, state.output_fields) {
+  match
+    @records.start_record_append(
+      output,
+      state.output_fields,
+      external_workspace_slots=state.caller_workspace_slots,
+    ) {
     Ok(cursor) => {
       state.output_append = Some(cursor)
       state.phase = AppendOutput
@@ -1455,6 +1461,9 @@ fn start_pool_carrier_source(
   }
   let state : PoolState = {
     source,
+    // Keep the existing conservative kernel reservation live through append.
+    // Shared append separately reserves its cursor and growing retained output.
+    caller_workspace_slots: workspace - append_slots,
     vectors,
     output_vectors,
     prepared,
@@ -1742,6 +1751,8 @@ pub fn start_relation_pool(
   }
   let state : PoolState = {
     source: Relation(input),
+    // Includes source identity encoding and input recheck custody from admission.
+    caller_workspace_slots: workspace - append_slots,
     vectors,
     output_vectors,
     prepared,

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {boundedSorterAliases, isProductionMoonSource} from './local-resource-api-guard.mjs';
 
 export function deepFreeze(value) {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
@@ -25,6 +26,8 @@ const fixedSources = [
   'src/connectors/local/materializing.mbt',
   'src/connectors/local/selected_relation_provider.mbt',
   'src/program_check/check.mbt',
+  'src/managed_record_storage/append_steps.mbt',
+  'src/managed_record_runtime/output.mbt',
 ];
 
 // Capture input paths, including mutated foreign entrypoints/evidence. Reuse
@@ -35,7 +38,28 @@ export function loadResourceAccountingSources({
   root, manifest, routes, previousSources = {},
 }) {
   const files = {...previousSources};
-  const paths = new Set([path.resolve(root),
+  // Discover imports independently of the route manifest, so a new consumer
+  // cannot bypass the eager-sorter guard by omitting inventory registration.
+  const consumerPaths = [];
+  const discover = directory => {
+    if (!fs.existsSync(directory)) return;
+    const entries = fs.readdirSync(directory, {withFileTypes: true})
+      .sort((left, right) => left.name.localeCompare(right.name));
+    if (entries.some(entry => entry.name === 'moon.pkg' && entry.isFile())) {
+      const file = path.join(directory, 'moon.pkg');
+      files[file] ??= Object.freeze({exists: true, text: fs.readFileSync(file, 'utf8')});
+      if (boundedSorterAliases(files[file].text ?? '').size) {
+        for (const entry of entries) {
+          if (entry.isFile() && isProductionMoonSource(entry.name)) {
+            consumerPaths.push(path.join(directory, entry.name));
+          }
+        }
+      }
+    }
+    for (const entry of entries) if (entry.isDirectory()) discover(path.join(directory, entry.name));
+  };
+  discover(path.resolve(root, 'src'));
+  const paths = new Set([path.resolve(root), ...consumerPaths,
     ...fixedSources.map(file => path.resolve(root, file))]);
   const pathKeys = new Set(['path', 'sources', 'rela', 'families', 'production_routes']);
   const addPaths = (value, key) => {
