@@ -607,7 +607,15 @@ test('baseline preimages and changed normative pins independently determine the 
   // Retain the preceding main Run with its original grammar and dependencies.
   assert.equal(vector('sha256:e31537c1b3104a915c951fa8bd3d98ee4d9ea4542d24275bf3c54b7341be62ad', cid(aoaContract), currentDependencies,
     barrierCid, currentIdentity).run.run_definition_cid, 'sha256:6cedd73015905be0a71b4df2db8ab5f95d1d0003b3b5abce9ed334a70edf5a68');
-  assert.equal(current.run.run_definition_cid, 'sha256:5d0c79e01623a60b1ab0f1f9e46f4ed395dae07ace32f9e8e6f46f8dcce1385b');
+  // Preserve the SELECT ALL branch with its original pre-typed closure.
+  assert.equal(vector(pin('83dada5a89e2b221799c9b5c8aadc712aac474c5bb7ce70f2516c17b628d25c6'),
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    pin('8fd97e9490289353f6048215faf2a9b50226b69caff3a217b572c10d32cdb8ec'));
+  assert.equal(vector(pin('5ac68c0bb19d569209191ad0131672abca12b8d520a800c7bc523fb0ab957c20'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('5d0c79e01623a60b1ab0f1f9e46f4ed395dae07ace32f9e8e6f46f8dcce1385b'));
+  assert.equal(current.run.run_definition_cid, 'sha256:877787622f2fb8fa22d37b593fdbd8bf0ba485674ad06a878a96e1d9747e46f5');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
