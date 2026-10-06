@@ -5,6 +5,8 @@ const retainedInputProducers = new WeakMap();
 const retainedInputIntents = new WeakMap();
 const retainedInputPlans = new WeakMap();
 const retainedInputResults = new WeakMap();
+const retainedInputCurrentQueries = new WeakMap();
+const retainedInputCurrentReplies = new WeakMap();
 const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
@@ -1171,6 +1173,49 @@ export function retainedInputResultFacts(result) {
   return Object.freeze({cid: values[0], wire: values[1], planCid: values[2],
     transferReply: Object.freeze({requestCid: values[3], wire: values[4]}),
     receipt: Object.freeze({cid: values[5], wire: values[6]})});
+}
+
+/** The caller uses a new challenge for each authenticated live receiver query. */
+export function prepareRetainedInputCurrentQuery(plan, queryId) {
+  if (typeof queryId !== 'string') throw new TypeError('InvalidRunHostRetainedInputQuery');
+  const value = checked(owner.clientValuesHostPrepareRetainedInputCurrentQuery(
+    requireHandle(retainedInputPlans, plan), queryId), 'RunHostRetainedInputCurrentRejected');
+  return handle(retainedInputCurrentQueries, value, 'retained-input-current-query');
+}
+
+/** Revalidate current plan authority before offering the same exact query. */
+export function retainedInputCurrentEnvelope(query) {
+  return checked(owner.clientValuesHostRetainedInputCurrentEnvelope(
+    requireHandle(retainedInputCurrentQueries, query)), 'RunHostRetainedInputCurrentRejected');
+}
+
+/** Admit an exact live response; a stored reply never becomes current authority. */
+export function admitRetainedInputCurrentReply(query, saved, limits) {
+  const owned = requireHandle(retainedInputCurrentQueries, query);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputCurrentWire');
+  if (!exactRetainedFields(limits, retainedPlanLimitKeys) ||
+      ['maxChunks', 'maxManifestBytes'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
+      typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
+      limits.maxReferencedBytes > retainedInt64Maximum) {
+    throw new TypeError('InvalidRunHostRetainedInputCurrentLimits');
+  }
+  const value = checked(owner.clientValuesHostAdmitRetainedInputCurrentReply(
+    owned, saved.wire, saved.cid, limits.maxChunks, limits.maxManifestBytes,
+    limits.maxReferencedBytes), 'RunHostRetainedInputCurrentRejected');
+  return handle(retainedInputCurrentReplies, value, 'retained-input-current-reply');
+}
+
+/** Immutable snapshot, not permission to borrow, reserve, start or replay. */
+export function retainedInputCurrentReplyFacts(reply) {
+  const values = checked(owner.clientValuesHostRetainedInputCurrentReplyFacts(
+    requireHandle(retainedInputCurrentReplies, reply)), 'RunHostRetainedInputCurrentRejected');
+  if (!Array.isArray(values) || values.length !== 5 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputCurrentProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1], transferRecordWire: values[2],
+    receipt: Object.freeze({cid: values[3], wire: values[4]})});
 }
 
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',

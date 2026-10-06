@@ -1871,6 +1871,30 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("retained-transfer-unavailable", [("request_cid", identity)])
         }
       }
+      Ok(Some(@remote.RetainedCurrent(query))) => {
+        backoff_ms = 0
+        let request = @remote.remote_retained_input_current_request(query)
+        let identity = @remote.dispatch_request_identity(request)
+        let body = @remote.remote_poll_retained_input_current_json(
+          @remote.remote_retained_input_current_plan(query),
+          @remote.remote_retained_input_current_query_identity(query),
+        )
+        match (holder, body) {
+          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+              current.request,
+            ) ==
+            identity =>
+            report("retained-current-relayed", [
+              ("request_cid", identity),
+              (
+                "sent",
+                current.channel.send("retained-current " + body).to_string(),
+              ),
+            ])
+          _ =>
+            report("retained-current-unavailable", [("request_cid", identity)])
+        }
+      }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
         // Only the live holder of the dispatch owns its output; the
@@ -2534,6 +2558,57 @@ fn serve_holder_output(
             (Ok(_), None) =>
               report("retained-plan-failed", [
                 ("reason", "movement-not-delegated"),
+              ])
+            _ => report("holder-input-invalid", [])
+          }
+        } else if line.has_prefix("retained-current ") {
+          let envelope = line.unsafe_substring(start=17, end=line.length())
+          match
+            (
+              @remote.admit_remote_poll_retained_input_current_json(envelope),
+              resources.retained_delegation,
+              retained_handoff.val,
+            ) {
+            (Ok(query), Some(_), Some((saved, owner))) => {
+              if @remote.dispatch_request_identity(
+                  @remote.remote_retained_input_current_request(query),
+                ) !=
+                identity ||
+                @remote.remote_retained_input_plan_identity(
+                  @remote.remote_retained_input_current_plan(query),
+                ) !=
+                saved {
+                report("retained-current-failed", [
+                  ("reason", "foreign-handoff"),
+                ])
+                continue
+              }
+              // Read the existing receiver only. A query never advances a
+              // partial handoff, reserves capacity or starts a consumer.
+              match owner.current_reply(query) {
+                Ok(reply) =>
+                  match
+                    @client.acknowledge_retained_input_current(
+                      control, observation_url, reply,
+                    ) {
+                    Ok(_) =>
+                      report("retained-current-reported", [
+                        ("request_cid", identity),
+                      ])
+                    Err(issue) =>
+                      report("retained-current-unreported", [
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                Err(issue) =>
+                  report("retained-current-pending", [
+                    ("reason", retained_transfer_code(issue)),
+                  ])
+              }
+            }
+            (Ok(_), _, _) =>
+              report("retained-current-pending", [
+                ("reason", "receiver-owner-unavailable"),
               ])
             _ => report("holder-input-invalid", [])
           }

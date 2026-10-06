@@ -17,6 +17,7 @@ fn retained_consumer_holder_case(
   name : String,
   destination_journal : @journal.Journal,
   destination_bytes : Int64,
+  current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
 ) -> Unit raise {
   let environment = @host.admit_client_check_environment(
@@ -237,6 +238,9 @@ fn retained_consumer_holder_case(
     destination_bytes,
   )
   assert_true(handoff.reclaim() is Err(_))
+  assert_true(
+    handoff.current_reply(current_query) is Err(@resident.CleanupPending),
+  )
   let bytes : Array[Byte] = []
   while true {
     let chunk = reader.next().unwrap()

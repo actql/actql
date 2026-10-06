@@ -1,3 +1,5 @@
+declare const retainedInputCurrentQueryBrand: unique symbol;
+declare const retainedInputCurrentReplyBrand: unique symbol;
 declare const environmentBrand: unique symbol;
 declare const preparedBrand: unique symbol;
 declare const compilationBrand: unique symbol;
@@ -653,6 +655,24 @@ export function admitRetainedInputResult(plan: RetainedInputPlan,
 export function retainedInputResultFacts(result: RetainedInputResult): Readonly<{
   cid: string; wire: string; planCid: string;
   transferReply: Readonly<{requestCid: string; wire: string}>;
+  receipt: Readonly<{cid: string; wire: string}>;
+}>;
+/** A fresh receiver query; never an execution attempt or physical borrow. */
+export interface RetainedInputCurrentQuery {
+  readonly [retainedInputCurrentQueryBrand]: true;
+}
+export interface RetainedInputCurrentReply {
+  readonly [retainedInputCurrentReplyBrand]: true;
+}
+export function prepareRetainedInputCurrentQuery(plan: RetainedInputPlan,
+  queryId: string): RetainedInputCurrentQuery;
+export function retainedInputCurrentEnvelope(query: RetainedInputCurrentQuery): string;
+export function admitRetainedInputCurrentReply(query: RetainedInputCurrentQuery,
+  saved: Readonly<{cid: string; wire: string}>,
+  limits: RetainedInputPlanLimits): RetainedInputCurrentReply;
+/** Historical snapshot of the live query, never replayed as current authority. */
+export function retainedInputCurrentReplyFacts(reply: RetainedInputCurrentReply): Readonly<{
+  cid: string; wire: string; transferRecordWire: string;
   receipt: Readonly<{cid: string; wire: string}>;
 }>;
 export interface RetainedInputLimits {

@@ -70,6 +70,7 @@ pub(all) enum RemotePollOperation {
   Plan(RemotePollOutput)
   RetainedPlan(RemotePollRetainedInput)
   RetainedTransfer(RemotePollRetainedTransfer)
+  RetainedCurrent(RemotePollRetainedCurrent)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)
@@ -452,6 +453,10 @@ pub fn admit_remote_poll_operation_json(
     Ok(input) => return Ok(RetainedTransfer(input))
     Err(_) => ()
   }
+  match admit_remote_poll_retained_input_current_json(body) {
+    Ok(input) => return Ok(RetainedCurrent(input))
+    Err(_) => ()
+  }
   match admit_remote_poll_output_plan_json(body) {
     Ok(output) => return Ok(Plan(output))
     Err(_) => ()
@@ -484,6 +489,7 @@ pub fn remote_poll_operation_request(
     Plan(output) | Output(output) => output.request
     RetainedPlan(input) => input.request
     RetainedTransfer(input) => input.intent.request
+    RetainedCurrent(input) => input.handoff.intent.request
     Query(request) | Cancel(request) | Release(request) => request
   }
 }
@@ -491,8 +497,12 @@ pub fn remote_poll_operation_request(
 ///|
 pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
-    Dispatch(_) | RetainedPlan(_) | RetainedTransfer(_) | Plan(_) | Output(_) =>
-      false
+    Dispatch(_)
+    | RetainedPlan(_)
+    | RetainedTransfer(_)
+    | RetainedCurrent(_)
+    | Plan(_)
+    | Output(_) => false
     Query(_) => true
     Release(_) | Cancel(_) => false
   }
@@ -507,6 +517,7 @@ pub fn remote_poll_operation_is_release(
     Dispatch(_)
     | RetainedPlan(_)
     | RetainedTransfer(_)
+    | RetainedCurrent(_)
     | Plan(_)
     | Output(_)
     | Query(_)
@@ -521,6 +532,7 @@ pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool 
     Dispatch(_)
     | RetainedPlan(_)
     | RetainedTransfer(_)
+    | RetainedCurrent(_)
     | Plan(_)
     | Query(_)
     | Release(_)
@@ -537,6 +549,7 @@ pub fn remote_poll_operation_is_output_plan(
     Dispatch(_)
     | RetainedPlan(_)
     | RetainedTransfer(_)
+    | RetainedCurrent(_)
     | Output(_)
     | Query(_)
     | Release(_)
@@ -624,6 +637,7 @@ pub fn remote_poll_operation_is_cancel(operation : RemotePollOperation) -> Bool 
     Dispatch(_)
     | RetainedPlan(_)
     | RetainedTransfer(_)
+    | RetainedCurrent(_)
     | Plan(_)
     | Output(_)
     | Query(_)
@@ -643,4 +657,11 @@ pub fn remote_poll_operation_is_retained_input_transfer(
   operation : RemotePollOperation,
 ) -> Bool {
   operation is RetainedTransfer(_)
+}
+
+///|
+pub fn remote_poll_operation_is_retained_input_current(
+  operation : RemotePollOperation,
+) -> Bool {
+  operation is RetainedCurrent(_)
 }
