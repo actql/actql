@@ -100,6 +100,7 @@ priv enum Evaluation {
   PropertyName(PropertyNameState)
   FieldName(FieldNameState)
   ObjectName(ObjectNameState)
+  ObjectText(ObjectExpressionState, RawTextAdmission)
 }
 
 ///|
@@ -329,6 +330,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
+    ObjectText(_, cursor) => close_raw_text_admission(cursor)
     _ => ()
   }
   release_slots(frame.workspace, frame.measurement_slots)
@@ -433,7 +435,8 @@ fn advance_expression_frame_impl(
       frame.state is CompareMembership(_, _) ||
       frame.state is PropertyName(_) ||
       frame.state is FieldName(_) ||
-      frame.state is ObjectName(_)) {
+      frame.state is ObjectName(_) ||
+      frame.state is ObjectText(_, _)) {
       if budget.remaining == 0 {
         return Err({ kind: ControlLimit, expression: frame.active, })
       }
@@ -1286,6 +1289,19 @@ fn advance_expression_frame_impl(
               frame.state = Enter(otherwise)
             }
           }
+        }
+      }
+      ObjectText(state, admission) => {
+        frame.active = state.expression
+        match advance_raw_text_admission(admission, budget) {
+          Err(_) =>
+            return Err({ kind: ControlLimit, expression: state.expression, })
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match append_admitted_expression_object_field(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
         }
       }
       ObjectName(state) => {

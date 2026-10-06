@@ -51,6 +51,29 @@ const objectExpected=[{id:1,value:{[member]:7,[`${member}z`]:9}},
 const objectContract={type:'object',nullable:false,additional_properties:false,fields:{
   [member]:{type:'number',nullable:true},[`${member}z`]:{type:'number',nullable:false}}};
 
+const rawText='x'.repeat(1024)+'😀e\u0301\r\n';
+function textObjectProgram(id) {
+  const value=program(id);
+  value.stages[0].steps[0].values={schema:{id:{type:'number',nullable:false},
+    payload:{type:'string',nullable:true}},rows:[{id:1,payload:rawText},{id:2,payload:null}]};
+  value.stages[1].steps[0].derive.value={object:{p:{field:'payload'}}};
+  return value;
+}
+const textObjectExpected=[{id:1,value:{p:rawText}},{id:2,value:{p:null}}];
+const textObjectContract={type:'object',nullable:false,additional_properties:false,
+  fields:{p:{type:'string',nullable:true}}};
+function textArrayProgram(id) {
+  const value=textObjectProgram(id);
+  // Ordered aggregation needs the Program's explicit input key proof.
+  value.stages[0].steps.push({assert_rows:{unique_by:['id']},as:'keyed'});
+  value.stages[0].results.rows.from='keyed';
+  value.stages[1].steps[0]={group:{by:['id'],aggregates:{value:{fn:'array_agg',
+    field:'payload',order_by:[{field:'id',dir:'asc',nulls:'first'}],max_items:2}}},as:'derived'};
+  return value;
+}
+const textArrayExpected=[{id:1,value:[rawText]},{id:2,value:[]}];
+const textArrayContract={type:'array',nullable:false,items:{type:'string',nullable:false}};
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true}){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -120,3 +143,7 @@ test('public retained field names publish NULL and deliver cancellation after pr
   {timeout:90_000},t=>verifyRetainedNames(t,'field',fieldProgram));
 test('public retained constructed object names publish NULL and deliver cancellation after progress',
   {timeout:90_000},t=>verifyRetainedNames(t,'object',objectProgram,objectExpected,objectContract));
+test('public retained raw Text Object children preserve data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-object',textObjectProgram,textObjectExpected,textObjectContract));
+test('public retained raw Text array aggregation preserves data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-array',textArrayProgram,textArrayExpected,textArrayContract));

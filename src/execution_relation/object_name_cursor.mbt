@@ -75,11 +75,29 @@ fn append_expression_object_field(
   value : Value,
 ) -> Result[Unit, EvalIssue] {
   let expression = state.expression
+  if value is Text(text) && text.length() > 64 {
+    let admission = match start_raw_text_admission(text, frame.workspace) {
+      Ok(admission) => admission
+      Err(_) => return Err({ kind: WorkspaceLimit, expression, })
+    }
+    frame.state = ObjectText(state, admission)
+    return Ok(())
+  }
   let admitted = match admitted_aggregate_item(value, frame.budget) {
     Ok(Some(value)) => value
     Ok(None) => @admitted.null_value()
     Err(_) => return Err({ kind: ControlLimit, expression, })
   }
+  append_admitted_expression_object_field(frame, state, admitted)
+}
+
+///|
+fn append_admitted_expression_object_field(
+  frame : ExpressionFrame,
+  state : ObjectExpressionState,
+  admitted : @admitted.Value,
+) -> Result[Unit, EvalIssue] {
+  let expression = state.expression
   if !@admitted.append_contract_object_field(
       state.builder,
       state.index,

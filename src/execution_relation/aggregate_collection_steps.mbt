@@ -288,12 +288,15 @@ fn advance_aggregate_distinct_impl(
 ///|
 /// Build an `array_agg` value with the charges of `evaluate_array_aggregate`:
 /// one unit per item, then each row Text item's UTF-8 bytes before its
-/// admission. One item's admission is bounded by the admitted value limits.
+/// admission. Long row Text uses the shared resumed Value owner. The existing
+/// ArrayBuilder transfers its complete backing instead of copying all items.
 priv struct AggregateArray {
   values : Array[Value]
   control : ControlBudget
   workspace : RowWorkspace
-  admitted : Array[@admitted.Value]
+  mut builder : @admitted.ArrayBuilder?
+  mut text : RawTextAdmission?
+  mut reserved : Int
   pending : PendingUnits
   mut phase : Int
   mut index : Int
@@ -310,12 +313,32 @@ fn start_aggregate_array(
     values,
     control,
     workspace,
-    admitted: [],
+    builder: None,
+    text: None,
+    reserved: 0,
     pending: { remaining: values.length(), },
     phase: 0,
     index: 0,
     closed: false,
   }
+}
+
+///|
+fn close_aggregate_array(state : AggregateArray) -> Unit {
+  if state.closed {
+    return
+  }
+  if state.text is Some(text) {
+    close_raw_text_admission(text)
+  }
+  state.text = None
+  if state.builder is Some(builder) {
+    @admitted.cancel_array_value(builder) |> ignore
+  }
+  state.builder = None
+  release_slots(state.workspace, state.reserved)
+  state.reserved = 0
+  state.closed = true
 }
 
 ///|
@@ -325,7 +348,8 @@ fn advance_aggregate_array(state : AggregateArray) -> Result[Value?, RowIssue] {
   }
   let result = advance_aggregate_array_impl(state)
   match result {
-    Err(_) | Ok(Some(_)) => state.closed = true
+    Err(_) => close_aggregate_array(state)
+    Ok(Some(_)) => state.closed = true
     Ok(None) => ()
   }
   result
@@ -340,8 +364,14 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
         Err(issue) => Err(issue)
         Ok(false) => Ok(None)
         Ok(true) => {
-          if !reserve_slots(s.workspace, s.values.length()) {
+          if s.values.length() == 2147483647 ||
+            !reserve_slots(s.workspace, s.values.length() + 1) {
             return Err(RowLimit)
+          }
+          s.reserved = s.values.length() + 1
+          s.builder = @admitted.prepare_array_value(s.values.length())
+          if s.builder is None {
+            return Err(InvalidRows)
           }
           s.phase = 1
           Ok(None)
@@ -350,11 +380,28 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
     // Admit the next item; row Text first pays its UTF-8 bytes.
     1 => {
       if s.index >= s.values.length() {
-        return Ok(Some(Captured(@admitted.array_value(s.admitted))))
+        guard s.builder is Some(builder) &&
+          @admitted.finish_array_value(builder) is Some(value) else {
+          return Err(InvalidRows)
+        }
+        s.builder = None
+        // Item reservations pass with the completed value to its enclosing
+        // row scope. Only the temporary builder handle is released here.
+        release_slots(s.workspace, 1)
+        s.reserved = 0
+        return Ok(Some(Captured(value)))
       }
       match s.values[s.index] {
         Null => Err(InvalidRows)
         Text(text) => {
+          if text.length() > 64 {
+            s.text = match start_raw_text_admission(text, s.workspace) {
+              Ok(state) => Some(state)
+              Err(issue) => return Err(issue)
+            }
+            s.phase = 3
+            return Ok(None)
+          }
           s.pending.remaining = match utf8_units(text) {
             Ok(bytes) => bytes
             Err(issue) => return Err(issue)
@@ -365,7 +412,10 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
         value => {
           let free : ControlBudget = { remaining: 0, max_frames: 0, }
           match admitted_aggregate_item(value, free) {
-            Ok(Some(item)) => s.admitted.push(item)
+            Ok(Some(item)) =>
+              if !@admitted.append_array_item(s.builder.unwrap(), item) {
+                return Err(InvalidRows)
+              }
             Ok(None) => return Err(InvalidRows)
             Err(issue) => return Err(issue)
           }
@@ -381,7 +431,10 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
         Ok(true) => {
           guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
           match @admitted.text_value(text, 2147483647) {
-            Some(item) => s.admitted.push(item)
+            Some(item) =>
+              if !@admitted.append_array_item(s.builder.unwrap(), item) {
+                return Err(InvalidRows)
+              }
             None => return Err(InvalidRows)
           }
           s.index += 1
@@ -389,6 +442,22 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
           Ok(None)
         }
       }
+    3 => {
+      guard s.text is Some(text) else { return Err(InvalidRows) }
+      match advance_raw_text_admission(text, s.control) {
+        Err(issue) => Err(issue)
+        Ok(None) => Ok(None)
+        Ok(Some(item)) => {
+          if !@admitted.append_array_item(s.builder.unwrap(), item) {
+            return Err(InvalidRows)
+          }
+          s.text = None
+          s.index += 1
+          s.phase = 1
+          Ok(None)
+        }
+      }
+    }
     _ => Err(InvalidRows)
   }
 }

@@ -1521,6 +1521,20 @@
           "fixture": "constructed object names preserve exact work live and workspace bounds"
         },
         {
+          "role": "derive_raw_text_child_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "raw Text Object children retain independent work live and workspace bounds"
+        },
+        {
+          "role": "derive_raw_text_child_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "raw Text Object validation and charge cancellation keep borrowed roots"
+        },
+        {
           "role": "derive_object_name_stop",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1653,6 +1667,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-property-name-retention.test.mjs",
           "fixture": "public retained constructed object names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_raw_text_child_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained raw Text Object children preserve data and post-progress custody"
         }
       ],
       "path_assurance": {
@@ -4917,6 +4938,13 @@
           "fixture": "wide group output is constructed one cell at a time with exact charges"
         },
         {
+          "role": "group_raw_text_array_limits_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/raw_text_child_wbtest.mbt",
+          "fixture": "array Text admission has exact limits transfer and stopped cleanup"
+        },
+        {
           "role": "group_stepped_output_cleanup",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5553,6 +5581,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "captured-keyed-count-chain-in-flight"
+        },
+        {
+          "role": "group_raw_text_array_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained raw Text array aggregation preserves data and post-progress custody"
         }
       ],
       "path_assurance": {
