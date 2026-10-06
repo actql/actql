@@ -8360,6 +8360,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "window_control_work_exact_one_short",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8389,6 +8411,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained window publishes and cancels inside record emission"
+        },
         {
           "role": "window_fixed_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -8440,6 +8471,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "watermark_control_work_exact_one_short",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8469,6 +8522,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained watermark publishes and cancels inside record emission"
+        },
         {
           "role": "watermark_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -8549,6 +8611,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "session_incremental_initialization_cancel_cleanup",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -8627,6 +8711,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained session publishes and cancels inside record emission"
+        },
         {
           "role": "session_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -9043,6 +9136,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_record_emission_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission keeps independent control and workspace limits"
+        },
+        {
+          "role": "events_record_emission_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/record_emission_wbtest.mbt",
+          "fixture": "Events record emission yields inside unused Text and keeps stop custody"
+        },
+        {
           "role": "dedupe_incremental_initialization_cancel_cleanup",
           "suite": "moon:local_tea",
           "targets": ["js", "wasm", "native"],
@@ -9072,6 +9187,15 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "events_record_emission_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained dedupe publishes and cancels inside record emission"
+        },
         {
           "role": "dedupe_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -9907,6 +10031,27 @@
           "fixture": "runtime vector recheck yields between components with exact node usage"
         },
         {
+          "role": "nearest_name_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest borrowed names keep independent Carrier and Relation limits"
+        },
+        {
+          "role": "nearest_name_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest public name barrier retains Relation inputs until confirmed stop"
+        },
+        {
+          "role": "nearest_name_qualification",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/nearest_name_roles_wbtest.mbt",
+          "fixture": "nearest identity matching keeps qualification separate from spelling"
+        },
+        {
           "role": "nearest_direct_relation_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -10012,6 +10157,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
           "fixture": "public retained nearest admits Relation inputs and cancels inside unused array"
+        },
+        {
+          "role": "nearest_name_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest borrows long role names and cancels inside component lookup"
         },
         {
           "role": "nearest_relation_host_in_flight_cancel",

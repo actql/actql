@@ -5901,7 +5901,7 @@ test "nearest charges incremental initialization and cumulative work" {
   // uses two identity picks, row start, twelve scalar read/recheck units,
   // charge start, four name/value pairs and commit.
   // Workspace: two three-slot records, four score slots, three record-sort
-  // slots, two identity slots, and sixteen fixed slots = 31.
+  // slots, two identity slots, and seventeen fixed slots = 32.
   let short_candidate_view = @carrier_runtime.material_prepare_view(
     candidate_material, owner, 0, candidates,
   ).unwrap()
@@ -5918,7 +5918,7 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(short_query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      30,
+      31,
       1000,
       1000,
       52,
@@ -5941,7 +5941,7 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      32,
       1000,
       1000,
       ceiling,
@@ -6007,7 +6007,7 @@ test "nearest stops during incremental identity initialization" {
     @local_veca.nearest_carrier_producer(query_view),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    31,
+    32,
     1000,
     1000,
     52,
@@ -6063,7 +6063,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       1000,
     ).unwrap()
     // Two three-slot records, four score slots, three ordering slots,
-    // two identity slots, sixteen fixed slots, and twenty cursor slots: 51.
+    // two identity slots, seventeen fixed slots, and twenty cursor slots: 52.
     let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
       @execution.generated_completion_preparation(generated),
@@ -6073,7 +6073,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       ceiling,
@@ -6133,7 +6133,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      50,
+      51,
       1000,
       1000,
       66,
@@ -6555,7 +6555,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
   // Same common Relation rechecks and shared cursor as direct nearest:
-  // existing 52 plus fourteen input polls, existing 31 plus twenty slots.
+  // existing 52 plus fourteen input polls, existing 32 plus twenty slots.
   for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
@@ -6579,7 +6579,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       [candidate_read, query_read],
@@ -6640,7 +6640,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      50,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -6660,7 +6660,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    51,
+    52,
     1000,
     1000,
     [candidate_read, query_read],

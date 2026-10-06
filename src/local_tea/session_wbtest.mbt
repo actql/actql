@@ -296,9 +296,9 @@ test "session output workspace includes scratch and temporary fields" {
   )
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // One record and one key retain 3 cells, 3 indices, and 4 metadata
-  // slots. Emitting its 3 source fields plus 3 session fields needs 12
-  // temporary slots, so the simultaneous boundary is 10 + 12 = 22.
-  for (budget, accepted) in [(22, true), (21, false)] {
+  // slots. Borrowed output fields plus append handle add seven slots.
+  // Cursor 16+3*6+1+3*10=65, retained row eight: 10+7+65+8=90.
+  for (budget, accepted) in [(90, true), (89, false)] {
     let execution = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -309,7 +309,7 @@ test "session output workspace includes scratch and temporary fields" {
       fn() { live.val },
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<64 {
+    for _ in 0..<100 {
       if terminal {
         break
       }
@@ -346,8 +346,9 @@ test "session admits exact and one-short cumulative control work" {
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // One row and one key take six scratch initialization steps, eighteen
   // field-loading steps, five ordering steps, one group step, five identity
-  // steps, and nine output/finalization steps: 44 charged control units.
-  for (budget, accepted) in [(44, true), (43, false)] {
+  // steps, and nine outer output/finalization steps. Common append adds
+  // 6*6+2*1+8=46 polls, for 44+46=90 charged control units.
+  for (budget, accepted) in [(90, true), (89, false)] {
     let execution = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -359,7 +360,7 @@ test "session admits exact and one-short cumulative control work" {
       control_work_limit=Some(budget),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<45 {
+    for _ in 0..<100 {
       if terminal {
         break
       }
@@ -367,13 +368,13 @@ test "session admits exact and one-short cumulative control work" {
         SessionContinue(work~, ..) => assert_true(work <= budget.to_int64())
         SessionComplete(output, progress~, work~) => {
           assert_true(accepted)
-          assert_eq((progress, work), (1L, 44L))
+          assert_eq((progress, work), (1L, 90L))
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         SessionFailed(SessionControlWorkLimit, progress~, work~) => {
           assert_false(accepted)
-          assert_eq((progress, work), (1L, 43L))
+          assert_eq((progress, work), (1L, 89L))
           assert_true(session_cleanup_pending(execution))
           terminal = true
         }

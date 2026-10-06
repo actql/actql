@@ -894,6 +894,27 @@ export function validateResourceAccounting({
         }
       }
     }
+    const steppedEventRecord = route.family === 'TEA' &&
+      ['window_events', 'watermark_events', 'dedupe_events', 'session']
+        .includes(route.operation);
+    if (steppedEventRecord) {
+      for (const role of ['events_record_emission_limits',
+        'events_record_emission_stop_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const kernel = fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8');
+      for (const marker of ['@records.start_record_append(',
+        '@records.advance_record_append(', '@records.cleanup_record_append(',
+        'external_workspace_slots=']) {
+        if (!kernel.includes(marker)) fail(`${label}: stepped emission custody is missing`);
+      }
+      if (kernel.includes('@records.append_record(')) {
+        fail(`${label}: record emission computes synchronously`);
+      }
+      if (route.operation === 'window_events' && kernel.includes('state.fields.copy()')) {
+        fail(`${label}: window emission copies fields synchronously`);
+      }
+    }
     const environmentRoles = new Set();
     for (const item of route.environment_tests ?? []) {
       if (typeof item.role !== 'string' || environmentRoles.has(item.role)) {
@@ -917,6 +938,9 @@ export function validateResourceAccounting({
           'adapters/host-node/public-nearest-key-retention.test.mjs',
         'node:embedded_ranking_keys':
           'adapters/host-node/public-ranking-key-retention.test.mjs',
+        'node:embedded_events_records':
+          'adapters/host-node/public-events-record-retention.test.mjs',
+
         'node:embedded_vector_records':
           'adapters/host-node/public-vector-record-retention.test.mjs',
       }[item.suite];
@@ -963,6 +987,12 @@ export function validateResourceAccounting({
             .includes("import './public-ranking-key-retention.test.mjs';")) {
         fail(`${label}: ranking key public fixture is not suite-connected`);
       }
+      if (item.suite === 'node:embedded_events_records' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-events-record-retention.test.mjs';")) {
+        fail(`${label}: Events record public fixture is not suite-connected`);
+      }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
       const tupleCase = typeof item.case === 'string' &&
@@ -972,6 +1002,10 @@ export function validateResourceAccounting({
       if (!namedCase && !tupleCase) {
         fail(`${label}: missing environment fixture ${item.fixture}`);
       }
+    }
+    if (steppedEventRecord &&
+        !environmentRoles.has('events_record_emission_public_store')) {
+      fail(`${label}: Events record public Store fixture is missing`);
     }
     if (route.family === 'RelA' && route.operation === 'join') {
       for (const role of [
@@ -1433,6 +1467,19 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'VecA' && route.operation === 'nearest') {
+      for (const role of ['nearest_name_limits_stop_cleanup',
+        'nearest_name_public_barrier', 'nearest_name_qualification']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_name_public_store')) {
+        fail(`${label}: nearest name public Store fixture is missing`);
+      }
+      const names = fs.readFileSync(path.join(root, 'src/local_veca/nearest.mbt'), 'utf8');
+      if (!names.includes('compare_reference_fragment(') ||
+          !names.includes('nearest_same_name_role(') ||
+          names.includes('@schema.reference_name(')) {
+        fail(`${label}: nearest borrowed-name production boundary is missing`);
+      }
       for (const role of ['nearest_relation_input_limits_stop_cleanup',
         'nearest_relation_input_shared_vector']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);

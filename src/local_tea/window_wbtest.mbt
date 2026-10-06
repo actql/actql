@@ -159,7 +159,7 @@ fn event_window_sequence(
 ///|
 fn event_window_limits(
   max_records? : Int = 20,
-  workspace? : Int = 100,
+  workspace? : Int = 1000,
   fields? : Int = 5,
 ) -> @storage.Limits {
   {
@@ -305,8 +305,8 @@ test "event window views retain exact boundaries and source custody" {
   let material = @records.completed_material(source).unwrap()
   for
     (body, exact_work, exact_workspace, starts) in [
-      ("{\"kind\":\"fixed\",\"size\":10}", 9, 7, [0.0]),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 12, 14, [0.0, 5.0]),
+      ("{\"kind\":\"fixed\",\"size\":10}", 53, 79, [0.0]),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 104, 87, [0.0, 5.0]),
     ] {
     let owner = event_window_owner(producer, body)
     for
@@ -326,12 +326,10 @@ test "event window views retain exact boundaries and source custody" {
         fn() { true },
         control_work_limit=Some(work),
       )
-      if workspace < exact_workspace {
-        assert_true(started is Err(InvalidEventWindowLimits))
-      } else {
+      {
         let execution = started.unwrap()
         let mut terminal = false
-        for _ in 0..<32 {
+        for _ in 0..<(exact_work + 1) {
           if !terminal {
             match advance_event_window(execution, 1).unwrap() {
               EventWindowContinue(..) => ()
@@ -356,6 +354,11 @@ test "event window views retain exact boundaries and source custody" {
               EventWindowFailed(EventWindowWorkLimit, work=charged, ..) => {
                 assert_false(accepted)
                 assert_eq(charged, work.to_int64())
+                terminal = true
+              }
+              EventWindowFailed(EventWindowWorkspaceLimit, ..) => {
+                assert_false(accepted)
+                assert_eq(workspace, exact_workspace - 1)
                 terminal = true
               }
               _ => fail("unexpected event window view result")
@@ -500,7 +503,9 @@ test "event windows use exact grids and reject unrepresentable boundaries" {
     ).unwrap()
     let mut polls = 0
     let mut terminal = false
-    while !terminal && polls < 64 {
+    // At most eight memberships: 7 outer + 8 seeks + 8*(build 1,
+    // copy 4, start 1, append 42), plus finish 1, stays below 400 polls.
+    while !terminal && polls < 400 {
       polls += 1
       match advance_event_window(execution, 1).unwrap() {
         EventWindowContinue(..) => ()
@@ -518,7 +523,7 @@ test "event windows use exact grids and reject unrepresentable boundaries" {
       }
     }
     assert_true(terminal)
-    assert_true(polls < 64)
+    assert_true(polls < 400)
     assert_true(cleanup_event_window(execution).unwrap())
     assert_true(@records.discard_completed(source))
   }
@@ -679,19 +684,24 @@ test "event windows admit capacity before allocation and clean cancellation" {
 test "event windows admit exact control work across resumes" {
   // Begin one record, read three fields, prepare membership, seek once,
   // build and commit one window, then finish: nine fixed control steps.
-  // Sliding takes one additional seek and one additional build/commit pair.
+  // Copy costs input width+1 per membership. Append costs 6*output width
+  // +2*identities+8: 40 fixed/42 sliding, 46/48 for a fourth input field.
   for
     (body, time, exact, rows, timestamp_clock, wide) in [
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 9, 1, false, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 53, 1, false, false),
       (
-        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 12, 2, false, false,
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 104, 2, false, false,
       ),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 9, 1, true, false),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 12, 2, true, false),
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 10, 1, false, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 13, 2, false, true),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 10, 1, true, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 13, 2, true, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 53, 1, true, false),
+      (
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 104, 2, true, false,
+      ),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 61, 1, false, true),
+      (
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 119, 2, false, true,
+      ),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 61, 1, true, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 119, 2, true, true),
     ] {
     let producer = event_window_producer(timestamp=timestamp_clock, wide~)
     let owner = event_window_owner(producer, body)
@@ -714,7 +724,7 @@ test "event windows admit exact control work across resumes" {
       ).unwrap()
       let mut terminal = false
       let mut charged = 0L
-      for _ in 0..<32 {
+      for _ in 0..<(exact + 1) {
         if !terminal {
           match advance_event_window(execution, 1).unwrap() {
             EventWindowContinue(work~, ..) => {
@@ -756,20 +766,22 @@ test "event windows admit exact control work across resumes" {
 
 ///|
 test "event windows admit exact fixed and sliding workspace" {
-  // Each emitted record has five declared fields and two window boundaries.
-  // One fixed record needs seven slots; two sliding records need 14.
+  // Five-field cursor 62 fixed/63 sliding, source+emission+handles ten,
+  // next row seven, and prior row seven: peaks 79 fixed/87 sliding.
+  // Wide input adds 3 cursor + 2 scratch + 1 retained slot; sliding has
+  // another prior retained slot, giving 85 fixed/94 sliding.
   for
     (body, time, workspace, rows, timestamp_clock, wide) in [
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 7, 1, false, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 79, 1, false, false),
       (
-        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 14, 2, false, false,
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 87, 2, false, false,
       ),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 7, 1, true, false),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 14, 2, true, false),
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 8, 1, false, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 16, 2, false, true),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 8, 1, true, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 16, 2, true, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 79, 1, true, false),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 87, 2, true, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 85, 1, false, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 94, 2, false, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 85, 1, true, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 94, 2, true, true),
     ] {
     let producer = event_window_producer(timestamp=timestamp_clock, wide~)
     let owner = event_window_owner(producer, body)
@@ -779,22 +791,32 @@ test "event windows admit exact fixed and sliding workspace" {
       event_window_source(producer, [time], Ref(true), wide~)
     }
     let short_read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-    assert_true(
-      start_event_window(
-        @bounded.control(),
-        event_window_sequence(owner),
-        0,
-        short_read,
-        event_window_limits(
-          max_records=rows,
-          workspace=workspace - 1,
-          fields=if wide { 6 } else { 5 },
-        ),
-        4096L,
-        fn() { true },
-      )
-      is Err(InvalidEventWindowLimits),
-    )
+    let short = start_event_window(
+      @bounded.control(),
+      event_window_sequence(owner),
+      0,
+      short_read,
+      event_window_limits(
+        max_records=rows,
+        workspace=workspace - 1,
+        fields=if wide { 6 } else { 5 },
+      ),
+      4096L,
+      fn() { true },
+    ).unwrap()
+    let mut rejected = false
+    for _ in 0..<125 {
+      if rejected {
+        break
+      }
+      match advance_event_window(short, 1).unwrap() {
+        EventWindowContinue(..) => ()
+        EventWindowFailed(EventWindowWorkspaceLimit, ..) => rejected = true
+        _ => fail("window one-short must fail before emission allocation")
+      }
+    }
+    assert_true(rejected)
+    assert_true(cleanup_event_window(short).unwrap())
     let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_event_window(
       @bounded.control(),

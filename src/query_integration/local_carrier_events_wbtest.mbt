@@ -837,11 +837,10 @@ test "Relation-backed session checks combined output workspace" {
   ).unwrap()
   assert_eq(@execution.producer_read_row_count(input), 1)
   assert_eq(@schema.field_count(@execution.producer_read_schema(input)), 3)
-  // Three scratch cells, three indices, four metadata slots, and twelve
-  // temporary emission slots require a simultaneous bound of 22.
-  // The one-row session consumes 44 control units across initialization,
-  // field loading, ordering, grouping, identity, and output finalization.
-  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+  // Relation output has no Carrier identity: cursor 16+3*6+3*10=64.
+  // Scratch ten + borrowed fields/handle seven + next row eight = 89.
+  // Existing 44 outer polls + 6*6+6 append polls = 86 control units.
+  for (workspace_budget, work_budget) in [(89, 86), (88, 86), (89, 85)] {
     let execution = @local_tea.start_session_relation(
       @bounded.control(),
       prepared_sequence(owner),
@@ -856,24 +855,24 @@ test "Relation-backed session checks combined output workspace" {
       control_work_limit=Some(work_budget),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<64 {
+    for _ in 0..<100 {
       if terminal {
         break
       }
       match @local_tea.advance_session(execution, 1).unwrap() {
         @local_tea.SessionContinue(..) => ()
         @local_tea.SessionComplete(output, ..) => {
-          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(workspace_budget == 89 && work_budget == 86)
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
-          assert_eq(workspace_budget, 21)
+          assert_eq(workspace_budget, 88)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
-          assert_eq(work_budget, 43)
+          assert_eq(work_budget, 85)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
@@ -890,10 +889,10 @@ test "Relation-backed session checks combined output workspace" {
     prepared_sequence(owner),
     0,
     input,
-    { ..carrier_events_storage_limits(), max_workspace_slots: 22, },
+    { ..carrier_events_storage_limits(), max_workspace_slots: 89, },
     4096L,
     fn() { true },
-    control_work_limit=Some(44),
+    control_work_limit=Some(86),
   ).unwrap()
   assert_true(
     @local_tea.advance_session(interrupted, 1).unwrap()
@@ -950,7 +949,8 @@ test "Events-view session checks combined output workspace" {
   assert_true(@local_connector.cleanup_managed_provider(producing).unwrap())
   let material = material.unwrap()
   let owner = carrier_events_session_owner(events_owner)
-  for (workspace_budget, work_budget) in [(22, 44), (21, 44), (22, 43)] {
+  // Events adds one identity: cursor 65, total workspace 90, append 46.
+  for (workspace_budget, work_budget) in [(90, 90), (89, 90), (90, 89)] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, events_owner,
     ).unwrap()
@@ -970,24 +970,24 @@ test "Events-view session checks combined output workspace" {
       control_work_limit=Some(work_budget),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<64 {
+    for _ in 0..<100 {
       if terminal {
         break
       }
       match @local_tea.advance_session(execution, 1).unwrap() {
         @local_tea.SessionContinue(..) => ()
         @local_tea.SessionComplete(output, ..) => {
-          assert_true(workspace_budget == 22 && work_budget == 44)
+          assert_true(workspace_budget == 90 && work_budget == 90)
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionWorkspaceLimit, ..) => {
-          assert_eq(workspace_budget, 21)
+          assert_eq(workspace_budget, 89)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
         @local_tea.SessionFailed(@local_tea.SessionControlWorkLimit, ..) => {
-          assert_eq(work_budget, 43)
+          assert_eq(work_budget, 89)
           assert_true(@local_tea.session_cleanup_pending(execution))
           terminal = true
         }
@@ -1007,10 +1007,10 @@ test "Events-view session checks combined output workspace" {
     prepared_sequence(owner),
     0,
     view,
-    { ..carrier_events_storage_limits(), max_workspace_slots: 22, },
+    { ..carrier_events_storage_limits(), max_workspace_slots: 90, },
     4096L,
     fn() { true },
-    control_work_limit=Some(44),
+    control_work_limit=Some(90),
   ).unwrap()
   assert_true(
     @local_tea.advance_session(interrupted, 1).unwrap()
