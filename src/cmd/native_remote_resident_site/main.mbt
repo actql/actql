@@ -719,7 +719,7 @@ priv struct RunningHolder {
   attempt : String
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
-  mut reported_revision : Int64?
+  mut reported_revision : Int?
 }
 
 ///|
