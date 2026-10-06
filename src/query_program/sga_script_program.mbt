@@ -50,8 +50,8 @@ fn lower_script_graph_calls(
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
     }
-    if call.operation == "union_graphs" {
-      current = lower_script_graph_union(
+    if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
+      current = lower_script_graph_composition(
         construction, query, call, current, graphs, known, limits, steps, reserved,
       )
       continue

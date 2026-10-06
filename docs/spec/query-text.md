@@ -600,6 +600,21 @@ undeclared/forward/Relation references, extra arguments and invalid common
 policies are preparation refusals. Other Graph-algebra connections and wider
 common compatibility are independent coverage obligations.
 
+`subtract_graphs(with: peer, merge: {...})` also preserves the Graph Carrier.
+Unlike union, the common subtraction contract is binary: `with:` is one earlier
+bare/backtick DATA Graph producer, not a list. The left operand and explicit
+merge arguments are retained unchanged. Missing/STRING/Relation/forward peers,
+list operands and extra arguments are preparation refusals, not implicit casts.
+Without a nonempty strategy map for an entity kind, equal shared payloads remove
+that entity; conflicts fail. An explicit strategy such as `exact_equal` instead
+retains its transformed entity, including an unchanged or zero property value.
+Node and edge policies remain separate. Edges whose endpoints are absent after
+node subtraction are removed by the common induced-closure owner; the Frontend
+does not implement this rule, infer a non-NULL value from a strategy, or revive
+removed nodes. Actual NULL numeric operands fail, rather than becoming zero.
+The common checker/owner retains identity, labels, recursive contracts, empty
+output types, capacity, cancellation and atomic publication responsibilities.
+
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported

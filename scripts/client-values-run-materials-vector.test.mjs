@@ -519,8 +519,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector('sha256:cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d',
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:59d7c9a31639edee1087c0ba2e8dc6e2067e4730c4c7bfc14f41cebd065e0c90');
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the union-source grammar-bound Run.
+  assert.equal(vector('sha256:8cef04355f736983a0fcb4ce73551596ce04f370be0ab9c1d4400f81263842ae',
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:6b74c71135148ba3f6eff9ee0cc6e6ec786658242c1dc9cf874dc5cb66f3bd3f');
+  assert.equal(current.run.run_definition_cid,
+    'sha256:9ae3da3e9ce0fbc9dc678c2d5a0d00ba7321f47693249f8c51b67fefe0018af7');
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

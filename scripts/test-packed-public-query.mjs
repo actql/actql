@@ -51,6 +51,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
+  ['scripts/fixtures/property-graph-subtraction-source-input.mjs', 'property-graph-subtraction-source-input.mjs'],
   ['scripts/fixtures/property-graph-union-source-input.mjs', 'property-graph-union-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
@@ -206,6 +207,9 @@ if (process.argv.includes('--quoted-identifiers-only')) {
 if (process.argv.includes('--limit-parameter-only')) {
   runtimeEnvironment.ACTQL_TEST_LIMIT_PARAMETER_ONLY = '1';
 }
+if (process.argv.includes('--graph-subtraction-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_SUBTRACTION_ONLY = '1';
+}
 if (process.argv.includes('--graph-union-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_UNION_ONLY = '1';
 }
@@ -351,7 +355,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -398,7 +402,7 @@ try {
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 if (process.argv.includes('--having-object-property-only')) return;
-if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
+if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
     process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
