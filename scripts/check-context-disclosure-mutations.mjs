@@ -14,8 +14,13 @@ const tests = {
     'public-context', 'notStrictEqual'],
   source: ['failed Source read owners preserve the bound public check',
     'source-owner', 'deepStrictEqual'],
+  correlation: ['check Problems retain opaque attempt correlation',
+    'check-problem-attempt', 'notStrictEqual'],
 };
 const mutations = [
+  ['a check Problem reuses another attempt correlation',
+    "const correlationRef = `corr:${randomBytes(16).toString('hex')}`;",
+    "const correlationRef = 'corr:' + '0'.repeat(32);", 'correlation'],
   ['private Environment CID enters the public preimage',
     'checking_context: checkingContext, visible_aliases: visible',
     'environment_cid: environmentCid, checking_context: checkingContext, visible_aliases: visible', 'private'],

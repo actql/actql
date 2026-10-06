@@ -1,0 +1,171 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-bounded-wire-reviewed-main-maximal-bases",
+  "kind": "resolution",
+  "revision": "41de05b1245d964da7474935d7908f69b5e4368b",
+  "parents": [
+    "84f23a5419de8dcae3b92ac97393d522b2bbe73f",
+    "64046e37a1cadb2148edeab7cbf85b96d125b518"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "84f23a5419de8dcae3b92ac97393d522b2bbe73f",
+          "digest": "2ffb7546962a9034fa2f2f0b1b01892cfa83f9a151fbc028c549e79d87bc6f28",
+          "mode": "100644"
+        },
+        {
+          "revision": "64046e37a1cadb2148edeab7cbf85b96d125b518",
+          "digest": "ce8ec3b39c9f180c490acba8dd25a6d91c7fe4f5ca96b8aa3187dc8706119e69",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ce8ec3b39c9f180c490acba8dd25a6d91c7fe4f5ca96b8aa3187dc8706119e69",
+      "afterMode": "100644",
+      "reason": "Retain the reviewed main CI registrations and complete maximal-base provenance rules while integrating bounded wire retention. Both actual maximal bases require this source-bound receipt; no protected implementation is replaced or weakened."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "84f23a5419de8dcae3b92ac97393d522b2bbe73f",
+          "digest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+          "mode": "100644"
+        },
+        {
+          "revision": "64046e37a1cadb2148edeab7cbf85b96d125b518",
+          "digest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a20113be00cfd16c7cb0fbd35632a13f46cf0e74230fd626b528622fb8fce85f",
+      "afterMode": "100644",
+      "reason": "Retain the reviewed main CI registrations and complete maximal-base provenance rules while integrating bounded wire retention. Both actual maximal bases require this source-bound receipt; no protected implementation is replaced or weakened."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "84f23a5419de8dcae3b92ac97393d522b2bbe73f",
+          "digest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+          "mode": "100644"
+        },
+        {
+          "revision": "64046e37a1cadb2148edeab7cbf85b96d125b518",
+          "digest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "33b11cfedc97ef788da6ee3194f25c44845f3e64bbbfac37ea0328c10a754518",
+      "afterMode": "100644",
+      "reason": "Retain the reviewed main CI registrations and complete maximal-base provenance rules while integrating bounded wire retention. Both actual maximal bases require this source-bound receipt; no protected implementation is replaced or weakened."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "84f23a5419de8dcae3b92ac97393d522b2bbe73f",
+          "digest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+          "mode": "100644"
+        },
+        {
+          "revision": "64046e37a1cadb2148edeab7cbf85b96d125b518",
+          "digest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "02c5e43dfc4e003410f159a70a5cc6bbf53cf2e733bcb09f3c7f50eabc4e2e40",
+      "afterMode": "100644",
+      "reason": "Retain the reviewed main CI registrations and complete maximal-base provenance rules while integrating bounded wire retention. Both actual maximal bases require this source-bound receipt; no protected implementation is replaced or weakened."
+    }
+  ],
+  "mergeBases": [
+    "64811aff367a5f2509df8b06a9c137e8de0a9998",
+    "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-model-installed-execution-a0dc67b",
+    "adopt-sga-query-contract",
+    "adopt-single-base-normalization-0c9f74fb66ec",
+    "ci-mandatory-preflight",
+    "complete-missing-protected-source-paths",
+    "convergent-foundation-declarations",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "immutable-late-resolution-supplements",
+    "issue-180-foundation-composition",
+    "issue-180-invalid-version-fixture",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "multi-maximal-base-obligations",
+    "mutation-workspace-isolation",
+    "packed-composed-infer-effect-acceptance",
+    "policy-candidates-initial-contract-registration",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-expression-diagnostics-main-d134-maximal-bases",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-host-owner-main-7081dedfd",
+    "resolve-join-property-main-e2e27d-maximal-bases",
+    "resolve-model-checkpoint-main-db141961",
+    "resolve-model-checkpoint-main-e26f7500",
+    "resolve-model-installed-execution-main-90babd81d",
+    "resolve-model-reviewed-main-58e671087",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-source-latest-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-effect-uncertainty-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "sdk-submission-explanation-acceptance-registration",
+    "separate-resolution-rehearsal-from-regression",
+    "source-free-effect-retention-original-regression",
+    "standard-model-approval-call-set-integration",
+    "standard-model-approval-dispatch-regressions",
+    "standard-model-confirmed-cancellation-regressions",
+    "standard-model-current-main-integration",
+    "standard-model-installed-continuation-integration",
+    "standard-model-published-acceptance-integration-f90b4f902"
+  ]
+}

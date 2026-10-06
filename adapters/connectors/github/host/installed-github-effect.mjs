@@ -197,15 +197,20 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
         credentialAuthorityId: site.credentialAuthorityId,
         credentialKeyId: site.credentialKeyId}),
       ledgerRoot,
+      installation,
       driver: {
+        kinds: ['create'],
         writeOperation: () => GITHUB_COMMENT_CREATE_OPERATION,
         check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION},
-        prepareRequest({resource, value}) {
-          const comment = commentValue(resource, value);
+        requestFacts: request => ({value: {body: request.commentBody,
+          subject_id: request.subjectId}}),
+        prepareRequest({member, value}) {
+          const comment = commentValue(member.resource, value);
           const request = prepareGitHubCommentRequest({moon: providerMoon,
             origin: site.apiOrigin, subjectId: comment.subject_id,
             body: comment.body});
-          return {request, requestCid: request.requestCid};
+          return {request: Object.freeze({...request,
+            commentBody: comment.body}), requestCid: request.requestCid};
         },
         checkRequest: ({request, authorization, credential, callResource,
           signal}) => checkGitHubCommentSubject({moon: providerMoon,

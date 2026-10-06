@@ -1,4 +1,15 @@
 ///|
+fn start_bounded_index_sort(
+  control : @bounded.Control,
+  count : Int,
+  compare : (Int, Int) -> Result[Int, RowIssue],
+) -> BoundedIndexSort? {
+  start_bounded_index_sort_stepped(control, count, (left, right) => {
+    compare(left, right).map(value => Some(value))
+  })
+}
+
+///|
 test "bounded index sort is stable and observes cancellation" {
   let control = @bounded.control()
   let values = [3, 1, 2, 1]

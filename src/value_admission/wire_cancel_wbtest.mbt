@@ -32,13 +32,24 @@ test "wire cancellation drops a progressed long Reference continuation" {
   // Checking the borrowed inner handle distinguishes actually cancelling it
   // from merely discarding the outer frame during a conflict resolution.
   assert_true(@identity.advance_emit(reference))
-  assert_eq(@encode.writer_progress(writer), progress)
+  assert_eq(@identity.emit_pending_frames(reference), 0)
+  // The nested Text cursor closes the unfinished writer. A closed writer
+  // cannot expose progress or resume writes; its source Reference stays live.
+  assert_true(
+    try {
+      @encode.writer_progress(writer) |> ignore
+      false
+    } catch {
+      @encode.ClosedWriter => true
+      _ => false
+    },
+  )
   assert_true(
     try {
       @encode.finish(writer) |> ignore
       false
     } catch {
-      @encode.InvalidStructure => true
+      @encode.ClosedWriter => true
       _ => false
     },
   )

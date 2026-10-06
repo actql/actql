@@ -50,7 +50,7 @@ test('generated check validator rejects contradictory evidence and partial verif
       '../packages/client-wire/client-host.generated.js');
     const report = {context_ref: 'ctx:fixture', requirements: [], inputs: [{document_id: 'source', revision: 'rev:' + '1'.repeat(64), kind: 'text', byte_length: 1}], scope: {kind: 'bound_input'},
       verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []}};
-    const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason,
+    const outcome = report => ({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome,
       outcome: 'completed', report});
     assert.equal(valid(outcome(report)), true);
     for (const changed of [
@@ -62,7 +62,7 @@ test('generated check validator rejects contradictory evidence and partial verif
       {...report, verdict: 'undetermined'},
       {...report, verdict: 'undetermined', reasons: [{code: 'future_violation'}]},
     ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
-    assert.equal(valid({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome: 'failed',
+    assert.equal(valid({version: 'actql-check-outcome/0.1', reason_schema_cid: protocol.artifact_schema_cids.check_reason, outcome_schema_cid: protocol.artifact_schema_cids.check_outcome, outcome: 'failed', correlation_ref: 'corr:fixture',
       problem: {code: 'future_problem'}, partial_report: report}), false);
     assert.equal(valid(outcome({...report, verdict: 'invalid',
       reasons: [{code: 'future_violation'}]})), true);
@@ -71,7 +71,7 @@ test('generated check validator rejects contradictory evidence and partial verif
   });
 
 test('typed public facts are closed and locations bind declared input revisions', async () => {
-  const {validCheckOutcome: valid, checkReasonSchemaCid} = await import(
+  const {validCheckOutcome: valid, checkReasonSchemaCid, checkOutcomeSchemaCid} = await import(
     '../packages/client-wire/index.mjs');
   const revision = 'rev:' + '2'.repeat(64);
   const location = {kind: 'structured', document_id: 'parameters', revision,
@@ -79,7 +79,7 @@ test('typed public facts are closed and locations bind declared input revisions'
   const reason = {code: 'supplied_value_type_mismatch', location,
     facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}};
   const outcome = reason => ({version: 'actql-check-outcome/0.1',
-    reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+    reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
       inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 6},
         {document_id: 'parameters', kind: 'structured', revision, byte_length: 20}],
@@ -216,5 +216,59 @@ test('Native projection refuses unsupported rules instead of silently dropping t
   ]) {
     const changed = structuredClone(registry); mutate(changed);
     assert.throws(() => buildClientHostWire(changed, protocol), /UnsupportedNativeWire|InvalidClientHostResponseRule/);
+  }
+});
+
+test('request reply schema and relation changes reach both generated consumers', async () => {
+  const original = buildClientHostWire(registry, protocol);
+  for (const mutate of [
+    value => { value.schemas.lookup_found.properties.lookupExpiresAt.maxLength = 255; },
+    value => { value.schemas.lookup_unknown.properties.reason.maxLength = 255; },
+    value => { value.schemas.lookup_not_found.properties.kind.const = 'absent'; },
+    value => { value.schemas.held.properties.prepareAttemptId.maxLength = 255; },
+    value => { value.schemas.held.allOf[0].oneOf[2].required.push('checkpoint'); },
+    value => { value.request_response_rules.held.matchRequest = 'prepareAttemptId'; },
+  ]) {
+    const changed = structuredClone(registry); mutate(changed);
+    const output = buildClientHostWire(changed, protocol);
+    assert.notEqual(output.module, original.module, 'JS freshness detects changed authority');
+    assert.notEqual(output.native, original.native, 'Native freshness detects changed authority');
+  }
+  const changed = structuredClone(registry);
+  changed.schemas.lookup_unknown.properties.reason.maxLength = 255;
+  changed.schemas.held.allOf[0].oneOf[2].required.push('checkpoint');
+  const output = buildClientHostWire(changed, protocol);
+  const generated = await import(`data:text/javascript;base64,${Buffer.from(output.module).toString('base64')}`);
+  const unknown = {kind: 'unknown', reason: 'a'.repeat(256)};
+  const ended = {kind: 'held', requestId: 'fixed-request', prepareAttemptId: 'attempt-a',
+    durability: 'durable', lookupExpiresAt: 'opaque-expiry', state: 'ended', endReason: 'cancelled'};
+  assert.equal(generated.validRequestLookupContract(unknown, 'fixed-request'), false);
+  assert.equal(generated.validHeldContract(ended, 'fixed-request'), false);
+  const binding = structuredClone(registry);
+  binding.request_response_rules.held.matchRequest = 'prepareAttemptId';
+  const rebound = buildClientHostWire(binding, protocol);
+  const relation = await import(`data:text/javascript;base64,${Buffer.from(rebound.module).toString('base64')}`);
+  assert.equal(relation.validHeldContract(ended, 'fixed-request'), false);
+  assert.equal(relation.validHeldContract(ended, 'attempt-a'), true);
+});
+
+test('request response derivation fails closed on ambiguous or unsupported bindings', () => {
+  for (const mutate of [
+    value => { delete value.request_response_rules; },
+    value => { value.request_response_rules.extra = {}; },
+    value => { value.request_response_rules.held.extra = true; },
+    value => { value.request_response_rules.held.schemas = []; },
+    value => { value.request_response_rules.held.schemas = ['held', 'held']; },
+    value => { value.request_response_rules.held.schemas = ['future']; },
+    value => { value.request_response_rules.held.schemas = ['lookup_unknown']; },
+    value => { value.request_response_rules.held.matchRequest = 'missing'; },
+    value => { value.request_response_rules.held.matchRequest = ['requestId']; },
+    value => { value.schemas.held.required = value.schemas.held.required.filter(key => key !== 'requestId'); },
+    value => { value.schemas.lookup_found.properties.requestId.maxLength = 255; },
+    value => { value.schemas.held.properties.requestId.type = 'integer'; },
+    value => { value.schemas.held.additionalProperties = true; },
+  ]) {
+    const changed = structuredClone(registry); mutate(changed);
+    assert.throws(() => buildClientHostWire(changed, protocol), /InvalidClientHostRequestResponseRule/);
   }
 });

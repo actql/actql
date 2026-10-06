@@ -8,6 +8,7 @@ fn script_has_graph_rows(query : @query.Query) -> Bool {
       call.operation == "edge_rows" ||
       script_graph_diagnostic_fields(call.operation) is Some(_) ||
       call.operation == "graphs_equal" ||
+      call.operation == "graph_diff" ||
       call.operation == "match_nodes" ||
       call.operation == "match_edges" ||
       call.operation == "traverse" {
@@ -151,6 +152,12 @@ fn lower_script_graph_rows(
       )
       continue
     }
+    if call.operation == "apply_graph_delta" {
+      current = lower_script_graph_delta(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
+    }
     if call.operation == "match_nodes" || call.operation == "match_edges" {
       row_input = Some(
         lower_script_graph_match_rows(
@@ -169,9 +176,9 @@ fn lower_script_graph_rows(
       current = row_input.unwrap().name
       continue
     }
-    if call.operation == "graphs_equal" {
+    if call.operation == "graphs_equal" || call.operation == "graph_diff" {
       row_input = Some(
-        lower_script_graph_equality(
+        lower_script_graph_pair_rows(
           construction, query, call, current, graphs, steps, reserved,
         ),
       )

@@ -44,6 +44,7 @@ export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 export type WireCheckOutcome = WireCheckOutcomeShape;
 export type {WireCheckLocationShape as WireCheckLocation} from './client-host.generated.js';
 export declare const checkReasonSchemaCid: string;
+export declare const checkOutcomeSchemaCid: string;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
   'aql-yaml' | 'aql-text' | 'sql';
 export const clientSourceFormats: readonly ClientSourceFormat[];
@@ -226,3 +227,6 @@ export declare function validResourcePeek(value: unknown,
   expected: Readonly<{resourceConnection: string; resource: string;
     fields: readonly string[]; maxRows: number; maxBytes: number}>):
   value is WireResourcePeek;
+
+/** Detach a JSON check request; throws before lossy source-number conversion. */
+export declare function snapshotCheckRequest(value: unknown): unknown;

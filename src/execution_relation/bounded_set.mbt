@@ -4,8 +4,8 @@
 /// sort-merge survivor selection and output construction advance one bounded
 /// step at a time. Survivors are emitted in left logical order, as the
 /// synchronous `evaluate_set_rows` does. Text comparison pays one UTF-8 byte
-/// per advance; other admitted kinds keep their existing complete comparison,
-/// bounded by the per-value limits.
+/// per advance; admitted arrays, objects and vectors retain accounted frames
+/// and expose their recursive traversal between advances.
 priv enum BoundedSetPhase {
   ChargeInput
   Metadata
@@ -27,6 +27,7 @@ priv enum BoundedSetPhase {
 priv struct BoundedSetRowComparison {
   mut column : Int
   value : BoundedCompleteValueComparison
+  mut tree : BoundedCompleteTreeComparison?
 }
 
 ///|
@@ -113,6 +114,10 @@ fn bounded_set_failure(
 
 ///|
 fn cleanup_bounded_set_state(state : BoundedSetState) -> Bool {
+  if state.comparison.tree is Some(cursor) {
+    close_complete_tree_comparison(cursor)
+    state.comparison.tree = None
+  }
   cleanup_binary_input_scan(state.input_scan)
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
@@ -164,8 +169,37 @@ fn bounded_set_compare_step(
     is Some(b) else {
     return Err(InvalidRows)
   }
-  match
-    bounded_complete_value_comparison_step(cursor.value, a, b, state.control) {
+  if cursor.tree is None &&
+    a is Captured(left) &&
+    b is Captured(right) &&
+    (match (left, right) {
+      (@admitted.Array(_), @admitted.Array(_))
+      | (@admitted.Object(_), @admitted.Object(_))
+      | (@admitted.Vector(_), @admitted.Vector(_))
+      | (@admitted.JsonData(_), @admitted.JsonData(_)) => true
+      _ => false
+    }) {
+    match
+      start_complete_tree_comparison(
+        left,
+        right,
+        state.control,
+        state.workspace,
+      ) {
+      Ok(value) => cursor.tree = Some(value)
+      Err(issue) => return Err(ordering_row_issue(issue))
+    }
+  }
+  let compared = match cursor.tree {
+    Some(tree) => advance_complete_tree_comparison(tree, state.control)
+    None =>
+      bounded_complete_value_comparison_step(cursor.value, a, b, state.control)
+  }
+  if compared is Ok(Some(_)) && cursor.tree is Some(tree) {
+    close_complete_tree_comparison(tree)
+    cursor.tree = None
+  }
+  match compared {
     Err(issue) => Err(ordering_row_issue(issue))
     Ok(None) => Ok(None)
     Ok(Some(0)) => {
@@ -489,7 +523,9 @@ fn bounded_set_step(
         guard state.sorter is Some(sorter) else {
           return bounded_set_failure(InvalidExecution, progress, used)
         }
-        if !spend_control(state.control, 1) {
+        // A recursive comparison resumes the same logical merge action.
+        // Charge that action once, not once per newly exposed tree frame.
+        if state.comparison.tree is None && !spend_control(state.control, 1) {
           return bounded_set_failure(Rows(RowLimit), progress, used + 1)
         }
         match advance_aggregate_merge_sort(sorter) {
@@ -782,7 +818,11 @@ pub fn start_bounded_set(
     names: [],
     left_columns: [],
     right_columns: [],
-    comparison: { column: 0, value: bounded_complete_value_comparison(), },
+    comparison: {
+      column: 0,
+      value: bounded_complete_value_comparison(),
+      tree: None,
+    },
     phase: ChargeInput,
     field: 0,
     name_charge: { offset: 0, next: 0, remaining: 0, },
@@ -861,6 +901,7 @@ pub fn cleanup_bounded_set(
   if !@bounded.cleanup_pending(value.session) &&
     (
       value.state.input_scan.frames.length() != 0 ||
+      value.state.comparison.tree is Some(_) ||
       value.state.workspace.live != 0
     ) {
     return Err(InvalidExecution)

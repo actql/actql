@@ -120,6 +120,11 @@ pub fn validate_client_retained_input_transfer_current(
   if !(current.authorized)(producer, request) {
     return Err(AuthorizationUnavailable)
   }
+  // Authorization can re-enter the producer owner and begin its release.
+  // Do not admit receiver work from the earlier availability observation.
+  if !client_retained_input_producer_available(producer) {
+    return Err(ProducerUnavailable)
+  }
   Ok(())
 }
 
