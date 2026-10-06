@@ -4,16 +4,17 @@ import assert from 'node:assert/strict';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {connectionSuites, executedConnectionCoverage, nestLocalSuites, targets} from '../bounded-session/evidence.mjs';
 import {validateCatalog} from './actions.mjs';
+import {bridgeModelAction, bridgeSuite} from '../events-bridge/evidence.mjs';
 
 // Extend this finite fixture registry for a new local obligation. Keep its
 // independent expected values in the fixture; no arbitrary execution callbacks
 // or operation-specific branches belong in the common runner.
-export const localExecutionSuites = Object.freeze(nestLocalSuites.map(suite => Object.freeze({
+export const localExecutionSuites = Object.freeze([...nestLocalSuites.map(suite => Object.freeze({
   ...suite, package: 'src/execution_relation',
   profile: `${suite.id} existing Nest-specific obligation`,
   premises: ['limited existing fixture domain; no whole-implementation capacity proof'],
   dependencies: [],
-})));
+})), bridgeSuite]);
 const moonPremises = ['MoonBit compiler/runtime', 'finite correspondence domain; kernel and callback premises remain'];
 const connectionProfiles = Object.freeze({
   connection: 'reviewed except/intersect all/distinct checked nullable complete rows',
@@ -27,6 +28,7 @@ export function executionRecipes(localSuites = localExecutionSuites) {
     command: ['node', 'proofs/bounded-session/check.mjs'], package: null, minimumUnits: 14,
     profile: 'BoundedSession typed claims and audited foundational axioms',
     premises: ['Lean kernel and permitted foundational axioms'], dependencies: []}}];
+  recipes.push({role: 'model', runId: 'events-model', action: bridgeModelAction});
   for (const target of targets) {
     for (const [id, packagePath, profile] of [
       ['session', 'src/bounded_execution', 'finite bounded Session correspondence and retained ownership regressions'],
