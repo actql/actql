@@ -35,3 +35,10 @@ test('owner schema changes invalidate generated Client bindings', () => {
   assert.throws(() => buildClientPublicationWire(changed),
     /UnsupportedPublicationType:number/u);
 });
+
+test('readonly arrays group their union alternatives', async () => {
+  const {project, typeOf} = await import('./generate-client-publication-wire.mjs');
+  assert.equal(typeOf(project({type: 'array', items: {oneOf: [
+    {const: 'generic'}, {const: 'located'},
+  ]}})), 'readonly ("generic" | "located")[]');
+});

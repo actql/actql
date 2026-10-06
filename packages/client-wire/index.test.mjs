@@ -717,3 +717,23 @@ test('independent binding JSON reasons require owned documents and closed parser
     }
   }
 });
+
+test('located implementation limits bind source revisions and reject malformed material', () => {
+  const outcome = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const source = outcome.report.inputs[0];
+  outcome.report.verdict = 'undetermined';
+  outcome.report.coverage.limits = [{code: 'implementation_limit',
+    facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text', document_id: 'source',
+      revision: source.revision, precision: 'exact', start_byte: 0, end_byte: source.byte_length}}];
+  assert.equal(validCheckOutcome(outcome), true);
+  for (const mutate of [
+    value => {value.facts.issue = 'unknown_reference';},
+    value => {value.facts.issue = 42;},
+    value => {value.facts.private_name = 'private-function-name';},
+    value => {value.location.revision = 'rev:' + '0'.repeat(64);},
+    value => {value.location.end_byte = source.byte_length + 1;},
+  ]) {
+    const corrupt = structuredClone(outcome); mutate(corrupt.report.coverage.limits[0]);
+    assert.equal(validCheckOutcome(corrupt), false);
+  }
+});

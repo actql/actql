@@ -13050,10 +13050,10 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "25920ff9010b4616088981b97a2987c03ae18654cbcf27f2aa6700304d7c6eef",
+      "statement_sha256": "065585b2b9ffb7861d750aace60cda9d53c47ec69059d53b8daebfcef70032ae",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
         "kind": "prose"

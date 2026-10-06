@@ -66,7 +66,10 @@ export function typeOf(schema) {
   if (schema.type === 'string') return 'string';
   if (schema.type === 'integer') return 'number';
   if (schema.type === 'boolean') return 'boolean';
-  if (schema.type === 'array') return `readonly ${typeOf(schema.items)}[]`;
+  if (schema.type === 'array') {
+    const item = typeOf(schema.items);
+    return schema.items.oneOf ? `readonly (${item})[]` : `readonly ${item}[]`;
+  }
   if (schema.type === 'object') {
     if (schema.additionalProperties &&
         typeof schema.additionalProperties === 'object' &&

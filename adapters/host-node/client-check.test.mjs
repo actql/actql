@@ -1521,7 +1521,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.6'});
+        {locale: 'ja', translationRevision: '2026-10-07.ja.8'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2420,9 +2420,12 @@ for (const entrance of ['local', 'http']) {
     ];
     // The existing lowerer returns one typed issue for these distinct forms.
     // It cannot establish which one is a proven unknown name or a support gap.
-    const cases = ['/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n',
-      '/*😀*/\r\nSELECT `SQRT`(1) AS n', '/*😀*/\r\nSELECT ACTQL.OTHER(1) AS n'];
-    for (const format of ['sql', 'aql-text']) for (const text of cases) {
+    const cases = [['/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n', 17, 36],
+      ['/*😀*/\r\nSELECT `SQRT`(1) AS n', 17, 26], ['/*😀*/\r\nSELECT ACTQL.OTHER(1) AS n', 17, 31]];
+    const expectedLimit = (outcome, startByte, endByte) => ({code: 'implementation_limit',
+      facts: {issue: 'function_lowering_unresolved'}, location: {kind: 'text', document_id: 'source',
+        revision: getCheckInput(outcome, 'source').revision, precision: 'exact', start_byte: startByte, end_byte: endByte}});
+    for (const format of ['sql', 'aql-text']) for (const [text, startByte, endByte] of cases) {
       let expected;
       for (const client of clients) {
         const outcome = await client.check(text, {format});
@@ -2432,17 +2435,17 @@ for (const entrance of ['local', 'http']) {
         assert.deepEqual(outcome.report.reasons, []);
         assert.deepEqual(outcome.report.requirements, []);
         assert.deepEqual(outcome.report.coverage,
-          {limits: [{code: 'implementation_limit'}], unresolved: []},
+          {limits: [expectedLimit(outcome, startByte, endByte)], unresolved: []},
           '[check-mutation:function-limit-coverage]');
         assert.equal(getCheckInput(outcome, 'source').text, text);
         assert.equal(explainCheckReason(outcome.report.coverage.limits[0]).hint,
-          'Ask the checking-context owner to review support for the submitted construct.');
+          'Ask the checking-context owner to review function support at the original expression; this is not a proven function-name violation.');
         if (expected) assert.deepEqual(outcome, expected, '[check-mutation:function-limit-disclosure]');
         else expected = outcome;
       }
     }
     const parameterDeclarations = {minimum: {type: 'number'}};
-    const text = cases[0];
+    const text = cases[0][0];
     for (const format of ['sql', 'aql-text']) {
       let mixedExpected, missingExpected;
       for (const client of clients) {
@@ -2454,7 +2457,7 @@ for (const entrance of ['local', 'http']) {
           facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
           location: {document_id: 'parameters', revision: supplied.revision,
             kind: 'structured', pointer: '/minimum'}}]);
-        assert.deepEqual(mixed.report.coverage, {limits: [{code: 'implementation_limit'}], unresolved: []});
+        assert.deepEqual(mixed.report.coverage, {limits: [expectedLimit(mixed, 17, 36)], unresolved: []});
         assert.equal(JSON.stringify(mixed).includes('private-wrong-type'), false);
         if (mixedExpected) assert.deepEqual(mixed, mixedExpected);
         else mixedExpected = mixed;
@@ -2463,7 +2466,7 @@ for (const entrance of ['local', 'http']) {
         assert.equal(missing.report.verdict, 'undetermined');
         assert.deepEqual(missing.report.reasons, []);
         assert.deepEqual(missing.report.coverage, {limits: [
-          {code: 'bound_values_missing'}, {code: 'implementation_limit'}], unresolved: []});
+          {code: 'bound_values_missing'}, expectedLimit(missing, 17, 36)], unresolved: []});
         const declaration = getCheckInput(missing, 'parameter_declarations');
         assert.deepEqual(missing.report.requirements, [{code: 'parameter_value_required',
           facts: {parameter: 'minimum', expected_type: 'number'},
@@ -4250,6 +4253,62 @@ for (const entrance of ['local', 'http']) {
         references.push(outcomes[0].report.context_ref);
       }
       assert.notEqual(references[0], references[1]);
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: function-limit locations retain caller bytes and cannot blame hidden dependencies`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    for (const [text, startByte, endByte, fragment] of [
+      ['SELECT UNKNOWN_FUNCTION(1) AS n', 7, 26, 'UNKNOWN_FUNCTION(1)'],
+      ['/*e\u0301😀*/\r\nSELECT UNKNOWN_FUNCTION(1) + 2 AS n', 20, 39, 'UNKNOWN_FUNCTION(1)'],
+      ['/* UNKNOWN_FUNCTION(1) */\r\nSELECT `SQRT`(1) AS n', 34, 43, '`SQRT`(1)'],
+    ]) {
+      const outcome = await client.check(text, {format: 'sql'});
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'undetermined', '[check-mutation:function-position-verdict]');
+      const limit = outcome.report.coverage.limits[0];
+      assert.deepEqual(limit.facts, {issue: 'function_lowering_unresolved'});
+      assert.deepEqual({startByte: limit.location.start_byte, endByte: limit.location.end_byte,
+        precision: limit.location.precision}, {startByte, endByte, precision: 'exact'},
+      '[check-mutation:function-position-bytes]');
+      assert.equal(resolveCheckLocation(outcome, limit.location).text, fragment);
+      assert.equal(resolveCheckLocation({...outcome}, limit.location), undefined);
+      assert.equal(resolveCheckLocation(outcome, limit.location, {...getCheckInput(outcome, 'source'),
+        revision: 'rev:' + '0'.repeat(64)}), undefined);
+      const model = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+      assert.equal(model.entries[0].kind, 'limit');
+      assert.deepEqual(model.entries[0].facts, {issue: 'function_lowering_unresolved'});
+      assert.equal(model.entries[0].location.documentId, 'source');
+      assert.equal(Object.hasOwn(model.entries[0], 'fixes'), false);
+      assert.equal(sdk.explainCheckReason(limit, {locale: 'ja'}).kind, 'known');
+    }
+    const absent = await contextClient(t, entrance, sourceEnvironment);
+    const denied = await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'});
+    const outcomes = [];
+    for (const boundary of [absent, denied]) {
+      const outcome = await boundary.check('SELECT UNKNOWN_FUNCTION(1) AS n FROM records', {format: 'sql'});
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]},
+        '[check-mutation:function-position-protected]');
+      outcomes.push(outcome);
+    }
+    assert.deepEqual(outcomes[0], outcomes[1], '[check-mutation:function-position-disclosure]');
+  });
+
+  test(`${entrance}: malformed function-limit locations reject as protocol observations`, async t => {
+    for (const mutate of [
+      location => {location.revision = 'rev:' + '0'.repeat(64);},
+      location => {location.end_byte = 65536;},
+      location => {location.start_byte = 3;},
+      location => {location.kind = 'structured'; location.pointer = '/private';},
+    ]) {
+      const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckTransportReply(outcome) {
+        mutate(outcome.report.coverage.limits[0].location); return outcome;
+      }});
+      await assert.rejects(client.check('/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n', {format: 'sql'}),
+        {code: 'InvalidHostCheckOutcome'}, '[check-mutation:function-position-admission]');
     }
   });
 }

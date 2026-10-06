@@ -599,6 +599,12 @@ export function explainCheckReason(reason, options) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  if (reason?.code === 'implementation_limit' && reason?.facts?.issue === 'function_lowering_unresolved') {
+    const [summary, hint] = localizeCheck('limit.function_lowering_unresolved',
+      ['The expression lowerer cannot classify or support this function form.',
+        'Ask the checking-context owner to review function support at the original expression; this is not a proven function-name violation.'], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const expressionTypes = {
     number: ['An expression argument must have number type.', 'Use an expression with number type for the rejected argument.'],
     boolean: ['An expression argument must have boolean type.', 'Use an expression with boolean type for the rejected argument.'],
@@ -1496,7 +1502,7 @@ async function connectSelected(selected, port) {
               documentId: document.document_id, revision: document.revision}));
           }
           checkInputs.set(outcome, snapshots);
-          for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+          for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
             if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
               checkInputs.delete(outcome);
               reject();

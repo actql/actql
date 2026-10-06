@@ -8,6 +8,8 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
     'HostとSDKの契約を揃えてください。拒否された応答は検査判定を示しません。'],
   'protocol.malformed_response': ['検査応答が登録済み応答契約または元入力のbindingに違反しています。',
     'Hostの管理者にprotocol失敗の調査を依頼してください。入力誤りの診断ではありません。'],
+  'limit.function_lowering_unresolved': ['式lowererがこの関数形式を判定・対応できません。',
+    '元の式での関数対応を検査文脈の管理者に確認してください。関数名の誤りが確定した診断ではありません。'],
   'completed.invalid': ['検査範囲内の入力違反が確認されました。',
     '開示された理由を確認し、示された提出時のrevisionを修正してください。'],
   'completed.verified': ['この報告が検証するのは、束縛された検査範囲と文脈だけです。',
@@ -110,7 +112,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.6`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.${locale}.8`});
 }
 
 export function localizeCheck(key, english, options) {

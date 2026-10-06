@@ -1947,17 +1947,86 @@ const schemas = {
                   "limits": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "required": [
-                        "code"
-                      ],
-                      "additionalProperties": false,
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "code"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "facts"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            },
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "document_id",
+                                "revision",
+                                "start_byte",
+                                "end_byte",
+                                "precision"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                },
+                                "revision": {
+                                  "type": "string",
+                                  "pattern": "^rev:[0-9a-f]{64}$"
+                                },
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "precision": {
+                                  "enum": [
+                                    "exact",
+                                    "approximate"
+                                  ]
+                                }
+                              }
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
                   },
                   "unresolved": {
@@ -2397,7 +2466,8 @@ const schemas = {
                                 "unknown_reference",
                                 "invalid_arguments",
                                 "expected_boolean",
-                                "invalid_bounds"
+                                "invalid_bounds",
+                                "function_lowering_unresolved"
                               ]
                             }
                           }
@@ -2406,6 +2476,39 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -3067,7 +3170,8 @@ const schemas = {
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
-                                "expression_type_mismatch"
+                                "expression_type_mismatch",
+                                "implementation_limit"
                               ]
                             }
                           }
@@ -3499,7 +3603,8 @@ const schemas = {
                                 "unknown_reference",
                                 "invalid_arguments",
                                 "expected_boolean",
-                                "invalid_bounds"
+                                "invalid_bounds",
+                                "function_lowering_unresolved"
                               ]
                             }
                           }
@@ -3508,6 +3613,39 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -4169,7 +4307,8 @@ const schemas = {
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
-                                "expression_type_mismatch"
+                                "expression_type_mismatch",
+                                "implementation_limit"
                               ]
                             }
                           }
@@ -4303,7 +4442,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4394,17 +4533,86 @@ const schemas = {
                   "limits": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "required": [
-                        "code"
-                      ],
-                      "additionalProperties": false,
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "required": [
+                            "code"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "type": "string",
+                              "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "code",
+                            "facts"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "code": {
+                              "const": "implementation_limit"
+                            },
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "const": "function_lowering_unresolved"
+                                }
+                              }
+                            },
+                            "location": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "document_id",
+                                "revision",
+                                "start_byte",
+                                "end_byte",
+                                "precision"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                },
+                                "revision": {
+                                  "type": "string",
+                                  "pattern": "^rev:[0-9a-f]{64}$"
+                                },
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "precision": {
+                                  "enum": [
+                                    "exact",
+                                    "approximate"
+                                  ]
+                                }
+                              }
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
                   },
                   "unresolved": {
@@ -4844,7 +5052,8 @@ const schemas = {
                                 "unknown_reference",
                                 "invalid_arguments",
                                 "expected_boolean",
-                                "invalid_bounds"
+                                "invalid_bounds",
+                                "function_lowering_unresolved"
                               ]
                             }
                           }
@@ -4853,6 +5062,39 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -5514,7 +5756,8 @@ const schemas = {
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
-                                "expression_type_mismatch"
+                                "expression_type_mismatch",
+                                "implementation_limit"
                               ]
                             }
                           }
@@ -5946,7 +6189,8 @@ const schemas = {
                                 "unknown_reference",
                                 "invalid_arguments",
                                 "expected_boolean",
-                                "invalid_bounds"
+                                "invalid_bounds",
+                                "function_lowering_unresolved"
                               ]
                             }
                           }
@@ -5955,6 +6199,39 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "implementation_limit"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "const": "function_lowering_unresolved"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -6616,7 +6893,8 @@ const schemas = {
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
-                                "expression_type_mismatch"
+                                "expression_type_mismatch",
+                                "implementation_limit"
                               ]
                             }
                           }
@@ -6768,7 +7046,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6814,7 +7092,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -7854,8 +8132,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
-export const checkOutcomeSchemaCid = "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c";
+export const checkReasonSchemaCid = "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69";
+export const checkOutcomeSchemaCid = "sha256:c25566367db6c05088222e8c64e4616122415921946d44602d977f7f60a1876a";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
