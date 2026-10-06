@@ -3050,11 +3050,10 @@ for (const entrance of ['local', 'http']) {
 }
 
 for (const entrance of ['local', 'http']) {
-  test(`${entrance}: literal-only LIMIT syntax does not invent scalar domain facts`, async t => {
+  test(`${entrance}: malformed LIMIT operand does not invent scalar domain facts`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment,
       {aliases: [alias], readOutcome: 'allow'});
-    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET @offset', {format: 'sql',
-      parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset: -1}});
+    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET (', {format: 'sql'});
     assert.equal(outcome.report.verdict, 'invalid');
     assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
       [{code: 'query_syntax_invalid'}]);
@@ -3062,6 +3061,23 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
       {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
     assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
+  });
+
+  test(`${entrance}: admitted LIMIT parameters retain scalar facts and input location`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const source = 'SELECT id FROM records ORDER BY id LIMIT 2 OFFSET @offset';
+    const options = {format: 'sql',
+      parameterDeclarations: {offset: {type: 'number', nullable: false}}};
+    const invalid = await client.check(source, {...options, parameters: {offset: -1}});
+    assert.equal(invalid.report.verdict, 'invalid');
+    assert.deepEqual(invalid.report.reasons.map(({code, facts}) => ({code, facts})),
+      [{code: 'operation_parameter_invalid',
+        facts: {parameter: 'offset', domain: 'nonnegative_safe_integer'}}]);
+    assert.deepEqual({...invalid.report.reasons[0].location, revision: 'submitted'},
+      {kind: 'structured', document_id: 'parameters', revision: 'submitted', pointer: '/offset'});
+    const valid = await client.check(source, {...options, parameters: {offset: 0}});
+    assert.equal(valid.report.verdict, 'verified', JSON.stringify(valid));
   });
 
   test(`${entrance}: protected scalar demands retain only independent public violations`, async t => {
