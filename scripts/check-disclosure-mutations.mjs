@@ -189,7 +189,7 @@ const mutations = [
     '        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>\n' +
     '          findings.push(FunctionLimit(check_authored_range(origin)))',
     '        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) => {\n' +
-    '          findings.clear()\n          findings.push(Limit("implementation_limit"))\n        }'],
+    '          findings.clear()\n          findings.push(FunctionLimit(check_authored_range(origin)))\n        }'],
   ['an unsupported function limit is fabricated behind protected resolution',
     'QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
