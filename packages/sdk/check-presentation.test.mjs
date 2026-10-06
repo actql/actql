@@ -41,6 +41,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/checkpoints.mjs',
     'packages/sdk/index.mjs',
     'packages/sdk/json-value-wire.generated.mjs',
+    'packages/sdk/operation-formats.mjs',
     'packages/sdk/operation-presentation.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
