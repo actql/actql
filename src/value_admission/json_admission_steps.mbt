@@ -20,6 +20,8 @@ struct JsonAdmission {
   frames : Array[JsonAdmissionFrame]
   mut value : Value?
   mut terminal : Bool
+  allow_json_null : Bool
+  data_keys : Bool
 }
 
 ///|
@@ -34,6 +36,8 @@ pub enum JsonAdmissionPoll {
 pub fn start_json_admission(
   root : @decode.Cursor,
   limits : Limits,
+  allow_json_null? : Bool = false,
+  data_keys? : Bool = false,
 ) -> Result[JsonAdmission, Issue] {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(
@@ -55,6 +59,8 @@ pub fn start_json_admission(
     frames: [ReadJson(root, 0, true, false)],
     value: None,
     terminal: false,
+    allow_json_null,
+    data_keys,
   })
 }
 
@@ -69,7 +75,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         reserve(cursor, 1, budget)
       }
       if @decode.is_null(cursor) {
-        if root {
+        if root && !admission.allow_json_null {
           fail(cursor, UnexpectedNull)
         }
         admission.value = Some(Null)
@@ -144,11 +150,12 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         }
         // Match ordinary admission's diagnostic precedence: all canonical
         // object names are validated before any child value is traversed.
-        cursor_key_text(name, child, budget)
+        cursor_key_text(name, child, budget, identifier=!admission.data_keys)
         admission.frames.push(ObjectNames(cursor, sort, index + 1, depth))
       } else {
         guard @decode.object_length(cursor) is Some(count) &&
-          prepare_object_value(count) is Some(builder) else {
+          prepare_object_value(count, data_keys=admission.data_keys)
+          is Some(builder) else {
           fail(cursor, BudgetExceeded)
         }
         admission.frames.push(ObjectNext(cursor, sort, builder, 0, depth))
@@ -214,7 +221,10 @@ pub fn advance_json_admission(admission : JsonAdmission) -> JsonAdmissionPoll {
     admission.root = None
     admission.terminal = true
     JsonAdmissionComplete(
-      { value, contract: @contract.primitive(JsonType, nullable=false), },
+      {
+        value: JsonData(value),
+        contract: @contract.primitive(JsonType, nullable=false),
+      },
       admission.limits.max_nodes - admission.budget.nodes,
       admission.limits.max_text_bytes - admission.budget.text,
     )

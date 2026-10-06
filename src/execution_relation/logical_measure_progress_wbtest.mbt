@@ -34,7 +34,9 @@ test "logical nested Text and keys keep independent exact limits" {
   let key = String::make(130, 'k')
   let text = String::make(130, 'a') + "😀"
   let value = logical_literal("{\"" + key + "\":[\"" + text + "\"]}")
-  let cursor = start_logical_measure(value, 267L, 273, 3, 3).unwrap()
+  // Three logical payload nodes and 264 text/key bytes cost 267 work.
+  // Typed wire adds its ten-byte envelope and one physical object node.
+  let cursor = start_logical_measure(value, 267L, 283, 4, 3).unwrap()
   let mut done = false
   for _ in 0..<100 {
     if !done {
@@ -42,7 +44,7 @@ test "logical nested Text and keys keep independent exact limits" {
       match advance_logical_measure(cursor).unwrap() {
         None => ()
         Some(measured) => {
-          assert_eq((measured.weight, measured.wire_bytes), (267L, 273))
+          assert_eq((measured.weight, measured.wire_bytes), (267L, 283))
           done = true
         }
       }
@@ -51,10 +53,10 @@ test "logical nested Text and keys keep independent exact limits" {
   }
   assert_true(done)
   assert_true(
-    measure_logical_value(value, 266L, 273, 3, 3) is Err(LogicalWorkLimit),
+    measure_logical_value(value, 266L, 283, 4, 3) is Err(LogicalWorkLimit),
   )
   assert_true(
-    measure_logical_value(value, 267L, 272, 3, 3) is Err(WireMeasureFailure),
+    measure_logical_value(value, 267L, 282, 4, 3) is Err(WireMeasureFailure),
   )
 }
 

@@ -367,6 +367,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -409,6 +412,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -418,7 +424,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -478,6 +484,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -520,6 +529,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -533,7 +545,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -542,7 +554,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

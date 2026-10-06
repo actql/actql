@@ -7,6 +7,8 @@ import test from 'node:test';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {canonicalJson as canonicalValueJson} from
+  '../../packages/sdk/host-port.mjs';
 import {issuedEffectSetReceiptWires} from
   '../host-common/effect-receipt-custody.mjs';
 import {canonicalJson} from
@@ -77,6 +79,19 @@ test('logical request admission precedes durable Effect ledger creation',
       callerRequestId: 'x'.repeat(256)});
     assert.equal(typeof ledger.scopeCid, 'string');
     ledger.close();
+  });
+
+test('a logical item locator keeps the exact text of its target identity',
+  () => {
+    const scope = effect.logicalRequestScope(authorityScopeCid,
+      'request-1', 32);
+    const locate = target => effect.logicalItemLocatorCid(
+      effect.logicalItemLocator(scope, 'program-1', 'node-1', 'WriteOne',
+        canonicalValueJson(target), 64, 128, 8, 3));
+    // Decomposed and composed targets, and CR/LF text, are distinct rows.
+    assert.notEqual(locate('e\u0301'), locate('\u00e9'));
+    assert.notEqual(locate({key: 'a\r\nb'}), locate({key: 'a\nb'}));
+    assert.equal(locate('e\u0301'), locate('e\u0301'));
   });
 
 function batchClaims() {

@@ -112,6 +112,8 @@ fn check_supported_source(
               | "normalize_graph"
               | "apply_graph_delta"
               | "graph_diff"
+              | "union_graphs"
+              | "subtract_graphs"
               | "components"
               | "to_vectors"
               | "normalize_vectors"

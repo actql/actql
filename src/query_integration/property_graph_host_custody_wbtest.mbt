@@ -846,11 +846,11 @@ fn assert_graph_host_match_rows(
       #|{"constructor":{"edges":[{"input_occurrence":1,"key":["id"],"labels":[{"name":"Edge","properties":{"columns":[{"from":"src","to":"src"},{"from":"dst","to":"dst"},{"from":"weight","to":"weight"}],"mode":"columns"}}],"name":"E","source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}],"nodes":[{"input_occurrence":0,"key":["id"],"labels":[{"name":"Node","properties":{"columns":[{"from":"id","to":"id"},{"from":"node_name","to":"node_name"}],"mode":"columns"}}],"name":"N"}],"version":"actql-property-graph-constructor/0.1"},"producer_definitions":[{"producer":{"body":{"values":{"rows":[{"dst":2,"id":1,"node_name":"first","src":1,"weight":10},{"dst":1,"id":2,"node_name":"second","src":2,"weight":20}],"schema":{"dst":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"},"node_name":{"nullable":false,"type":"string"},"src":{"nullable":false,"type":"number"},"weight":{"nullable":false,"type":"number"}}}},"dependencies":[]},"projection":["id","src","dst","node_name","weight"]},{"producer":{"body":{"values":{"rows":[{"dst":2,"id":1,"node_name":"first","src":1,"weight":10},{"dst":1,"id":2,"node_name":"second","src":2,"weight":20}],"schema":{"dst":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"},"node_name":{"nullable":false,"type":"string"},"src":{"nullable":false,"type":"number"},"weight":{"nullable":false,"type":"number"}}}},"dependencies":[]},"projection":["id","src","dst","node_name","weight"]}],"version":"actql-property-graph-definition/0.1"}
     let domain = "sha256:" + @sha.hex(@utf8.encode(definition))
     let expected = Array::makei(2, index => {
-      "{\"element\":{\"definition\":\"N\",\"domain\":\"" +
+      "{\"element\":{\"$json\":{\"definition\":\"N\",\"domain\":\"" +
       domain +
       "\",\"key\":[" +
       (index + 1).to_string() +
-      "],\"key_types\":[{\"kind\":\"number\"}]},\"id\":" +
+      "],\"key_types\":[{\"kind\":\"number\"}]}},\"id\":" +
       (index + 1).to_string() +
       ",\"node_name\":\"" +
       (if index == 0 { "first" } else { "second" }) +

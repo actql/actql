@@ -25,6 +25,7 @@ export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
+      typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
       typeof moon.clientProgramCheckContextIdentity !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
@@ -108,7 +109,7 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  return async ({principalId, input, parameters, signal}) => {
+  const check = async ({principalId, input, parameters, signal}) => {
     // One opaque reference for this reporting attempt, independent of source,
     // context, authorization and the presence of any protected Source.
     const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
@@ -129,4 +130,22 @@ export function installNodeClientCheck({moon, environment, publication,
       supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
     return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
   };
+  // The ingress's existing connection authorization owner determines whether
+  // any report binding can be disclosed. This projection touches neither the
+  // authored input nor Source decisions nor the checking environment.
+  Object.defineProperty(check, 'unavailable', {value: () =>
+    JSON.parse(moon.clientProgramCheckUnavailable(`corr:${randomBytes(16).toString('hex')}`))});
+  return Object.freeze(check);
+}
+
+// Both entrances validate the existing common projection before serialization.
+// A missing or corrupt producer is a Host protocol failure, never a report.
+export async function projectClientCheckUnavailable(check) {
+  const outcome = typeof check?.unavailable === 'function' ? await check.unavailable() : undefined;
+  if (!validCheckOutcome(outcome) || outcome.outcome !== 'unavailable') {
+    const error = new Error('InvalidClientHostCheckOutcome');
+    error.code = 'InvalidClientHostCheckOutcome';
+    throw error;
+  }
+  return outcome;
 }

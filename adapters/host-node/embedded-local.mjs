@@ -405,6 +405,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return checkSource({principalId: actual, input, parameters, signal});
   };
+  Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
         store, storeAuthorityCid, authorityScopeCid, now,
@@ -1154,7 +1156,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const admitEffectDefinition = submission => {
     const {requestId, principalId, connection, kind, input, parameters} = submission;
     effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
-      requestId, principalId, connection, kind, input, parameters})));
+      requestId, principalId, connection, kind, input, parameters}, {dataKeys: true})));
     return effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
     requestId: submission.requestId, namespaceId,

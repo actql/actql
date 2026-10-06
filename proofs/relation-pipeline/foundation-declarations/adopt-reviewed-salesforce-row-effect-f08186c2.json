@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-reviewed-salesforce-row-effect-f08186c2",
+  "kind": "change",
+  "revision": "f08186c266a763bb2771c7b57af1616d0fe8bb35",
+  "parents": [
+    "0b99f32987d6cf1622c1290c99c650913f88a51c"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "0b99f32987d6cf1622c1290c99c650913f88a51c",
+          "digest": "81ca6858095c1eeeceed45248aff50cba74c6b5e6848e8fa0a85ef91713b49e6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "36b38ef31e5de1bd4a541107572280f97c2c08b59befc8227a8817d1de424bc0",
+      "afterMode": "100644",
+      "reason": "Register the reviewed Salesforce common Effect migration and strict cross-version acceptance on adopted main. Preserve previous declarations, test expectations, Owner semantics and validation rules."
+    }
+  ]
+}

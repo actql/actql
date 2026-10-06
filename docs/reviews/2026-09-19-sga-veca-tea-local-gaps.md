@@ -775,12 +775,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 62 |
-| Typed pre-execution refusals (not execution success) | 7 |
-| Operation-specific boundary records | 62 |
-| Four-role lifecycle assurance | 62 |
-| Full route work/workspace assurance | 62 |
-| Path-scoped work/workspace assurance | 114 |
+| Executable production routes | 64 |
+| Typed pre-execution refusals (not execution success) | 5 |
+| Operation-specific boundary records | 64 |
+| Four-role lifecycle assurance | 64 |
+| Full route work/workspace assurance | 64 |
+| Path-scoped work/workspace assurance | 116 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -3456,15 +3456,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 28/40 |
-| `lowering` | 28/40 |
-| `kernel` | 28/40 |
-| `managed` | 28/40 |
-| `standard_host` | 26/40 |
-| `consumer_lifetime` | 26/40 |
-| `resources` | 33/40 |
-| `cancellation` | 33/40 |
-| `publication` | 26/40 |
+| `checker` | 30/40 |
+| `lowering` | 30/40 |
+| `kernel` | 30/40 |
+| `managed` | 30/40 |
+| `standard_host` | 27/40 |
+| `consumer_lifetime` | 27/40 |
+| `resources` | 35/40 |
+| `cancellation` | 35/40 |
+| `publication` | 27/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
@@ -5882,9 +5882,10 @@ The Relation Pool fixture fixes control 313/312 and workspace 55/54. Ordinary
 installed Host evidence uses real retained output, three explicit Named Results,
 request reuse, and cancellation inside the name at poll 256 before collection.
 
-Runtime JSON name validation regains the synchronous owner's NFC/LF refusal,
-but its long-name normalization is still synchronous. This closes declared
-Object matching/byte scans, not every name/Map/schema boundary. Legacy drains,
+Opaque JSON member names retain exact data spelling in both recheck paths;
+declared Object identifiers still require canonical admission. Long opaque
+JSON name scanning remains synchronous. This closes declared Object
+matching/byte scans, not every name/Map/schema boundary. Legacy drains,
 runtime buffer assembly, whole-Run physical accounting and unexecuted
 target/packed campaigns remain distinct. See the
 [Object-name evidence](2026-10-06-local-object-name-rechecks.md).
