@@ -687,7 +687,7 @@
         "src/local_sga/union.mbt",
         "src/local_sga/union_fold.mbt",
         "src/local_sga/union_property.mbt",
-        "src/managed_graph_storage/graph_snapshot_steps.mbt",
+        "src/managed_graph_storage/snapshot_append_steps.mbt",
         "src/managed_graph_storage/definition_records.mbt",
         "src/managed_graph_runtime/output.mbt"
       ],
@@ -783,7 +783,7 @@
           "facets": [
             "charged_bounded_work"
           ],
-          "path": "src/managed_graph_storage/graph_snapshot_steps_wbtest.mbt",
+          "path": "src/managed_graph_storage/snapshot_append_steps_wbtest.mbt",
           "fixture": "typed record append has independent construction work and an exact one short boundary"
         },
         {

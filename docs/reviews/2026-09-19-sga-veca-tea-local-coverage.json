@@ -1946,7 +1946,7 @@
             "src/local_sga/union_property_wbtest.mbt",
             "src/query_integration/graph_union_wbtest.mbt",
             "src/query_integration/graph_union_custody_wbtest.mbt",
-            "src/managed_graph_storage/graph_snapshot_steps_wbtest.mbt"
+            "src/managed_graph_storage/snapshot_append_steps_wbtest.mbt"
           ],
           "limits": "Scoped logical work, cursor capacity, stop and cleanup evidence. Target registration is not execution on Wasm/native, full route assurance or a physical heap theorem. Inherited source-premise audit failures remain visible."
         },
