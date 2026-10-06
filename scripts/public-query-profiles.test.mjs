@@ -130,7 +130,7 @@ test('combined packed selection registers every analytic corpus and isolates mut
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const start = fixture.indexOf('analyticProfilesOnly ? {');
   const end = fixture.indexOf(': analyticOrderOnly', start);
-  assert.ok(start >= 0 && end > start, 'combined analytic selection remains present');
+  assert.ok(start >= 0 && end > start, 'combined analytic branch must exist');
   const selected = fixture.slice(start, end);
   for (const name of ['analyticOrderInputs', 'analyticPropertySuccesses', 'analyticOffsetSuccesses',
     'analyticOrderRefusals', 'analyticPropertyRefusals', 'analyticOffsetRefusals',

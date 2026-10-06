@@ -13,9 +13,13 @@ import {
 }
 
 // Values
+pub fn advance_record_append(RecordAppend) -> Result[Bool, Issue]
+
 pub fn append_record(OutputBuilder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[Unit, Issue]
 
 pub fn cancel_output(OutputBuilder) -> Bool
+
+pub fn cleanup_record_append(RecordAppend) -> Bool
 
 pub fn completed_available(Completed) -> Bool
 
@@ -83,6 +87,8 @@ pub fn producer_read_storage(ProducerRead) -> @managed_record_storage.Storage?
 
 pub fn producer_read_view(ProducerRead) -> Result[@managed_carrier_runtime.ProducerView, Issue]
 
+pub fn start_record_append(OutputBuilder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[RecordAppend, Issue]
+
 // Errors
 
 // Types and methods
@@ -103,6 +109,8 @@ pub(all) enum Issue {
 type OutputBuilder
 
 type ProducerRead
+
+type RecordAppend
 
 // Type aliases
 

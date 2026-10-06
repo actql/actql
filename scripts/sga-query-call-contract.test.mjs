@@ -59,7 +59,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
   assert.equal(body.query_text_rules_sha256,
-    'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561');
+    '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678');
   assert.equal(body.source_grammar_cid,
     'sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef');
   // Historical manifests retain the pre-alignment expression law rather than
@@ -129,13 +129,21 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:cb47f1587dd7cb896f57d56d2aab4eacca6cd6fb673ab8f258b777947b142f14');
   assert.equal(cid(beforeTypedJsonBody),
     'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5');
-  const priorTypedBody = {...body, query_text_rules_sha256:
+  const priorTypedBody = {...beforeTypedJsonBody,
+    source_grammar_cid: 'sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef',
+    expression_contract_cid: 'sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67', query_text_rules_sha256:
     '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a'};
   assert.equal(cid(priorTypedBody),
     'sha256:e891f9c133e66fbc4649b0cea7968f431e3285fd7f265f3304701eb0110e6816');
   assert.equal(cid({...beforeMembershipBody,query_text_rules_sha256:priorTypedBody.query_text_rules_sha256}),
     'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c');
-  const expected = 'sha256:cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6';
+  assert.equal(cid({...beforeTypedJsonBody, query_text_rules_sha256:
+    '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
+    'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b');
+  assert.equal(cid({...priorTypedBody, query_text_rules_sha256:
+    'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'}),
+    'sha256:cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6');
+  const expected = 'sha256:a5d5cf748d303dd303d92b2dede9e60d23ee5fc8439173fd916a2d8d1c702fb6';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...beforeMembershipBody, query_text_rules_sha256:

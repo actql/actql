@@ -473,7 +473,7 @@
         {
           "path": "spec/manifests/actql-grammar-0.1.json",
           "pointer": "",
-          "cid": "sha256:bc10498272d7f4e5b15356eb36f9cbeab78f12941ef580d1153430251527ea6c",
+          "cid": "sha256:03a7819576246756bdc018b897d3afac8865a64c6d88666dadfd1db55238c374",
           "version": "actql-grammar-manifest/0.1"
         },
         {
@@ -1451,7 +1451,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:f543abcbb5a01425c3ff6ed70004f77c284c2e3924bbc6b222bb9b4c1431d28e"
+          "document_cid": "sha256:e40c078ac17f2cd2d98130c6b5e947e7588dc2e27276c14624943841cc099d8d"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1524,7 +1524,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:f543abcbb5a01425c3ff6ed70004f77c284c2e3924bbc6b222bb9b4c1431d28e"
+          "document_cid": "sha256:e40c078ac17f2cd2d98130c6b5e947e7588dc2e27276c14624943841cc099d8d"
         }
       ]
     },
@@ -1660,7 +1660,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:f543abcbb5a01425c3ff6ed70004f77c284c2e3924bbc6b222bb9b4c1431d28e"
+          "document_cid": "sha256:e40c078ac17f2cd2d98130c6b5e947e7588dc2e27276c14624943841cc099d8d"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1847,7 +1847,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:f543abcbb5a01425c3ff6ed70004f77c284c2e3924bbc6b222bb9b4c1431d28e"
+          "document_cid": "sha256:e40c078ac17f2cd2d98130c6b5e947e7588dc2e27276c14624943841cc099d8d"
         },
         {
           "owner": "actql.protocol.artifacts",
