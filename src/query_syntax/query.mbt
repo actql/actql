@@ -55,6 +55,7 @@ pub(all) struct AnalyticFrame {
 
 ///|
 pub(all) struct AnalyticWindow {
+  reference : (NamePart, Int)?
   partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
@@ -104,6 +105,7 @@ pub(all) enum QueryOperation {
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
+  Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -417,6 +419,15 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         ),
       )
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
+    Qualify(e, calls) =>
+      Some(
+        Qualify(
+          e,
+          calls.map(pair => {
+            (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), })
+          }),
+        ),
+      )
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
@@ -424,28 +435,34 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
 }
 
 ///|
+fn copy_aggregate_call(call : AggregateCall) -> AggregateCall {
+  { ..call, order_by: call.order_by.copy(), }
+}
+
+///|
+fn copy_analytic_call(call : AnalyticCall) -> AnalyticCall {
+  {
+    ..call,
+    aggregate: call.aggregate.map(copy_aggregate_call),
+    window: {
+      ..call.window,
+      partition_by: call.window.partition_by.copy(),
+      order_by: call.window.order_by.copy(),
+    },
+  }
+}
+
+///|
 fn copy_projections(projections : Array[Projection]) -> Array[Projection] {
   projections.map(projection => {
     ..projection,
+    aggregate: projection.aggregate.map(copy_aggregate_call),
+    analytic: projection.analytic.map(copy_analytic_call),
     except_columns: projection.except_columns.copy(),
     replacements: projection.replacements.map(replacement => {
       ..replacement,
-      aggregate: replacement.aggregate.map(call => {
-        ..call,
-        order_by: call.order_by.copy(),
-      }),
-      analytic: replacement.analytic.map(call => {
-        ..call,
-        aggregate: call.aggregate.map(value => {
-          ..value,
-          order_by: value.order_by.copy(),
-        }),
-        window: {
-          ..call.window,
-          partition_by: call.window.partition_by.copy(),
-          order_by: call.window.order_by.copy(),
-        },
-      }),
+      aggregate: replacement.aggregate.map(copy_aggregate_call),
+      analytic: replacement.analytic.map(copy_analytic_call),
     }),
   })
 }
@@ -717,6 +734,7 @@ fn QueryParser::optional_source_alias(
     ![
       "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "WHERE", "GROUP", "HAVING",
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
+      "QUALIFY", "WINDOW",
     ].contains(value.to_upper()) {
     Some(self.name())
   } else {
@@ -1185,40 +1203,7 @@ fn QueryParser::frame_boundary(
 ///|
 fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
   self.keyword("OVER")
-  if self.advance().value != Symbol(40) {
-    raise QueryAbort("Expected OVER opening parenthesis", self.peek().start)
-  }
-  let partition_by : Array[Expression] = []
-  if self.has("PARTITION") {
-    self.keyword("PARTITION")
-    self.keyword("BY")
-    while true {
-      // Keep the ordinary expression owner, work budget and source span.
-      // Input scope and partition-key typing are checked during lowering.
-      partition_by.push(self.expression())
-      if self.peek().value != Symbol(44) {
-        break
-      }
-      ignore(self.advance())
-    }
-  }
-  self.keyword("ORDER")
-  self.keyword("BY")
-  let order_by = self.order()
-  let frame = if self.has("ROWS") {
-    self.keyword("ROWS")
-    self.keyword("BETWEEN")
-    let start = self.frame_boundary()
-    self.keyword("AND")
-    let end = self.frame_boundary()
-    Some({ start, end, })
-  } else {
-    None
-  }
-  if self.advance().value != Symbol(41) {
-    raise QueryAbort("Expected OVER closing parenthesis", self.peek().start)
-  }
-  { partition_by, order_by, frame, }
+  self.window_specification()
 }
 
 ///|
@@ -1546,11 +1531,36 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     }
     operations.push(Having(predicate, calls))
   }
-  if projections.any(projection => {
-      projection.analytic is Some(_) ||
-      projection.replacements.any(value => value.analytic is Some(_))
-    }) {
-    operations.push(Analytic(projections))
+  let selected_windows = projections.any(projection => {
+    projection.analytic is Some(_) ||
+    projection.replacements.any(value => value.analytic is Some(_))
+  })
+  let qualifier = if self.has("QUALIFY") {
+    self.keyword("QUALIFY")
+    self.node()
+    let (predicate, windows, calls) = self.qualify_expression()
+    if !selected_windows && windows.is_empty() {
+      raise QueryAbort("QUALIFY requires a window function", self.peek().start)
+    }
+    if !calls.is_empty() &&
+      !operations.any(operation => operation is Group(_, _, _)) {
+      operations.push(Group([], group_projections, SqlSelect))
+    }
+    Some((predicate, windows, calls))
+  } else {
+    None
+  }
+  let window_definitions = if self.has("WINDOW") {
+    self.window_definitions()
+  } else {
+    []
+  }
+  let windows = qualifier.map(value => value.1).unwrap_or([])
+  if selected_windows || !windows.is_empty() {
+    operations.push(Analytic(projections + windows))
+  }
+  if qualifier is Some((predicate, _, calls)) {
+    operations.push(Qualify(predicate, calls))
   }
   operations.push(Select(projections, distinct))
   {
@@ -1560,7 +1570,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     source_alias,
     graph: None,
     joins,
-    operations,
+    operations: self.resolve_window_operations(operations, window_definitions),
     sets: [],
     final_operations: [],
     effect: None,

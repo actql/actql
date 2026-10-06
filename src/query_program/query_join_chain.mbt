@@ -8,7 +8,7 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP and range-star projections consume the complete joined row. The
+// GROUP and star projections consume the complete joined row. The
 // projection-only specialization cannot supply that scope or HAVING values.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.join_part_count(query) {
@@ -17,17 +17,11 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     }
   }
   for index in 0..<@query.operation_count(query) {
-    if @query.operation_at(query, index) is Some(Group(_, _, _)) {
+    if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
       return true
     }
     if @query.operation_at(query, index) is Some(Select(projections, _)) &&
-      projections.any(projection => {
-        projection.star is Some(_) &&
-        (
-          projection.expression is Some(_) ||
-          !projection.replacements.is_empty()
-        )
-      }) {
+      projections.any(projection => projection.star is Some(_)) {
       return true
     }
   }
@@ -232,12 +226,26 @@ fn compile_join_chain_steps(
         next_visible.push((field, slot))
       }
     }
-    if reversed && !part.using_columns.is_empty() {
-      // RIGHT USING exposes the preserved right key. Qualified references
-      // retain each original side, including NULL on the unmatched left.
+    if !part.using_columns.is_empty() {
+      // USING keys lead the visible row in authored order. Qualified ranges
+      // retain both originals; RIGHT uses its preserved right key unqualified.
       let merged : Array[(String, String)] = []
       for name in part.using_columns {
-        guard pipe_slot([name], right_range, []) is Some(slot) else {
+        if merged.any(entry => {
+            same_name(name, { value: entry.0, quoted: false, })
+          }) {
+          raise Abort(UnsupportedJoin)
+        }
+        guard pipe_slot(
+            [name],
+            if reversed {
+              right_range
+            } else {
+              next_visible
+            },
+            [],
+          )
+          is Some(slot) else {
           raise Abort(AmbiguousColumn)
         }
         let display = next_visible.filter(entry => {

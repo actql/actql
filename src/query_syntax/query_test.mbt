@@ -273,17 +273,40 @@ test "SQL set operators keep explicit multiplicity and final ordering" {
 }
 
 ///|
-test "inline OVER syntax rejects unadopted windows and frame kinds" {
+test "OVER syntax rejects unknown windows and unsupported frame kinds" {
   for
     text in [
-      "SELECT ROW_NUMBER() OVER w AS pos FROM rows", "SELECT ROW_NUMBER() OVER (PARTITION BY id) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER w AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW EXCLUDE CURRENT ROW) AS pos FROM rows",
-      "SELECT ROW_NUMBER() OVER (ORDER BY id) AS pos FROM rows WINDOW w AS (ORDER BY id)",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
+}
+
+///|
+test "OVER syntax preserves partial specifications and unused WINDOW declarations" {
+  let parsed = parse_query(
+    "SELECT ROW_NUMBER() OVER (PARTITION BY id) AS pos FROM rows",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(parsed, 0) is Some(Analytic(projections)) else {
+    fail("analytic operation")
+  }
+  let window = projections[0].analytic.unwrap().window
+  assert_eq(window.partition_by.length(), 1)
+  assert_eq(window.order_by.length(), 0)
+  assert_true(window.reference is None)
+  let unused = parse_query(
+    "SELECT ROW_NUMBER() OVER (ORDER BY id) AS pos FROM rows WINDOW w AS (ORDER BY id)",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(unused, 0) is Some(Analytic(retained)) else {
+    fail("retained analytic operation")
+  }
+  assert_eq(retained[0].analytic.unwrap().window.order_by.length(), 1)
+  assert_eq(operation_count(unused), 2)
 }
 
 ///|
