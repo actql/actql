@@ -3,11 +3,9 @@
 // credential Site are test doubles; neither performs network I/O. A neutral
 // Mapping is intentional: Salesforce fields and the row-source declaration
 // generator do not currently support JSON write fields.
-// The fixture Program uses already-canonical JSON keys. Arbitrary authored
-// JSON-key preservation is not established by these tests: inline Effect
-// literals currently normalize keys, while the source-free Effect opener
-// does not support typed-literal derive Programs.
-// Exact opaque provider response/outcome keys are tested separately below.
+// Source identities bind raw Effect literal keys before target typing.
+// Checked Object fields still normalize identifiers; checked JSON payloads
+// retain exact data keys. The fixture uses the existing inline literal form.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
@@ -21,6 +19,7 @@ import {effectHost, moon} from
   '../connectors/salesforce/test/installed-salesforce-effect.fixture.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
 import {createLocalAuthorizationGate} from './local-account-config.mjs';
+import {installNodeClientEffectProgramPreparation} from './client-program-preparation.mjs';
 
 const target = 'connector://fixture/records';
 const connection = 'fixture:records';
@@ -61,12 +60,12 @@ function programFor(payload) {
   }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 }
 
-async function mappingEnvironment() {
+async function mappingEnvironment(payloadContract = {nullable: false, type: 'json'}) {
   const environment = JSON.parse(await readFile(new URL(
     '../../spec/local-check-environment.json', import.meta.url), 'utf8'));
   const schema = {additional_properties: false, fields: {
     Id: {nullable: false, type: 'string'},
-    payload: {nullable: false, type: 'json'},
+    payload: payloadContract,
   }, nullable: false, type: 'object'};
   const mapping = {
     connector_manifest_cid: withFixtureConnector(environment, target),
@@ -94,9 +93,9 @@ async function mappingEnvironment() {
   return {environmentWire, mapping};
 }
 
-async function installationFor(t, {changeRequestValue,
+async function installationFor(t, {changeRequestValue, payloadContract, beforePayload,
   stopBeforeProjection = false, responsePayload = {ok: true}} = {}) {
-  const {environmentWire, mapping} = await mappingEnvironment();
+  const {environmentWire, mapping} = await mappingEnvironment(payloadContract);
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-row-json-'));
   const closers = [];
   const effects = [];
@@ -105,7 +104,7 @@ async function installationFor(t, {changeRequestValue,
   const projections = [];
   let writeGrants = 0;
   let readGrants = 0;
-  let before = {payload: {$json: {previous: true}}};
+  let before = {payload: beforePayload ?? {$json: {previous: true}}};
   let stopPending = stopBeforeProjection;
   const description = {version: 'fixture-json-update/0.1', resource: 'records',
     writable_fields: ['payload']};
@@ -350,4 +349,112 @@ for (const [label, authoredKey, changedKey] of [
       assert.equal(installation.writeGrants(), 0);
       assert.deepEqual(installation.projections, []);
     });
+}
+
+
+for (const entrance of ['program', 'json', 'yaml']) {
+  test(`raw Effect JSON keys survive ${entrance} Program Preview Ledger and restart`, async t => {
+    const payload = {'é': 1, 'e\u0301': 2, '\r': 3, '\n': 4, '\r\n': 5,
+      nested: [{$json: {'e\u0301': 'e\u0301\r\nvalue'}}]};
+    const expectedValue = {payload: {$json: payload}};
+    const installation = await installationFor(t, {stopBeforeProjection: true});
+    const state = join(installation.root, 'host');
+    const firstEffect = await installation.load();
+    const first = await effectHost(t, installation, state, {effect: firstEffect});
+    const program = programFor(payload);
+    const stopped = await first.run(entrance === 'program' ? program : JSON.stringify(program),
+      `raw-json-${entrance}`, entrance === 'program' ? {} : {kind: 'aql', format: entrance})
+      .then(() => undefined, error => error);
+    assert.equal(stopped?.code, stoppedCode, diagnostic(stopped));
+    assert.deepEqual(installation.preparedValues, [expectedValue]);
+    const {stage} = first.outcomes[0];
+    const previewWire = first.control.effectComputationPreviewWire(stage.preview);
+    assert.deepEqual(JSON.parse(previewWire).effects[0].changes[0].after.value, expectedValue);
+    assert.equal(installation.sends[0], dataJson(expectedValue));
+    const continuation = JSON.parse(stage.continuationWire);
+    const runDefinitionCid = stopped.accepted.ref.runDefinitionCid;
+    await first.close(); firstEffect.close();
+    const second = await effectHost(t, installation, state,
+      {effect: await installation.load()});
+    const resumed = await second.resume(`raw-json-${entrance}`, runDefinitionCid, continuation);
+    assert.equal(resumed.result.status, 'published');
+    const claim = resumed.stage.receipt.members[0].rowOwners[0].claim;
+    const saved = resumed.stage.receipt.ledger.readClaimedOutcome(claim);
+    assert.deepEqual(JSON.parse(saved.outcomeJson).typed_outcome.result.echoed,
+      {$json: payload});
+    assert.equal(second.control.effectComputationPreviewWire(resumed.stage.preview), previewWire);
+    assert.equal(installation.sends.length, 1);
+  });
+}
+
+
+const literalKeyVectors = JSON.parse(await readFile(new URL(
+  '../../portability/corpus/effect-literal-key-identities.json', import.meta.url), 'utf8'));
+
+async function literalPreparation(payloadContract) {
+  const {environmentWire} = await mappingEnvironment(payloadContract);
+  const environment = moon.clientProgramCheckEnvironment(environmentWire,
+    JSON.parse(environmentWire).evidence_bundle_cid,
+    false, false, true, false, false, false, false);
+  assert.ok(environment);
+  return installNodeClientEffectProgramPreparation({moon, environment});
+}
+
+test('raw Effect literal source identities match independent Stage and Program vectors', async () => {
+  const prepare = await literalPreparation({type: 'json', nullable: true});
+  for (const vector of literalKeyVectors.cases) {
+    for (const kind of ['program', 'aql']) {
+      const program = programFor(vector.payload);
+      const prepared = prepare({kind, parameters: null,
+        input: kind === 'program' ? program : {format: 'json', text: JSON.stringify(program)}});
+      assert.equal(moon.clientProgramEffectDefinitionCid(prepared),
+        vector.expected_definition_cid, `${vector.name}: ${kind} definition`);
+      assert.equal(moon.clientProgramEffectSemanticsCid(prepared),
+        vector.expected_program_cid, `${vector.name}: ${kind} semantics`);
+    }
+  }
+});
+
+test('Object field normalization does not make Program identity depend on the Mapping', async t => {
+  const payloadContract = {type: 'object', nullable: false, additional_properties: false,
+    fields: {é: {type: 'number', nullable: false}}};
+  const prepareObject = await literalPreparation(payloadContract);
+  const prepareJson = await literalPreparation({type: 'json', nullable: false});
+  const identities = [];
+  for (const name of ['nfc-key', 'nfd-key']) {
+    const vector = literalKeyVectors.cases.find(item => item.name === name);
+    const request = {kind: 'program', input: programFor(vector.payload), parameters: null};
+    const objectIdentity = moon.clientProgramEffectDefinitionCid(prepareObject(request));
+    assert.equal(objectIdentity, vector.expected_definition_cid);
+    assert.equal(moon.clientProgramEffectDefinitionCid(prepareJson(request)), objectIdentity);
+    identities.push(objectIdentity);
+  }
+  assert.notEqual(...identities);
+  const installation = await installationFor(t, {payloadContract, beforePayload: {é: 0}});
+  const host = await effectHost(t, installation, join(installation.root, 'host'),
+    {effect: await installation.load()});
+  const run = await host.run(programFor({'e\u0301': 1}), 'typed-object-normalization');
+  assert.equal(run.started.value.status, 'published');
+  assert.deepEqual(installation.preparedValues, [{payload: {é: 1}}]);
+  assert.equal(installation.sends[0], '{"payload":{"é":1}}');
+});
+
+for (const [label, payload, nullable, expected] of [
+  ['SQL NULL', null, true, null],
+  ['ordinary $json object', {$json: null}, false, {$json: {$json: null}}],
+]) {
+  test(`Effect literal preserves ${label} through Preview and outcome`, async t => {
+    const installation = await installationFor(t,
+      {payloadContract: {type: 'json', nullable}});
+    const host = await effectHost(t, installation, join(installation.root, 'host'),
+      {effect: await installation.load()});
+    const run = await host.run(programFor(payload), `literal-${nullable ? 'null' : 'envelope'}`);
+    assert.equal(run.started.value.status, 'published');
+    assert.deepEqual(installation.preparedValues, [{payload: expected}]);
+    const {stage} = host.outcomes[0];
+    assert.deepEqual(JSON.parse(host.control.effectComputationPreviewWire(stage.preview))
+      .effects[0].changes[0].after.value, {payload: expected});
+    const saved = stage.receipt.ledger.readClaimedOutcome(stage.receipt.members[0].rowOwners[0].claim);
+    assert.deepEqual(JSON.parse(saved.outcomeJson).typed_outcome.result.echoed, expected);
+  });
 }
