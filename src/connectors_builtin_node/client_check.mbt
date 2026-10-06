@@ -16,6 +16,7 @@ priv enum CheckFinding {
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
+  SuppliedParseViolation(String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -185,12 +186,12 @@ fn check_source_findings(
   let (supplied, supplied_admitted) = match
     client_program_input("json", parameters) {
     Ok((_, supplied)) => (supplied, true)
-    Err(SuppliedSyntax({ issue, .. })) => {
+    Err(SuppliedSyntax({ issue, path, .. })) => {
       findings.push(
         if check_parse_budget(issue) {
           Limit("analysis_budget_exhausted")
         } else {
-          Violation("supplied_parameters_invalid")
+          SuppliedParseViolation(path.bind(check_supplied_pointer))
         },
       )
       (None, false)
@@ -381,6 +382,7 @@ fn check_source_findings(
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -518,14 +520,20 @@ fn check_declarations(
       max_depth: 32,
     }) {
     Ok(node) => node
-    Err({ issue, .. }) =>
+    Err({ issue, path, .. }) =>
       return Err({
         kind: if check_parse_budget(issue) {
           Budget
         } else {
           Invalid
         },
-        pointer: None,
+        // The parser owns this original structural path, not a SQL range.
+        // A preflight/unknown path stays absent; budgets produce no violation.
+        pointer: if check_parse_budget(issue) {
+          None
+        } else {
+          path.bind(check_supplied_pointer)
+        },
         finding: None,
       })
   }
@@ -783,6 +791,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -834,6 +843,7 @@ fn write_check_report(
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
         Some("parameter_default_type_mismatch")
+      SuppliedParseViolation(_) => Some("supplied_parameters_invalid")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
@@ -1066,6 +1076,17 @@ fn write_check_report(
               writer, document_id, revision, pointer,
             )
           }
+          break
+        }
+      }
+    }
+    if code == "supplied_parameters_invalid" {
+      for finding in findings {
+        if finding is SuppliedParseViolation(Some(pointer)) &&
+          documents.parameters_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameters", revision, pointer,
+          )
           break
         }
       }

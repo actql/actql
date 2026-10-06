@@ -513,6 +513,13 @@ the reason does not claim which one failed. `explainCheckReason` provides a
 family-specific hint. The declaration snapshot is available through
 `getCheckInput(outcome, 'parameter_declarations')`; actual values are not facts.
 Other violations remain safely generic rather than guessing a cause.
+JSON parser failures in supplied values and declarations can also carry the
+parser's original structural path before a decoded cursor exists. These retain
+`supplied_parameters_invalid` / `parameter_declarations_invalid`; the pointer
+belongs to the corresponding submitted input revision. Escaped unpaired
+surrogates identify the original value; an undecodable member name identifies
+the parser's known enclosing container. Unknown paths stay absent, and parser
+budgets remain checking limits without an input-violation location.
 Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
