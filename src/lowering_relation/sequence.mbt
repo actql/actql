@@ -30,7 +30,7 @@ pub enum PreparedStep {
   GraphUnionStep(PreparedGraphUnion)
   GraphSubtractionStep(PreparedGraphUnion)
   GraphTraverseStep(PreparedGraphTraverse)
-  PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
+  GraphConstructionStep(PreparedGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -372,9 +372,9 @@ fn prepare_sequence_count(
         expressions = remaining
         GraphTraverseStep(prepared)
       }
-      PropertyGraphConstructionValue(_) => {
+      GraphConstructionValue(_) => {
         let (prepared, used_entries, used_names, used_work) = match
-          prepare_property_graph_construction_node(
+          prepare_graph_construction_node(
             owner,
             i,
             max_entries=bindings,
@@ -391,7 +391,7 @@ fn prepare_sequence_count(
           ..expressions,
           max_work: expressions.max_work - used_work,
         }
-        PropertyGraphConstructionStep(prepared)
+        GraphConstructionStep(prepared)
       }
       VectorValue(_) | NearestValue(_) | PoolValue(_) | RankingValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
@@ -588,8 +588,7 @@ pub fn emit_sequence_step_range(
       GraphUnionStep(prepared) => emit_graph_union_node(prepared, out)
       GraphSubtractionStep(prepared) => emit_graph_union_node(prepared, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
-      PropertyGraphConstructionStep(v) =>
-        emit_property_graph_construction_node(v, out)
+      GraphConstructionStep(v) => emit_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
       EventStep(v) => emit_event_node(v, out)
       CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)

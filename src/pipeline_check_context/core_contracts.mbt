@@ -45,7 +45,7 @@ pub(all) enum CoreContractBody {
   AsOfSearchRules
   WindowCountRules
   GraphCountRules
-  PropertyGraphCountRules
+  GraphConstructionCountRules
   RankingCountRules
   SeriesCountRules
   LocalSnapshotRules
@@ -619,7 +619,7 @@ pub fn collect_core_contracts(
               }
               @pipeline.RelA
               | @pipeline.SGA
-              | @pipeline.PropertyGraph
+              | @pipeline.Graph
               | @pipeline.TEA
               | @pipeline.VecA => None
             }
@@ -666,11 +666,11 @@ pub fn collect_core_contracts(
         | GraphCountRules
         | RankingCountRules
         | SeriesCountRules => ()
-        PropertyGraphCountRules => {
-          let target = AdoptedBody(@pipeline.PropertyGraphLaw)
+        GraphConstructionCountRules => {
+          let target = AdoptedBody(@pipeline.GraphLaw)
           core_contract_edge(b)
           core_contract_body(b, target)
-          core_contract_dependency(b, PropertyGraphCountRules, target)
+          core_contract_dependency(b, GraphConstructionCountRules, target)
         }
         LocalSourceReferenceRules
         | CanonicalIdentityRules
@@ -831,7 +831,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     ValuesExecutionRules =>
       "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
     BoundTransferRules =>
-      "sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23"
+      "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
     RelationCountRules =>
       "sha256:163a0d75d56310803ac755d5f4f02069f442651711209037d6e3f512954c97ab"
     JoinCountRules =>
@@ -844,7 +844,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
       "sha256:2ad08f2130caa35968ac9cdf660708693c5e14f021f7878d9965a5e1fff5ff78"
     GraphCountRules =>
       "sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48"
-    PropertyGraphCountRules => property_graph_count_rules_cid()
+    GraphConstructionCountRules => graph_construction_count_rules_cid()
     RankingCountRules =>
       "sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7"
     SeriesCountRules =>
@@ -875,7 +875,7 @@ fn core_catalog_grammar(body : @environment.CatalogGrammar) -> CoreContractBody 
   match body {
     @environment.ExpressionGrammar(expression) => ExpressionBody(expression)
     @environment.RelationLawBody => AdoptedBody(@pipeline.RelaPrimitive)
-    @environment.GraphLawBody => AdoptedBody(@pipeline.PropertyGraphLaw)
+    @environment.GraphLawBody => AdoptedBody(@pipeline.GraphLaw)
     @environment.EnvironmentBody
     | @environment.ValueGrammarBody
     | @environment.TextPolicyGrammarBody

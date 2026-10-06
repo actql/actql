@@ -23,9 +23,9 @@ pub fn prepare_property(
       limits.max_bytes,
     )
     @encode.begin_array(writer)
-    @encode.string_value(writer, "actql-property-graph-snapshot/0.1")
-    @encode.string_value(writer, @graph.property_cid(contract))
-    @graph.emit_checked_property_graph(contract, writer)
+    @encode.string_value(writer, "actql-graph-snapshot/0.1")
+    @encode.string_value(writer, @graph.cid(contract))
+    @graph.emit_checked_graph(contract, writer)
     @encode.begin_array(writer)
     Ok({
       writer,

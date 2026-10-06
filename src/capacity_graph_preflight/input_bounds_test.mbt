@@ -113,7 +113,7 @@ test "Graph input bounds retain exact preflight owners and enforce measure roles
 }
 
 ///|
-test "Property Graph MATCH bounds cross retained row transformations without losing units" {
+test "Graph MATCH bounds cross retained row transformations without losing units" {
   let policy = policy(false)
   for
     (operation, definition, measure, law) in [

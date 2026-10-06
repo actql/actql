@@ -3,7 +3,7 @@
 /// constants were computed by Node crypto, not by graph_diff or snapshot output.
 fn delta_fixture_schema() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"}
   )
 }
 
@@ -75,16 +75,16 @@ fn delta_fixture_storage(target : Bool) -> @storage.Storage raise {
   ).unwrap()
   // Noncanonical input order must not become Delta action order.
   let other = if target { 3.0 } else { 2.0 }
-  @storage.append_property_node(builder, 1, [delta_number(other)], [
+  @storage.append_node(builder, 1, [delta_number(other)], [
     delta_score(if target { Some(9.0) } else { None }),
   ]).unwrap()
-  @storage.append_property_node(builder, 0, [delta_number(1.0)], []).unwrap()
-  @storage.append_property_node(builder, 1, [delta_number(1.0)], [
+  @storage.append_node(builder, 0, [delta_number(1.0)], []).unwrap()
+  @storage.append_node(builder, 1, [delta_number(1.0)], [
     delta_score(if target { None } else { Some(7.0) }),
   ]).unwrap()
   // Same endpoints, independent edge keys; update 10's endpoints, not its ID.
   for key in (if target { [12.0, 10.0] } else { [11.0, 10.0] }) {
-    @storage.append_property_edge(
+    @storage.append_edge(
       builder,
       0,
       [delta_number(key)],

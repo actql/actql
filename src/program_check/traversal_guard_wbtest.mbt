@@ -23,7 +23,7 @@ test "current TRAIL guards bind producer Unit limits and imported execution gate
         checked_results=programs,
         second_stage=true,
         parameters=parameter,
-        property_graph=true,
+        graph=true,
         graph_construction_limit=Some(1000),
         traversal_capacity=true,
         generated_rows=Some("[{\"id\":1},{\"id\":2}]"),

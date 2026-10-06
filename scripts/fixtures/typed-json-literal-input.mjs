@@ -63,17 +63,17 @@ const graphSeed = {schema: {node_key: graphNumber}, rows: [{node_key: 1}]};
 const beforePayload = {'é': 1, 'e\u0301': 2, line: 'a\r\nb', nil: null};
 const afterPayload = {...beforePayload, 'e\u0301': 3};
 const graphDerive = {p: json(canonicalData(beforePayload))};
-const graphConstructor = {version: 'actql-property-graph-constructor/0.1',
+const graphConstructor = {version: 'actql-graph-constructor/0.1',
   nodes: [{name: 'N', from: 'n', key: ['node_key'], labels: [{name: 'Node',
     properties: {mode: 'columns', columns: [{from: 'p', to: 'p'}]}}]}], edges: []};
 const graphMapping = structuredClone(graphConstructor);
 delete graphMapping.nodes[0].from;
 graphMapping.nodes[0].input_occurrence = 0;
-const graphDomain = cid({version: 'actql-property-graph-definition/0.1',
+const graphDomain = cid({version: 'actql-graph-definition/0.1',
   constructor: graphMapping, producer_definitions: [{body: {derive: graphDerive},
     dependencies: [{body: {values: graphSeed}, dependencies: []}]}]});
-const graphLaw = 'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc';
-const graphContract = {version: 'actql-property-graph-contract/0.1',
+const graphLaw = 'sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34';
+const graphContract = {version: 'actql-graph-contract/0.1',
   domain: graphDomain, identity_law_cid: graphLaw, value_law_cid: graphLaw,
   node_definitions: [{name: 'N', key_columns: ['node_key'], key_contracts: [graphNumber],
     labels: {Node: ['p']}, properties: {p: graphJson}}], edge_definitions: []};
@@ -81,7 +81,7 @@ const graphContractCid = cid(graphContract);
 const graphIdentity = {definition: 'N', domain: graphDomain, key: [1], key_types: [{kind: 'number'}]};
 const graphRecord = payload => ({id: graphIdentity, key: [1], props: {p: {$json: payload}}});
 const graphBefore = graphRecord(beforePayload), graphAfter = graphRecord(afterPayload);
-const graphSnapshot = row => ['actql-property-graph-snapshot/0.1', graphContractCid,
+const graphSnapshot = row => ['actql-graph-snapshot/0.1', graphContractCid,
   graphContract, [row], []];
 const graphDelta = {version: 'actql-graph-delta/0.1', graph_contract_cid: graphContractCid,
   base_graph_cid: cid(graphSnapshot(graphBefore)), target_graph_cid: cid(graphSnapshot(graphAfter)),
@@ -90,7 +90,7 @@ const graphDelta = {version: 'actql-graph-delta/0.1', graph_contract_cid: graphC
 const graphProgram = {version: 'actql/0.1', id: 'typed-json-graph-keys', stages: [{
   id: 's', inputs: {}, steps: [
     {values: graphSeed, as: 'seed'}, {from: 'seed', derive: graphDerive, as: 'n'},
-    {property_graph: graphConstructor, as: 'g'},
+    {graph: graphConstructor, as: 'g'},
     {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'unit'},
     {from: 'unit', derive: {delta: json(canonicalData(graphDelta))}, as: 'changes'},
     {from: 'g', apply_graph_delta: {with: 'changes', field: 'delta'}, as: 'applied'},

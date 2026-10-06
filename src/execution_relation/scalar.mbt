@@ -88,11 +88,12 @@ pub fn unary(
           } else {
             "-" + coefficient
           }
-          match @admitted.decimal_from_coefficient(
-            negated,
-            decimal.precision,
-            decimal.scale,
-          ) {
+          match
+            @admitted.decimal_from_coefficient(
+              negated,
+              decimal.precision,
+              decimal.scale,
+            ) {
             Some(result) => Ok(Captured(result))
             _ => Err(InvalidOperand)
           }

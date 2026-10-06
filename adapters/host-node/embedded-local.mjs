@@ -247,13 +247,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
-    const propertyGraphLaw = JSON.parse(await readFile(join(packageRoot,
-      'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
+    const graphLaw = JSON.parse(await readFile(join(packageRoot,
+      'spec/dependencies/actql-graph-laws.json'), 'utf8'));
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
-    environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
       environmentWire, evidenceCid, false, true, true, true, true, false,
-      false, numericProfileCid, contentCid(propertyGraphLaw));
+      false, numericProfileCid, contentCid(graphLaw));
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? []);

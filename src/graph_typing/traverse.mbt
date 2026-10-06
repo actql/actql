@@ -29,7 +29,7 @@ pub(all) enum TraverseObligation {
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolvePropertyGraphTraversalProfile
+  ResolveGraphTraversalProfile
 } derive(Eq, Debug)
 
 ///|
@@ -441,7 +441,7 @@ fn traverse_pending_each(
   emit(FilterTraversalLabels)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
-  emit(ResolvePropertyGraphTraversalProfile)
+  emit(ResolveGraphTraversalProfile)
   emit(EnumeratePropertyPaths)
   if c.emit == TraversedPaths {
     emit(DeduplicateExactPaths)

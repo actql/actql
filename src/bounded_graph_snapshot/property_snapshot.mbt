@@ -22,21 +22,18 @@ pub fn prepare_property_view(
     max_depth: limits.max_identity_depth,
   }
   // A caller's schema is an expectation, not permission to relabel the view.
-  guard @lifecycle.producer_view_property_graph_definition(view) is Ok(actual) &&
-    @contract_graph.admit_property_graph(@carrier.graph_carrier(graph), caps)
-    is Ok(expected) &&
-    @carrier.property_graph(
-      @carrier.property_graph_domain(actual),
-      @carrier.property_graph_node_definitions(actual),
-      @carrier.property_graph_edge_definitions(actual),
+  guard @lifecycle.producer_view_graph_definition(view) is Ok(actual) &&
+    @contract_graph.admit(@carrier.graph_carrier(graph), caps) is Ok(expected) &&
+    @carrier.graph(
+      @carrier.graph_domain(actual),
+      @carrier.graph_node_definitions(actual),
+      @carrier.graph_edge_definitions(actual),
       max_definitions=limits.max_identity_nodes,
       max_contract_work=limits.max_identity_nodes,
     )
     is Ok(actual_carrier) &&
-    @contract_graph.admit_property_graph(actual_carrier, caps)
-    is Ok(actual_contract) &&
-    @contract_graph.property_cid(actual_contract) ==
-    @contract_graph.property_cid(expected) else {
+    @contract_graph.admit(actual_carrier, caps) is Ok(actual_contract) &&
+    @contract_graph.cid(actual_contract) == @contract_graph.cid(expected) else {
     return Err(InvalidGraph)
   }
   prepare_source(Viewed(view, graph), "", limits)
@@ -93,17 +90,15 @@ fn source_element_definition(
   graph : @carrier.Graph,
   index : Int,
   edge~ : Bool,
-) -> @carrier.PropertyNodeDefinition? {
-  let profile = @carrier.graph_property_definition(graph)
+) -> @carrier.GraphNodeDefinition? {
+  let profile = @carrier.graph_definition(graph)
   guard source_property_definition(source, index, edge~) is Some(definition) else {
     return None
   }
   if edge {
-    @carrier.property_graph_edge_at(profile, definition).map(
-      @carrier.property_edge_element,
-    )
+    @carrier.graph_edge_at(profile, definition).map(@carrier.graph_edge_element)
   } else {
-    @carrier.property_graph_node_at(profile, definition)
+    @carrier.graph_node_at(profile, definition)
   }
 }
 
@@ -115,7 +110,7 @@ fn source_properties(
   edge~ : Bool,
 ) -> @carrier.Knowledge? {
   source_element_definition(source, graph, index, edge~).map(
-    @carrier.property_definition_properties,
+    @carrier.graph_element_definition_properties,
   )
 }
 
@@ -131,7 +126,7 @@ fn source_property_keys(
     return Err(InvalidGraph)
   }
   let keys = []
-  for component in 0..<@carrier.property_definition_key_count(definition) {
+  for component in 0..<@carrier.graph_element_definition_key_count(definition) {
     let key = match source {
       Stored(storage) =>
         if edge {

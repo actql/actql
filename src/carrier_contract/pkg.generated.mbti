@@ -48,11 +48,39 @@ pub fn graph_edge_definition(GraphNodeDefinition, String, String) -> Result[Grap
 
 pub fn graph_edge_definitions(GraphDefinition) -> Array[GraphEdgeDefinition]
 
+pub fn graph_edge_element(GraphEdgeDefinition) -> GraphNodeDefinition
+
+pub fn graph_edge_endpoints(GraphEdgeDefinition) -> (String, String)
+
 pub fn graph_edge_named(GraphDefinition, String) -> GraphEdgeDefinition?
+
+pub fn graph_element_definition_has_label(GraphNodeDefinition, String) -> Bool
+
+pub fn graph_element_definition_key_at(GraphNodeDefinition, Int) -> @value_contract.Contract?
+
+pub fn graph_element_definition_key_column_at(GraphNodeDefinition, Int) -> String?
+
+pub fn graph_element_definition_key_count(GraphNodeDefinition) -> Int
+
+pub fn graph_element_definition_keys(GraphNodeDefinition) -> Array[@value_contract.Contract]
+
+pub fn graph_element_definition_label_at(GraphNodeDefinition, Int) -> (String, Knowledge)?
+
+pub fn graph_element_definition_label_count(GraphNodeDefinition) -> Int
+
+pub fn graph_element_definition_label_properties(GraphNodeDefinition) -> Array[(String, Knowledge)]
+
+pub fn graph_element_definition_labels(GraphNodeDefinition) -> Array[String]
+
+pub fn graph_element_definition_name(GraphNodeDefinition) -> String
+
+pub fn graph_element_definition_properties(GraphNodeDefinition) -> Knowledge
 
 pub fn graph_identity(Graph) -> @value_contract.Contract
 
 pub fn graph_key_descriptor(@value_contract.Contract) -> GraphKeyDescriptor?
+
+pub fn graph_name_identity(String) -> String
 
 pub fn graph_node_at(GraphDefinition, Int) -> GraphNodeDefinition?
 
@@ -60,75 +88,17 @@ pub fn graph_node_count(GraphDefinition) -> Int
 
 pub fn graph_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[GraphNodeDefinition, GraphIssue]
 
+pub fn graph_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[(GraphNodeDefinition, Int), GraphIssue]
+
 pub fn graph_node_definitions(GraphDefinition) -> Array[GraphNodeDefinition]
 
 pub fn graph_node_named(GraphDefinition, String) -> GraphNodeDefinition?
-
-pub fn graph_property_definition(Graph) -> GraphDefinition
 
 pub fn graph_usage(String, Array[GraphNodeDefinition], Array[GraphEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), GraphIssue]
 
 pub fn kind(Carrier) -> Kind
 
 pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
-
-pub fn property_definition_has_label(GraphNodeDefinition, String) -> Bool
-
-pub fn property_definition_key_at(GraphNodeDefinition, Int) -> @value_contract.Contract?
-
-pub fn property_definition_key_column_at(GraphNodeDefinition, Int) -> String?
-
-pub fn property_definition_key_count(GraphNodeDefinition) -> Int
-
-pub fn property_definition_keys(GraphNodeDefinition) -> Array[@value_contract.Contract]
-
-pub fn property_definition_label_at(GraphNodeDefinition, Int) -> (String, Knowledge)?
-
-pub fn property_definition_label_count(GraphNodeDefinition) -> Int
-
-pub fn property_definition_label_properties(GraphNodeDefinition) -> Array[(String, Knowledge)]
-
-pub fn property_definition_labels(GraphNodeDefinition) -> Array[String]
-
-pub fn property_definition_name(GraphNodeDefinition) -> String
-
-pub fn property_definition_properties(GraphNodeDefinition) -> Knowledge
-
-pub fn property_edge_definition(GraphNodeDefinition, String, String) -> Result[GraphEdgeDefinition, GraphIssue]
-
-pub fn property_edge_element(GraphEdgeDefinition) -> GraphNodeDefinition
-
-pub fn property_edge_endpoints(GraphEdgeDefinition) -> (String, String)
-
-pub fn property_graph(String, Array[GraphNodeDefinition], Array[GraphEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[Carrier, GraphIssue]
-
-pub fn property_graph_domain(GraphDefinition) -> String
-
-pub fn property_graph_edge_at(GraphDefinition, Int) -> GraphEdgeDefinition?
-
-pub fn property_graph_edge_count(GraphDefinition) -> Int
-
-pub fn property_graph_edge_definitions(GraphDefinition) -> Array[GraphEdgeDefinition]
-
-pub fn property_graph_edge_named(GraphDefinition, String) -> GraphEdgeDefinition?
-
-pub fn property_graph_node_at(GraphDefinition, Int) -> GraphNodeDefinition?
-
-pub fn property_graph_node_count(GraphDefinition) -> Int
-
-pub fn property_graph_node_definitions(GraphDefinition) -> Array[GraphNodeDefinition]
-
-pub fn property_graph_node_named(GraphDefinition, String) -> GraphNodeDefinition?
-
-pub fn property_graph_usage(String, Array[GraphNodeDefinition], Array[GraphEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), GraphIssue]
-
-pub fn property_key_descriptor(@value_contract.Contract) -> GraphKeyDescriptor?
-
-pub fn property_name_identity(String) -> String
-
-pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[GraphNodeDefinition, GraphIssue]
-
-pub fn property_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[(GraphNodeDefinition, Int), GraphIssue]
 
 pub fn relation(Knowledge) -> Carrier
 
@@ -192,13 +162,10 @@ pub(all) enum FieldSet {
 
 type Graph
 
-#alias(PropertyGraphDefinition)
 type GraphDefinition
 
-#alias(PropertyEdgeDefinition)
 type GraphEdgeDefinition
 
-#alias(PropertyGraphIssue)
 pub(all) enum GraphIssue {
   InvalidLimits
   InvalidName
@@ -214,7 +181,6 @@ pub(all) enum GraphIssue {
   InvalidDomain
 } derive(Eq, @debug.Debug)
 
-#alias(PropertyKeyDescriptor)
 pub(all) enum GraphKeyDescriptor {
   NumberKey
   TextKey
@@ -226,7 +192,6 @@ pub(all) enum GraphKeyDescriptor {
   ArtifactKey(media_type~ : String?)
 } derive(Eq, @debug.Debug)
 
-#alias(PropertyNodeDefinition)
 type GraphNodeDefinition
 
 pub(all) enum Issue {

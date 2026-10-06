@@ -21,8 +21,8 @@ priv enum PropertyIdentityPhase {
 /// implementation; managed snapshot admission can resume it between stages.
 priv struct PropertyIdentityPreparation {
   builder : Builder
-  profile : @carrier.PropertyGraphDefinition
-  definition : @carrier.PropertyNodeDefinition
+  profile : @carrier.GraphDefinition
+  definition : @carrier.GraphNodeDefinition
   mut input_keys : Array[@value.CheckedValue]?
   keys : Array[@value.CheckedValue]
   pending_work : Int
@@ -54,12 +54,12 @@ priv enum PropertyIdentityPoll {
 ///|
 fn start_property_identity(
   builder : Builder,
-  profile : @carrier.PropertyGraphDefinition,
-  definition : @carrier.PropertyNodeDefinition,
+  profile : @carrier.GraphDefinition,
+  definition : @carrier.GraphNodeDefinition,
   keys : Array[@value.CheckedValue],
   pending_work : Int,
 ) -> Result[PropertyIdentityPreparation, Issue] {
-  if @carrier.property_definition_key_count(definition) != keys.length() {
+  if @carrier.graph_element_definition_key_count(definition) != keys.length() {
     return Err(InvalidIdentity)
   }
   Ok({
@@ -129,7 +129,7 @@ fn advance_property_identity_steps(
         }
         if value.index < input_keys.length() {
           let key = input_keys[value.index]
-          let contract = @carrier.property_definition_key_at(
+          let contract = @carrier.graph_element_definition_key_at(
             value.definition,
             value.index,
           ).unwrap()
@@ -206,13 +206,10 @@ fn advance_property_identity_steps(
           @encode.key(out, "definition")
           @encode.string_value(
             out,
-            @carrier.property_definition_name(value.definition),
+            @carrier.graph_element_definition_name(value.definition),
           )
           @encode.key(out, "domain")
-          @encode.string_value(
-            out,
-            @carrier.property_graph_domain(value.profile),
-          )
+          @encode.string_value(out, @carrier.graph_domain(value.profile))
           @encode.key(out, "key")
           @encode.begin_array(out)
         } catch {
@@ -257,7 +254,10 @@ fn advance_property_identity_steps(
         }
         try {
           match
-            @carrier.property_definition_key_at(value.definition, value.index) {
+            @carrier.graph_element_definition_key_at(
+              value.definition,
+              value.index,
+            ) {
             Some(contract) => {
               emit_property_key_type(contract, out)
               value.index += 1

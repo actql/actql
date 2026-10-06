@@ -15,7 +15,7 @@ Current Graph support is classified only by the existing
 Blocked operations below point to typed refusal evidence, not successful
 execution. The shared public Host test derives its cases from that inventory
 and checks refusal before Run admission, acquisition I/O and dispatch. The
-retired `graph` constructor is refused; its replacement `property_graph` has
+retired `graph` constructor is refused; its replacement `graph` has
 its construction, resource and lifecycle evidence in that same inventory.
 The current `node_rows` / `edge_rows` paths have finite presence-aware schema
 and executed Relation retention evidence. Only schema-guaranteed columns can
@@ -40,23 +40,23 @@ be referenced normally; this does not complete conditional Result delivery.
 | sequence | src/relation_typing/sequence_test.mbt | src/pipeline_typing/sequence_keys_test.mbt | scripts/event-schema.mjs |
 | calendar_bucket, calendar_series | src/calendar_typing/admission_test.mbt | src/pipeline_typing/calendar_test.mbt | scripts/event-schema.mjs |
 | events, vectors | src/carrier_projection/projection_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/carrier-projection-schema.mjs |
-| node_rows, edge_rows | src/carrier_projection/graph_rows_test.mbt | src/query_integration/property_graph_rows_presence_wbtest.mbt | scripts/graph-schema.mjs |
-| graph | src/program_check/property_graph_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| normalize_graph | src/program_check/property_graph_public_test.mbt | src/query_integration/property_graph_provider_custody_wbtest.mbt | scripts/graph-schema.mjs |
-| components | src/graph_typing/diagnostics_test.mbt | src/query_integration/property_graph_components_wbtest.mbt | scripts/graph-schema.mjs |
-| degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/property_graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |
+| node_rows, edge_rows | src/carrier_projection/graph_rows_test.mbt | src/query_integration/graph_rows_presence_wbtest.mbt | scripts/graph-schema.mjs |
+| graph | src/program_check/graph_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| normalize_graph | src/program_check/graph_public_test.mbt | src/query_integration/graph_provider_custody_wbtest.mbt | scripts/graph-schema.mjs |
+| components | src/graph_typing/diagnostics_test.mbt | src/query_integration/graph_components_wbtest.mbt | scripts/graph-schema.mjs |
+| degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
 | traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
-| shortest_path | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| reach | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| subgraph | src/pipeline_check_context/subgraph_execution_wbtest.mbt | src/query_integration/property_graph_subgraph_wbtest.mbt | scripts/graph-schema.mjs |
-| graphs_equal | src/graph_typing/property_equality_test.mbt | src/query_integration/property_graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
-| graph_diff | src/lowering_relation/graph_delta_test.mbt | src/query_integration/property_graph_diff_provider_wbtest.mbt | scripts/graph-schema.mjs |
-| apply_graph_delta | src/pipeline_typing/delta_test.mbt | src/query_integration/property_graph_delta_plan_wbtest.mbt | scripts/graph-schema.mjs |
-| union_graphs | src/graph_typing/union_test.mbt | src/query_integration/property_graph_union_wbtest.mbt | scripts/graph-schema.mjs |
-| subtract_graphs | src/graph_typing/subtraction_test.mbt | src/query_integration/property_graph_subtraction_wbtest.mbt | scripts/graph-schema.mjs |
-| graft_graph | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
-| mean_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| shortest_path | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| reach | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| subgraph | src/pipeline_check_context/subgraph_execution_wbtest.mbt | src/query_integration/graph_subgraph_wbtest.mbt | scripts/graph-schema.mjs |
+| graphs_equal | src/graph_typing/property_equality_test.mbt | src/query_integration/graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
+| graph_diff | src/lowering_relation/graph_delta_test.mbt | src/query_integration/graph_diff_provider_wbtest.mbt | scripts/graph-schema.mjs |
+| apply_graph_delta | src/pipeline_typing/delta_test.mbt | src/query_integration/graph_delta_plan_wbtest.mbt | scripts/graph-schema.mjs |
+| union_graphs | src/graph_typing/union_test.mbt | src/query_integration/graph_union_wbtest.mbt | scripts/graph-schema.mjs |
+| subtract_graphs | src/graph_typing/subtraction_test.mbt | src/query_integration/graph_subtraction_wbtest.mbt | scripts/graph-schema.mjs |
+| graft_graph | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| mean_graphs | src/program_check/graph_unsupported_public_test.mbt | scripts/graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mjs |
 | normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mjs |
 | nearest | src/vector_typing/nearest_pair_test.mbt | src/pipeline_typing/nearest_output_keys_test.mbt | scripts/vector-schema.mjs |

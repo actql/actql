@@ -21,7 +21,7 @@ priv enum NormalizePhase {
 ///|
 priv struct NormalizeState {
   source : GraphReadSource
-  profile : @carrier.PropertyGraphDefinition
+  profile : @carrier.GraphDefinition
   owner : @lower.BoundPrepared
   step : Int
   limits : @storage.Limits
@@ -107,16 +107,16 @@ fn normalize_body_step(
     match state.phase {
       MeasureNodes => {
         used += 1
-        if state.definition == @carrier.property_graph_node_count(state.profile) {
+        if state.definition == @carrier.graph_node_count(state.profile) {
           state.definition = 0
           state.phase = MeasureEdges
         } else {
-          guard @carrier.property_graph_node_at(state.profile, state.definition)
+          guard @carrier.graph_node_at(state.profile, state.definition)
             is Some(definition) &&
             normalize_width([
-              @carrier.property_definition_key_count(definition),
+              @carrier.graph_element_definition_key_count(definition),
               @carrier.field_count(
-                @carrier.property_definition_properties(definition),
+                @carrier.graph_element_definition_properties(definition),
               ),
             ])
             is Some(width) else {
@@ -128,29 +128,27 @@ fn normalize_body_step(
       }
       MeasureEdges => {
         used += 1
-        if state.definition == @carrier.property_graph_edge_count(state.profile) {
+        if state.definition == @carrier.graph_edge_count(state.profile) {
           state.phase = PrepareOutput
         } else {
-          guard @carrier.property_graph_edge_at(state.profile, state.definition)
+          guard @carrier.graph_edge_at(state.profile, state.definition)
             is Some(edge) else {
             return @bounded.Failed(InvalidNormalizeKernel, progress, used)
           }
-          let (source_name, target_name) = @carrier.property_edge_endpoints(
-            edge,
-          )
-          guard @carrier.property_graph_node_named(state.profile, source_name)
+          let (source_name, target_name) = @carrier.graph_edge_endpoints(edge)
+          guard @carrier.graph_node_named(state.profile, source_name)
             is Some(source) &&
-            @carrier.property_graph_node_named(state.profile, target_name)
+            @carrier.graph_node_named(state.profile, target_name)
             is Some(target) &&
             normalize_width([
-              @carrier.property_definition_key_count(
-                @carrier.property_edge_element(edge),
+              @carrier.graph_element_definition_key_count(
+                @carrier.graph_edge_element(edge),
               ),
-              @carrier.property_definition_key_count(source),
-              @carrier.property_definition_key_count(target),
+              @carrier.graph_element_definition_key_count(source),
+              @carrier.graph_element_definition_key_count(target),
               @carrier.field_count(
-                @carrier.property_definition_properties(
-                  @carrier.property_edge_element(edge),
+                @carrier.graph_element_definition_properties(
+                  @carrier.graph_edge_element(edge),
                 ),
               ),
             ])
@@ -195,8 +193,7 @@ fn normalize_body_step(
         } else {
           guard graph_read_node_definition(state.source, state.index)
             is Some(definition) &&
-            @carrier.property_graph_node_at(state.profile, definition)
-            is Some(_) else {
+            @carrier.graph_node_at(state.profile, definition) is Some(_) else {
             return @bounded.Failed(NormalizeInputUnavailable, progress, used)
           }
           state.node_definition = definition
@@ -208,11 +205,12 @@ fn normalize_body_step(
       }
       NodeKey => {
         used += 1
-        let definition = @carrier.property_graph_node_at(
+        let definition = @carrier.graph_node_at(
           state.profile,
           state.node_definition,
         ).unwrap()
-        if state.column == @carrier.property_definition_key_count(definition) {
+        if state.column ==
+          @carrier.graph_element_definition_key_count(definition) {
           state.column = 0
           state.phase = NodeProperty
         } else {
@@ -230,12 +228,12 @@ fn normalize_body_step(
       }
       NodeProperty => {
         used += 1
-        let definition = @carrier.property_graph_node_at(
+        let definition = @carrier.graph_node_at(
           state.profile,
           state.node_definition,
         ).unwrap()
         let count = @carrier.field_count(
-          @carrier.property_definition_properties(definition),
+          @carrier.graph_element_definition_properties(definition),
         )
         if state.column == count {
           state.phase = CommitNode
@@ -258,7 +256,7 @@ fn normalize_body_step(
           return @bounded.Failed(InvalidNormalizeKernel, progress, used)
         }
         match
-          @graph.append_property_node(
+          @graph.append_node(
             output,
             state.node_definition,
             state.keys,
@@ -281,8 +279,7 @@ fn normalize_body_step(
         } else {
           guard graph_read_edge_definition(state.source, state.index)
             is Some(definition) &&
-            @carrier.property_graph_edge_at(state.profile, definition)
-            is Some(_) &&
+            @carrier.graph_edge_at(state.profile, definition) is Some(_) &&
             graph_read_edge_endpoints(state.source, state.index)
             is Some((source, target)) else {
             return @bounded.Failed(NormalizeInputUnavailable, progress, used)
@@ -300,13 +297,10 @@ fn normalize_body_step(
       }
       EdgeKey => {
         used += 1
-        let edge = @carrier.property_graph_edge_at(
-          state.profile,
-          state.edge_definition,
-        ).unwrap()
+        let edge = @carrier.graph_edge_at(state.profile, state.edge_definition).unwrap()
         if state.column ==
-          @carrier.property_definition_key_count(
-            @carrier.property_edge_element(edge),
+          @carrier.graph_element_definition_key_count(
+            @carrier.graph_edge_element(edge),
           ) {
           state.column = 0
           state.phase = EdgeSourceKey
@@ -331,11 +325,11 @@ fn normalize_body_step(
           state.target_node
         }
         guard graph_read_node_definition(state.source, node) is Some(index) &&
-          @carrier.property_graph_node_at(state.profile, index)
-          is Some(definition) else {
+          @carrier.graph_node_at(state.profile, index) is Some(definition) else {
           return @bounded.Failed(NormalizeInputUnavailable, progress, used)
         }
-        if state.column == @carrier.property_definition_key_count(definition) {
+        if state.column ==
+          @carrier.graph_element_definition_key_count(definition) {
           state.column = 0
           state.phase = if state.phase == EdgeSourceKey {
             EdgeTargetKey
@@ -357,13 +351,10 @@ fn normalize_body_step(
       }
       EdgeProperty => {
         used += 1
-        let edge = @carrier.property_graph_edge_at(
-          state.profile,
-          state.edge_definition,
-        ).unwrap()
+        let edge = @carrier.graph_edge_at(state.profile, state.edge_definition).unwrap()
         let count = @carrier.field_count(
-          @carrier.property_definition_properties(
-            @carrier.property_edge_element(edge),
+          @carrier.graph_element_definition_properties(
+            @carrier.graph_edge_element(edge),
           ),
         )
         if state.column == count {
@@ -387,7 +378,7 @@ fn normalize_body_step(
           return @bounded.Failed(InvalidNormalizeKernel, progress, used)
         }
         match
-          @graph.append_property_edge(
+          @graph.append_edge(
             output,
             state.edge_definition,
             state.keys,
@@ -492,7 +483,7 @@ pub fn start_normalize_view(
       step,
       0,
     ) &&
-    @lifecycle.producer_view_property_graph_definition(input) is Ok(profile) &&
+    @lifecycle.producer_view_graph_definition(input) is Ok(profile) &&
     @lifecycle.producer_view_node_count(input) is Some(nodes) &&
     @lifecycle.producer_view_edge_count(input) is Some(edges) else {
     return Err(InvalidNormalizeKernel)

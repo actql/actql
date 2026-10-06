@@ -165,10 +165,7 @@ fn match_node_value(
   name : @schema.FieldName,
   contract : @contract.Contract,
 ) -> @value.CheckedValue? {
-  let source = if @lower.graph_match_property_binding(
-      state.prepared,
-      "identity",
-    ) ==
+  let source = if @lower.graph_match_graph_binding(state.prepared, "identity") ==
     Some(name) {
     graph_read_node_identity(state.source, node)
   } else {

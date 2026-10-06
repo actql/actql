@@ -104,10 +104,11 @@ pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssu
 
 pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
 
-pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
-pub fn confirm_remote_runtime_completed_restoration(DispatchRecord, RemoteRuntimeCustody) -> Bool
 pub fn confirm_remote_runtime_completed_cleanup_restoration(DispatchRecord, RemoteRuntimeCustody, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
 
+pub fn confirm_remote_runtime_completed_restoration(DispatchRecord, RemoteRuntimeCustody) -> Bool
+
+pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
 
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 

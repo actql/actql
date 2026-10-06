@@ -47,10 +47,10 @@ fn subtraction_fold_input(
     } else {
       properties
     }
-    @storage.append_property_node(builder, 0, [key(node)], values).unwrap()
+    @storage.append_node(builder, 0, [key(node)], values).unwrap()
   }
   for edge in edges {
-    @storage.append_property_edge(
+    @storage.append_edge(
       builder,
       0,
       [key(edge)],

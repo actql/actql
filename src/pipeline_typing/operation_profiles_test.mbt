@@ -19,7 +19,7 @@ fn assert_operation_profiles(
       let count = @pipeline_typing.operation_profile_adopted_law_count(profile)
       let expected_count = match expected[i][j] {
         RelA | SGA => 2
-        VecA | PropertyGraph => 1
+        VecA | Graph => 1
         TEA | CalendarProfile | TextRankProfile => 0
       }
       assert_eq(count, expected_count)
@@ -99,7 +99,7 @@ test "Calendar carries its TEA dependency even with relation outputs" {
     (profile, id) in [
       (@pipeline_typing.RelA, "actql-rela/0.1"),
       (SGA, "actql-sga/0.1"),
-      (PropertyGraph, "actql-property-graph/0.1"),
+      (Graph, "actql-graph/0.1"),
       (TEA, "actql-tea/0.1"),
       (VecA, "actql-veca/0.1"),
       (CalendarProfile, "actql-calendar/0.1"),

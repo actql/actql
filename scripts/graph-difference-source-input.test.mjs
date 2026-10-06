@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {graphDifferenceSourceSuccesses as successes, graphDifferenceSourceRefusals as refusals}
-  from './fixtures/property-graph-difference-source-input.mjs';
+  from './fixtures/graph-difference-source-input.mjs';
 
 test('Delta expectations retain separate parallel identities and complete contracts', () => {
   for (const item of successes) {
@@ -33,7 +33,7 @@ test('Delta expectations retain separate parallel identities and complete contra
   assert.equal(refusals.length, 8);
   const removed = successes.find(item => item.name === 'graph-difference-json-parallel-removed');
   const steps = JSON.parse(removed.text).stages[0].steps;
-  const construction = steps.find(step => step.property_graph).property_graph;
+  const construction = steps.find(step => step.graph).graph;
   for (const element of [...construction.nodes, ...construction.edges]) {
     assert.equal(element.labels[0].properties.mode, 'no_properties');
   }
@@ -49,6 +49,6 @@ test('ordinary packed corpus and narrow consumer retain the same authored Delta 
   assert.ok(consumer.includes('scopeInputs.refusals.push(...graphDifferenceSourceRefusals)'));
   const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY = '1'"));
-  assert.ok(driver.includes("['scripts/fixtures/property-graph-difference-source-input.mjs', 'property-graph-difference-source-input.mjs']"));
+  assert.ok(driver.includes("['scripts/fixtures/graph-difference-source-input.mjs', 'graph-difference-source-input.mjs']"));
   assert.ok(driver.includes("'--graph-equality-only', '--graph-difference-only',"));
 });

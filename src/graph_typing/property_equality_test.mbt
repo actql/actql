@@ -14,7 +14,7 @@ test "current Graph equality binds two admitted definition domains and one Boole
       fail("expected a current Graph input")
     }
     assert_eq(
-      @carrier.property_graph_domain(@carrier.graph_property_definition(value)),
+      @carrier.graph_domain(@carrier.graph_definition(value)),
       "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     )
   }
@@ -54,11 +54,11 @@ test "current Graph equality admits compatible definitions with distinct provena
   guard original is @carrier.GraphValue(graph) else {
     fail("expected current Graph")
   }
-  let definition = @carrier.graph_property_definition(graph)
-  let other = @carrier.property_graph(
+  let definition = @carrier.graph_definition(graph)
+  let other = @carrier.graph(
     "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-    @carrier.property_graph_node_definitions(definition),
-    @carrier.property_graph_edge_definitions(definition),
+    @carrier.graph_node_definitions(definition),
+    @carrier.graph_edge_definitions(definition),
     max_definitions=100,
     max_contract_work=10000,
   ).unwrap()
@@ -81,7 +81,7 @@ test "current Graph equality refuses incompatible closed definitions" {
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(@contract.StringType, nullable=false)],
     empty,
@@ -89,7 +89,7 @@ test "current Graph equality refuses incompatible closed definitions" {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let foreign = @carrier.property_graph(
+  let foreign = @carrier.graph(
     "sha256:1111111111111111111111111111111111111111111111111111111111111111",
     [node],
     [],

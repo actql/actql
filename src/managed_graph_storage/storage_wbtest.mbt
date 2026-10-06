@@ -18,7 +18,7 @@ fn graph_fixture() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [id],
     node_properties,
@@ -26,7 +26,7 @@ fn graph_fixture() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=10,
   ).unwrap()
-  let element = @carrier.property_node_definition(
+  let element = @carrier.graph_node_definition(
     "E",
     [id],
     edge_properties,
@@ -34,10 +34,10 @@ fn graph_fixture() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=10,
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
-    [@carrier.property_edge_definition(element, "N", "N").unwrap()],
+    [@carrier.graph_edge_definition(element, "N", "N").unwrap()],
     max_definitions=2,
     max_contract_work=1000,
   ).unwrap()
@@ -98,14 +98,10 @@ fn text(value : String, nullable? : Bool = false) -> @value.CheckedValue {
 ///|
 test "declared keyed graph retains parallel edge records and closes endpoints" {
   let builder = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_node(builder, 0, [number(1)], [text("a")]).unwrap()
-  append_property_node(builder, 0, [number(2)], [text("b")]).unwrap()
-  append_property_edge(builder, 0, [number(10)], [number(1)], [number(2)], [
-    number(3),
-  ]).unwrap()
-  append_property_edge(builder, 0, [number(11)], [number(1)], [number(2)], [
-    number(3),
-  ]).unwrap()
+  append_node(builder, 0, [number(1)], [text("a")]).unwrap()
+  append_node(builder, 0, [number(2)], [text("b")]).unwrap()
+  append_edge(builder, 0, [number(10)], [number(1)], [number(2)], [number(3)]).unwrap()
+  append_edge(builder, 0, [number(11)], [number(1)], [number(2)], [number(3)]).unwrap()
   let graph = finish(builder).unwrap()
   assert_eq(mode(graph), DeclaredNodes)
   assert_eq(node_count(graph), 2)
@@ -145,8 +141,8 @@ test "declared keyed graph retains parallel edge records and closes endpoints" {
 ///|
 test "completed keyed graph reuses its admitted identity index and revokes it on discard" {
   let builder = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_node(builder, 0, [number(2)], [text("b")]).unwrap()
-  append_property_node(builder, 0, [number(1)], [text("a")]).unwrap()
+  append_node(builder, 0, [number(2)], [text("b")]).unwrap()
+  append_node(builder, 0, [number(1)], [text("a")]).unwrap()
   let graph = finish(builder).unwrap()
   let domain = "sha256:" + "0".repeat(64)
   let first = lookup_identity("N", domain, "number", "2")
@@ -169,10 +165,9 @@ test "completed keyed graph reuses its admitted identity index and revokes it on
 ///|
 test "keyed graph keeps atomic key conflict capacity work and cancellation boundaries" {
   let conflict = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_node(conflict, 0, [number(1)], [text("a")]).unwrap()
+  append_node(conflict, 0, [number(1)], [text("a")]).unwrap()
   assert_true(
-    append_property_node(conflict, 0, [number(1)], [text("a")])
-    is Err(DuplicateNodeKey),
+    append_node(conflict, 0, [number(1)], [text("a")]) is Err(DuplicateNodeKey),
   )
   assert_true(finish(conflict) is Err(Closed))
   assert_true(cancel(conflict))
@@ -180,9 +175,7 @@ test "keyed graph keeps atomic key conflict capacity work and cancellation bound
   assert_eq(builder_retained_value_bytes(conflict), 0)
 
   let missing = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_edge(missing, 0, [number(10)], [number(1)], [number(2)], [
-    number(1),
-  ]).unwrap()
+  append_edge(missing, 0, [number(10)], [number(1)], [number(2)], [number(1)]).unwrap()
   let missing_graph = finish(missing).unwrap()
   assert_eq(node_count(missing_graph), 0)
   assert_eq(edge_count(missing_graph), 0)
@@ -193,8 +186,7 @@ test "keyed graph keeps atomic key conflict capacity work and cancellation bound
     max_workspace_slots: 4,
   }).unwrap()
   assert_true(
-    append_property_node(tiny, 0, [number(1)], [text("a")])
-    is Err(WorkspaceLimit),
+    append_node(tiny, 0, [number(1)], [text("a")]) is Err(WorkspaceLimit),
   )
   assert_true(finish(tiny) is Err(Closed))
   assert_true(cancel(tiny))
@@ -205,34 +197,32 @@ test "keyed graph keeps atomic key conflict capacity work and cancellation bound
     max_work: 4,
   }).unwrap()
   assert_true(
-    append_property_node(work_short, 0, [number(1)], [text("a")])
-    is Err(WorkLimit),
+    append_node(work_short, 0, [number(1)], [text("a")]) is Err(WorkLimit),
   )
   assert_true(finish(work_short) is Err(Closed))
   assert_true(cancel(work_short))
 
   let cancelled = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_node(cancelled, 0, [number(1)], [text("a")]).unwrap()
+  append_node(cancelled, 0, [number(1)], [text("a")]).unwrap()
   assert_true(cancel(cancelled))
   assert_false(cancel(cancelled))
   assert_true(finish(cancelled) is Err(Closed))
 
   let measured = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  append_property_node(measured, 0, [number(1)], [text("a")]).unwrap()
+  append_node(measured, 0, [number(1)], [text("a")]).unwrap()
   let retained = retained_value_bytes(finish(measured).unwrap())
   let exact = prepare(graph_fixture(), DeclaredNodes, {
     ..limits(),
     max_retained_value_bytes: retained,
   }).unwrap()
-  append_property_node(exact, 0, [number(1)], [text("a")]).unwrap()
+  append_node(exact, 0, [number(1)], [text("a")]).unwrap()
   assert_eq(retained_value_bytes(finish(exact).unwrap()), retained)
   let short = prepare(graph_fixture(), DeclaredNodes, {
     ..limits(),
     max_retained_value_bytes: retained - 1,
   }).unwrap()
   assert_true(
-    append_property_node(short, 0, [number(1)], [text("a")])
-    is Err(RetainedValueLimit),
+    append_node(short, 0, [number(1)], [text("a")]) is Err(RetainedValueLimit),
   )
   assert_true(finish(short) is Err(Closed))
   assert_true(cancel(short))
@@ -250,7 +240,7 @@ test "keyed graph storage admits independently counted canonical UTF-8 byte limi
     max_total_value_bytes: bytes,
     max_retained_value_bytes: bytes,
   }).unwrap()
-  append_property_node(exact, 0, [number(1)], [text("é")]).unwrap()
+  append_node(exact, 0, [number(1)], [text("é")]).unwrap()
   let stored = finish(exact).unwrap()
   assert_eq(measured_input_value_bytes(stored), bytes)
   assert_eq(retained_value_bytes(stored), bytes)
@@ -260,7 +250,7 @@ test "keyed graph storage admits independently counted canonical UTF-8 byte limi
     max_retained_value_bytes: bytes,
   }).unwrap()
   assert_true(
-    append_property_node(short, 0, [number(1)], [text("é")]) is Err(ValueLimit),
+    append_node(short, 0, [number(1)], [text("é")]) is Err(ValueLimit),
   )
   assert_true(finish(short) is Err(Closed))
   assert_true(cancel(short))

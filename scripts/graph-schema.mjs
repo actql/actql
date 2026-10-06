@@ -6,7 +6,7 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {positive, parameter} from './aggregate-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
-export function legacyGraphSchemas() {
+export function baseGraphOperationSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
   const field = {type:'string',minLength:1};
   const fields = {type:'array',items:field,uniqueItems:true};
@@ -63,13 +63,6 @@ export function legacyGraphSchemas() {
       with:{oneOf:[field,{type:'array',minItems:1,items:field}]},
     }},
     subtract_graphs: structuredClone(structural),
-    graph: {oneOf:[
-      {type:'object',additionalProperties:false,required:['nodes','edges'],properties:{
-        nodes:{type:'object',additionalProperties:false,required:['from','id'],properties:{from:field,id:field,fields}},
-        edges:{type:'object',additionalProperties:false,required:['from','source','target'],properties:{from:field,source:field,target:field,label:field,fields}},
-      }},
-      {type:'object',additionalProperties:false,required:['source','target'],properties:{source:field,target:field,label:field}},
-    ]},
     node_rows: {const:true},
     edge_rows: {const:true},
     graphs_equal: {type:'object', additionalProperties:false, required:['with'],
@@ -91,7 +84,7 @@ export function legacyGraphSchemas() {
 // Separate closed alternatives, not a permissive union of legacy and keyed
 // members. Semantic key/domain admission remains with the common typed owner.
 export function graphSchemas() {
-  const legacy = legacyGraphSchemas();
+  const legacy = baseGraphOperationSchemas();
   const field = {type:'string',minLength:1};
   const keys = {type:'array',minItems:1,uniqueItems:true,items:field};
   const properties = {oneOf:[
@@ -112,8 +105,8 @@ export function graphSchemas() {
     edge_rows:{oneOf:[{const:true},{type:'object',additionalProperties:false,
       required:['definition'],properties:{definition:field}},
       {type:'object',additionalProperties:false,required:['label'],properties:{label:field}}]},
-    property_graph:{type:'object',additionalProperties:false,required:['version','nodes','edges'],properties:{
-      version:{const:'actql-property-graph-constructor/0.1'},
+    graph:{type:'object',additionalProperties:false,required:['version','nodes','edges'],properties:{
+      version:{const:'actql-graph-constructor/0.1'},
       nodes:{type:'array',items:element},
       edges:{type:'array',items:{...element,required:[...element.required,'source','target'],properties:{...element.properties,source:endpoint,target:endpoint}}},
     }},

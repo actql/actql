@@ -12,7 +12,7 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     predicate_limits(),
   ).unwrap()
   assert_eq(@graph_typing.match_property_definition(checked), 0)
-  assert_eq(@graph_typing.match_property_definition_name(checked), "N")
+  assert_eq(@graph_typing.match_graph_element_definition_name(checked), "N")
   assert_eq(
     @carrier.field_count(@graph_typing.match_property_schema(checked)),
     0,
@@ -22,12 +22,12 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     1,
   )
   assert_eq(
-    @graph_typing.match_property_binding(checked, "identity"),
+    @graph_typing.match_graph_binding(checked, "identity"),
     Some(@row.Unqualified("element")),
   )
   assert_true(
     @graph_typing.match_pending(checked).contains(
-      @graph_typing.ResolvePropertyGraphMatchProfile,
+      @graph_typing.ResolveGraphMatchProfile,
     ),
   )
   let pending = @graph_typing.match_pending(checked)
@@ -35,7 +35,7 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     @graph_typing.AdmitMatchGraphData,
     @graph_typing.CanonicalMatchOrder,
     @graph_typing.ResolveMatchResources,
-    @graph_typing.ResolvePropertyGraphMatchProfile,
+    @graph_typing.ResolveGraphMatchProfile,
     @graph_typing.EvaluateMatchPredicate,
   ])
   assert_eq(@graph_typing.match_pending_count(checked), pending.length())

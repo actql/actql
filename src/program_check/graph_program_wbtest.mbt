@@ -1,5 +1,5 @@
 ///|
-test "formal Property Graph construction reaches owned closure without exposing partial success" {
+test "formal Graph construction reaches owned closure without exposing partial success" {
   for empty in [true, false] {
     let programs : Array[CheckedProgram] = []
     try
@@ -7,11 +7,11 @@ test "formal Property Graph construction reaches owned closure without exposing 
         { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
         through_check=true,
         checked_results=programs,
-        property_graph=true,
+        graph=true,
         generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
         producer_suffix="," +
           (
-            #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id"]}},{"derive":{"value":"id"},"as":"projected"}
+            #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id"]}},{"derive":{"value":"id"},"as":"projected"}
           ),
         producer_result_from="projected",
         extra_step_budget=3,
@@ -29,7 +29,7 @@ test "formal Property Graph construction reaches owned closure without exposing 
         assert_eq(site.index, 3)
         assert_true(
           @pipeline.step_at(site.pipeline, site.step).unwrap().operation
-          is @pipeline.PropertyGraphConstruction(..),
+          is @pipeline.GraphConstruction(..),
         )
       }
       other => raise other
@@ -41,7 +41,7 @@ test "formal Property Graph construction reaches owned closure without exposing 
 }
 
 ///|
-test "formal Property Graph construction with selected resource scopes reaches Result" {
+test "formal Graph construction with selected resource scopes reaches Result" {
   for empty in [true, false] {
     let identities : Array[String] = []
     for cap in [1, 1000] {
@@ -51,12 +51,12 @@ test "formal Property Graph construction with selected resource scopes reaches R
         through_check=true,
         checked_results=programs,
         second_stage=true,
-        property_graph=true,
+        graph=true,
         graph_construction_limit=Some(cap),
         generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
         producer_suffix="," +
           (
-            #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id"]}},{"derive":{"value":"id"},"as":"projected"}
+            #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id"]}},{"derive":{"value":"id"},"as":"projected"}
           ),
         producer_result_from="projected",
         extra_step_budget=3,
@@ -74,7 +74,7 @@ test "formal Property Graph construction with selected resource scopes reaches R
       let mut imported_visits = 0
       for i in 0..<@context.operation_closure_count(operations) {
         guard @context.operation_closure_at(operations, i)
-          is Some(ExecutionCheck(PropertyGraphConstructionExecution(check))) &&
+          is Some(ExecutionCheck(GraphConstructionExecution(check))) &&
           check.envelope is Some(envelope) else {
           continue
         }

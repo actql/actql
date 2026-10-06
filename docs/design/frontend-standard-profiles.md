@@ -67,7 +67,7 @@ do not promise left-to-right evaluation or mandatory short-circuiting of AND/OR.
 Conditional expressions have their own demand rules; do not classify them all
 as eager. Exact failure and resource behavior belongs in the common contract.
 
-## Property Graph mapping and element identity
+## Graph mapping and element identity
 
 The following notation defines the adopted mapping profile. Execution requires
 the installed common constructor and supported consumers; declaration of this
@@ -111,9 +111,9 @@ that distinction. An unadapted consumer must reject the new contract rather
 than collapse it to the historical endpoint/label tuple. Durable identity
 across runs is an ActQL requirement, not an assumption about vendor display IDs.
 
-The current Property Graph model, law body and operations are owned in ActQL;
+The current Graph model, law body and operations are owned in ActQL;
 `smoothhq/aoa` is not a build, runtime or acceptance dependency. The owned
-[Property Graph laws](../../spec/dependencies/actql-property-graph-laws.json)
+[Graph laws](../../spec/dependencies/actql-graph-laws.json)
 bind the constructor, typed identity and snapshot profile. Mechanized
 statements must name their actual assumptions and proof coverage. The same
 ActQL owners connect the model to source mapping, admission, acquisition,

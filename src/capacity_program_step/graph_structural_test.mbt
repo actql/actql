@@ -12,7 +12,7 @@ test "current Graph quantity bounds reject overflow and retain long repeated pro
       ",{\"take\":" +
       maximum.to_string() +
       ",\"as\":\"rows\"}" +
-      ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[" +
+      ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[" +
       definitions +
       "],\"edges\":[]},\"as\":\"g\"}]",
     )
@@ -35,7 +35,7 @@ test "current Graph quantity bounds reject overflow and retain long repeated pro
       )
     })
     let claim = proof(
-      "actql.bound.property-graph-nodes",
+      "actql.bound.graph-construction-nodes",
       if maximum == 1L {
         33L
       } else {

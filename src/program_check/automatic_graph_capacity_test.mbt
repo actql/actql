@@ -1,5 +1,5 @@
 ///|
-test "Property Graph MATCH derives quantity bounds through Result imports" {
+test "Graph MATCH derives quantity bounds through Result imports" {
   for
     (nodes, empty) in [
       (true, false),
@@ -15,7 +15,7 @@ test "Property Graph MATCH derives quantity bounds through Result imports" {
       @program_check.checking_environment_wire(base),
       { text_time: false, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-      property_graph=true,
+      graph=true,
     )
     let projection = if nodes {
       "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":\"true\",\"fields\":[\"id\",\"value\"]},\"as\":\"projected\"}"
@@ -25,7 +25,7 @@ test "Property Graph MATCH derives quantity bounds through Result imports" {
     let source = text
       .replace(
         old="\"as\":\"derived\"}]",
-        new="\"as\":\"derived\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"derived\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"all_columns\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"derived\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"all_columns\"}}]}]},\"as\":\"g\"}," +
+        new="\"as\":\"derived\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"derived\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"all_columns\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"derived\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"all_columns\"}}]}]},\"as\":\"g\"}," +
           projection +
           "]",
       )

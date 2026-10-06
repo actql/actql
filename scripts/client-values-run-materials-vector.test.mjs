@@ -252,7 +252,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     priorAoA).run.run_definition_cid,
     pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
-  // Freeze the pre-refresh Property Graph vectors as history. The later
+  // Freeze the pre-refresh Graph vectors as history. The later
   // query grammar pin changes compilation/Run identity, not this Values
   // Unit, cardinality proof or Result Plan. No product issuer is consulted.
   const preRefreshDependencies = {
@@ -503,7 +503,7 @@ test('baseline preimages and changed normative pins independently determine the 
   priorTypedDependencies.proof = cid({version:'actql-bound-proof/0.1',inputs:[],law_id:'actql.bound.values',
     semantic_ref:`unit:${priorTypedDependencies.unit}#/steps/0`,unit:'rows',value:2});
   assert.equal(vector(pin('e891f9c133e66fbc4649b0cea7968f431e3285fd7f265f3304701eb0110e6816'),
-    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', priorTypedDependencies, barrierCid, {
+    'sha256:6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85', priorTypedDependencies, barrierCid, {
       programCid:pin('666d7674d445fbd6c81cdd499cd8691cf12840b77f90bcff02d7e06af9abfeac'),
       semanticsCid:pin('a0c4c52c89c99f580394bf1991b31e543f9789fc6fd0b99cbea2bffb947abc70'),
     }).run.run_definition_cid,

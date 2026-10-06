@@ -5,7 +5,7 @@ import { loadTransferLaws, validateTransferLaws } from './bound-transfer-laws.mj
 test('every public operation has exactly one closed bound transfer classification', () => {
   const { body, source } = loadTransferLaws();
   assert.equal(validateTransferLaws(body, source).operations, 73);
-  assert.equal(body.operations.property_graph, 'carrier_specific');
+  assert.equal(body.operations.graph, 'carrier_specific');
 });
 
 test('missing, stale, and unknown classifications fail rather than infer a default', () => {

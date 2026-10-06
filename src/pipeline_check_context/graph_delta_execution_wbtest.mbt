@@ -88,7 +88,7 @@ test "Delta requirements separate the static profile from exact typed runtime op
       if rule == AdmitGraphOperands {
         assert_eq(
           @pipeline.operation_profile_requirement(site.requirement),
-          Some(@pipeline.PropertyGraph),
+          Some(@pipeline.Graph),
         )
         assert_true(graph_delta_execution_check(site, policy) is Ok(None))
         assert_true(

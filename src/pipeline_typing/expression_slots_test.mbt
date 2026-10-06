@@ -160,7 +160,7 @@ test "Graph expression slots retain scoped MATCH and literal TRAIL without fabri
     ] {
     let p = @pipeline_typing.check_carriers(
       cursor(steps),
-      [("g", query_property_graph())],
+      [("g", query_graph())],
       None,
       None,
       limits(),

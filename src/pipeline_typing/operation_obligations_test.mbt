@@ -77,7 +77,7 @@ fn assert_obligation_groups(
 
 ///|
 test "current TRAIL obligations retain typed selector ownership and source provenance" {
-  let graph = query_property_graph()
+  let graph = query_graph()
   let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
@@ -167,7 +167,7 @@ test "unsupported Graph consumers cannot issue legacy selector or structural fol
     ] {
     let issue = @pipeline_typing.check_carriers(
       cursor("[" + body + "]"),
-      [("g", query_property_graph())],
+      [("g", query_graph())],
       None,
       None,
       limits(),
@@ -242,7 +242,7 @@ test "current subgraph obligations retain typed selector and edge predicate owne
 test "supported union preserves four repeated input obligations without legacy fold" {
   let checked = @pipeline_typing.check_carriers(
     cursor("[{\"from\":\"g\",\"union_graphs\":{\"with\":[\"g\",\"g\",\"g\"]}}]"),
-    [("g", query_property_graph())],
+    [("g", query_graph())],
     None,
     None,
     limits(),

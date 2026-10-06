@@ -2,12 +2,12 @@
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
-                   ( relational_body | property_graph_constructor
+                   ( relational_body | graph_constructor
                    | named_sga_call ), ";" ;
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
 (* The pure constructor wrapper is an ActQL extension. Its table mapping
    follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
-property_graph_constructor = "PROPERTY", "GRAPH", "(",
+graph_constructor = "PROPERTY", "GRAPH", "(",
                    "NODE", "TABLES", "(", node_definition,
                      { ",", node_definition }, ")",
                    [ "EDGE", "TABLES", "(", edge_definition,

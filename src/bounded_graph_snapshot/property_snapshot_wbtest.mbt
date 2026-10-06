@@ -2,7 +2,7 @@
 // Independently authored canonical schema/records, not emitted product output.
 fn property_snapshot_schema() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"}
   )
 }
 
@@ -31,7 +31,7 @@ fn expected_property_snapshot() -> String {
     node +
     "}"
   })
-  "[\"actql-property-graph-snapshot/0.1\",\"sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d\"," +
+  "[\"actql-graph-snapshot/0.1\",\"sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166\"," +
   property_snapshot_schema() +
   ",[{\"id\":" +
   node +
@@ -56,7 +56,7 @@ fn property_snapshot_storage() -> @storage.Storage {
     max_fields=1,
     max_name_bytes=4,
   ).unwrap()
-  let n = @carrier.property_node_definition(
+  let n = @carrier.graph_node_definition(
     "N",
     [key_contract],
     props,
@@ -65,7 +65,7 @@ fn property_snapshot_storage() -> @storage.Storage {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  let e = @carrier.property_node_definition(
+  let e = @carrier.graph_node_definition(
     "E",
     [key_contract],
     empty,
@@ -73,10 +73,10 @@ fn property_snapshot_storage() -> @storage.Storage {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  let carrier = @carrier.property_graph(
+  let carrier = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [n],
-    [@carrier.property_edge_definition(e, "N", "N").unwrap()],
+    [@carrier.graph_edge_definition(e, "N", "N").unwrap()],
     max_definitions=2,
     max_contract_work=1000,
   ).unwrap()
@@ -85,7 +85,7 @@ fn property_snapshot_storage() -> @storage.Storage {
     @storage.DeclaredNodes,
     storage_limits(),
   ).unwrap()
-  @storage.append_property_node(builder, 0, [number(1.0)], [
+  @storage.append_node(builder, 0, [number(1.0)], [
     @value.recheck_runtime_value(
       text("one").value,
       string,
@@ -94,7 +94,7 @@ fn property_snapshot_storage() -> @storage.Storage {
   ]).unwrap()
   // Reverse insertion order detects accidental endpoint or input ordering.
   for key in [11.0, 10.0] {
-    @storage.append_property_edge(
+    @storage.append_edge(
       builder,
       0,
       [number(key)],
@@ -137,7 +137,7 @@ test "property snapshot preserves independent parallel edges schema labels and t
     // Node crypto SHA-256 of the independent preimage above, not product bytes.
     assert_eq(
       cid(snapshot),
-      "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6",
+      "sha256:336f66f7bbf93eda36dc081c1922457e3939b7d9f79577964ad06c28f8b80f0c",
     )
     assert_eq(node_count(snapshot), 1)
     assert_eq(edge_count(snapshot), 2)
@@ -170,14 +170,14 @@ test "snapshot entry points share the current contract and reject incomplete kno
   )
   let prepared = prepare(
     property_snapshot_storage(),
-    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+    "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
     snapshot_limits(100),
   ).unwrap()
   let (snapshot, bytes) = finish_property_snapshot(prepared, 1)
   assert_eq(bytes, expected_property_snapshot())
   assert_eq(
     cid(snapshot),
-    "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6",
+    "sha256:336f66f7bbf93eda36dc081c1922457e3939b7d9f79577964ad06c28f8b80f0c",
   )
 }
 

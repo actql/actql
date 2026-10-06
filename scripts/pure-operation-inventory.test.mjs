@@ -32,7 +32,7 @@ test('evidence paths exist and both embedded Program schemas contain each operat
     const operations = names.split(', ');
     if (operations.some(refused)) {
       assert.ok(operations.every(refused), 'Do not mix refusal and execution evidence');
-      assert.equal(pipeline, 'scripts/property-graph-public-host.test.mjs');
+      assert.equal(pipeline, 'scripts/graph-public-host.test.mjs');
       const publicRefusal = read(pipeline);
       assert.ok(publicRefusal.includes('coverage.current_graph_profile.classification[entry.operation]'));
       assert.ok(publicRefusal.includes('ClientProgramUnsupported'));
@@ -40,7 +40,7 @@ test('evidence paths exist and both embedded Program schemas contain each operat
       assert.ok(publicRefusal.includes('physicalSteps'));
     }
     for (const path of [unit, pipeline]) {
-      if (path === 'scripts/property-graph-public-host.test.mjs') {
+      if (path === 'scripts/graph-public-host.test.mjs') {
         assert.ok(operations.every(refused), 'Public refusal is not execution evidence');
         assert.match(read(path), /^\s*test\(/m, path);
       } else {

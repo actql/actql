@@ -96,9 +96,10 @@ pub fn resident_completed_holder_claimant(
   if @remote.dispatch_record_state_codes(record)[0] != 3 {
     return Ok(None)
   }
-  match admit_resident_completed_envelope(
-    admission, delegation, site_generation, attempt_identity, envelope, at,
-  ) {
+  match
+    admit_resident_completed_envelope(
+      admission, delegation, site_generation, attempt_identity, envelope, at,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -115,9 +116,10 @@ pub fn resident_completed_holder_claimant(
     @journal.recovered_site_dispatch_file_custody(saved) is Some(_) else {
     return Err(Runtime(@runtime.CompletedRestorationPending))
   }
-  match @remote.restore_remote_runtime_completed_custody(
-    record, evidence, subject, measurement,
-  ) {
+  match
+    @remote.restore_remote_runtime_completed_custody(
+      record, evidence, subject, measurement,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Protocol(issue))
   }

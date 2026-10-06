@@ -17,12 +17,12 @@ fn graph_rows_input() -> @carrier.Carrier {
 }
 
 ///|
-test "named Property Graph definitions retain ordered repeated operands through MATCH" {
+test "named Graph definitions retain ordered repeated operands through MATCH" {
   let p = @pipeline_typing.check_carriers(
     cursor(
       (
         #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"src_id":{"type":"number","nullable":false},"dst_id":{"type":"number","nullable":false},"weight":{"type":"number","nullable":false}},"rows":[{"id":1,"src_id":1,"dst_id":1,"weight":2}]},"as":"rows"},
-        #| {"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"rows","key":["id"],"source":{"definition":"N","key":["src_id"]},"target":{"definition":"N","key":["dst_id"]},"labels":[{"name":"Edge","properties":{"mode":"columns","columns":[{"from":"weight","to":"weight"}]}}]}]},"as":"g"},
+        #| {"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"rows","key":["id"],"source":{"definition":"N","key":["src_id"]},"target":{"definition":"N","key":["dst_id"]},"labels":[{"name":"Edge","properties":{"mode":"columns","columns":[{"from":"weight","to":"weight"}]}}]}]},"as":"g"},
         #| {"match_nodes":{"definition":"N","bindings":{"identity":"element"},"where":"true","fields":["element"]}},{"select":["element"]}]
       ),
     ),
@@ -34,7 +34,7 @@ test "named Property Graph definitions retain ordered repeated operands through 
   let step = @pipeline_typing.step_at(p, 1).unwrap()
   assert_true(step.input is None)
   assert_true(
-    step.operation is PropertyGraphConstruction(inputs=[Step(0), Step(0)], ..),
+    step.operation is GraphConstruction(inputs=[Step(0), Step(0)], ..),
   )
   let refs = @pipeline_typing.input_occurrences(step)
   assert_eq(refs.length(), 2)

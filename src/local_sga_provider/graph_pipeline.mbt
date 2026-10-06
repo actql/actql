@@ -176,7 +176,7 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
       @execution.generated_prepared_sequence(sequence),
       selected.unwrap_or(0),
     ) {
-    Some(@lower.PropertyGraphConstructionStep(_))
+    Some(@lower.GraphConstructionStep(_))
     | Some(@lower.GraphNormalizeStep(_))
     | Some(@lower.GraphUnionStep(_))
     | Some(@lower.GraphSubtractionStep(_)) => true
@@ -258,8 +258,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       }
     }
     match operation {
-      @lower.PropertyGraphConstructionStep(_) =>
-        @lower.operation(node) == "BRIDGE.rows.to_property_graph" &&
+      @lower.GraphConstructionStep(_) =>
+        @lower.operation(node) == "BRIDGE.rows.to_graph" &&
         current_graph(@lower.node_output_carrier(node))
       @lower.GraphMatchStep(matched) => {
         guard @lower.node_input_target(node, 0) is Some(input) &&
@@ -418,7 +418,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     // Programs use the existing selected-step task composition instead.
     match
       @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
-      Some(@lower.PropertyGraphConstructionStep(_)) => ()
+      Some(@lower.GraphConstructionStep(_)) => ()
       _ => return false
     }
     match
@@ -740,9 +740,9 @@ fn advance_execution(
         // The keyed contract uses the existing bounded construction session;
         // completion and cleanup stay with the same provider and lifecycle.
         let started = match @lower.sequence_step(value.sequence, step) {
-          Some(@lower.PropertyGraphConstructionStep(graph)) => {
-            let count = @lower.property_graph_construction_node_count(graph) +
-              @lower.property_graph_construction_edge_count(graph)
+          Some(@lower.GraphConstructionStep(graph)) => {
+            let count = @lower.graph_construction_node_count(graph) +
+              @lower.graph_construction_edge_count(graph)
             let inputs = []
             for edge in 0..<count {
               guard input_at(value, step, edge) is Some(input) else {
@@ -750,7 +750,7 @@ fn advance_execution(
               }
               inputs.push(input)
             }
-            @bridge.start_rows_to_property_graph(
+            @bridge.start_rows_to_graph(
               value.control,
               value.sequence,
               step,
@@ -1864,10 +1864,10 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.PropertyGraphConstructionStep(graph)) =>
+        Some(@lower.GraphConstructionStep(graph)) =>
           Some(
-            @lower.property_graph_construction_node_count(graph) +
-            @lower.property_graph_construction_edge_count(graph),
+            @lower.graph_construction_node_count(graph) +
+            @lower.graph_construction_edge_count(graph),
           )
         _ => None
       }

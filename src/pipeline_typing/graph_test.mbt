@@ -1,6 +1,6 @@
 ///|
 fn graph_input() -> @carrier.Carrier {
-  query_property_graph()
+  query_graph()
 }
 
 ///|
@@ -16,7 +16,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(NumberType, nullable=false)],
     props,
@@ -24,8 +24,8 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [@contract.primitive(NumberType, nullable=false)],
       props,
@@ -36,7 +36,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],
@@ -245,7 +245,7 @@ test "definition-scoped property MATCH connects Relation consumers and preserves
     let step = @pipeline_typing.step_at(p, 0).unwrap()
     guard step.operation is GraphMatch(checked) else { fail("scoped MATCH") }
     assert_true(physical_equal(@graph.match_input(checked), graph))
-    assert_eq(@graph.match_property_definition_name(checked), definition)
+    assert_eq(@graph.match_graph_element_definition_name(checked), definition)
     let edges = @pipeline_typing.input_occurrences(step)
     assert_eq(edges.length(), 1)
     assert_eq(edges[0].target, Input(0))

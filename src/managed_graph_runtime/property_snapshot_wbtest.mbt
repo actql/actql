@@ -67,7 +67,7 @@ test "property snapshot reference keys require existing Host authority rather th
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [contract],
     empty,
@@ -75,7 +75,7 @@ test "property snapshot reference keys require existing Host authority rather th
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let carrier = @carrier.property_graph(
+  let carrier = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [definition],
     [],
@@ -85,7 +85,7 @@ test "property snapshot reference keys require existing Host authority rather th
   guard carrier is @carrier.GraphValue(graph) else { fail("graph") }
   let limits = { ..graph_limits(), max_work: 10000, max_value_bytes: 10000, }
   let builder = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
-  @storage.append_property_node(builder, 0, [key], []).unwrap()
+  @storage.append_node(builder, 0, [key], []).unwrap()
   let stored = @storage.finish(builder).unwrap()
   let (cid, body) = capture_property_snapshot(
     @snapshot.prepare_property(stored, property_snapshot_caps()).unwrap(),
@@ -97,7 +97,7 @@ test "property snapshot reference keys require existing Host authority rather th
   ).unwrap()
   let record = @snapshot.property_header_node_at(header, 0).unwrap()
   let denied = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
-  assert_true(@storage.append_property_snapshot_node(denied, record) is Err(_))
+  assert_true(@storage.append_snapshot_node(denied, record) is Err(_))
   assert_true(@storage.finish(denied) is Err(_))
   @storage.cancel(denied) |> ignore
   let reissuer = @value.bind_reference_reissuer((required, candidate) => {
@@ -110,7 +110,7 @@ test "property snapshot reference keys require existing Host authority rather th
     }
   })
   let restored = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
-  @storage.append_property_snapshot_node(
+  @storage.append_snapshot_node(
     restored,
     record,
     reference_issuer=Some(reissuer),
@@ -135,7 +135,7 @@ test "property snapshot reference keys require existing Host authority rather th
   assert_false(@value.reference_available(reference))
   let revoked = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
   assert_true(
-    @storage.append_property_snapshot_node(
+    @storage.append_snapshot_node(
       revoked,
       record,
       reference_issuer=Some(reissuer),
@@ -160,17 +160,12 @@ test "property snapshot uses the exact managed read schema and preserves handoff
     4096L,
     () => live.val,
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
-  append_property_node(output, 1, [number(1.0)], []).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(output, 1, [number(1.0)], []).unwrap()
   for key in [11.0, 10.0] {
-    append_property_edge(
-      output,
-      0,
-      [number(key)],
-      [number(1.0)],
-      [number(1.0)],
-      [number(key)],
-    ).unwrap()
+    append_edge(output, 0, [number(key)], [number(1.0)], [number(1.0)], [
+      number(key),
+    ]).unwrap()
   }
   let completed = finish_output(output).unwrap()
   let receiver = property_view_receiver(owner)
@@ -196,11 +191,11 @@ test "property snapshot uses the exact managed read schema and preserves handoff
   )
   assert_true(producer_read_available(read))
   assert_eq(@storage.edge_count(storage), 2)
-  let profile = @carrier.graph_property_definition(graph)
-  let foreign = @carrier.property_graph(
+  let profile = @carrier.graph_definition(graph)
+  let foreign = @carrier.graph(
     "sha256:" + "1".repeat(64),
-    @carrier.property_graph_node_definitions(profile),
-    @carrier.property_graph_edge_definitions(profile),
+    @carrier.graph_node_definitions(profile),
+    @carrier.graph_edge_definitions(profile),
     max_definitions=3,
     max_contract_work=1000,
   ).unwrap()

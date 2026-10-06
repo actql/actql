@@ -266,7 +266,7 @@ pub fn operation_obligations_graph_union(OperationObligations) -> @graph_typing.
 
 pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
 
-pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
+pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedGraphConstruction?
 
 pub fn operation_obligations_property_equality(OperationObligations) -> @graph_typing.CheckedPropertyEquality?
 
@@ -436,7 +436,7 @@ pub(all) enum AdoptedOperationLaw {
   RelaPrimitive
   SgaStructural
   SgaIdentity
-  PropertyGraphLaw
+  GraphLaw
   VecaNumeric
 } derive(Eq, @debug.Debug)
 
@@ -479,7 +479,7 @@ pub enum CheckedOperation {
   GraphComponents(@graph_typing.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
-  PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
+  GraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedGraphConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
@@ -765,7 +765,7 @@ pub(all) enum OperationOrderDemand {
 pub(all) enum OperationProfile {
   RelA
   SGA
-  PropertyGraph
+  Graph
   TEA
   VecA
   CalendarProfile

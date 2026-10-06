@@ -49,14 +49,14 @@ test "snapshot shared preparation uses the sole current contract" {
   for quantum in [1, 7] {
     let prepared = prepare(
       property_snapshot_storage(),
-      "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+      "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
       snapshot_limits(100),
     ).unwrap()
     let (snapshot, bytes) = finish_property_snapshot(prepared, quantum)
     assert_eq(bytes, expected_property_snapshot())
     assert_eq(
       cid(snapshot),
-      "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6",
+      "sha256:336f66f7bbf93eda36dc081c1922457e3939b7d9f79577964ad06c28f8b80f0c",
     )
     assert_eq(node_at(snapshot, 0), Some(0))
     assert_eq(edge_at(snapshot, 0), Some(1))

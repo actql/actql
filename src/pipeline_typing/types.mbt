@@ -162,9 +162,9 @@ pub enum CheckedOperation {
   GraphComponents(@graph.CheckedComponents)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
-  PropertyGraphConstruction(
+  GraphConstruction(
     inputs~ : Array[Target],
-    checked~ : @graph.CheckedPropertyConstruction
+    checked~ : @graph.CheckedGraphConstruction
   )
   Vector(@vector.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)
@@ -514,27 +514,27 @@ fn carrier(
 }
 
 ///|
-fn property_definition_preflight(
+fn graph_element_definition_preflight(
   b : Budget,
   source : @decode.Cursor,
-  value : @carrier.PropertyNodeDefinition,
+  value : @carrier.GraphNodeDefinition,
 ) -> Unit raise Stop {
   spend(b, source, 1)
-  charge(b, source, @carrier.property_definition_name(value))
-  let keys = @carrier.property_definition_key_count(value)
+  charge(b, source, @carrier.graph_element_definition_name(value))
+  let keys = @carrier.graph_element_definition_key_count(value)
   spend(b, source, keys)
   for index in 0..<keys {
     preflight(
       b,
       source,
-      @carrier.property_definition_key_at(value, index).unwrap(),
+      @carrier.graph_element_definition_key_at(value, index).unwrap(),
     )
   }
-  rows_preflight(b, source, @carrier.property_definition_properties(value))
-  let labels = @carrier.property_definition_label_count(value)
+  rows_preflight(b, source, @carrier.graph_element_definition_properties(value))
+  let labels = @carrier.graph_element_definition_label_count(value)
   spend(b, source, labels)
   for index in 0..<labels {
-    let (label, properties) = @carrier.property_definition_label_at(
+    let (label, properties) = @carrier.graph_element_definition_label_at(
       value, index,
     ).unwrap()
     charge(b, source, label)
@@ -554,27 +554,27 @@ fn carrier_preflight(
     @carrier.GraphValue(graph) => {
       spend(b, source, 1)
       preflight(b, source, @carrier.graph_identity(graph))
-      let definition = @carrier.graph_property_definition(graph)
-      charge(b, source, @carrier.property_graph_domain(definition))
-      let nodes = @carrier.property_graph_node_count(definition)
-      let edges = @carrier.property_graph_edge_count(definition)
+      let definition = @carrier.graph_definition(graph)
+      charge(b, source, @carrier.graph_domain(definition))
+      let nodes = @carrier.graph_node_count(definition)
+      let edges = @carrier.graph_edge_count(definition)
       spend(b, source, nodes)
       spend(b, source, edges)
       for index in 0..<nodes {
-        property_definition_preflight(
+        graph_element_definition_preflight(
           b,
           source,
-          @carrier.property_graph_node_at(definition, index).unwrap(),
+          @carrier.graph_node_at(definition, index).unwrap(),
         )
       }
       for index in 0..<edges {
-        let edge = @carrier.property_graph_edge_at(definition, index).unwrap()
-        property_definition_preflight(
+        let edge = @carrier.graph_edge_at(definition, index).unwrap()
+        graph_element_definition_preflight(
           b,
           source,
-          @carrier.property_edge_element(edge),
+          @carrier.graph_edge_element(edge),
         )
-        let (from, to) = @carrier.property_edge_endpoints(edge)
+        let (from, to) = @carrier.graph_edge_endpoints(edge)
         spend(b, source, 2)
         charge(b, source, from)
         charge(b, source, to)

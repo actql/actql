@@ -183,24 +183,21 @@ fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
 ///|
 fn graph_read_property_definition(
   source : GraphReadSource,
-) -> @carrier.PropertyGraphDefinition? {
+) -> @carrier.GraphDefinition? {
   match source {
     Accumulated(storage) =>
       match @storage.carrier(storage) {
-        @carrier.GraphValue(graph) =>
-          Some(@carrier.graph_property_definition(graph))
+        @carrier.GraphValue(graph) => Some(@carrier.graph_definition(graph))
         _ => None
       }
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         match @storage.carrier(storage) {
-          @carrier.GraphValue(graph) =>
-            Some(@carrier.graph_property_definition(graph))
+          @carrier.GraphValue(graph) => Some(@carrier.graph_definition(graph))
           _ => None
         }
       })
-    Viewed(view) =>
-      @lifecycle.producer_view_property_graph_definition(view).to_option()
+    Viewed(view) => @lifecycle.producer_view_graph_definition(view).to_option()
   }
 }
 

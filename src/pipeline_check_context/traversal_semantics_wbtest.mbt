@@ -3,9 +3,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
   let producer = property_execution_pipeline()
   let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
   guard graph is @carrier.GraphValue(schema) else { fail("keyed Graph schema") }
-  let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(schema),
-  )
+  let domain = @carrier.graph_domain(@carrier.graph_definition(schema))
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
@@ -38,11 +36,11 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
     let step = @pipeline.step_at(pipeline, 0).unwrap()
     assert_eq(
       @pipeline.operation_profile_at(step.operation, 0),
-      Some(@pipeline.PropertyGraph),
+      Some(@pipeline.Graph),
     )
     assert_eq(
-      @pipeline.operation_profile_adopted_law_at(@pipeline.PropertyGraph, 0),
-      Some(@pipeline.PropertyGraphLaw),
+      @pipeline.operation_profile_adopted_law_at(@pipeline.Graph, 0),
+      Some(@pipeline.GraphLaw),
     )
     let body = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
     let rules : Array[TraversalRule] = []
@@ -71,7 +69,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
             site.requirement
             is @pipeline.TraverseRequirement(
               ResolveTraversalResources
-              | ResolvePropertyGraphTraversalProfile
+              | ResolveGraphTraversalProfile
             ),
           )
           unresolved += 1
@@ -96,9 +94,7 @@ test "current TRAIL bindings preserve mode input roles custody and unresolved gu
   let producer = property_execution_pipeline()
   let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
   guard graph is @carrier.GraphValue(schema) else { fail("current Graph") }
-  let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(schema),
-  )
+  let domain = @carrier.graph_domain(@carrier.graph_definition(schema))
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[2],\"key_types\":[{\"kind\":\"number\"}]}"
@@ -176,7 +172,7 @@ test "current TRAIL bindings preserve mode input roles custody and unresolved gu
                 site.requirement
                 is @pipeline.TraverseRequirement(
                   ResolveTraversalResources
-                  | ResolvePropertyGraphTraversalProfile
+                  | ResolveGraphTraversalProfile
                   | EnforceTraversalOutputGuard
                 ),
               )

@@ -60,7 +60,7 @@ fn append_property_snapshot_record(
 ///|
 /// Snapshot admission is strict: no NULL-key or missing-endpoint exclusion is
 /// permitted. Synchronous callers drain the same operation as managed callers.
-pub fn append_property_snapshot_node(
+pub fn append_snapshot_node(
   builder : Builder,
   input : @decode.Cursor,
   reference_issuer? : @value.ReferenceIssuer? = None,
@@ -69,7 +69,7 @@ pub fn append_property_snapshot_node(
 }
 
 ///|
-pub fn append_property_snapshot_edge(
+pub fn append_snapshot_edge(
   builder : Builder,
   input : @decode.Cursor,
   reference_issuer? : @value.ReferenceIssuer? = None,

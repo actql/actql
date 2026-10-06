@@ -18,25 +18,25 @@ fn check_property_match_scope(
   graph : @carrier.Graph,
   b : Budget,
 ) -> PropertyMatchScope raise Stop {
-  let profile = @carrier.graph_property_definition(graph)
+  let profile = @carrier.graph_definition(graph)
   let name_source = decoded(@decode.required(root, "definition"))
   let name = decoded(@decode.text(name_source))
   let definitions = if entity == Nodes {
-    @carrier.property_graph_node_count(profile)
+    @carrier.graph_node_count(profile)
   } else {
-    @carrier.property_graph_edge_count(profile)
+    @carrier.graph_edge_count(profile)
   }
   let mut found = None
   spend(b, name_source, definitions)
   for index in 0..<definitions {
     let definition = if entity == Nodes {
-      @carrier.property_graph_node_at(profile, index).unwrap()
+      @carrier.graph_node_at(profile, index).unwrap()
     } else {
-      @carrier.property_edge_element(
-        @carrier.property_graph_edge_at(profile, index).unwrap(),
+      @carrier.graph_edge_element(
+        @carrier.graph_edge_at(profile, index).unwrap(),
       )
     }
-    if @carrier.property_definition_name(definition).to_lower() ==
+    if @carrier.graph_element_definition_name(definition).to_lower() ==
       name.to_lower() {
       found = Some((index, definition))
     }
@@ -45,9 +45,9 @@ fn check_property_match_scope(
     fail(name_source, InvalidName(name))
   }
   let label = @decode.lookup(root, "label").map(at => decoded(@decode.text(at)))
-  let mut properties = @carrier.property_definition_properties(definition)
+  let mut properties = @carrier.graph_element_definition_properties(definition)
   if label is Some(label) {
-    let labels = @carrier.property_definition_label_properties(definition)
+    let labels = @carrier.graph_element_definition_label_properties(definition)
     spend(b, source, labels.length())
     let mut found = None
     for (candidate, selected) in labels {
@@ -116,8 +116,8 @@ fn check_property_match_scope(
   }
   {
     definition: index,
-    name: @carrier.property_definition_name(definition),
-    properties: @carrier.property_definition_properties(definition),
+    name: @carrier.graph_element_definition_name(definition),
+    properties: @carrier.graph_element_definition_properties(definition),
     bindings,
     label,
     scope: { fields: rows, usage: { work: 0, nodes: 0, text_bytes: 0, }, },
@@ -130,7 +130,7 @@ pub fn match_property_definition(c : CheckedMatch) -> Int {
 }
 
 ///|
-pub fn match_property_definition_name(c : CheckedMatch) -> String {
+pub fn match_graph_element_definition_name(c : CheckedMatch) -> String {
   c.property_scope.name
 }
 
@@ -145,10 +145,7 @@ pub fn match_property_schema(c : CheckedMatch) -> @carrier.Knowledge {
 }
 
 ///|
-pub fn match_property_binding(
-  c : CheckedMatch,
-  role : String,
-) -> @row.FieldName? {
+pub fn match_graph_binding(c : CheckedMatch, role : String) -> @row.FieldName? {
   for (candidate, name) in c.property_scope.bindings {
     if candidate == role {
       return Some(name)

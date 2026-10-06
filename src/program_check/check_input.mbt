@@ -13,7 +13,7 @@ struct CheckEnvironment {
   wire : @environment.WireEnvironment
   expressions : @context.ExpressionProfiles
   operations : @context.PureOperationProfiles
-  property_graph : Bool
+  graph : Bool
   numeric : @numeric.Profile?
   calendar : @environment.SelectedCalendarProfile?
   text_rank : @environment.SelectedTextRankProfile?
@@ -31,14 +31,14 @@ pub fn checking_environment(
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckEnvironment {
   {
     wire,
     expressions: expression_profiles,
     operations: operation_profiles,
-    property_graph,
+    graph,
     numeric: numeric_profile,
     calendar,
     text_rank,
@@ -69,7 +69,7 @@ pub fn checking_environment_cid(value : CheckEnvironment) -> String {
 pub(all) struct CheckProfileSelection {
   expressions : @context.ExpressionProfiles
   operations : @context.PureOperationProfiles
-  property_graph : Bool
+  graph : Bool
   model_tasks : Bool
   numeric_profile_cid : String?
   calendar_profile_cid : String?
@@ -83,7 +83,7 @@ pub fn checking_environment_profile_selection(
   {
     expressions: value.expressions,
     operations: value.operations,
-    property_graph: value.property_graph,
+    graph: value.graph,
     model_tasks: value.model_tasks is Some(_),
     numeric_profile_cid: value.numeric.map(profile => @numeric.cid(profile)),
     calendar_profile_cid: value.calendar.map(selected => {

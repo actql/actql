@@ -18,7 +18,7 @@ test "derived TRAIL limits retain exact subjects and Host ceilings" {
       ) +
       rows +
       (
-        #|},"as":"seed"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"]}],"edges":[]},"as":"g"},{"traverse":{"start":{"ids":[
+        #|},"as":"seed"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"]}],"edges":[]},"as":"g"},{"traverse":{"start":{"ids":[
       ) +
       identity +
       (

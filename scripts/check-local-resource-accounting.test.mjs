@@ -909,22 +909,22 @@ test('current Delta Host stop records name executable conversion and application
 test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
   for (const field of ['path_assurance','resource_assurance']) {
     assert.match(run(undefined, value => {
-      delete value.routes.find(route=>route.operation==='property_graph')[field].entrypoint;
-    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+      delete value.routes.find(route=>route.operation==='graph')[field].entrypoint;
+    }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   }
-  for (const role of ['property_graph_control_work_workspace_exact_one_short',
-    'property_graph_private_capacity_cancel_cleanup']) {
+  for (const role of ['graph_control_work_workspace_exact_one_short',
+    'graph_private_capacity_cancel_cleanup']) {
     assert.match(run(undefined, value => {
-      const route = value.routes.find(route=>route.operation==='property_graph');
+      const route = value.routes.find(route=>route.operation==='graph');
       route.boundary_tests = route.boundary_tests.filter(item=>item.role!==role);
-    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   }
   assert.match(run(undefined, value => {
-    value.routes.find(route=>route.operation==='property_graph').environment_tests=[];
-  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    value.routes.find(route=>route.operation==='graph').environment_tests=[];
+  }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   assert.match(run(undefined, value => {
-    value.routes.find(route=>route.operation==='property_graph').dispatch.marker='@bridge.start_rows_to_graph(';
-  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    value.routes.find(route=>route.operation==='graph').dispatch.marker='@bridge.start_rows_to_graph(';
+  }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
 });
 
 test('retained source-free Values requires exact admission and Host evidence', () => {
@@ -3197,7 +3197,7 @@ test('resource gate rejects a bypassed provider call', () => {
 test('resource gate refuses a test fixture as the production entrypoint', () => {
   assert.match(run(undefined, value => {
     value.routes.find(entry => entry.operation === 'match_nodes')
-      .entrypoint.path = 'src/query_integration/property_graph_construction_wbtest.mbt';
+      .entrypoint.path = 'src/query_integration/graph_construction_wbtest.mbt';
   }), /SGA match_nodes: entrypoint must bind a production source/);
 });
 

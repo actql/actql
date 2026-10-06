@@ -129,16 +129,11 @@ test "managed Graph completion supports two exact downstream consumers" {
     4096L,
     fn() { live.val },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
-  append_property_node(output, 0, [number(2.0)], [text("b")]).unwrap()
-  append_property_edge(
-    output,
-    0,
-    [number(10.0)],
-    [number(1.0)],
-    [number(2.0)],
-    [number(3.0)],
-  ).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(2.0)], [text("b")]).unwrap()
+  append_edge(output, 0, [number(10.0)], [number(1.0)], [number(2.0)], [
+    number(3.0),
+  ]).unwrap()
   let completed = finish_output(output).unwrap()
   assert_eq(
     completed_measure(completed),
@@ -255,7 +250,7 @@ test "managed Graph material owns final reclamation" {
     4096L,
     fn() { true },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   let completed = finish_output(output).unwrap()
   let material = completed_material(completed).unwrap()
   assert_true(@lifecycle.material_available(material))
@@ -276,7 +271,7 @@ test "managed Graph completion failure discards unhanded storage" {
     4096L,
     fn() { live.val },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   assert_eq(@storage.builder_node_count(output.graph), 1)
   assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
   assert_eq(@storage.builder_node_count(output.graph), 0)
@@ -297,7 +292,7 @@ test "managed Graph late completion failure discards unhanded storage" {
       checks.val == 1
     },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   assert_true(finish_output(output) is Err(Lifecycle(@lifecycle.Unavailable)))
   assert_eq(checks.val, 2)
   assert_eq(@storage.builder_node_count(output.graph), 0)
@@ -314,7 +309,7 @@ test "managed Graph material issues exact internal operation views" {
     4096L,
     fn() { true },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   let completed = finish_output(output).unwrap()
   let material = completed_material(completed).unwrap()
   let first = @lifecycle.material_prepare_operation_view(
@@ -355,7 +350,7 @@ test "managed Graph output cancels without publishing partial material" {
     4096L,
     fn() { true },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   assert_true(cancel_output(output))
   assert_false(cancel_output(output))
   assert_true(finish_output(output) is Err(Closed))
@@ -383,9 +378,9 @@ test "failed managed Graph output remains reclaimable" {
     4096L,
     fn() { true },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   assert_true(
-    append_property_node(output, 0, [number(1.0)], [text("different")])
+    append_node(output, 0, [number(1.0)], [text("different")])
     is Err(Storage(DuplicateNodeKey)),
   )
   assert_eq(@storage.builder_node_count(output.graph), 1)
@@ -409,7 +404,7 @@ test "unpublished completed Graph output can be revoked and discarded" {
     4096L,
     fn() { true },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   let completed = finish_output(output).unwrap()
   let storage = completed_storage(completed).unwrap()
   assert_eq(@storage.node_count(storage), 1)
@@ -432,7 +427,7 @@ test "unavailable unpublished Graph output remains reclaimable" {
     4096L,
     fn() { live.val },
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("a")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("a")]).unwrap()
   let completed = finish_output(output).unwrap()
   let storage = completed_storage(completed).unwrap()
   live.val = false

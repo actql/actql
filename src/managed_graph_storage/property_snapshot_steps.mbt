@@ -52,7 +52,7 @@ priv enum SnapshotProjectionRole {
 /// complete, validated record is appended; no partial record is published.
 struct PropertySnapshotAppend {
   builder : Builder
-  profile : @carrier.PropertyGraphDefinition
+  profile : @carrier.GraphDefinition
   edge : Bool
   mut input : @decode.Cursor?
   mut record : @decode.ObjectView?
@@ -60,7 +60,7 @@ struct PropertySnapshotAppend {
   mut phase : SnapshotAppendPhase
   mut definition_name : String
   mut definition_index : Int
-  mut definition : @carrier.PropertyNodeDefinition?
+  mut definition : @carrier.GraphNodeDefinition?
   mut index : Int
   mut keys : Array[@value.CheckedValue]
   mut properties : Array[@value.CheckedValue]
@@ -114,24 +114,28 @@ pub fn property_snapshot_append_workspace_slots(
   if !valid_limits(limits) {
     return None
   }
-  let profile = @carrier.graph_property_definition(graph)
+  let profile = @carrier.graph_definition(graph)
   let mut columns = 0L
-  for index in 0..<@carrier.property_graph_node_count(profile) {
-    let definition = @carrier.property_graph_node_at(profile, index).unwrap()
+  for index in 0..<@carrier.graph_node_count(profile) {
+    let definition = @carrier.graph_node_at(profile, index).unwrap()
     columns = Int64::max(
       columns,
-      @carrier.property_definition_key_count(definition).to_int64() +
-      @carrier.field_count(@carrier.property_definition_properties(definition)).to_int64(),
+      @carrier.graph_element_definition_key_count(definition).to_int64() +
+      @carrier.field_count(
+        @carrier.graph_element_definition_properties(definition),
+      ).to_int64(),
     )
   }
-  for index in 0..<@carrier.property_graph_edge_count(profile) {
-    let definition = @carrier.property_edge_element(
-      @carrier.property_graph_edge_at(profile, index).unwrap(),
+  for index in 0..<@carrier.graph_edge_count(profile) {
+    let definition = @carrier.graph_edge_element(
+      @carrier.graph_edge_at(profile, index).unwrap(),
     )
     columns = Int64::max(
       columns,
-      @carrier.property_definition_key_count(definition).to_int64() +
-      @carrier.field_count(@carrier.property_definition_properties(definition)).to_int64(),
+      @carrier.graph_element_definition_key_count(definition).to_int64() +
+      @carrier.field_count(
+        @carrier.graph_element_definition_properties(definition),
+      ).to_int64(),
     )
   }
   // Reject each product before arithmetic can overflow; the result is an Int
@@ -185,7 +189,7 @@ fn new_property_append(
   }
   Ok({
     builder,
-    profile: @carrier.graph_property_definition(builder.graph),
+    profile: @carrier.graph_definition(builder.graph),
     edge,
     input,
     record: None,
@@ -242,18 +246,20 @@ pub fn start_property_record_append(
   source? : @value.CheckedValue? = None,
   target? : @value.CheckedValue? = None,
 ) -> Result[PropertySnapshotAppend, Issue] {
-  let profile = @carrier.graph_property_definition(builder.graph)
+  let profile = @carrier.graph_definition(builder.graph)
   let definition = if edge {
-    @carrier.property_graph_edge_at(profile, definition_index).map(
-      @carrier.property_edge_element,
+    @carrier.graph_edge_at(profile, definition_index).map(
+      @carrier.graph_edge_element,
     )
   } else {
-    @carrier.property_graph_node_at(profile, definition_index)
+    @carrier.graph_node_at(profile, definition_index)
   }
   guard definition is Some(definition) &&
-    keys.length() == @carrier.property_definition_key_count(definition) &&
+    keys.length() == @carrier.graph_element_definition_key_count(definition) &&
     properties.length() ==
-    @carrier.field_count(@carrier.property_definition_properties(definition)) else {
+    @carrier.field_count(
+      @carrier.graph_element_definition_properties(definition),
+    ) else {
     return Err(InvalidProperties)
   }
   let has_source = source is Some(_)
@@ -389,11 +395,8 @@ fn start_snapshot_projection(
   let (definition, keys) = match role {
     ProjectRecordIdentity => (state.definition.unwrap(), state.keys)
     ProjectSourceIdentity | ProjectTargetIdentity => {
-      let edge = @carrier.property_graph_edge_at(
-        state.profile,
-        state.definition_index,
-      ).unwrap()
-      let (source_name, target_name) = @carrier.property_edge_endpoints(edge)
+      let edge = @carrier.graph_edge_at(state.profile, state.definition_index).unwrap()
+      let (source_name, target_name) = @carrier.graph_edge_endpoints(edge)
       let name = if role == ProjectSourceIdentity {
         source_name
       } else {
@@ -406,7 +409,7 @@ fn start_snapshot_projection(
       }
       // Retained typed keys, not identity JSON, carry endpoint evidence.
       (
-        @carrier.property_graph_node_named(state.profile, name).unwrap(),
+        @carrier.graph_node_named(state.profile, name).unwrap(),
         state.builder.nodes[index].typed_key,
       )
     }
@@ -488,11 +491,11 @@ pub fn advance_property_snapshot_append(
       FindSnapshotDefinition => {
         used += 1
         let definition = if state.edge {
-          @carrier.property_graph_edge_at(state.profile, state.definition_index).map(
-            @carrier.property_edge_element,
+          @carrier.graph_edge_at(state.profile, state.definition_index).map(
+            @carrier.graph_edge_element,
           )
         } else {
-          @carrier.property_graph_node_at(state.profile, state.definition_index)
+          @carrier.graph_node_at(state.profile, state.definition_index)
         }
         guard definition is Some(definition) else {
           return snapshot_append_failed(state, InvalidIdentity, used)
@@ -501,7 +504,7 @@ pub fn advance_property_snapshot_append(
           PropertySnapshotStop(issue) =>
             return snapshot_append_failed(state, issue, used)
         }
-        if @carrier.property_definition_name(definition) ==
+        if @carrier.graph_element_definition_name(definition) ==
           state.definition_name {
           state.definition = Some(definition)
           state.phase = ReadSnapshotIdentity
@@ -549,7 +552,9 @@ pub fn advance_property_snapshot_append(
         let keys = @decode.lookup(state.record.unwrap(), "key").unwrap()
         if @decode.array_length(keys) !=
           Some(
-            @carrier.property_definition_key_count(state.definition.unwrap()),
+            @carrier.graph_element_definition_key_count(
+              state.definition.unwrap(),
+            ),
           ) {
           return snapshot_append_failed(state, InvalidIdentity, used)
         }
@@ -568,13 +573,13 @@ pub fn advance_property_snapshot_append(
           let (role, contract) = if state.phase == NextRuntimeKey {
             (
               SnapshotKey,
-              @carrier.property_definition_key_at(definition, state.index).unwrap(),
+              @carrier.graph_element_definition_key_at(definition, state.index).unwrap(),
             )
           } else {
             (
               SnapshotProperty,
               @carrier.field_at(
-                @carrier.property_definition_properties(definition),
+                @carrier.graph_element_definition_properties(definition),
                 state.index,
               ).unwrap().contract.unwrap(),
             )
@@ -640,7 +645,7 @@ pub fn advance_property_snapshot_append(
       NextSnapshotKey => {
         used += 1
         let definition = state.definition.unwrap()
-        if @carrier.property_definition_key_at(definition, state.index)
+        if @carrier.graph_element_definition_key_at(definition, state.index)
           is Some(contract) {
           let keys = @decode.lookup(state.record.unwrap(), "key").unwrap()
           if start_snapshot_value(
@@ -660,7 +665,7 @@ pub fn advance_property_snapshot_append(
       BeginSnapshotProperties => {
         used += 1
         let properties = @decode.lookup(state.record.unwrap(), "props").unwrap()
-        let schema = @carrier.property_definition_properties(
+        let schema = @carrier.graph_element_definition_properties(
           state.definition.unwrap(),
         )
         if @decode.object_length(properties) !=
@@ -672,7 +677,7 @@ pub fn advance_property_snapshot_append(
       }
       NextSnapshotProperty => {
         used += 1
-        let schema = @carrier.property_definition_properties(
+        let schema = @carrier.graph_element_definition_properties(
           state.definition.unwrap(),
         )
         if @carrier.field_at(schema, state.index) is Some(field) {

@@ -1,6 +1,6 @@
 ///|
-pub fn property_law_cid() -> String {
-  "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+pub fn law_cid() -> String {
+  "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
 }
 
 ///|
@@ -19,15 +19,15 @@ fn properties(
 
 ///|
 fn emit_property_definition(
-  definition : @carrier.PropertyNodeDefinition,
+  definition : @carrier.GraphNodeDefinition,
   endpoints : (String, String)?,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
   @encode.key(out, "key_columns")
   @encode.begin_array(out)
-  for index in 0..<@carrier.property_definition_key_count(definition) {
-    match @carrier.property_definition_key_column_at(definition, index) {
+  for index in 0..<@carrier.graph_element_definition_key_count(definition) {
+    match @carrier.graph_element_definition_key_column_at(definition, index) {
       Some(name) => @encode.string_value(out, name)
       None => @encode.null_value(out)
     }
@@ -35,14 +35,14 @@ fn emit_property_definition(
   @encode.end_array(out)
   @encode.key(out, "key_contracts")
   @encode.begin_array(out)
-  for contract in @carrier.property_definition_keys(definition) {
+  for contract in @carrier.graph_element_definition_keys(definition) {
     @value.emit_checked(contract, out)
   }
   @encode.end_array(out)
   @encode.key(out, "labels")
   @encode.begin_object(out)
   for
-    (label, selected) in @carrier.property_definition_label_properties(
+    (label, selected) in @carrier.graph_element_definition_label_properties(
       definition,
     ) {
     @encode.key(out, label)
@@ -57,9 +57,9 @@ fn emit_property_definition(
   }
   @encode.end_object(out)
   @encode.key(out, "name")
-  @encode.string_value(out, @carrier.property_definition_name(definition))
+  @encode.string_value(out, @carrier.graph_element_definition_name(definition))
   @encode.key(out, "properties")
-  properties(@carrier.property_definition_properties(definition), out)
+  properties(@carrier.graph_element_definition_properties(definition), out)
   if endpoints is Some((source, _)) {
     @encode.key(out, "source_definition")
     @encode.string_value(out, source)
@@ -72,40 +72,40 @@ fn emit_property_definition(
 }
 
 ///|
-fn emit_property_graph(
+fn emit_graph(
   graph : @carrier.Graph,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  let profile = @carrier.graph_property_definition(graph)
-  let nodes = @carrier.property_graph_node_definitions(profile)
-  let edges = @carrier.property_graph_edge_definitions(profile)
+  let profile = @carrier.graph_definition(graph)
+  let nodes = @carrier.graph_node_definitions(profile)
+  let edges = @carrier.graph_edge_definitions(profile)
   nodes.sort_by((a, b) => {
     @unicode.compare_utf16(
-      @carrier.property_definition_name(a),
-      @carrier.property_definition_name(b),
+      @carrier.graph_element_definition_name(a),
+      @carrier.graph_element_definition_name(b),
     )
   })
   edges.sort_by((a, b) => {
     @unicode.compare_utf16(
-      @carrier.property_definition_name(@carrier.property_edge_element(a)),
-      @carrier.property_definition_name(@carrier.property_edge_element(b)),
+      @carrier.graph_element_definition_name(@carrier.graph_edge_element(a)),
+      @carrier.graph_element_definition_name(@carrier.graph_edge_element(b)),
     )
   })
   @encode.begin_object(out)
   @encode.key(out, "domain")
-  @encode.string_value(out, @carrier.property_graph_domain(profile))
+  @encode.string_value(out, @carrier.graph_domain(profile))
   @encode.key(out, "edge_definitions")
   @encode.begin_array(out)
   for edge in edges {
     emit_property_definition(
-      @carrier.property_edge_element(edge),
-      Some(@carrier.property_edge_endpoints(edge)),
+      @carrier.graph_edge_element(edge),
+      Some(@carrier.graph_edge_endpoints(edge)),
       out,
     )
   }
   @encode.end_array(out)
   @encode.key(out, "identity_law_cid")
-  @encode.string_value(out, property_law_cid())
+  @encode.string_value(out, law_cid())
   @encode.key(out, "node_definitions")
   @encode.begin_array(out)
   for node in nodes {
@@ -113,15 +113,15 @@ fn emit_property_graph(
   }
   @encode.end_array(out)
   @encode.key(out, "value_law_cid")
-  @encode.string_value(out, property_law_cid())
+  @encode.string_value(out, law_cid())
   @encode.key(out, "version")
-  @encode.string_value(out, "actql-property-graph-contract/0.1")
+  @encode.string_value(out, "actql-graph-contract/0.1")
   @encode.end_object(out)
 }
 
 ///|
 /// Schema admission does not issue definition provenance or execute rows.
-pub fn admit_property_graph(
+pub fn admit(
   input : @carrier.Carrier,
   limits : Limits,
 ) -> Result[CheckedContract, Issue] {
@@ -129,10 +129,10 @@ pub fn admit_property_graph(
     return Err(InvalidLimits)
   }
   guard input is @carrier.GraphValue(graph) else { return Err(IncompleteGraph) }
-  let profile = @carrier.graph_property_definition(graph)
-  let count = @carrier.property_graph_node_count(profile)
+  let profile = @carrier.graph_definition(graph)
+  let count = @carrier.graph_node_count(profile)
   if count > limits.max_nodes ||
-    @carrier.property_graph_edge_count(profile) > limits.max_nodes - count {
+    @carrier.graph_edge_count(profile) > limits.max_nodes - count {
     return Err(BudgetExceeded)
   }
   try {
@@ -141,7 +141,7 @@ pub fn admit_property_graph(
       limits.max_nodes,
       limits.max_depth,
     )
-    emit_property_graph(graph, out)
+    emit_graph(graph, out)
     let (hex, bytes, nodes) = @encode.finish_hash_usage(out)
     Ok({ graph, cid: "sha256:" + hex, bytes, nodes, })
   } catch {
@@ -150,41 +150,26 @@ pub fn admit_property_graph(
 }
 
 ///|
-pub fn property_cid(value : CheckedContract) -> String {
-  value.cid
-}
-
-///|
-pub fn property_bytes(value : CheckedContract) -> Int {
-  value.bytes
-}
-
-///|
-pub fn property_nodes(value : CheckedContract) -> Int {
-  value.nodes
-}
-
-///|
-pub fn property_graph(value : CheckedContract) -> @carrier.Graph {
+pub fn graph(value : CheckedContract) -> @carrier.Graph {
   value.graph
 }
 
 ///|
 /// Reuse the admitted profile codec when composing an enclosing contract.
-pub fn emit_checked_property_graph(
+pub fn emit_checked_graph(
   value : CheckedContract,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  emit_property_graph(value.graph, out)
+  emit_graph(value.graph, out)
 }
 
 ///|
-pub fn stringify_property_graph(
+pub fn stringify(
   value : CheckedContract,
   limits : Limits,
 ) -> String raise @encode.EncodeFailure {
   let out = @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
-  emit_property_graph(value.graph, out)
+  emit_graph(value.graph, out)
   @encode.finish(out)
 }
 
@@ -204,7 +189,7 @@ fn read_property_definition(
   budget : ReadBudget,
   limits : Limits,
   validation_work : Ref[Int],
-) -> (@carrier.PropertyNodeDefinition, (String, String)?) raise ReadStop {
+) -> (@carrier.GraphNodeDefinition, (String, String)?) raise ReadStop {
   charge_nodes(budget, 1)
   let names = ["name", "key_columns", "key_contracts", "properties", "labels"]
   if edge {
@@ -316,7 +301,7 @@ fn read_property_definition(
     exposed.push((label, knowledge))
   }
   let definition = match
-    @carrier.property_node_definition_usage(
+    @carrier.graph_node_definition_usage(
       name,
       keys,
       props,
@@ -348,21 +333,19 @@ fn read_property_definition(
 }
 
 ///|
-pub fn read_property_graph_cursor(
+pub fn read_cursor(
   root : @decode.Cursor,
   limits : Limits,
 ) -> Result[CheckedContract, ReadIssue] {
-  read_property_graph_cursor_usage(
-    root,
-    limits,
-    max_contract_work=limits.max_nodes,
-  ).map(pair => pair.0)
+  read_cursor_usage(root, limits, max_contract_work=limits.max_nodes).map(pair => {
+    pair.0
+  })
 }
 
 ///|
 /// Structural nodes and repeated type/label comparisons are separate bounds.
 /// The enclosing admission owner charges the returned comparison work once.
-pub fn read_property_graph_cursor_usage(
+pub fn read_cursor_usage(
   root : @decode.Cursor,
   limits : Limits,
   max_contract_work~ : Int,
@@ -393,12 +376,11 @@ pub fn read_property_graph_cursor_usage(
       Err(_) => stop(InvalidBody)
     }
     if read_property_text(required(object, "version"), budget) !=
-      "actql-property-graph-contract/0.1" {
+      "actql-graph-contract/0.1" {
       stop(InvalidBody)
     }
     for name in ["identity_law_cid", "value_law_cid"] {
-      if read_property_text(required(object, name), budget) !=
-        property_law_cid() {
+      if read_property_text(required(object, name), budget) != law_cid() {
         stop(LawMismatch)
       }
     }
@@ -427,8 +409,7 @@ pub fn read_property_graph_cursor_usage(
         match endpoints {
           None => nodes.push(definition)
           Some((source, target)) =>
-            match
-              @carrier.property_edge_definition(definition, source, target) {
+            match @carrier.graph_edge_definition(definition, source, target) {
               Ok(value) => edges.push(value)
               Err(_) => stop(InvalidStructure)
             }
@@ -436,7 +417,7 @@ pub fn read_property_graph_cursor_usage(
       }
     }
     let input = match
-      @carrier.property_graph_usage(
+      @carrier.graph_usage(
         domain,
         nodes,
         edges,
@@ -450,7 +431,7 @@ pub fn read_property_graph_cursor_usage(
       Err(LimitExceeded) => stop(BudgetExceeded)
       Err(_) => stop(InvalidStructure)
     }
-    match admit_property_graph(input, limits) {
+    match admit(input, limits) {
       Ok(value) => Ok((value, max_contract_work - validation_work.val))
       Err(_) => stop(BudgetExceeded)
     }

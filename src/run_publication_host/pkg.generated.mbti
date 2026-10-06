@@ -26,7 +26,7 @@ import {
 }
 
 // Values
-pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, property_graph? : Bool) -> @program_check.CheckEnvironment?
+pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?
 
 pub fn admit_client_compilation_manifests(String, String, Int, Int, Int) -> Result[ClientCompilationManifests, ClientCompilationManifestIssue]
 

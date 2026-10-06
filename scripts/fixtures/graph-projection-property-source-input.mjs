@@ -27,7 +27,7 @@ const sourceCase = (name, tail, values = expected, extra = {}) => ({
 const program = {version: 'actql/0.1', id: 'fixture.graph_projection_property',
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: number, payload}, rows}, as: 'objects'},
-    {property_graph: {version: 'actql-property-graph-constructor/0.1',
+    {graph: {version: 'actql-graph-constructor/0.1',
       nodes: [{name: 'N', from: 'objects', key: ['id'], labels: [{name: 'Person',
         properties: {mode: 'columns', columns: [{from: 'id', to: 'id'}, {from: 'payload', to: 'payload'}]}}]}],
       edges: []}, as: 'g'},

@@ -31,7 +31,7 @@ pub(all) enum OperationExecutionCheck {
   TraversalLimits(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
+  GraphConstructionExecution(GraphConstructionCheck)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
@@ -231,7 +231,7 @@ pub fn operation_execution_phase(
         | SelectMinimumEligibleNodeDepth
         | OrderTraversalRows => BeforeOperationOutput
       }
-    PropertyGraphConstructionExecution(v) =>
+    GraphConstructionExecution(v) =>
       match v.rule {
         AdmitPropertyInputRows => BeforeOperationInputUse
         RejectDuplicateKeys
@@ -348,7 +348,7 @@ pub fn operation_execution_failure(
     | TraversalLimits(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
-    | PropertyGraphConstructionExecution(_) => RejectOperationOutput
+    | GraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput

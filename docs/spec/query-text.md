@@ -397,7 +397,7 @@ language restrictions. Object/property execution is a separate common-owner
 dependency; source construction and type checking do not claim packed Host
 execution or successful publication.
 
-## Logical DATA and pure Property Graph construction
+## Logical DATA and pure Graph construction
 
 The AQL-text source grammar admits logical `DATA name = expression;`
 bindings followed by a query; SQL format retains its query-only entry.
@@ -408,7 +408,7 @@ rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
 not permitted in a DATA query body; final queries retain explicit Results.
 
 `DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
-[selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity).
+[selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity).
 It does not create a Catalog object or claim ISO GQL constructor syntax.
 Relation producers, element-definition names and labels are separate.
 REFERENCES resolves the element definition and its ordered KEY columns.
@@ -686,7 +686,7 @@ silently construct a Graph from a Relation, attach to an ambient Graph, or
 introduce a second implicit Graph input. One Graph source admits one MATCH;
 another pattern needs a separate source and an explicit Relation join.
 
-Labels belong to the admitted Property Graph definition, separately from
+Labels belong to the admitted Graph definition, separately from
 properties. A node label such as `(a:Account)` tests membership in that label
 set; it is not equality on an `entity_type` property. Edge labels likewise
 come from their definition's label set. The retired `LABELS` property
@@ -712,7 +712,7 @@ Relation inputs, not a constructor definition. It therefore returns
 `UnsupportedGraph` for `FROM GRAPH`; the former `GeneratedGraph` /
 `CapturedGraph`, `graph_inputs`, and tuple `node_rows` / `edge_rows` generator
 are removed. The common current path is an ordinary Program containing the
-admitted `property_graph` constructor and definition-scoped MATCH/TRAIL. The
+admitted `graph` constructor and definition-scoped MATCH/TRAIL. The
 Script frontend's connection to that path is reviewed separately; syntax
 admission alone does not establish that a pattern is executable. Unsupported
 pattern bindings or consumers must be refused, not lowered through the

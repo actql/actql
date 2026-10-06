@@ -1,5 +1,5 @@
 ///|
-/// A current Property Graph comparison has two exact Graph ports. Compatible
+/// A current Graph comparison has two exact Graph ports. Compatible
 /// definitions can have different producer provenance; the provenance remains
 /// part of each runtime identity and therefore affects the Boolean result.
 struct CheckedPropertyEquality {
@@ -12,7 +12,7 @@ struct CheckedPropertyEquality {
 
 ///|
 pub(all) enum PropertyEqualityObligation {
-  AdmitBothPropertyGraphs
+  AdmitBothGraphs
   CompareCompleteGraphValues
   ResolvePropertyEqualityResources
 } derive(Eq, Debug)
@@ -28,7 +28,7 @@ pub fn property_equality_pending_at(
   index : Int,
 ) -> PropertyEqualityObligation? {
   match index {
-    0 => Some(AdmitBothPropertyGraphs)
+    0 => Some(AdmitBothGraphs)
     1 => Some(CompareCompleteGraphValues)
     2 => Some(ResolvePropertyEqualityResources)
     _ => None
@@ -38,23 +38,23 @@ pub fn property_equality_pending_at(
 ///|
 fn align_property_equality_definition(
   source : @decode.Cursor,
-  left : @carrier.PropertyNodeDefinition,
-  right : @carrier.PropertyNodeDefinition,
+  left : @carrier.GraphNodeDefinition,
+  right : @carrier.GraphNodeDefinition,
   b : Budget,
 ) -> Unit raise Stop {
   spend(b, source, 1)
-  if @carrier.property_name_identity(@carrier.property_definition_name(left)) !=
-    @carrier.property_name_identity(@carrier.property_definition_name(right)) {
+  if @carrier.graph_name_identity(@carrier.graph_element_definition_name(left)) !=
+    @carrier.graph_name_identity(@carrier.graph_element_definition_name(right)) {
     fail(source, IncompatibleGraphDomains)
   }
-  let keys = @carrier.property_definition_key_count(left)
-  if keys != @carrier.property_definition_key_count(right) {
+  let keys = @carrier.graph_element_definition_key_count(left)
+  if keys != @carrier.graph_element_definition_key_count(right) {
     fail(source, IncompatibleGraphDomains)
   }
   for index in 0..<keys {
     spend(b, source, 1)
-    let first = @carrier.property_definition_key_at(left, index).unwrap()
-    let second = @carrier.property_definition_key_at(right, index).unwrap()
+    let first = @carrier.graph_element_definition_key_at(left, index).unwrap()
+    let second = @carrier.graph_element_definition_key_at(right, index).unwrap()
     let (joined, used) = @contract.join_nullability_usage(first, second, b.work) catch {
       _ => fail(source, BudgetExceeded)
     }
@@ -63,28 +63,34 @@ fn align_property_equality_definition(
       fail(source, IncompatibleGraphDomains)
     }
   }
-  guard @carrier.complete_schema(@carrier.property_definition_properties(left))
+  guard @carrier.complete_schema(
+      @carrier.graph_element_definition_properties(left),
+    )
     is Some(first_properties) &&
-    @carrier.complete_schema(@carrier.property_definition_properties(right))
+    @carrier.complete_schema(
+      @carrier.graph_element_definition_properties(right),
+    )
     is Some(second_properties) else {
     fail(source, IncompleteGraph)
   }
   ignore(align_domains(b, source, first_properties, second_properties))
-  let labels = @carrier.property_definition_label_count(left)
-  if labels != @carrier.property_definition_label_count(right) {
+  let labels = @carrier.graph_element_definition_label_count(left)
+  if labels != @carrier.graph_element_definition_label_count(right) {
     fail(source, IncompatibleGraphDomains)
   }
   for index in 0..<labels {
     spend(b, source, 1)
-    let (name, left_fields) = @carrier.property_definition_label_at(left, index).unwrap()
+    let (name, left_fields) = @carrier.graph_element_definition_label_at(
+      left, index,
+    ).unwrap()
     let mut right_fields = None
     for other in 0..<labels {
       spend(b, source, 1)
-      let (candidate, fields) = @carrier.property_definition_label_at(
+      let (candidate, fields) = @carrier.graph_element_definition_label_at(
         right, other,
       ).unwrap()
-      if @carrier.property_name_identity(name) ==
-        @carrier.property_name_identity(candidate) {
+      if @carrier.graph_name_identity(name) ==
+        @carrier.graph_name_identity(candidate) {
         right_fields = Some(fields)
         break
       }
@@ -101,22 +107,22 @@ fn align_property_equality_definition(
 ///|
 fn align_property_equality_graphs(
   source : @decode.Cursor,
-  left : @carrier.PropertyGraphDefinition,
-  right : @carrier.PropertyGraphDefinition,
+  left : @carrier.GraphDefinition,
+  right : @carrier.GraphDefinition,
   b : Budget,
 ) -> Unit raise Stop {
-  let nodes = @carrier.property_graph_node_count(left)
-  let edges = @carrier.property_graph_edge_count(left)
-  if nodes != @carrier.property_graph_node_count(right) ||
-    edges != @carrier.property_graph_edge_count(right) {
+  let nodes = @carrier.graph_node_count(left)
+  let edges = @carrier.graph_edge_count(left)
+  if nodes != @carrier.graph_node_count(right) ||
+    edges != @carrier.graph_edge_count(right) {
     fail(source, IncompatibleGraphDomains)
   }
   for index in 0..<nodes {
     spend(b, source, 1)
-    let first = @carrier.property_graph_node_at(left, index).unwrap()
-    guard @carrier.property_graph_node_named(
+    let first = @carrier.graph_node_at(left, index).unwrap()
+    guard @carrier.graph_node_named(
         right,
-        @carrier.property_definition_name(first),
+        @carrier.graph_element_definition_name(first),
       )
       is Some(second) else {
       fail(source, IncompatibleGraphDomains)
@@ -125,28 +131,28 @@ fn align_property_equality_graphs(
   }
   for index in 0..<edges {
     spend(b, source, 1)
-    let first = @carrier.property_graph_edge_at(left, index).unwrap()
-    guard @carrier.property_graph_edge_named(
+    let first = @carrier.graph_edge_at(left, index).unwrap()
+    guard @carrier.graph_edge_named(
         right,
-        @carrier.property_definition_name(@carrier.property_edge_element(first)),
+        @carrier.graph_element_definition_name(
+          @carrier.graph_edge_element(first),
+        ),
       )
       is Some(second) else {
       fail(source, IncompatibleGraphDomains)
     }
-    let (first_source, first_target) = @carrier.property_edge_endpoints(first)
-    let (second_source, second_target) = @carrier.property_edge_endpoints(
-      second,
-    )
-    if @carrier.property_name_identity(first_source) !=
-      @carrier.property_name_identity(second_source) ||
-      @carrier.property_name_identity(first_target) !=
-      @carrier.property_name_identity(second_target) {
+    let (first_source, first_target) = @carrier.graph_edge_endpoints(first)
+    let (second_source, second_target) = @carrier.graph_edge_endpoints(second)
+    if @carrier.graph_name_identity(first_source) !=
+      @carrier.graph_name_identity(second_source) ||
+      @carrier.graph_name_identity(first_target) !=
+      @carrier.graph_name_identity(second_target) {
       fail(source, IncompatibleGraphDomains)
     }
     align_property_equality_definition(
       source,
-      @carrier.property_edge_element(first),
-      @carrier.property_edge_element(second),
+      @carrier.graph_edge_element(first),
+      @carrier.graph_edge_element(second),
       b,
     )
   }
@@ -189,8 +195,8 @@ pub fn check_property_equality(
       @carrier.Opaque(GraphKind) => fail(other, IncompleteGraph)
       _ => fail(other, WrongCarrier(@carrier.kind(right)))
     }
-    let first_definition = @carrier.graph_property_definition(first)
-    let second_definition = @carrier.graph_property_definition(second)
+    let first_definition = @carrier.graph_definition(first)
+    let second_definition = @carrier.graph_definition(second)
     // A definition CID includes producer provenance. Compatible closed types
     // can therefore differ in CID while remaining valid equality operands.
     align_property_equality_graphs(

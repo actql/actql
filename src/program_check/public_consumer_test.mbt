@@ -562,7 +562,7 @@ fn public_effect_mapping_closure(
   // A new-profile Graph boundary keeps the Effect binding regression without
   // depending on retired tuple identities or unsupported normalization.
   let graph_steps =
-    #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id","value"]},"as":"projected"},{"from":"projected","filter":"true","as":"selected"}
+    #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id","value"]},"as":"projected"},{"from":"projected","filter":"true","as":"selected"}
   let plain = if split_before {
     plain.replace(
       old="},{\"id\":\"consumer\",\"inputs\":{\"rows\":{\"result\":{\"stage\":\"producer\",\"result\":\"out\"}}}",
@@ -657,7 +657,7 @@ fn public_effect_mapping_closure(
     wire,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    property_graph=split_source || split_before,
+    graph=split_source || split_before,
   )
   match
     @program_check.prepare_effect_computation_candidate(

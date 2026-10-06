@@ -8,7 +8,7 @@ fn graph_match_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [number],
     properties,
@@ -16,7 +16,7 @@ fn graph_match_carrier() -> @carrier.Carrier {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_node_definition(
+  let edge = @carrier.graph_node_definition(
     "E",
     [number],
     properties,
@@ -24,10 +24,10 @@ fn graph_match_carrier() -> @carrier.Carrier {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
-    [@carrier.property_edge_definition(edge, "N", "N").unwrap()],
+    [@carrier.graph_edge_definition(edge, "N", "N").unwrap()],
     max_definitions=2,
     max_contract_work=1000,
   ).unwrap()
@@ -136,13 +136,10 @@ test "current MATCH exposes one checked definition scope and typed kernel view" 
   assert_false(@lowering_relation.graph_match_has_predicate(view))
   assert_eq(@lowering_relation.graph_match_property_definition(view), 0)
   assert_eq(
-    @lowering_relation.graph_match_property_binding(view, "identity"),
+    @lowering_relation.graph_match_graph_binding(view, "identity"),
     Some(@schema.Unqualified("node_id")),
   )
-  assert_eq(
-    @lowering_relation.graph_match_property_binding(view, "source"),
-    None,
-  )
+  assert_eq(@lowering_relation.graph_match_graph_binding(view, "source"), None)
   assert_eq(@lowering_relation.graph_match_field_count(view), 2)
   assert_eq(
     @lowering_relation.graph_match_field_at(view, 0),

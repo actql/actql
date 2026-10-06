@@ -31,11 +31,11 @@ pub fn graph_match_property_scope_fields(
 }
 
 ///|
-pub fn graph_match_property_binding(
+pub fn graph_match_graph_binding(
   value : PreparedGraphMatch,
   role : String,
 ) -> @schema.FieldName? {
-  @graph.match_property_binding(value.checked, role)
+  @graph.match_graph_binding(value.checked, role)
 }
 
 ///|
@@ -168,7 +168,7 @@ fn prepare_graph_match_node(
     scope_entries += 1
   }
   for role in ["identity", "source", "target"] {
-    if @graph.match_property_binding(checked, role) is Some(_) {
+    if @graph.match_graph_binding(checked, role) is Some(_) {
       scope_entries += 1
     }
   }
@@ -189,14 +189,14 @@ fn prepare_graph_match_node(
       true
     }
   }
-  if !charge_name(@graph.match_property_definition_name(checked)) {
+  if !charge_name(@graph.match_graph_element_definition_name(checked)) {
     return Err(GraphMatchPreparationLimit)
   }
   if @graph.match_property_label(checked) is Some(name) && !charge_name(name) {
     return Err(GraphMatchPreparationLimit)
   }
   for role in ["identity", "source", "target"] {
-    if @graph.match_property_binding(checked, role) is Some(field) &&
+    if @graph.match_graph_binding(checked, role) is Some(field) &&
       !charge_name(@schema.reference_name(field)) {
       return Err(GraphMatchPreparationLimit)
     }
@@ -260,7 +260,7 @@ fn emit_graph_match_node(
   @encode.key(out, "definition")
   @encode.string_value(
     out,
-    @graph.match_property_definition_name(prepared.checked),
+    @graph.match_graph_element_definition_name(prepared.checked),
   )
   if @graph.match_property_label(prepared.checked) is Some(label) {
     @encode.key(out, "label")
@@ -269,7 +269,7 @@ fn emit_graph_match_node(
   @encode.key(out, "bindings")
   @encode.begin_object(out)
   for role in ["identity", "source", "target"] {
-    if @graph.match_property_binding(prepared.checked, role) is Some(name) {
+    if @graph.match_graph_binding(prepared.checked, role) is Some(name) {
       @encode.key(out, role)
       @encode.string_value(out, @schema.reference_name(name))
     }

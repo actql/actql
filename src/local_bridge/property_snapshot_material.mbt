@@ -135,7 +135,7 @@ pub fn completed_property_snapshot_material(
               max_nodes: read_limits.max_nodes,
               max_depth: read_limits.max_depth,
             },
-            source_path="local-property-graph-snapshot",
+            source_path="local-graph-snapshot",
           ) {
           Ok(parsed) => parsed
           Err(_) =>

@@ -8,7 +8,7 @@ pub fn admit_client_check_environment(
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
   numeric_profile_cid? : String? = None,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> @checked.CheckEnvironment? {
   let numeric = match numeric_profile_cid {
     None => None
@@ -50,7 +50,7 @@ pub fn admit_client_check_environment(
       expressions,
       operations,
       numeric_profile=numeric,
-      property_graph~,
+      graph~,
       model_tasks=Some(model_tasks),
     ),
   )

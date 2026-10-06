@@ -6,7 +6,7 @@ fn keyed_profile() -> @carrier.Carrier {
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(@contract.NumberType, nullable=false)],
     empty,
@@ -14,7 +14,7 @@ fn keyed_profile() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     [node],
     [],
@@ -54,16 +54,14 @@ test "keyed traversal has explicit modes full edge identities and separate profi
     assert_eq(@graph_typing.traverse_property_path_mode(checked), mode)
     let pending = @graph_typing.traverse_pending(checked)
     assert_true(pending.contains(@graph_typing.EnumeratePropertyPaths))
-    assert_true(
-      pending.contains(@graph_typing.ResolvePropertyGraphTraversalProfile),
-    )
+    assert_true(pending.contains(@graph_typing.ResolveGraphTraversalProfile))
     assert_eq(pending, [
       @graph_typing.AdmitTraversalGraph,
       @graph_typing.RespectTraversalHopBounds,
       @graph_typing.FilterTraversalLabels,
       @graph_typing.CanonicalTraversalOrder,
       @graph_typing.ResolveTraversalResources,
-      @graph_typing.ResolvePropertyGraphTraversalProfile,
+      @graph_typing.ResolveGraphTraversalProfile,
       @graph_typing.EnumeratePropertyPaths,
       @graph_typing.DeduplicateExactPaths,
     ])

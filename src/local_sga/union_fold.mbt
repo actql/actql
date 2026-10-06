@@ -40,7 +40,7 @@ priv struct UnionFoldPreparation {
   left : GraphReadSource
   right : GraphReadSource
   builder : @storage.Builder
-  profile : @carrier.PropertyGraphDefinition
+  profile : @carrier.GraphDefinition
   value_limits : @value.Limits
   mut remaining : Int
   mut phase : UnionFoldPhase
@@ -54,7 +54,7 @@ priv struct UnionFoldPreparation {
   mut left_index : Int
   mut right_index : Int
   mut definition_index : Int
-  mut definition : @carrier.PropertyNodeDefinition?
+  mut definition : @carrier.GraphNodeDefinition?
   mut column : Int
   mut endpoint : Int
   mut identity : @value.CheckedValue?
@@ -102,7 +102,7 @@ fn prepare_union_fold(
     left,
     right,
     builder,
-    profile: @carrier.graph_property_definition(graph),
+    profile: @carrier.graph_definition(graph),
     value_limits: {
       max_nodes: limits.max_value_nodes,
       max_depth: limits.max_value_depth,
@@ -155,13 +155,13 @@ fn union_fold_index(value : UnionFoldPreparation) -> Int {
 fn union_fold_definition(
   value : UnionFoldPreparation,
   index : Int,
-) -> @carrier.PropertyNodeDefinition? {
+) -> @carrier.GraphNodeDefinition? {
   if value.edge {
-    @carrier.property_graph_edge_at(value.profile, index).map(
-      @carrier.property_edge_element,
+    @carrier.graph_edge_at(value.profile, index).map(
+      @carrier.graph_edge_element,
     )
   } else {
-    @carrier.property_graph_node_at(value.profile, index)
+    @carrier.graph_node_at(value.profile, index)
   }
 }
 
@@ -452,7 +452,8 @@ fn advance_union_fold(
       ReadUnionKeys => {
         work += 1
         let definition = value.definition.unwrap()
-        if value.column < @carrier.property_definition_key_count(definition) {
+        if value.column <
+          @carrier.graph_element_definition_key_count(definition) {
           let key = if value.edge {
             graph_read_edge_key_component(
               union_fold_source(value),
@@ -478,7 +479,7 @@ fn advance_union_fold(
       }
       ReadUnionProperties => {
         work += 1
-        let fields = @carrier.property_definition_properties(
+        let fields = @carrier.graph_element_definition_properties(
           value.definition.unwrap(),
         )
         if value.column < @carrier.field_count(fields) {

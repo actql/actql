@@ -108,7 +108,7 @@ pub fn prepare_output(
 
 ///|
 /// Definition-keyed inputs use the existing private storage and retention port.
-pub fn append_property_node(
+pub fn append_node(
   output : OutputBuilder,
   definition_index : Int,
   keys : Array[@value.CheckedValue],
@@ -117,20 +117,16 @@ pub fn append_property_node(
   if !output.open {
     return Err(Closed)
   }
-  @storage.append_property_node(
-    output.graph,
-    definition_index,
-    keys,
-    properties,
-  ).map_err(issue => {
-    output.open = false
-    @lifecycle.cancel_retention_port(output.retention) |> ignore
-    Storage(issue)
-  })
+  @storage.append_node(output.graph, definition_index, keys, properties).map_err(issue => {
+      output.open = false
+      @lifecycle.cancel_retention_port(output.retention) |> ignore
+      Storage(issue)
+    },
+  )
 }
 
 ///|
-pub fn append_property_edge(
+pub fn append_edge(
   output : OutputBuilder,
   definition_index : Int,
   keys : Array[@value.CheckedValue],
@@ -141,7 +137,7 @@ pub fn append_property_edge(
   if !output.open {
     return Err(Closed)
   }
-  @storage.append_property_edge(
+  @storage.append_edge(
     output.graph,
     definition_index,
     keys,
@@ -432,7 +428,7 @@ pub fn producer_read_view(
   let edge_property = (edge, property) => {
     @storage.edge_property(storage, edge, property)
   }
-  let view = @lifecycle.prepare_property_graph_producer_view(
+  let view = @lifecycle.prepare_graph_producer_view(
     read,
     nodes,
     edges,

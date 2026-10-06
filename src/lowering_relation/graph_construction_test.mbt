@@ -11,7 +11,7 @@ fn keyed_lowering_constructor_checked(
       "[" +
       source +
       ",{" +
-      "\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\"," +
+      "\"graph\":{\"version\":\"actql-graph-constructor/0.1\"," +
       "\"nodes\":[{\"name\":\"N\",\"from\":\"rows\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}]," +
       "\"edges\":[{\"name\":\"E\",\"from\":\"rows\",\"key\":[\"id\"],\"labels\":[{\"name\":\"owns\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"weight\",\"to\":\"weight\"}]}}]," +
       "\"source\":{\"definition\":\"N\",\"key\":[\"" +
@@ -57,25 +57,25 @@ test "keyed constructor retains distinct repeated producer roles and independent
     sequence_limits(),
   ).unwrap()
   guard @lowering_relation.sequence_step(sequence, 1)
-    is Some(@lowering_relation.PropertyGraphConstructionStep(graph)) else {
+    is Some(@lowering_relation.GraphConstructionStep(graph)) else {
     fail("current constructor required")
   }
-  assert_eq(@lowering_relation.property_graph_construction_node_count(graph), 1)
-  assert_eq(@lowering_relation.property_graph_construction_edge_count(graph), 1)
-  let node = @lowering_relation.property_graph_construction_node_at(graph, 0).unwrap()
-  let edge = @lowering_relation.property_graph_construction_edge_at(graph, 0).unwrap()
+  assert_eq(@lowering_relation.graph_construction_node_count(graph), 1)
+  assert_eq(@lowering_relation.graph_construction_edge_count(graph), 1)
+  let node = @lowering_relation.graph_construction_node_at(graph, 0).unwrap()
+  let edge = @lowering_relation.graph_construction_edge_at(graph, 0).unwrap()
   let element = @lowering_relation.property_edge_binding_element(edge)
   // Producer schema is ordered dst, id, src, weight. Both roles use the same
   // producer, but the independent edge key is not its endpoint tuple.
-  assert_eq(@lowering_relation.property_binding_input(node), 0)
-  assert_eq(@lowering_relation.property_binding_input(element), 1)
-  assert_eq(@lowering_relation.property_binding_keys(node), [1])
-  assert_eq(@lowering_relation.property_binding_keys(element), [1])
-  assert_eq(@lowering_relation.property_binding_properties(element), [3])
+  assert_eq(@lowering_relation.graph_binding_input(node), 0)
+  assert_eq(@lowering_relation.graph_binding_input(element), 1)
+  assert_eq(@lowering_relation.graph_binding_keys(node), [1])
+  assert_eq(@lowering_relation.graph_binding_keys(element), [1])
+  assert_eq(@lowering_relation.graph_binding_properties(element), [3])
   assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([2], [0]))
-  let checked = @lowering_relation.property_graph_construction_checked(graph)
-  assert_eq(@graph.property_construction_node_count(checked), 1)
-  assert_eq(@graph.property_construction_edge_count(checked), 1)
+  let checked = @lowering_relation.graph_construction_checked(graph)
+  assert_eq(@graph.construction_node_count(checked), 1)
+  assert_eq(@graph.construction_edge_count(checked), 1)
 }
 
 ///|
@@ -90,14 +90,14 @@ test "keyed constructor uses one canonical bridge without tuple expansion" {
   )
   assert_eq(
     @lowering_relation.sequence_canonical_node_at(sequence, 1, 0).unwrap().operation,
-    "BRIDGE.rows.to_property_graph",
+    "BRIDGE.rows.to_graph",
   )
   let writer = @encode.writer(30000, 3000, 100)
   @lowering_relation.emit_sequence_steps(sequence, writer)
   let wire = @encode.finish(writer)
   assert_true(
     wire.contains(
-      "\"in\":[\"values_0\",\"values_0\"],\"op\":\"BRIDGE.rows.to_property_graph\"",
+      "\"in\":[\"values_0\",\"values_0\"],\"op\":\"BRIDGE.rows.to_graph\"",
     ),
   )
   assert_true(
@@ -221,13 +221,13 @@ test "shared keyed endpoint retains both roles without projecting or merging edg
     sequence_limits(),
   ).unwrap()
   guard @lowering_relation.sequence_step(sequence, 1)
-    is Some(@lowering_relation.PropertyGraphConstructionStep(graph)) else {
+    is Some(@lowering_relation.GraphConstructionStep(graph)) else {
     fail("current constructor required")
   }
-  let edge = @lowering_relation.property_graph_construction_edge_at(graph, 0).unwrap()
+  let edge = @lowering_relation.graph_construction_edge_at(graph, 0).unwrap()
   assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([1], [1]))
   assert_eq(
-    @lowering_relation.property_binding_keys(
+    @lowering_relation.graph_binding_keys(
       @lowering_relation.property_edge_binding_element(edge),
     ),
     [1],

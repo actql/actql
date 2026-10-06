@@ -47,13 +47,13 @@ pub fn client_program_check_context_identity(
     @encode.bool_value(writer, profiles.model_tasks)
     @encode.key(writer, "numeric_profile_cid")
     check_context_optional_cid(writer, profiles.numeric_profile_cid)
-    @encode.key(writer, "property_graph")
-    @encode.bool_value(writer, profiles.property_graph)
-    @encode.key(writer, "property_graph_law_cid")
+    @encode.key(writer, "graph")
+    @encode.bool_value(writer, profiles.graph)
+    @encode.key(writer, "graph_law_cid")
     check_context_optional_cid(
       writer,
-      if profiles.property_graph {
-        Some(@graph_contract.property_law_cid())
+      if profiles.graph {
+        Some(@graph_contract.law_cid())
       } else {
         None
       },

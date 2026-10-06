@@ -17,8 +17,8 @@ test "Carrier schema corpus: retired-endpoint-tuple-graph" {
 }
 
 ///|
-test "Carrier schema corpus: empty-property-graph" {
-  let modes = carrier_modes(@json.parse("{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"edge_definitions\":[],\"identity_law_cid\":\"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc\",\"node_definitions\":[],\"value_law_cid\":\"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc\",\"version\":\"actql-property-graph-contract/0.1\"}"), "graph")
+test "Carrier schema corpus: empty-graph" {
+  let modes = carrier_modes(@json.parse("{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"edge_definitions\":[],\"identity_law_cid\":\"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34\",\"node_definitions\":[],\"value_law_cid\":\"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34\",\"version\":\"actql-graph-contract/0.1\"}"), "graph")
   let result = check_carrier_schemas(modes, carrier_limits())
   assert_eq(result is Ok(_), true)
   assert_eq(carrier_schema_body_cid(carrier_schema_at(result.unwrap(), 0).unwrap()), "sha256:19c461bb35f486ac1fc5158c18bc2edf64bdf5084f86d023931ef3e22c6cd7c9")

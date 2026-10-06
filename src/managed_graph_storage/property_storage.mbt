@@ -6,7 +6,7 @@ fn emit_property_key_type(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
-  match @carrier.property_key_descriptor(contract) {
+  match @carrier.graph_key_descriptor(contract) {
     Some(@carrier.NumberKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "number")
@@ -84,8 +84,8 @@ fn emit_property_key(
 /// The existing encoder/parser/admitter bound every identity conversion.
 fn property_identity(
   builder : Builder,
-  profile : @carrier.PropertyGraphDefinition,
-  definition : @carrier.PropertyNodeDefinition,
+  profile : @carrier.GraphDefinition,
+  definition : @carrier.GraphNodeDefinition,
   keys : Array[@value.CheckedValue],
   pending_work : Int,
 ) -> Result[(@value.CheckedValue?, Int), Issue] {
@@ -136,7 +136,7 @@ fn exclude_property_row(
 }
 
 ///|
-pub fn append_property_node(
+pub fn append_node(
   builder : Builder,
   definition_index : Int,
   keys : Array[@value.CheckedValue],
@@ -145,14 +145,13 @@ pub fn append_property_node(
   if !builder.open {
     return Err(Closed)
   }
-  let profile = @carrier.graph_property_definition(builder.graph)
-  guard @carrier.property_graph_node_at(profile, definition_index)
-    is Some(definition) else {
+  let profile = @carrier.graph_definition(builder.graph)
+  guard @carrier.graph_node_at(profile, definition_index) is Some(definition) else {
     return fail(builder, InvalidIdentity)
   }
   if !values_match(
       builder,
-      @carrier.property_definition_properties(definition),
+      @carrier.graph_element_definition_properties(definition),
       properties,
     ) {
     return fail(builder, InvalidProperties)
@@ -172,7 +171,7 @@ pub fn append_property_node(
 }
 
 ///|
-pub fn append_property_edge(
+pub fn append_edge(
   builder : Builder,
   definition_index : Int,
   keys : Array[@value.CheckedValue],
@@ -183,14 +182,14 @@ pub fn append_property_edge(
   if !builder.open {
     return Err(Closed)
   }
-  let profile = @carrier.graph_property_definition(builder.graph)
-  guard @carrier.property_graph_edge_at(profile, definition_index) is Some(edge) else {
+  let profile = @carrier.graph_definition(builder.graph)
+  guard @carrier.graph_edge_at(profile, definition_index) is Some(edge) else {
     return fail(builder, InvalidIdentity)
   }
-  let definition = @carrier.property_edge_element(edge)
+  let definition = @carrier.graph_edge_element(edge)
   if !values_match(
       builder,
-      @carrier.property_definition_properties(definition),
+      @carrier.graph_element_definition_properties(definition),
       properties,
     ) {
     return fail(builder, InvalidProperties)
@@ -218,13 +217,9 @@ pub fn append_property_edge(
   if builder.edge_keys.contains(key) {
     return fail(builder, DuplicateEdgeKey)
   }
-  let (source_name, target_name) = @carrier.property_edge_endpoints(edge)
-  let source_definition = @carrier.property_graph_node_named(
-    profile, source_name,
-  ).unwrap()
-  let target_definition = @carrier.property_graph_node_named(
-    profile, target_name,
-  ).unwrap()
+  let (source_name, target_name) = @carrier.graph_edge_endpoints(edge)
+  let source_definition = @carrier.graph_node_named(profile, source_name).unwrap()
+  let target_definition = @carrier.graph_node_named(profile, target_name).unwrap()
   let (source, source_work) = match
     property_identity(
       builder,
@@ -392,28 +387,28 @@ fn property_lookup_scope(
   identity : @value.CheckedValue,
   edge~ : Bool,
 ) -> Result[Unit, Issue] {
-  let profile = @carrier.graph_property_definition(value.graph)
+  let profile = @carrier.graph_definition(value.graph)
   guard @value.json_payload(identity.value) is Some(@value.Object(fields)) &&
     @value.element_count(fields) == 4 &&
     @value.element_at(fields, 0) is Some(("definition", @value.Text(name))) &&
     @value.element_at(fields, 1) is Some(("domain", @value.Text(domain))) &&
     @value.element_at(fields, 2) is Some(("key", @value.Array(keys))) &&
     @value.element_at(fields, 3) is Some(("key_types", @value.Array(types))) &&
-    domain == @carrier.property_graph_domain(profile) else {
+    domain == @carrier.graph_domain(profile) else {
     return Err(InvalidIdentity)
   }
   let definition = if edge {
-    @carrier.property_graph_edge_named(profile, name).map(edge => {
-      @carrier.property_edge_element(edge)
+    @carrier.graph_edge_named(profile, name).map(edge => {
+      @carrier.graph_edge_element(edge)
     })
   } else {
-    @carrier.property_graph_node_named(profile, name)
+    @carrier.graph_node_named(profile, name)
   }
   guard definition is Some(definition) &&
-    @carrier.property_definition_name(definition) == name else {
+    @carrier.graph_element_definition_name(definition) == name else {
     return Err(InvalidIdentity)
   }
-  let contracts = @carrier.property_definition_keys(definition)
+  let contracts = @carrier.graph_element_definition_keys(definition)
   if @value.element_count(keys) != contracts.length() ||
     @value.element_count(types) != contracts.length() {
     return Err(InvalidIdentity)

@@ -3,11 +3,11 @@ fn identity_fixture_preparation(
   builder : Builder,
   keys : Array[@value.CheckedValue],
 ) -> PropertyIdentityPreparation {
-  let profile = @carrier.graph_property_definition(builder.graph)
+  let profile = @carrier.graph_definition(builder.graph)
   start_property_identity(
     builder,
     profile,
-    @carrier.property_graph_node_at(profile, 0).unwrap(),
+    @carrier.graph_node_at(profile, 0).unwrap(),
     keys,
     1,
   ).unwrap()
@@ -202,7 +202,7 @@ test "Graph storage resumed identity projects reference CID without minting auth
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [contract],
     empty,
@@ -210,7 +210,7 @@ test "Graph storage resumed identity projects reference CID without minting auth
     max_fields=1,
     max_name_bytes=16,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [definition],
     [],

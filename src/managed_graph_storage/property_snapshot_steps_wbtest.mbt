@@ -77,8 +77,8 @@ fn complete_snapshot_append(
 ///|
 test "typed record append shares snapshot identity, endpoint and accounting checks" {
   let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_node(input, 0, [number(1)], []).unwrap()
-  append_property_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
+  append_node(input, 0, [number(1)], []).unwrap()
+  append_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
   let input = finish(input).unwrap()
   let node = node_identity(input, 0).unwrap()
   let edge = edge_identity(input, 0).unwrap()
@@ -143,7 +143,7 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
 ///|
 test "typed record append has independent construction work and an exact one short boundary" {
   let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_node(input, 0, [number(1)], []).unwrap()
+  append_node(input, 0, [number(1)], []).unwrap()
   let input = finish(input).unwrap()
   // Received typed identity has eight value nodes and nine encoded nodes.
   // The number key costs one node; identity projection retains four passes
@@ -193,8 +193,8 @@ test "typed record append has independent construction work and an exact one sho
 ///|
 test "typed record append rejects endpoint presence mismatch before staging transfer" {
   let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_node(input, 0, [number(1)], []).unwrap()
-  append_property_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
+  append_node(input, 0, [number(1)], []).unwrap()
+  append_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
   let input = finish(input).unwrap()
   let node = node_identity(input, 0).unwrap()
   let edge_identity = edge_identity(input, 0).unwrap()
@@ -241,7 +241,7 @@ test "typed record append rejects endpoint presence mismatch before staging tran
 ///|
 test "typed record append stop clears staging but keeps previously retained nodes" {
   let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_node(input, 0, [number(1)], []).unwrap()
+  append_node(input, 0, [number(1)], []).unwrap()
   let input = finish(input).unwrap()
   let node = node_identity(input, 0).unwrap()
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
@@ -359,7 +359,7 @@ test "snapshot append refuses inconsistent records without committing a partial 
     assert_true(cancel(builder))
   }
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_snapshot_node(builder, snapshot_test_node("1")).unwrap()
+  append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
   let state = start_property_snapshot_append(
     builder,
     snapshot_test_edge("10", "1", "2"),
@@ -392,7 +392,7 @@ test "snapshot append cancellation keeps retained endpoints and clears staged ch
       CommitSnapshotRecord,
     ] {
     let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-    append_property_snapshot_node(builder, snapshot_test_node("1")).unwrap()
+    append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
     let retained = builder.retained_value_bytes
     let slots = builder.workspace_slots
     let state = start_property_snapshot_append(
@@ -521,7 +521,7 @@ test "snapshot append reserves each existing resource before its atomic transfer
     ..property_limits(),
     max_edges: 0,
   }).unwrap()
-  append_property_snapshot_node(builder, snapshot_test_node("1")).unwrap()
+  append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
   let held = builder.retained_value_bytes
   let state = start_property_snapshot_append(
     builder,
@@ -555,7 +555,7 @@ fn snapshot_reference_fixture() -> (@carrier.Carrier, String, String) {
     max_fields=1,
     max_name_bytes=16,
   ).unwrap()
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [contract],
     properties,
@@ -563,7 +563,7 @@ fn snapshot_reference_fixture() -> (@carrier.Carrier, String, String) {
     max_fields=1,
     max_name_bytes=16,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [definition],
     [],

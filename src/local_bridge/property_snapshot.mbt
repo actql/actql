@@ -88,13 +88,13 @@ fn property_snapshot_reload_step(
             return @bounded.Failed(InvalidGraphKernel, progress, used)
           }
           let appended = if edge {
-            @graph.append_property_snapshot_edge(
+            @graph.append_snapshot_edge(
               output,
               record,
               reference_issuer=state.reference_issuer,
             )
           } else {
-            @graph.append_property_snapshot_node(
+            @graph.append_snapshot_node(
               output,
               record,
               reference_issuer=state.reference_issuer,
@@ -224,7 +224,7 @@ pub fn start_property_snapshot_reload(
     @lifecycle.binding_carrier(binding) is @carrier.GraphValue(graph) else {
     return Err(InvalidGraphKernel)
   }
-  let profile = @carrier.graph_property_definition(graph)
+  let profile = @carrier.graph_definition(graph)
   let header = match
     @snapshot.read_property_header(input, graph, snapshot_limits) {
     Ok(header) => header
@@ -235,21 +235,21 @@ pub fn start_property_snapshot_reload(
   let mut width = 0
   for edge in [false, true] {
     let count = if edge {
-      @carrier.property_graph_edge_count(profile)
+      @carrier.graph_edge_count(profile)
     } else {
-      @carrier.property_graph_node_count(profile)
+      @carrier.graph_node_count(profile)
     }
     for index in 0..<count {
       let definition = if edge {
-        @carrier.property_edge_element(
-          @carrier.property_graph_edge_at(profile, index).unwrap(),
+        @carrier.graph_edge_element(
+          @carrier.graph_edge_at(profile, index).unwrap(),
         )
       } else {
-        @carrier.property_graph_node_at(profile, index).unwrap()
+        @carrier.graph_node_at(profile, index).unwrap()
       }
-      let keys = @carrier.property_definition_key_count(definition)
+      let keys = @carrier.graph_element_definition_key_count(definition)
       let fields = @carrier.field_count(
-        @carrier.property_definition_properties(definition),
+        @carrier.graph_element_definition_properties(definition),
       )
       if max_workspace_slots < 16 ||
         keys > (max_workspace_slots - 16) / 2 ||

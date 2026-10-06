@@ -1,5 +1,5 @@
 ///|
-test "Property Graph TRAIL output bounds retain ownership through downstream resolution" {
+test "Graph TRAIL output bounds retain ownership through downstream resolution" {
   let policy = policy(false)
   let operation = "{\"traverse\":{\"start\":{\"ids\":[{\"domain\":\"sha256:" +
     "0".repeat(64) +

@@ -257,7 +257,7 @@
               }
             },
             "identity_law_cid": {
-              "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+              "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
             },
             "node_definitions": {
               "type": "array",
@@ -326,10 +326,10 @@
               }
             },
             "value_law_cid": {
-              "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+              "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
             },
             "version": {
-              "const": "actql-property-graph-contract/0.1"
+              "const": "actql-graph-contract/0.1"
             }
           }
         },

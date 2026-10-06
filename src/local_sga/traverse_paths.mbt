@@ -403,7 +403,7 @@ fn traverse_path_edge_type_matches(
   edge : Int,
   index : Int,
 ) -> Bool {
-  let definition = @carrier.graph_property_definition(state.graph)
+  let definition = @carrier.graph_definition(state.graph)
   guard @lower.graph_traverse_hop_type_at(
       state.prepared,
       traverse_path_hop(state),
@@ -411,11 +411,11 @@ fn traverse_path_edge_type_matches(
     )
     is Some(expected) &&
     graph_read_edge_definition(state.source, edge) is Some(element) &&
-    @carrier.property_graph_edge_at(definition, element) is Some(element) else {
+    @carrier.graph_edge_at(definition, element) is Some(element) else {
     return false
   }
-  @carrier.property_definition_has_label(
-    @carrier.property_edge_element(element),
+  @carrier.graph_element_definition_has_label(
+    @carrier.graph_edge_element(element),
     expected,
   )
 }

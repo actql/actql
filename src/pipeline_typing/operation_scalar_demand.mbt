@@ -154,7 +154,7 @@ pub fn operation_scalar_demand(
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
-        | ResolvePropertyGraphTraversalProfile => None
+        | ResolveGraphTraversalProfile => None
       }
     DiagnosticRequirement(v) =>
       match v {

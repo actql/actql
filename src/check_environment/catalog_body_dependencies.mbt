@@ -169,8 +169,8 @@ pub fn catalog_body_dependency_at(
       match index {
         0 => Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
         1 => Some({ role: ValueGrammar, cid: protocol_value_grammar_cid(), })
-        2 => Some({ role: GraphIdentityLaw, cid: @graph.property_law_cid(), })
-        _ => Some({ role: GraphValueLaw, cid: @graph.property_law_cid(), })
+        2 => Some({ role: GraphIdentityLaw, cid: @graph.law_cid(), })
+        _ => Some({ role: GraphValueLaw, cid: @graph.law_cid(), })
       }
   }
 }

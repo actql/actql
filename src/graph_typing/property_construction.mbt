@@ -1,15 +1,15 @@
 ///|
 /// Checked column mappings, not a row evaluator or an execution owner.
-struct PropertyElement {
+struct GraphElementConstruction {
   input : String
-  definition : @carrier.PropertyNodeDefinition
+  definition : @carrier.GraphNodeDefinition
   keys : Array[@row.FieldName]
   properties : Array[(@row.FieldName, @row.FieldName)]
 }
 
 ///|
-struct PropertyEdge {
-  element : PropertyElement
+struct GraphEdgeConstruction {
+  element : GraphElementConstruction
   source_definition : String
   target_definition : String
   source_keys : Array[@row.FieldName]
@@ -17,10 +17,10 @@ struct PropertyEdge {
 }
 
 ///|
-struct CheckedPropertyConstruction {
+struct CheckedGraphConstruction {
   source : @decode.Cursor
-  nodes : Array[PropertyElement]
-  edges : Array[PropertyEdge]
+  nodes : Array[GraphElementConstruction]
+  edges : Array[GraphEdgeConstruction]
   output : @carrier.Carrier
   usage : Usage
 }
@@ -159,7 +159,7 @@ fn property_element(
   inputs : Map[String, @carrier.Knowledge],
   at : @decode.Cursor,
   object : @decode.ObjectView,
-) -> PropertyElement raise Stop {
+) -> GraphElementConstruction raise Stop {
   let name = construction_name(decoded(@decode.required(object, "name")))
   charge(b, at, name)
   let (input, rows) = property_rows(
@@ -232,7 +232,7 @@ fn property_element(
     Err(_) => fail(at, BudgetExceeded)
   }
   let (definition, used) = match
-    @carrier.property_node_definition_usage(
+    @carrier.graph_node_definition_usage(
       name,
       keys.map(field => field.contract.unwrap()),
       properties,
@@ -268,7 +268,7 @@ fn property_element(
 fn property_endpoint(
   b : Budget,
   rows : @carrier.Knowledge,
-  nodes : Map[String, PropertyElement],
+  nodes : Map[String, GraphElementConstruction],
   at : @decode.Cursor,
 ) -> (String, Array[@row.FieldName]) raise Stop {
   let object = decoded(
@@ -281,7 +281,7 @@ fn property_endpoint(
     None => fail(name_at, UnknownConstructionField(name))
   }
   let keys = property_keys(b, rows, decoded(@decode.required(object, "key")))
-  let expected = @carrier.property_definition_keys(node.definition)
+  let expected = @carrier.graph_element_definition_keys(node.definition)
   if keys.length() != expected.length() {
     fail(at, InvalidConstructionIdentity)
   }
@@ -320,7 +320,7 @@ fn property_endpoint(
     }
   }
   (
-    @carrier.property_definition_name(node.definition),
+    @carrier.graph_element_definition_name(node.definition),
     keys.map(field => field.name),
   )
 }
@@ -334,7 +334,7 @@ pub fn check_property_construction(
   inputs : Array[(String, @carrier.Carrier)],
   domain : String,
   limits : Limits,
-) -> Result[CheckedPropertyConstruction, Issue] {
+) -> Result[CheckedGraphConstruction, Issue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
@@ -353,7 +353,7 @@ pub fn check_property_construction(
       @decode.closed_object(source, ["version", "nodes", "edges"]),
     )
     if decoded(@decode.text(decoded(@decode.required(root, "version")))) !=
-      "actql-property-graph-constructor/0.1" {
+      "actql-graph-constructor/0.1" {
       fail(source, InvalidBody)
     }
     let available : Map[String, @carrier.Knowledge] = Map([])
@@ -369,7 +369,7 @@ pub fn check_property_construction(
       available[name] = rows
     }
     let nodes = []
-    let names : Map[String, PropertyElement] = Map([])
+    let names : Map[String, GraphElementConstruction] = Map([])
     let node_list = decoded(@decode.required(root, "nodes"))
     let entries = decoded(@decode.elements(node_list))
     spend(b, node_list, entries.length())
@@ -378,7 +378,7 @@ pub fn check_property_construction(
         @decode.closed_object(at, ["name", "from", "key", "labels"]),
       )
       let node = property_element(b, available, at, object)
-      let name = @carrier.property_definition_name(node.definition).to_lower()
+      let name = @carrier.graph_element_definition_name(node.definition).to_lower()
       if names.contains(name) {
         fail(at, DuplicateConstructionField(name))
       }
@@ -397,7 +397,7 @@ pub fn check_property_construction(
         ]),
       )
       let element = property_element(b, available, at, object)
-      let name = @carrier.property_definition_name(element.definition).to_lower()
+      let name = @carrier.graph_element_definition_name(element.definition).to_lower()
       if names.contains(name) || edge_names.contains(name) {
         fail(at, DuplicateConstructionField(name))
       }
@@ -424,11 +424,11 @@ pub fn check_property_construction(
       })
     }
     let (output, used) = match
-      @carrier.property_graph_usage(
+      @carrier.graph_usage(
         domain,
         nodes.map(node => node.definition),
         edges.map(edge => {
-          @carrier.property_edge_definition(
+          @carrier.graph_edge_definition(
             edge.element.definition,
             edge.source_definition,
             edge.target_definition,
@@ -459,29 +459,25 @@ pub fn check_property_construction(
 }
 
 ///|
-pub fn property_construction_output(
-  value : CheckedPropertyConstruction,
+pub fn construction_output(
+  value : CheckedGraphConstruction,
 ) -> @carrier.Carrier {
   value.output
 }
 
 ///|
-pub fn property_construction_source(
-  value : CheckedPropertyConstruction,
-) -> @decode.Cursor {
+pub fn construction_source(value : CheckedGraphConstruction) -> @decode.Cursor {
   value.source
 }
 
 ///|
-pub fn property_construction_pending_count(
-  _value : CheckedPropertyConstruction,
-) -> Int {
+pub fn construction_pending_count(_value : CheckedGraphConstruction) -> Int {
   5
 }
 
 ///|
-pub fn property_construction_pending_at(
-  _value : CheckedPropertyConstruction,
+pub fn construction_pending_at(
+  _value : CheckedGraphConstruction,
   index : Int,
 ) -> ConstructionObligation? {
   match index {
@@ -489,85 +485,85 @@ pub fn property_construction_pending_at(
     1 => Some(RejectDuplicateDefinitionKeys)
     2 => Some(ExcludeNullKeysAndMissingEndpoints)
     3 => Some(ResolveGraphConstructionResources)
-    4 => Some(ResolvePropertyGraphProfile)
+    4 => Some(ResolveGraphProfile)
     _ => None
   }
 }
 
 ///|
-pub fn property_construction_usage(
-  value : CheckedPropertyConstruction,
-) -> Usage {
+pub fn construction_usage(value : CheckedGraphConstruction) -> Usage {
   value.usage
 }
 
 ///|
-pub fn property_construction_node_count(
-  value : CheckedPropertyConstruction,
-) -> Int {
+pub fn construction_node_count(value : CheckedGraphConstruction) -> Int {
   value.nodes.length()
 }
 
 ///|
-pub fn property_construction_edge_count(
-  value : CheckedPropertyConstruction,
-) -> Int {
+pub fn construction_edge_count(value : CheckedGraphConstruction) -> Int {
   value.edges.length()
 }
 
 ///|
-pub fn property_construction_node_at(
-  value : CheckedPropertyConstruction,
+pub fn construction_node_at(
+  value : CheckedGraphConstruction,
   index : Int,
-) -> PropertyElement? {
+) -> GraphElementConstruction? {
   value.nodes.get(index)
 }
 
 ///|
-pub fn property_construction_edge_at(
-  value : CheckedPropertyConstruction,
+pub fn construction_edge_at(
+  value : CheckedGraphConstruction,
   index : Int,
-) -> PropertyEdge? {
+) -> GraphEdgeConstruction? {
   value.edges.get(index)
 }
 
 ///|
-pub fn property_element_input(value : PropertyElement) -> String {
+pub fn property_element_input(value : GraphElementConstruction) -> String {
   value.input
 }
 
 ///|
 pub fn property_element_definition(
-  value : PropertyElement,
-) -> @carrier.PropertyNodeDefinition {
+  value : GraphElementConstruction,
+) -> @carrier.GraphNodeDefinition {
   value.definition
 }
 
 ///|
-pub fn property_element_keys(value : PropertyElement) -> Array[@row.FieldName] {
+pub fn property_element_keys(
+  value : GraphElementConstruction,
+) -> Array[@row.FieldName] {
   value.keys.copy()
 }
 
 ///|
 pub fn property_element_properties(
-  value : PropertyElement,
+  value : GraphElementConstruction,
 ) -> Array[(@row.FieldName, @row.FieldName)] {
   value.properties.copy()
 }
 
 ///|
-pub fn property_edge_element(value : PropertyEdge) -> PropertyElement {
+pub fn graph_edge_element(
+  value : GraphEdgeConstruction,
+) -> GraphElementConstruction {
   value.element
 }
 
 ///|
 pub fn property_edge_keys(
-  value : PropertyEdge,
+  value : GraphEdgeConstruction,
 ) -> (Array[@row.FieldName], Array[@row.FieldName]) {
   (value.source_keys.copy(), value.target_keys.copy())
 }
 
 ///|
-pub fn property_edge_definitions(value : PropertyEdge) -> (String, String) {
+pub fn graph_edge_definitions(
+  value : GraphEdgeConstruction,
+) -> (String, String) {
   (value.source_definition, value.target_definition)
 }

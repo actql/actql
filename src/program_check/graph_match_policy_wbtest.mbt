@@ -39,10 +39,10 @@ test "current Graph matches preserve original Source policy and typed selector p
       ),
     ] {
     let graph_body =
-      #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"}
+      #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"}
     let program = checked_direct_program_fixture(
       graph_steps=graph_body + "," + body,
-      property_graph=true,
+      graph=true,
     )
     assert_eq(source_graph_domain(program, 0), domain)
     let unit = program.units[0]

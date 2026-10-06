@@ -4,7 +4,7 @@ test "adopted law selection distinguishes profile rules from backend support" {
     (profile, expected) in [
       (@pipeline_typing.RelA, [@pipeline_typing.RelaScalar, RelaPrimitive]),
       (SGA, [SgaStructural, SgaIdentity]),
-      (PropertyGraph, [PropertyGraphLaw]),
+      (Graph, [GraphLaw]),
       (VecA, [VecaNumeric]),
       (TEA, []),
       (CalendarProfile, []),
@@ -54,8 +54,8 @@ test "adopted operation laws retain the existing shared body identities" {
         "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
       ),
       (
-        PropertyGraphLaw,
-        "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
+        GraphLaw,
+        "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
       ),
     ] {
     assert_eq(@pipeline_typing.adopted_operation_law_cid(law), cid)

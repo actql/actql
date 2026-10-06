@@ -1,9 +1,0 @@
-{
-  "version": "actql-bound-property-graph-laws/0.1",
-  "law_ids": ["actql.bound.property-graph-nodes", "actql.bound.property-graph-edges"],
-  "construction": "For the admitted independently keyed Property Graph constructor, the node upper bound is the sum of node-definition input row upper bounds and the edge upper bound is the sum of edge-definition input row upper bounds. A definition contributes once per actual ordered input occurrence, including repeated uses of the same producer. A family with no definitions has bound zero. An unknown required input is not zero. NULL-key and missing-endpoint exclusion do not increase either bound. No endpoint-derived nodes are added.",
-  "ownership": "Each premise retains its actual pipeline owner, input target, quantity and data-edge occurrence. Node and edge premises cannot be interchanged even when their values or producer CIDs are equal. Canonically sorted proof references preserve repeated occurrences and do not replace applicability checks.",
-  "selection": "Definition-local node MATCH emits at most the original graph node count in rows and definition-local edge MATCH emits at most the original graph edge count. Static label and predicate filtering cannot increase that extent. This reuses the existing match-nodes and match-edges quantity transfer, not the legacy graph identity or endpoint-deduplication semantics. Path emission does not follow from either selection bound and retains separate output enforcement.",
-  "arithmetic": "Use exact nonnegative safe-integer addition and reject overflow before emitting a proof. Do not round, saturate or substitute policy ceilings as evidence of the input sum.",
-  "conditionality": "These are bounds on successful output, not observed counts or execution authority. They retain duplicate-key, value admission, endpoint, resource, work, workspace, byte and cancellation obligations. The legacy Graph constructor and its count laws remain unchanged."
-}

@@ -410,7 +410,7 @@ fn current_graph_input() -> @carrier.Carrier {
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(StringType, nullable=false)],
     properties,
@@ -418,8 +418,8 @@ fn current_graph_input() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [@contract.primitive(StringType, nullable=false)],
       properties,
@@ -430,7 +430,7 @@ fn current_graph_input() -> @carrier.Carrier {
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],

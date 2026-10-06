@@ -122,7 +122,7 @@ pub fn checked_program_has_effects(CheckedProgram) -> Bool
 
 pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
-pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, property_graph? : Bool, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
+pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?) -> CheckEnvironment
 
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
@@ -787,7 +787,7 @@ pub enum CheckOutcome {
 pub(all) struct CheckProfileSelection {
   expressions : @pipeline_check_context.ExpressionProfiles
   operations : @pipeline_check_context.PureOperationProfiles
-  property_graph : Bool
+  graph : Bool
   model_tasks : Bool
   numeric_profile_cid : String?
   calendar_profile_cid : String?

@@ -4,7 +4,7 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
     let nodes = "{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]},\"from\":\"g\",\"as\":\"nodes\"}"
     let edges = "{\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]},\"from\":\"g\",\"as\":\"edges\"}"
     let text = (
-        #|{"version":"actql/0.1","id":"quantity-demand","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"n"},{"values":{"schema":{"id":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"id":10,"src":1,"dst":2}]},"as":"e"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"n","key":["id"]}],"edges":[{"name":"E","from":"e","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"},
+        #|{"version":"actql/0.1","id":"quantity-demand","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"n"},{"values":{"schema":{"id":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"id":10,"src":1,"dst":2}]},"as":"e"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"n","key":["id"]}],"edges":[{"name":"E","from":"e","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"},
       ) +
       (if reverse { edges + "," + nodes } else { nodes + "," + edges }) +
       (
@@ -63,11 +63,11 @@ test "capacity demand keeps node and edge premises separate at the same graph ta
       }
       let witness = @wire.program_proof_witness(proof)
       match @law.name(@wire.law(witness)) {
-        "actql.bound.property-graph-nodes" => {
+        "actql.bound.graph-construction-nodes" => {
           assert_eq(@wire.value(witness), 2L)
           node_count += 1
         }
-        "actql.bound.property-graph-edges" => {
+        "actql.bound.graph-construction-edges" => {
           assert_eq(@wire.value(witness), 1L)
           edge_count += 1
         }

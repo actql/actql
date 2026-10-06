@@ -12,7 +12,7 @@ struct ProducerView {
   node_index : (@value.CheckedValue) -> Int??
   edge_endpoints : (Int) -> (Int, Int)?
   edge_property : (Int, Int) -> @value.CheckedValue?
-  property_graph : PropertyGraphView?
+  graph : GraphView?
   record_fields : (Int) -> Int?
   record_field : (Int, Int) -> (@schema.FieldName, @value.CheckedValue)?
 }
@@ -20,8 +20,8 @@ struct ProducerView {
 ///|
 /// Additional structure on the same read occurrence, not a second retention
 /// owner. Definition indices select the exact heterogeneous property schema.
-priv struct PropertyGraphView {
-  definition : @carrier.PropertyGraphDefinition
+priv struct GraphView {
+  definition : @carrier.GraphDefinition
   node_definition : (Int) -> Int?
   edge_definition : (Int) -> Int?
   edge_identity : (Int) -> @value.CheckedValue?
@@ -54,7 +54,7 @@ fn producer_view_live(value : ProducerView) -> Bool {
 ///|
 /// A keyed Graph uses independent edge identities and per-definition schemas.
 /// The contract comes from the exact bound output, never from callback input.
-pub fn prepare_property_graph_producer_view(
+pub fn prepare_graph_producer_view(
   read : ProducerReadReference,
   nodes : Int,
   edges : Int,
@@ -75,7 +75,7 @@ pub fn prepare_property_graph_producer_view(
   guard read.output.binding.carrier is @carrier.GraphValue(graph) else {
     return Err(WrongCarrier)
   }
-  let definition = @carrier.graph_property_definition(graph)
+  let definition = @carrier.graph_definition(graph)
   if nodes < 0 || edges < 0 {
     return Err(InvalidExtent)
   }
@@ -93,7 +93,7 @@ pub fn prepare_property_graph_producer_view(
     node_index,
     edge_endpoints,
     edge_property,
-    property_graph: Some({
+    graph: Some({
       definition,
       node_definition,
       edge_definition,
@@ -137,7 +137,7 @@ pub fn prepare_record_producer_view(
     node_index: _ => None,
     edge_endpoints: _ => None,
     edge_property: (_, _) => None,
-    property_graph: None,
+    graph: None,
     record_fields,
     record_field,
   })
@@ -149,13 +149,13 @@ pub fn producer_view_kind(value : ProducerView) -> @carrier.Kind {
 }
 
 ///|
-pub fn producer_view_property_graph_definition(
+pub fn producer_view_graph_definition(
   value : ProducerView,
-) -> Result[@carrier.PropertyGraphDefinition, ViewIssue] {
+) -> Result[@carrier.GraphDefinition, ViewIssue] {
   if !producer_view_live(value) {
     return Err(Unavailable)
   }
-  match value.property_graph {
+  match value.graph {
     Some(profile) => Ok(profile.definition)
     None => Err(WrongCarrier)
   }
@@ -166,16 +166,16 @@ pub fn producer_view_node_definition(
   value : ProducerView,
   node : Int,
 ) -> Result[Int, ViewIssue] {
-  let definition = match producer_view_property_graph_definition(value) {
+  let definition = match producer_view_graph_definition(value) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if node < 0 || node >= value.nodes {
     return Err(InvalidRecord)
   }
-  let profile = value.property_graph.unwrap()
+  let profile = value.graph.unwrap()
   match (profile.node_definition)(node) {
-    Some(index) if @carrier.property_graph_node_at(definition, index) is Some(_) =>
+    Some(index) if @carrier.graph_node_at(definition, index) is Some(_) =>
       Ok(index)
     _ => Err(InvalidRecord)
   }
@@ -186,16 +186,16 @@ pub fn producer_view_edge_definition(
   value : ProducerView,
   edge : Int,
 ) -> Result[Int, ViewIssue] {
-  let definition = match producer_view_property_graph_definition(value) {
+  let definition = match producer_view_graph_definition(value) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if edge < 0 || edge >= value.edges {
     return Err(InvalidRecord)
   }
-  let profile = value.property_graph.unwrap()
+  let profile = value.graph.unwrap()
   match (profile.edge_definition)(edge) {
-    Some(index) if @carrier.property_graph_edge_at(definition, index) is Some(_) =>
+    Some(index) if @carrier.graph_edge_at(definition, index) is Some(_) =>
       Ok(index)
     _ => Err(InvalidRecord)
   }
@@ -210,7 +210,7 @@ pub fn producer_view_node_identity_order_key(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match (value.property_graph.unwrap().node_identity_order_key)(node) {
+  match (value.graph.unwrap().node_identity_order_key)(node) {
     Some(key) => Ok(key)
     None => Err(InvalidRecord)
   }
@@ -225,7 +225,7 @@ pub fn producer_view_edge_identity_order_key(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match (value.property_graph.unwrap().edge_identity_order_key)(edge) {
+  match (value.graph.unwrap().edge_identity_order_key)(edge) {
     Some(key) => Ok(key)
     None => Err(InvalidRecord)
   }
@@ -240,7 +240,7 @@ pub fn producer_view_edge_identity(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match (value.property_graph.unwrap().edge_identity)(edge) {
+  match (value.graph.unwrap().edge_identity)(edge) {
     Some(identity) => Ok(identity)
     None => Err(InvalidRecord)
   }
@@ -258,10 +258,10 @@ pub fn producer_view_node_key(
     Ok(index) => index
     Err(issue) => return Err(issue)
   }
-  let profile = value.property_graph.unwrap()
-  let definition = @carrier.property_graph_node_at(profile.definition, index).unwrap()
+  let profile = value.graph.unwrap()
+  let definition = @carrier.graph_node_at(profile.definition, index).unwrap()
   if component < 0 ||
-    component >= @carrier.property_definition_key_count(definition) {
+    component >= @carrier.graph_element_definition_key_count(definition) {
     return Err(InvalidField)
   }
   match (profile.node_key)(node, component) {
@@ -280,12 +280,12 @@ pub fn producer_view_edge_key(
     Ok(index) => index
     Err(issue) => return Err(issue)
   }
-  let profile = value.property_graph.unwrap()
-  let definition = @carrier.property_edge_element(
-    @carrier.property_graph_edge_at(profile.definition, index).unwrap(),
+  let profile = value.graph.unwrap()
+  let definition = @carrier.graph_edge_element(
+    @carrier.graph_edge_at(profile.definition, index).unwrap(),
   )
   if component < 0 ||
-    component >= @carrier.property_definition_key_count(definition) {
+    component >= @carrier.graph_element_definition_key_count(definition) {
     return Err(InvalidField)
   }
   match (profile.edge_key)(edge, component) {
@@ -299,11 +299,11 @@ pub fn producer_view_edge_identity_index(
   value : ProducerView,
   identity : @value.CheckedValue,
 ) -> Result[Int?, ViewIssue] {
-  match producer_view_property_graph_definition(value) {
+  match producer_view_graph_definition(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match (value.property_graph.unwrap().edge_identity_index)(identity) {
+  match (value.graph.unwrap().edge_identity_index)(identity) {
     Some(Some(index)) =>
       match producer_view_edge_definition(value, index) {
         Ok(_) => Ok(Some(index))
@@ -392,15 +392,16 @@ pub fn producer_view_node_property(
   if node < 0 || node >= value.nodes {
     return Err(InvalidRecord)
   }
-  let count = match value.property_graph {
+  let count = match value.graph {
     None => return Err(WrongCarrier)
     Some(profile) => {
       guard (profile.node_definition)(node) is Some(index) &&
-        @carrier.property_graph_node_at(profile.definition, index)
-        is Some(definition) else {
+        @carrier.graph_node_at(profile.definition, index) is Some(definition) else {
         return Err(InvalidRecord)
       }
-      @carrier.field_count(@carrier.property_definition_properties(definition))
+      @carrier.field_count(
+        @carrier.graph_element_definition_properties(definition),
+      )
     }
   }
   if property < 0 || property >= count {
@@ -464,17 +465,16 @@ pub fn producer_view_edge_property(
   if edge < 0 || edge >= value.edges {
     return Err(InvalidRecord)
   }
-  let count = match value.property_graph {
+  let count = match value.graph {
     None => return Err(WrongCarrier)
     Some(profile) => {
       guard (profile.edge_definition)(edge) is Some(index) &&
-        @carrier.property_graph_edge_at(profile.definition, index)
-        is Some(definition) else {
+        @carrier.graph_edge_at(profile.definition, index) is Some(definition) else {
         return Err(InvalidRecord)
       }
       @carrier.field_count(
-        @carrier.property_definition_properties(
-          @carrier.property_edge_element(definition),
+        @carrier.graph_element_definition_properties(
+          @carrier.graph_edge_element(definition),
         ),
       )
     }

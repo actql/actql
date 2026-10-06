@@ -11,7 +11,7 @@ fn current_trail_resources_suffix(
   depth : String,
   guard_text? : String = "",
 ) -> String {
-  ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[" +
+  ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[" +
   current_trail_guarantee_identity() +
   "]},\"path_mode\":\"trail\",\"emit\":\"paths\",\"min_hops\":0,\"direction\":\"" +
   direction +
@@ -31,7 +31,7 @@ test "current TRAIL retains producer resource scopes and runtime checks through 
         through_check=true,
         checked_results=programs,
         second_stage=true,
-        property_graph=true,
+        graph=true,
         graph_construction_limit=Some(1000),
         traversal_capacity=true,
         traversal_kind="traverse",
@@ -71,9 +71,7 @@ test "current TRAIL retains producer resource scopes and runtime checks through 
         fail("current TRAIL lost its typed Graph owner")
       }
       assert_eq(
-        @carrier.property_graph_domain(
-          @carrier.graph_property_definition(graph),
-        ),
+        @carrier.graph_domain(@carrier.graph_definition(graph)),
         "sha256:3c07a675d79b8ca20df7ccce6bf1282b0ac34059bfbbaec8a8cd102f5027a5c3",
       )
       for
@@ -150,7 +148,7 @@ test "current TRAIL rejects missing or differently scoped capacity without parti
         through_check=true,
         checked_results=programs,
         second_stage=true,
-        property_graph=true,
+        graph=true,
         graph_construction_limit=Some(1000),
         traversal_capacity=capacity,
         traversal_kind=kind,
@@ -194,7 +192,7 @@ test "current TRAIL cannot return a partial Program after a later imported consu
       through_check=true,
       checked_results=programs,
       second_stage=true,
-      property_graph=true,
+      graph=true,
       graph_construction_limit=Some(1000),
       traversal_capacity=true,
       generated_rows=Some("[{\"id\":1},{\"id\":2}]"),

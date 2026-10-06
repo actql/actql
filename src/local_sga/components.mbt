@@ -186,15 +186,14 @@ fn compare_component_identity_step(
   guard graph_read_property_definition(state.source) is Some(profile) &&
     graph_read_node_definition(state.source, left) is Some(left_definition) &&
     graph_read_node_definition(state.source, right) is Some(right_definition) &&
-    @carrier.property_graph_node_at(profile, left_definition) is Some(left_node) &&
-    @carrier.property_graph_node_at(profile, right_definition)
-    is Some(right_node) else {
+    @carrier.graph_node_at(profile, left_definition) is Some(left_node) &&
+    @carrier.graph_node_at(profile, right_definition) is Some(right_node) else {
     return Err(ComponentsInputUnavailable)
   }
   if !state.key_name_done {
     let (order, next) = graph_identity_compare_unit(
-      @carrier.property_definition_name(left_node),
-      @carrier.property_definition_name(right_node),
+      @carrier.graph_element_definition_name(left_node),
+      @carrier.graph_element_definition_name(right_node),
       state.key_name_position,
     )
     state.key_name_position = next
@@ -207,8 +206,8 @@ fn compare_component_identity_step(
       None => return Ok(None)
     }
   }
-  let components = @carrier.property_definition_key_count(left_node)
-  guard components == @carrier.property_definition_key_count(right_node) else {
+  let components = @carrier.graph_element_definition_key_count(left_node)
+  guard components == @carrier.graph_element_definition_key_count(right_node) else {
     return Err(ComponentsInputUnavailable)
   }
   if state.key_component >= components {

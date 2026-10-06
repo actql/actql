@@ -13,7 +13,7 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolvePropertyGraphMatchProfile
+  ResolveGraphMatchProfile
 } derive(Eq, Debug)
 
 ///|
@@ -309,7 +309,7 @@ fn match_pending_each(
   emit(AdmitMatchGraphData)
   emit(CanonicalMatchOrder)
   emit(ResolveMatchResources)
-  emit(ResolvePropertyGraphMatchProfile)
+  emit(ResolveGraphMatchProfile)
   if !c.ids.is_empty() {
     emit(ValidateSelectedIdentityMembership)
   }

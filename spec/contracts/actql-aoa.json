@@ -24,9 +24,9 @@
   "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
   "sga_structural_law_manifest_cid": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
-  "property_graph_law_manifest_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
+  "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:1513a0a6b1db1e5847fdb46b191a6f5d67cd806e1ba234843ac12f86f9f49b38",
+  "pipeline_registry_cid": "sha256:52042d6f2ebd7423a6dd297141f4d1358ac3c81f5974a659508dc359738cc136",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -315,15 +315,15 @@
         }
       }
     },
-    "BRIDGE.rows.to_property_graph": {
+    "BRIDGE.rows.to_graph": {
       "finite_inputs": {
         "repeated_input": "relation",
         "minimum_inputs": 0
       },
       "output": "graph",
       "execution_contract": {
-        "pointer": "/execution_contracts/BRIDGE.rows.to_property_graph",
-        "cid": "sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7"
+        "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
+        "cid": "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210"
       }
     }
   },
@@ -3580,19 +3580,19 @@
         "unsupported": "reject_executable_plan_if_contract_expression_or_measure_cannot_be_enforced"
       }
     },
-    "BRIDGE.rows.to_property_graph": {
-      "version": "actql-property-graph-construction-execution/0.1",
-      "operation": "BRIDGE.rows.to_property_graph",
+    "BRIDGE.rows.to_graph": {
+      "version": "actql-graph-construction-execution/0.1",
+      "operation": "BRIDGE.rows.to_graph",
       "finite_inputs": {
         "repeated_input": "relation",
         "minimum_inputs": 0
       },
       "output": "graph",
       "dependencies": {
-        "property_graph_law": {
-          "file": "spec/dependencies/actql-property-graph-laws.json",
+        "graph_law": {
+          "file": "spec/dependencies/actql-graph-laws.json",
           "pointer": "",
-          "cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+          "cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
         },
         "canonical_value_contract": {
           "file": "spec/contracts/actql-protocol-schemas.json",
@@ -3602,7 +3602,7 @@
       },
       "params_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "urn:actql:property-graph-construction-params:0.1",
+        "$id": "urn:actql:graph-construction-params:0.1",
         "type": "object",
         "additionalProperties": false,
         "required": [
@@ -3704,7 +3704,7 @@
                 }
               },
               "identity_law_cid": {
-                "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+                "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
               },
               "node_definitions": {
                 "type": "array",
@@ -3773,10 +3773,10 @@
                 }
               },
               "value_law_cid": {
-                "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+                "const": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
               },
               "version": {
-                "const": "actql-property-graph-contract/0.1"
+                "const": "actql-graph-contract/0.1"
               }
             }
           },
@@ -4827,7 +4827,7 @@
       },
       "semantics": {
         "admission": "use_existing_checked_constructor_and_typed_contract_owner_before_execution_schema_validation_alone_is_not_admission",
-        "profile": "distinct_property_graph_contract_no_legacy_graph_reading_conversion_or_fallback",
+        "profile": "distinct_graph_contract_no_legacy_graph_reading_conversion_or_fallback",
         "inputs": "one_ordered_relation_occurrence_per_node_then_edge_definition_preserve_repeated_producers_exact_input_count_equals_nodes_plus_edges_zero_only_for_empty_definition_set",
         "correspondence": "each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types_key_columns_has_exact_key_contract_count_all_named_or_all_anonymous_null_and_preserves_original_component_name_position_type_for_snapshot_and_rows",
         "identity": "definition_domain_and_complete_nonnull_typed_key_independent_of_properties_labels_endpoints_input_artifact_parameter_values_run_invocation_and_current_content_CIDs",

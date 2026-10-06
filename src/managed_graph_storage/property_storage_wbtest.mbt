@@ -9,7 +9,7 @@ fn property_fixture(composite? : Bool = false) -> @carrier.Carrier {
   let key = @contract.primitive(@contract.NumberType, nullable=true)
   let extra = @contract.primitive(@contract.StringType, nullable=false)
   let keys = if composite { [key, extra] } else { [key] }
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     keys,
     empty,
@@ -17,7 +17,7 @@ fn property_fixture(composite? : Bool = false) -> @carrier.Carrier {
     max_fields=4,
     max_name_bytes=64,
   ).unwrap()
-  let other = @carrier.property_node_definition(
+  let other = @carrier.graph_node_definition(
     "Other",
     keys,
     empty,
@@ -25,7 +25,7 @@ fn property_fixture(composite? : Bool = false) -> @carrier.Carrier {
     max_fields=4,
     max_name_bytes=64,
   ).unwrap()
-  let element = @carrier.property_node_definition(
+  let element = @carrier.graph_node_definition(
     "E",
     keys,
     empty,
@@ -33,8 +33,8 @@ fn property_fixture(composite? : Bool = false) -> @carrier.Carrier {
     max_fields=4,
     max_name_bytes=64,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(element, "n", "N").unwrap()
-  @carrier.property_graph(
+  let edge = @carrier.graph_edge_definition(element, "n", "N").unwrap()
+  @carrier.graph(
     "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     [node, other],
     [edge],
@@ -88,8 +88,8 @@ fn lookup_identity(
 ///|
 test "keyed lookup refuses foreign definition domains and key types rather than treating them as missing" {
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  append_property_node(builder, 0, [number(1)], []).unwrap()
-  append_property_edge(builder, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
+  append_node(builder, 0, [number(1)], []).unwrap()
+  append_edge(builder, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
   let storage = finish(builder).unwrap()
   let domain = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
   let foreign = "sha256:1111111111111111111111111111111111111111111111111111111111111111"
@@ -152,14 +152,10 @@ test "keyed graph preserves independent parallel edges and scoped composite keys
     DeclaredNodes,
     property_limits(),
   ).unwrap()
+  assert_true(append_node(builder, 0, [number(1), text("a")], []) is Ok(_))
+  assert_true(append_node(builder, 1, [number(1), text("a")], []) is Ok(_))
   assert_true(
-    append_property_node(builder, 0, [number(1), text("a")], []) is Ok(_),
-  )
-  assert_true(
-    append_property_node(builder, 1, [number(1), text("a")], []) is Ok(_),
-  )
-  assert_true(
-    append_property_edge(
+    append_edge(
       builder,
       0,
       [number(10), text("edge")],
@@ -170,7 +166,7 @@ test "keyed graph preserves independent parallel edges and scoped composite keys
     is Ok(_),
   )
   assert_true(
-    append_property_edge(
+    append_edge(
       builder,
       0,
       [number(11), text("edge")],
@@ -223,32 +219,17 @@ test "keyed graph preserves independent parallel edges and scoped composite keys
 ///|
 test "keyed graph excludes null keys and missing endpoints without synthesizing nodes" {
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  assert_true(append_property_node(builder, 0, [nullable_null()], []) is Ok(_))
-  assert_true(append_property_node(builder, 0, [number(1)], []) is Ok(_))
+  assert_true(append_node(builder, 0, [nullable_null()], []) is Ok(_))
+  assert_true(append_node(builder, 0, [number(1)], []) is Ok(_))
   assert_true(
-    append_property_edge(
-      builder,
-      0,
-      [nullable_null()],
-      [number(1)],
-      [number(1)],
-      [],
-    )
+    append_edge(builder, 0, [nullable_null()], [number(1)], [number(1)], [])
     is Ok(_),
   )
   assert_true(
-    append_property_edge(builder, 0, [number(10)], [number(1)], [number(2)], [])
-    is Ok(_),
+    append_edge(builder, 0, [number(10)], [number(1)], [number(2)], []) is Ok(_),
   )
   assert_true(
-    append_property_edge(
-      builder,
-      0,
-      [number(11)],
-      [nullable_null()],
-      [number(1)],
-      [],
-    )
+    append_edge(builder, 0, [number(11)], [nullable_null()], [number(1)], [])
     is Ok(_),
   )
   assert_eq(builder_node_count(builder), 1)
@@ -267,11 +248,8 @@ test "keyed graph excludes null keys and missing endpoints without synthesizing 
 ///|
 test "duplicate keyed nodes reject even identical rows and discard private output" {
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  assert_true(append_property_node(builder, 0, [number(1)], []) is Ok(_))
-  assert_eq(
-    append_property_node(builder, 0, [number(1)], []),
-    Err(DuplicateNodeKey),
-  )
+  assert_true(append_node(builder, 0, [number(1)], []) is Ok(_))
+  assert_eq(append_node(builder, 0, [number(1)], []), Err(DuplicateNodeKey))
   assert_true(finish(builder) is Err(Closed))
   assert_true(cancel(builder))
   assert_eq(builder_node_count(builder), 0)
@@ -284,12 +262,11 @@ test "duplicate keyed nodes reject even identical rows and discard private outpu
 test "duplicate keyed edges reject before missing endpoint exclusion" {
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
   assert_true(
-    append_property_edge(builder, 0, [number(10)], [number(1)], [number(2)], [])
-    is Ok(_),
+    append_edge(builder, 0, [number(10)], [number(1)], [number(2)], []) is Ok(_),
   )
   assert_true(builder_retained_value_bytes(builder) > 0)
   assert_eq(
-    append_property_edge(builder, 0, [number(10)], [number(3)], [number(4)], []),
+    append_edge(builder, 0, [number(10)], [number(3)], [number(4)], []),
     Err(DuplicateEdgeKey),
   )
   assert_true(finish(builder) is Err(Closed))
@@ -305,8 +282,8 @@ test "keyed graph limits and cancellation do not hand off partial graph material
     ..property_limits(),
     max_nodes: 1,
   }).unwrap()
-  assert_true(append_property_node(builder, 0, [number(1)], []) is Ok(_))
-  assert_eq(append_property_node(builder, 0, [number(2)], []), Err(NodeLimit))
+  assert_true(append_node(builder, 0, [number(1)], []) is Ok(_))
+  assert_eq(append_node(builder, 0, [number(2)], []), Err(NodeLimit))
   assert_true(finish(builder) is Err(Closed))
   assert_true(cancel(builder))
   assert_eq(builder_retained_value_bytes(builder), 0)
@@ -315,15 +292,15 @@ test "keyed graph limits and cancellation do not hand off partial graph material
     max_retained_value_bytes: 0,
   }).unwrap()
   assert_eq(
-    append_property_edge(excluded, 0, [number(10)], [number(1)], [number(2)], []),
+    append_edge(excluded, 0, [number(10)], [number(1)], [number(2)], []),
     Err(RetainedValueLimit),
   )
   assert_true(finish(excluded) is Err(Closed))
   assert_true(cancel(excluded))
   let stopped = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  assert_true(append_property_node(stopped, 0, [number(1)], []) is Ok(_))
+  assert_true(append_node(stopped, 0, [number(1)], []) is Ok(_))
   assert_true(cancel(stopped))
-  assert_eq(append_property_node(stopped, 0, [number(2)], []), Err(Closed))
+  assert_eq(append_node(stopped, 0, [number(2)], []), Err(Closed))
   assert_true(finish(stopped) is Err(Closed))
 }
 

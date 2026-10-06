@@ -40,7 +40,7 @@ export function validateResourceAccounting({
   const graphClassification = graphProfile?.classification ?? {};
   const graphRefusals = new Set(families.operations.filter(entry =>
     graphClassification[entry.operation] === 'blocked').map(entry => entry.operation));
-  if (graphProfile?.contract !== 'actql-property-graph-contract/0.1' ||
+  if (graphProfile?.contract !== 'actql-graph-contract/0.1' ||
       graphRefusals.size === 0 || families.operations.some(entry =>
         graphClassification[entry.operation] !== undefined &&
         graphClassification[entry.operation] !== entry.status)) {
@@ -198,14 +198,14 @@ export function validateResourceAccounting({
   }
   const routeEntries = routes.routes ?? [];
   const refusal = routes.refusal_boundary;
-  const publicRefusalPath = 'scripts/property-graph-public-host.test.mjs';
+  const publicRefusalPath = 'scripts/graph-public-host.test.mjs';
   const publicRefusal = fs.readFileSync(path.join(root, publicRefusalPath), 'utf8');
   const sourceCheck = fs.readFileSync(path.join(root, 'src/program_check/check.mbt'), 'utf8');
   const checkStart = sourceCheck.indexOf('fn check_supported_source(');
   const checkEnd = sourceCheck.indexOf('///|', checkStart);
   const check = sourceCheck.slice(checkStart, checkEnd);
   const packageScripts = readJson(path.join(root, 'package.json')).scripts;
-  if (refusal?.suite !== 'node:property_graph_public_host' ||
+  if (refusal?.suite !== 'node:graph_public_host' ||
       refusal.path !== publicRefusalPath ||
       refusal.fixture !== 'keyed constructor and TRAIL reach public Named Results through' ||
       JSON.stringify(refusal.targets) !== JSON.stringify(['node']) ||
@@ -217,7 +217,7 @@ export function validateResourceAccounting({
       !publicRefusal.includes('physicalSteps.slice(before), []') ||
       !publicRefusal.includes('for (const externalInput of [false,true])') ||
       !packageScripts['check:distribution-client']?.includes(publicRefusalPath) ||
-      !packageScripts['check:distribution-client']?.includes('scripts/test-packed-property-graph.mjs')) {
+      !packageScripts['check:distribution-client']?.includes('scripts/test-packed-graph.mjs')) {
     fail('current Graph refusals lack the shared required public pre-execution boundary');
   }
   const routeKeys = routeEntries.map(
@@ -336,7 +336,7 @@ export function validateResourceAccounting({
         ? publicRefusalPath.replace('public-host','surface-checker')
         : 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
       const nodeSuite = mixed.carrier === 'Graph'
-        ? 'node:property_graph_surface_checker' : 'node:duckdb_standard_host';
+        ? 'node:graph_surface_checker' : 'node:duckdb_standard_host';
       for (const [scope, field] of [
         ['prefix', 'in_flight_cancel'],
         ['selected Relation', 'selected_in_flight_cancel'],
@@ -931,10 +931,10 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
         'node:duckdb_retained_values_chain':
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
-        'node:property_graph_surface_checker':
-          'scripts/property-graph-surface-checker.test.mjs',
-        'node:property_graph_public_host':
-          'scripts/property-graph-public-host.test.mjs',
+        'node:graph_surface_checker':
+          'scripts/graph-surface-checker.test.mjs',
+        'node:graph_public_host':
+          'scripts/graph-public-host.test.mjs',
         'node:embedded_distinct_values':
           'adapters/host-node/public-distinct-value-retention.test.mjs',
         'node:embedded_expression_comparison':
@@ -958,9 +958,9 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
-      if (item.suite === 'node:property_graph_public_host' &&
+      if (item.suite === 'node:graph_public_host' &&
         !fs.readFileSync(path.join(root, 'package.json'), 'utf8')
-          .includes('scripts/property-graph-public-host.test.mjs')) {
+          .includes('scripts/graph-public-host.test.mjs')) {
         fail(`${label}: Graph projection public fixture is not suite-connected`);
       }
       if (item.suite === 'node:embedded_vector_records' &&
@@ -1221,12 +1221,12 @@ export function validateResourceAccounting({
         !environmentRoles.has('ordinary_distinct_in_flight_host_timer'))) {
       fail(`${label}: both distinct timer paths need executable evidence`);
     }
-    if (route.family === 'Bridge' && route.operation === 'property_graph') {
-      if (dispatch.marker !== '@bridge.start_rows_to_property_graph(' ||
-        entrypoint.symbol !== 'start_rows_to_property_graph' ||
-        !boundaryRoles.has('property_graph_control_work_workspace_exact_one_short') ||
-        !boundaryRoles.has('property_graph_private_capacity_cancel_cleanup') ||
-        !environmentRoles.has('property_graph_host_in_flight_cancel_cleanup') ||
+    if (route.family === 'Bridge' && route.operation === 'graph') {
+      if (dispatch.marker !== '@bridge.start_rows_to_graph(' ||
+        entrypoint.symbol !== 'start_rows_to_graph' ||
+        !boundaryRoles.has('graph_control_work_workspace_exact_one_short') ||
+        !boundaryRoles.has('graph_private_capacity_cancel_cleanup') ||
+        !environmentRoles.has('graph_host_in_flight_cancel_cleanup') ||
         route.path_assurance?.entrypoint === undefined ||
         route.resource_assurance?.entrypoint === undefined) {
         fail(`${label}: keyed production work/workspace and Host cancellation evidence are required`);
@@ -2473,17 +2473,6 @@ export function validateResourceAccounting({
         !cleanup.includes('@value.cancel_array_value(builder)')) {
         fail(`${label}: Graph label cleanup custody is missing`);
       }
-    }
-    if (route.family === 'Bridge' && route.operation === 'graph' &&
-      (!boundaryRoles.has('graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup') ||
-        !boundaryRoles.has('graph_bridge_two_consumer_lifetime'))) {
-      fail(`${label}: rows-to-Graph Bridge boundary evidence is missing`);
-    }
-    if (route.family === 'Bridge' && route.operation === 'graph' &&
-      (!environmentRoles.has('graph_bridge_host_in_flight_cancel') ||
-        pathAssurance.entrypoint === undefined ||
-        resourceAssurance.entrypoint === undefined)) {
-      fail(`${label}: rows-to-Graph Bridge Host/resource assurance is missing`);
     }
     if (route.family === 'Bridge' && route.operation === 'events' &&
       !environmentRoles.has('events_projection_host_in_flight_cancel')) {

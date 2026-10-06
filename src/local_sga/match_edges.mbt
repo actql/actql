@@ -173,16 +173,13 @@ fn match_edge_value(
   guard graph_read_edge_endpoints(state.source, edge) is Some((source, target)) else {
     return None
   }
-  let checked = if @lower.graph_match_property_binding(
-      state.prepared,
-      "identity",
-    ) ==
+  let checked = if @lower.graph_match_graph_binding(state.prepared, "identity") ==
     Some(name) {
     graph_read_edge_identity(state.source, edge)
-  } else if @lower.graph_match_property_binding(state.prepared, "source") ==
+  } else if @lower.graph_match_graph_binding(state.prepared, "source") ==
     Some(name) {
     graph_read_node_identity(state.source, source)
-  } else if @lower.graph_match_property_binding(state.prepared, "target") ==
+  } else if @lower.graph_match_graph_binding(state.prepared, "target") ==
     Some(name) {
     graph_read_node_identity(state.source, target)
   } else {
@@ -305,14 +302,14 @@ fn match_edges_step(
             return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
           }
           ignore(name)
-          let profile = @carrier.graph_property_definition(state.graph)
+          let profile = @carrier.graph_definition(state.graph)
           let definition = @lower.graph_match_property_definition(
             state.prepared,
           )
-          if @carrier.property_graph_edge_at(profile, definition)
+          if @carrier.graph_edge_at(profile, definition)
             is Some(edge_definition) &&
-            @carrier.property_definition_has_label(
-              @carrier.property_edge_element(edge_definition),
+            @carrier.graph_element_definition_has_label(
+              @carrier.graph_edge_element(edge_definition),
               name,
             ) {
             state.property_type_match = true

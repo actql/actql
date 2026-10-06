@@ -3,9 +3,7 @@ test "current TRAIL selectors retain full identity input roles and reject foreig
   let producer = property_execution_pipeline()
   let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
   guard graph is @carrier.GraphValue(schema) else { fail("current Graph") }
-  let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(schema),
-  )
+  let domain = @carrier.graph_domain(@carrier.graph_definition(schema))
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"

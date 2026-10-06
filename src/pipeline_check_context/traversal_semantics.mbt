@@ -37,7 +37,7 @@ fn traversal_execution_check(
     MinimumEligibleNodeDepth => SelectMinimumEligibleNodeDepth
     CanonicalTraversalOrder => OrderTraversalRows
     ResolveTraversalResources
-    | ResolvePropertyGraphTraversalProfile
+    | ResolveGraphTraversalProfile
     | EnforceTraversalOutputGuard
     | BindTraversalOutputGuard(_) => return Ok(None)
   }

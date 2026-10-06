@@ -1649,7 +1649,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "effect-application",
-        "kind": "envelope"
+        "kind": "prose"
       }
     },
     {
@@ -1693,7 +1693,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "policy-routing",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -1704,7 +1704,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "policy-routing",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {

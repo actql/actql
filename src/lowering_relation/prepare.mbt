@@ -72,7 +72,7 @@ pub enum Payload {
   GraphComponentsRows(@graph.CheckedComponents)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
-  PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
+  GraphConstructionValue(@graph.CheckedGraphConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
@@ -237,7 +237,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphComponentsRows(_) => "SGA.components"
     GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
-    PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
+    GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
         @vector.ToVectors => "BRIDGE.rows.to_vectors"
@@ -322,8 +322,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
-    PropertyGraphConstruction(checked~, ..) =>
-      Some(PropertyGraphConstructionValue(checked))
+    GraphConstruction(checked~, ..) => Some(GraphConstructionValue(checked))
     TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
@@ -480,11 +479,11 @@ pub fn prepare(
             1
           },
         )
-      PropertyGraphConstructionValue(checked) =>
+      GraphConstructionValue(checked) =>
         (
-          "property_graph",
-          @graph.property_construction_node_count(checked) +
-          @graph.property_construction_edge_count(checked),
+          "graph",
+          @graph.construction_node_count(checked) +
+          @graph.construction_edge_count(checked),
         )
       VectorValue(value) =>
         (
@@ -686,7 +685,7 @@ pub fn prepare(
       GraphUnionValue(_) => None
       GraphSubtractionValue(_) => None
       GraphTraverseRows(_) => None
-      PropertyGraphConstructionValue(_) => None
+      GraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None
       PoolValue(_) => None

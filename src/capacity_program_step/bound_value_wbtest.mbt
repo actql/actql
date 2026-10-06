@@ -38,25 +38,27 @@ test "bound calculation preserves arithmetic limits and operation-specific empty
   assert_eq(bound_calculation(Clamp(3L), [0L]), Ok(0L))
   assert_eq(bound_calculation(Clamp(3L), [5L]), Ok(3L))
   assert_eq(
-    bound_calculation(PropertyGraphMeasure(@arithmetic.Nodes, 0, 0), []),
+    bound_calculation(GraphConstructionMeasure(@arithmetic.Nodes, 0, 0), []),
     Ok(0L),
   )
   assert_eq(
-    bound_calculation(PropertyGraphMeasure(@arithmetic.Edges, 2, 0), []),
+    bound_calculation(GraphConstructionMeasure(@arithmetic.Edges, 2, 0), []),
     Ok(0L),
   )
   assert_eq(
-    bound_calculation(PropertyGraphMeasure(@arithmetic.Nodes, 0, 2), [
+    bound_calculation(GraphConstructionMeasure(@arithmetic.Nodes, 0, 2), [
       maximum, 1L,
     ]),
     Err(BoundOverflow),
   )
   assert_eq(
-    bound_calculation(PropertyGraphMeasure(@arithmetic.Edges, 2, 2), [2L, 2L]),
+    bound_calculation(GraphConstructionMeasure(@arithmetic.Edges, 2, 2), [
+      2L, 2L,
+    ]),
     Ok(4L),
   )
   assert_eq(
-    bound_calculation(PropertyGraphMeasure(@arithmetic.Edges, 2, 3), [
+    bound_calculation(GraphConstructionMeasure(@arithmetic.Edges, 2, 3), [
       1L, 1L, 2L,
     ]),
     Ok(4L),

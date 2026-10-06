@@ -225,14 +225,11 @@ pub fn prepare_view(
     max_nodes: limits.max_identity_nodes,
     max_depth: limits.max_identity_depth,
   }
-  guard @contract_graph.admit_property_graph(
-      @carrier.graph_carrier(graph),
-      caps,
-    )
+  guard @contract_graph.admit(@carrier.graph_carrier(graph), caps)
     is Ok(expected) else {
     return Err(InvalidGraph)
   }
-  if graph_contract_cid != @contract_graph.property_cid(expected) {
+  if graph_contract_cid != @contract_graph.cid(expected) {
     return Err(SnapshotContractMismatch)
   }
   // Every entry point checks the view's actual admitted definition. An expected
@@ -274,7 +271,7 @@ fn prepare_source(
     value_limits: limits.value_limits,
   }
   let checked = match
-    @contract_graph.admit_property_graph(@carrier.graph_carrier(graph), {
+    @contract_graph.admit(@carrier.graph_carrier(graph), {
       max_bytes: limits.max_identity_bytes,
       max_nodes: limits.max_identity_nodes,
       max_depth: limits.max_identity_depth,
@@ -283,7 +280,7 @@ fn prepare_source(
     Err(_) => return Err(InvalidGraph)
   }
   if graph_contract_cid != "" &&
-    graph_contract_cid != @contract_graph.property_cid(checked) {
+    graph_contract_cid != @contract_graph.cid(checked) {
     return Err(SnapshotContractMismatch)
   }
   let builder = match @identity.prepare_property(checked, identity_limits) {

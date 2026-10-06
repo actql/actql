@@ -12,14 +12,14 @@ const {evidence_bundle_cid: ignored, ...body} = read('../spec/local-check-enviro
 void ignored;
 const environment = {...body, evidence_bundle_cid:cid(body)};
 const numericProfile = read('../spec/contracts/actql-numeric-reduction.json');
-const propertyLaw = read('../spec/dependencies/actql-property-graph-laws.json');
+const propertyLaw = read('../spec/dependencies/actql-graph-laws.json');
 
 // Old tuple fixtures are historical evidence, not current successful runs.
 // Current positive Plan, ownership, failure, cancellation and cleanup tests
-// live in property-graph-surface-checker.test.mjs. Unsupported consumers use
+// live in graph-surface-checker.test.mjs. Unsupported consumers use
 // the one inventory-driven public Host refusal test, not this old fixture set.
 test('retired tuple constructor is refused even with the current Graph profile installed', () => {
-  const owner = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+  const owner = moon.clientProgramCheckEnvironmentWithGraphProfile(
     canonicalText(environment), environment.evidence_bundle_cid,
     false, false, true, true, false, false, false, cid(numericProfile), cid(propertyLaw));
   assert.ok(owner, 'the current profile is admitted, so refusal is not missing installation');

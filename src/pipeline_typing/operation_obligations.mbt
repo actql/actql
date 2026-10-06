@@ -73,7 +73,7 @@ priv enum ObligationOwner {
   SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
   SelectorOwner(@graph.CheckedSelector)
-  PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
+  GraphConstructionOwner(@graph.CheckedGraphConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
   PoolOwner(@vector.CheckedPool)
@@ -125,7 +125,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
-    PropertyConstructionOwner(c) => @graph.property_construction_source(c)
+    GraphConstructionOwner(c) => @graph.construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
       @vector.nearest_source(
@@ -171,9 +171,9 @@ pub fn operation_obligations_selector(
 /// Retain the exact admitted keyed constructor, not a structurally equal body.
 pub fn operation_obligations_property_construction(
   v : OperationObligations,
-) -> @graph.CheckedPropertyConstruction? {
+) -> @graph.CheckedGraphConstruction? {
   match v.owner {
-    PropertyConstructionOwner(construction) => Some(construction)
+    GraphConstructionOwner(construction) => Some(construction)
     _ => None
   }
 }
@@ -310,8 +310,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
-    PropertyConstructionOwner(c) =>
-      @graph.property_construction_pending_count(c)
+    GraphConstructionOwner(c) => @graph.construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
     NearestOwner(c) => @vector.nearest_pending_count(c)
     PoolOwner(c) => @vector.pool_pending_count(c)
@@ -387,8 +386,8 @@ pub fn operation_obligations_at(
       @graph.traverse_pending_at(c, index).map(x => TraverseRequirement(x))
     SelectorOwner(c) =>
       @graph.selector_pending_at(c, index).map(x => SelectorRequirement(x))
-    PropertyConstructionOwner(c) =>
-      @graph.property_construction_pending_at(c, index).map(x => {
+    GraphConstructionOwner(c) =>
+      @graph.construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
       })
     VectorOwner(c) =>
@@ -436,7 +435,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphUnion(..)
     | GraphSubtraction(..)
     | GraphComponents(_)
-    | PropertyGraphConstruction(..)
+    | GraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
     | Pool(_)
@@ -490,8 +489,8 @@ pub fn operation_obligation_group_at(
             owner: SelectorOwner(@graph.subgraph_nodes(c)),
           }
         }
-      PropertyGraphConstruction(checked=c, ..) =>
-        { scope: Body, owner: PropertyConstructionOwner(c), }
+      GraphConstruction(checked=c, ..) =>
+        { scope: Body, owner: GraphConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }
       Nearest(checked=c, ..) => { scope: Body, owner: NearestOwner(c), }
       Pool(c) => { scope: Body, owner: PoolOwner(c), }

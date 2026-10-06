@@ -7,7 +7,7 @@ pub fn operation_profile_requirement(
   match v {
     MatchRequirement(o) =>
       match o {
-        ResolvePropertyGraphMatchProfile => Some(PropertyGraph)
+        ResolveGraphMatchProfile => Some(Graph)
         AdmitMatchGraphData
         | ValidateSelectedIdentityMembership
         | FilterSelectedEdgeTypes
@@ -17,24 +17,24 @@ pub fn operation_profile_requirement(
       }
     DiagnosticRequirement(o) =>
       match o {
-        AdmitDiagnosticGraph => Some(PropertyGraph)
+        AdmitDiagnosticGraph => Some(Graph)
         ResolveDiagnosticResources
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
     PropertyEqualityRequirement(o) =>
       match o {
-        AdmitBothPropertyGraphs => Some(PropertyGraph)
+        AdmitBothGraphs => Some(Graph)
         CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
       }
     NormalizeRequirement(o) =>
       match o {
-        AdmitNormalizeGraph => Some(PropertyGraph)
+        AdmitNormalizeGraph => Some(Graph)
         ResolveNormalizeResources => None
       }
     DeltaRequirement(o) =>
       match o {
-        AdmitDeltaGraphs => Some(PropertyGraph)
+        AdmitDeltaGraphs => Some(Graph)
         ResolveDeltaResources
         | EnforceDeltaRelationRows
         | AdmitExactlyOneDeltaRow
@@ -43,7 +43,7 @@ pub fn operation_profile_requirement(
       }
     SubtractionRequirement(o) =>
       match o {
-        AdmitSubtractionInputs => Some(PropertyGraph)
+        AdmitSubtractionInputs => Some(Graph)
         PreserveSubtractionIdentities
         | CheckSubtractionEdgeEndpoints
         | ApplySubtractionPropertyStrategies
@@ -53,7 +53,7 @@ pub fn operation_profile_requirement(
       }
     UnionRequirement(o) =>
       match o {
-        AdmitUnionInputs => Some(PropertyGraph)
+        AdmitUnionInputs => Some(Graph)
         PreserveUnionIdentities
         | CheckUnionEdgeEndpoints
         | ApplyUnionPropertyStrategies
@@ -62,7 +62,7 @@ pub fn operation_profile_requirement(
       }
     ComponentsRequirement(o) =>
       match o {
-        AdmitComponentGraph => Some(PropertyGraph)
+        AdmitComponentGraph => Some(Graph)
         EnforceComponentInputNodes
         | ResolveComponentResources
         | EnforceComponentOutputRows
@@ -71,7 +71,7 @@ pub fn operation_profile_requirement(
       }
     SubgraphRequirement(o) =>
       match o {
-        ResolveSubgraphProfile => Some(PropertyGraph)
+        ResolveSubgraphProfile => Some(Graph)
         AdmitSubgraphInput
         | InduceSelectedEndpoints
         | FilterInducedEdges
@@ -81,7 +81,7 @@ pub fn operation_profile_requirement(
       }
     TraverseRequirement(o) =>
       match o {
-        ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
+        ResolveGraphTraversalProfile => Some(Graph)
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | FilterTraversalLabels
@@ -95,7 +95,7 @@ pub fn operation_profile_requirement(
       }
     ConstructionRequirement(o) =>
       match o {
-        ResolvePropertyGraphProfile => Some(PropertyGraph)
+        ResolveGraphProfile => Some(Graph)
         AdmitGraphInputRows
         | RejectDuplicateDefinitionKeys
         | ExcludeNullKeysAndMissingEndpoints

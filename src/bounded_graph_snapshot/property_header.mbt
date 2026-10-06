@@ -21,7 +21,7 @@ pub fn read_property_header(
     return Err(InvalidSnapshotBody)
   }
   if @decode.text(@decode.element_at(input, 0).unwrap()) !=
-    Ok("actql-property-graph-snapshot/0.1") {
+    Ok("actql-graph-snapshot/0.1") {
     return Err(InvalidSnapshotBody)
   }
   let usage = @decode.admission_usage(input)
@@ -35,19 +35,13 @@ pub fn read_property_header(
     max_nodes: limits.max_identity_nodes,
     max_depth: limits.max_identity_depth,
   }
-  guard @contract_graph.admit_property_graph(
-      @carrier.graph_carrier(expected),
-      caps,
-    )
+  guard @contract_graph.admit(@carrier.graph_carrier(expected), caps)
     is Ok(expected_contract) &&
-    @contract_graph.read_property_graph_cursor(
-      @decode.element_at(input, 2).unwrap(),
-      caps,
-    )
+    @contract_graph.read_cursor(@decode.element_at(input, 2).unwrap(), caps)
     is Ok(received) &&
     @decode.text(@decode.element_at(input, 1).unwrap()) is Ok(received_cid) &&
-    received_cid == @contract_graph.property_cid(received) &&
-    received_cid == @contract_graph.property_cid(expected_contract) else {
+    received_cid == @contract_graph.cid(received) &&
+    received_cid == @contract_graph.cid(expected_contract) else {
     return Err(SnapshotContractMismatch)
   }
   let nodes = @decode.element_at(input, 3).unwrap()

@@ -349,7 +349,7 @@ fn prepare_kernel_measured(
     | GraphComponentsRows(_)
     | GraphSubgraphValue(_)
     | GraphTraverseRows(_)
-    | PropertyGraphConstructionValue(_)
+    | GraphConstructionValue(_)
     | VectorValue(_)
     | NearestValue(_)
     | PoolValue(_)

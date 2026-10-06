@@ -8,7 +8,7 @@ fn current_scope_graph() -> @carrier.Carrier {
     max_fields=3,
     max_name_bytes=100,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [number, text],
     properties,
@@ -16,7 +16,7 @@ fn current_scope_graph() -> @carrier.Carrier {
     max_fields=3,
     max_name_bytes=100,
   ).unwrap()
-  let edge_element = @carrier.property_node_definition(
+  let edge_element = @carrier.graph_node_definition(
     "E",
     [text],
     properties,
@@ -24,8 +24,8 @@ fn current_scope_graph() -> @carrier.Carrier {
     max_fields=3,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(edge_element, "N", "N").unwrap()
-  @carrier.property_graph(
+  let edge = @carrier.graph_edge_definition(edge_element, "N", "N").unwrap()
+  @carrier.graph(
     "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     [node],
     [edge],
