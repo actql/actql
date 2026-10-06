@@ -1,5 +1,6 @@
 import test from 'node:test';
 import './action-inputs.test.mjs';
+import '../events-bridge/evidence.test.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

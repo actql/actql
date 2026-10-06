@@ -128,8 +128,8 @@ pub fn completed_property_snapshot_material(
           return Err(@lifecycle.SnapshotUnavailable)
         }
         let parsed = match
-          @source.parse_json(
-            text,
+          @source.parse_json_bytes_preserving(
+            @utf8.encode(text),
             {
               max_input_bytes: maximum_bytes,
               max_nodes: read_limits.max_nodes,

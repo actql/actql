@@ -114,9 +114,13 @@ test "keyed node traversal keeps minimum eligible depth without pruning paths" {
           "{\"depth\":" +
           depth.to_string() +
           ",\"node_id\":" +
-          traversal_fixture_node(domain, node) +
+          property_graph_expected_json_wire(
+            traversal_fixture_node(domain, node),
+          ) +
           ",\"start_id\":" +
-          traversal_fixture_node(domain, start) +
+          property_graph_expected_json_wire(
+            traversal_fixture_node(domain, start),
+          ) +
           "}",
         )
       }
@@ -266,7 +270,11 @@ test "keyed node traversal has independent exact budgets and every zero-hop stop
       assert_eq(@execution.completed_row_count(output), 1)
       assert_eq(
         @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
-        "{\"depth\":0,\"node_id\":" + id + ",\"start_id\":" + id + "}",
+        "{\"depth\":0,\"node_id\":" +
+        property_graph_expected_json_wire(id) +
+        ",\"start_id\":" +
+        property_graph_expected_json_wire(id) +
+        "}",
       )
       assert_true(@local_sga.cleanup_traverse(active).unwrap())
       for

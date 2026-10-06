@@ -1,0 +1,159 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.query_pair",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "aql_source_free_unit": {
+                "type": "boolean",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ]
+          },
+          "as": "aql_script_seed_1"
+        },
+        {
+          "from": "aql_script_seed_1",
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 1
+            },
+            "aql_query_expr_1": {
+              "literal": 7
+            }
+          }
+        },
+        {
+          "select": [
+            {
+              "node_key": "aql_query_expr_0"
+            },
+            {
+              "p": "aql_query_expr_1"
+            }
+          ],
+          "as": "aql_data_0"
+        },
+        {
+          "property_graph": {
+            "version": "actql-property-graph-constructor/0.1",
+            "nodes": [
+              {
+                "name": "N",
+                "from": "aql_data_0",
+                "key": [
+                  "node_key"
+                ],
+                "labels": [
+                  {
+                    "name": "Person",
+                    "properties": {
+                      "mode": "columns",
+                      "columns": [
+                        {
+                          "from": "p",
+                          "to": "p"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "edges": []
+          },
+          "as": "aql_data_2"
+        },
+        {
+          "values": {
+            "schema": {
+              "aql_source_free_unit": {
+                "type": "boolean",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ]
+          },
+          "as": "aql_script_seed_4"
+        },
+        {
+          "from": "aql_script_seed_4",
+          "derive": {
+            "aql_query_expr_0": {
+              "typed_literal": {
+                "type": "json",
+                "value": "{\"base_graph_cid\":\"sha256:948061fdaf4f6ededbc57867afb844e99a2bbbf15088a20b61a0bf61a5973523\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:1ce33a39d7ac4c0be8fbca0c3cecb4bc3ab98d4538b8cbf022528ec3d2cad436\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[{\"after\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":8}},\"before\":{\"id\":{\"definition\":\"N\",\"domain\":\"sha256:0b0f09975c343952c31a2792a8d2f19d0dd01455963e55277fd79c4bc4afc9c6\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]},\"key\":[1],\"props\":{\"p\":7}}}]},\"target_graph_cid\":\"sha256:2a09607e9ca8471153d3ca36034dd99fac5fbe7dbf0357e3abfc764b7e0f90ee\",\"version\":\"actql-graph-delta/0.1\"}"
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            {
+              "delta": "aql_query_expr_0"
+            }
+          ],
+          "as": "aql_data_3"
+        },
+        {
+          "from": "aql_data_2",
+          "apply_graph_delta": {
+            "with": "aql_data_3",
+            "field": "delta"
+          },
+          "as": "aql_sga_5"
+        },
+        {
+          "from": "aql_sga_5",
+          "node_rows": true,
+          "as": "aql_sga_6"
+        },
+        {
+          "from": "aql_sga_6",
+          "select": [
+            "p",
+            "node_key"
+          ]
+        },
+        {
+          "select": [
+            "p",
+            "node_key"
+          ],
+          "as": "aql_script_result"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "aql_script_result",
+          "fields": [
+            "p",
+            "node_key"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}
