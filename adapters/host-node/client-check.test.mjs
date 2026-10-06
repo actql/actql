@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, createHmac, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -3363,6 +3363,86 @@ const invalidParsedBindings = [
 ];
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: session formats use negotiated coordinates and omit stale positions`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    for (const [encoding, character] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const shown = JSON.parse(session.format(observation, {format: 'json'}));
+      assert.deepEqual(shown.entries[0].location,
+        {kind: 'text', documentId: 'source', revision: observation.outcome.report.inputs[0].revision,
+          startByte: 19, endByte: 19, precision: 'exact', positionEncoding: encoding,
+          range: {start: {line: 0, character}, end: {line: 0, character}}},
+        '[check-mutation:session-format-public-encoding]');
+      for (const format of ['text', 'html']) {
+        const output = session.format(observation, {format});
+        assert.ok(output.includes(encoding));
+        assert.equal(format === 'html' ? output.includes('&quot;character&quot;:' + character)
+          : output.includes('"character":' + character), true);
+      }
+      const copied = JSON.parse(session.format({...observation}, {format: 'json'}));
+      assert.equal(Object.hasOwn(copied.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-copy]');
+      const stale = JSON.parse(session.format(observation, {format: 'json', get locale() {
+        session.update('\ufeff/*😀*/SELECT (', 2); return 'en';
+      }}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-current]');
+      assert.deepEqual(stale.observation, shown.observation);
+      const current = await session.check({format: 'sql'});
+      const input = getCheckInput(current.outcome, 'source');
+      let edited = false;
+      const changing = {...input, get text() {
+        if (!edited) { edited = true; session.update('edited', 3); }
+        return input.text;
+      }};
+      const changed = JSON.parse(session.format(current, {format: 'json', currentInputs: [changing]}));
+      assert.equal(Object.hasOwn(changed.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-recheck]');
+      assert.deepEqual(changed.observation, shown.observation);
+      session.close();
+    }
+  });
+
+  test(`${entrance}: session formats retain binding JSON facts and protected equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const fixture of invalidParsedBindings) {
+      const displays = [];
+      for (const client of clients) {
+        const session = sdk.createCheckDocumentSession(client,
+          {text: 'SELECT @payload AS n FROM records', version: 1, positionEncoding: 'utf-8'});
+        const observation = await session.check({format: 'sql', ...fixture.options('a/~e\u0301😀')});
+        const display = JSON.parse(session.format(observation, {format: 'json'}));
+        const reason = observation.outcome.report.reasons[0];
+        assert.deepEqual(display.entries[0].facts,
+          {document: fixture.document, issue: 'invalid_unicode'},
+          '[check-mutation:session-format-public-facts]');
+        assert.deepEqual(display.entries[0].location,
+          {kind: 'structured', documentId: fixture.document, revision: reason.location.revision,
+            pointer: fixture.prefix + 'a~1~0e\u0301😀/1'},
+          '[check-mutation:session-format-public-pointer]');
+        const formats = ['text', 'html', 'json'].map(format => session.format(observation, {format}));
+        for (const formatted of formats) assert.doesNotMatch(formatted,
+          /\\ud800|\\udfff|records\.duckdb/u, '[check-mutation:session-format-public-private-value]');
+        displays.push(formats);
+        session.close();
+        const closed = JSON.parse(session.format(observation, {format: 'json'}));
+        assert.equal(Object.hasOwn(closed.entries[0], 'location'), false,
+          '[check-mutation:session-format-public-close]');
+        assert.deepEqual(closed.entries[0].facts, display.entries[0].facts);
+      }
+      assert.deepEqual(displays[0], displays[1], '[check-mutation:session-format-public-disclosure]');
+      assert.deepEqual(displays[0], displays[2], '[check-mutation:session-format-public-disclosure]');
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
   for (const fixture of invalidParsedBindings) {
     test(`${entrance}: JSON parser location survives ${fixture.document} failure`, async t => {
       const client = await contextClient(t, entrance, sourceEnvironment);
@@ -3907,5 +3987,73 @@ for (const entrance of ['local', 'http']) {
     assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
     assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
     reopened.close();
+  });
+}
+
+// Independent context oracle: literal public fixture selections and registered
+// manifests, with an ordinary sorted JSON encoder. No product canonicalizer,
+// compiler accessor or returned reference constructs the expected preimage.
+const contextGrammar = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-grammar-0.1.json'), 'utf8'));
+const contextBarriers = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-barrier-contracts-0.1.json'), 'utf8'));
+const contextProtocols = JSON.parse(await readFile(join(repository,
+  'spec/contracts/actql-protocol-schemas.json'), 'utf8'));
+const contextJSON = value => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(contextJSON).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(key =>
+    JSON.stringify(key) + ':' + contextJSON(value[key])).join(',') + '}';
+};
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: context references bind both schemas through ordinary and fallback input`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    const base = {version: 'actql-check-context/0.1', audience: owner,
+      disclosure_policy: 'actql-check-disclosure/0.1', projection: 'actql-check-outcome/0.1',
+      scope: 'bound_input', compiler: {compiler_version: 'actql-moonbit-0.0.1',
+        grammar_manifest_cid: contextGrammar.grammar_manifest_cid,
+        barrier_contract_manifest_cid: contextBarriers.barrier_contract_manifest_cid},
+      reason_schema_cid: contextProtocols.artifact_schema_cids.check_reason,
+      outcome_schema_cid: contextProtocols.artifact_schema_cids.check_outcome,
+      checking_context: {host_policy_profile: sourceEnvironment.host_policy_profile,
+        model_task_contract_cids: [], profiles: {text_time: false, veca: false,
+          rela: true, sga: true, tea: false, calendar: false, text_rank: false,
+          property_graph: false, property_graph_law_cid: null, model_tasks: true,
+          numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}},
+      visible_aliases: []};
+    const hash = value => 'ctx:' + createHmac('sha256', new Uint8Array(32).fill(7))
+      .update(contextJSON(value)).digest('hex');
+    for (const parameterDeclarations of [undefined,
+      {'é': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+      const references = [];
+      for (const text of ["SELECT 'café' AS label", "SELECT 'cafe\u0301' AS label"]) {
+        const input = {text, format: 'sql',
+          ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
+        const preimage = {...base, ...(parameterDeclarations === undefined
+          ? {source: {format: 'sql', text}, parameter_declarations: null, parameters: null}
+          : {received: JSON.stringify({input, parameters: null})})};
+        const {outcome_schema_cid, ...precedingProjection} = preimage;
+        assert.notEqual(hash(preimage), hash(precedingProjection));
+        const outcomes = [];
+        for (const client of clients) {
+          const outcome = await client.check(text, {format: 'sql', parameterDeclarations});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.context_ref, hash(preimage),
+            '[check-mutation:context-schema-public]');
+          assert.equal(getCheckInput(outcome, 'source').text, text);
+          assert.deepEqual(await client.check(text, {format: 'sql', parameterDeclarations}), outcome);
+          outcomes.push(outcome);
+        }
+        assert.deepEqual(outcomes[0], outcomes[1]);
+        assert.deepEqual(outcomes[0], outcomes[2]);
+        references.push(outcomes[0].report.context_ref);
+      }
+      assert.notEqual(references[0], references[1]);
+    }
   });
 }

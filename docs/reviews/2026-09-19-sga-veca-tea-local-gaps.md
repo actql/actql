@@ -5925,3 +5925,74 @@ The Host regression has unqualified published fields and is not a new qualified
 public Program acceptance claim. Preparation/input/output name matching, legacy
 drains, JSON normalization, runtime buffer assembly, aggregate intermediate
 bytes, whole-Run accounting and unexecuted packed/target campaigns remain open.
+
+### Pool algorithmic reference-name matching
+
+Pool now retains input component/group/identity and output group-name scans
+across advances, borrowing qualification rather than assembling reference
+Strings. Each fragment examines at most 64 UTF-16 pairs; output search also
+caps probe transitions at eight. The existing Session reserves one position
+slot before reads, retains current field/output custody until confirmed stop
+and clears it through single cleanup. Short-name work and wire rules remain
+unchanged; long/wide searches add cumulative, quantum-independent polls.
+
+Current independent control boundaries are 1195/1194 for the long Carrier
+name and 382/381 for the ordinary Relation input-name Host barrier, with
+72/71 and 67/66 workspace respectively. The previously registered scalar
+Relation caller's stale append premise is corrected separately: eleven slots
+from parent field binding plus this one slot give 95/94, while work stays
+72/71. Older figures above describe their original revisions, not current
+expectations. Real Host evidence covers three explicit Named Results, two
+consumers, repeated request reuse and cancellation during input name matching.
+
+This closes Pool's algorithmic name matching only. Preparation/schema lookup,
+JSON identifier normalization, legacy drains, runtime buffer assembly,
+aggregate intermediate bytes, whole-Run physical accounting and unexecuted
+full-target/packed campaigns remain residuals. See the
+[name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
+boundaries, the atomic-drain negative and actual versus unverified checks.
+
+### Ranking algorithmic reference-name matching
+
+Ranking input binding now retains its borrowed current field, role probe and
+raw UTF-16 offset across advances. The shared fragment scans at most 64 pairs;
+input binding also caps probes at eight without losing overlapping group/tie
+roles. Output candidate/score/rank precedence and one-group-per-poll search
+remain unchanged. Four new fixed slots are reserved before reads; cancellation
+preserves input/current-field custody until confirmed stop and single cleanup.
+
+Independent current boundaries are 81/80 control and 90/89 workspace for a
+513-unit group/candidate, 199/198 and 122/121 for nine groups, 88/87 and 93/92
+for weighted overlapping roles, and 321/320 and 82/81 for the public Host
+name-matching barrier. Existing short-role caller work is unchanged, while
+workspace gains four slots. Historical figures above remain historical.
+
+Actual Host evidence includes retained publication, three explicitly read
+Named Results, two consumers, request reuse without another dispatch and
+cancellation during the input name scan. This closes algorithmic name matching,
+not preparation/schema lookup, per-poll input-availability loops, normalization,
+legacy drains, final runtime assembly, aggregate intermediate bytes or
+whole-Run accounting. See the [Ranking name-matching evidence](2026-10-06-local-ranking-name-matching.md)
+for independent budgets, negative evidence and executed/unverified checks.
+
+### Score and Normalize stepped record emission (2026-10-06)
+
+Score and Normalize now use the shared stepped record append instead of a
+synchronous append after bounded numerical computation. This includes Vector
+wire output and unused nested columns. Reference names are scanned in borrowed
+UTF-16 fragments; Score typed identity validation and ties retain the existing
+bounded key cursor. A decided tie returns to merge-side exhaustion checks.
+
+Current two-dimensional control limits are Normalize 35/34 and Score 50/49;
+workspace is respectively 67/66 and 79/78. For one 256-dimensional record,
+control limits are 804/803 and 821/820, workspace 327/326 and 338/337, and
+logical construction work 272/271 and 276/275. These supersede historical
+pre-stepped append figures only for the affected current implementations.
+
+Ordinary installed Host evidence covers real retained output, three explicit
+Named Results, two consumers, repeated-request reuse and cancellation during
+unfinished record emission. The route checker requires the executed boundary
+fixtures and their actual public suite connection; full boundary completion is
+still not asserted. Broader physical accounting, remaining execution scans and
+unexecuted packed/target campaigns are not closed by this change. See the
+[record-emission evidence](2026-10-06-local-vector-record-emission.md).

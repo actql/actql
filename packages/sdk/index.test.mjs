@@ -1,5 +1,8 @@
 import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
+import './check-output-formats.test.mjs';
+import './check-document-sessions.test.mjs';
+import './check-session-presentation.test.mjs';
 import './check-presentation.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';

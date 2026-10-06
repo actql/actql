@@ -33,6 +33,8 @@ export type CheckFormatOptions = CheckExplanationOptions & Readonly<{
   format?: 'text' | 'html' | 'json';
   maxBytes?: number;
   currentInputs?: readonly CheckInput[];
+  /** The negotiated encoding for text coordinates; UTF-16 is the default. */
+  positionEncoding?: CheckPositionEncoding;
 }>;
 /** Undefined for malformed protocol data/options or a budget too small for the observation. */
 export declare function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions): string | undefined;
@@ -156,6 +158,8 @@ export interface CheckDocumentSession {
   check(options: Parameters<Client['check']>[1]): Promise<CheckDocumentObservation>;
   /** Only the newest issued check of this still-open current version may supply editor coordinates. */
   resolveTextRange(observation: CheckDocumentObservation, location: WireCheckLocation): CheckTextRange | undefined;
+  /** Safe display in the negotiated encoding; omit positions for stale, foreign or copied observations. */
+  format(observation: CheckDocumentObservation, options?: Omit<CheckFormatOptions, 'positionEncoding'>): string | undefined;
   /** Invalidate editor coordinates and release the current buffer; does not close the shared Client. */
   close(): void;
 }

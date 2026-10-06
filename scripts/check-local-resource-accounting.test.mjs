@@ -61,6 +61,63 @@ test('Set requires nested comparison boundary evidence for both operations', () 
   }
 });
 
+test('Score and Normalize require stepped record limits, scans and public Store evidence', () => {
+  for (const prefix of ['normalize', 'score']) {
+    const operation = prefix === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const suffixes = ['record_limits', 'record_stop', 'role_stop', 'unused_stop',
+      ...(prefix === 'score' ? ['key_stop_order'] : [])];
+    for (const suffix of suffixes) {
+      const role = `${prefix}_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} stepped fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_record_public_store`);
+    }), new RegExp(`VecA ${operation}: stepped record public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests.find(item => item.role === `${prefix}_record_public_store`)
+        .suite = 'node:embedded_pool_keys';
+    }), /environment evidence must name an executable suite/u);
+  }
+});
+
+test('Score and Normalize public record evidence requires its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      "import './public-vector-record-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of ['score_vectors', 'normalize_vectors']) {
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: vector record public fixture is not suite-connected`));
+  }
+});
+
+test('Score and Normalize cannot replace the shared stepped append with an atomic call', () => {
+  for (const kernel of ['normalize', 'score']) {
+    const file = join(root, `src/local_veca/${kernel}.mbt`);
+    const operation = kernel === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+        '@records.start_record_append(', '@records.append_record(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: stepped record/name/key production connection is missing`));
+  }
+});
+
 test('DISTINCT requires nested comparison limits, stop and public Store evidence', () => {
   for (const suffix of ['quantum_order', 'stop_cleanup', 'workspace', 'work', 'public_barrier']) {
     const role = `distinct_nested_compare_${suffix}`;
@@ -230,13 +287,27 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
     'pool_field_binding_typed_role', 'pool_qualified_name_limits',
     'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
-    'pool_qualified_name_wire_unicode']) {
+    'pool_qualified_name_wire_unicode', 'pool_name_match_common',
+    'pool_name_match_limits', 'pool_name_match_stop',
+    'pool_name_match_wide', 'pool_name_match_public_barrier']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');
       route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
     }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item =>
+      item.role === 'pool_name_match_common').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_name_match_public_store');
+  }), /VecA pool_vectors: Pool name matching public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
@@ -344,6 +415,26 @@ test('ranking input requires unused-value limits, shared scans and public custod
       route.boundary_tests.find(item => item.role === role).suite = 'moon:local_veca';
     }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
   }
+});
+
+test('ranking name matching requires shared scans, exact limits and public custody', () => {
+  for (const role of ['ranking_name_match_common', 'ranking_name_match_limits_stop',
+    'ranking_name_match_wide_overlap', 'ranking_name_match_public_barrier']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_name_match_public_store');
+  }), /VecA merge_rankings: ranking name matching public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.boundary_tests.find(item => item.role === 'ranking_name_match_common')
+      .suite = 'moon:local_veca';
+  }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
 });
 
 test('ranking public evidence requires an actual suite connection', () => {
