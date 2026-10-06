@@ -1029,7 +1029,11 @@ fn order_aggregate_calls(
   projections.filter_map(projection => {
     guard projection.name is Some(name) &&
       projection.aggregate is Some(call) &&
-      !selected.any(item => item.name == Some(name)) &&
+      !selected.any(item => {
+        item.aggregate is Some(_) &&
+        item.name is Some(selected_name) &&
+        same_name(selected_name, name)
+      }) &&
       references.any(path => path.length() == 1 && path[0] == name) else {
       return None
     }
@@ -2140,6 +2144,7 @@ fn compile_steps(
             _ => ()
           }
         }
+        // Classify against expanded SELECT aggregates, preserving input aliases.
         let order_calls = if grouping_scope == @query.SqlSelect {
           order_aggregate_calls(
             query, projections, sql_group_selected_projections,
