@@ -5870,3 +5870,21 @@ final StringBuilder buffer assembly or aggregate intermediate-byte accounting.
 Field/schema name scans, runtime Object-name validation, legacy drains and
 unexecuted full-target/packed/whole-Run campaigns remain distinct. See
 [member scanning evidence](2026-10-06-local-pool-member-scanning.md).
+
+### Typed Object name rechecking
+
+The shared runtime recheck retains long declared Object names across advances,
+matching and measuring scalar-safe fragments before visiting a child. Opaque
+admitted contract names provide canonical identifier evidence; data Strings
+are not normalized. Original value node/depth/byte limits and short-name poll
+counts remain unchanged; long names add quantum-independent control polls.
+The Relation Pool fixture fixes control 313/312 and workspace 55/54. Ordinary
+installed Host evidence uses real retained output, three explicit Named Results,
+request reuse, and cancellation inside the name at poll 256 before collection.
+
+Runtime JSON name validation regains the synchronous owner's NFC/LF refusal,
+but its long-name normalization is still synchronous. This closes declared
+Object matching/byte scans, not every name/Map/schema boundary. Legacy drains,
+runtime buffer assembly, whole-Run physical accounting and unexecuted
+target/packed campaigns remain distinct. See the
+[Object-name evidence](2026-10-06-local-object-name-rechecks.md).

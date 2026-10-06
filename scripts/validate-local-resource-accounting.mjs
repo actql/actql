@@ -1377,7 +1377,8 @@ export function validateResourceAccounting({
         'pool_record_contract_workspace', 'pool_record_contract_cleanup',
         'pool_record_contract_pair_limits', 'pool_record_contract_binding',
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
-        'pool_member_encoding_shared_cleanup']) {
+        'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
+        'pool_object_name_shared_limits', 'pool_json_name_canonical_refusal']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('pool_output_public_store')) {
@@ -1388,6 +1389,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('pool_member_encoding_public_store')) {
         fail(`${label}: Pool member encoding public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_object_name_public_store')) {
+        fail(`${label}: Pool Object name public Store fixture is missing`);
       }
       for (const role of ['pool_relation_input_limits_stop_cleanup',
         'pool_relation_input_shared_vector']) {
