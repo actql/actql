@@ -76,7 +76,8 @@ and resource gates remain authoritative and unchanged.
 
 ## Capacity: deferred obligation
 
-The current reservation is preserved:
+The unchanged conservative policy applies when a chain contains a family
+provider or any built-in outside the reviewed early-cleanup set:
 
 ```
 retained = base.retained_bytes
@@ -85,12 +86,32 @@ execution = max(base.execution_bytes,
                 + child_count * 256)
 ```
 
-`children` retains every successfully started execution until parent cleanup;
-`previous` keeps the intermediate output for the exact next edge. Cleanup visits
-children in reverse order, retries the pending child, and drops references only
-after all children complete cleanup. Thus child scratch and intermediate outputs
-may coexist. Replacing the sum with `max(child)` would require a different
-lifetime argument and is out of scope.
+Such chains retain every successfully started execution until terminal parent
+cleanup. Their execution readers are cleaned in reverse order, with pending
+cleanup custody preserved.
+
+A chain containing only selected binding-row kernels, `Groups`, `CountGroups`
+and `JoinStep` now uses those same kernels' existing cleanup after each accepted
+intermediate completion. Cleanup must confirm before the child execution is
+removed from both `current` and `children`, and before the next child starts.
+Accepted `CompletedOutput` values remain retained for all their exact later
+checked edges; external input ownership and per-use logical budgets are unchanged.
+The final child remains owned until normal parent cleanup. This lifetime permits:
+
+```
+retained = base.retained_bytes
+execution = max(base.execution_bytes,
+                sum(child.retained_bytes) + max(child.execution_bytes)
+                + child_count * 256)
+```
+
+False/error cleanup keeps the child and its reservation responsibility; it never
+permits another child to start. This early retirement while the parent is running
+is outside `Chain.lean`'s terminal-only cleanup transition. The existing TimeSeries
+pilot retains the conservative policy, and its laws do not prove the new lifetime
+or capacity argument. Old source-bound certificates cannot be reused after this
+source change; focused lifetime/capacity regressions are separate implementation
+evidence.
 
 Still unproved: each child capacity's bound on actual live allocations, identity
 and alias accounting across intermediate outputs, the 256-byte handle allowance
