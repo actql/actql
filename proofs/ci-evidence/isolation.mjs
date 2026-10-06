@@ -162,9 +162,20 @@ export function isolatedRunArguments({imageId, cidFile, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
   assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
   assert(typeof owner === 'string' && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Use the actual run/attempt/job owner');
+  return runArguments({imageId, cidFile, owner, label: 'org.actql.ci.owner'});
+}
+
+export function localIsolatedRunArguments({imageId, cidFile, owner}) {
+  assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
+  assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
+  assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
+  return runArguments({imageId, cidFile, owner, label: 'org.actql.local.owner'});
+}
+
+function runArguments({imageId, cidFile, owner, label}) {
   return ['run', '--rm', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
     '--security-opt=no-new-privileges', '--user=1000:1000', '--hostname=actql-session',
-    '--label', `org.actql.ci.owner=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
+    '--label', `${label}=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
     '--tmpfs', '/workspace:rw,nosuid,nodev,mode=1777', '--workdir=/workspace',
     '--entrypoint=/runtime/node', imageId, `/source/${child}`];
 }
@@ -179,9 +190,19 @@ export function scratchDockerfile() {
 // volumes before running any command from that image. Never print ENV values.
 export function checkImageDefinition({image, imageId, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Invalid image identity/owner');
+  return imageDefinition({image, imageId, owner, label: 'org.actql.ci.owner'});
+}
+
+export function checkLocalImageDefinition({image, imageId, owner}) {
+  assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid local image identity/owner');
+  assert(!image.Config?.Labels?.['org.actql.ci.owner'], 'Local image cannot carry Actions authority');
+  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner'});
+}
+
+function imageDefinition({image, imageId, owner, label}) {
   assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
   const config = image.Config;
-  assert(config?.Labels?.['org.actql.ci.owner'] === owner, 'Wrong built image owner');
+  assert(config?.Labels?.[label] === owner, 'Wrong built image owner');
   // Builders can retain the position of an existing default PATH when ENV
   // replaces its value. Order is not a dependency when all names are unique;
   // exact sorted entries still reject extra, missing, duplicate or changed ENV.
