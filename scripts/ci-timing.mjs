@@ -58,8 +58,8 @@ function runnerConsumption(attempt, jobs, common, wallSpan, steps) {
     const startedStep = steps.some(step => step.jobId === row.jobId && step.identityValid && step.execution.seconds !== null);
     const reason = skipped ? 'skipped-not-executed' : row.execution.reason ??
       (!knownString(job.runnerName) || !job.runnerLabels?.length ? 'missing-runner-observation' :
-        !startedStep ? 'no-observed-step-execution' :
-          job.steps.some(step => step.status !== 'completed') ? 'incomplete-step-execution' : null);
+        job.steps?.some(step => step.status !== 'completed') ? 'incomplete-step-execution' :
+          !startedStep ? 'no-observed-step-execution' : null);
     return {jobId: row.jobId, jobName: row.jobName, runnerName: job.runnerName,
       execution: {...row.execution, seconds: reason ? null : row.execution.seconds, reason}, skipped};
   });

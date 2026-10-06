@@ -611,6 +611,20 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
       assert.notEqual(total.reason, null);
     }
   });
+
+  test('millisecond runner-total overflow stays unknown rather than rounding to a precise total', async () => {
+    const data = fixture();
+    data[`${path(10)}/jobs?per_page=100`] = pages(Array.from({length: 40}, (_, index) => {
+      const value = job(100 + index, 10, `independent-${index}`, 20, 60);
+      value.started_at = '0001-01-01T00:00:00Z'; value.completed_at = '9999-12-31T23:59:59Z';
+      value.steps[0].started_at = '0001-01-01T00:00:01Z'; value.steps[0].completed_at = '9999-12-31T23:59:58Z';
+      return value;
+    }));
+    const total = (await collect(data, {runs: [10]})).timing.runnerConsumption[0];
+    assert.equal(total.measuredJobCount, 40); assert.equal(total.unknownJobCount, 0);
+    assert.equal(total.totalJobSeconds, null); assert.equal(total.knownJobSeconds, null);
+    assert.equal(total.reason, 'duration-overflow'); assert.equal(total.successfulSample, false);
+  });
 }
 
 
