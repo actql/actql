@@ -12,6 +12,15 @@ import {parseTestExecution} from './test-execution.mjs';
 const path = 'src/connectors_builtin_node/client_check.mbt';
 const acceptance = 'adapters/host-node/client-check.test.mjs';
 const mutations = [
+  ['an expression type rejection loses its owned required type',
+    'return ExpressionTypeViolation(expected)', 'return Violation("program_invalid")'],
+  ['an operation parameter loses its owned positive scalar domain',
+    'SafeInteger(_, minimum=1L) => Some("positive_safe_integer")',
+    'SafeInteger(_, minimum=1L) => Some("nonnegative_safe_integer")'],
+  ['an operation parameter loses its original supplied location',
+    'location = Some(("parameters", pointer))', 'location = None'],
+  ['an operation default loses its original declaration location',
+    'location = Some(("parameter_declarations", prefix + relative))', 'location = None'],
   ['a protected obligation hides the disclosable violation',
     'QueryLowering(UnknownRelation) =>\n' +
     '          findings.push(Unresolved("source_resolution"))',
@@ -24,6 +33,9 @@ const mutations = [
     '      finding\n      is (Violation(_)\n      | SyntaxViolation(_, _)\n' +
     '      | LexicalViolation(_, _)\n' +
     '      | ExpressionViolation(_, _)\n' +
+    '      | FrameViolation\n' +
+    '      | ExpressionTypeViolation(_)\n' +
+    '      | OperationScalarViolation(_, _, _)\n' +
     '      | GraphViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n' +
     '      | DefaultTypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
@@ -258,6 +270,11 @@ const mutations = [
 const strict = id => ({id, operator: 'strictEqual'});
 const deep = id => ({id, operator: 'deepStrictEqual'});
 const targets = [
+  ['expression type rejections explain only owned expected domains',
+    [deep('expression-type-reason')]],
+  ['operation parameter violations explain owned domains and input origins', [deep('operation-parameter-facts')]],
+  ['operation parameter violations explain owned domains and input origins', [deep('operation-parameter-location')]],
+  ['operation parameter defaults and missing values keep distinct origins', [deep('operation-default-location')]],
   ['a disclosable violation is reported beside a protected source', [deep('public-violation')]],
   ['a disclosable violation is reported beside a protected source',
     [strict('protected-outcome'), deep('protected-unresolved')]],

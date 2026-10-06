@@ -5,7 +5,7 @@
 // outcome. MoonBit owns checking and the one actql-check-outcome/0.1
 // projection.
 import {createHmac, randomBytes} from 'node:crypto';
-import {validCheckOutcome, checkReasonSchemaCid} from '../../packages/client-wire/index.mjs';
+import {validCheckOutcome, checkReasonSchemaCid, checkOutcomeSchemaCid} from '../../packages/client-wire/index.mjs';
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
@@ -17,13 +17,15 @@ const disclosurePolicy = 'actql-check-disclosure/0.1';
 const contextVersion = 'actql-check-context/0.1';
 const scope = 'bound_input';
 
-const failed = code => Object.freeze({outcome: 'failed',
-  problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid, version});
+const failed = (code, correlation_ref) => Object.freeze({outcome: 'failed', correlation_ref,
+  problem: Object.freeze({code}), reason_schema_cid: checkReasonSchemaCid,
+  outcome_schema_cid: checkOutcomeSchemaCid, version});
 
 export function installNodeClientCheck({moon, environment, publication,
   sourceAccesses = [], contextKey = randomBytes(32)}) {
   if (moon === null || typeof moon !== 'object' ||
       typeof moon.clientProgramCheckSource !== 'function' ||
+      typeof moon.clientProgramCheckUnavailable !== 'function' ||
       typeof moon.clientProgramCheckCompilerIdentity !== 'function' ||
       typeof moon.clientProgramCheckContextIdentity !== 'function' ||
       typeof moon.clientProgramCheckingEnvironmentCid !== 'function' ||
@@ -107,7 +109,10 @@ export function installNodeClientCheck({moon, environment, publication,
     .update('actql-check-input/0.1\0').update(documentId).update('\0')
     .update(bytes).digest('hex')}`;
 
-  return async ({principalId, input, parameters, signal}) => {
+  const check = async ({principalId, input, parameters, signal}) => {
+    // One opaque reference for this reporting attempt, independent of source,
+    // context, authorization and the presence of any protected Source.
+    const correlationRef = `corr:${randomBytes(16).toString('hex')}`;
     signal?.throwIfAborted();
     const visible = await visibleAliases(signal);
     signal?.throwIfAborted();
@@ -122,7 +127,25 @@ export function installNodeClientCheck({moon, environment, publication,
       contextRef(principalId, input, parameters, visible),
       revision('source', input.text),
       declarations === undefined ? undefined : revision('parameter_declarations', declarations),
-      supplied === undefined ? undefined : revision('parameters', supplied)));
-    return validCheckOutcome(outcome) ? outcome : failed('check_internal');
+      supplied === undefined ? undefined : revision('parameters', supplied), correlationRef));
+    return validCheckOutcome(outcome) ? outcome : failed('check_internal', correlationRef);
   };
+  // The ingress's existing connection authorization owner determines whether
+  // any report binding can be disclosed. This projection touches neither the
+  // authored input nor Source decisions nor the checking environment.
+  Object.defineProperty(check, 'unavailable', {value: () =>
+    JSON.parse(moon.clientProgramCheckUnavailable(`corr:${randomBytes(16).toString('hex')}`))});
+  return Object.freeze(check);
+}
+
+// Both entrances validate the existing common projection before serialization.
+// A missing or corrupt producer is a Host protocol failure, never a report.
+export async function projectClientCheckUnavailable(check) {
+  const outcome = typeof check?.unavailable === 'function' ? await check.unavailable() : undefined;
+  if (!validCheckOutcome(outcome) || outcome.outcome !== 'unavailable') {
+    const error = new Error('InvalidClientHostCheckOutcome');
+    error.code = 'InvalidClientHostCheckOutcome';
+    throw error;
+  }
+  return outcome;
 }

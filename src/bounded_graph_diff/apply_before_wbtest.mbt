@@ -1,10 +1,11 @@
 ///|
 fn before_actual(text : String) -> @value.Value {
-  @value.admit(
+  let checked = @value.admit(
     json_contract(),
     delta_cursor(text),
     delta_fixture_limits().value_limits,
-  ).unwrap().value
+  ).unwrap()
+  @value.json_payload(checked.value).unwrap()
 }
 
 ///|

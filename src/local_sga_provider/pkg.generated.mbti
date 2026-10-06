@@ -11,7 +11,7 @@ import {
 }
 
 // Values
-pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?) -> @local.ManagedProvider
+pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?, union_policy? : UnionPolicy?) -> @local.ManagedProvider
 
 // Errors
 
@@ -26,6 +26,11 @@ pub(all) struct SnapshotPolicy {
   read : @decode_core.Limits
   maximum_bytes : Int
   maximum_frame_bytes : Int
+  workspace_bytes : Int64
+}
+
+pub(all) struct UnionPolicy {
+  max_workspace_slots : Int
   workspace_bytes : Int64
 }
 

@@ -38,8 +38,10 @@ export function validateCatalog(catalog) {
       assert(rest.length === 0 || rest.length === 2 && rest[0] === '--filter' && rest[1].length > 0);
     } else {
       assert.equal(action.package, null);
-      assert(['model', 'mutations-js'].includes(action.id), 'Unreviewed Node executor');
-      assert.equal(encode(action.command), encode(['node', `proofs/bounded-session/${action.id === 'model' ? 'check' : 'mutations'}.mjs`]));
+      const script = {model: 'proofs/bounded-session/check.mjs',
+        'events-model': 'proofs/events-bridge/check.mjs', 'mutations-js': 'proofs/bounded-session/mutations.mjs'}[action.id];
+      assert(script, 'Unreviewed Node executor');
+      assert.equal(encode(action.command), encode(['node', script]));
     }
     byId.set(action.id, action);
   }

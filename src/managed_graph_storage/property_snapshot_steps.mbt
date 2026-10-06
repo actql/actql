@@ -10,6 +10,9 @@ priv enum SnapshotAppendPhase {
   ReadSnapshotSource
   ReadSnapshotTarget
   AdmitSnapshotValue
+  NextRuntimeKey
+  NextRuntimeProperty
+  RecheckRuntimeValue
   EncodeSnapshotValue
   ProjectSnapshotIdentity
   CommitSnapshotRecord
@@ -72,6 +75,13 @@ struct PropertySnapshotAppend {
   mut value_role : SnapshotValueRole
   mut admission : @value.TypedAdmission?
   mut admission_work_limited : Bool
+  runtime_record : Bool
+  runtime_keys : Array[@value.CheckedValue]
+  runtime_properties : Array[@value.CheckedValue]
+  mut runtime_identity : @value.CheckedValue?
+  mut runtime_source : @value.CheckedValue?
+  mut runtime_target : @value.CheckedValue?
+  mut runtime_recheck : @value.RecheckCursor?
   mut encoding_role : SnapshotEncodingRole
   mut encoding : ValueEncoding?
   mut projection_role : SnapshotProjectionRole
@@ -154,6 +164,22 @@ pub fn start_property_snapshot_append(
   edge~ : Bool,
   reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> Result[PropertySnapshotAppend, Issue] {
+  new_property_append(builder, Some(input), edge~, reference_issuer~)
+}
+
+///|
+fn new_property_append(
+  builder : Builder,
+  input : @decode.Cursor?,
+  edge~ : Bool,
+  reference_issuer? : @value.ReferenceIssuer? = None,
+  runtime_record? : Bool = false,
+  runtime_keys? : Array[@value.CheckedValue] = [],
+  runtime_properties? : Array[@value.CheckedValue] = [],
+  runtime_identity? : @value.CheckedValue? = None,
+  runtime_source? : @value.CheckedValue? = None,
+  runtime_target? : @value.CheckedValue? = None,
+) -> Result[PropertySnapshotAppend, Issue] {
   if !builder.open || !builder.owns_private {
     return Err(Closed)
   }
@@ -161,7 +187,7 @@ pub fn start_property_snapshot_append(
     builder,
     profile: @carrier.graph_property_definition(builder.graph),
     edge,
-    input: Some(input),
+    input,
     record: None,
     issuer: reference_issuer,
     phase: OpenSnapshotRecord,
@@ -182,6 +208,13 @@ pub fn start_property_snapshot_append(
     value_role: SnapshotIdentity,
     admission: None,
     admission_work_limited: false,
+    runtime_record,
+    runtime_keys,
+    runtime_properties,
+    runtime_identity,
+    runtime_source,
+    runtime_target,
+    runtime_recheck: None,
     encoding_role: ReceivedIdentityToken,
     encoding: None,
     projection_role: ProjectRecordIdentity,
@@ -192,6 +225,88 @@ pub fn start_property_snapshot_append(
     payload_bytes: 0,
     payload: "",
   })
+}
+
+///|
+/// Transfer private staging arrays to the same record append cursor used by
+/// snapshot reload. This is not an unchecked append: every value is rechecked,
+/// identities are projected from typed keys, and endpoint tokens are checked
+/// against the already retained nodes. No reference evidence is reconstructed.
+pub fn start_property_record_append(
+  builder : Builder,
+  definition_index : Int,
+  identity : @value.CheckedValue,
+  keys : Array[@value.CheckedValue],
+  properties : Array[@value.CheckedValue],
+  edge~ : Bool,
+  source? : @value.CheckedValue? = None,
+  target? : @value.CheckedValue? = None,
+) -> Result[PropertySnapshotAppend, Issue] {
+  let profile = @carrier.graph_property_definition(builder.graph)
+  let definition = if edge {
+    @carrier.property_graph_edge_at(profile, definition_index).map(
+      @carrier.property_edge_element,
+    )
+  } else {
+    @carrier.property_graph_node_at(profile, definition_index)
+  }
+  guard definition is Some(definition) &&
+    keys.length() == @carrier.property_definition_key_count(definition) &&
+    properties.length() ==
+    @carrier.field_count(@carrier.property_definition_properties(definition)) else {
+    return Err(InvalidProperties)
+  }
+  let has_source = source is Some(_)
+  let has_target = target is Some(_)
+  if edge != has_source || edge != has_target {
+    return Err(InvalidProperties)
+  }
+  let state = match
+    new_property_append(
+      builder,
+      None,
+      edge~,
+      runtime_record=true,
+      runtime_keys=keys,
+      runtime_properties=properties,
+      runtime_identity=Some(identity),
+      runtime_source=source,
+      runtime_target=target,
+    ) {
+    Ok(state) => state
+    Err(issue) => return Err(issue)
+  }
+  state.definition = Some(definition)
+  state.definition_index = definition_index
+  state.phase = ReadSnapshotIdentity
+  Ok(state)
+}
+
+///|
+fn start_runtime_record_value(
+  state : PropertySnapshotAppend,
+  role : SnapshotValueRole,
+  contract : @contract.Contract,
+  value : @value.CheckedValue,
+) -> Issue? {
+  let remaining = state.builder.limits.max_work - state.builder.work
+  state.admission_work_limited = remaining <
+    state.builder.limits.max_value_nodes
+  state.runtime_recheck = @value.start_recheck_runtime_value(
+    value.value,
+    contract,
+    {
+      max_nodes: Int::min(state.builder.limits.max_value_nodes, remaining),
+      max_depth: state.builder.limits.max_value_depth,
+      max_text_bytes: state.builder.limits.max_value_bytes,
+    },
+  )
+  if state.runtime_recheck is None {
+    return Some(InvalidIdentity)
+  }
+  state.value_role = role
+  state.phase = RecheckRuntimeValue
+  None
 }
 
 ///|
@@ -212,13 +327,20 @@ fn start_snapshot_value(
   state.admission_work_limited = remaining < builder.limits.max_value_nodes
   let admission = match (host, state.issuer) {
     (true, Some(issuer)) =>
-      @value.start_host_typed_admission(issuer, contract, input, limits, {
-        max_bytes: builder.limits.max_value_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-        max_text_units: builder.limits.max_value_bytes,
-      })
-    _ => @value.start_typed_admission(contract, input, limits)
+      @value.start_host_typed_admission(
+        issuer,
+        contract,
+        input,
+        limits,
+        {
+          max_bytes: builder.limits.max_value_bytes,
+          max_nodes: limits.max_nodes,
+          max_depth: limits.max_depth,
+          max_text_units: builder.limits.max_value_bytes,
+        },
+        wire=host,
+      )
+    _ => @value.start_typed_admission(contract, input, limits, wire=host)
   }
   match admission {
     Ok(admission) => {
@@ -247,7 +369,13 @@ fn start_snapshot_encoding(
   work : Int,
 ) -> Unit {
   state.encoding = Some(
-    start_value_encoding(state.builder, values, bytes, work),
+    start_value_encoding(
+      state.builder,
+      values,
+      bytes,
+      work,
+      identity_body=role != SnapshotPayload,
+    ),
   )
   state.encoding_role = role
   state.phase = EncodeSnapshotValue
@@ -388,14 +516,31 @@ pub fn advance_property_snapshot_append(
           ReadSnapshotTarget => ("dst", SnapshotTarget)
           _ => ("id", SnapshotIdentity)
         }
-        if start_snapshot_value(
+        let issue = if state.runtime_record {
+          let value = match role {
+            SnapshotIdentity => state.runtime_identity
+            SnapshotSource => state.runtime_source
+            _ => state.runtime_target
+          }
+          guard value is Some(value) else {
+            return snapshot_append_failed(state, InvalidIdentity, used)
+          }
+          start_runtime_record_value(
+            state,
+            role,
+            @carrier.graph_identity(builder.graph),
+            value,
+          )
+        } else {
+          start_snapshot_value(
             state,
             role,
             @carrier.graph_identity(builder.graph),
             @decode.lookup(state.record.unwrap(), name).unwrap(),
             false,
           )
-          is Some(issue) {
+        }
+        if issue is Some(issue) {
           return snapshot_append_failed(state, issue, used)
         }
       }
@@ -410,6 +555,87 @@ pub fn advance_property_snapshot_append(
         }
         state.index = 0
         state.phase = NextSnapshotKey
+      }
+      NextRuntimeKey | NextRuntimeProperty => {
+        used += 1
+        let definition = state.definition.unwrap()
+        let value = if state.phase == NextRuntimeKey {
+          state.runtime_keys.get(state.index)
+        } else {
+          state.runtime_properties.get(state.index)
+        }
+        if value is Some(value) {
+          let (role, contract) = if state.phase == NextRuntimeKey {
+            (
+              SnapshotKey,
+              @carrier.property_definition_key_at(definition, state.index).unwrap(),
+            )
+          } else {
+            (
+              SnapshotProperty,
+              @carrier.field_at(
+                @carrier.property_definition_properties(definition),
+                state.index,
+              ).unwrap().contract.unwrap(),
+            )
+          }
+          if start_runtime_record_value(state, role, contract, value)
+            is Some(issue) {
+            return snapshot_append_failed(state, issue, used)
+          }
+        } else if state.phase == NextRuntimeKey {
+          state.index = 0
+          state.phase = NextRuntimeProperty
+        } else if state.edge {
+          state.phase = ReadSnapshotSource
+        } else if start_snapshot_projection(state, ProjectRecordIdentity)
+          is Some(issue) {
+          return snapshot_append_failed(state, issue, used)
+        }
+      }
+      RecheckRuntimeValue => {
+        used += 1
+        let recheck = state.runtime_recheck.unwrap()
+        match @value.advance_recheck_runtime_value(recheck) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed =>
+            return snapshot_append_failed(
+              state,
+              if state.admission_work_limited {
+                WorkLimit
+              } else {
+                InvalidIdentity
+              },
+              used,
+            )
+          @value.RecheckComplete(value, nodes, _) => {
+            snapshot_charge(builder, nodes) catch {
+              PropertySnapshotStop(issue) =>
+                return snapshot_append_failed(state, issue, used)
+            }
+            state.runtime_recheck = None
+            match state.value_role {
+              SnapshotIdentity | SnapshotSource | SnapshotTarget => {
+                let role = match state.value_role {
+                  SnapshotSource => ReceivedSourceToken
+                  SnapshotTarget => ReceivedTargetToken
+                  _ => ReceivedIdentityToken
+                }
+                start_snapshot_encoding(state, role, [value], 0, 0)
+              }
+              SnapshotKey => {
+                state.keys.push(value)
+                state.index += 1
+                state.phase = NextRuntimeKey
+              }
+              SnapshotProperty => {
+                state.properties.push(value)
+                state.index += 1
+                state.phase = NextRuntimeProperty
+              }
+            }
+          }
+        }
       }
       NextSnapshotKey => {
         used += 1
@@ -591,7 +817,11 @@ pub fn advance_property_snapshot_append(
                   return snapshot_append_failed(state, InvalidIdentity, used)
                 }
                 state.token = text
-                state.phase = BeginSnapshotKeys
+                state.phase = if state.runtime_record {
+                  NextRuntimeKey
+                } else {
+                  BeginSnapshotKeys
+                }
               }
               ReceivedSourceToken | ReceivedTargetToken => {
                 snapshot_charge(builder, nodes) catch {
@@ -759,6 +989,10 @@ pub fn advance_property_snapshot_append(
 /// Drop only temporary record preparation. The caller still owns Builder
 /// cleanup, whether this operation failed, was cancelled or committed a record.
 pub fn cleanup_property_snapshot_append(state : PropertySnapshotAppend) -> Unit {
+  if state.runtime_recheck is Some(cursor) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.runtime_recheck = None
+  }
   if state.admission is Some(admission) {
     @value.cancel_typed_admission(admission)
   }
@@ -778,6 +1012,9 @@ pub fn cleanup_property_snapshot_append(state : PropertySnapshotAppend) -> Unit 
   state.identity = None
   state.source_identity = None
   state.target_identity = None
+  state.runtime_identity = None
+  state.runtime_source = None
+  state.runtime_target = None
   state.definition_name = ""
   state.token = ""
   state.source_token = ""
@@ -785,5 +1022,11 @@ pub fn cleanup_property_snapshot_append(state : PropertySnapshotAppend) -> Unit 
   state.payload = ""
   state.keys.clear()
   state.properties.clear()
+  state.keys.shrink_to_fit()
+  state.properties.shrink_to_fit()
+  state.runtime_keys.clear()
+  state.runtime_keys.shrink_to_fit()
+  state.runtime_properties.clear()
+  state.runtime_properties.shrink_to_fit()
   state.phase = SnapshotAppendFinished
 }

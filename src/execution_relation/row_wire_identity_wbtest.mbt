@@ -219,11 +219,14 @@ test "typed wire uses exact decimals UTF16 keys and opaque nested business data"
       ],
     ],
   }
+  // Independently authored canonical bytes include the typed $json wrapper.
+  // Array + row + four fields + payload object/array and its three children
+  // occupy 11 wire nodes; UTF-8 size is 90 bytes.
   assert_eq(
     hash_row_wire(table, table.names, row_wire_limits()).unwrap(),
     (
-      "sha256:c85c9d378502bcb5ee5d3ff71943a230c7d04ecf42dd7606349f9d4fc6860f13",
-      80, 10,
+      "sha256:21fd3ca58def3baabcaff1222c8874322de6cc30b32d28f6ff85c48f6660a2b7",
+      90, 11,
     ),
   )
   assert_eq(table.names, ["\u{e000}", "😀", "j", "d"])
@@ -235,7 +238,7 @@ test "typed wire uses exact decimals UTF16 keys and opaque nested business data"
     is Err(OrderLimit),
   )
   assert_true(
-    hash_row_wire(table, table.names, { ..row_wire_limits(), max_bytes: 79, })
+    hash_row_wire(table, table.names, { ..row_wire_limits(), max_bytes: 89, })
     is Err(Encoding(_)),
   )
 }

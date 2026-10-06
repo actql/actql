@@ -82,6 +82,27 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`LIMIT` and `OFFSET` accept an exact integer literal or a whole named
+parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+slots; declarations and values follow existing Program checking, with no
+Frontend evaluation, coercion or default for an invalid/missing binding.
+Omitted OFFSET is the literal zero. The current common `take` contract still
+requires a positive count, a nonnegative offset, safe integers and proven input
+order. GoogleSQL also allows zero count and more general constant expressions;
+these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
+arithmetic operands are rejected by this implemented literal/parameter subset.
+
+`IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
+two-argument `coalesce`. Only a NULL first value selects the fallback; a
+non-NULL first value leaves the fallback unevaluated. Both operands still
+undergo the existing static name, arity and type checks, including skipped
+operands. This adopts [GoogleSQL's IFNULL conditional semantics](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions#ifnull)
+within the common checker's supported type signatures; it does not add
+GoogleSQL's wider implicit-coercion or type families. Use explicit supported
+casts where required. Result type and nullability come from common `coalesce`
+typing, including on empty input. The Frontend does not expand the first
+operand or install its own conditional evaluator.
+
 In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains
@@ -93,6 +114,20 @@ contract's positive distances. GoogleSQL also permits zero numeric boundaries;
 that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
+
+`JSON` followed by a STRING literal constructs a typed JSON value in ordinary
+SQL and Pipe expressions. The STRING chunks use the decoding rules above;
+their concatenated text is passed unchanged to the common
+`{typed_literal:{type:"json",value:text}}` expression. The common owner parses
+and checks every JSON root, including null, number, string, boolean, object
+and array. JSON null is a non-SQL-NULL JSON value; `NULL` retains SQL NULL
+semantics. JSON scalars do not acquire ordinary scalar types.
+
+The selected [common JSON profile](../design/typed-json-literals.md) retains
+the first duplicate decoded key and exact strings/keys, rejects precision
+loss, and applies complete-input size/node/depth ceilings. Unsupported wide
+numbers are refused rather than rounded. The JSON parser and runtime are not
+duplicated in the Frontend. JSON literals are not limited to Graph Delta.
 
 ## Scope and lowering
 
@@ -516,6 +551,23 @@ Authored ORDER/LIMIT is lowered unchanged, but the current common order owner
 does not derive total-order evidence for this output and rejects that path with
 `UnresolvedOrder` before Run admission. This is a common implementation gap,
 not a language restriction or permission to discard the authored order.
+
+`graph_diff(with: target)` uses the same earlier DATA Graph producer resolution
+and transitions to an ordinary Relation with the single non-NULL JSON column
+`delta`. The left input is the current Graph; `target` is an explicit producer
+reference, not a STRING value. Only `delta` enters the new output scope. DATA
+reuse does not reconstruct either Graph, and ordinary Relation projection and
+filtering keep their existing meaning. The common Delta checker requires the
+same complete Graph contract for both operands; the Frontend does not infer
+compatible identity domains or implement a difference algorithm.
+
+The checked `graph_diff` operation completes exactly one Delta row. The common
+order owner derives logical order from that producer contract and preserves
+it through admitted projection, filtering and take operations. A row-count
+ceiling alone does not establish order for an arbitrary JSON Relation.
+Graph Delta application produces a Graph and establishes no Relation order.
+The Frontend does not synthesize a sort, key, scalar encoding or fallback to
+publish the JSON value.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
