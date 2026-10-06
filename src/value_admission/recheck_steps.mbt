@@ -17,8 +17,8 @@ priv enum RecheckFrame {
 /// Resumable form of `recheck_runtime_value`: the same structural checks,
 /// budgets and result, one node, one container child, or at most 64 UTF-16
 /// text units per advance. A caller can stop inside large composite values
-/// and Text scalars, including declared Object names. Runtime JSON Object
-/// names still require the synchronous canonical identifier check.
+/// and Text scalars, including declared Object names. Opaque JSON member
+/// names remain data, separate from the declared Object identifier domain.
 struct RecheckCursor {
   value : Value
   contract : @contract.Contract
@@ -194,7 +194,7 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
     JsonFields(values, index, depth) =>
       if index < values.length() {
         let (name, child) = values[index]
-        if recheck_text(name, budget, identifier=true) is None {
+        if recheck_text(name, budget) is None {
           return recheck_step_fail(cursor)
         }
         cursor.stack.push(JsonFields(values, index + 1, depth))
