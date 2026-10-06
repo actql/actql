@@ -104,6 +104,137 @@ test "property Graph union consumes every shared input occurrence on one bounded
 }
 
 ///|
+test "property Graph union preserves ordered occurrences and independent retained generations" {
+  // A non-associative mean distinguishes port order from a commutative sum.
+  // (2 mean 10) mean 30 = 18; repeating the first generation in port two
+  // instead gives (2 mean 10) mean 2 = 4, not the deduplicated value 6.
+  for quantum in [1, 7] {
+    for repeated in [false, true] {
+      let owner = equality_alignment_owner(
+        equality_alignment_carrier(false, false),
+      )
+      let first = equality_alignment_output(owner, false, [2, 7])
+      let second = equality_alignment_output(owner, false, [10, 7])
+      let third = equality_alignment_output(owner, false, [30, 7])
+      let sources = [first, second, if repeated { first } else { third }]
+      let receiver = union_receiver(
+        owner,
+        body="[{\"union_graphs\":{\"with\":[\"g1\",\"g2\"],\"merge\":{\"node_properties\":{\"p\":\"number_mean\"}}}}]",
+      )
+      let reads = sources.mapi((index, source) => {
+        @graphs.prepare_producer_read(receiver, index, owner, source).unwrap()
+      })
+      for index, read in reads {
+        assert_true(
+          @graphs.producer_read_matches_operation_input(
+            read, receiver, 0, index,
+          ),
+        )
+        for other in 0..<reads.length() {
+          if other != index {
+            assert_false(
+              @graphs.producer_read_matches_operation_input(
+                read, receiver, 0, other,
+              ),
+            )
+          }
+        }
+      }
+      let views = reads.map(read => @graphs.producer_read_view(read).unwrap())
+      let limits = {
+        ..carrier_graph_storage_limits(),
+        max_value_nodes: 10000,
+        max_value_depth: 100,
+        max_work: 100000,
+        max_workspace_slots: 2000000,
+        max_input_rows: 100,
+      }
+      // Even when ports zero and two borrow the same generation, a view
+      // bound to another occurrence must not be accepted at this position.
+      assert_true(
+        @local_sga.start_union_views(
+          @bounded.control(),
+          prepared_sequence(receiver),
+          0,
+          [views[2], views[1], views[0]],
+          limits,
+          65536L,
+          () => true,
+        )
+        is Err(_),
+      )
+      let generated = @execution.select_generated_sequence_step(
+        task_test_generated(receiver),
+        0,
+      ).unwrap()
+      let provider = @local_sga_provider.provider(
+        limits,
+        65536L,
+        @execution.execution_capacity(4096L, 65536L).unwrap(),
+      )
+      let active = start_delta_provider(
+        provider,
+        generated,
+        views.map(@local_connector.managed_provider_carrier_input),
+        10,
+        10000,
+      ).unwrap()
+      let mut result = None
+      for _ in 0..<10000 {
+        match
+          @local_connector.advance_managed_provider(active, quantum).unwrap() {
+          @local_connector.Continue(_) => ()
+          @local_connector.CarrierComplete(material, ..) => {
+            result = Some(material)
+            break
+          }
+          _ => fail("ordered union did not return its own retained generation")
+        }
+      } nobreak {
+        fail("ordered union did not finish")
+      }
+      let result = result.unwrap()
+      let consumer = keyed_graph_receiver(
+        receiver,
+        body="[{\"node_rows\":true}]",
+      )
+      let view = @carrier_runtime.material_prepare_view(
+        result, consumer, 0, receiver,
+      ).unwrap()
+      let expected = if repeated { 4.0 } else { 18.0 }
+      assert_true(
+        @carrier_runtime.producer_view_node_property(view, 0, 0).unwrap().value
+        is @admitted.Number(value) &&
+        value == expected,
+      )
+      let work = @local_connector.managed_provider_cumulative_work(active).unwrap()
+      assert_true(work > 0L)
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_eq(
+        @local_connector.managed_provider_cumulative_work(active),
+        Ok(work),
+      )
+      for read in reads {
+        assert_true(@graphs.producer_read_available(read))
+      }
+      // Reclaiming the output must not dispose either borrowed generation.
+      assert_true(@carrier_runtime.reclaim_material(result))
+      assert_false(@carrier_runtime.material_available(result))
+      assert_true(@graphs.completed_available(first))
+      assert_true(@graphs.completed_available(second))
+      assert_true(@graphs.completed_available(third))
+      assert_true(@graphs.discard_completed(first))
+      assert_false(@graphs.producer_read_available(reads[0]))
+      assert_eq(@graphs.producer_read_available(reads[2]), !repeated)
+      assert_true(@graphs.producer_read_available(reads[1]))
+      assert_true(@graphs.discard_completed(second))
+      assert_true(@graphs.discard_completed(third))
+    }
+  }
+}
+
+///|
 test "property Graph union cancellation after positive work keeps shared input custody" {
   let owner = equality_alignment_owner(equality_alignment_carrier(false, false))
   let graph = equality_alignment_output(owner, false, [2, 7])
@@ -582,4 +713,79 @@ test "property Graph union retained snapshot matches independent bytes after sou
     (snapshot.cleanup)().unwrap() |> ignore
   }
   assert_true((snapshot.cleanup)().unwrap())
+}
+
+///|
+test "property Graph union reserves independent workspace before the first fold" {
+  let owner = equality_alignment_owner(equality_alignment_carrier(false, false))
+  let graph = @graphs.finish_output(
+    @graphs.prepare_output(
+      owner,
+      @pipeline.Input(0),
+      DeclaredNodes,
+      carrier_graph_storage_limits(),
+      4096L,
+      () => true,
+    ).unwrap(),
+  ).unwrap()
+  let receiver = union_receiver(owner)
+  let reads = [0, 1, 2].map(index => {
+    @graphs.prepare_producer_read(receiver, index, owner, graph).unwrap()
+  })
+  let views = reads.map(read => @graphs.producer_read_view(read).unwrap())
+  // One key and two properties, 100 value nodes and depth 100. The append
+  // owner's stacks/staging need 3200+800+1200+6+160 = 5366 slots. Union's
+  // sets/order/control and three occurrences add 1600+800+12+64 = 2476.
+  // Empty retained generations consume no additional record slots.
+  let append_slots = 3200 + 800 + 1200 + 6 + 160
+  let union_slots = 1600 + 800 + 12 + 64
+  let required = append_slots + union_slots
+  assert_eq(required, 7842)
+  for quantum in [1, 64] {
+    for slots in [required - 1, required] {
+      let limits = {
+        ..carrier_graph_storage_limits(),
+        max_value_nodes: 100,
+        max_value_depth: 100,
+        max_work: 13,
+        max_workspace_slots: slots,
+        max_input_rows: 100,
+      }
+      let active = @local_sga.start_union_views(
+        @bounded.control(),
+        prepared_sequence(receiver),
+        0,
+        views,
+        limits,
+        65536L,
+        () => true,
+      ).unwrap()
+      for _ in 0..<20 {
+        match @local_sga.advance_union(active, quantum).unwrap() {
+          @local_sga.UnionContinue(..) => assert_eq(slots, required)
+          @local_sga.UnionComplete(result, work~, ..) => {
+            assert_eq(slots, required)
+            assert_eq(work, 13L)
+            assert_true(@graphs.discard_completed(result))
+            break
+          }
+          @local_sga.UnionFailed(@local_sga.UnionFoldWorkspaceLimit, work~, ..) => {
+            assert_eq(slots, required - 1)
+            assert_eq(work, 1L)
+            break
+          }
+          _ => fail("unexpected union workspace boundary")
+        }
+      } nobreak {
+        fail("bounded union workspace fixture did not terminate")
+      }
+      assert_true(@local_sga.cleanup_union(active).unwrap())
+      assert_false(@local_sga.cleanup_union(active).unwrap())
+      assert_false(@local_sga.union_cleanup_pending(active))
+      for read in reads {
+        assert_true(@graphs.producer_read_available(read))
+      }
+    }
+  }
+  assert_true(@graphs.discard_completed(graph))
 }

@@ -10,11 +10,15 @@ import {
 }
 
 // Values
+pub fn advance_type_equality(TypeEquality) -> Bool? raise RelationError
+
 pub fn array_contract(Contract, nullable~ : Bool, max_items? : Int64?) -> Contract?
 
 pub fn assignable(Contract, Contract, Int) -> Bool raise RelationError
 
 pub fn assignable_usage(Contract, Contract, Int) -> (Bool, Int) raise RelationError
+
+pub fn cancel_type_equality(TypeEquality) -> Unit
 
 pub fn contract_nullable(Contract) -> Bool
 
@@ -52,11 +56,15 @@ pub fn read_checked_usage(@decode_core.Cursor, Limits) -> Result[(Contract, Int,
 
 pub fn read_parameter_syntax(@decode_core.Cursor, Limits) -> Result[ParameterSyntax, AdmissionError]
 
+pub fn start_type_equality(Contract, Contract, Int) -> TypeEquality raise RelationError
+
 pub fn string_contract(nullable~ : Bool, min_length? : Int64?, max_codepoints? : Int64?, max_utf8_bytes? : Int64?) -> Contract?
 
 pub fn stringify_checked(Contract, Int, Int, Int) -> String raise @encode_core.EncodeFailure
 
 pub fn type_equal(Contract, Contract, Int) -> Bool raise RelationError
+
+pub fn type_equality_next_frames(TypeEquality) -> Int
 
 pub fn vector_contract(Double, nullable~ : Bool) -> Contract?
 
@@ -162,6 +170,8 @@ pub struct TextLimits {
   max_codepoints : Int64?
   max_utf8_bytes : Int64?
 } derive(Eq, @debug.Debug)
+
+type TypeEquality
 
 // Type aliases
 

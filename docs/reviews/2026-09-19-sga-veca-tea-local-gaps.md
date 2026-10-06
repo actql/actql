@@ -26,6 +26,16 @@ establish the public configuration connection, not retained output for every
 installed source or two-source Program variant. Full CI and Native Host cancellation
 remain separate verification units.
 
+The source-free public retained path now also prepares Values -> Sequence ->
+authored sort -> select with two downstream consumer stages. Ordinary checking
+derives both existing selected Host Sequence limits before application; authored
+guards can narrow them, while supplied foreign coordinates remain rejected.
+The installed Host fixture reads all three independent ordered Named Results,
+reuses the same request without new Compute progress, and includes empty input.
+This connection is separate from Events Sequence and acquired inputs. Exact
+public-phase cancellation and broader chain/failure coverage are not implied.
+See the [Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
 Two independently installed GitHub row sources can now occupy the two checked
 captured input tasks of one retained-output Program. The Host prepares each
 source at its own occurrence, checks both capacities against one Local ledger,
@@ -768,9 +778,9 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 64 |
 | Typed pre-execution refusals (not execution success) | 5 |
 | Operation-specific boundary records | 64 |
-| Four-role lifecycle assurance | 62 |
-| Full route work/workspace assurance | 62 |
-| Path-scoped work/workspace assurance | 114 |
+| Four-role lifecycle assurance | 63 |
+| Full route work/workspace assurance | 63 |
+| Path-scoped work/workspace assurance | 115 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -1355,6 +1365,119 @@ publication result, Wasm/native execution, Linux integration, or a general
 expression cancellation guarantee. Intrinsic concatenation and long
 object-field/reference wire transitions remain separate work. Whole-operation
 assurance counts are unchanged.
+
+The following wire component connects long object keys and Reference envelopes
+to the existing resumable emitter. The encoder adds an opt-in ordered-object
+lane that verifies strictly increasing UTF-16 keys and retains only the previous
+borrowed key, rather than hashing every complete key. Comparison and quoting
+advance in at most 64 code units, preserving a crossing surrogate pair. Generic
+objects retain their existing unordered-key and duplicate-checking API. The
+generated encoder interface is produced by the pinned compiler.
+
+Admitted objects and Reference metadata use the same pending-frame stack and
+writer, with no copied envelope or second serializer. A pending key cursor is
+included in existing traversal custody. Completed Relation identity emission
+uses the same ordered-key cursor for payload and logical streams, reserving its
+handle before allocation. Small names keep their previous number of physical
+advances. Failure or cancellation closes unfinished cursor custody without
+revoking the completed producer or refunding work; no unfinished identity is
+issued.
+
+The unchanged parent failed the 4,096-character key's per-advance byte bound
+(`run-Rr0wmJ` / `focused-test-bw4SFu`, 0/1). Independent encoder fixtures cover
+all four sinks, escaping, surrogate boundaries, strict order, duplicate and
+reverse keys, invalid Unicode, exact/one-short bytes and writer interleaving.
+Reference metadata contains an independently authored long key and nested
+Text/NULL value; both metadata and Text yield through the same cursor. Shared
+wire and logical-row tests passed 36/36 focused JS cases before the completed
+Relation connection. Their evidence is `run-8fv5YV` / `focused-test-msQuNb`.
+
+The completed-Relation fixture fixes a 256-character column name with NULL,
+267 payload bytes and 295 logical-envelope bytes. Its two CIDs are independently
+computed from those authored preimages. Four name-measurement chunks, twelve
+key chunks and eight other transitions fix 24/23 work. Three ten-node writer
+envelopes, eight column-summary slots and one cursor fix 39/38 workspace.
+Cancellation in either pending key stream keeps the source alive and reclaims
+the scan's reservations. Existing fixed small-row CIDs and admission summaries
+remain unchanged. The selected identity cases passed 3/3 focused JS tests
+(`run-NkbuFC` / `focused-test-WVbbtc`) after correcting the new fixture's work
+arithmetic and removing its unrelated 64-byte synchronous export helper.
+
+This initial wire/identity component is not evidence that every retained
+Store route is complete. Its original component checks did not execute a real
+Node Store, packed consumers, Wasm/native or Linux integration. Intrinsic
+concatenation still has a synchronous final String copy; splitting its input
+walk alone would not close that boundary. Synchronous schema/order preparation
+and unrelated draining emitters remain distinct work. No whole-operation
+assurance count is promoted.
+
+The subsequent ordinary main integration retains the membership cursor from
+main alongside the pending binary Text comparison. Reference wire traversal
+now uses main's existing `CanonicalEmit` owner rather than maintaining a second
+canonical walk. That owner yields within long keys and Text, exposes its
+pending frame count in constant time, and cancels unfinished child cursors.
+Reference traversal contributes its nested frame count to the caller's existing
+workspace reservation. An independently accounted issued Reference requires
+eight slots; seven fails with the typed workspace cause and leaves custody
+reachable until explicit cleanup. Cleanup preserves the borrowed issuer.
+The selected JS comparison, membership, retention, identity, admitted-wire and
+canonical-cursor tests passed 39/39 after this integration (`run-tBpP5l` /
+`focused-test-WWAKzd`, tracked merge source). Both generated Host fixture
+freshness checks passed; this is not an all-Core or cross-target result.
+
+`adapters/host-node/public-wire-retention.test.mjs` now checks the public Local
+submit path with an installed real retained Store, an 80-character column,
+an 80-character Object key, 512-character Text and explicit NULL. These authored
+values cross the 64-unit cursor boundary without changing the installed
+1,000-byte construction policy. The producer and two consumer Named Results
+are each read against authored expected rows. Client reconnection and same-request
+resubmission preserve the Run and the three results; positive-progress and
+successful-completion observations do not increase. Temporary carrier files
+are empty after completion. The fixture is connected to the existing installed
+Host suite, not just executed manually. Its first successful focused execution
+passed 1/1 (`run-uqmQ2M` / `focused-test-SOZtwR`, tracked fixture source).
+Client reconnection reuses the installed Host; it is not process restart.
+The observation counters are not a general physical-entry census. A Reference
+public Host fixture, fresh-process recovery, public cancellation of this wire
+shape, packed consumers, Wasm/native and Linux integration remain unverified.
+Component boundary/cancellation fixtures retain their narrower scope and do
+not establish those unexecuted product paths.
+
+The membership expression frame now resumes each long Text comparison through
+the same operand-byte and UTF-16 cursors as binary comparison. Advancing one
+list element was not sufficient: a 4,096-character pair previously exceeded
+the fixture's per-advance charge bound (`run-5pgddy` / `focused-test-uzeWAW`,
+0/1). `CompareMembership` borrows the original membership roots and reserves
+two cursor slots before construction. It releases those slots after each pair,
+not the original operands. All admitted items are still visited, including
+duplicates after a match; NULL and `NOT IN` keep their existing truth rules.
+The existing small scalar lane, parameter admission and language are unchanged.
+
+Independent 256-character fixtures fix 520/519 control and 3/2 cursor workspace
+boundaries for one comparison, plus 1548/1547 logical work and 777/776 live bytes
+for two comparisons. Quanta one and seven give identical results and logical
+work. Cleanup during either operand charge or the common-prefix comparison of
+the second item preserves borrowed roots and spent work. A checked bounded
+filter receives cancellation during that second comparison, after the first
+match. Stop preserves its retained input and pending reservations until cleanup;
+the first cleanup releases them and a second cleanup performs no further work.
+The four affected expression files passed 35/35 focused JS cases (`run-DcTVXQ`
+/ `focused-test-enl0lN`). These are component and managed-child observations,
+not proof of a public Run cancellation at that exact comparison phase.
+
+`adapters/host-node/public-membership-retention.test.mjs` submits an ordinary
+Program with a typed array parameter, long duplicate Text operands and NULL.
+The installed real retained Store publishes sorted producer and two consumer
+Named Results, each checked against independently authored true/false/NULL rows.
+Same-request reuse preserves results without another positive-progress or
+completion observation. Temporary carrier files are reclaimed. The fixture is
+included in the existing installed Host suite; it and the previous public wire
+fixture passed 2/2 (`run-0ATVkU` / `focused-test-EG6Rxv`) after preparing only
+`local-node` and `run-host-core` from the changed source. This is checkout Host
+acceptance, not packed distribution, fresh-process recovery or a complete
+physical-entry census. Wasm/native, final integration CI, public cancellation
+of this membership shape, and synchronous non-frame comparison consumers
+remain unverified. No whole-operation assurance count is promoted.
 
 #### Retained Relation obligation chains
 
@@ -5417,3 +5540,317 @@ workspace 30/29 boundary checks, plus cancellation and cleanup. Their distinct
 roles are now registered with the corresponding environment evidence. Removing
 the fused timer role, either stored assurance, or substituting selected-path
 cancellation is rejected by the resource audit tests.
+
+### Sequence internal Text comparison boundary
+
+Identity sorting, uniqueness checks, compound-key sorting and partition
+boundaries now retain a stepped Text comparison cursor. This is actual
+comparison scanning, distinct from predicate initialization and output value
+measurement. Focused JS tests preserve independent result/order expectations,
+quantum-invariant control work, exact/one-short reservations and cancellation
+inside each comparison phase. Pending child-sort state is reclaimed only after
+its stop is confirmed.
+
+At the comparison-only revision, source-free public preparation failed before
+Compute with `SequenceCollection(MissingApplication(1))`. The subsequent
+capacity-admission change connects both existing Host claims, and the same
+public Program now publishes its retained producer and two consumer Results.
+The failed evidence and the newer passing boundary are distinguished in the
+[Sequence boundary record](2026-10-06-local-sequence-comparison.md).
+
+### Interval join internal Text comparison boundary
+
+Interval pair-key comparison now retains the existing stepped complete-value
+Text cursor instead of synchronously scanning long operands. Focused JS evidence
+checks quantum-invariant results and logical control work, comparison and whole-
+operation exact/one-short limits, cancellation inside charging/scanning, and
+single cleanup with live caller inputs. The ordinary installed retained Host
+also publishes independent ordered producer/two-consumer Results with long keys,
+duplicates and NULL non-matching; request reuse performs no additional Compute.
+Public comparison-phase stop latency and Wasm/native execution are not newly
+claimed. See the [interval boundary record](2026-10-06-local-interval-comparison.md).
+
+### Set recursive comparison and retained Store capacity boundary
+
+EXCEPT/INTERSECT now retain accounted admitted-value comparison frames rather
+than walking a complete Array/Object/Vector inside one poll. Focused JS evidence
+preserves ALL/DISTINCT survivors, order and logical work across quanta, isolated
+exact/one-short comparison limits, and root/scratch ownership through confirmed
+stop and single cleanup. This partitions operator scanning, not retention
+measurement. Other recursive comparator callers are not yet covered.
+
+The earlier task-zero failure attribution was incorrect: the full diagnostic
+completed tasks 0 through 4, then refused the final Sort's retention reservation.
+Candidate and input binding checks passed. Pre-start Host capacity had omitted
+the declared import/export allowances from its whole-Run inventory.
+
+The follow-up includes those allowances and counts each checked input port,
+without dropping live parents or changing the 512 MiB admission ceiling. The
+ordinary source-free nested Set -> Unnest -> projection -> Sort Program now
+publishes independent ordered producer/two-consumer Results for all four
+ALL/DISTINCT variants; repeated requests perform no additional Compute. A
+kernel-certified nested Text scanning barrier now also drives public
+cancellation: inputs remain held before physical stop, no Result is published,
+snapshots are reclaimed after stop and request reuse does not redispatch.
+Packed/HTTP and Wasm/native execution remain unverified for this unit. Other
+recursive comparator callers remain separate.
+See the [Set boundary record](2026-10-06-local-set-tree-comparison.md) and
+[retained capacity record](2026-10-06-local-retained-store-capacity.md).
+
+### DISTINCT recursive comparison boundary
+
+Whole-row DISTINCT now reuses the Set admitted-tree cursor during sorting and
+adjacent-row equality, instead of synchronously walking nested Array/Object/
+Vector values inside one poll. This splits actual comparison scanning, not
+value measurement. Focused JS tests preserve independent survivors, order,
+absent-versus-NULL behavior and logical work across quanta, exact/one-short
+comparison work and whole-operation workspace, and roots until confirmed stop
+and single cleanup.
+
+The ordinary installed retained Host runs Values -> DISTINCT -> derive ->
+Unnest -> select -> sort as one fused producer task, publishes literal ordered
+producer/two-consumer Results and reuses the same request without Compute.
+Cancellation is delivered at a kernel-certified nested UTF-16 scanning barrier;
+physical stop remains separate from the request and all Results stay unavailable
+on stop. The fused input is held by the completed-input owner, not a Store lease.
+Public whole-Ledger reservations, packed/HTTP and Wasm/native execution are not
+newly established. Other recursive comparators and expression scans remain
+separate. See the [DISTINCT boundary record](2026-10-06-local-distinct-tree-comparison.md).
+
+### Public retained expression scanning cancellation
+
+The long Text binary-comparison implementation was already stepped inside the
+expression frame. A new ordinary installed retained-Store Program now reads
+literal producer/two-consumer Named Results and delivers public cancellation
+inside its filter's actual UTF-16 scan. A matching core fixture certifies the
+third 256-work child quantum, roots and workspace through confirmed stop, and
+single cleanup without refunding work. Successful quanta one, seven and 256
+agree on results and cumulative work.
+
+The filter gate now requires the existing independent expression bounds, the
+new scan/root and quantum fixtures, and the public suite connection. Omitting
+any role or the actual suite import is rejected. This adds evidence, not a new
+comparison or Run owner. The runtime is unchanged from #517; whole-Run exact
+budgets, packed/HTTP, Wasm/native and other expression scans are not newly
+claimed. See the [public expression record](2026-10-06-local-expression-public-cancellation.md).
+
+### Pool typed-key operator scanning
+
+Pool now uses the existing bounded typed key cursor in validation, identity
+sort, duplicate detection, group sort and group boundaries. Long prefixes no
+longer hide inside one comparison step. Independent exact/one-short control
+work and structural workspace, quantum-invariant ordered results, cursor/root
+custody through confirmed stop and one cleanup are covered on JS. Existing
+registered Vectors/Relation/view Pool callers remain covered by focused tests.
+
+The ordinary retained Host runs `to_vectors -> pool_vectors -> vectors` as one
+fused task, reads explicit producer/two-consumer Named Results and delivers
+public cancellation inside the kernel-certified group-key validation scan.
+Request persistence, physical stop, unavailable results and final snapshot
+reclamation remain separate observations. The gate requires the actual suite
+connection. Whole-Run exact budgets, packed/HTTP, Wasm/native, composite member
+identity encoding and other VecA comparisons are not newly established. See
+the [Pool scanning record](2026-10-06-local-pool-key-scanning.md).
+
+### Nearest typed-identity operator scanning
+
+Nearest now advances the existing typed key cursor through identity validation,
+both input sorts, duplicate checks and equal-score candidate ties. Independent
+scan-only control limits 1365/1364 and structural workspace 36/35, before the
+output-admission unit below, and ordered results across
+quanta, cancellation inside each scan and caller input custody through confirmed
+stop and one cleanup are covered on JS. Existing nearest caller tests remain
+covered, including Relation and mixed inputs.
+
+The ordinary retained Host runs two explicit `to_vectors` bridges and nearest
+in one fused task, reads producer/two-consumer ordered Named Results and cancels
+inside the matching 513-code-unit validation scan. Stop request, physical stop,
+unavailable Results and snapshot reclamation remain separate. The evidence gate
+requires the actual public suite connection. Whole-Run exact Ledger budgets,
+Wasm/native, packed/HTTP, output identity rechecking/composite encoding and
+ranking scans are not newly established. See the
+[nearest scanning record](2026-10-06-local-nearest-key-scanning.md).
+
+### Nearest resumable output admission
+
+Nearest now constructs composite identities one component per transition and
+rechecks/measures output cells through the existing common cursors. Its Session
+owns stop confirmation and cleanup; the row cursor grants no completion or
+publication authority. Logical output work is unchanged by quantum. Updated
+independent bounds for the Text fixture are 1517/1516 control and 44/43
+structural workspace, with an exact 1168-unit logical output allowance.
+
+The ordinary retained Host also cancels at the core-certified boundary after
+one output row commits and while the next row is being charged. Inputs and
+unpublished output remain held until confirmed stop; cleanup releases once.
+Producer/two-consumer ordered Results and request reuse remain covered.
+The gate requires output-specific shared and operator evidence. This closes
+the output-recheck/composite-encoding residual above on the executed JS and
+installed-Host scope, not all VecA scans or all Local retention. Whole-Run exact
+Ledger budgets, packed/HTTP, Wasm/native and new Store-failure campaigns remain
+unverified here. See the
+[nearest output record](2026-10-06-local-nearest-output-admission.md).
+
+### Ranking typed-key operator scanning
+
+Ranking now advances the shared typed cursor through nullable group/author
+validation, stable record/output sorting, duplicate/rank checks, candidate
+fusion, tie consistency and emitted-group boundaries. Quanta one, seven and
+256 preserve independently authored rows and cumulative work. Long compound
+group/tie exact boundaries are 13983/13982 control and 121/120 structural slots;
+the numeric RRF fixture is 166/165 and 103/102. Pending input/record positions
+stay fixed until their comparisons finish. Cleanup retains roots until stopped
+and clears them once.
+
+The ordinary retained Host publishes explicit producer/two-consumer RRF Results
+and cancels inside the first long group scan. Request persistence, physical
+stop, unavailable Results and snapshot reclamation remain separate. The gate
+requires comparison-specific evidence and its actual public suite import.
+This closes the ranking operator-comparison residual above, not input/output
+admission. Checked-cell rechecks, field-name matching, output rechecks and row
+append/measurement still have synchronous paths. Whole-Run exact Ledger budgets,
+packed/HTTP, Wasm/native and new Store-failure campaigns are not established.
+See the [ranking scanning record](2026-10-06-local-ranking-key-scanning.md).
+
+### Ranking resumable output admission
+
+Ranking output now resolves one authored group position at a time and drives
+the existing shared row cursor for contract recheck and logical measurement.
+This supersedes the output-admission residual in the preceding historical
+comparison unit; input checked-cell rechecks and name matching remain separate
+work. The existing Session retains roots through confirmed stop and releases
+them once. No new completion or publication owner is introduced.
+
+Independent numeric bounds are 212/211 control work and 117/116 structural
+slots; long nullable group/tie bounds are 14081/14080 and 136/135. Two long-Text
+rows retain the same logical allowance: twelve nodes, 1064 text bytes and 1076
+work. Core barriers cover first-row recheck, first-row logical charge and
+second-row recheck after a commit. An atomic whole-row mutation is rejected.
+
+The public regression uses the existing retained RRF producer/two-consumer
+Program and its group-comparison cancellation barrier. It is not evidence of
+a public output-phase stop barrier. Whole-Run exact Ledger limits, packed/HTTP,
+Wasm/native, wall-clock stop latency and new Store-failure campaigns remain
+unverified in this unit. See the
+[ranking output record](2026-10-06-local-ranking-output-admission.md).
+
+### Ranking resumable input admission
+
+Ranking now drives the common value-admission cursor before binding each
+completed or supplied input field, including unused nested columns. Vector
+components and JSON data Text also yield inside that shared cursor without
+changing their logical admission usage or normalizing data. The existing
+Session retains pending input custody until confirmed stop and one cleanup.
+
+Independent current numeric boundaries are 236/235 control and 137/136 slots;
+long group/tie boundaries are 14193/14192 and 156/155. They supersede the
+historical pre-input-cursor totals above. A 257-item unused Array covers
+574/573 control, 78/77 workspace, 258/257 nodes, three quanta and cancellation
+inside its recheck. An atomic-drain mutation is rejected.
+
+The ordinary retained Host reads producer/two-consumer ordered RRF Results,
+reuses the same request without dispatch and cancels inside an unused
+129-item Array recheck. The public literals fit the unchanged 1000-byte
+construction policy; the larger lower-level admission boundary remains.
+The gate requires the shared/operator input evidence and actual suite import.
+Object field names and authored field binding remain synchronous residuals.
+
+### Pool and Nearest resumable Relation input admission
+
+The Relation input branches of Pool and Nearest now retain the existing common
+value recheck across bounded resumes, including unused columns. Ranking shares
+the same private staging helper. Exact checked producer bindings and Carrier
+generation reads remain unchanged; no implicit array conversion or synchronous
+fallback is added. Each Relation execution reserves one reusable cursor before
+output preparation and retains caller inputs until confirmed stop and cleanup.
+
+The following input-admission totals describe the previous component; the
+Pool record-admission section below supersedes its Pool totals.
+Independent scalar control/workspace boundaries were Pool **41/40, 38/37**
+and Relation Nearest **66/65, 51/50**. A 257-item unused Array independently
+requires **561/560** Pool control with **31/30** workspace, or **1104/1103**
+Nearest control with **43/42** workspace. Input node allowance **258/257**,
+quanta one/seven/256 and stopped cleanup are tested. These supersede prior
+Relation-branch scalar totals only; admitted Carrier totals stay unchanged.
+
+Ordinary installed Host fixtures publish through a real retained Store, read
+three explicit Named Results, reuse the same request without dispatch and
+deliver cancellation inside unused-array admission. Existing Carrier and
+output cancellation fixtures remain successful. Evidence roles are required
+per operation, with removal and foreign-suite mutations rejecting.
+
+This closes the tested Relation input value walk, not Pool's output-record
+encoding, member-ID encoding, Object/name scans, whole-Run exact accounting or
+all Local retention. Focused JS caller and public Host results, independent
+limits and unverified coverage are recorded in the
+[input admission record](2026-10-06-local-vector-input-admission.md).
+Whole-Run exact Ledger limits, packed/HTTP, Wasm/native and new Store-failure
+campaigns are not newly claimed. See the
+[ranking input record](2026-10-06-local-ranking-input-admission.md).
+
+### Pool resumable output record admission
+
+Stored, Viewed and Relation Pool now retain one shared record append cursor.
+Field/identity admission and wire value/Text traversal are stepped under the
+existing Session. Record wire uses the existing measurement sink rather than
+assembling discarded record text. Builder finish and parallel append are
+excluded until commit or stopped cleanup; prior rows remain owned on failure.
+
+Independent Carrier control/workspace boundaries are **61/60, 60/59** for one
+two-dimensional member, and workspace **84/83** for four members. Relation
+Pool becomes **72/71, 83/82**; its unused-Array trial becomes **592/591, 55/54**.
+A 257-dimensional member fixes **1336/1335** control, **315/314** workspace and
+**273/272** stored construction work. Quanta 1/7/256 agree; cancellation inside
+output encoding retains custody until confirmed stop and reclaims it once.
+
+The normal installed Host reads three explicit Named Results from a real Store,
+reuses a request without Compute/dispatch and delivers cancellation inside output
+Vector encoding. Gate removal/foreign-suite checks require shared and operation
+evidence. The following identity unit supersedes the earlier synchronous
+identity residual; schema/type/name scans, other record callers and whole-Run
+physical accounting remain separate residuals.
+This is not all-Local completion. See the
+[record-admission evidence](2026-10-06-local-pool-record-admission.md).
+
+### Record identity hashing and exact streaming matches
+
+The shared append cursor now hashes identity wire without final full-String
+assembly. Fixed-size digests select prior retained records only; exact wire
+equality is resumed through bounded fragments, including digest collisions.
+Prior identity lookup is stepped, comparison workspace is reserved before
+allocation, and failed/cancelled custody survives until cleanup. Both append
+APIs share this equality domain without changing wire/CID/order semantics.
+
+Independent shared limits are construction **8/7**, bytes **278/277**, workspace
+**20/19**; duplicate comparison has workspace **35/34**. Forced collisions,
+Unicode/escaping, differing fragment boundaries and cleanup are tested.
+An 8,096-unit Pool output key gives control **8410/8409** across quanta 1/7/256;
+the ordinary installed Host uses the same independently derived **8192**
+in-key cancellation boundary, reads three Named Results from the real Store,
+retains custody before stop and publishes nothing after cancellation.
+
+Schema/type/name scans, synchronous legacy drains, Relation member-identity
+concatenation, physical heap/whole-Run budgets and unexecuted target/packed
+campaigns remain outside this boundary. See the
+[identity evidence](2026-10-06-local-record-identity-streaming.md).
+
+### Record contract equality scanning
+
+The shared record append now retains exact type equality across field-contract
+transitions. Contract nodes, wide Object children, long Object names and
+reference parameter spelling no longer hide a complete recursive comparison
+inside one field poll. The same contract owner backs synchronous type equality;
+pair limits and reverse-name-before-forward-child refusal precedence are
+preserved. Deeper contracts reserve continuation custody before allocation,
+including a NULL value whose declared contract exceeds its wire depth.
+
+Focused JS evidence covers pair limits 130/129, extra workspace 25/24, original
+wire construction 7/6, typed mismatch before commit, prior-row custody and
+single cleanup. Atomic draining is detected by negative mutation. Existing
+installed retained Pool publication/request/cancellation cases remain successful;
+they do not prove cancellation inside a recursive contract. Field lookup/Map
+name scans, runtime Object-name validation, member-key concatenation, legacy
+drains, whole-Run physical accounting and unexecuted target/packed campaigns
+remain separate residuals. This supersedes only the recursive type-equality
+part of the historical schema/type/name residual. See the
+[contract scanning evidence](2026-10-06-local-record-contract-scanning.md).

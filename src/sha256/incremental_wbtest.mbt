@@ -153,3 +153,39 @@ test "ASCII range hashing completes partial blocks and closes on invalid full bl
     },
   )
 }
+
+///|
+test "ASCII word absorption preserves every byte and rejects every invalid slot" {
+  let pattern = String::from_array(
+    Array::makei(256, i => (i % 128).unsafe_to_char()),
+  )
+  let expected = Bytes::from_array(Array::makei(256, i => (i % 128).to_byte()))
+  for prefix in [0, 1, 31, 63] {
+    let h = hasher()
+    update(h, Bytes::make(prefix, 0x78))
+    update_ascii_range(h, "head" + pattern + "tail", 4, 260)
+    assert_eq(finish_hex(h), hex(Bytes::make(prefix, 0x78) + expected))
+  }
+  for bad in 0..<64 {
+    let h = hasher()
+    let input = "x".repeat(bad) + "é" + "x".repeat(63 - bad)
+    assert_true(
+      try {
+        update_ascii_range(h, input, 0, 64)
+        false
+      } catch {
+        InvalidAsciiRange => true
+        _ => false
+      },
+    )
+    assert_true(
+      try {
+        ignore(finish_hex(h))
+        false
+      } catch {
+        ClosedHasher => true
+        _ => false
+      },
+    )
+  }
+}

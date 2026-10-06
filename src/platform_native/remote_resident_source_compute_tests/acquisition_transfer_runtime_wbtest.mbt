@@ -17,6 +17,8 @@ fn acquisition_runtime_transfer_consumer(
   sqlite : @sqlite.Library,
   root_path : String,
   name : String,
+  cancel_receiver? : Bool = false,
+  deny_after_admission? : Bool = false,
 ) -> Unit raise {
   let reader = producer_runtime
     .open_output_manifest_reader(producer_dispatch, material_id, 128)
@@ -43,34 +45,124 @@ fn acquisition_runtime_transfer_consumer(
     selected.grant_cid,
     retained_compute_cid("6"),
   ).unwrap()
+  assert_true(reader.close().unwrap())
   let root = @filesystem.open_root(root_path).unwrap()
   let path = root_path + "/" + name + ".actual-transfer.sqlite"
   let destination_journal = @journal.open_journal(
     sqlite, path, 1048576L, 8, 4096, 1024L,
   ).unwrap()
-  @transfer_client.admit_durable_direct_destination(
-    destination_journal, request, 536870912L, 8L,
+  let authorized = Ref(true)
+  let common_current = @host.install_client_retained_input_current(
+    () => site,
+    () => retained_compute_cid("c"),
+    () => 1791158400000L,
+    (_, _) => {
+      authorized.val &&
+      (
+        !deny_after_admission ||
+        destination_journal.require(request)
+        is Err(@journal.Physical(@sqlite.NotFound))
+      )
+    },
+  )
+  let transfer = @resident.prepare_resident_retained_transfer(
+    producer_runtime, producer_dispatch, producer, request, common_current, site,
+    destination_journal, root, 128, 536870912L, 8L,
   ).unwrap()
-  |> ignore
-  let chunks = Ref(0)
-  while reader.next().unwrap() is Some(chunk) {
-    // No row extraction, reframing or regenerated physical manifest.
-    @transfer_client.write_durable_direct_destination_chunk(
-      destination_journal,
-      root,
-      request,
-      chunk.index,
-      chunk.bytes,
-    ).unwrap()
-    |> ignore
-    chunks.val += 1
+  let before = @site.site_status(site)
+  authorized.val = false
+  assert_true(
+    transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),
+  )
+  assert_eq(@site.site_status(site)[6], before[6])
+  assert_eq(
+    destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+    0L,
+  )
+  authorized.val = true
+  if deny_after_admission {
+    assert_true(
+      transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),
+    )
+    assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      physical.referenced_bytes,
+    )
+    assert_true(
+      destination_journal
+      .inspect_destination_allocation_if_present(
+        request, "direct-destination", 0,
+      )
+      .unwrap()
+      is None,
+    )
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_true(
+      @transfer.direct_transfer_cleanup_confirmed(
+        destination_journal.require(request).unwrap(),
+      ),
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(destination_journal.close())
+    return
   }
-  assert_eq(chunks.val, 3)
-  assert_true(reader.finish().unwrap())
-  @transfer_client.commit_durable_direct_destination(
-    destination_journal, root, request,
-  ).unwrap()
-  |> ignore
+  assert_false(transfer.advance().unwrap())
+  assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
+  authorized.val = false
+  if cancel_receiver {
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_true(
+      @transfer.direct_transfer_cleanup_confirmed(
+        destination_journal.require(request).unwrap(),
+      ),
+    )
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(destination_journal.close())
+    return
+  }
+  assert_true(
+    transfer.advance() is Err(@resident.Input(@host.AuthorizationUnavailable)),
+  )
+  assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
+  assert_eq(
+    destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+    physical.referenced_bytes,
+  )
+  assert_true(
+    destination_journal
+    .inspect_destination_allocation_if_present(request, "direct-destination", 1)
+    .unwrap()
+    is None,
+  )
+  authorized.val = true
+  let mut rounds = 1
+  while !transfer.advance().unwrap() {
+    rounds += 1
+    assert_true(rounds <= 4)
+  }
+  assert_eq(rounds, 3)
+  assert_eq(@site.site_status(site)[6], before[6] + physical.referenced_bytes)
+  let revision = @transfer.record_revision(
+    destination_journal.require(request).unwrap(),
+  )
+  assert_true(transfer.advance().unwrap())
+  assert_eq(
+    @transfer.record_revision(destination_journal.require(request).unwrap()),
+    revision,
+  )
   let bytes = physical.referenced_bytes
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
@@ -83,6 +175,7 @@ fn acquisition_runtime_transfer_consumer(
   let destination_journal = @journal.open_journal(
     sqlite, path, 1048576L, 8, 4096, 1024L,
   ).unwrap()
+  transfer.reopen_completed_destination(destination_journal).unwrap()
   let committed = @transfer_client.commit_durable_direct_destination(
     destination_journal, root, request,
   ).unwrap()
@@ -91,12 +184,6 @@ fn acquisition_runtime_transfer_consumer(
     .unwrap()
     .unwrap()
   let current = @output.install_native_remote_retained_input_current(
-    () => site,
-    () => retained_compute_cid("c"),
-    () => 1791158400000L,
-    (_, _) => true,
-  )
-  let common_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
     () => 1791158400000L,
@@ -133,6 +220,7 @@ fn acquisition_runtime_transfer_consumer(
   let destination_journal = @journal.open_journal(
     sqlite, path, 1048576L, 8, 4096, 1024L,
   ).unwrap()
+  transfer.reopen_completed_destination(destination_journal).unwrap()
   let material = @transfer_client.pin_durable_direct_destination_material(
     destination_journal,
     root,
@@ -203,6 +291,10 @@ fn acquisition_runtime_transfer_consumer(
     retained_site_usage=producer_usage,
   )
   assert_true(@host.client_retained_input_producer_available(producer))
+  authorized.val = false
+  assert_true(transfer.reclaim().unwrap())
+  assert_false(transfer.reclaim().unwrap())
+  assert_eq(@site.site_status(site)[6], before[6])
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     0L,

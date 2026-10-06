@@ -4,6 +4,7 @@ priv enum CompleteOrderFrame {
   OrderArray(FrozenArray[Value], Int)
   OrderObject(FrozenArray[(String, Value)], Int)
   OrderVector(FrozenArray[Double], Int)
+  OrderText(@encode.StringEmitCursor, Bool)
   OrderEndEntry
   OrderEndAggregate
 }
@@ -98,6 +99,14 @@ pub fn cancel_complete_order(value : CompleteOrder) -> Unit {
     cancel_recheck_runtime_value(cursor)
   }
   value.recheck = None
+  // A pending scalar emission is always the top frame; no other work can
+  // borrow its writer until that same emission finishes.
+  if value.pending.length() > 0 {
+    match value.pending[value.pending.length() - 1] {
+      OrderText(cursor, _) => @encode.cancel_string_value(cursor)
+      _ => ()
+    }
+  }
   value.pending.clear()
   value.pending.shrink_to_fit()
   if value.out is Some(out) {
@@ -161,8 +170,9 @@ pub fn advance_complete_order(
             }
             Text(value) => {
               begin_order_value(out, "text")
-              @encode.string_value(out, value)
-              @encode.end_array(out)
+              pending.push(
+                OrderText(@encode.start_string_value(out, value), true),
+              )
             }
             Date(value) => {
               begin_order_value(out, "date")
@@ -218,12 +228,22 @@ pub fn advance_complete_order(
             pending.push(OrderEndEntry)
             pending.push(OrderRead(value))
             @encode.begin_array(out)
-            @encode.string_value(out, name)
+            pending.push(
+              OrderText(@encode.start_string_value(out, name), false),
+            )
           }
         OrderVector(values, index) =>
           if element_at(values, index) is Some(value) {
             @encode.number_value(out, value)
             pending.push(OrderVector(values, index + 1))
+          }
+        OrderText(cursor, close_value) =>
+          if @encode.advance_string_value(cursor) {
+            if close_value {
+              @encode.end_array(out)
+            }
+          } else {
+            pending.push(OrderText(cursor, close_value))
           }
         OrderEndEntry => @encode.end_array(out)
         OrderEndAggregate => {

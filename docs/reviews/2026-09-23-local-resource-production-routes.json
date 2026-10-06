@@ -262,9 +262,51 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/expression_wbtest.mbt",
           "fixture": "selected branches only execute; eager boolean still evaluates failure"
+        },
+        {
+          "role": "filter_long_expression_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long expression comparison keeps independent logical and workspace bounds"
+        },
+        {
+          "role": "filter_long_expression_control",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long comparison preserves exact control and UTF16 result rules"
+        },
+        {
+          "role": "filter_long_expression_scan",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/expression_text_comparison_wbtest.mbt",
+          "fixture": "long expression comparison exposes charging and equal prefix scans"
+        },
+        {
+          "role": "filter_long_expression_root_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/public_expression_barrier_wbtest.mbt",
+          "fixture": "public retained filter fixture exposes its actual long Text scanning quantum"
+        },
+        {
+          "role": "filter_long_expression_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/public_expression_barrier_wbtest.mbt",
+          "fixture": "public retained filter preserves logical work across Host polling quanta"
         }
       ],
       "environment_tests": [
+        {
+          "role": "filter_long_expression_public_store",
+          "suite": "node:embedded_expression_comparison",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-expression-comparison-retention.test.mjs",
+          "fixture": "public retained expression comparison publishes and stops inside its Text scan"
+        },
         {
           "role": "filter_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
@@ -4548,6 +4590,41 @@
       },
       "boundary_tests": [
         {
+          "role": "distinct_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT yields during nested comparison and preserves logical work"
+        },
+        {
+          "role": "distinct_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT retains a nested comparison until confirmed stop and cleanup"
+        },
+        {
+          "role": "distinct_nested_compare_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT accounts nested comparison workspace and frame limits"
+        },
+        {
+          "role": "distinct_nested_compare_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "whole-row DISTINCT complete comparator accepts exact work and rejects one short"
+        },
+        {
+          "role": "distinct_nested_compare_public_barrier",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_distinct_tree_wbtest.mbt",
+          "fixture": "public nested DISTINCT fixture reaches a scanning barrier after nine Host quanta"
+        },
+        {
           "role": "selected_distinct_first_occurrence_and_null",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -4633,6 +4710,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "distinct_nested_compare_public_store",
+          "suite": "node:embedded_distinct_values",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-distinct-value-retention.test.mjs",
+          "fixture": "public retained DISTINCT scans nested values, publishes and cancels without redispatch"
+        },
         {
           "role": "same_stage_distinct_timer_cancel_cleanup",
           "suite": "node:duckdb_standard_host",
@@ -5877,6 +5961,27 @@
       },
       "boundary_tests": [
         {
+          "role": "except_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set preserves all variants and logical work across quanta"
+        },
+        {
+          "role": "except_nested_compare_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested comparison preserves independently calculated work and frame limits"
+        },
+        {
+          "role": "except_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set retains borrowed roots and frames until confirmed stop"
+        },
+        {
           "role": "except_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
           "targets": [
@@ -6009,6 +6114,27 @@
         "symbol": "set_provider"
       },
       "boundary_tests": [
+        {
+          "role": "intersect_nested_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set preserves all variants and logical work across quanta"
+        },
+        {
+          "role": "intersect_nested_compare_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested comparison preserves independently calculated work and frame limits"
+        },
+        {
+          "role": "intersect_nested_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_set_nested_comparison_wbtest.mbt",
+          "fixture": "nested set retains borrowed roots and frames until confirmed stop"
+        },
         {
           "role": "intersect_empty_schema_workspace_exact_one_short",
           "suite": "moon:execution_relation",
@@ -7717,23 +7843,77 @@
         {
           "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_wbtest.mbt",
           "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
         },
         {
           "role": "union_positive_work_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_wbtest.mbt",
           "fixture": "property Graph union cancellation after positive work keeps shared input custody"
         },
         {
           "role": "union_host_cleanup_failure_retry_custody",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
           "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "union_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union reserves independent workspace before the first fold"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "in_flight_cancel": "union_host_delivered_cancel_cleanup",
+          "cleanup": "union_host_cleanup_failure_retry_custody"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+            "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "union_workspace_exact_one_short_before_fold",
+            "one_short_limit": "union_workspace_exact_one_short_before_fold"
+          }
+        }
+      },
+      "environment_tests": [
+        {
+          "role": "union_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph union stops after positive work through the installed Local Host without publishing output"
         }
       ]
     },
@@ -8712,6 +8892,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
           "fixture": "bounded interval join cancels before publishing partial output"
+        },
+        {
+          "role": "interval_long_text_compare_quantum_order",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "interval join yields within long equal and unequal Text keys"
+        },
+        {
+          "role": "interval_long_text_compare_stop_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "interval join retains pending Text comparison until confirmed stop"
+        },
+        {
+          "role": "interval_long_text_compare_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "interval Text comparison has fixed control and cursor boundaries"
+        },
+        {
+          "role": "interval_long_text_whole_work_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/bounded_interval_join_wbtest.mbt",
+          "fixture": "interval long Text preserves whole-operation exact work and workspace"
         }
       ],
       "environment_tests": [
@@ -9480,11 +9688,88 @@
       },
       "boundary_tests": [
         {
+          "role": "nearest_long_keys_quantum",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identities preserve independent control limits and order"
+        },
+        {
+          "role": "nearest_long_keys_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identities reject one-short control and workspace"
+        },
+        {
+          "role": "nearest_long_keys_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest long identity scans retain both inputs until confirmed stop"
+        },
+        {
+          "role": "nearest_long_keys_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest public quantum stops inside long identity validation"
+        },
+        {
+          "role": "nearest_output_row_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest output yields during recheck and charge without premature release"
+        },
+        {
+          "role": "nearest_output_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_text_scanning_wbtest.mbt",
+          "fixture": "nearest public quantum stops inside output after a committed row"
+        },
+        {
+          "role": "nearest_output_composite_order",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_composite_output_wbtest.mbt",
+          "fixture": "nearest incrementally encodes composite identity in canonical field order"
+        },
+        {
+          "role": "nearest_output_shared_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor distinguishes temporary workspace and logical one-short limits"
+        },
+        {
+          "role": "nearest_output_shared_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor releases partial recheck and measurement exactly once"
+        },
+        {
           "role": "nearest_direct_relation_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "direct nearest Relation inputs keep exact work and workspace bounds"
+        },
+        {
+          "role": "nearest_relation_input_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/vector_input_recheck_wbtest.mbt",
+          "fixture": "nearest Relation admission yields within unused arrays before stop"
+        },
+        {
+          "role": "nearest_relation_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
         },
         {
           "role": "nearest_direct_relation_workspace_exact_one_short",
@@ -9573,6 +9858,27 @@
       ],
       "environment_tests": [
         {
+          "role": "nearest_long_keys_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest publishes and cancels inside long identity validation"
+        },
+        {
+          "role": "nearest_output_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest cancels output after its first committed row"
+        },
+        {
+          "role": "nearest_relation_input_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest admits Relation inputs and cancels inside unused array"
+        },
+        {
           "role": "nearest_relation_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -9658,6 +9964,34 @@
       },
       "boundary_tests": [
         {
+          "role": "pool_long_keys_quantum",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_text_comparison_wbtest.mbt",
+          "fixture": "pool charges every long key comparison independent of quantum"
+        },
+        {
+          "role": "pool_long_keys_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_text_comparison_wbtest.mbt",
+          "fixture": "pool long keys enforce exact control and structural workspace limits"
+        },
+        {
+          "role": "pool_long_keys_stop_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_text_comparison_wbtest.mbt",
+          "fixture": "pool retains borrowed keys through scan cancellation and cleanup"
+        },
+        {
+          "role": "pool_long_keys_public_barrier",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_text_comparison_wbtest.mbt",
+          "fixture": "pool public scan barrier retains its pending group key"
+        },
+        {
           "role": "pool_relation_registered_limits_stop_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -9698,6 +10032,111 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "relation pool enforces exact work and workspace boundaries"
+        },
+        {
+          "role": "pool_relation_input_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/vector_input_recheck_wbtest.mbt",
+          "fixture": "Relation Pool admission yields within unused arrays before stop"
+        },
+        {
+          "role": "pool_output_limits_stop_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_output_steps_wbtest.mbt",
+          "fixture": "Pool output Vector encoding yields with exact work and confirmed stop"
+        },
+        {
+          "role": "pool_identity_hash_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity hash keeps exact wire limits without assembled Text"
+        },
+        {
+          "role": "pool_identity_collision_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity collision equality yields and retains cleanup custody"
+        },
+        {
+          "role": "pool_identity_collision_equality",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/identity_steps_wbtest.mbt",
+          "fixture": "record identity digest collisions never replace exact wire equality"
+        },
+        {
+          "role": "pool_identity_output_control_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_identity_output_wbtest.mbt",
+          "fixture": "Pool output identity hashing keeps independent control and stop boundaries"
+        },
+        {
+          "role": "pool_record_contract_names",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record append resumes contract names with unchanged construction limits"
+        },
+        {
+          "role": "pool_record_contract_workspace",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract stack reserves exact extra custody before allocation"
+        },
+        {
+          "role": "pool_record_contract_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract cancellation retains prior rows until owner cleanup"
+        },
+        {
+          "role": "pool_record_contract_pair_limits",
+          "suite": "moon:value_contract",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_contract/equality_steps_wbtest.mbt",
+          "fixture": "type equality yields across wide objects without changing pair limits"
+        },
+        {
+          "role": "pool_record_contract_binding",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract continuation binds the field it actually validated"
+        },
+        {
+          "role": "pool_output_record_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/append_steps_wbtest.mbt",
+          "fixture": "record append keeps exact wire accounting across Text chunk yields"
+        },
+        {
+          "role": "pool_output_record_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/append_steps_wbtest.mbt",
+          "fixture": "record append cancellation retains prior rows until builder cleanup"
+        },
+        {
+          "role": "pool_output_owner_exclusion",
+          "suite": "moon:managed_record_runtime",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_runtime/output_wbtest.mbt",
+          "fixture": "record output cursor excludes premature finish and releases custody once"
+        },
+        {
+          "role": "pool_relation_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
         },
         {
           "role": "pool_relation_workspace_exact_one_short",
@@ -9770,6 +10209,34 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-pool"
+        },
+        {
+          "role": "pool_long_keys_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside long group validation"
+        },
+        {
+          "role": "pool_relation_input_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool admits Relation input and cancels inside unused array"
+        },
+        {
+          "role": "pool_output_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside output Vector encoding"
+        },
+        {
+          "role": "pool_identity_output_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside output identity hashing"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",
@@ -9887,6 +10354,83 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "registered ranking provider enforces exact work and workspace"
+        },
+        {
+          "role": "ranking_long_keys_quantum",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking yields within long group and tie comparisons"
+        },
+        {
+          "role": "ranking_long_keys_components",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/ranking_wbtest.mbt",
+          "fixture": "ranking comparison yields within group candidate and tie prefixes"
+        },
+        {
+          "role": "ranking_output_logical_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking output rows keep independent logical value limits"
+        },
+        {
+          "role": "ranking_output_row_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking output recheck and charge retain custody until stopped"
+        },
+        {
+          "role": "ranking_output_shared_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor distinguishes temporary workspace and logical one-short limits"
+        },
+        {
+          "role": "ranking_output_shared_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_output_row_steps_wbtest.mbt",
+          "fixture": "row output cursor releases partial recheck and measurement exactly once"
+        },
+        {
+          "role": "ranking_input_value_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "ranking input recheck yields inside unused arrays with exact limits"
+        },
+        {
+          "role": "ranking_input_shared_vector",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime vector recheck yields between components with exact node usage"
+        },
+        {
+          "role": "ranking_input_shared_json_text",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
+          "fixture": "runtime JSON recheck yields within nested data Text without normalization"
         }
       ],
       "environment_tests": [
@@ -9910,6 +10454,20 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-ranking-weighted"
+        },
+        {
+          "role": "ranking_long_keys_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside long group comparison"
+        },
+        {
+          "role": "ranking_input_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside unused array recheck"
         }
       ],
       "path_assurance": {

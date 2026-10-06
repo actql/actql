@@ -45,7 +45,7 @@ fn adaptive_host(
 
 ///|
 test "standard Host commits an authenticated external policy before dispatch" {
-  let (run, _) = captured_graph_fixture()
+  let (run, issuer) = captured_graph_fixture()
   let registry = search_registry()
   let host = adaptive_host(run, registry)
   @dbhost.configure_dispatch_estimates(host, adaptive_profiles(), {
@@ -69,13 +69,41 @@ test "standard Host commits an authenticated external policy before dispatch" {
     ",\"policy_id\":\"placement-service\",\"policy_revision\":\"r1\",\"position\":0,\"request_id\":\"request-1\",\"revision\":" +
     request.revision.to_string() +
     ",\"run_identity\":\"run-1\",\"version\":\"actql-placement-policy/0.1\"}"
-  assert_true(
-    @dbhost.commit_dispatch_policy_response_json(
-      host, request, wire, "other-service", 1L,
+  let ledger = @strategy.captured_dag_ledger(run)
+  let before_response = @resources.ledger_usage(ledger)
+  for
+    (body, peer, now) in [
+      (wire, "other-service", 1L),
+      (wire, "placement-service", 101L),
+      (
+        wire.replace_all(old="run-1", new="foreign-run"),
+        "placement-service",
+        1L,
+      ),
+      (
+        wire.replace_all(old="authority-1", new="foreign-authority"),
+        "placement-service",
+        1L,
+      ),
+      (
+        wire.replace_all(old="\"position\":0", new="\"position\":8"),
+        "placement-service",
+        1L,
+      ),
+    ] {
+    assert_true(
+      @dbhost.commit_dispatch_policy_response_json(
+        host, request, body, peer, now,
+      )
+      is Err(Search(InvalidPreference)),
     )
-    is Err(Search(InvalidPreference)),
-  )
-  assert_true(@strategy.captured_dag_strategy(run) is None)
+    assert_true(@strategy.captured_dag_strategy(run) is None)
+    assert_eq(@strategy.strategy_history_count(run), 0)
+    assert_true(@dbhost.prepare_next_dispatch(host) is Err(NoStrategy))
+    assert_false(@strategy.captured_task_completed(run, 1))
+    assert_true(@strategy.captured_task_output(run, 1, Step(1)) is None)
+    assert_eq(@resources.ledger_usage(ledger), before_response)
+  }
   @dbhost.commit_dispatch_policy_response_json(
     host, request, wire, "placement-service", 1L,
   ).unwrap()
@@ -88,6 +116,33 @@ test "standard Host commits an authenticated external policy before dispatch" {
   )
   let prepared = @dbhost.prepare_next_dispatch(host).unwrap().unwrap()
   assert_eq(@dbhost.dispatch_task(prepared), 1)
+  assert_true(
+    physical_equal(
+      @dbhost.dispatch_registration(prepared).unwrap(),
+      @dbhost.dispatch_local_registration(host),
+    ),
+  )
+  @dbhost.execute_synchronous_dispatch(prepared).unwrap()
+  let output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
+  assert_eq(
+    @resources.ledger_usage(ledger).attempts,
+    before_response.attempts + 1,
+  )
+  // Close the actual dispatch and output owners; selection alone is not cleanup.
+  @dbhost.stop_strategy_dispatch(host)
+  for task in 0..<4 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+  let closed = @resources.ledger_usage(ledger)
+  assert_eq(closed.held_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_transfer_bytes, 0L)
+  @dbhost.stop_strategy_dispatch(host)
+  assert_eq(@resources.ledger_usage(ledger), closed)
 }
 
 ///|

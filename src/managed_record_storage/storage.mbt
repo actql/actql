@@ -33,6 +33,7 @@ pub(all) enum Issue {
 ///|
 priv struct Record {
   fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  prior_identity : Record?
 }
 
 ///|
@@ -42,7 +43,8 @@ struct Builder {
   identities : Array[String]
   limits : Limits
   values : Array[Record]
-  keys : Map[String, Bool]
+  // Fixed-size wire digests select buckets; records remain the equality owner.
+  keys : Map[String, Record]
   mut input_records : Int
   mut value_bytes : Int
   mut retained_value_bytes : Int
@@ -50,6 +52,7 @@ struct Builder {
   mut workspace_slots : Int
   mut open : Bool
   mut owns_private : Bool
+  mut pending_append : AppendCursor?
 }
 
 ///|
@@ -162,6 +165,7 @@ pub fn prepare_with_additional_identities(
     workspace_slots: 0,
     open: true,
     owns_private: true,
+    pending_append: None,
   })
 }
 
@@ -246,7 +250,7 @@ fn encode_values(
     return Err(ValueLimit)
   }
   try {
-    let out = @encode.writer(
+    let out = @encode.hashing_writer(
       byte_limit,
       node_limit,
       builder.limits.max_value_depth,
@@ -256,7 +260,7 @@ fn encode_values(
       @value.emit_wire_value(value.value, out)
     }
     @encode.end_array(out)
-    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
+    let (text, bytes, nodes, _) = @encode.finish_hash_metrics(out)
     Ok((text, bytes, nodes))
   } catch {
     _ =>
@@ -354,7 +358,7 @@ pub fn append(
   builder : Builder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
 ) -> Result[Unit, Issue] {
-  if !builder.open {
+  if !builder.open || builder.pending_append is Some(_) {
     return Err(Closed)
   }
   if fields.length() > builder.limits.max_fields_per_record {
@@ -379,8 +383,36 @@ pub fn append(
       Err(issue) => return fail(builder, issue)
     }
   }
-  if !identities.is_empty() && builder.keys.contains(key) {
-    return fail(builder, DuplicateIdentity)
+  if !identities.is_empty() {
+    let mut prior = builder.keys.get(key)
+    if prior is Some(_) {
+      // Legacy draining remains synchronous, but its new collision comparison
+      // must still admit both emitter stacks before allocating private state.
+      guard builder.limits.max_value_depth <= 2147483647 / 2 &&
+        append_workspace_slots(
+          0,
+          identities.length(),
+          builder.limits.max_value_depth * 2,
+        )
+        is Some(comparison_slots) &&
+        comparison_slots <=
+        builder.limits.max_workspace_slots - builder.workspace_slots else {
+        return fail(builder, WorkspaceLimit)
+      }
+    }
+    while prior is Some(record) {
+      let equal = identity_equal(
+        builder,
+        identities,
+        record_identity_values(builder, record),
+      ) catch {
+        _ => return fail(builder, ValueLimit)
+      }
+      if equal {
+        return fail(builder, DuplicateIdentity)
+      }
+      prior = record.prior_identity
+    }
   }
   let (_, record_bytes, record_work) = match
     encode_record(builder, fields, key_bytes, key_work + overhead) {
@@ -394,9 +426,17 @@ pub fn append(
     Some(issue) => return fail(builder, issue)
     None => ()
   }
-  builder.values.push({ fields: fields.copy(), })
+  let record : Record = {
+    fields: fields.copy(),
+    prior_identity: if identities.is_empty() {
+      None
+    } else {
+      builder.keys.get(key)
+    },
+  }
+  builder.values.push(record)
   if !identities.is_empty() {
-    builder.keys[key] = true
+    builder.keys[key] = record
   }
   builder.input_records += 1
   builder.value_bytes += bytes
@@ -408,11 +448,14 @@ pub fn append(
 
 ///|
 pub fn finish(builder : Builder) -> Result[Storage, Issue] {
-  if !builder.open || !builder.owns_private {
+  if !builder.open || !builder.owns_private || builder.pending_append is Some(_) {
     return Err(Closed)
   }
   builder.open = false
   builder.owns_private = false
+  // The completed record array owns all values; the private lookup index must
+  // not keep record references alive after completed storage is discarded.
+  builder.keys.clear()
   Ok({
     carrier: builder.carrier,
     identities: builder.identities,
@@ -432,6 +475,9 @@ pub fn cancel(builder : Builder) -> Bool {
   }
   builder.open = false
   builder.owns_private = false
+  if builder.pending_append is Some(cursor) {
+    cleanup_append(cursor) |> ignore
+  }
   builder.values.clear()
   builder.keys.clear()
   builder.retained_value_bytes = 0
@@ -442,12 +488,18 @@ pub fn cancel(builder : Builder) -> Bool {
 ///|
 /// Structural slots already retained by records accepted into this builder.
 pub fn builder_workspace_slots(builder : Builder) -> Int {
-  builder.workspace_slots
+  builder.workspace_slots +
+  builder.pending_append.map(cursor => cursor.workspace).unwrap_or(0)
 }
 
 ///|
 pub fn builder_record_count(builder : Builder) -> Int {
   builder.values.length()
+}
+
+///|
+pub fn builder_append_pending(builder : Builder) -> Bool {
+  builder.pending_append is Some(_)
 }
 
 ///|

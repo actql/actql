@@ -477,6 +477,10 @@ export function validateResourceAccounting({
       const suiteDirectory = {
         'moon:query_integration': 'query_integration',
         'moon:execution_relation': 'execution_relation',
+        'moon:value_admission': 'value_admission',
+        'moon:value_contract': 'value_contract',
+        'moon:managed_record_storage': 'managed_record_storage',
+        'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
         'moon:local_tea': 'local_tea',
         'moon:local_veca': 'local_veca',
@@ -856,6 +860,24 @@ export function validateResourceAccounting({
         }
       }
     }
+    if (route.family === 'RelA' && ['except', 'intersect'].includes(route.operation)) {
+      for (const suffix of ['quantum_order', 'work_workspace', 'stop_cleanup']) {
+        const role = `${route.operation}_nested_compare_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+    }
+    if (route.family === 'TEA' && route.operation === 'interval_join') {
+      for (const role of [
+        'interval_long_text_compare_quantum_order',
+        'interval_long_text_compare_stop_cleanup',
+        'interval_long_text_compare_work_workspace',
+        'interval_long_text_whole_work_workspace',
+      ]) {
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+    }
     if (route.family === 'TEA' && route.operation === 'sequence') {
       for (const role of [
         'sequence_quantum_one_output_and_cleanup',
@@ -883,6 +905,16 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
         'node:property_graph_surface_checker':
           'scripts/property-graph-surface-checker.test.mjs',
+        'node:embedded_distinct_values':
+          'adapters/host-node/public-distinct-value-retention.test.mjs',
+        'node:embedded_expression_comparison':
+          'adapters/host-node/public-expression-comparison-retention.test.mjs',
+        'node:embedded_pool_keys':
+          'adapters/host-node/public-pool-key-retention.test.mjs',
+        'node:embedded_nearest_keys':
+          'adapters/host-node/public-nearest-key-retention.test.mjs',
+        'node:embedded_ranking_keys':
+          'adapters/host-node/public-ranking-key-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -891,6 +923,36 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:embedded_distinct_values' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-distinct-value-retention.test.mjs';")) {
+        fail(`${label}: nested DISTINCT public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_expression_comparison' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-expression-comparison-retention.test.mjs';")) {
+        fail(`${label}: expression comparison public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_pool_keys' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-pool-key-retention.test.mjs';")) {
+        fail(`${label}: Pool key public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_nearest_keys' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-nearest-key-retention.test.mjs';")) {
+        fail(`${label}: nearest key public fixture is not suite-connected`);
+      }
+      if (item.suite === 'node:embedded_ranking_keys' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-ranking-key-retention.test.mjs';")) {
+        fail(`${label}: ranking key public fixture is not suite-connected`);
+      }
       const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
         sourceText.includes(`test('${item.fixture}',`);
       const tupleCase = typeof item.case === 'string' &&
@@ -1293,6 +1355,93 @@ export function validateResourceAccounting({
             }
           }
         }
+      }
+    }
+    if (route.family === 'RelA' && route.operation === 'filter') {
+      for (const suffix of ['limits', 'control', 'scan', 'root_stop', 'quantum']) {
+        const role = `filter_long_expression_${suffix}`;
+        if (!boundaryRoles.has(role)) {
+          fail(`${label}: ${role} fixture is missing`);
+        }
+      }
+      if (!environmentRoles.has('filter_long_expression_public_store')) {
+        fail(`${label}: expression comparison public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'VecA' && route.operation === 'pool_vectors') {
+      for (const role of ['pool_output_limits_stop_cleanup',
+        'pool_output_record_limits', 'pool_output_record_cleanup',
+        'pool_output_owner_exclusion', 'pool_identity_hash_limits',
+        'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
+        'pool_identity_output_control_stop', 'pool_record_contract_names',
+        'pool_record_contract_workspace', 'pool_record_contract_cleanup',
+        'pool_record_contract_pair_limits', 'pool_record_contract_binding']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_output_public_store')) {
+        fail(`${label}: Pool output public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_identity_output_public_store')) {
+        fail(`${label}: Pool identity output public Store fixture is missing`);
+      }
+      for (const role of ['pool_relation_input_limits_stop_cleanup',
+        'pool_relation_input_shared_vector']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_relation_input_public_store')) {
+        fail(`${label}: Pool Relation input public Store fixture is missing`);
+      }
+      for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+        const role = `pool_long_keys_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_long_keys_public_store')) {
+        fail(`${label}: Pool key public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'VecA' && route.operation === 'nearest') {
+      for (const role of ['nearest_relation_input_limits_stop_cleanup',
+        'nearest_relation_input_shared_vector']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_relation_input_public_store')) {
+        fail(`${label}: nearest Relation input public Store fixture is missing`);
+      }
+      for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+        const role = `nearest_long_keys_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_long_keys_public_store')) {
+        fail(`${label}: nearest key public Store fixture is missing`);
+      }
+      for (const role of ['nearest_output_row_stop_cleanup',
+        'nearest_output_public_barrier', 'nearest_output_composite_order',
+        'nearest_output_shared_limits', 'nearest_output_shared_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_output_public_store')) {
+        fail(`${label}: nearest output public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'VecA' && route.operation === 'merge_rankings') {
+      for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'components']) {
+        const role = `ranking_long_keys_${suffix}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_long_keys_public_store')) {
+        fail(`${label}: ranking key public Store fixture is missing`);
+      }
+      for (const role of ['ranking_output_logical_limits',
+        'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
+        'ranking_output_shared_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      for (const role of ['ranking_input_value_limits_stop_cleanup',
+        'ranking_input_shared_vector', 'ranking_input_shared_json_text']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_input_public_store')) {
+        fail(`${label}: ranking input public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};
@@ -1702,6 +1851,11 @@ export function validateResourceAccounting({
         'distinct_unkeyed_workspace_exact_one_short',
         'selected_distinct_kernel_cancel_cleanup',
         'distinct_adjacent_long_key_cancel_cleanup',
+        'distinct_nested_compare_quantum_order',
+        'distinct_nested_compare_stop_cleanup',
+        'distinct_nested_compare_workspace',
+        'distinct_nested_compare_work',
+        'distinct_nested_compare_public_barrier',
         'same_stage_distinct_two_consumers',
         'same_stage_values_distinct_two_consumers',
         'same_stage_values_distinct_dag_selection',
@@ -1713,6 +1867,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('same_stage_distinct_timer_cancel_cleanup')) {
         fail(`${label}: same-stage distinct timer fixture is missing`);
+      }
+      if (!environmentRoles.has('distinct_nested_compare_public_store')) {
+        fail(`${label}: nested DISTINCT public Store fixture is missing`);
       }
     }
     if (route.family === 'SGA' && route.operation === 'graph_bounds' &&
