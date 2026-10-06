@@ -899,10 +899,14 @@ export function validateResourceAccounting({
         .includes(route.operation);
     if (steppedEventRecord) {
       for (const role of ['events_record_emission_limits',
-        'events_record_emission_stop_cleanup']) {
+        'events_record_emission_stop_cleanup', 'events_input_name_limits',
+        'events_input_name_stop_cleanup']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       const kernel = fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8');
+      if (!kernel.includes('event_name_equal(') || !kernel.includes('name_offset')) {
+        fail(`${label}: stepped input-name custody is missing`);
+      }
       for (const marker of ['@records.start_record_append(',
         '@records.advance_record_append(', '@records.cleanup_record_append(',
         'external_workspace_slots=']) {
@@ -997,6 +1001,10 @@ export function validateResourceAccounting({
     if (steppedEventRecord &&
         !environmentRoles.has('events_record_emission_public_store')) {
       fail(`${label}: Events record public Store fixture is missing`);
+    }
+    if (route.family === 'TEA' && route.operation === 'session' &&
+        !environmentRoles.has('events_input_name_public_store')) {
+      fail(`${label}: Events input-name public Store fixture is missing`);
     }
     if (route.family === 'RelA' && route.operation === 'join') {
       for (const role of [

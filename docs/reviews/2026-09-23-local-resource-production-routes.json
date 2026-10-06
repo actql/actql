@@ -8179,6 +8179,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
           "targets": [
@@ -8289,6 +8311,28 @@
         "symbol": "start_watermark"
       },
       "boundary_tests": [
+        {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
         {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
@@ -8430,6 +8474,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
           "targets": [
@@ -8538,6 +8604,13 @@
           ],
           "path": "adapters/host-node/public-events-record-retention.test.mjs",
           "fixture": "public retained session publishes and cancels inside record emission"
+        },
+        {
+          "role": "events_input_name_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained session publishes and cancels inside input-name matching"
         },
         {
           "role": "session_host_timer",
@@ -8954,6 +9027,28 @@
         "symbol": "start_dedupe"
       },
       "boundary_tests": [
+        {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
         {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",

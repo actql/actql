@@ -5972,3 +5972,25 @@ session ID construction, constructor/Bridge append paths or all retained
 Local execution. Aggregate intermediate bytes, whole-Run physical accounting
 and unexecuted full-target/packed/CI campaigns remain distinct. See the
 [Events emission evidence](2026-10-06-local-events-record-emission.md).
+
+### Events input-name matching
+
+The four Events operators now borrow FieldNames and resolve them with the
+existing 64-unit reference comparator. Positions survive yields, fields
+and terms do not advance early, and one cursor slot remains reserved in
+caller scratch during emission. Short-name control work is unchanged;
+the preceding emission workspace totals each increase by one slot.
+
+Independent 513-unit clock fixtures fix control/workspace 101/81, 101/80,
+107/71 and 138/91 with exact and typed one-short checks across quanta.
+The ordinary retained Host session case publishes 31 expected rows for
+three named Results and two consumers, reuses requests without dispatch,
+and delivers cancellation inside record seven's clock comparison before
+any emission. The resource gate rejects missing per-operation evidence.
+
+The larger 61-row/513-unit public shape still fails with typed InputSet
+before strategy completion; its cause remains unresolved and its failed
+receipts are retained. Key/Text comparisons, session ID construction,
+constructor/Bridge append and whole-Run physical accounting remain separate.
+This is not full retained-path completion or full-target/packed/CI evidence.
+See the [Events name evidence](2026-10-06-local-events-name-matching.md).
