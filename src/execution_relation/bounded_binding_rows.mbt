@@ -348,7 +348,8 @@ fn bounded_row_comparison_step_with(
       (match (a, b) {
         (@admitted.Array(_), @admitted.Array(_))
         | (@admitted.Object(_), @admitted.Object(_))
-        | (@admitted.Vector(_), @admitted.Vector(_)) => true
+        | (@admitted.Vector(_), @admitted.Vector(_))
+        | (@admitted.JsonData(_), @admitted.JsonData(_)) => true
         _ => false
       }) {
       guard workspace is Some(workspace) else { return Err(InvalidInput) }

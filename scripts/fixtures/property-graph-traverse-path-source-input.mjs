@@ -48,7 +48,8 @@ const domain = producers => cid({constructor: definitionMapping,
 const sourceDomain = domain(values.map(value => literalDefinition(value.rows[0])));
 const jsonDomain = domain(values.map(value => ({body: {values: value}, dependencies: []})));
 const identity = (domain, definition, key) =>
-  ({definition, domain, key: [key], key_types: [{kind: 'number'}]});
+  // ARRAY<JSON> also tags each identity cell, not the surrounding SQL array.
+  ({$json: {definition, domain, key: [key], key_types: [{kind: 'number'}]}});
 const paths = (domain, sequences) => sequences.map(sequence => ({
   start_id: identity(domain, 'N', 1), end_id: identity(domain, 'N', 1),
   hop_count: sequence.length,

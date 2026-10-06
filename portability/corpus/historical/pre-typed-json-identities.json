@@ -1,0 +1,450 @@
+{
+  "stage-semantics": {
+    "version": "actql-stage-semantics-vectors/0.1",
+    "description": "Independent envelope expectations for the program_references source-projection fixtures, not executable Program fixtures.",
+    "cases": [
+      {
+        "name": "local-binding-and-parameter-uses",
+        "empty": false,
+        "stage": 0,
+        "expected_cid": "sha256:5a90d4ee89418f1c2fafa8110ff08017c8245a312eee166593bbf4d7545f3a6c",
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "parameters": {
+            "m": {
+              "type": "number"
+            },
+            "n": {
+              "type": "number"
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "n",
+              "path": "/effects/d/delete/where/0/lt/1",
+              "type": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "n",
+              "path": "/inputs/remote~1~0/request/p",
+              "type": {
+                "type": "number"
+              }
+            },
+            {
+              "name": "m",
+              "path": "/steps/0/take",
+              "type": {
+                "type": "number"
+              }
+            }
+          ],
+          "bindings": {
+            "b": {
+              "resource_kind": "drive.file",
+              "type": "resource_ref"
+            }
+          },
+          "binding_references": [
+            {
+              "name": "b",
+              "path": "/inputs/remote~1~0/request/again",
+              "type": {
+                "resource_kind": "drive.file",
+                "type": "resource_ref"
+              }
+            },
+            {
+              "name": "b",
+              "path": "/inputs/remote~1~0/request/f~1~0",
+              "type": {
+                "resource_kind": "drive.file",
+                "type": "resource_ref"
+              }
+            }
+          ],
+          "local_body": {
+            "effects": {
+              "d": {
+                "delete": {
+                  "where": [
+                    {
+                      "lt": [
+                        {
+                          "literal": 1
+                        },
+                        {
+                          "$param": "n"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            "from": "rows",
+            "inputs": {
+              "rows": "relation",
+              "remote/~": {
+                "connector": "drive/main",
+                "resource": "file",
+                "request": {
+                  "p": {
+                    "$param": "n"
+                  },
+                  "f/~": {
+                    "$binding": "b"
+                  },
+                  "again": {
+                    "$binding": "b"
+                  },
+                  "data": {
+                    "nested": {
+                      "$param": "unknown"
+                    }
+                  }
+                }
+              }
+            },
+            "steps": [
+              {
+                "take": {
+                  "$param": "m"
+                }
+              }
+            ],
+            "results": {
+              "r": {}
+            }
+          }
+        }
+      },
+      {
+        "name": "other-stage-declarations-excluded",
+        "empty": false,
+        "stage": 1,
+        "expected_cid": "sha256:edd320b8b4c8ac3a0abff25b8fec8c858faa33ddf9acfc91d7daeefb9536badd",
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "parameters": {
+            "m": {
+              "type": "number"
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "m",
+              "path": "/steps/0/take",
+              "type": {
+                "type": "number"
+              }
+            }
+          ],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "from": "rows",
+            "inputs": {
+              "rows": "relation"
+            },
+            "steps": [
+              {
+                "take": {
+                  "$param": "m"
+                }
+              }
+            ],
+            "results": {
+              "r": {}
+            }
+          }
+        }
+      },
+      {
+        "name": "explicit-empty-maps-and-lists",
+        "empty": true,
+        "stage": 1,
+        "expected_cid": "sha256:6207cf6549b9a178003845e3bb344a085ccd197a88a8184fb9e55e995d777053",
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "parameters": {},
+          "parameter_references": [],
+          "bindings": {},
+          "binding_references": [],
+          "local_body": {
+            "effects": {},
+            "from": "rows",
+            "inputs": {
+              "rows": "relation"
+            },
+            "steps": [],
+            "results": {
+              "r": {}
+            }
+          }
+        }
+      }
+    ]
+  },
+  "stage-definition": {
+    "version": "actql-stage-definition-vectors/0.1",
+    "cases": [
+      {
+        "stage_case": "local-binding-and-parameter-uses",
+        "id": "a",
+        "expected_cid": "sha256:8ce1c2d1d1744b84487c78a95dd5ddc5146f4e991a655f4f2c0d17ab5e60b64c"
+      },
+      {
+        "stage_case": "other-stage-declarations-excluded",
+        "id": "b",
+        "expected_cid": "sha256:c5e94c48b48f71800e059413cd07946eb7a37a2eb8dced1e2fa2d5028fce70ab"
+      },
+      {
+        "stage_case": "explicit-empty-maps-and-lists",
+        "id": "b",
+        "expected_cid": "sha256:97f14bcddeb872803f1adc9b39316e74d85fb814821d7f44a73d4530398cc351"
+      }
+    ]
+  },
+  "program-semantics": {
+    "version": "actql-program-semantics-vectors/0.1",
+    "description": "Compose the first two independently authored stage-semantics.json envelopes. Prefix references with /stages/0 and /stages/1. Retain ordered descriptors a and b and export out from b/r. Import mode replaces b's rows input and descriptor import with a/r Result or a/d receipt. These are source projection fixtures, not executable Programs.",
+    "cases": [
+      {
+        "import_mode": 0,
+        "accepted": false,
+        "expected_cid": "sha256:c853f7deb8d303e033fe6114a8115b852d929b75dfa48ca0ed4a557609a2f112"
+      },
+      {
+        "import_mode": 0,
+        "accepted": true,
+        "expected_cid": "sha256:17e361bbd6d54b35ffae43b3e85d346fe5433f166d6a671b7833b93f900ff5e3"
+      },
+      {
+        "import_mode": 1,
+        "accepted": false,
+        "expected_cid": "sha256:ca64f8e72374713ccade21e744cbe113bc7a21a3271aad9ba06084882c344f51"
+      },
+      {
+        "import_mode": 2,
+        "accepted": false,
+        "expected_cid": "sha256:11cc9be5601d84f9d6ba2d62550339ba9071954eaf104869961c6c4f7a0aa8ed"
+      }
+    ]
+  },
+  "program-definition": {
+    "version": "actql-program-definition-vectors/0.1",
+    "description": "Use the matching import_mode/accepted Program semantics fixture. The closed Definition envelope is {version: actql-program-definition/0.1, id, program_semantics_cid}. No execution approval is claimed.",
+    "cases": [
+      {
+        "import_mode": 0,
+        "accepted": false,
+        "id": "p",
+        "expected_cid": "sha256:c42ea058cafda4fd4ee2e1b36d4c6993fc8a24e344c89cd7be424d8c51cdf83b"
+      },
+      {
+        "import_mode": 0,
+        "accepted": false,
+        "id": "another-program",
+        "expected_cid": "sha256:2621376d065296da436c5b8d1c003c203fb08c6def9313907326e0063e9095d5"
+      },
+      {
+        "import_mode": 0,
+        "accepted": true,
+        "id": "p",
+        "expected_cid": "sha256:be04567ee1f0a54c1b3b374901aa8ffc6a4d755ee7338e981aabb60ee750f2bd"
+      },
+      {
+        "import_mode": 0,
+        "accepted": true,
+        "id": "another-program",
+        "expected_cid": "sha256:ab6e44b4ee3a9b9083d6333fe163a65abf996d97ccc06617967d83e98f775854"
+      },
+      {
+        "import_mode": 1,
+        "accepted": false,
+        "id": "p",
+        "expected_cid": "sha256:60c2ec4a2b51ae565a4cf7c93b0321a28b9cc1a180027671b18f988d1137fe49"
+      },
+      {
+        "import_mode": 1,
+        "accepted": false,
+        "id": "another-program",
+        "expected_cid": "sha256:a443d51ed5bf3faf5b19a3072324433d39cca367ca7cd085a34b832fe0b1327d"
+      },
+      {
+        "import_mode": 2,
+        "accepted": false,
+        "id": "p",
+        "expected_cid": "sha256:8a9eb8145a2f0ef0747fb162f251c7252d4977ca6cfa3c1ed801a233f0243aa9"
+      },
+      {
+        "import_mode": 2,
+        "accepted": false,
+        "id": "another-program",
+        "expected_cid": "sha256:3bcad9fc5c00a3979a6f7b74514948c40018bde501ba0e0bd2df6000e85bfb51"
+      }
+    ]
+  },
+  "local-unit-stage-body": {
+    "version": "actql-local-unit-stage-body-vectors/0.1",
+    "description": "Independently authored stage envelopes for the Unit local_body_cid role; not complete Unit Definitions.",
+    "cases": [
+      {
+        "name": "p-only",
+        "index": 0,
+        "empty": false,
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "bindings": {},
+          "binding_references": [],
+          "parameters": {
+            "p": {
+              "type": "string",
+              "default": "é😀"
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "p",
+              "path": "/steps/0/derive/p_copy",
+              "type": {
+                "type": "string",
+                "default": "é😀"
+              }
+            }
+          ],
+          "local_body": {
+            "inputs": {
+              "a": {
+                "carrier": "relation",
+                "schema": {
+                  "id": {
+                    "type": "number",
+                    "nullable": false
+                  }
+                }
+              }
+            },
+            "steps": [
+              {
+                "derive": {
+                  "p_copy": {
+                    "$param": "p"
+                  }
+                }
+              }
+            ],
+            "results": {
+              "out": {
+                "from": "a",
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "expected_cid": "sha256:27f2b9ce2a64edff5bbb71fd672a884bea5b837109e18aedaed020e22fc7475e"
+      },
+      {
+        "name": "n-only",
+        "index": 1,
+        "empty": false,
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "bindings": {},
+          "binding_references": [],
+          "parameters": {
+            "n": {
+              "type": "number",
+              "default": 1
+            }
+          },
+          "parameter_references": [
+            {
+              "name": "n",
+              "path": "/steps/0/derive/n_copy",
+              "type": {
+                "type": "number",
+                "default": 1
+              }
+            }
+          ],
+          "local_body": {
+            "inputs": {
+              "a": {
+                "result": {
+                  "stage": "first",
+                  "result": "out"
+                }
+              }
+            },
+            "steps": [
+              {
+                "derive": {
+                  "n_copy": {
+                    "$param": "n"
+                  }
+                }
+              }
+            ],
+            "results": {
+              "out": {
+                "from": "a",
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "expected_cid": "sha256:c1f6a10eaa395aaf9d62c22d86dd566af186986ff6391ea457e62bfe7c0b7def"
+      },
+      {
+        "name": "empty",
+        "index": 1,
+        "empty": true,
+        "envelope": {
+          "version": "actql-stage-semantics/0.1",
+          "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
+          "bindings": {},
+          "binding_references": [],
+          "parameters": {},
+          "parameter_references": [],
+          "local_body": {
+            "inputs": {
+              "a": {
+                "result": {
+                  "stage": "first",
+                  "result": "out"
+                }
+              }
+            },
+            "steps": [],
+            "results": {
+              "out": {
+                "from": "a",
+                "fields": [
+                  "id"
+                ]
+              }
+            },
+            "effects": {}
+          }
+        },
+        "expected_cid": "sha256:942abd89e41a7726aac78cfd193ca7bab9043b563fa4ead673d2acbb5f0432ae"
+      }
+    ]
+  }
+}

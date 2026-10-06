@@ -9,6 +9,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome, snapshotCheckRequest} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {localizeCheck} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
@@ -993,7 +994,8 @@ async function connectSelected(selected, port) {
           const schema = Object.fromEntries(answer.columns.map(column =>
             [column.name, column.contract]));
           if (await contentCid(schema) !== answer.resultSchemaCid ||
-              await contentCid({version: answer.serialization.version}) !==
+              await contentCid({json_value_wire_contract_cid: jsonValueWireContractCid,
+                version: answer.serialization.version}) !==
                 answer.serialization.contractCid ||
               await contentCid({version: 'actql-result-definition/0.1',
                 program_definition_cid: answer.programDefinitionCid,
