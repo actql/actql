@@ -89,6 +89,24 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type ReadFailureExplanation = Readonly<{
+  observation: 'read_incomplete' | 'cleanup_unknown';
+  cleanup?: 'unknown';
+  attemptId: string;
+  rowsYielded: number;
+  summary: string;
+  hint: string;
+  next: Readonly<{
+    operation: 'deliveryAttempt';
+    ref: Readonly<RunReference>;
+    resultName: string;
+    attemptId: string;
+    lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+  }>;
+}>;
+/** SDK-observed progress for this exact read error; no opening, Run or release proof. */
+export declare function explainReadFailure(result: unknown): ReadFailureExplanation | undefined;
+
 export type CancellationExplanation = Readonly<{
   summary: string;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
