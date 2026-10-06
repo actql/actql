@@ -73,12 +73,15 @@ export function createRemoteSiteCoordinator({
       typeof control.prepareCoordinatorUnknown !== 'function' ||
       typeof control.prepareCoordinatorObservation !== 'function' ||
       typeof control.coordinatorTransitionIsReplay !== 'function' ||
+      typeof control.coordinatorCanRetireCancellationDelivery !== 'function' ||
+      typeof control.coordinatorRecordRevision !== 'function' ||
       typeof control.coordinatorCompletionEvidenceAvailable !== 'function' ||
       journal === undefined || store === null || typeof store !== 'object' ||
       typeof store.accept !== 'function' ||
       typeof store.advance !== 'function' ||
       typeof store.advanceEvidence !== 'function' ||
       typeof store.contains !== 'function' ||
+      typeof store.inspectState !== 'function' ||
       typeof store.recoverJournal !== 'function' ||
       typeof store.hasOutputOperations !== 'function' ||
       typeof send !== 'function' || typeof query !== 'function' ||
@@ -180,7 +183,19 @@ export function createRemoteSiteCoordinator({
       fail('RemoteManagedOutputEvidenceIncomplete');
     }
     return Object.freeze({observation: response,
-      replay: control.coordinatorTransitionIsReplay(transition)});
+      replay: control.coordinatorTransitionIsReplay(transition),
+      // A replay is historical, and a receiver may await before returning.
+      // Project the same latest committed owner when the waiter consumes this
+      // receipt, rather than freezing a boolean that can be overtaken.
+      canRetireCancellationDelivery() {
+        const current = recordFor(dispatch);
+        const durable = store.inspectState(dispatch, control);
+        // A newer COMMIT may have landed while its acknowledgement was lost.
+        // Never project the older in-memory owner before exact reconciliation.
+        return durable !== undefined &&
+          durable[0] === control.coordinatorRecordRevision(current) &&
+          control.coordinatorCanRetireCancellationDelivery(current);
+      }});
   };
   const exchange = async (request, operation) => {
     const record = recordFor(request.dispatch);

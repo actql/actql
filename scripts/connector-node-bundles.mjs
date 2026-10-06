@@ -363,6 +363,14 @@ const hostBundleKeys = ['installation'];
 const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision', 'source'];
 const optionalInstallationKeys = ['effect'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
+// An Effect section may register the identity profile of its durable Effect
+// records: the version of each identity the common installed row Effect
+// issues, and the continuation's installation-binding field. Only these
+// fixed names exist; the common factory reads them from the generated table.
+const identityProfileKeys = ['continuation', 'continuationBinding', 'dispatch',
+  'recovery', 'source', 'targetCheck', 'unit'];
+const identityVersion = /^actql-[a-z0-9-]+\/0\.1$/;
+const continuationBindings = ['binding_cid', 'publication_generation_cid'];
 const sourceExports = ['check', 'identityParts', 'load', 'publish'];
 const requiredSourceExports = ['check', 'identityParts', 'load'];
 const headerName = /^[a-z0-9][a-z0-9-]*$/;
@@ -399,6 +407,17 @@ export function checkHostBundle(root, name, path) {
   }
   const checkSection = (section, label) => {
     const prefix = label === 'source' ? '' : `${label} `;
+    const {identityProfile, ...rest} = section ?? {};
+    if (label === 'effect' && identityProfile !== undefined) {
+      if (!sameKeys(identityProfile, identityProfileKeys) ||
+          !continuationBindings.includes(identityProfile.continuationBinding) ||
+          identityProfileKeys.filter(key => key !== 'continuationBinding')
+            .some(key => typeof identityProfile[key] !== 'string' ||
+              !identityVersion.test(identityProfile[key]))) {
+        throw invalid('effect identityProfile');
+      }
+      section = rest;
+    }
     if (!sameKeys(section, sourceKeys)) throw invalid(`${label} keys`);
     if (typeof section.profileVersion !== 'string' ||
         !/^actql-installed-[a-z0-9-]+\/0\.1$/.test(section.profileVersion)) throw invalid(`${prefix}profileVersion`);
@@ -415,7 +434,8 @@ export function checkHostBundle(root, name, path) {
         throw invalid(`${prefix}export ${key}`);
       }
     }
-    return {profileVersion: section.profileVersion, module: section.module, exports: {...section.exports}};
+    return {profileVersion: section.profileVersion, module: section.module, exports: {...section.exports},
+      ...(identityProfile === undefined || label !== 'effect' ? {} : {identityProfile: {...identityProfile}})};
   };
   const checkedSource = checkSection(source, 'source');
   const checkedEffect = effect === undefined ? undefined : checkSection(effect, 'effect');
@@ -436,6 +456,8 @@ export function generateInstallations(installations, output, root) {
       .map(([key, symbol]) => `${key}: module.${symbol}`).join(', ');
     return `    ${label}: Object.freeze({\n` +
       `      profileVersion: ${JSON.stringify(section.profileVersion)},\n` +
+      (section.identityProfile === undefined ? '' :
+        `      identityProfile: Object.freeze(${JSON.stringify(section.identityProfile)}),\n`) +
       `      load: () => import(${JSON.stringify(module)})\n` +
       `        .then(module => Object.freeze({${exports}})),\n` +
       `    }),\n`;

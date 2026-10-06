@@ -246,6 +246,30 @@ fn runtime_code(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
 }
 
 ///|
+fn retained_transfer_code(
+  issue : @resident_host.ResidentRetainedTransferIssue,
+) -> String {
+  match issue {
+    Input(@host.ProducerUnavailable) => "producer-unavailable"
+    Input(@host.ForeignTransfer) => "foreign-transfer"
+    Input(@host.TransferNotCommitted) => "transfer-not-committed"
+    Input(@host.StaleSiteGeneration) => "stale-site-generation"
+    Input(@host.ForeignAuthority) => "foreign-authority"
+    Input(@host.AuthorizationUnavailable) => "authorization-unavailable"
+    Input(@host.TransferExpired) => "transfer-expired"
+    Input(@host.InvalidBinding) => "invalid-binding"
+    Input(@host.Encoding) => "encoding"
+    Output(issue) => "output-" + runtime_code(issue)
+    Destination(_) => "destination"
+    Journal(_) => "transfer-journal"
+    ForeignProducer => "foreign-producer"
+    UnsupportedRoute => "unsupported-route"
+    CapacityUnavailable => "capacity-unavailable"
+    CleanupPending => "cleanup-pending"
+  }
+}
+
+///|
 /// The Site environment both processes build the same way from the same
 /// options: runtime bundle Store, active runtime, Site and dispatch journal.
 priv struct SiteEnvironment {
@@ -558,6 +582,34 @@ fn delegation(
     grant_cid: required(matches, "operation-capability-cid"),
     evidence_issuer_capability_cid: required(matches, "issuer-capability-cid"),
     budget_cids: [@remote.remote_dispatch_budget_cid(budget)],
+  }
+}
+
+///|
+/// A trusted operator explicitly delegates internal movement. Do not reuse
+/// the execution grant or evidence issuer as another grant role.
+fn retained_input_delegation(
+  matches : @argparse.Matches,
+) -> @resident.ResidentRetainedInputDelegation? raise CommandStop {
+  match
+    (
+      optional(matches, "retained-source-grant-cid"),
+      optional(matches, "retained-destination-grant-cid"),
+      optional(matches, "retained-route-capability-cid"),
+    ) {
+    (None, None, None) => None
+    (
+      Some(source_grant_cid),
+      Some(destination_grant_cid),
+      Some(route_capability_cid),
+    ) =>
+      Some({
+        dispatch: delegation(matches, budget(matches)),
+        source_grant_cid,
+        destination_grant_cid,
+        route_capability_cid,
+      })
+    _ => stop("incomplete internal Transfer delegation")
   }
 }
 
@@ -1729,19 +1781,22 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
-        // This holder has no installed checked-edge planning port yet. Keep
-        // the producer responsibility; never reinterpret this as Output.
         backoff_ms = 0
-        report("retained-plan-unavailable", [
-          (
-            "request_cid",
-            @remote.dispatch_request_identity(
-              @remote.remote_retained_input_intent_request(
-                @remote.remote_poll_retained_input_intent(input),
-              ),
-            ),
-          ),
-        ])
+        let intent = @remote.remote_poll_retained_input_intent(input)
+        let request = @remote.remote_retained_input_intent_request(intent)
+        let identity = @remote.dispatch_request_identity(request)
+        match (holder, @remote.remote_poll_retained_input_plan_json(intent)) {
+          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+              current.request,
+            ) ==
+            identity =>
+            if current.channel.send("retained-plan " + body) {
+              report("retained-plan-relayed", [("request_cid", identity)])
+            } else {
+              report("retained-plan-unavailable", [("request_cid", identity)])
+            }
+          _ => report("retained-plan-unavailable", [("request_cid", identity)])
+        }
       }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
         backoff_ms = 0
@@ -1897,6 +1952,7 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
 /// before execution, so no fallible setup remains once the holder owns an
 /// output.
 priv struct HolderOutputResources {
+  retained_delegation : @resident.ResidentRetainedInputDelegation?
   control : @http.Client
   transfer : @http.Client
   store : @publication_store.Store
@@ -1962,6 +2018,9 @@ fn open_holder_output_resources(
     publication_authority,
     transfer_journal_path,
   ) = settings
+  let retained_delegation = retained_input_delegation(matches) catch {
+    CommandStop(issue) => return Err(issue)
+  }
   let control = authenticated_client(matches, "control") catch {
     CommandStop(issue) => return Err(issue)
   }
@@ -2005,6 +2064,7 @@ fn open_holder_output_resources(
     }
   }
   Ok({
+    retained_delegation,
     control,
     transfer,
     store,
@@ -2061,6 +2121,8 @@ fn serve_holder_output(
   resources : HolderOutputResources,
   environment : SiteEnvironment,
   executed : @resident_host.ResidentExecuted,
+  admission : @resident_host.ResidentRunAdmission,
+  current_time : () -> String,
 ) -> Unit {
   let runtime = executed.runtime
   let request = executed.request
@@ -2092,6 +2154,83 @@ fn serve_holder_output(
       InputLine(line) =>
         if line == "release" {
           serving = false
+        } else if line.has_prefix("retained-plan ") {
+          let envelope = line.unsafe_substring(start=14, end=line.length())
+          match
+            (
+              @remote.admit_remote_poll_retained_input_plan_json(envelope),
+              resources.retained_delegation,
+            ) {
+            (Ok(poll), Some(delegated)) => {
+              let intent = @remote.remote_poll_retained_input_intent(poll)
+              let selected = @remote.remote_retained_input_intent_request(
+                intent,
+              )
+              if @remote.dispatch_request_identity(selected) != identity {
+                report("retained-plan-failed", [("reason", "foreign-dispatch")])
+                continue
+              }
+              let context = match
+                @resident_host.prepare_resident_retained_producer_context(
+                  environment.journal,
+                  admission,
+                  intent,
+                  current_time(),
+                ) {
+                Ok(value) => value
+                Err(issue) => {
+                  report("retained-plan-failed", [("reason", host_code(issue))])
+                  continue
+                }
+              }
+              let current = @host.install_client_retained_input_current(
+                () => environment.site,
+                () => coordinator_authority,
+                () => @env.now().reinterpret_as_int64(),
+                (_, request) => {
+                  @resident_host.resident_retained_producer_authorized(
+                    context,
+                    delegated,
+                    request,
+                    @site.site_generation(environment.site),
+                    current_time(),
+                  )
+                },
+              )
+              match
+                @resident_host.plan_resident_retained_input_transfer(
+                  runtime,
+                  @resident_host.resident_retained_producer(context),
+                  intent,
+                  current,
+                  environment.site,
+                ) {
+                Ok(plan) =>
+                  match
+                    @client.acknowledge_retained_input_plan(
+                      control, observation_url, plan,
+                    ) {
+                    Ok(_) =>
+                      report("retained-input-planned", [
+                        ("request_cid", identity),
+                      ])
+                    Err(issue) =>
+                      report("retained-plan-unreported", [
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                Err(issue) =>
+                  report("retained-plan-failed", [
+                    ("reason", retained_transfer_code(issue)),
+                  ])
+              }
+            }
+            (Ok(_), None) =>
+              report("retained-plan-failed", [
+                ("reason", "movement-not-delegated"),
+              ])
+            _ => report("holder-input-invalid", [])
+          }
         } else if line.has_prefix("plan ") {
           let envelope = line.unsafe_substring(start=5, end=line.length())
           match @remote.admit_remote_poll_output_plan_json(envelope) {
@@ -2523,7 +2662,13 @@ fn run_holder(
       ])
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
-      serve_holder_output(resources, environment, executed)
+      serve_holder_output(
+        resources,
+        environment,
+        executed,
+        run_admission(matches),
+        () => start_timestamp(matches),
+      )
       0
     }
     Err(failure) => {
@@ -2722,6 +2867,9 @@ fn command() -> @argparse.Command {
       global("connector-revision"),
       global("strategy-revision"),
       global("operation-capability-cid"),
+      global("retained-source-grant-cid"),
+      global("retained-destination-grant-cid"),
+      global("retained-route-capability-cid"),
       global("issuer-capability-cid"),
       global("budget-retained-bytes"),
       global("budget-execution-bytes"),
