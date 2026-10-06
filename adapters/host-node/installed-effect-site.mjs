@@ -140,10 +140,28 @@ function finishStatus(result) {
 function cleanupCustody(physical, requirePhysical = false) {
   let stage;
   let readAuthorization;
+  let readCloseAttempted = false;
+  let readReleased = false;
+  let physicalCloseAttempted = false;
+  let physicalReleased = false;
   let disposed = false;
   let release;
   let released = false;
   let inputsReleased = false;
+  const releaseReadAuthorization = async () => {
+    if (readAuthorization === undefined || readReleased) return true;
+    // A full child owns recovery through cleanup. A close-only child has a
+    // synchronous, retryable close: false or an exception retains custody.
+    const recover = readCloseAttempted &&
+      typeof readAuthorization.cleanup === 'function';
+    readCloseAttempted = true;
+    const result = await (recover
+      ? readAuthorization.cleanup() : readAuthorization.close());
+    readReleased = result !== false &&
+      (typeof readAuthorization.cleanupPending !== 'function' ||
+        readAuthorization.cleanupPending() === false);
+    return readReleased;
+  };
   const releaseInputs = async () => {
     if (!inputsReleased && typeof stage?.releaseInputs === 'function') {
       await stage.releaseInputs();
@@ -181,19 +199,24 @@ function cleanupCustody(physical, requirePhysical = false) {
       // Effect execution has stopped before dispatch custody closes. Its
       // consumer pins must go before the borrowed Compute output can reclaim.
       let failure;
-      try { readAuthorization?.close(); } catch (error) { failure = error; }
-      try { await releaseInputs(); } catch (error) { failure = error; }
-      try { await physical?.close(); } catch (error) { failure ??= error; }
+      try { await releaseReadAuthorization(); } catch (error) { failure = error; }
+      try { await releaseInputs(); } catch (error) { failure ??= error; }
+      if (physical !== undefined && !physicalCloseAttempted && !physicalReleased) {
+        physicalCloseAttempted = true;
+        try { await physical.close(); } catch (error) { failure ??= error; }
+      }
       if (failure !== undefined) throw failure;
     },
     async cleanup() {
       // Opening may have begun physical work before returning an owner.
       // Missing custody is not evidence that the operation stopped.
+      if (!await releaseReadAuthorization()) return false;
       if (requirePhysical && physical === undefined) return false;
       await releaseInputs();
-      const cleaned = await physical?.cleanup() ?? true;
-      if (cleaned === false || physical?.cleanupPending() === true) {
-        return false;
+      if (physical !== undefined && !physicalReleased) {
+        const cleaned = await physical.cleanup();
+        if (cleaned === false || physical.cleanupPending() !== false) return false;
+        physicalReleased = true;
       }
       if (release !== undefined && !released) {
         await release();
@@ -206,8 +229,10 @@ function cleanupCustody(physical, requirePhysical = false) {
       return true;
     },
     cleanupPending() {
-      return requirePhysical && physical === undefined ||
-        physical?.cleanupPending() === true ||
+      return readAuthorization !== undefined && !readReleased ||
+        !inputsReleased && typeof stage?.releaseInputs === 'function' ||
+        requirePhysical && physical === undefined ||
+        physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined;
     },

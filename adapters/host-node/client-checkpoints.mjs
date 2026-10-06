@@ -1369,6 +1369,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
         current: options => effectTargetGate.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
         close: () => read.close(),
+        cleanup: () => read.cleanup(),
+        cleanupPending: () => read.cleanupPending(),
       });
     },
     async effectTargetContinuation(view) {
