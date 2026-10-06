@@ -12,6 +12,7 @@ import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog, initialRegistrationRevision} from './actions.mjs';
+import {checkCostObservation} from './costs.mjs';
 import {checkExecutionRecipes} from './execution-recipes.mjs';
 import {hash} from './inputs.mjs';
 import {checkApplications} from './applications.mjs';
@@ -52,11 +53,13 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   assert.equal(metadata.digest, `sha256:${expectedDigest.replace(/^sha256:/u, '')}`, 'Job output/API archive digest mismatch');
   const zip = await openArtifactZip(archive, {expectedSha256: metadata.digest,
     limits: {maxCompressedBytes: 64 * 1024 * 1024, maxTotalBytes: 256 * 1024 * 1024, maxEntries: 2000}});
-  let state, certificate, certificateDigest, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes, mutationResult, acquisition;
+  let state, certificate, certificateDigest, output, distributionInputs, comparison, comparisonObservations, receipts, actionRuntimes, mutationResult, acquisition, collectionBytes, isolatedExecution;
   try {
+    assert.equal(zip.compressedBytes, metadata.size_in_bytes, 'Wrong source archive byte observation');
     distributionInputs = await zip.json('runtime-distributions.json');
     state = await zip.json('context.json'); const certificateBytes = await zip.read('checked.json');
     certificate = JSON.parse(certificateBytes); certificateDigest = hash(certificateBytes); output = await zip.read('lean-output.log');
+    collectionBytes = await zip.read('collection-costs.json');
     const acquisitionBytes = await zip.read('acquisition-plan.json'); acquisition = JSON.parse(acquisitionBytes);
     assert.equal(certificate.acquisitionDigest, hash(acquisitionBytes), 'Changed execution/reuse plan');
     const reused = acquisition.actions.filter(entry => entry.acquisition === 'reused');
@@ -68,6 +71,10 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
     comparison = JSON.parse(planBytes); comparisonObservations = JSON.parse(observationsBytes);
     receipts = await Promise.all(catalog.actions.map(async action => parseReceipt(await zip.read(`receipts/${action.id}.json`))));
     mutationResult = reused.length ? null : await zip.json('results/mutations-js.json');
+    if (reused.length) {
+      assert(!zip.entries.some(entry => entry.path === 'isolated-execution.json'), 'Reused action has current execution costs');
+      isolatedExecution = null;
+    } else isolatedExecution = await zip.json('isolated-execution.json');
     if (reused.length) {
       // Retained original ZIP bytes are copied, never extracted over current
       // observations. Once used, these API-authenticated origins are required.
@@ -118,6 +125,9 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
   result.comparison = {baseline: comparison.baseline, recordedStatuses: comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status})),
     producerCosts: comparison.costs, confirmation, reuseAuthorized: false};
   result.acquisition = acquisition;
+  result.costObservation = checkCostObservation({collectionBytes, certificate, state, catalog,
+    acquisition, comparison, receipts, isolatedExecution});
+  result.sourceArtifactBytes = metadata.size_in_bytes;
   result.consumerVerificationMilliseconds = Math.round(performance.now() - started);
   result.acceptanceInputs = {certificateDigest, observations: comparisonObservations};
   return result;
