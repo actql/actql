@@ -5,6 +5,8 @@ import './check-output-formats.test.mjs';
 import './check-document-sessions.test.mjs';
 import './check-session-presentation.test.mjs';
 import './check-presentation.test.mjs';
+import './check-protocol-failures.test.mjs';
+import './resource-protocol-failures.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
