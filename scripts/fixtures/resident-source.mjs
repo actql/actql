@@ -13,6 +13,22 @@ export const sourceProgram = JSON.stringify({version: 'actql/0.1',
   results: {answer: {from: {stage: 'acquire', result: 'rows'}}}});
 
 export const sourceRows = Object.freeze([{id: 2}, {id: 3}]);
+// Independent two-task Program and expectation. The consumer's input is a
+// checked Result edge, never a second Source acquisition.
+export const retainedSourceProgram = JSON.stringify({version: 'actql/0.1',
+  id: 'retained-source-compute', stages: [{id: 'acquire',
+    inputs: {remote: {connector: 'crm/main', resource: 'r'}},
+    steps: [{filter: 'id > 0', as: 'filtered'},
+      {select: ['id'], as: 'captured'}],
+    results: {rows: {from: 'captured', fields: ['id']}}},
+  {id: 'compute', inputs: {input: {result: {stage: 'acquire', result: 'rows'}}},
+    steps: [{filter: 'id > 2', as: 'filtered'},
+      {select: ['id'], as: 'selected'}],
+    results: {rows: {from: 'selected', fields: ['id']}}}],
+  results: {answer: {from: {stage: 'compute', result: 'rows'}}}});
+export const retainedSourceRows = Object.freeze([{id: 3}]);
+export const retainedSourceSchemaCid =
+  'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513';
 export const sourceRef = 'connector://crm/main/r#v';
 export const sourceContractCid =
   'sha256:1f5ce9a50072a24f9cf0673d174f4f0639a216cc5537277e15299fef59db921f';
