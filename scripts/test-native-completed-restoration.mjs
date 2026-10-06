@@ -53,7 +53,8 @@ try {
         (process.platform === 'darwin' ? '/usr/lib/libsqlite3.dylib' : 'libsqlite3.so.0'),
       ACTQL_TEST_NATIVE_CRYPTO_LIBRARY:
         process.env.ACTQL_TEST_NATIVE_CRYPTO_LIBRARY ??
-        (process.platform === 'darwin' ? 'libcrypto.3.dylib' : 'libcrypto.so.3'),
+        (process.platform === 'darwin' ?
+          '/opt/homebrew/opt/openssl@3/lib/libcrypto.3.dylib' : 'libcrypto.so.3'),
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY:
         keys.publicKey.export({type: 'spki', format: 'pem'}),
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY: body,
