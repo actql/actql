@@ -1805,7 +1805,8 @@ export function validateResourceAccounting({
     if (route.family === 'RelA' && route.operation === 'derive') {
       for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
         'derive_field_name_limits', 'derive_field_name_stop',
-        'derive_object_name_limits', 'derive_object_name_stop']) {
+        'derive_object_name_limits', 'derive_object_name_stop',
+        'derive_raw_text_child_limits', 'derive_raw_text_child_stop']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('derive_property_name_public')) {
@@ -1817,9 +1818,20 @@ export function validateResourceAccounting({
       if (!environmentRoles.has('derive_object_name_public')) {
         fail(`${label}: constructed object name public fixture is missing`);
       }
+      if (!environmentRoles.has('derive_raw_text_child_public')) {
+        fail(`${label}: raw Text child public fixture is missing`);
+      }
       if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
         .includes("import './public-property-name-retention.test.mjs';")) {
         fail(`${label}: property name public fixture is not suite-connected`);
+      }
+    }
+    if (route.family === 'RelA' && route.operation === 'group') {
+      if (!boundaryRoles.has('group_raw_text_array_limits_stop')) {
+        fail(`${label}: raw Text array limits/stop fixture is missing`);
+      }
+      if (!environmentRoles.has('group_raw_text_array_public')) {
+        fail(`${label}: raw Text array public fixture is missing`);
       }
     }
     if (route.family === 'RelA' && route.operation === 'take') {
