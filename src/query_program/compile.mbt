@@ -999,11 +999,12 @@ fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
 ///|
 // SQL's parser records ORDER-only calls as private Group projections. Their
 // references occur in ORDER, never as authored SELECT aliases or inputs.
+// SELECT ownership must use the same expanded replacement projections as Group.
 fn order_aggregate_calls(
   query : @query.Query,
   projections : Array[@query.Projection],
+  selected : Array[@query.Projection],
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
-  let selected = selected_projections(query)
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Order(terms)) {
@@ -2092,20 +2093,6 @@ fn compile_steps(
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        let hidden_calls = match @query.operation_at(query, i + 1) {
-          Some(Having(_, calls)) => calls.copy()
-          _ => []
-        }
-        let order_calls = if grouping_scope == @query.SqlSelect {
-          order_aggregate_calls(query, projections)
-        } else {
-          []
-        }
-        hidden_calls.append(order_calls)
-        grouped_keys.clear()
-        having_values.clear()
-        having_aggregate_slots.clear()
-        order_aggregate_slots.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
@@ -2120,6 +2107,22 @@ fn compile_steps(
             max_work,
           )
         }
+        let hidden_calls = match @query.operation_at(query, i + 1) {
+          Some(Having(_, calls)) => calls.copy()
+          _ => []
+        }
+        let order_calls = if grouping_scope == @query.SqlSelect {
+          order_aggregate_calls(
+            query, projections, sql_group_selected_projections,
+          )
+        } else {
+          []
+        }
+        hidden_calls.append(order_calls)
+        grouped_keys.clear()
+        having_values.clear()
+        having_aggregate_slots.clear()
+        order_aggregate_slots.clear()
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
