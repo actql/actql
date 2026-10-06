@@ -705,6 +705,23 @@ This is lookup in the original input snapshot, not a query/declaration parser
 or a second checker. It changes no wire schema, reason identity or historical
 `actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
 A copied/externally parsed report has no association.
+The same response custody also holds its detached check request for explicit
+revision-bound fix rechecks. `getCheckFixes` exposes proposals only from a completed
+owned response. The initial `close_block_comment` proposal comes from the existing
+typed lexer issue and original byte length: an exact EOF insertion of `*/`, with
+review required and syntax-structure risk. No parser, checker, public source hash,
+Host persistence or retrieval API is added.
+An open document session validates selected proposal identity, current version,
+target revision, byte boundaries and non-overlapping edits before staging a single
+document. It brackets the candidate check with original-request context checks,
+rejects observed context/permission changes and any concurrent session change,
+then commits the whole edit and rechecked observation synchronously. Checks are
+observations rather than an authorization lease. Failed checks leave the buffer
+unchanged; remaining invalidity is returned as the actual recheck verdict.
+The closed reason/outcome schemas, generated guards/types, pins and independent
+fixtures change together; the preceding schemas are explicitly incompatible.
+Native wire generation currently selects connection/admission/request schemas,
+not check reports, and therefore has no changed check-response projection.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
@@ -1171,3 +1188,54 @@ is rechecked after rendering so an input accessor cannot edit the buffer during
 rendering and publish a stale position. On such a change, the same safe observation
 is formatted with all positions omitted. Formatting performs no Host lookup,
 check, execution, cancellation or edit and retains no additional source buffer.
+
+### Operation explanation locales
+
+Submission, cancellation, read-failure and Effect-uncertainty helpers select
+wording only after retrieving their SDK-owned immutable observation. Operation
+translation identity is exposed separately from check translation and wire
+identity. English fallback remains safe for unknown selections or failed locale
+access. Translation changes only summary/hint text; original references,
+revisions, physical stop, cleanup, Effect identities and yielded counts remain
+unchanged. A locale callback cannot replace this custody with mutable public
+properties, and a copied result still has no custody.
+
+No Host schema, execution Owner, retry permission, persistence, additional input
+retention or automatic I/O is introduced. Existing delivery and cancellation
+certainty limits remain in force; localized presentation does not establish a
+successful Run, an accepted cancellation operation identity, physical release or
+authoritative reconciliation support.
+
+## Rejected check protocol observations
+
+The existing wire validator remains the only response admission decision.
+After rejection, the SDK retains a separate safe failure explanation under the
+original `InvalidHostCheckOutcome` error. A complete matching protocol header
+with an unknown top-level outcome becomes an `uninterpretable/unknown_outcome`
+observation. String-valued but mismatched registered identities become
+`protocol_failure/contract_mismatch`. Missing or unusable headers, malformed
+known facts, decoding failures, clone/revalidation failures and original-input
+binding violations become `protocol_failure/malformed_response`. None becomes
+a check verdict or permission to retry or execute. Unknown Run-state handling
+is a separate boundary, not established by this check-only connection.
+
+The known top-level discriminants and header identities are generated from the
+registered outcome schema by the existing wire generator. This presentation
+vocabulary never admits a value rejected by that schema or adds a second
+checker. Header classification reads only own data properties, omits rejected
+payloads, and does not evaluate accessors again. The SDK retains no unvalidated
+Host revision, correlation reference, context, location or fix from the reply.
+
+`getCheckFailureInput` is explicit access to this call's already detached
+submitted input. Its immutable snapshot predates credentials and transport. It
+has no Host document revision and is not position custody. Its weak association
+is unavailable to copied or forged errors; serialization exposes no input.
+Existing request bounds still apply, and retention lasts only as the application
+retains the error: no Host persistence, retrieval endpoint, public content hash,
+expiry interval or cleanup guarantee is introduced. Locale, exception message,
+severity and caller edits do not change the retained classification.
+
+This SDK presentation extension changes neither response schemas nor their
+registered CIDs and pins. The generated vocabulary follows the current schema;
+preceding incompatible SDK/Host contracts still reject explicitly. The English
+and Japanese translation revisions advance independently of wire identities.

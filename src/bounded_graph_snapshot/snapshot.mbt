@@ -354,7 +354,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
       BuildNodeKeys => {
         if value.cursor >= node_count {
           value.node_sort = match
-            @sort.prepare(value.node_keys, node_count * 2) {
+            @sort.prepare_deferred(value.node_keys, node_count * 2) {
             Ok(sort) => Some(sort)
             Err(issue) => return Err(Sort(issue))
           }
@@ -460,7 +460,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
       BuildEdgeKeys => {
         if value.cursor >= edge_count {
           value.edge_sort = match
-            @sort.prepare(value.edge_keys, edge_count * 2) {
+            @sort.prepare_deferred(value.edge_keys, edge_count * 2) {
             Ok(sort) => Some(sort)
             Err(issue) => return Err(Sort(issue))
           }

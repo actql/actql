@@ -6,15 +6,41 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
+import {localizeOperation} from './operation-presentation.mjs';
+export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+// Rejected transport observations retain only a safe classification and this
+// call's own input. No unvalidated reply, revision or location gains custody.
+const checkFailures = new WeakMap();
+
+export function getCheckFailureInput(error) {
+  return checkFailures.get(error)?.input;
+}
+
+export function explainCheckFailure(error, options) {
+  const failure = checkFailures.get(error);
+  if (!failure) return undefined;
+  const messages = {
+    unknown_outcome: ['The check reply contains an outcome this SDK cannot interpret.',
+      'Review Host and SDK contract support; this observation establishes no check verdict or retry permission.'],
+    contract_mismatch: ['The check reply does not match this SDK’s registered protocol identities.',
+      'Use matching Host and SDK contracts; the rejected reply establishes no check verdict.'],
+    malformed_response: ['The check reply violates the registered response contract or original input binding.',
+      'Ask the Host owner to investigate the protocol failure; it is not a diagnosed source error.'],
+  };
+  const [summary, hint] = localizeCheck(`protocol.${failure.problem}`, messages[failure.problem], options);
+  return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint});
+}
+
+const checkRequests = new WeakMap();
 const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
@@ -42,6 +68,12 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+// Proposals require the original SDK response, not a copied wire value.
+export function getCheckFixes(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  return Object.freeze(outcome.report.reasons.flatMap(reason => reason.fixes ?? []));
 }
 
 // Compare typed public obligations, never translated explanations or severity.
@@ -122,16 +154,16 @@ export function getSubmissionInput(result) {
 
 // Local observation of this SDK read only. Lookup rechecks current authority;
 // this explanation proves neither publication nor execution nor resource release.
-export function explainReadFailure(result) {
-  return readExplanations.get(result);
+export function explainReadFailure(result, options) {
+  return localizeOperation(readExplanations.get(result), 'read', options);
 }
 
-export function explainSubmission(result) {
-  return submissionExplanations.get(result);
+export function explainSubmission(result, options) {
+  return localizeOperation(submissionExplanations.get(result), 'submission', options);
 }
 
-export function explainEffectUncertainty(state) {
-  return effectUncertainties.get(state);
+export function explainEffectUncertainty(state, options) {
+  return localizeOperation(effectUncertainties.get(state), 'effect', options);
 }
 
 const retainEffectUncertainty = (state, ref) => {
@@ -158,8 +190,8 @@ const retainEffectUncertainty = (state, ref) => {
   return state;
 };
 
-export function explainCancellation(result) {
-  return cancellationExplanations.get(result);
+export function explainCancellation(result, options) {
+  return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
 const retainCancellationExplanation = (result, context, observation, revision) => {
@@ -292,15 +324,84 @@ export function createCheckDocumentSession(client, options) {
       const input = getCheckInput(outcome, 'source');
       const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
       observations.set(observation, {ticket, input: input?.kind === 'text' &&
-        input.text === submitted.text ? input : undefined});
+        input.text === submitted.text ? input : undefined, request: checkRequests.get(outcome)});
       return observation;
+    },
+    async applyFixes(observation, fixes, options) {
+      // Read application accessors before checking the current observation.
+      const version = options?.version, reviewed = options?.reviewed;
+      const selected = Array.isArray(fixes) ? [...fixes] : undefined;
+      const record = currentRecord(observation);
+      if (!record?.request) fail('CheckFixStale');
+      if (reviewed !== true) fail('CheckFixReviewRequired');
+      if (!validDocument(current.text, version) || version <= current.version ||
+          !selected?.length || selected.length > 32) fail('InvalidCheckFixes');
+      const offered = getCheckFixes(observation.outcome);
+      if (selected.some(fix => !offered.includes(fix))) fail('InvalidCheckFixes');
+      const edits = selected.flatMap(fix => {
+        if (fix.target.document_id !== 'source' ||
+            fix.target.revision !== record.input.revision) fail('InvalidCheckFixes');
+        return fix.edits;
+      }).sort((a, b) => a.start_byte - b.start_byte || a.end_byte - b.end_byte);
+      const bytes = utf8.encode(record.input.text);
+      const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+        (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+      for (let i = 0; i < edits.length; i++) {
+        const edit = edits[i], previous = edits[i - 1];
+        if (!boundary(edit.start_byte) || !boundary(edit.end_byte) ||
+            edit.end_byte < edit.start_byte || !edit.replacement.isWellFormed() ||
+            (previous && (previous.end_byte > edit.start_byte ||
+              previous.start_byte === edit.start_byte))) fail('InvalidCheckFixes');
+      }
+      const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+      let cursor = 0, text = '';
+      for (const edit of edits) {
+        text += decoder.decode(bytes.subarray(cursor, edit.start_byte)) + edit.replacement;
+        cursor = edit.end_byte;
+      }
+      text += decoder.decode(bytes.subarray(cursor));
+      const checkOptions = {format: record.request.input.format,
+        parameterDeclarations: record.request.input.parameterDeclarations,
+        parameters: record.request.parameters};
+      const originalClient = checker;
+      const assertCurrent = () => {
+        if (currentRecord(observation) !== record) fail('CheckFixStale');
+      };
+      const assertContext = outcome => {
+        if (outcome.outcome !== 'completed' ||
+            outcome.report.context_ref !== observation.outcome.report.context_ref ||
+            getCheckInput(outcome, 'source')?.revision !== record.input.revision ||
+            selected.some(fix => !getCheckFixes(outcome)?.some(candidate =>
+              structuralKey(candidate) === structuralKey(fix)))) fail('CheckFixContextChanged');
+      };
+      // Bracket the candidate check with current-context checks of the original
+      // request. These are observations, not an authorization lease or execution.
+      const before = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(before);
+      const outcome = await originalClient.check(text, checkOptions);
+      assertCurrent();
+      const input = getCheckInput(outcome, 'source');
+      if (outcome.outcome !== 'completed' || input?.kind !== 'text' || input.text !== text) {
+        fail('CheckFixRecheckUnavailable');
+      }
+      const after = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(after);
+      // Commit the one-document edit and its rechecked observation together,
+      // without yielding. No partial update survives a failed check.
+      current = {text, version};
+      const ticket = ++issued;
+      const updated = Object.freeze({outcome, version, positionEncoding});
+      observations.set(updated, {ticket, input, request: checkRequests.get(outcome)});
+      return updated;
     },
     resolveTextRange(observation, location) {
       const record = currentRecord(observation);
       if (!record ||
           location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
-      return resolveCheckTextRangeEncoding(observation.outcome, location,
+      const range = resolveCheckTextRangeEncoding(observation.outcome, location,
         positionEncoding, record.input);
+      // Location accessors can edit, close or issue a newer check while resolving.
+      return currentRecord(observation) === record ? range : undefined;
     },
     format(observation, options) {
       let outcome, selected;
@@ -630,6 +731,33 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+// Read only own data properties: classification never evaluates untrusted
+// getters or keeps private reply content. Proxy failures give no usable header.
+const rejectedCheckHeader = value => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    return Object.fromEntries(['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
+      .map(key => [key, Object.getOwnPropertyDescriptor(value, key)?.value]));
+  } catch { return undefined; }
+};
+const rejectedCheckProblem = header => {
+  if (!header || !['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
+    .every(key => typeof header[key] === 'string' && header[key].length > 0)) return 'malformed_response';
+  if (header.version !== checkOutcomeProtocol.version ||
+      header.reason_schema_cid !== checkOutcomeProtocol.reasonSchemaCid ||
+      header.outcome_schema_cid !== checkOutcomeProtocol.outcomeSchemaCid) return 'contract_mismatch';
+  return checkOutcomeProtocol.outcomes.includes(header.outcome)
+    ? 'malformed_response' : 'unknown_outcome';
+};
+const rejectedCheck = (body, problem) => {
+  const error = new ClientError('InvalidHostCheckOutcome');
+  checkFailures.set(error, freezeInput({problem,
+    kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',
+    input: {text: body.input.text, format: body.input.format,
+      ...(body.input.parameterDeclarations === undefined ? {} :
+        {parameterDeclarations: body.input.parameterDeclarations}), parameters: body.parameters}}));
+  return error;
+};
 const submissionUnknown = (context, cause) => {
   const result = new ClientError('SubmissionUnknown', {...context, cause});
   const input = submissionContexts.get(context);
@@ -1339,39 +1467,48 @@ async function connectSelected(selected, port) {
         signal)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
-        throw new ClientError('InvalidHostCheckOutcome', {cause});
+        throw rejectedCheck(body, 'malformed_response');
       }
-      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
-      // Own this call's value before binding or freezing it. A Local Host may
-      // reuse its response object without replacing a previous SDK observation.
-      try { outcome = structuredClone(outcome); }
-      catch { fail('InvalidHostCheckOutcome'); }
-      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
-      const report = outcome.report ?? outcome.partial_report;
-      if (report) {
-        const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
-        if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
-          {kind: 'structured', value: body.input.parameterDeclarations});
-        if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
-        if (report.inputs.length !== received.size) fail('InvalidHostCheckOutcome');
-        const snapshots = new Map();
-        for (const document of report.inputs) {
-          const original = received.get(document.document_id);
-          if (!original || document.kind !== original.kind || document.byte_length !==
-              utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
-            fail('InvalidHostCheckOutcome');
+      const header = rejectedCheckHeader(outcome);
+      const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
+      try {
+        if (!validCheckOutcome(outcome)) reject();
+        // Own this call's value before binding or freezing it. A Local Host may
+        // reuse its response object without replacing a previous SDK observation.
+        try { outcome = structuredClone(outcome); }
+        catch { reject(); }
+        if (!validCheckOutcome(outcome)) reject();
+        const report = outcome.report ?? outcome.partial_report;
+        if (report) {
+          const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
+          if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+            {kind: 'structured', value: body.input.parameterDeclarations});
+          if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
+          if (report.inputs.length !== received.size) reject();
+          const snapshots = new Map();
+          for (const document of report.inputs) {
+            const original = received.get(document.document_id);
+            if (!original || document.kind !== original.kind || document.byte_length !==
+                utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
+              reject();
+            }
+            snapshots.set(document.document_id, Object.freeze({...original,
+              documentId: document.document_id, revision: document.revision}));
           }
-          snapshots.set(document.document_id, Object.freeze({...original,
-            documentId: document.document_id, revision: document.revision}));
-        }
-        checkInputs.set(outcome, snapshots);
-        for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
-          if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
-            checkInputs.delete(outcome);
-            fail('InvalidHostCheckOutcome');
+          checkInputs.set(outcome, snapshots);
+          for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+            if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
+              checkInputs.delete(outcome);
+              reject();
+            }
           }
         }
+      } catch (cause) {
+        checkInputs.delete(outcome);
+        if (checkFailures.has(cause)) throw cause;
+        throw rejectedCheck(body, 'malformed_response');
       }
+      checkRequests.set(outcome, body);
       return freezeInput(outcome);
     },
     start: (program, options = {}) => {

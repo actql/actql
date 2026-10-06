@@ -140,6 +140,9 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.equal(getSubmissionInput(error).lookupContext.scopeRef, 'scope-a');
     assert.equal(Object.isFrozen(getSubmissionInput(error)), true);
     const explanation = explainSubmission(error);
+    assert.deepEqual(explainSubmission(error, {locale: 'ja'}), {...explanation,
+      summary: 'Hostは保留中の要求を返しました。元の要求の現在状態を確認してください。'},
+    '[check-mutation:operation-held-locale]');
     assert.deepEqual(explanation, {observation: 'request_held',
       summary: 'The Host returned a held-request response. Look up the current request state.',
       next: {operation: 'lookupRequest', requestId: 'saved-a',
