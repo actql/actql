@@ -1315,10 +1315,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
           !Array.isArray(target.physicalBindings) || target.physicalBindings.length === 0) {
         fail('InvalidEffectTargetContinuation');
       }
-      target = JSON.parse(canonicalJson(target));
+      target = JSON.parse(canonicalValueJson(target));
       const scope = effectTargetReadScope({runDefinitionCid, unitId,
         authorityScopeCid, principalId: ownerPrincipal, inventoryCid, target});
-      const scopeCid = contentCid(scope);
+      // Bind the exact provider data retained and shown for this approval.
+      const scopeCid = `sha256:${hex(canonicalValueJson(scope))}`;
       const read = await createLocalAuthorizationGate({
         accountConfiguration: effectTarget.accountConfiguration,
         context: effectTarget.context, ...decisionOptions, decide,
@@ -1331,7 +1332,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             await beforeDefer();
             const wire = await continuation();
             if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
-            const reviewWire = canonicalJson({scope,
+            const reviewWire = canonicalValueJson({scope,
               configuration_cid: effectTargetGate.configurationCid,
               context_cid: effectTargetGate.contextCid});
             if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');

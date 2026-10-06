@@ -1,7 +1,8 @@
 // Real Checkpoint gate/journal, encrypted continuation custody and SDK answers.
 // Provider composition and packed Local/HTTPS acceptance are separate cases.
 import assert from 'node:assert/strict';
-import {generateKeyPairSync, sign} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {createHash, generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -61,11 +62,11 @@ async function fixture(t) {
     assert.equal(duplicate.results[0].status, 'duplicate');
     return checkpoints.journal.inspect(summary.checkpointCid);
   };
-  const owner = (checkpoints, resume) => effectTargetReadContinuation({checkpoints,
+  const owner = (checkpoints, resume, overrides = {}) => effectTargetReadContinuation({checkpoints,
     runId: 'target-run', runDefinitionCid: cid('6'), unitId: 'effect',
     declaredResults: ['answer'], principalId: 'owner',
     submission: {requestId: 'target-request', input: {format: 'json', text: '{}'}},
-    inventory, resume});
+    inventory, resume, ...overrides});
   const claim = async (checkpoints, view) => {
     const claimed = checkpoints.journal.claimResume('target-run', {
       claimant: 'target-host', leaseMs: 60_000, binding: checkpoints.binding,
@@ -211,3 +212,80 @@ test('cancellation preserves an entered target continuation and its unknown obse
   // Retention has not retired the original unknown continuation.
   assert.equal((await checkpoints.effectTargetContinuation(second)).pending_target, 1);
 });
+
+
+test('durable target approval preserves raw data and exact scope after restart', async t => {
+  const f = await fixture(t);
+  const text = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+  const submission = {requestId: 'target-request',
+    input: {format: 'json', text: JSON.stringify({document: text})},
+    parameters: {text}};
+  const physicalBinding = {version: 'fixture-target/0.1', nested: {text}};
+  const targets = [{readTuple: inventory[0].readTuple, physicalBinding}];
+  let checkpoints = await f.open();
+  let owner = await f.owner(checkpoints, undefined, {submission, inventory: targets});
+  const waiting = await owner.prepare();
+  const view = checkpoints.journal.inspect(waiting.checkpoint.checkpointCid);
+  const review = await checkpoints.reviewCheckpoint({principalId: 'reviewer',
+    checkpointCid: view.checkpointCid, maxBytes: 256 * 1024});
+  const reviewBytes = Buffer.from(review.contentBase64, 'base64');
+  assert.equal(review.artifactCid, `sha256:${createHash('sha256').update(reviewBytes).digest('hex')}`);
+  const scope = JSON.parse(reviewBytes).scope;
+  assert.deepEqual(scope.target.physicalBindings, [physicalBinding]);
+  const scopePreimage = JSON.stringify({authority_scope_cid: cid('3'),
+    inventory_cid: owner.inventoryCid, principal_id: 'owner',
+    run_definition_cid: cid('6'), target: {index: 0,
+      physicalBindings: [{nested: {text}, version: 'fixture-target/0.1'}],
+      readTuple: {connection: 'crm', operation: 'read', resource: 'Account'}},
+    unit_id: 'effect', version: 'actql-effect-target-read-scope/0.1'});
+  assert.equal(view.requiredArtifact.cid,
+    `sha256:${createHash('sha256').update(scopePreimage).digest('hex')}`);
+  owner.close(); await f.close(checkpoints);
+  checkpoints = await f.open();
+  const saved = await checkpoints.effectTargetContinuation(view);
+  assert.deepEqual(saved.submission, submission);
+  assert.deepEqual(saved.targets[0].physicalBindings, [physicalBinding]);
+  await f.answer(checkpoints, 'target-run-target-0');
+  const resume = await f.claim(checkpoints, checkpoints.journal.inspect(view.checkpointCid));
+  for (const change of ['submission', 'binding']) {
+    const other = structuredClone({submission, inventory: targets});
+    if (change === 'submission') other.submission.parameters.text = text.normalize('NFC');
+    else other.inventory[0].physicalBinding.nested.text = text.normalize('NFC');
+    await assert.rejects(f.owner(checkpoints, resume, other), {code: 'EffectTargetBindingChanged'});
+    assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), false);
+  }
+  owner = await f.owner(checkpoints, resume, {submission, inventory: targets});
+  assert.deepEqual(await owner.prepare(), {status: 'ready'});
+  const approved = checkpointApprovalFacts(await owner.authorize(targets[0].readTuple));
+  assert.deepEqual(approved.physicalBindings, [physicalBinding]);
+  assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), false);
+  owner.enterComputation();
+  assert.equal(checkpoints.journal.hasStartedResume(view.checkpointCid), true);
+  owner.close();
+});
+
+
+for (const variant of ['exact', 'legacy-ascii', 'legacy-nfc', 'legacy-decomposed']) {
+  test(`separate-process target custody: ${variant}`, async t => {
+    const scratch = new URL('../../_build/client-effect-target-checkpoints/', import.meta.url);
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch.pathname, 'process-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const fixture = new URL('./fixtures/effect-target-value-process.mjs', import.meta.url);
+    const run = phase => JSON.parse(execFileSync(process.execPath,
+      [fixture.pathname, phase, root, variant], {encoding: 'utf8', timeout: 30_000}));
+    const captured = run('capture');
+    const resumed = run('resume');
+    assert.notEqual(captured.pid, resumed.pid);
+    assert.deepEqual(resumed.saved, captured.saved);
+    assert.deepEqual(resumed.review, captured.review);
+    const original = variant === 'legacy-ascii' ? 'plain\r\ntext'
+      : variant === 'legacy-nfc' ? '\u00e9\r\ntext'
+        : 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+    const expected = variant === 'legacy-decomposed' ? original.normalize('NFC') : original;
+    assert.equal(captured.saved.submission.parameters.text, expected);
+    assert.equal(captured.saved.submission.input.text, JSON.stringify({document: expected}));
+    assert.equal(resumed.refused, variant === 'legacy-decomposed');
+    assert.equal(resumed.sends, 0);
+  });
+}

@@ -1,13 +1,13 @@
 // Target-read approval is decided before any computation begins. The durable
 // Checkpoint owner retains the submission and exact installed target inventory;
 // this adapter neither retries a provider call nor owns another approval ledger.
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadInventory} from
   './effect-target-read-inventory.mjs';
 
-const same = (left, right) => canonicalJson(left) === canonicalJson(right);
+const same = (left, right) => canonicalValueJson(left) === canonicalValueJson(right);
 const refusals = new WeakSet();
 export const isEffectTargetReadRefusal = error => error !== null &&
   typeof error === 'object' && refusals.has(error);
@@ -35,7 +35,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   principalId, resume, signal, journalPort,
   allowDefer = true, assertCurrent = () => {}}) {
   if (checkpoints === undefined) fail('EffectTargetCheckpointUnavailable');
-  submission = JSON.parse(canonicalJson(submission));
+  submission = JSON.parse(canonicalValueJson(submission));
   const bound = effectTargetReadInventory(inventory);
   const states = bound.targets.map(target => ({target}));
   const savedRecords = await checkpoints.inspectEffectTargetApprovals(runId, runDefinitionCid);
@@ -63,7 +63,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
       fail('ApprovalExpired');
     }
   };
-  const continuation = () => canonicalJson({version: EFFECT_TARGET_CONTINUATION,
+  const continuation = () => canonicalValueJson({version: EFFECT_TARGET_CONTINUATION,
     run_definition_cid: runDefinitionCid, unit_id: unitId,
     submission, inventory_cid: bound.inventoryCid, targets: bound.targets,
     pending_target: pendingTarget});
@@ -113,7 +113,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   }
   const owner = Object.freeze({
     inventoryCid: bound.inventoryCid,
-    captureBinding: () => JSON.parse(canonicalJson({
+    captureBinding: () => JSON.parse(canonicalValueJson({
       version: 'actql-effect-target-read-binding/0.1', submission,
       inventory_cid: bound.inventoryCid, targets: bound.targets})),
     enterComputation() {
