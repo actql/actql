@@ -8,11 +8,17 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP consumes the complete joined row before SELECT. The projection-only
-// single-JOIN specialization cannot supply that scope or its HAVING values.
+// GROUP and range-star projections consume the complete joined row. The
+// projection-only specialization cannot supply that scope or HAVING values.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Group(_, _, _)) {
+      return true
+    }
+    if @query.operation_at(query, index) is Some(Select(projections, _)) &&
+      projections.any(projection => {
+        projection.star is Some(_) && projection.expression is Some(_)
+      }) {
       return true
     }
   }

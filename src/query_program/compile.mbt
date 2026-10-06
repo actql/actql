@@ -1611,6 +1611,9 @@ fn compile_steps(
   let mut sql_group_projection = false
   let mut sql_group_select_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
+  let mut sql_group_input_ranges : Array[
+    (@query.NamePart, Array[(String, String)]),
+  ] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
   let having_values : Array[(@query.Expression, String)] = []
   let analytic_outputs : Array[(String, String)] = []
@@ -2105,6 +2108,7 @@ fn compile_steps(
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
           sql_group_input_columns = input_visible.copy()
+          sql_group_input_ranges = input_ranges.copy()
         }
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
@@ -2171,6 +2175,7 @@ fn compile_steps(
               projections,
               input_visible,
               sql_group_projection,
+              ranges=input_ranges,
             ) {
             Expression(expression) => expression
             StarColumn(column) => {
@@ -2272,9 +2277,11 @@ fn compile_steps(
         if sql_group_projection {
           for projection in projections {
             if projection.star is Some(_) &&
-              expanded_star_columns(projection, sql_group_input_columns).any(column => {
-                !key_names.contains(column.1)
-              }) {
+              expanded_star_columns(
+                projection,
+                sql_group_input_columns,
+                ranges=sql_group_input_ranges,
+              ).any(column => !key_names.contains(column.1)) {
               // Excluded input columns are not projected; every retained star
               // value must still be grouped before aggregate slots are added.
               raise Abort(UnsupportedGrouping)
@@ -2894,6 +2901,11 @@ fn compile_steps(
                   } else {
                     pipe_visible
                   },
+                  ranges=if sql_group_projection {
+                    sql_group_input_ranges
+                  } else {
+                    pipe_ranges
+                  },
                 ) {
                 names.push(visible.0)
                 selected.push(
@@ -3082,6 +3094,7 @@ fn compile_steps(
         !distinct &&
         projections.length() == 1 &&
         projections[0].star == Some("*") &&
+        projections[0].expression is None &&
         projections[0].except_columns.is_empty() => {
         if entries.length() == 1 && entries[0].0 == "from" {
           entries.clear()
@@ -3114,6 +3127,11 @@ fn compile_steps(
                     sql_group_input_columns
                   } else {
                     select_fields.map(field => (field, field))
+                  },
+                  ranges=if sql_group_projection {
+                    sql_group_input_ranges
+                  } else {
+                    pipe_ranges
                   },
                 ) {
                 names.push(name)
@@ -3624,6 +3642,11 @@ fn compile_steps(
     if operation is Select(_, _) {
       analytic_input_fields = None
       analytic_outputs.clear()
+      if pending_select is None {
+        // A projected table has its own columns. Input ranges are needed only
+        // while the query's deferred ORDER still consumes the input snapshot.
+        pipe_ranges = []
+      }
     }
     if add_distinct {
       step_entries.push([
@@ -3639,6 +3662,7 @@ fn compile_steps(
           step_entries.push(selection)
           pending_select = None
           pending_bindings = []
+          pipe_ranges = []
           active_fields = output.copy()
           pipe_visible = output.map(name => (name, name))
           pipe_changed = false
