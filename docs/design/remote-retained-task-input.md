@@ -329,3 +329,17 @@ reported plan alone does not publish a Result or release either task.
 
 Native callers without this installed checked producer planning port reject
 the operation explicitly and retain the producer responsibility.
+
+The Native plan handoff constructor joins the exact admitted plan and intent to
+the original checked producer before selecting its Transfer request. It stores
+that immutable pair inside the existing physical Transfer owner, rather than
+creating another custody ledger. Every advance and committed-journal reopening
+revalidates the checked edge and live producer after current authorization. A
+producer release observed during that callback refuses receiver admission or
+the next physical step. Historical plan bytes do not authorize payload access.
+
+The constructor itself opens no reader and creates no receiver record, holding
+or borrow. Physical progress, pending chunks, exact receipt and capacity remain
+with the existing Direct Transfer journal and Site holding owner. Cleanup of an
+already acquired receiver duty is still possible after producer release or
+authorization expiry, and only its confirmed cleanup returns that reservation.

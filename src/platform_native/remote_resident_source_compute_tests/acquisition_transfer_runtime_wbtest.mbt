@@ -22,6 +22,8 @@ fn acquisition_runtime_transfer_consumer(
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
+  producer_cleanup_at_handoff? : Bool = false,
+  cleanup_after_preparation? : Bool = false,
   cancel_producer_before_handoff? : Bool = false,
 ) -> Unit raise {
   let facts = producer_runtime
@@ -210,19 +212,32 @@ fn acquisition_runtime_transfer_consumer(
     sqlite, path, 1048576L, 8, 4096, 1024L,
   ).unwrap()
   let authorized = Ref(true)
+  let cleanup_now = Ref(
+    producer_cleanup_at_handoff && !cleanup_after_preparation,
+  )
+  let cleanup_confirmed = Ref(false)
   let common_current = @host.install_client_retained_input_current(
     () => site,
     () => retained_compute_cid("c"),
     () => 1791158400000L,
     (_, _) => {
-      authorized.val &&
-      @resident.resident_retained_producer_authorized(
+      // Observe delegation first, then inject an actual concurrent producer
+      // release before returning that earlier authorization observation.
+      let delegated = @resident.resident_retained_producer_authorized(
         context,
         local_delegation,
         request,
         @site.site_generation(site),
         "2026-10-05T00:00:00.000Z",
-      ) &&
+      )
+      if cleanup_now.val {
+        cleanup_now.val = false
+        cleanup_confirmed.val = producer_runtime
+          .release(producer_dispatch)
+          .unwrap()
+      }
+      authorized.val &&
+      delegated &&
       (
         !deny_after_admission ||
         destination_journal.require(request)
@@ -230,10 +245,50 @@ fn acquisition_runtime_transfer_consumer(
       )
     },
   )
-  let transfer = @resident.prepare_resident_retained_transfer(
-    producer_runtime, producer_dispatch, producer, request, common_current, site,
-    destination_journal, root, 128, 536870912L, 8L,
-  ).unwrap()
+  // A foreign checked consumer must be refused before receiver admission,
+  // even when its physical Transfer bytes would otherwise match the producer.
+  let before_preparation = @site.site_status(site)
+  assert_true(
+    @resident.prepare_resident_retained_plan_transfer(
+      producer_runtime, producer, foreign, restored_plan, common_current, site, destination_journal,
+      root, 128, 536870912L, 8L,
+    )
+    is Err(@resident.Input(@host.InvalidBinding)),
+  )
+  assert_eq(@site.site_status(site)[6], before_preparation[6])
+  let prepared_transfer = @resident.prepare_resident_retained_plan_transfer(
+    producer_runtime, producer, intent, restored_plan, common_current, site, destination_journal,
+    root, 128, 536870912L, 8L,
+  )
+  if producer_cleanup_at_handoff {
+    if cleanup_after_preparation {
+      let transfer = prepared_transfer.unwrap()
+      cleanup_now.val = true
+      assert_true(
+        transfer.advance() is Err(@resident.Input(@host.ProducerUnavailable)),
+      )
+      assert_true(transfer.reclaim().unwrap())
+      assert_false(transfer.reclaim().unwrap())
+    } else {
+      assert_true(
+        prepared_transfer is Err(@resident.Input(@host.ProducerUnavailable)),
+      )
+    }
+    assert_true(cleanup_confirmed.val)
+    assert_false(@host.client_retained_input_producer_available(producer))
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_true(
+      destination_journal.require(request)
+      is Err(@journal.Physical(@sqlite.NotFound)),
+    )
+    assert_false(producer_runtime.release(producer_dispatch).unwrap())
+    assert_true(destination_journal.close())
+    return
+  }
+  let transfer = prepared_transfer.unwrap()
   let before = @site.site_status(site)
   if cancel_producer_before_handoff {
     producer_journal.request_cancellation(producer_dispatch).unwrap() |> ignore
