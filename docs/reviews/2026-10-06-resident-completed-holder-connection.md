@@ -43,10 +43,15 @@ returns it after physical cleanup instead of leaving the dead process holding
 behind or issuing another execution claim.
 
 Receiver reservation/borrow reconstruction after a committed handoff still
-needs acceptance under that exclusive holder. Interrupted restoration with revoked authority
-before all resource handles are recovered retains pending responsibility; a
-cleanup-only restoration connection is still required for that boundary. No
-timeout, capacity ceiling or fixture expectation is relaxed to conceal it.
+needs acceptance under that exclusive holder. A pending Runtime now keeps a
+separate immutable cleanup-custody port tied to the actual exclusive slot and
+original Site generation/runtime. Run expiry or cancellation can reconstruct
+only the saved physical cleanup handle; a newer releasing/unknown journal
+revision also follows this path before any readable restoration. Revocation
+after physical restoration retains the attached release callback. Losing the
+exclusive slot preserves responsibility and blocks physical cleanup and refunds.
+A temporarily unavailable retained root retries opening only the original
+cleanup handle, preserving its generation and content identity.
 
 The existing real Native fixture can interrupt a producer after its completed
 evidence and file custody are durable, select the same holder from the retained

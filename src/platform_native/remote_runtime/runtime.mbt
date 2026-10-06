@@ -152,6 +152,8 @@ priv struct NativeRemoteRuntimeOwner {
   mut active_readers : Int
   mut restoration_pending : Bool
   restoration_current : (() -> Bool)?
+  restoration_cleanup_port : NativeCompletedCleanupRestoration?
+  restoration_observation : @journal.RecoveredSiteDispatch?
   mut restoration_cleanup : (() -> Bool)?
 }
 
@@ -736,6 +738,9 @@ fn NativeRemoteRuntime::reclaim_owner_resources(
   self : NativeRemoteRuntime,
   owner : NativeRemoteRuntimeOwner,
 ) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+    return Err(CleanupPending("restoration-custody"))
+  }
   if @remote.remote_runtime_custody_output_acquired(owner.custody) &&
     !@remote.remote_runtime_custody_output_released(owner.custody) {
     if owner.active_readers != 0 {
@@ -751,6 +756,9 @@ fn NativeRemoteRuntime::reclaim_owner_resources(
     }
     if !release() {
       return Err(CleanupPending("output"))
+    }
+    if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+      return Err(CleanupPending("restoration-custody"))
     }
     if !@remote.remote_runtime_custody_release_output(owner.custody) {
       return Err(CustodyRejected)
@@ -856,6 +864,9 @@ fn native_remote_runtime_completion(
 ) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
   if owner.restoration_pending {
     return Err(CompletedRestorationPending)
+  }
+  if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+    return Err(StartAuthorizationRejected)
   }
   if owner.restoration_current is Some(current) &&
     (
@@ -1689,6 +1700,8 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
     active_readers: 0,
     restoration_pending: false,
     restoration_current: None,
+    restoration_cleanup_port: None,
+    restoration_observation: None,
     restoration_cleanup: None,
   }
   self.run_success(owner, budget)

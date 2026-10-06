@@ -9,6 +9,7 @@ pub struct ResidentCompletedAttempt {
   root : String
   max_bytes : Int64
   current : () -> Bool
+  cleanup_current : () -> Bool
 }
 
 ///|
@@ -96,9 +97,10 @@ pub fn resident_completed_holder_claimant(
   if @remote.dispatch_record_state_codes(record)[0] != 3 {
     return Ok(None)
   }
-  match admit_resident_completed_envelope(
-    admission, delegation, site_generation, attempt_identity, envelope, at,
-  ) {
+  match
+    admit_resident_completed_envelope(
+      admission, delegation, site_generation, attempt_identity, envelope, at,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -115,9 +117,10 @@ pub fn resident_completed_holder_claimant(
     @journal.recovered_site_dispatch_file_custody(saved) is Some(_) else {
     return Err(Runtime(@runtime.CompletedRestorationPending))
   }
-  match @remote.restore_remote_runtime_completed_custody(
-    record, evidence, subject, measurement,
-  ) {
+  match
+    @remote.restore_remote_runtime_completed_custody(
+      record, evidence, subject, measurement,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Protocol(issue))
   }
@@ -165,8 +168,17 @@ pub fn prepare_resident_completed_attempt(
     source.retained_output_root is Some(root) else {
     return Err(failed(Source(UnsupportedSource)))
   }
-  let current = () => {
+  // Cleanup custody survives Run expiry/cancellation and use-authority loss.
+  // The exact Site generation/runtime and actual exclusive slot still bind it.
+  let scope = @remote.dispatch_request_execution_scope(request)
+  let cleanup_current = () => {
     exclusive_current() &&
+    @site.site_key(execution.site) == scope[0] &&
+    @site.site_generation(execution.site).to_string() == scope[1] &&
+    @site.site_runtime_revision(execution.site) == scope[2]
+  }
+  let current = () => {
+    cleanup_current() &&
     @site.site_key(execution.site) == delegation.site_key &&
     @site.site_binding_current(
       execution.site,
@@ -226,6 +238,7 @@ pub fn prepare_resident_completed_attempt(
     root,
     max_bytes: execution.limits.output.max_retained_bytes,
     current,
+    cleanup_current,
   })
 }
 
@@ -243,6 +256,7 @@ pub fn ResidentCompletedAttempt::advance(
       self.root,
       self.max_bytes,
       self.current,
+      cleanup_current=Some(self.cleanup_current),
     ) {
     @runtime.CompletedRuntimeReady(completion) =>
       ResidentCompletedReady({

@@ -442,6 +442,28 @@ isolates the affected pool. It is not ordinary cleanup and does not refund or
 reuse physical capacity. Late exact cleanup evidence may resolve the old
 responsibility without reviving a failed Run or completion.
 
+### Cleanup during interrupted completed restoration
+
+A completed Native holder may lose use authority while reconstructing its
+original resources. The adopted cleanup handoff separates permission to expose
+output from verified exclusive physical custody. Initial restoration still
+requires the current Site, admitted completion, original input binding and
+current authority. The Runtime then retains one owner and its initial file
+custody, evidence, material generation and Source observation through retry.
+No retry substitutes another occurrence or reacquires Source/execution.
+
+Already-owned pending restoration reconciles only monotone completed cleanup
+progress before physical I/O. Releasing or unknown cleanup and loss of use
+authority enter the exact cleanup-only path. Foreign, regressed, terminal,
+changed-material and quarantined records remain refused. Physical release must
+succeed and exclusive custody must still hold before returning Site capacity or
+bundle ownership. Root-open or unlink/sync failure retains the same callback;
+a retry may reconstruct only the original cleanup handle and must preserve a
+foreign replacement. Loss of exclusive custody retains responsibility.
+
+This connects cleanup through the existing owner. It changes no wire
+identity, execution evidence, generation-restart authority or release contract.
+
 ## Transport and authentication
 
 The initial control candidate is authenticated outbound HTTPS. The selection
