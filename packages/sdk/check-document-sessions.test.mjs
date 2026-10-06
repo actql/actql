@@ -138,3 +138,36 @@ test('document sessions refuse invalid options and outcomes without owned source
   const observation = await session.check({format: 'sql'});
   assert.equal(session.resolveTextRange(observation, location(observation)), undefined);
 });
+
+
+for (const [property, transition] of [
+  ['document_id', 'close'], ['kind', 'edit'], ['start_byte', 'edit'],
+  ['end_byte', 'edit'], ['document_id', 'newer-check'],
+]) {
+  test(`document session range rejects ${transition} from a ${property} accessor`, async t => {
+    const client = await clientFixture(t, null);
+    const session = createCheckDocumentSession(client, {text: 'é😀', version: 1});
+    t.after(() => session.close());
+    const observation = await session.check({format: 'sql'});
+    const original = location(observation);
+    assert.deepEqual(session.resolveTextRange(observation, original)?.range,
+      {start: {line: 0, character: 3}, end: {line: 0, character: 3}});
+    let changed = false, newer;
+    const changingLocation = {...original};
+    Object.defineProperty(changingLocation, property, {enumerable: true, get() {
+      if (!changed) {
+        changed = true;
+        if (transition === 'edit') session.update('edited', 2);
+        else if (transition === 'close') session.close();
+        else newer = session.check({format: 'sql'});
+      }
+      return original[property];
+    }});
+    const resolved = session.resolveTextRange(observation, changingLocation);
+    if (newer) await newer;
+    assert.equal(changed, true);
+    assert.equal(session.resolveTextRange(observation, original), undefined);
+    assert.equal(getCheckInput(observation.outcome, 'source').text, 'é😀');
+    assert.equal(resolved, undefined, '[check-mutation:document-range-callback]');
+  });
+}
