@@ -4,7 +4,8 @@ test "optional output AS retains names in SQL Pipe and aggregate projections" {
     text in [
       "SELECT id next_id FROM records WHERE id > 0 ORDER BY next_id", "FROM records |> SELECT id `next_id` |> ORDER BY next_id",
       "FROM records |> EXTEND id + 1 next_id |> SELECT next_id", "SELECT COUNT(*) n FROM records",
-      "FROM records |> AGGREGATE COUNT(*) n", "SELECT COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) n FROM records",
+      "FROM records |> AGGREGATE COUNT(*) n", "FROM records |> SELECT ALL id next_id |> ORDER BY next_id",
+      "SELECT COUNT(*) OVER (ORDER BY id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) n FROM records",
     ] {
     let query = parse_query(text, query_limits()).unwrap()
     let mut found = false

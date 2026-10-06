@@ -16,6 +16,7 @@ test "omitted output AS preserves the independent ordinary Program" {
   for
     text in [
       "SELECT 1 AS id, 'hello' AS label", "SELECT 1 id, 'hello' label", "SELECT 1 `id`, 'hello' `label`",
+      "SELECT ALL 1 id, 'hello' label",
     ] {
     let generated = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
