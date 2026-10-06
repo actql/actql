@@ -42,5 +42,5 @@ test('ordinary packed corpus includes IFNULL and its narrow selection excludes u
   assert.ok(driver.includes("['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--ifnull-only'/u);
   const afterCampaign = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
-  assert.ok(afterCampaign.includes("process.argv.includes('--ifnull-only')) return;"));
+  assert.match(afterCampaign, /if \(plannerSelectionOnly[^;]+process\.argv\.includes\('--ifnull-only'\)[^;]*\) return;/u);
 });

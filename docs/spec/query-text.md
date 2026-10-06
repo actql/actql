@@ -82,6 +82,26 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`SELECT * EXCEPT (name, ...)` uses the adopted
+[GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
+It expands the current visible star columns, removes all matching named
+columns under ordinary column-name resolution, and preserves the remaining
+column order. The exclusion list is nonempty and every name must resolve in
+that star scope. It is not the EXCEPT set operation. Exclusion does not apply
+to separately written expressions elsewhere in the SELECT list, and it does
+not alter row multiplicity or NULLs. Ordinary projection and DISTINCT checking
+still apply; no execution operation or special Source acquisition is added.
+
+After SET, DROP, RENAME or AS, exclusions use the same current Pipe slots as
+star. They do not restore a removed column or range alias. In SQL GROUP
+queries, the retained star columns must be grouped; excluded columns need not
+be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
+its final order. CTE and DATA relations use their current declared columns.
+Existing restrictions on direct Graph star and unsupported JOIN star remain
+explicit implementation gaps. Qualified or expression star and REPLACE are
+separate unconnected coverage; this exclusion connection does not establish
+their execution support or restrict their adopted GoogleSQL meanings.
+
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
@@ -91,13 +111,6 @@ requires a positive count, a nonnegative offset, safe integers and proven input
 order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
-
-`CAST(value AS BOOLEAN)` uses the same existing boolean target as
-`CAST(value AS BOOL)`, following the [GoogleSQL BOOL/BOOLEAN alias](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#boolean_type).
-Type names are ASCII case-insensitive. This is a source spelling for the same
-checked cast; it does not widen the common conversion domains, make failing
-casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
-NULL remains a typed nullable boolean, including on empty Relations.
 
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
@@ -109,6 +122,38 @@ GoogleSQL's wider implicit-coercion or type families. Use explicit supported
 casts where required. Result type and nullability come from common `coalesce`
 typing, including on empty input. The Frontend does not expand the first
 operand or install its own conditional evaluator.
+
+`REPLACE(value, search, replacement)` connects the adopted
+[GoogleSQL STRING replacement function](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#replace)
+to the common three-argument `replace` expression. Operand order, parameter
+references and clause scope are preserved. Replacement is literal,
+case-sensitive, non-overlapping and left-to-right; an empty search leaves the
+original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
+or line-ending normalization is implicit. The STRING overload is connected;
+BYTES and explicit collation remain separate coverage gaps. This function does
+not implement the independent SELECT star REPLACE clause.
+
+In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
+row-dependent expressions, including comparisons, CASE and supported scalar
+calls. The ordinary expression parser retains each key's source origin and
+budget. Each key is evaluated over the SELECT input snapshot into a private
+slot, then passed to common `analytic.partition_by`. Repeated expressions
+within that immutable scope share the evaluated slot with OVER ordering and
+other windows; the authored partition-key list retains its order and repeats.
+Private keys are removed before Named Result publication.
+
+Literal/parameter-only partition expressions are rejected; numeric literals do
+not denote SELECT positions here. This follows the selected [GoogleSQL window
+specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),
+which permits partition expressions but excludes constants and sibling SELECT
+aliases. Member access, operand and equality-key types remain common-checker
+obligations. NULL computed keys share their existing common NULL partition;
+CASE/IF/COALESCE retain ordinary demand semantics and expression failures do not
+publish a partial Result. This connection retains ActQL's existing finite
+number and recursive type contracts; it does not claim Google's complete type
+profile, including its floating-point partition exclusion. Named windows,
+optional ordering, default frames and nested window calls remain outside this
+implemented inline profile.
 
 In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
 accept an integer literal or a whole named parameter, for example
@@ -122,19 +167,25 @@ that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
 
-`JSON` followed by a STRING literal constructs a typed JSON value in ordinary
-SQL and Pipe expressions. The STRING chunks use the decoding rules above;
-their concatenated text is passed unchanged to the common
-`{typed_literal:{type:"json",value:text}}` expression. The common owner parses
-and checks every JSON root, including null, number, string, boolean, object
-and array. JSON null is a non-SQL-NULL JSON value; `NULL` retains SQL NULL
-semantics. JSON scalars do not acquire ordinary scalar types.
+The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
+`STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
+`STDDEV_SAMP`) lower to the existing common aggregate functions. They work in
+SQL SELECT, Pipe AGGREGATE and the existing explicit ROWS-frame OVER profile.
+Arguments retain ordinary input scope and expression demand; there is no
+Frontend variance evaluator. NULL observations are excluded. Population
+variance/deviation returns zero for one non-NULL observation and typed NULL
+for none; sample functions return typed NULL for fewer than two. Output is
+nullable number, including on empty input. These cardinality rules and aliases
+follow [GoogleSQL statistical aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/statistical_aggregate_functions).
 
-The selected [common JSON profile](../design/typed-json-literals.md) retains
-the first duplicate decoded key and exact strings/keys, rejects precision
-loss, and applies complete-input size/node/depth ceilings. Unsupported wide
-numbers are refused rather than rounded. The JSON parser and runtime are not
-duplicated in the Frontend. JSON literals are not limited to Graph Delta.
+This connection uses the common finite binary64 number contract and its pinned
+canonical observation order and rounded arithmetic, defined in the language's
+statistical aggregate section. It does not add NUMERIC/BIGNUMERIC coercion,
+NaN/infinity results, default analytic frames or DISTINCT support. The current
+common checker rejects statistical DISTINCT; GoogleSQL's broader signatures
+remain coverage gaps. Common expression failures propagate without a partial
+successful Result. No authored WHERE, grouping, HAVING, order, parameter or
+LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
@@ -575,6 +626,46 @@ ceiling alone does not establish order for an arbitrary JSON Relation.
 Graph Delta application produces a Graph and establishes no Relation order.
 The Frontend does not synthesize a sort, key, scalar encoding or fallback to
 publish the JSON value.
+
+`union_graphs` preserves the Graph Carrier and admits the existing scalar or
+nonempty-list `with:` form. Each bare/backtick name resolves an earlier DATA
+Graph producer; STRING values never resolve Graph names. The current Graph is
+the primary operand, followed by each peer in authored list order. Repeated
+peer references remain repeated fold occurrences; lowering does not deduplicate
+them, reorder them or reacquire their producers.
+
+```aql
+DATA combined = FROM g |> union_graphs(
+  with: [peer, g], merge: {node_properties: {score: 'number_sum'}});
+FROM combined |> node_rows() |> SELECT node_key, score |> RESULT nodes
+```
+
+The common union checker owns identity-domain/definition/key/label compatibility
+and recursive property contracts. Authored merge strategies are passed unchanged;
+no policy is inferred to make a conflict succeed. Sequential fold arithmetic,
+parallel-edge identity, atomic failures and operation-wide capacity remain common
+owner obligations. The output retains the checked compatible definition names
+and can continue into DATA, Graph calls and normal Relation processing after
+node_rows/edge_rows. No legacy Graph conversion, implicit Relation conversion,
+sort, storage boundary or separate union evaluator is introduced. Empty lists,
+undeclared/forward/Relation references, extra arguments and invalid common
+policies are preparation refusals. Other Graph-algebra connections and wider
+common compatibility are independent coverage obligations.
+
+`subtract_graphs(with: peer, merge: {...})` also preserves the Graph Carrier.
+Unlike union, the common subtraction contract is binary: `with:` is one earlier
+bare/backtick DATA Graph producer, not a list. The left operand and explicit
+merge arguments are retained unchanged. Missing/STRING/Relation/forward peers,
+list operands and extra arguments are preparation refusals, not implicit casts.
+Without a nonempty strategy map for an entity kind, equal shared payloads remove
+that entity; conflicts fail. An explicit strategy such as `exact_equal` instead
+retains its transformed entity, including an unchanged or zero property value.
+Node and edge policies remain separate. Edges whose endpoints are absent after
+node subtraction are removed by the common induced-closure owner; the Frontend
+does not implement this rule, infer a non-NULL value from a strategy, or revive
+removed nodes. Actual NULL numeric operands fail, rather than becoming zero.
+The common checker/owner retains identity, labels, recursive contracts, empty
+output types, capacity, cancellation and atomic publication responsibilities.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run

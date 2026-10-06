@@ -2,10 +2,12 @@
 priv enum NormalizePhase {
   BeginRecord
   ReadFields
+  MatchComponent
   FoldNorm
   FinishNorm
   EmitComponents
   CommitRecord
+  AppendRecord
   Finish
 }
 
@@ -20,7 +22,11 @@ priv struct NormalizeState {
   source : NormalizeSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
-  component_name : String
+  component_name : @schema.FieldName
+  append_slots : Int
+  mut caller_workspace : Int
+  mut name_offset : Int
+  mut output_append : @records.RecordAppend?
   dimensions : Int
   mut phase : NormalizePhase
   mut record : Int
@@ -80,7 +86,10 @@ fn normalize_source_field(
 }
 
 ///|
+/// Private observation only; Session retains execution and cleanup authority.
+#warnings("-unused_field")
 struct NormalizeExecution {
+  state : NormalizeState
   session : @bounded.Session[NormalizeState, @records.Completed, NormalizeIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
@@ -125,12 +134,20 @@ fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
   if state.dimensions > 2147483647 - field_slots {
     return Err(WorkspaceLimit)
   }
-  let needed = state.dimensions + field_slots
+  guard checked_add(state.dimensions, field_slots) is Some(temporary) &&
+    checked_add(temporary, 2) is Some(caller_workspace) &&
+    checked_add(temporary, state.append_slots) is Some(appending) &&
+    checked_add(appending, field_count + 2) is Some(retaining) &&
+    checked_add(retaining, 2) is Some(needed) else {
+    return Err(WorkspaceLimit)
+  }
   if current > state.limits.max_workspace_slots ||
     needed > state.limits.max_workspace_slots - current {
     return Err(WorkspaceLimit)
   }
   state.field = 0
+  // Keep the existing caller reservation while shared append continuations grow.
+  state.caller_workspace = caller_workspace
   state.component_field = -1
   state.fields = []
   state.source_vector = None
@@ -138,6 +155,7 @@ fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
   state.component = 0
   state.norm_squared = 0.0
   state.divisor = 0.0
+  state.name_offset = 0
   state.phase = ReadFields
   Ok(())
 }
@@ -148,15 +166,35 @@ fn read_field(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
     is Some((name, checked)) else {
     return Err(InvalidRecord(state.record))
   }
-  if @schema.reference_name(name) == state.component_name {
+  state.fields.push((name, checked))
+  state.phase = MatchComponent
+  match_normalize_component(state)
+}
+
+///|
+fn match_normalize_component(
+  state : NormalizeState,
+) -> Result[Unit, NormalizeIssue] {
+  guard state.fields.get(state.field) is Some((name, checked)) else {
+    return Err(InvalidRecord(state.record))
+  }
+  let (order, offset, _) = @schema.compare_reference_fragment(
+    name,
+    state.component_name,
+    state.name_offset,
+    64,
+  )
+  state.name_offset = offset
+  guard order is Some(comparison) else { return Ok(()) }
+  if comparison == 0 {
     if state.component_field >= 0 {
       return Err(InvalidRecord(state.record))
     }
     state.component_field = state.field
     state.source_vector = Some(checked)
   }
-  state.fields.push((name, checked))
   state.field += 1
+  state.phase = ReadFields
   Ok(())
 }
 
@@ -247,12 +285,15 @@ fn commit_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
   state.output_vector = None
   let index = state.component_field
   state.fields[index] = (name, vector)
-  match @records.append_record(output, state.fields) {
-    Ok(_) => {
-      state.fields = []
-      state.source_vector = None
-      state.record += 1
-      state.phase = BeginRecord
+  match
+    @records.start_record_append(
+      output,
+      state.fields,
+      external_workspace_slots=state.caller_workspace,
+    ) {
+    Ok(cursor) => {
+      state.output_append = Some(cursor)
+      state.phase = AppendRecord
       Ok(())
     }
     Err(issue) => Err(Output(issue))
@@ -304,6 +345,11 @@ fn normalize_step(
           }
         }
       }
+      MatchComponent =>
+        match match_normalize_component(state) {
+          Ok(_) => used += 1
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
       FoldNorm =>
         if state.component < state.dimensions {
           match fold_component(state) {
@@ -329,12 +375,27 @@ fn normalize_step(
         }
       CommitRecord =>
         match commit_record(state) {
-          Ok(_) => {
-            used += 1
-            progress += 1
-          }
+          Ok(_) => used += 1
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
+      AppendRecord => {
+        used += 1
+        guard state.output_append is Some(cursor) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        match @records.advance_record_append(cursor) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.output_append = None
+            state.fields = []
+            state.source_vector = None
+            state.record += 1
+            state.phase = BeginRecord
+            progress += 1
+          }
+          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
+        }
+      }
       Finish => {
         used += 1
         guard state.output is Some(output) else {
@@ -354,6 +415,11 @@ fn normalize_step(
 
 ///|
 fn cleanup_state(state : NormalizeState) -> Bool {
+  if state.output_append is Some(cursor) {
+    @records.cleanup_record_append(cursor) |> ignore
+    state.output_append = None
+  }
+  state.name_offset = 0
   if state.output_vector is Some(builder) {
     @value.cancel_vector_value(builder) |> ignore
     state.output_vector = None
@@ -399,6 +465,14 @@ fn start_normalize_source(
   if control_work_limit == 0 {
     return Err(WorkLimit)
   }
+  guard @storage.append_workspace_slots(
+      @carrier.field_count(@carrier.vector_records(vectors)),
+      @carrier.vector_identity_count(vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) else {
+    return Err(WorkspaceLimit)
+  }
   let output = match
     @records.prepare_output(
       owner,
@@ -414,9 +488,11 @@ fn start_normalize_source(
     source,
     output: Some(output),
     limits,
-    component_name: @schema.reference_name(
-      @carrier.vector_components(vectors).name,
-    ),
+    component_name: @carrier.vector_components(vectors).name,
+    append_slots,
+    caller_workspace: 0,
+    name_offset: 0,
+    output_append: None,
     dimensions,
     phase: BeginRecord,
     record: 0,
@@ -434,6 +510,7 @@ fn start_normalize_source(
     control, state, normalize_step, cleanup_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,

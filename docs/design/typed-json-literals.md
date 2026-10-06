@@ -66,6 +66,61 @@ JSON payload before invoking their existing semantic body parsers. Their body
 format is not replaced with the typed-cell envelope. JSON properties within
 typed snapshot records still use the shared typed wire.
 
+## Effect literal source keys
+
+The normative owners are [Source representation](../spec/language.md#source-representation),
+[Effect declarations](../spec/language.md#effects) and
+[Canonical identities](../spec/language.md#canonical-identities).
+The previous blanket source member-name normalization conflicted with exact
+JSON data keys when an authored Effect literal was later admitted under a JSON
+target contract. Applying the JSON wire law only after source normalization
+could not recover the lost spelling.
+
+The adopted exception retains exact decoded member names throughout the value
+subtree quoted by `{literal: value}` at a grammar-owned `EffectValue` position.
+It is an explicit change to that source and identity boundary. It does not
+disable normalization globally or recognize every object named `literal` as
+syntax. Program syntax, Effect names, `set` and command `input` field names,
+and other grammar-owned identifiers retain their existing rules. Exact
+decoded duplicate source keys still fail; composed/decomposed or CR/LF-distinct
+keys are separate keys inside the quoted subtree. Source escape decoding and
+YAML folding still happen once before this distinction is made.
+
+Program and Stage semantic preimages retain those source keys before the
+external Mapping or Command Contract is resolved. Consequently, composed and
+decomposed source keys have different Program identities even if the eventual
+target is a typed Object and both spellings match the same normalized field.
+Object field matching and normalization, including normalized-name collision
+rejection, remain contract-directed admission work. A checked JSON target
+instead preserves exact payload keys through the existing common Value and
+typed-wire owners. Raw `$json` members are data and confer no type or authority.
+Binding the original spelling avoids making Program identity depend on an
+external Mapping or reordering contract resolution ahead of source identity.
+
+This source-key correction introduces no new codec, Value domain, Effect
+`typed_literal` grammar or Values type support. It leaves the existing
+expression, kernel, JSON wire and grammar bodies and pins unchanged. Existing
+historical corpora retain their recorded identities. Previously accepted
+Effect literals with noncanonical source keys can acquire different Stage,
+Program and dependent identities; canonical-key sources retain their preimages.
+A normalization collision inside a JSON-target literal can now be admitted as
+two distinct keys. The same pair remains invalid under a typed Object contract.
+Saved normalized payloads cannot reconstruct discarded source spelling, and
+this correction neither rewrites retained records nor supplies a migration.
+
+The implementation scope is the public Host source and structured-Program
+admission path. The generic source-builder API and its normalization behavior
+are unchanged: a tree that its caller has already normalized does not recover
+the earlier spelling at Effect admission. Independent fixtures must bind the
+exact source payload into semantic preimages as well as check the delivered
+JSON value. Existing machine-schema `typed_literal` alternatives at EffectValue
+positions disagree with the language grammar; that pre-existing generator issue
+is separate from this correction and does not authorize their acceptance.
+
+The first-value rule below applies to JSON text inside a common expression
+typed literal. It does not relax duplicate-key rejection in the enclosing
+Program source or in an authored Effect literal subtree.
+
 ## Decoding and bounds
 
 Duplicate keys retain the first value under exact decoded key equality.

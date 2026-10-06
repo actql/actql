@@ -81,6 +81,7 @@ priv enum Continuation {
     Int,
     @lower.Expression
   )
+  TextArguments(TextArgumentsState)
 }
 
 ///|
@@ -95,6 +96,7 @@ priv enum Evaluation {
   MeasureResult(Value, LogicalMeasureCursor)
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
+  TextFunction(TextFunctionState)
 }
 
 ///|
@@ -320,6 +322,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   frame.stack.clear()
   frame.current_root = None
   match frame.state {
+    TextFunction(state) => state.builder = None
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
@@ -585,11 +588,27 @@ fn advance_expression_frame_impl(
             guard children.get(0) is Some(first) else {
               return Err({ kind: Scalar(InvalidOperand), expression: expr, })
             }
+            if op == @lower.Replace {
+              if children.length() != 3 || !reserve_slots(workspace, 6) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.stack.push(
+                TextArguments({
+                  expression: expr,
+                  children,
+                  values: [],
+                  roots: [],
+                  index: 0,
+                }),
+              )
+              frame.state = Enter(first)
+              continue
+            }
             let initial = match op {
               And => Boolean(true)
               Or => Boolean(false)
               Coalesce => Null
-              Concat | ConcatStrict => Text("")
+              Concat | ConcatStrict | Replace => Text("")
             }
             frame.stack.push(Many(expr, op, children, 0, initial, None))
             frame.state = Enter(first)
@@ -683,6 +702,37 @@ fn advance_expression_frame_impl(
           return Ok(Some({ value, root: retained, }))
         }
         match continuation {
+          TextArguments(args) => {
+            frame.active = args.expression
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: args.expression,
+              })
+            }
+            args.values.push(value)
+            args.roots.push(frame.current_root)
+            frame.current_root = None
+            args.index += 1
+            if args.children.get(args.index) is Some(next) {
+              frame.stack.push(TextArguments(args))
+              frame.state = Enter(next)
+            } else {
+              let state = match
+                start_text_function(
+                  args.expression,
+                  args.values,
+                  args.roots,
+                  false,
+                  scope,
+                  workspace,
+                ) {
+                Ok(state) => state
+                Err(issue) => return Err(issue)
+              }
+              frame.state = TextFunction(state)
+            }
+          }
           Property(expr, name, index) => {
             frame.object_context -= 1
             frame.active = expr
@@ -787,6 +837,23 @@ fn advance_expression_frame_impl(
             frame.active = expr
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if op == @lower.Length {
+              let state = match
+                start_text_function(
+                  expr,
+                  [value],
+                  [frame.current_root],
+                  true,
+                  scope,
+                  workspace,
+                ) {
+                Ok(state) => state
+                Err(issue) => return Err(issue)
+              }
+              frame.current_root = None
+              frame.state = TextFunction(state)
+              continue
             }
             match unary(op, value) {
               Ok(v) => {
@@ -1054,6 +1121,8 @@ fn advance_expression_frame_impl(
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let combined = match op {
+              Replace =>
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
               Coalesce => value
               And | Or =>
                 match boolean_pair(op, previous, value) {
@@ -1164,6 +1233,27 @@ fn advance_expression_frame_impl(
               frame.stack.push(Forward(expr))
               frame.state = Enter(otherwise)
             }
+          }
+        }
+      }
+      TextFunction(state) => {
+        frame.active = state.expression
+        match advance_text_function(state, workspace) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            for root in state.roots {
+              if release(root) is Some(issue) {
+                return Err({
+                  kind: LogicalValue(issue),
+                  expression: state.expression,
+                })
+              }
+            }
+            release_slots(workspace, state.reserved + state.allocated)
+            frame.current_root = state.output_root
+            frame.result_prepaid = state.output_root is Some(_)
+            frame.state = Return(value)
           }
         }
       }

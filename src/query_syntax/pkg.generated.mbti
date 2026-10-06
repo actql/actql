@@ -108,6 +108,7 @@ pub fn usage(Tokens, Resource) -> Int
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?
@@ -347,6 +348,7 @@ pub(all) struct Projection {
   analytic : AnalyticCall?
   name : NamePart?
   star : String?
+  except_columns : Array[NamePart]
 }
 
 pub(all) struct PropertyEdgeDefinition {
@@ -400,6 +402,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -411,7 +414,7 @@ pub(all) enum QueryOperation {
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
-  Having(Expression)
+  Having(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])

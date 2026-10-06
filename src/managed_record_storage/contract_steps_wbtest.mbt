@@ -30,11 +30,11 @@ test "record append resumes contract names with unchanged construction limits" {
   let (carrier, fields) = contract_step_record(name)
   // Record wire [["value",{"<130 a>":1}]] is 148 bytes, five nodes.
   // Construction remains width+1+nodes=7; contract scans add no wire work.
-  // Two wire arrays and the object need depth 3. Cursor 8+2+3*3=19
-  // and the retained row (3) require 22 slots.
+  // Two wire arrays and the object need depth 3. Cursor 16+3+3*3=28
+  // and the retained row (3) require 31 slots.
   for (work, success) in [(7, true), (6, false)] {
     let builder = prepare(carrier, {
-      ..append_step_limits(22, work, 148),
+      ..append_step_limits(31, work, 148),
       max_value_depth: 3,
     }).unwrap()
     let cursor = start_append(builder, fields).unwrap()
@@ -42,7 +42,7 @@ test "record append resumes contract names with unchanged construction limits" {
     assert_true(cursor.phase is FieldContract)
     assert_eq(cursor.index, 0)
     assert_eq(cursor.fields.length(), 0)
-    assert_eq(builder_workspace_slots(builder), 19)
+    assert_eq(builder_workspace_slots(builder), 28)
     for _ in 0..<3 {
       assert_eq(advance_append(cursor), Ok(false))
       assert_true(cursor.phase is FieldContract)
@@ -114,9 +114,9 @@ test "record contract stack reserves exact extra custody before allocation" {
   // NULL's wire fits depth 2, but its five-level declared Object contract
   // has a peak of six frames: one name frame and five child iterators.
   // Root custody is fixed; 3*(6-1)=15 continuation slots exceed the six
-  // reusable wire slots by nine. Base 16+9=25 is the comparison peak;
-  // final record custody is only 16+3=19, after releasing the nine slots.
-  for (slots, expected) in [(25, Ok(true)), (24, Err(WorkspaceLimit))] {
+  // reusable wire slots by nine. Base 25+9=34 is the comparison peak;
+  // final record custody is only 25+3=28, after releasing the nine slots.
+  for (slots, expected) in [(34, Ok(true)), (33, Err(WorkspaceLimit))] {
     let builder = prepare(carrier, {
       ..append_step_limits(slots, 10, 100),
       max_contract_work: 11,
@@ -140,7 +140,7 @@ test "record contract stack reserves exact extra custody before allocation" {
     }
   }
   let builder = prepare(carrier, {
-    ..append_step_limits(25, 10, 100),
+    ..append_step_limits(34, 10, 100),
     max_contract_work: 10,
   }).unwrap()
   let cursor = start_append(builder, [(@schema.Unqualified("value"), checked)]).unwrap()
@@ -183,7 +183,7 @@ test "record contract mismatch fails before wire commit with typed custody" {
   let (carrier, _) = contract_step_record(prefix + "a")
   let (_, foreign) = contract_step_record(prefix + "b")
   let builder = prepare(carrier, {
-    ..append_step_limits(22, 100, 1000),
+    ..append_step_limits(31, 100, 1000),
     max_value_depth: 3,
   }).unwrap()
   let cursor = start_append(builder, foreign).unwrap()
@@ -211,7 +211,7 @@ test "record contract continuation binds the field it actually validated" {
   let (_, foreign) = contract_step_record(prefix + "b")
   let original = fields[0].1
   let builder = prepare(carrier, {
-    ..append_step_limits(22, 100, 1000),
+    ..append_step_limits(31, 100, 1000),
     max_value_depth: 3,
   }).unwrap()
   let cursor = start_append(builder, fields).unwrap()

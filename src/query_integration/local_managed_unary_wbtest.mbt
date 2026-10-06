@@ -1093,7 +1093,8 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  let mut overlapping = 0L
+  let mut retained = 0L
+  let mut scratch = 0L
   let count = @execution.generated_sequence_step_count(sequence)
   assert_eq(count, 3)
   for index in 0..<count {
@@ -1104,11 +1105,17 @@ test "ordinary keyed count chain reserves overlapping child capacity" {
       limits.local_execution,
       limits.guards,
     ).unwrap()
-    overlapping += child.retained_bytes + child.execution_bytes
+    retained += child.retained_bytes
+    scratch = Int64::max(scratch, child.execution_bytes)
   }
-  assert_true(overlapping > base.execution_bytes)
+  // Completed outputs still overlap. Confirmed child cleanup bounds scratch
+  // to one live execution; the independent lifetime fixtures certify retirement.
+  assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
-  assert_eq(capacity.execution_bytes, overlapping + count.to_int64() * 256L)
+  assert_eq(
+    capacity.execution_bytes,
+    retained + scratch + count.to_int64() * 256L,
+  )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)
 }

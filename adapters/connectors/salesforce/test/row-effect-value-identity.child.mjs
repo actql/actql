@@ -23,6 +23,15 @@ const ledgerUrl = new URL('../../../host-node/effect-ledger.mjs',
 const realDriver = await import(`${driverUrl}?unwrapped`);
 const realLedger = await import(`${ledgerUrl}?unwrapped`);
 const outcomeWires = [];
+const keyScenario = scenario === 'outcome-keys' ||
+  scenario === 'outcome-single-key';
+const exactDetails = scenario === 'outcome-single-key'
+  ? {[`${decomposed}\r\n`]: `${decomposed}\r\nvalue`}
+  : {[composed]: 'composed', [decomposed]: 'decomposed',
+    '\r': 'CR', '\n': 'LF', '\r\n': 'CRLF',
+    nested: [{$json: {[composed]: `${composed}\n`,
+      [decomposed]: `${decomposed}\r\n`}}]};
+let interruptAfterOutcome = keyScenario;
 const prefixed = (prefix, value) => typeof value === 'string'
   ? `${prefix}${value}` : value;
 const unprefixed = value => typeof value === 'string' &&
@@ -55,13 +64,14 @@ mock.module(driverUrl, {namedExports: {...realDriver,
             ({...row, identity: prefixed(composed, row.identity)}));
         }});
     }
-    if (scenario === 'outcome') {
+    if (scenario === 'outcome' || keyScenario) {
       return Object.freeze({...driver, project(facts) {
         const projected = driver.project(facts);
         if (projected?.kind !== 'typed-failure-response') return projected;
         return {...projected, outcome: {...projected.outcome, error: {
           ...projected.outcome.error,
-          message: `${decomposed}\r\nrejected`}}};
+          message: `${decomposed}\r\nrejected`,
+          ...(keyScenario ? {details: exactDetails} : {})}}};
       }});
     }
     throw new Error(`Unknown scenario ${scenario}`);
@@ -71,7 +81,13 @@ mock.module(ledgerUrl, {namedExports: {...realLedger,
     const ledger = realLedger.openEffectLedger(options);
     return Object.freeze({...ledger, recordAdmittedRowOutcome(facts) {
       outcomeWires.push(facts.outcomeWire);
-      return ledger.recordAdmittedRowOutcome(facts);
+      const recorded = ledger.recordAdmittedRowOutcome(facts);
+      if (interruptAfterOutcome) {
+        interruptAfterOutcome = false;
+        throw Object.assign(new Error('InterruptedAfterOutcome'),
+          {code: 'InterruptedAfterOutcome'});
+      }
+      return recorded;
     }});
   }}});
 
@@ -85,7 +101,7 @@ const schema = {id: {type: 'string', nullable: false},
 test(`row Effect value identity: ${scenario}`, async t => {
   const installation = await installedEffect(t, {writes: [
     {resource: 'Test_Record__c', kind: 'update', fields: ['Name']}],
-  ...(scenario === 'outcome' ? {org: {rejectWrites: [1]}} : {})});
+  ...((scenario === 'outcome' || keyScenario) ? {org: {rejectWrites: [1]}} : {})});
   const host = await effectHost(t, installation,
     join(installation.root, 'host'));
   const [mapping] = host.installed.mappings;
@@ -97,14 +113,38 @@ test(`row Effect value identity: ${scenario}`, async t => {
   schema);
   const run = await host.run(program, `value-identity-${scenario}`).then(
     value => value, error => ({error}));
-  if (scenario === 'outcome') {
+  if (scenario === 'outcome' || keyScenario) {
     // The rejected write settles with exactly the provider's outcome text.
-    assert.equal(writesOf(installation.org).length, 1);
-    assert.equal(outcomeWires.length, 1);
+    assert.equal(writesOf(installation.org).length, 1, String(run.error?.stack));
+    assert.equal(outcomeWires.length, 1, String(run.error?.stack));
     assert.equal(JSON.parse(outcomeWires[0]).error.message,
       `${decomposed}\r\nrejected`);
     assert.ok(outcomeWires[0].includes(JSON.stringify(
       `${decomposed}\r\nrejected`)), outcomeWires[0]);
+    if (keyScenario) {
+      assert.deepEqual(JSON.parse(outcomeWires[0]).error.details, exactDetails);
+      assert.equal(run.error?.code, 'InterruptedAfterOutcome',
+        String(run.error?.stack));
+      const {stage} = host.outcomes[0];
+      const stored = stage.apply.ledger.readClaimedOutcome(
+        stage.receipt.members[0].rowOwners[0].claim);
+      assert.deepEqual(JSON.parse(stored.outcomeJson).typed_outcome.error.details,
+        exactDetails);
+      const continuation = JSON.parse(stage.continuationWire);
+      const accepted = run.error.accepted;
+      await host.close();
+      const second = await effectHost(t, installation,
+        join(installation.root, 'host'));
+      const resumed = await second.resume(`value-identity-${scenario}`,
+        accepted.ref.runDefinitionCid, continuation);
+      assert.equal(resumed.result.status, 'failed');
+      const recovered = resumed.stage.apply.ledger.readClaimedOutcome(
+        resumed.stage.receipt.members[0].rowOwners[0].claim);
+      assert.equal(recovered.outcomeJson, stored.outcomeJson);
+      assert.deepEqual(JSON.parse(recovered.outcomeJson).typed_outcome.error.details,
+        exactDetails);
+      assert.equal(writesOf(installation.org).length, 1);
+    }
     return;
   }
   // The request differs from the Program only by normalization: the common

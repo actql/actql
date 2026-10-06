@@ -40,7 +40,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const expressionRules = '<a id="expression-text"></a>' + language
     .split('<a id="expression-text"></a>')[1]
     .split('<a id="predicates"></a>')[0];
-  const body = {
+  const currentBody = {
     version: 'actql-grammar-manifest/0.1',
     source_grammar_cid: cid(program),
     operations,
@@ -52,14 +52,17 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
+  const body = {...currentBody, query_text_grammar_sha256:
+    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
+    '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
   // role, combined with the adopted Frontend text rules. Retain both
   // parents' historical rule digests rather than rebinding their identities.
   assert.equal(body.query_text_grammar_sha256,
-    '1d1e8ed2ce6628d2e370b57cd1812606c570f4255c166de53fcc99cb3dc30905');
+    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71');
   assert.equal(body.query_text_rules_sha256,
-    'dc5657fec9433f934687f3d030f88010bc2840354498a599aaff6fb09387d08a');
+    '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966');
   assert.equal(body.source_grammar_cid,
     'sha256:3b20a88d6009d131def226ea623d38cbba3c5a3929c752de85ceb6fd1ade6938');
   // Historical manifests retain the pre-alignment expression law rather than
@@ -128,12 +131,12 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid(beforeMembershipBody),
     'sha256:cb47f1587dd7cb896f57d56d2aab4eacca6cd6fb673ab8f258b777947b142f14');
   // Preserve both parent manifests using their authored normative inputs.
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256: '5189df0c79fa8e99c29985dbc87d3360c0338262ec38ad6401957a1a43354992'}),
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: body.query_text_grammar_sha256, query_text_rules_sha256: '5189df0c79fa8e99c29985dbc87d3360c0338262ec38ad6401957a1a43354992'}),
     'sha256:a2fb073e8a80ea2647ac70c61b567c4ba00e692119e5bed3e389622b2920bfa7');
   assert.equal(cid({...beforeTypedJsonBody, query_text_rules_sha256: '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
     'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b');
   assert.equal(cid({...beforeTypedJsonBody, query_text_rules_sha256: '307eec47455ab088c6eed268b8a48b4e32f681858a05c95f2320dbbab4250736'}), 'sha256:b43a9bd5a9e433dd164afd4760f583cee1d29e63e8eb65200dc9adbfd54bc095');
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256: 'b12ac087aef64a20a59dc1ff0cf663372c5fe7076efc30234b1826c3f46b08b3'}), 'sha256:e36194fdba1c86643169c8f10888a05a39ecc0fea7e1189ac1dfaaf1f4ac01f0');
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: body.query_text_grammar_sha256, query_text_rules_sha256: 'b12ac087aef64a20a59dc1ff0cf663372c5fe7076efc30234b1826c3f46b08b3'}), 'sha256:e36194fdba1c86643169c8f10888a05a39ecc0fea7e1189ac1dfaaf1f4ac01f0');
   assert.equal(cid(beforeTypedJsonBody),
     'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5');
   const priorTypedBody = {...beforeTypedJsonBody,
@@ -144,58 +147,16 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:e891f9c133e66fbc4649b0cea7968f431e3285fd7f265f3304701eb0110e6816');
   assert.equal(cid({...beforeMembershipBody,query_text_rules_sha256:priorTypedBody.query_text_rules_sha256}),
     'sha256:88b3e10e85fa88630900251773eb7b2fe5eb00e0714f3668843145fd82e68a8c');
-  // Freeze the adopted common parent before adding the public JSON prefix.
-  const previousCommonBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e","query_text_rules_sha256":"d91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561"};
-  assert.equal(cid(previousCommonBody), "sha256:cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6");
-  // Freeze the published text parent independently of the merged current rules.
-  const previousTextBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"8a2aae156e85f5aa5378ff2470b3cd8a08d024d26685bdbe09e77d221f5fcb7d","query_text_rules_sha256":"2e68573bf29ae8e6b40dd506a1a69aaaaaa3586cbf02faec983b7a05e1be8766"};
-  assert.equal(cid(previousTextBody), 'sha256:b6e79adc53cb126bc902391a01f404a47561e1bb08b6c2a91e0c25f3c0714ab2');
   assert.equal(cid({...beforeTypedJsonBody, query_text_rules_sha256:
     '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
     'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b');
   assert.equal(cid({...priorTypedBody, query_text_rules_sha256:
     'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'}),
     'sha256:cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6');
-  assert.equal(cid({...previousCommonBody, query_text_rules_sha256:
+  assert.equal(cid({...priorTypedBody, query_text_rules_sha256:
     '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
     'sha256:a5d5cf748d303dd303d92b2dede9e60d23ee5fc8439173fd916a2d8d1c702fb6');
-  // Keep adopted LIMIT syntax and both actual merge parents independently.
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256:
-    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
-    query_text_rules_sha256: '5189df0c79fa8e99c29985dbc87d3360c0338262ec38ad6401957a1a43354992'}),
-    'sha256:a2fb073e8a80ea2647ac70c61b567c4ba00e692119e5bed3e389622b2920bfa7');
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256:
-    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
-    query_text_rules_sha256: '805112264609514560da44925a58c7641652bfe9decc5b53e4061936f0f25b8d'}),
-    'sha256:2b32c93b38b2741b740f0f960b99995b4551cbfbb3c5a4ca9058e9c897082f75');
-  assert.equal(cid({...previousTextBody, query_text_rules_sha256:
-    '6834822b53feb0ad66ab4c47b1e3980ee5339872687b861aee4a72ee1a57b684'}),
-    'sha256:62486297e7a17f9d8dd18bc0ff18e0e2ee79cb188f4bb1de45ba6a4e30fc2c28');
-  assert.equal(cid({...previousTextBody, query_text_rules_sha256:
-    '01f6498099d9fad6677e252c475fe539ce219df4386c82eb1e2a10da31df9cd3'}),
-    'sha256:2d6fb316b24bfb65561a2a09c78fb33581d7691480480829e7c8a7ea51896580');
-  // Preserve both actual merge parents and the adopted Graph-difference rules.
-  const adoptedMainBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71","query_text_rules_sha256":"4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966"};
-  assert.equal(cid(adoptedMainBody), "sha256:33b5a9ea6214ae40f224b7f105632b933b6394dbd6d3f337cbdae20c9c1608ed");
-  const precedingTypedBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"1d1e8ed2ce6628d2e370b57cd1812606c570f4255c166de53fcc99cb3dc30905","query_text_rules_sha256":"d9468357cad4936e2557e8b1ec0e3c4327e19fc53946c3ba9426d50b2b179e8c"};
-  assert.equal(cid(precedingTypedBody), "sha256:d342a6bef23a6737a1d8c366eebafba2659a8495b7e22355fbe3e903f281dbf8");
-  assert.equal(cid({...beforeTypedJsonBody, query_text_rules_sha256: '307eec47455ab088c6eed268b8a48b4e32f681858a05c95f2320dbbab4250736'}), 'sha256:b43a9bd5a9e433dd164afd4760f583cee1d29e63e8eb65200dc9adbfd54bc095');
-  assert.equal(cid({...adoptedMainBody, query_text_rules_sha256: 'b12ac087aef64a20a59dc1ff0cf663372c5fe7076efc30234b1826c3f46b08b3'}), 'sha256:e36194fdba1c86643169c8f10888a05a39ecc0fea7e1189ac1dfaaf1f4ac01f0');
-  // Preserve the complete Frontend parent before the Values cell repair.
-  const previousCellBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"1d1e8ed2ce6628d2e370b57cd1812606c570f4255c166de53fcc99cb3dc30905","query_text_rules_sha256":"3248f507ab36b6a4f70bfb92863139e671d228b6d6ebad5c6da8abe832dfb422"};
-  assert.equal(cid(previousCellBody),
-    'sha256:d1c5cd7d3cafe9e536f944fce4db2a5cef9bb21cb0740e4550243287cac2ac36');
-  assert.equal(cid({...previousCellBody, query_text_rules_sha256:
-    'd9468357cad4936e2557e8b1ec0e3c4327e19fc53946c3ba9426d50b2b179e8c'}),
-    'sha256:d342a6bef23a6737a1d8c366eebafba2659a8495b7e22355fbe3e903f281dbf8');
-  assert.equal(cid({...previousCommonBody, query_text_grammar_sha256:
-    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
-    query_text_rules_sha256: '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'}),
-    'sha256:d53377fb0065ffa0e12bcbd92664d50c03c6ef317e148d632c593cce65d4b922');
-  // Preserve main's complete grammar preimage before the BOOLEAN type alias.
-  const beforeBooleanAlias = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:3b20a88d6009d131def226ea623d38cbba3c5a3929c752de85ceb6fd1ade6938","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"1d1e8ed2ce6628d2e370b57cd1812606c570f4255c166de53fcc99cb3dc30905","query_text_rules_sha256":"3248f507ab36b6a4f70bfb92863139e671d228b6d6ebad5c6da8abe832dfb422"};
-  assert.equal(cid(beforeBooleanAlias), 'sha256:e31537c1b3104a915c951fa8bd3d98ee4d9ea4542d24275bf3c54b7341be62ad');
-  const expected = 'sha256:5ac68c0bb19d569209191ad0131672abca12b8d520a800c7bc523fb0ab957c20';
+  const expected = 'sha256:f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...beforeMembershipBody, query_text_rules_sha256:
@@ -203,10 +164,31 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}),
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
+  // Preserve the statistical-signature predecessor before adding union routing.
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
+    'ae044114d8ced801e803b2857da3f5055ad91308c341741fe64cdb6ab700d0b7'}),
+    'sha256:cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d');
+  // Preserve union routing before connecting binary subtraction.
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
+    'bd1e6623508c4ff49006df452a5ab4e77f74f78b19e2fd5a4ca392d7615da08a'}),
+    'sha256:8cef04355f736983a0fcb4ce73551596ce04f370be0ab9c1d4400f81263842ae');
+  // Retain the Graph subtraction parent's normative preimage.
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
+    'eab7d4fa147eef8d62760111ec8064eee60befb81ea4239c6ffe2161f2ac5cb2'}),
+    'sha256:f6691d7e84028f06cef976870509421ba61d6f6310f7f32171f8ad5cf6ad422e');
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
+    query_text_rules_sha256:'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85'}),
+    'sha256:76c09e292bf9def41ddb0d40fe5bf59b60483e1a6c2ebde654a54bb3153c4ead');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85'}),
+    'sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52');
+  const currentExpected = 'sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5';
+  assert.equal(currentBody.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
+  assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
-  assert.deepEqual(pinned, body);
-  assert.equal(grammar_manifest_cid, expected);
+  assert.deepEqual(pinned, currentBody);
+  assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...body, [field]: '0'.repeat(64)}), expected);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
   }
 });
