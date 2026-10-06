@@ -405,6 +405,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return checkSource({principalId: actual, input, parameters, signal});
   };
+  Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
         store, storeAuthorityCid, authorityScopeCid, now,
