@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {readCatalog} from './actions.mjs';
+import {readCatalog, protectedRegistrationRevision} from './actions.mjs';
 import {gitTree, hash, actionInputs} from './inputs.mjs';
 import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
@@ -157,6 +157,7 @@ async function archiveFixture(t) {
 test('real ZIP consumer reconstructs actual Git and the executed complete certificate while retaining open boundaries', async t => {
   const f = await archiveFixture(t), result = await verifyCurrentFamily(f.options);
   assert.deepEqual(result.requiredActions, f.catalog.actions.map(action => action.id));
+  assert.equal(result.protectedRevision, protectedRegistrationRevision);
   assert(result.applications.every(value => value.acquisition === 'fresh'));
   assert.equal(result.lean.accepted, true); assert.equal(result.comparison.confirmation.status, 'not-compared');
   assert.equal(result.comparison.reuseAuthorized, false);
