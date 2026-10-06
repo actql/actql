@@ -21,7 +21,7 @@ try {
   let state;
   for (let attempt = 0; attempt < 400; attempt++) {
     state = await execution.status();
-    if (state.status === 'needs_reconciliation') break;
+    if (state.status === 'needs_reconciliation' && state.control?.physical_stop === 'confirmed') break;
     assert.ok(!['succeeded', 'failed', 'cancelled'].includes(state.status));
     await new Promise(resolve => setTimeout(resolve, 25));
   }
@@ -32,7 +32,8 @@ try {
   console.log(JSON.stringify({ref, state, reconcileError,
     explanation: sdk.explainEffectUncertainty?.(state),
     japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
-    copiedExplanation: sdk.explainEffectUncertainty?.({...state})}));
+    copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
+    formats: ['text', 'html', 'json'].map(format => sdk.formatEffectUncertainty(state, {format}))}));
 } finally {
   await client.close();
 }

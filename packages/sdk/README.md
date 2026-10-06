@@ -957,6 +957,33 @@ mistaking a prefix for a complete admission frontier. A valid old report remains
 bound to its original input/context; no more checking or supplementation is
 performed by presentation.
 
+### Passive operation diagnostic formats
+
+`formatSubmission`, `formatCancellation`, `formatReadFailure` and
+`formatEffectUncertainty` render only the original SDK-owned observations used
+by their corresponding explanation helpers. They offer `text`, `html` and
+agent `json` formats, locale selection and a 1,024..1,048,576 UTF-8 byte budget
+(default 65,536). Copies and forged errors/responses have no formatting custody.
+The renderer captures the retained observation before reading display options.
+Locale, wording, severity or edits to an enumerable error never change its facts.
+
+All original lookup references, returned-row counts, unknown outcomes, unresolved
+Effect names and physical-stop/control revisions remain intact. JSON carries the
+whole explanation and independent operation translation revision; text/HTML
+retain those same facts as escaped data. Markup, terminal controls and bidi marks
+are escaped without changing parsed JSON values or semantic identities. No raw
+cause, input, credential or provider message is included. References are data,
+not executable instructions or durable permission.
+
+If the complete observation cannot fit the requested output budget, return
+undefined rather than a success-looking prefix or a reduced unresolved-Effect
+set. Existing explanation helpers remain available independently. Formatting
+performs no lookup, cancel, resend, new read, Compute or provider call. It cannot
+establish durable cancellation-operation reconciliation, Delivery opening or
+receipt-backed completion, or complete template scope; those still require
+facts from their existing authoritative owners. No wire schema, identity,
+persistence or execution path changes are introduced by presentation.
+
 ## Rejected Run observations
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator
