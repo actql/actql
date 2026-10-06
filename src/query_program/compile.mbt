@@ -1316,7 +1316,7 @@ fn lower_analytic(
   let call = projections[0].analytic.unwrap()
   let partitions : Array[@builder.Node] = []
   for expression in call.window.partition_by {
-    let field = analytic_order_field(
+    let field = analytic_partition_field(
       construction, expression, resolve, reserved, evaluated, derives, max_work,
     )
     partitions.push(construction.text(field))
