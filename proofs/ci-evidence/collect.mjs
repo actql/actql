@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {performance} from 'node:perf_hooks';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {readCatalog, catalogPath, initialRegistrationRevision, preserveProtectedActions} from './actions.mjs';
+import {readCatalog, catalogPath, protectedRegistrationRevision, preserveProtectedActions} from './actions.mjs';
 import {checkExecutionRecipes} from './execution-recipes.mjs';
 import {actionInputs, gitTree, hash} from './inputs.mjs';
 import {canonicalReceipt, parseReceipt, sealReceipt} from './receipts.mjs';
@@ -37,7 +37,7 @@ export async function initialize() {
   const repository = process.env.GITHUB_REPOSITORY, revision = git(['rev-parse', 'HEAD']);
   assert.equal(revision, process.env.GITHUB_SHA, 'Wrong CI checkout');
   assert.equal(git(['status', '--porcelain', '--untracked-files=normal']), '', 'Dirty comparison checkout');
-  const protectedCatalog = JSON.parse(gitTree(root, initialRegistrationRevision).read(catalogPath));
+  const protectedCatalog = JSON.parse(gitTree(root, protectedRegistrationRevision).read(catalogPath));
   const catalog = readCatalog();
   preserveProtectedActions(protectedCatalog, catalog);
   checkExecutionRecipes(catalog);

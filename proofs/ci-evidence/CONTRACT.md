@@ -53,7 +53,13 @@ successful producer without final acceptance cannot authorize reuse.
 To add a local obligation, register its finite fixture recipe and matching
 action descriptors as described in [the contributor steps](README.md#adding-a-local-obligation-through-the-ordinary-pr).
 No workflow edit, execution callback or per-PR permission from G is needed.
-The initial requirements remain protected; new local actions execute fresh and
+All 30 currently published requirements are protected by a fixed integrated-main
+catalog, separately from the initial 26-action provenance pin. Collector,
+diagnostic acceptance and final consumer use the same protected revision even
+if the optional comparison original is unavailable. A coordinated candidate
+catalog/recipe edit cannot retire these obligations. Newly integrated additive
+registrations must be included in a reviewed protected-pin update; no retirement
+mechanism exists. New local actions execute fresh and
 need their own candidate receipts. A new derived operation claim additionally
 needs independent fixture scope/binding evidence, not just a registration.
 

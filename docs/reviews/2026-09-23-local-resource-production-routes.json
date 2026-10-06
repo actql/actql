@@ -13061,6 +13061,20 @@
           "fixture": "Relation Pool Object names retain independent limits and stop custody"
         },
         {
+          "role": "pool_json_name_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_object_name_recheck_wbtest.mbt",
+          "fixture": "Relation Pool opaque JSON names retain independent limits and stop custody"
+        },
+        {
+          "role": "pool_json_name_shared_limits",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_json_names_wbtest.mbt",
+          "fixture": "opaque JSON name limits cancellation and surrogate boundaries stay exact"
+        },
+        {
           "role": "pool_object_name_shared_limits",
           "suite": "moon:value_admission",
           "targets": [
@@ -13486,6 +13500,13 @@
           ],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside typed Object name admission"
+        },
+        {
+          "role": "pool_json_name_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside opaque JSON name admission"
         },
         {
           "role": "pool_field_binding_public_store",
