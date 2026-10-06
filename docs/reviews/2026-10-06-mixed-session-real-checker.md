@@ -34,6 +34,23 @@ no production policy, workflow, registration or certificate schema.
 
 ## Trust and remaining acceptance
 
+The archive regression additionally constructs an independent real ZIP and
+passes it through `verifyCurrentFamily`, without substituting its receipt
+reader, source reader, certificate checker or image/result correspondence
+checks. The complete catalog and source byte/mode identities come from actual
+immutable Git. The certificate comes from executing the pinned Lean process.
+Controlled API responses bind the ZIP's real SHA-256 and own run/job/attempt.
+
+The image/executable and mutation-execution observations are synthetic, and
+retain the isolated runtime residual. Installed-runtime inputs are explicitly
+missing and remain open. The consumer accepts the complete fresh family but
+keeps `not-compared`, no reuse authorization and an empty ready list. It refuses
+failed producer jobs, different attempts, transport digest replacement,
+missing required receipts, changed Lean output and erased runtime residuals.
+For the last three controls the API digest is rebound to the changed real ZIP,
+so refusal must occur below transport validation. This does not replace the
+separate actual-image/mutation acceptance.
+
 Source trees, receipt observations and the ready-evidence reader are controlled
 test seams. Their labels do not establish GitHub provenance, actual mutation
 execution or physical Host acceptance. The Lean process and production JS
@@ -54,6 +71,8 @@ on the normal PATH, then execute:
 ```sh
 node scripts/local-checks.mjs test node --timeout-seconds 180 -- \
   proofs/ci-evidence/final.test.mjs \
+  proofs/ci-evidence/final-archive.test.mjs \
+  proofs/ci-evidence/acceptance.test.mjs \
   proofs/ci-evidence/check.test.mjs \
   proofs/ci-evidence/applications.test.mjs \
   proofs/ci-evidence/acquisition.test.mjs
