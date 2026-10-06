@@ -12,6 +12,17 @@ import './installed-connectors.test.mjs';
 import './installed-row-source.test.mjs';
 // Real installed-Host target cancellation and process restart.
 import './embedded-target-cancel.test.mjs';
+// The ordinary installed retained path includes long wire keys and values.
+import './public-wire-retention.test.mjs';
+import './public-membership-retention.test.mjs';
+import './public-sequence-retention.test.mjs';
+import './public-interval-retention.test.mjs';
+import './public-set-value-retention.test.mjs';
+import './public-distinct-value-retention.test.mjs';
+import './public-expression-comparison-retention.test.mjs';
+import './public-pool-key-retention.test.mjs';
+import './public-nearest-key-retention.test.mjs';
+import './public-ranking-key-retention.test.mjs';
 // Public binding-row retention, real Store reload and post-progress stop.
 import './public-binding-retention.test.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from

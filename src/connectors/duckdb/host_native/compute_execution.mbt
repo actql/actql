@@ -712,7 +712,15 @@ fn execute_native_compute_query(
         }
         if retained is Some(output) {
           while true {
-            match @duckdb_compute.drain_duckdb_compute_stream_row(attempt) {
+            // Reuse the portable bounded frame rather than cross storage
+            // once per row. Admission and logical work remain per row; the
+            // installed byte ceiling and pending-chunk backpressure remain.
+            match
+              @duckdb_compute.drain_duckdb_compute_stream_batch(
+                attempt,
+                output.max_batch_bytes,
+                Int::min(64, output.max_chunk_rows),
+              ) {
               Ok(Some(batch)) =>
                 match output.file.append(batch) {
                   Ok(_) => ()

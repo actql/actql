@@ -296,9 +296,23 @@ fn source_diagnostic_category(issue : SourceFailure) -> DiagnosticCategory {
     | Registration(LocalInputs(BudgetExceeded)) => CompileLimit
     Declarations(Declarations(error)) => parameter_diagnostic_category(error)
     SourceView(Binding(Binding(error))) => parameter_diagnostic_category(error)
+    SourceView(
+      Context(
+        Stages(
+          RowCapacity(
+            Construction(
+              _,
+              _,
+              Application(InvalidBoundCount | InvalidBoundMilliseconds(_))
+            )
+          )
+        )
+      )
+    ) => InvalidInput
     // Declaration use is the existing complete Program inventory's decision.
     // Its budget/settings failures must never become author errors.
-    Identity(References(Usage(issue))) => declaration_usage_diagnostic_category(issue)
+    Identity(References(Usage(issue))) =>
+      declaration_usage_diagnostic_category(issue)
     Requests(InvalidLimits)
     | Checks(InvalidLimits)
     | Identity(InvalidLimits)
