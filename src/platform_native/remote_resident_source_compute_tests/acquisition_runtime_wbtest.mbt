@@ -6,6 +6,8 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   through_resident? : Bool = false,
+  through_consumer_holder? : Bool = false,
+  cancel_consumer_before_start? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
@@ -302,6 +304,8 @@ fn acquisition_runtime_case(
       sqlite,
       root_path,
       name,
+      through_consumer_holder~,
+      cancel_consumer_before_start~,
       cancel_receiver~,
       deny_after_admission~,
       consumer_start_expiry~,
@@ -424,5 +428,24 @@ test "durable producer cancellation withholds retained handoff before consumer s
     true,
     through_resident=true,
     cancel_producer_before_handoff=true,
+  )
+}
+
+///|
+test "original producer holder owns one consumer borrow through formal cleanup" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    through_consumer_holder=true,
+  )
+}
+
+///|
+test "producer holder retains independent holdings when consumer is cancelled before its start" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    through_consumer_holder=true,
+    cancel_consumer_before_start=true,
   )
 }
