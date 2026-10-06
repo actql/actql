@@ -109,9 +109,10 @@ was performed. Draft CI remains separate from merge verification.
 
 ## Integrated common dependency and public acceptance
 
-The common execution dependency was adopted by normal-merging #648 fixed SHA
-`56f14bb71f5563114cd9391de3c1f5d50b26e031`. The resulting Frontend branch
-HEAD used for the final source and package build was
+The common execution dependency was adopted by normal-merging #648; its merge
+commit is `2a68ffdcb5698b6142d1acd50fa6a09d086bc439` and the fixed feature
+SHA is `399991046fad6d61c1a6d4003ae341d8befdf209`. The resulting Frontend
+branch HEAD used for the final source and package build was
 `530794f22b877e3ae49115985261ead382e20ace`; the one-line parameter declaration
 fixture correction is included in that HEAD.
 
