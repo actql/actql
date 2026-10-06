@@ -247,6 +247,7 @@ pub fn compile_query_script(
               steps,
               reserved,
               known~,
+              graphs~,
             )
             if @query.operation_count(@query.after_graph_calls(query)) != 0 {
               raise Abort(UnsupportedGraph)

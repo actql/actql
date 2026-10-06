@@ -146,6 +146,12 @@ fn lower_script_graph_rows(
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
     }
+    if call.operation == "union_graphs" {
+      current = lower_script_graph_union(
+        construction, query, call, current, graphs, known, limits, steps, reserved,
+      )
+      continue
+    }
     if call.operation == "subgraph" {
       current = lower_script_subgraph(
         construction, query, call, current, known, limits, steps, reserved,

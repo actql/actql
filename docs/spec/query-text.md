@@ -575,6 +575,31 @@ Graph Delta application produces a Graph and establishes no Relation order.
 The Frontend does not synthesize a sort, key, scalar encoding or fallback to
 publish the JSON value.
 
+`union_graphs` preserves the Graph Carrier and admits the existing scalar or
+nonempty-list `with:` form. Each bare/backtick name resolves an earlier DATA
+Graph producer; STRING values never resolve Graph names. The current Graph is
+the primary operand, followed by each peer in authored list order. Repeated
+peer references remain repeated fold occurrences; lowering does not deduplicate
+them, reorder them or reacquire their producers.
+
+```aql
+DATA combined = FROM g |> union_graphs(
+  with: [peer, g], merge: {node_properties: {score: 'number_sum'}});
+FROM combined |> node_rows() |> SELECT node_key, score |> RESULT nodes
+```
+
+The common union checker owns identity-domain/definition/key/label compatibility
+and recursive property contracts. Authored merge strategies are passed unchanged;
+no policy is inferred to make a conflict succeed. Sequential fold arithmetic,
+parallel-edge identity, atomic failures and operation-wide capacity remain common
+owner obligations. The output retains the checked compatible definition names
+and can continue into DATA, Graph calls and normal Relation processing after
+node_rows/edge_rows. No legacy Graph conversion, implicit Relation conversion,
+sort, storage boundary or separate union evaluator is introduced. Empty lists,
+undeclared/forward/Relation references, extra arguments and invalid common
+policies are preparation refusals. Other Graph-algebra connections and wider
+common compatibility are independent coverage obligations.
+
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported
