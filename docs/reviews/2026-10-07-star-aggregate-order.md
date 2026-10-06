@@ -81,3 +81,43 @@ forms prepared successfully. The corrected JSON control also prepares through
 the same bridge. This is a fixture authoring correction, not evidence of a new
 product bug or public acceptance success. The tracked source change is confined
 to the JSON control and this report; the frontend implementation is unchanged.
+
+## Corrected normal packed acceptance
+
+Source `6b263eb126829a23fe3d444fe5206e6fb5d2fc24` completed 18/18 successes
+and 8/8 pre-admission refusals in both Embedded Local and public HTTPS.
+All authored sources/expectations and installed Host ceilings were retained.
+Result.describe full type/nullability/column order, exact rows and stream
+completion, one shared acquisition, same Run on request resend and no added
+I/O on re-read/attach were checked by the existing acceptance helper. No private
+physical fields leaked into Results. The later report-only commit is not a
+new runtime build or CI result.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-star-aggregate-order-corrected-20261007-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-star-aggregate-order-corrected-20261007-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+npm_config_offline=true npm_config_include=optional \
+node scripts/test-packed-public-query.mjs --star-replace-only
+```
+
+Producer used pinned MoonBit/Node PATH and MOON_HOME, ordinary prepack and the
+normal manifest/digest checks. Receipt and complete logs are retained under
+`worktrees/.codex-scratch/public-query-evidence-7ktiF0`; its external installation
+was removed after evidence preservation. The dirty flag reflects protected
+untracked review evidence, not changed tracked runtime/fixture build inputs.
+The corrected fixture's Node selection passed 3/3 (`focused-test-I5jGCb`).
+The 22 JS and 14 Node successes above belong to the implementation checkpoint;
+only the independent control/report changed afterward, with packed acceptance
+now executed at the explicitly recorded source SHA.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `0212e9f37cde525589a0e8d48b62151e73ce53153ef75948974cb9f672659523` |
+| sdk | `fe085d7d7e2cce344c2c4daf18f33ca477dcee9189e96552816cf9eee6b10972` |
+| run-host-core | `1efe8b4522f222c7f0e39a84a45a76004f652f01ecc450bc3985078b805f5649` |
+| local-node | `dd87e4031eae5ce506d86b8618fb622b5eb87e600b34cf60b9aa4b8f69ba766b` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+No runtime overlay, post-lowering patch, fallback or second execution owner was
+used. Submitted-HEAD CI/content review remain separate; final destination main.
