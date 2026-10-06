@@ -15,6 +15,7 @@ declare const retainedInputEdgeBrand: unique symbol;
 declare const retainedInputProducerBrand: unique symbol;
 declare const retainedInputIntentBrand: unique symbol;
 declare const retainedInputPlanBrand: unique symbol;
+declare const retainedInputResultBrand: unique symbol;
 declare const retainedTaskInputBrand: unique symbol;
 
 export interface ResultMaterialHolds {
@@ -641,6 +642,19 @@ export function retainedInputPlanFacts(plan: RetainedInputPlan): Readonly<{
   transfer: Readonly<{cid: string; wire: string}>;
   manifest: Readonly<{cid: string; wire: string}>;
 }>;
+/** The saved handoff is issued only after current Owner validation. */
+export function retainedInputTransferEnvelope(plan: RetainedInputPlan): string;
+/** Historical protocol evidence; no reservation, borrow or execution authority. */
+export interface RetainedInputResult {
+  readonly [retainedInputResultBrand]: true;
+}
+export function admitRetainedInputResult(plan: RetainedInputPlan,
+  saved: Readonly<{cid: string; wire: string}>): RetainedInputResult;
+export function retainedInputResultFacts(result: RetainedInputResult): Readonly<{
+  cid: string; wire: string; planCid: string;
+  transferReply: Readonly<{requestCid: string; wire: string}>;
+  receipt: Readonly<{cid: string; wire: string}>;
+}>;
 export interface RetainedInputLimits {
   readonly maxChunks: number;
   readonly maxManifestBytes: number;
@@ -831,6 +845,22 @@ export function issueReadOnlyCapturedRun(
   snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence,
   models: readonly RunEvidence[], limits: PublicationLimits):
   PublicationContract;
+
+/** A checked snapshot grants neither execution, authorization nor input custody. */
+export function inspectTaskProgress(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, authority: string,
+  durableWires: readonly string[]): Readonly<{
+    nextTask: number | undefined; executionComplete: boolean;
+    cleanupComplete: boolean; resultTasks: readonly number[];
+    tasks: readonly Readonly<{ordinal: number; taskKey: string;
+      execution: 'unobserved' | 'accepted' | 'provisioning' | 'running' |
+        'settled' | 'failed' | 'cancelled' | 'unknown';
+      cleanup: 'unobserved' | 'active' | 'releasing' | 'released' |
+        'unknown' | 'force_lost' | 'recovered_after_loss';
+      revision: number; dispatchCid: string | undefined;
+      executionScope: readonly string[]}>[];
+  }>;
 
 /** Authenticated storage is supplied by the Host; this grants no execution. */
 export function projectSiteRun(prepared: PreparedProgram,

@@ -4,6 +4,7 @@ const retainedInputEdges = new WeakMap();
 const retainedInputProducers = new WeakMap();
 const retainedInputIntents = new WeakMap();
 const retainedInputPlans = new WeakMap();
+const retainedInputResults = new WeakMap();
 const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
@@ -1144,6 +1145,34 @@ export function retainedInputPlanFacts(plan) {
     manifest: Object.freeze({cid: values[4], wire: values[5]})});
 }
 
+/** Revalidate the original checked plan against live Owners before delivery. */
+export function retainedInputTransferEnvelope(plan) {
+  return checked(owner.clientValuesHostRetainedInputTransferEnvelope(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Historical committed receipt, never current custody or consumer authority. */
+export function admitRetainedInputResult(plan, saved) {
+  const owned = requireHandle(retainedInputPlans, plan);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputResultWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputResult(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputResultRejected');
+  return handle(retainedInputResults, value, 'retained-input-result');
+}
+
+/** These immutable facts must be persisted and joined to current trusted Owners. */
+export function retainedInputResultFacts(result) {
+  const values = checked(owner.clientValuesHostRetainedInputResultFacts(
+    requireHandle(retainedInputResults, result)), 'RunHostRetainedInputResultRejected');
+  if (!Array.isArray(values) || values.length !== 7 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputResultProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1], planCid: values[2],
+    transferReply: Object.freeze({requestCid: values[3], wire: values[4]}),
+    receipt: Object.freeze({cid: values[5], wire: values[6]})});
+}
+
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',
   'nowUnixMs', 'authorized'];
 
@@ -2027,6 +2056,37 @@ export function openResultDeliveryControl() {
       return deliveryResult('clientValuesHostFinishResultDelivery',
         requireHandle(deliverySerializers, serializer));
     },
+  });
+}
+
+/** Inspect checked task readiness. A snapshot grants no start or input custody. */
+export function inspectTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  checkRunBinding(prepared, admission, definition);
+  const value = checked(owner.clientValuesHostInspectTaskProgress(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostTaskProgressRejected');
+  const scopes = owner.clientValuesHostTaskProgressScopes(value);
+  const next = owner.clientValuesHostTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    executionComplete: owner.clientValuesHostTaskProgressExecutionComplete(value),
+    cleanupComplete: owner.clientValuesHostTaskProgressCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
   });
 }
 

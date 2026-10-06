@@ -507,11 +507,50 @@ code units, non-BMP characters count as two, and CRLF is one line break; lone CR
 and LF also start a line. EOF and zero-width locations are supported. A boundary
 inside CRLF or malformed original Unicode has no exact editor range and is
 omitted. Structured locations remain pointers, without fabricated text ranges.
-An editor must associate its open-document session/version with the submitted
-snapshot and pass the current identity/revision/text when displaying against
-the current buffer. Reopening or editing does not rebind an old response.
-This helper provides UTF-16 coordinates, not a negotiated LSP server or an edit
-operation; approximate ranges retain their label and do not grant edit permission.
+`resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput?)` uses
+that same walker with an already negotiated `utf-8`, `utf-16` or `utf-32`
+encoding. UTF-8 columns count bytes, UTF-16 columns count code units and UTF-32
+columns count Unicode scalars. Unsupported encodings are refused. Neither helper
+negotiates a protocol or applies edits; approximate ranges retain their label.
+
+`createCheckDocumentSession(client, {text, version, positionEncoding?})` binds one
+open unsaved buffer to explicit SDK checks. The default encoding is UTF-16, as in
+[LSP's position contract](https://github.com/microsoft/vscode-languageserver-node/blob/main/types/src/main.ts).
+`update(text, version)` replaces the entire buffer only with a well-formed string
+and a strictly increasing signed 32-bit version. Negative initial versions and
+nonconsecutive increases are allowed. Undo/redo still advances the version.
+Reopening requires a new session. The session does not infer text from a URI.
+
+```js
+const document = createCheckDocumentSession(client, {text: buffer, version: 1});
+const observation = await document.check({format: 'sql'});
+const report = observation.outcome.report ?? observation.outcome.partial_report;
+for (const reason of report?.reasons ?? []) {
+  const range = reason.location && document.resolveTextRange(observation, reason.location);
+  // Display the safe reason even when no current editor range is available.
+}
+document.close();
+```
+
+Each check captures the current text/version before waiting. Position resolution
+requires the original observation from this session, the current version and
+exact bytes, and the newest issued check. A newer pending or failed check also
+invalidates earlier positions, including checks with unchanged text but different
+bindings/context. Reordered replies remain historical observations; editing,
+closing, reopening, foreign sessions and copied observations cannot rebind them.
+A response without SDK-owned source input has no editor range. Safe explanations
+remain available through `observation.outcome` independently of position display.
+
+A session retains one current buffer and its shared Client while open. Outstanding
+checks retain their captured input until settlement; retained original outcomes
+keep their existing SDK input snapshots through weak associations. Session
+observation associations are also weak and do not retain an independent history.
+`close()` drops the current buffer and Client reference and invalidates all editor
+positions; it neither cancels outstanding checks nor closes the shared Client.
+The session has no additional buffer byte cap or timed retention; explicit check
+calls still use the existing SDK/Host request admission bounds. No extra Host
+persistence, retrieval API, public input hash or retention period is introduced. This is an SDK document adapter, not a full LSP server or a fix
+application mechanism.
 Nested object/array type failures identify the declared child type and the
 existing binder's path, with JSON pointer escaping for field names. Supplied
 constraint violations with an owned binder cause expose
@@ -738,3 +777,46 @@ opens another read after checking availability, it starts from the beginning;
 it does not append to or resume the interrupted iterator. Read interruption or
 cleanup uncertainty proves neither Run failure, Result publication nor resource
 release.
+
+
+`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?})`
+formats the validated public check observation for terminal output, HTML display,
+or structured agent data. Text is the default. It delegates summaries to the
+existing explanation helpers and preserves the Owner verdict, scope, completeness
+and context. Agent JSON keeps reason/outcome schema CIDs separately from the
+selected translation revision. Requirements, limits and protected unresolved boundaries stay distinct
+from violations. Unknown reasons have generic explanations; malformed known facts,
+wrong schema identities and unknown outcomes return `undefined`.
+
+HTML escapes markup. All formats escape untrusted control and bidirectional marks;
+agent JSON also escapes markup delimiters while preserving string data on parse.
+The output contains disclosed typed facts and locations, never original input text,
+parameter values, private causes, provider debug links, executable actions or input access. It performs no
+transport, checking, edit, submission or retry. Render HTML as this complete
+fragment; do not reinterpret its escaped strings as markup.
+
+Locations require the exact SDK response's original input association. Copied
+reports still display safe explanations but omit positions. For a current editor,
+pass `currentInputs` explicitly: missing, edited or stale revisions omit positions.
+Matching current inputs validate freshness; resolved locations use the SDK-owned
+immutable submitted snapshot, so later reads cannot switch to caller-mutated text.
+An absent option displays coordinates of the submitted revision only, never an
+assumed latest editor buffer. Text locations include original UTF-8 offsets and,
+when representable, the existing UTF-16 range. Structured pointers remain separate.
+This is display plumbing, not an LSP document-session owner or a fix applicator.
+
+The default output limit is 65,536 UTF-8 bytes; `maxBytes` must be an integer from
+1,024 through 1,048,576. Whole entries are retained in report order until the bound
+is reached. `omittedEntries` in JSON and an explicit omission line in text/HTML
+report the remaining count. Truncation never changes the observation or claims
+complete diagnostic display. If even the observation cannot fit, return
+`undefined`; callers retain the original typed outcome for another display.
+
+
+```js
+import {formatCheckOutcome} from '@actql/sdk';
+const outcome = await client.check(text, {format: 'sql'});
+const display = formatCheckOutcome(outcome, {format: 'text'});
+if (display === undefined) throw new Error('CheckDisplayUnavailable');
+console.log(display);
+```
