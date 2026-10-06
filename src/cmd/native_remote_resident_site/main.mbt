@@ -3220,9 +3220,39 @@ fn run_holder(
     Err(_) => stop("executor slot is not held by this holder")
   }
   let claimant = required(holder, "claimant")
+  let attempt = required(holder, "attempt")
+  if slot.verify_current_hold() != Ok(()) {
+    stop("completed holder current slot unavailable")
+  }
+  let inspection = match fresh_journal(open_control_environment(matches)) {
+    Some(value) => value
+    None => stop("holder saved journal unavailable")
+  }
+  let saved_claimant = @resident_host.resident_completed_holder_claimant(
+    inspection,
+    run_admission(matches),
+    delegation(matches, budget(matches)),
+    required_int(matches, "site-generation"),
+    attempt,
+    start_timestamp(matches),
+  )
+  if !inspection.close() {
+    stop("holder saved journal close pending")
+  }
+  let original_claimant = match saved_claimant {
+    Ok(Some(value)) => value
+    Ok(None) => claimant
+    Err(issue) => {
+      report("holder-restoration-refused", [("reason", host_code(issue))])
+      stop("holder saved completion unavailable")
+    }
+  }
   let environment = open_site_environment(
     matches,
-    "runtime-process:resident-holder:" + claimant,
+    // The actual exclusive slot confirms the old process has stopped. The
+    // journal selects its exact holding; retain is idempotent and Runtime
+    // returns this holding only after its physical cleanup completes.
+    "runtime-process:resident-holder:" + original_claimant,
   )
   // The installed runtime must be the one the Site delegates.
   let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
@@ -3360,7 +3390,6 @@ fn run_holder(
   }
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
-  let attempt = required(holder, "attempt")
   let saved_completion = match environment.journal.dispatch_envelope(attempt) {
     Ok(Some(body)) =>
       match @remote.admit_remote_poll_dispatch_json(body) {

@@ -31,16 +31,29 @@ Actual Native slot tests verify non-acquiring observation, same description,
 replacement/closure refusal and existing process/descendant handover behavior.
 The Native resident CLI is checked and built with its actual consuming types.
 
-The controller still needs the exact saved-plan route that selects a recreated
-completed producer holder, and the receiver reservation/borrow must be restored
-under that exclusive holder. Interrupted restoration with revoked authority
+The controller selects an absent completed producer from a checked retained
+plan/transfer intent and its original saved envelope, using the existing queue.
+Current delegation, cancellation, completed custody and the exact checked edge
+are verified before selection; the recreated holder rechecks the actual slot.
+A receiver status query does not acquire a holder or advance Transfer.
+
+The saved start claimant selects the original process bundle holding. The
+existing bundle Owner retains that exact identity idempotently; the same Runtime
+returns it after physical cleanup instead of leaving the dead process holding
+behind or issuing another execution claim.
+
+Receiver reservation/borrow reconstruction after a committed handoff still
+needs acceptance under that exclusive holder. Interrupted restoration with revoked authority
 before all resource handles are recovered retains pending responsibility; a
 cleanup-only restoration connection is still required for that boundary. No
 timeout, capacity ceiling or fixture expectation is relaxed to conceal it.
 
-Real producer-holder interruption, consumer continuation, public Cloud two-task
-acceptance and generation-changing Site restart are not proved by the admission
-or slot tests. Formal five-package/Native adoption waits for merged reviewed OSS
+The existing real Native fixture can interrupt a producer after its completed
+evidence and file custody are durable, select the same holder from the retained
+intent and continue the consumer. It checks the original and recreated bundle
+holdings as well as Source/executor counts and normal release. These checks are
+not public Cloud two-task acceptance or generation-changing Site restart.
+Formal five-package/Native adoption waits for merged reviewed OSS
 source. The earlier Native diagnostic timeout and old #88 Runs remain separate
 unresolved evidence. This change includes no deployment, merge or old-Run
 terminal rewrite.

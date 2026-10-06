@@ -70,6 +70,8 @@ pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_sto
 
 pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
 
+pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
+
 pub fn resident_output_checkpoints() -> Array[String]
 
 pub fn resident_output_cleanup_pending(ResidentOutputIssue) -> Bool
