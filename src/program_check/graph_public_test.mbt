@@ -24,10 +24,18 @@ test "normal Program admission rejects the retired graph constructor instead of 
     )
     assert_true(
       @program_check.diagnostic_cause(rejected)
-      is Source(SourceView(Program(Program(Pipeline(_, {
-        kind: @pipeline.Graph(@graph.UnsupportedGraphOperation),
-        ..
-      }))))),
+      is Source(
+        SourceView(
+          Program(
+            Program(
+              Pipeline(
+                _,
+                { kind: @pipeline.Graph(@graph.UnsupportedGraphOperation), .. }
+              )
+            )
+          )
+        )
+      ),
     )
   }
 }
