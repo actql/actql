@@ -1,6 +1,7 @@
 ///|
 /// Checked schema knowledge, not admitted rows, uniqueness or execution rights.
-struct PropertyNodeDefinition {
+/// Canonical internal name for an admitted Graph node definition.
+struct GraphNodeDefinition {
   name : String
   key_contracts : Array[@value.Contract]
   key_columns : Array[String]
@@ -11,17 +12,19 @@ struct PropertyNodeDefinition {
 }
 
 ///|
-struct PropertyEdgeDefinition {
-  element : PropertyNodeDefinition
+/// Canonical internal name for an admitted Graph edge definition.
+struct GraphEdgeDefinition {
+  element : GraphNodeDefinition
   source_definition : String
   target_definition : String
 }
 
 ///|
-struct PropertyGraphDefinition {
+/// Canonical internal name for an admitted Graph definition.
+struct GraphDefinition {
   domain : String
-  nodes : Array[PropertyNodeDefinition]
-  edges : Array[PropertyEdgeDefinition]
+  nodes : Array[GraphNodeDefinition]
+  edges : Array[GraphEdgeDefinition]
   node_names : Map[String, Int]
   edge_names : Map[String, Int]
 }
@@ -29,7 +32,7 @@ struct PropertyGraphDefinition {
 ///|
 /// The scalar descriptor embedded in Graph identity, not the full value
 /// contract. Nullability and text extents do not change this descriptor.
-pub(all) enum PropertyKeyDescriptor {
+pub(all) enum GraphKeyDescriptor {
   NumberKey
   TextKey
   BooleanKey
@@ -59,7 +62,7 @@ pub fn property_key_descriptor(
 }
 
 ///|
-pub(all) enum PropertyGraphIssue {
+pub(all) enum GraphIssue {
   InvalidLimits
   InvalidName
   InvalidKey
@@ -73,6 +76,15 @@ pub(all) enum PropertyGraphIssue {
   LimitExceeded
   InvalidDomain
 } derive(Eq, Debug)
+
+/// Deprecated compatibility names. Keep these aliases while callers migrate
+/// to the canonical Graph vocabulary; they have no representation or wire
+/// effect.
+pub type PropertyNodeDefinition = GraphNodeDefinition
+pub type PropertyEdgeDefinition = GraphEdgeDefinition
+pub type PropertyGraphDefinition = GraphDefinition
+pub type PropertyKeyDescriptor = GraphKeyDescriptor
+pub type PropertyGraphIssue = GraphIssue
 
 ///|
 fn property_name(value : String) -> Bool {
