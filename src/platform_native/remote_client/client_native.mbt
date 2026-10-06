@@ -346,3 +346,22 @@ pub fn acknowledge_output_plan(
     Err(issue) => Err(Http(issue))
   }
 }
+
+///|
+/// Report the exact internal-producer plan, never a public Output plan. This
+/// transport acknowledgement is not a receiver commit or execution claim.
+pub fn acknowledge_retained_input_plan(
+  client : @http.Client,
+  url : String,
+  plan : @remote.RemoteRetainedInputPlan,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_retained_input_plan_json(plan)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
