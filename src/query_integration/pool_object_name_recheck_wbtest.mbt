@@ -1,7 +1,15 @@
 ///|
-test "Relation Pool Object names retain independent limits and stop custody" {
-  let source = vector_input_recheck_owner(1, pooling=true, object_names=true)
-  let owner = direct_relation_pool_owner(source)
+fn pool_name_limits_and_stop(json_names : Bool) -> Unit raise {
+  let source = vector_input_recheck_owner(
+    1,
+    pooling=true,
+    object_names=!json_names,
+    json_names~,
+  )
+  let owner = direct_relation_pool_owner(
+    source,
+    source_step=if json_names { 2 } else { 1 },
+  )
   let completed = @execution.execute_generated_sequence(
     task_test_generated(source),
     [],
@@ -13,7 +21,10 @@ test "Relation Pool Object names retain independent limits and stop custody" {
       owner,
       0,
       source,
-      @execution.completed_output(completed, @pipeline.Step(1)).unwrap(),
+      @execution.completed_output(
+        completed,
+        @pipeline.Step(if json_names { 2 } else { 1 }),
+      ).unwrap(),
     ).unwrap(),
     // Five declarations plus 1+2+3+4+5 exact column lookups.
     20,
@@ -45,13 +56,18 @@ test "Relation Pool Object names retain independent limits and stop custody" {
     is Err(@local_veca.PoolWorkspaceLimit),
   )
   for quantum in [1, 7, 256] {
-    for (work, success) in [(313, true), (312, false)] {
+    for
+      (work, workspace, success) in [
+        (313, 72, true),
+        (312, 72, false),
+        (313, 71, false),
+      ] {
       let active = @local_veca.start_relation_pool(
         @bounded.control(),
         prepared_sequence(owner),
         0,
         read,
-        { ..limits, max_work: work, },
+        { ..limits, max_work: work, max_workspace_slots: workspace, },
         4096L,
         fn() { true },
       ).unwrap()
@@ -76,8 +92,17 @@ test "Relation Pool Object names retain independent limits and stop custody" {
             }
             @local_veca.PoolFailed(issue, work~, ..) => {
               assert_false(success)
-              assert_eq(issue, @local_veca.PoolWorkLimit)
-              assert_eq(work, 312L)
+              if workspace == 71 {
+                assert_true(
+                  issue
+                  is @local_veca.PoolOutput(
+                    @records.Storage(@record_storage.WorkspaceLimit)
+                  ),
+                )
+              } else {
+                assert_eq(issue, @local_veca.PoolWorkLimit)
+                assert_eq(work, 312L)
+              }
               terminal = true
             }
             _ => fail("Object name fixture encountered an unrelated failure")
@@ -120,4 +145,14 @@ test "Relation Pool Object names retain independent limits and stop custody" {
   assert_eq(@local_veca.cleanup_pool(active), Ok(true))
   assert_eq(@local_veca.cleanup_pool(active), Ok(false))
   assert_true(@execution.producer_read_available(read))
+}
+
+///|
+test "Relation Pool Object names retain independent limits and stop custody" {
+  pool_name_limits_and_stop(false)
+}
+
+///|
+test "Relation Pool opaque JSON names retain independent limits and stop custody" {
+  pool_name_limits_and_stop(true)
 }

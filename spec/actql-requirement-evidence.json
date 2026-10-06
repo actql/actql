@@ -5097,7 +5097,7 @@
     },
     {
       "requirement_id": "actql.language/traverse.closed-modes-and-filters",
-      "statement_sha256": "2403da1cdc9295cc6cac890749aaf54fa9f06852163f661d3afb0dab5a1072ed",
+      "statement_sha256": "44bb00209517ce1dc2f0dd98e536f603b15811f8c6e7763d16b0f68a6d63d9f3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5130,7 +5130,7 @@
     },
     {
       "requirement_id": "actql.language/traverse.typed-edge-identity-records",
-      "statement_sha256": "78f5f88722e0d85ca448395c64ce70f5bc16ef236f6e207390d9cab604999e5b",
+      "statement_sha256": "abe3fdd60bf16af492011c364a0ffdba0d5f4fa007cb476df64afa1ef3c86571",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13050,7 +13050,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "c211c2cfc90bfbe2b183d0be29b82644b7648288520043945f051d8924403963",
+      "statement_sha256": "8b01919e943fffd0b38e34a5f2bcb7212f621f3307bd01bbe2bff773e2f2b0dc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

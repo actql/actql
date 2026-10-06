@@ -400,3 +400,14 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+
+/** Safe explanation of an original SDK-rejected Run observation; no write permission. */
+export type RunObservationFailureExplanation = Readonly<{
+  operation: 'status' | 'wait' | 'reconcile';
+  summary: string;
+  hint: string;
+  next: Readonly<{operation: 'status'; ref: RunReference}>;
+}> & (Readonly<{kind: 'uninterpretable'; problem: 'unknown_state'}> |
+  Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response'}>);
+export declare function explainRunObservationFailure(error: unknown,
+  options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined;

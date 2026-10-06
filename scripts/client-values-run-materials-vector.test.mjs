@@ -602,7 +602,26 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector('sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5',
     'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:e9e1315ed7d55af5076ef8b6507364f7727cf6556d6ee5ad19f3694f4e7813b2');
-  assert.equal(current.run.run_definition_cid, 'sha256:53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b');
+  // Keep the pre-closure Program schema's complete Values/Run preimage.
+  // Current schema requirements change the Unit dependency closure even when
+  // this source-free Values Program contains no Graph operation.
+  const beforeSchemaClosure = {
+    unit: pin('1e8e7830dddd545a741135b8a2eb43d2a96b54d54e97b0d0f01588de0160151d'),
+    proof: pin('2218b7cfadddf232c29ccd2e5cc21d9ae1d6d4a1aea6c1fde528f46083d0cb62'),
+    resultPlan: pin('1a20a8bf0cacf27e2567535833edaa39ea58eb3a12f1fd0e0b5ccbdb72de1564'),
+  };
+  assert.equal(vector(pin('3fe450061e6884fc773ecda7492de02dd27a15219a6832e8e490a096e29b1c9a'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    beforeSchemaClosure, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b'));
+  assert.equal(currentDependencies.unit,
+    pin('0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca'));
+  assert.equal(currentDependencies.proof,
+    pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'));
+  assert.equal(currentDependencies.resultPlan,
+    pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'));
+  assert.equal(current.run.run_definition_cid,
+    pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

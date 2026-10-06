@@ -8,10 +8,11 @@ import {
   "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/managed_graph_storage",
+  "actql/actql/value_admission",
 }
 
 // Values
-pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?, union_policy? : UnionPolicy?) -> @local.ManagedProvider
+pub fn provider(@managed_graph_storage.Limits, Int64, @execution_relation.ExecutionCapacity, snapshot_policy? : SnapshotPolicy?, delta_policy? : DeltaPolicy?, union_policy? : UnionPolicy?, reference_issuer? : @value_admission.ReferenceIssuer?) -> @local.ManagedProvider
 
 // Errors
 

@@ -3,9 +3,12 @@ import {readFileSync} from 'node:fs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 
 export const catalogPath = 'proofs/ci-evidence/bounded-session-actions.json';
-// The published initial inventory is an independent bootstrap requirement.
-// Candidate edits cannot delete/relabel it before a protected policy update.
+// Historical origin of the initial 26 actions, used by provenance tests only.
 export const initialRegistrationRevision = 'c35c28021531c8445c95a45ffcfcc1760d02e819';
+// Independently integrated main inventory: all 30 published obligations,
+// including the four Events Bridge actions. Never derive this from receipts
+// or a candidate's edited recipe/catalog pair. Retirement is not implemented.
+export const protectedRegistrationRevision = 'b98a50ff763d1367e344fdfa8aea380ec8749132';
 export const version = 'actql-verification-action-catalog/0.1';
 const fields = ['id', 'kind', 'target', 'command', 'package', 'minimumUnits', 'profile', 'premises', 'dependencies'];
 const exact = (value, keys) => assert.deepEqual(Object.keys(value ?? {}).sort(), [...keys].sort(), 'Unknown/missing catalog field');
