@@ -2349,6 +2349,30 @@ callback interface. `actql/0.1` uses this contract for all general computation
 positions; there is no source revision selector or compatibility mode. The
 Program semantics envelope pins `expression_contract_cid`.
 
+<!-- requirement-block: common-expression-contract.typed-json-literal -->
+A structured `typed_literal` with exactly `type: "json"` and `value` containing
+decoded JSON text MUST use the common typed JSON literal law in the expression
+contract. The output is non-null `json`, including for JSON null and scalars;
+SQL NULL and ordinary scalar literals retain their existing meanings.
+JSON data keys and strings preserve Unicode scalar sequences and CR/LF;
+duplicate keys retain the first decoded value. Exact numeric parsing rejects
+precision loss under the selected binary64 subset, including unsupported
+negative zero; this is not the full GoogleSQL JSON integer domain. The complete
+input is bounded, including discarded duplicates, with depth at most 500 and
+the caller's tighter value/expression ceilings.
+
+<!-- requirement-block: common-expression-contract.typed-json-wire -->
+Non-SQL-NULL JSON values MUST retain their common JSON domain in canonical
+typed-cell wire as the closed `{"$json":payload}` envelope. SQL NULL remains
+`null` under a nullable contract. Typed-wire admission decodes this envelope
+only under a checked JSON contract; raw authored JSON does not select a type
+by its keys. Canonical data-key spelling does not apply identifier normalization.
+Literal IR, retention, capture/replay and Result delivery use this same contract;
+wire bounds include the envelope. Graph identity and Delta semantic-body codecs
+obtain the checked JSON payload explicitly rather than changing their body
+format to the typed-cell envelope. Changed contracts and dependent pins reject
+old untagged typed-cell data rather than silently reinterpreting it.
+
 <!-- requirement-block: common-expression-contract.canonical-nodes -->
 | Source | Decoded canonical node |
 | --- | --- |
@@ -2366,6 +2390,7 @@ Program semantics envelope pins `expression_contract_cid`.
 | qualified `{field: "left.a.b"}` (likewise `right`) | `{property: {value: {join_field: {side: "left", name: "a"}}, name: "b"}}`; each subsequent segment adds property access in order, as in expression text |
 | `[a,b,...]`, `[]` | `{array: [a,b,...]}`, `{array: []}` |
 | explicit typed empty array | `{empty_array: {items: AuthorValueContract}}` (structured only) |
+| explicit typed JSON literal | `{typed_literal: {type: "json", value: JSONText}}` (common structured expression; GoogleSQL surface lowering is specified separately) |
 | `a \|\| b`, `concat_strict(a,b)` | `{concat_strict: [a,b]}` |
 | `concat(a,b)` | `{concat: [a,b]}` |
 
@@ -9975,7 +10000,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397
+../../spec/contracts/actql-aoa.json# sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -9984,13 +10009,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
+../../spec/contracts/actql-expressions.json# sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:312652bb513b214f7006df0cf1d4e28155c86ad631f24a54689b037362d0c2f1
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:040d42d5ef4d01dce7a46e7cbc05817e1d4261dfe220a8e86d3885a7e4908d4e
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:9a6a765f568befcb18f975cf9aed489a4714618a41309c94de1885759867935b
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
+../../spec/contracts/actql-expressions.json#/laws sha256:f4e1af7d2c2b80ea7f446c26ee96774b14d6cae192628b8477f48b2ff4c7b763
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:736ddd89183ed162dd755e68858e1c4f7347c6d6ee03fec46c843f072c5e19d1
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:1333afc6c7356231eab40ede1e99933a70b55f8dac48b32488fc236ddb7c3176
 ```
 
 <!-- stage-contract-pins:start -->

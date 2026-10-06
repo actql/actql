@@ -69,6 +69,7 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     structural_text_rules_sha256: rules,
     query_text_grammar_sha256: queryGrammar,
     query_text_rules_sha256: queryRules, source_grammar_cid: sourceGrammar,
+    expression_text_rules_sha256: expressionRules,
     operations: currentOperations, expression_contract_cid: currentExpression,
     ...unchangedBody} = manifest;
   const expressions = json('spec/contracts/actql-expressions.json');
@@ -77,14 +78,33 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   // while the PR-0 baseline continues to identify the original law body.
   const priorExpressions = structuredClone(expressions);
   delete priorExpressions.laws.membership;
-  assert.equal(oldExpression, machineCid(priorExpressions));
+
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.equal(machineCid(currentProgram), sourceGrammar);
   const priorProgram = structuredClone(currentProgram);
+  // Preserve the historical pre-typed-JSON schema, not a regenerated baseline.
+  const removeTypedJson = node => {
+    if (node === null || typeof node !== 'object') return;
+    if (Array.isArray(node.oneOf)) {
+      node.oneOf = node.oneOf.filter(variant => !variant.properties?.typed_literal && variant.properties?.op?.const !== 'typed_literal');
+    }
+    for (const child of Object.values(node)) removeTypedJson(child);
+  };
+  delete priorExpressions.laws.typed_json_literal;
+  delete priorExpressions.laws.typed_json_wire;
+  removeTypedJson(priorExpressions);
+  assert.equal(oldExpression, machineCid(priorExpressions));
+  removeTypedJson(priorProgram);
   Object.assign(priorProgram.properties.steps.items.properties, legacyGraphSchemas());
   delete priorProgram.properties.steps.items.properties.property_graph;
   assert.equal(machineCid(priorProgram), oldBody.source_grammar_cid);
+  assert.equal(oldBody.expression_text_rules_sha256,
+    '997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2');
+  unchangedBody.expression_text_rules_sha256 = oldBody.expression_text_rules_sha256;
+  assert.equal(expressionRules, hash(read('docs/spec/language.md').toString()
+    .split('<a id="expression-text"></a>')[1].split('<a id="predicates"></a>')[0]
+    .replace(/^/, '<a id="expression-text"></a>')));
   unchangedBody.source_grammar_cid = machineCid(priorProgram);
   unchangedBody.operations = currentOperations.filter(name => name !== 'property_graph');
   assert.deepEqual(oldBody, unchangedBody);
@@ -174,7 +194,7 @@ test('independent fixtures and historical CID oracles retain their baseline byte
   assert.deepEqual(baseline.toolchain, json('toolchain.json'));
   for (const fixture of [...baseline.fixtures, ...baseline.existing_identity_oracles]) {
     // PR-0 remains byte-for-byte available. Active identities follow the
-    // adopted String-value and common membership laws, not Frontend output.
+    // adopted String-value, common membership and typed JSON laws, not Frontend output.
     const historical = {
       'portability/corpus/parameter-identities.json': 'parameter-identities-pr0.json',
       'portability/corpus/stage-definition.json': 'stage-definition-pr0.json',

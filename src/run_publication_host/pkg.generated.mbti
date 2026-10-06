@@ -838,6 +838,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
+
 pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
@@ -847,6 +849,8 @@ pub fn[T] start_captured_managed_result_transformation(ClientResultTransformatio
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
+
+pub fn validate_client_retained_input_plan(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputPlan, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 

@@ -6,30 +6,15 @@
 // the Check Environment built from them) is restored and must reproduce
 // itself against the Site as installed now.
 //
-// The factory projects one Values-origin Effect Unit onto the existing common
-// owners: captured Results and inputs, the Effect Set Preview, the common
-// apply/Ledger/Receipt/publication path and its recovery. It decides no row
-// admission, retry, approval or completion. Each record write is granted only
-// for the commit decision the common owner returned for the sealed Set.
-import {createHash} from 'node:crypto';
+// Every Effect Set of this installation runs on the Host's provider-neutral
+// installed row Effect (adapters/host-node/installed-row-effect.mjs) with
+// Salesforce's write driver (salesforce-write-driver.mjs) and this
+// connector's registered identity profile; this module keeps only the
+// installation: its profile, publication, restore and target-read inventory.
 import {mkdir} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {checkpointApprovalFacts} from '../../../host-common/checkpoint-approval.mjs';
-import {checkedEffectPreparation} from
-  '../../../host-common/effect-preparation-result.mjs';
-import {checkedSalesforceCatalogPreparation} from
-  '../site/salesforce-effect-preparation-result.mjs';
-import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
-import {issueCompletedEffectfulComputationEvidence,
-  releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet} from
-  '../../../host-common/completed-run-publication.mjs';
-import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet,
-  retainPinnedEffectDependencyPayloads} from
-  '../../../host-node/effect-input-export.mjs';
-import {verifyPinnedEffectPlan} from '../../../host-node/effect-plan-verify.mjs';
-import {openEffectLedger} from '../../../host-node/effect-ledger.mjs';
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite, releaseSalesforceSite,
   retainSalesforceSiteCleanup} from
@@ -37,19 +22,12 @@ import {installSalesforceAuthorization, installedSalesforceSiteBinding,
 import {describeSalesforceGeneration, readPublicationFile,
   replacePublicationFile, restoreSalesforceGeneration,
   salesforceCheckEnvironment} from './salesforce-publication.mjs';
-import {authorObservedSalesforceEffectPreview} from
-  './salesforce-effect-preview.mjs';
-import {installSalesforceEffectCurrentUse} from
-  './salesforce-effect-current-use.mjs';
-import {installSalesforceEffectDispatch} from
-  './salesforce-effect-dispatch.mjs';
-import {recoverCapturedSalesforceSingleRequests,
-  reconcileStoredSalesforceSingleEffectWrite} from
-  './salesforce-effect-write.mjs';
-import {issueSalesforceEffectCapability} from
-  '../site/salesforce-effect-capability.mjs';
-import {observeSalesforceTargetSet} from
-  '../site/salesforce-target-observation.mjs';
+import {createInstalledRowEffect} from
+  '../../../host-node/installed-row-effect.mjs';
+import {installedConnectors} from
+  '../../../connectors-builtin/installations.generated.mjs';
+import {salesforceRowEffectSite, salesforceWriteDriver} from
+  './salesforce-write-driver.mjs';
 
 export const INSTALLED_SALESFORCE_EFFECT_VERSION =
   'actql-installed-salesforce-effect/0.1';
@@ -64,12 +42,6 @@ const publicationKeys = Object.freeze(['environment_cid', 'mappings',
 const writeKinds = Object.freeze(new Map([
   ['createFromResult', 'create'], ['update', 'update'],
   ['upsert', 'upsert']]));
-// The Salesforce write projection, request and capability operation codes of
-// each Effect kind.
-const projectionCodes = Object.freeze({create: 0, update: 1, upsert: 2});
-const requestCodes = Object.freeze({create: 0, update: 1, upsert: 2});
-const grantOperations = Object.freeze({create: 'salesforce:record:create',
-  update: 'salesforce:record:update', upsert: 'salesforce:record:upsert'});
 const limits = Object.freeze({
   maxMembers: 16, maxRows: 200, maxWork: 10_000, maxFrontierWork: 1000,
   // Result outputs pinned for one Effect Unit: its members' sources plus
@@ -106,22 +78,6 @@ const text = value => typeof value === 'string' && value.length > 0;
 const requiredEffectRuntime = Object.freeze([
   'salesforcePrepareExecutionWriteBody', 'salesforceWriteValueRefusal',
   'salesforceSingleWriteRequestValue']);
-// A row body, or its typed refusal when a written value is outside its
-// declared type: the Resource, field, type and kind, never the value. It is
-// refused before any provider I/O for the row, and nothing is rounded.
-function writeBody(salesforceMoon, result, projection) {
-  const refusal = result?.$tag === 0
-    ? salesforceMoon.salesforceWriteValueRefusal(projection, result._0)
-    : undefined;
-  if (typeof refusal === 'string') {
-    throw Object.assign(new Error('SalesforceWriteValueRefused'), {
-      code: 'SalesforceWriteValueRefused',
-      refusal: Object.freeze(JSON.parse(refusal))});
-  }
-  return checked(result);
-}
-const cid = value => `sha256:${createHash('sha256')
-  .update(canonicalJson(value)).digest('hex')}`;
 const names = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/u;
 
 function checkWrite(write) {
@@ -374,37 +330,6 @@ export function salesforceEffectTargetReadInventory({moon, prepared, unit,
   })));
 }
 
-// Every member's physical binding is fixed by the Run and its Program member:
-// the dispatch its Catalog, capability and grants are bound to.
-const memberDispatch = (runInvocationCid, member) => cid({
-  version: 'actql-installed-salesforce-effect-dispatch/0.1',
-  run_invocation_cid: runInvocationCid, effect_id: member.effectId});
-
-function projection(salesforceMoon, observation, member) {
-  const binding = JSON.parse(
-    salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
-  return checkedSalesforceCatalogPreparation(salesforceMoon.salesforcePrepareWriteProjection(
-    observation, binding.namespace_id, binding.principal, binding.environment,
-    binding.connection_revision, binding.org_id, binding.site_key,
-    binding.site_generation, binding.connector_registration,
-    binding.connector_revision, binding.resource_origin,
-    binding.run_invocation_cid, binding.dispatch_request_cid,
-    binding.sync_occurrence, member.resource, projectionCodes[member.kind],
-    member.key, [...member.fields], member.fields.length),
-  salesforceMoon, observation);
-}
-
-function mappingPolicy(member) {
-  const body = JSON.parse(member.mapping.body);
-  const rule = body.permission_rules?.find(item =>
-    item.effect_kind === member.kind);
-  if (!Array.isArray(rule?.permissions) || !text(body.minimum_approval)) {
-    fail('SalesforceEffectMappingNotInstalled');
-  }
-  return {requiredPermissions: [...rule.permissions],
-    approval: body.minimum_approval};
-}
-
 // The installed Salesforce Effect: its Check Environment and the provider
 // projections of one Run over the common owners.
 export async function loadInstalledSalesforceEffect(profile, {root,
@@ -428,9 +353,10 @@ export async function loadInstalledSalesforceEffect(profile, {root,
   try {
     const installed = await restoreGeneration({site, salesforceMoon,
       profile: checkedProfile, baseEnvironmentWire});
-    return installedSalesforceEffect({moon, salesforceMoon, site,
+    return await installedSalesforceEffect({moon, salesforceMoon, site,
       installed, ledgerRoot, connectorId: checkedProfile.connectorId,
-      accountConfiguration: checkedProfile.accountConfigurationWire});
+      accountConfiguration: checkedProfile.accountConfigurationWire,
+      runtimeBundleCid});
   } catch (error) {
     // The load's own failure stays primary; an incomplete Site release
     // travels with it to the caller.
@@ -438,676 +364,40 @@ export async function loadInstalledSalesforceEffect(profile, {root,
   }
 }
 
-function installedSalesforceEffect({moon, salesforceMoon, site, installed,
-  ledgerRoot, connectorId, accountConfiguration}) {
-  const effect = runtimeCore(moon).effectApplicationControl;
+async function installedSalesforceEffect({moon, salesforceMoon, site,
+  installed, ledgerRoot, connectorId, accountConfiguration,
+  runtimeBundleCid}) {
   let occurrence = 0;
   const nextOccurrence = label => `effect-${label}-${Date.now()}-${
     occurrence++}`;
-  const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
-    authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
-    callerRequestId: moon.clientRequestCallerId(identity),
-    maxEntryBytes: 1_000_000});
-  const scopes = members => Object.freeze(members.map(member =>
-    Object.freeze({connection: site.connection, resource: member.resource})));
-
+  const siteBindingCid = installedSalesforceSiteBinding(site, connectorId)
+    .bindingCid;
+  // Every Set runs on the Host's provider-neutral installed row Effect,
+  // under this connector's registered identity profile, so a Run captured
+  // before the move to it keeps its identities.
+  const rowEffect = await createInstalledRowEffect({moon,
+    mappings: installed.mappings.map(mapping => ({
+      resource: mapping.write.resource, mappingRef: mapping.mappingRef,
+      mappingCid: mapping.mappingCid, body: mapping.body})),
+    environmentWire: installed.environment.wire, connectorId,
+    connectorRegistration: site.connectorRegistration,
+    connectorRevision: site.connectorRevision, connection: site.connection,
+    site: salesforceRowEffectSite(site), authorization: site.authorization,
+    runtimeBundleCid, bindingCid: siteBindingCid,
+    continuationBinding: installed.generationCid,
+    installation: installedConnectors.find(entry =>
+      entry.registration === site.connectorRegistration),
+    ledgerRoot,
+    driver: salesforceWriteDriver({salesforceMoon, site,
+      mappingOf: mappingCid => installed.mappings.find(mapping =>
+        mapping.mappingCid === mappingCid),
+      nextOccurrence, siteBindingCid,
+      generationCid: installed.generationCid, limits})});
   const targetReadInventory = ({moon: runMoon, prepared, unit}) => {
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
     return salesforceEffectTargetReadInventory({moon, prepared, unit,
       installed, site, connectorId});
   };
-
-  // A current check read of each guarded member's targets: its own read
-  // decision on the Site gate under `subjectCid`, then one-use grants.
-  const checkReadAuthority = async (member, runInvocationCid,
-    dispatchRequestCid, subjectCid, signal, targetReads) => {
-    const tuple = {connection: site.connection, resource: member.resource,
-      operation: 'read'};
-    const decision = targetReads === undefined
-      ? await site.authorization.authorize('acquisition', tuple, {subjectCid, signal})
-      : await targetReads.authorize(tuple, {subjectCid, signal});
-    if (decision?.action !== 'dispatch') {
-      throw Object.assign(new Error('SalesforceEffectTargetReadNotAuthorized'),
-        {code: 'SalesforceEffectTargetReadNotAuthorized',
-          action: decision?.action});
-    }
-    let approval;
-    if (targetReads !== undefined) {
-      const facts = checkpointApprovalFacts(decision);
-      const expected = {site_binding_cid:
-        installedSalesforceSiteBinding(site, connectorId).bindingCid,
-      generation_cid: installed.generationCid, effect_id: member.effectId,
-      member_index: member.memberIndex, mapping_cid: member.mapping.mappingCid,
-      mapping_ref: member.mapping.mappingRef, resource: member.resource,
-      effect_kind: member.kind, key: member.key, fields: [...member.fields]};
-      const binding = facts?.physicalBindings?.find(candidate =>
-        Object.entries(expected).every(([key, value]) =>
-          canonicalJson(candidate[key]) === canonicalJson(value)));
-      if (binding === undefined) fail('SalesforceEffectTargetReadApprovalNotAdmitted');
-      approval = site.admitCheckpointEffectTargetRead(decision, binding);
-    }
-    let use = 0;
-    const authorizationForRow = async rowIndex => ({...site.issueGrant({
-      operation: 'salesforce:record:observe', decision: approval ?? decision,
-      resource: member.resource, runInvocationCid, dispatchRequestCid}),
-    useId: `${dispatchRequestCid}-check-${subjectCid}-${rowIndex}-${use++}`});
-    return Object.assign(authorizationForRow, {approval});
-  };
-
-  // One member's current Catalog: a describe of exactly its Resource bound
-  // to its dispatch.
-  const describe = (member, runInvocationCid, dispatchRequestCid, label,
-    signal, approval) => site.describeEffectCatalog({resources: [member.resource],
-    runInvocationCid, dispatchRequestCid,
-    occurrence: nextOccurrence(label), approval, signal});
-
-  // The capability of a member's requests: the Site's attestation of its
-  // installed runtime and connection for the dispatch, and the member's
-  // current execution Mapping.
-  const capabilityOf = (member, requests, observation, runInvocationCid,
-    dispatchRequestCid) => issueSalesforceEffectCapability({
-    moon: salesforceMoon, requests, currentObservation: observation,
-    authority: site.attestEffectCapability({
-      operation: grantOperations[member.kind], runInvocationCid,
-      dispatchRequestCid}),
-    credential: site.credential, mapping: member.mapping.mapping,
-    maxRows: limits.maxRows, maxBytes: limits.preview.maxWireBytes});
-
-  // The whole-set commit decisions of one claim generation, by Host tuple.
-  // Only a dispatch for the sealed Set, at the Effect commit boundary, for
-  // exactly this installation's connection admits that tuple's writes.
-  const commitDecisions = (decisions, subjectCid, members) => {
-    const byResource = new Map();
-    for (const decision of decisions ?? []) {
-      if (decision?.action !== 'dispatch' ||
-          decision.boundary !== 'effect_commit' ||
-          decision.subjectCid !== subjectCid ||
-          decision.tuple?.connection !== site.connection ||
-          decision.tuple?.operation !== 'effect' ||
-          byResource.has(decision.tuple.resource)) {
-        fail('SalesforceEffectCommitNotAuthorized');
-      }
-      byResource.set(decision.tuple.resource, decision);
-    }
-    for (const member of members) {
-      if (!byResource.has(member.resource)) {
-        fail('SalesforceEffectCommitNotAuthorized');
-      }
-    }
-    return byResource;
-  };
-
-  // Current use and physical dispatch over one set of members. The check
-  // reads are decided on the Site gate under the sealed Set; every write
-  // grant follows the claim generation's commit decision for its tuple.
-  const physicalRoute = ({members, requests, runInvocationCid, dispatches,
-    subjectCid, observedRows, applyPreview, ledger, targetReads}) => {
-    let currentUse;
-    const current = async ({signal, preflight}) => {
-      const capabilities = [];
-      const targets = [];
-      const catalogs = [];
-      const readAuthorities = [];
-      for (const [index, member] of members.entries()) {
-        // The installed Mapping of this member must still be the one the
-        // Preview resolved.
-        const now = installed.mappings.find(mapping =>
-          mapping.mappingCid === member.mapping.mappingCid);
-        if (now === undefined) fail('SalesforceEffectMappingNotInstalled');
-        // Check reads are decided before this refresh's provider I/O.
-        const read = member.kind === 'create' && targetReads === undefined ? undefined :
-          await checkReadAuthority(member, runInvocationCid, dispatches[index],
-            subjectCid, signal, targetReads);
-        readAuthorities.push(read);
-        targets.push(member.kind === 'create' ? undefined : {
-          authorizationForRow: read,
-          credential: site.credential, limits: limits.target});
-      }
-      for (const [index, member] of members.entries()) {
-        // One describe per member serves this refresh's capability and
-        // current-use recheck.
-        const catalog = await describe(member, runInvocationCid,
-          dispatches[index], `apply-${index}`, signal, readAuthorities[index]?.approval);
-        catalogs.push(catalog);
-        capabilities.push(capabilityOf(member, requests[index],
-          catalog.observation, runInvocationCid, dispatches[index]));
-      }
-      currentUse = installSalesforceEffectCurrentUse({moon: salesforceMoon,
-        commonMoon: moon, observedRows,
-        members: members.map((member, index) => ({
-          requests: requests[index], capability: capabilities[index],
-          refreshCatalog: async () => catalogs[index],
-          target: targets[index]})),
-        maxMembers: limits.maxMembers, maxRows: limits.maxRows,
-        maxTotalResponseBytes: limits.maxTotalResponseBytes});
-      return currentUse.refreshPreflight({signal, preflight});
-    };
-    const bindDispatch = ({members: claims, subjectCid: active, signal,
-      decisions}) => {
-      if (active !== subjectCid || currentUse === undefined) {
-        fail('InvalidSalesforceEffectRoute');
-      }
-      const commits = commitDecisions(decisions, subjectCid, members);
-      return installSalesforceEffectDispatch({commonMoon: moon,
-        moon: salesforceMoon, ledger, admittedPreview: applyPreview,
-        currentUse, signal,
-        members: members.map((member, index) => ({
-          requests: requests[index], claims: claims[index].claims,
-          authorizationForRow: rowIndex => ({...site.issueGrant({
-            operation: grantOperations[member.kind],
-            decision: commits.get(member.resource),
-            resource: member.resource, runInvocationCid,
-            dispatchRequestCid: dispatches[index], subjectCid}),
-          useId: `${dispatches[index]}-write-${subjectCid}-${rowIndex}`}),
-          credential: site.credential, limits: limits.write}))});
-    };
-    return {current, bindDispatch};
-  };
-
-  const basePreflight = ({effects, members, requestScope, keys}) => ({
-    sources: effects.map(member => member.source_binding_cid),
-    // The installed Mapping of each member now, as rechecked by `current`.
-    contracts: members.map(member => member.mapping.mappingCid),
-    capabilities: effects.map(member => member.capability_evidence_cid),
-    authorities: effects.map(() => moon.clientProgramEffectRequestAuthority(
-      requestScope)),
-    observedRows: [], guardVersions: [], routes: [],
-    // No risk acceptance is held in this scope (halt on item failure, or
-    // the Program's declared continue); these fields are read only with a
-    // risk body.
-    risk: undefined, reviewProjectionCid: '', authorityScopeCid: '',
-    policyCid: '', validityCid: '', issuerCid: '', authenticationCid: '',
-    issuerKind: '', decision: '',
-    requestScope, ...(keys === undefined ? {} : {keys}),
-    maxMembers: members.length, maxRows: limits.maxRows,
-    maxFootprintWork: limits.maxRows, maxWork: limits.maxWork,
-  });
-
-  const continuationOf = (plan, unit, members, dispatches) => canonicalJson({
-    version: 'actql-installed-salesforce-effect-continuation/0.1',
-    publication_generation_cid: installed.generationCid,
-    program_id: unit.programId, stage_id: unit.stageId,
-    request: plan.request, attempt: plan.attempt,
-    members: members.map((member, index) => ({
-      effect_id: member.effectId, mapping_cid: member.mapping.mappingCid,
-      dispatch_request_cid: dispatches[index]}))});
-
-  // Capture a completed Values computation as one Effect Unit: store its
-  // Results and pinned inputs, author the Salesforce Preview from the
-  // current Catalog and target check reads, and return the provider stage
-  // the common owner applies after the whole-set commit decision.
-  async function prepareCaptured({moon: runMoon, control, store, execution,
-    checkedHost, prepared, identity, plan, previewContext, unit,
-    authorizeEvidenceRead, signal, targetReads}) {
-    if (runMoon !== moon || !plan || !previewContext || !execution ||
-        !checkedHost || !prepared || !identity) {
-      fail('InvalidInstalledEffectCapture');
-    }
-    signal?.throwIfAborted();
-    // Members and their installed Mappings, before any Store or provider
-    // I/O.
-    const members = membersOf(moon, prepared, installed, unit);
-    const runInvocationCid = plan.invocation.identity;
-    const dispatches = members.map(member =>
-      memberDispatch(runInvocationCid, member));
-    const requestScope = moon.clientProgramEffectRequestScope(prepared,
-      identity);
-    const storedResults = await storeCompletedRunResultSet({execution,
-      store, control, runDefinition: plan.runDefinition,
-      invocation: plan.invocation, results: plan.results,
-      outputLimits: plan.outputLimits, contractLimits: plan.contractLimits});
-    // Until the stage is returned, this capture owns the unpublished
-    // payloads it prepared. A failure releases them and keeps its own cause;
-    // a failed release is attached, never substituted.
-    let sourceSet;
-    let releaseInputs;
-    try {
-      return await captureStage({control, store, execution, checkedHost,
-        prepared, identity, plan, previewContext, unit, members,
-        runInvocationCid, dispatches, requestScope, storedResults,
-        authorizeEvidenceRead, signal, targetReads, own: value => { sourceSet = value; },
-        ownInputs: release => { releaseInputs = release; }});
-    } catch (error) {
-      try {
-        for (const payload of sourceSet?.payloads ?? []) {
-          if (payload.prepared.status().pending) {
-            await payload.prepared.release();
-          }
-        }
-        await releaseCompletedRunPreparedPayloads(storedResults, control);
-      } catch (cleanupError) {
-        if (error !== null && typeof error === 'object') {
-          error.cleanupFailure ??= cleanupError;
-        }
-      }
-      // No Effect has started on capture failure. Drop the exact common
-      // consumer inventory even when its Store payload cleanup remains pending.
-      try { releaseInputs?.(); }
-      catch (cleanupError) {
-        if (error !== null && typeof error === 'object') {
-          error.cleanupFailure ??= cleanupError;
-        }
-      }
-      throw error;
-    }
-  }
-
-  async function captureStage({control, store, execution, checkedHost,
-    prepared, identity, plan, previewContext, unit, members,
-    runInvocationCid, dispatches, requestScope, storedResults,
-    authorizeEvidenceRead, signal, targetReads, own, ownInputs}) {
-    const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
-      limits.maxPinnedResults));
-    const releaseInputs = () => { moon.clientProgramReleaseEffectInputs(inputs); };
-    ownInputs(releaseInputs);
-    const proposals = members.map(() => []);
-    const sourceSet = await preparePinnedEffectSourceSet({moon,
-      checkedOwner: prepared, execution, inputs,
-      // Grouping visits each member and, for an acquired Program, each
-      // pinned upstream Result: bounded by the pin ceiling, not the members.
-      maxMembers: members.length,
-      maxGroupingWork: (members.length + limits.maxPinnedResults) * 2,
-      limits: moon.clientProgramEffectInputExportLimits(
-        ...exportLimits(plan.outputLimits)),
-      store, maxBytes: plan.outputLimits.maxWireBytes, control,
-      invocation: plan.invocation, retention: plan.results[0].retention,
-      sourceBindingCid: cid({
-        version: 'actql-installed-salesforce-effect-source/0.1',
-        run_invocation_cid: runInvocationCid,
-        store_authority_cid: store.storeAuthorityCid}),
-      contractLimits: plan.contractLimits,
-      localEvidenceContext: plan.localEvidenceContext,
-      proposalLimits: {maxFields: limits.maxFields, maxWork: limits.maxWork,
-        maxBytes: limits.body.maxBytes, maxNodes: limits.body.maxNodes,
-        maxDepth: limits.body.maxDepth,
-        maxUtf16Units: limits.body.maxBytes},
-      onProposalRow(memberIndex, rowIndex, proposal) {
-        if (rowIndex !== proposals[memberIndex]?.length ||
-            rowIndex >= limits.maxRows) {
-          fail('SalesforceEffectRowLimit');
-        }
-        proposals[memberIndex].push(proposal);
-      },
-      signal});
-    own(sourceSet);
-    // Target check reads are decided before any provider I/O: a held or
-    // denied read authors no Preview.
-    const checkSubject = member => cid({
-      version: 'actql-salesforce-effect-target-check/0.1',
-      run_invocation_cid: runInvocationCid, effect_id: member.effectId});
-    const checkReads = [];
-    for (const [index, member] of members.entries()) {
-      checkReads.push(member.kind === 'create' && targetReads === undefined ? undefined :
-        await checkReadAuthority(member, runInvocationCid, dispatches[index],
-          checkSubject(member), signal, targetReads));
-    }
-    const catalogs = [];
-    let requests = [];
-    const capabilities = [];
-    const observations = [];
-    for (const [index, member] of members.entries()) {
-      const catalog = await describe(member, runInvocationCid,
-        dispatches[index], `preview-${index}`, signal, checkReads[index]?.approval);
-      catalogs.push(catalog);
-      const project = projection(salesforceMoon, catalog.observation, member);
-      const memberRequests = proposals[index].map(proposal => {
-        const body = writeBody(salesforceMoon,
-          salesforceMoon.salesforcePrepareExecutionWriteBody(
-          member.mapping.mapping, project, Buffer.from(JSON.stringify(
-            JSON.parse(proposal.changesWire).value)),
-          limits.body.maxBytes, limits.body.maxNodes, limits.body.maxDepth),
-        project);
-        // Pure request validation after the exact Catalog projection and
-        // body are prepared: no target or write I/O has started for this row.
-        return checkedEffectPreparation(salesforceMoon.salesforcePrepareSingleWriteRequest(
-          body, site.apiVersion, requestCodes[member.kind],
-          member.kind === 'create' ? '' : JSON.parse(proposal.selectorWire),
-          0, limits.request.maxPathBytes, limits.request.maxTargetBytes,
-          limits.request.maxBodyBytes));
-      });
-      if (memberRequests.length === 0) fail('SalesforceEffectEmptyMember');
-      requests.push(memberRequests);
-      capabilities.push(capabilityOf(member, memberRequests,
-        catalog.observation, runInvocationCid, dispatches[index]));
-      observations.push(member.kind === 'create' ? undefined :
-        (await observeSalesforceTargetSet({moon: salesforceMoon, members: [{
-          requests: memberRequests, currentCatalog: catalog.observation,
-          authorizationForRow: checkReads[index], credential: site.credential,
-          limits: limits.target}], maxMembers: 1, maxRows: limits.maxRows,
-        maxTotalResponseBytes: limits.maxTotalResponseBytes, signal}))[0]);
-    }
-    // An acquired Program's upstream Stage Results and captured input are
-    // dependencies of the Effect source: their payload owners move to the
-    // completed computation before the Preview, as the common owner does.
-    if (sourceSet.dependencies !== undefined) {
-      retainPinnedEffectDependencyPayloads({sources: sourceSet, execution,
-        store, storedResults, control, runDefinition: plan.runDefinition});
-    }
-    const payloads = sourceSet.members.map(member => member.payload);
-    const preview = authorObservedSalesforceEffectPreview({moon,
-      salesforceMoon, control, prepared, inputs,
-      context: {runDefinition: previewContext.runDefinition,
-        runInvocation: previewContext.runInvocation,
-        compiledPlan: previewContext.compiledPlan,
-        storeAuthorityCid: store.storeAuthorityCid, modelDerived: false},
-      requestScope,
-      members: members.map((member, index) => ({
-        stageIndex: member.stageIndex, effectId: member.effectId,
-        requests: requests[index], observations: observations[index],
-        localResultArtifact: payloads[index].localResultArtifact,
-        sourceArtifact: payloads[index].summary.artifact,
-        capability: capabilities[index], ...mappingPolicy(member),
-        maxItems: requests[index].length, previewStrength: 'full_diff'})),
-      maxWireBytes: limits.preview.maxWireBytes,
-      maxNodes: limits.preview.maxNodes, maxDepth: limits.preview.maxDepth,
-      maxRows: limits.maxRows, maxIdentityBytes: limits.maxIdentityBytes,
-      maxKeyBytes: limits.key.maxBytes, maxKeyNodes: limits.key.maxNodes,
-      maxKeyDepth: limits.key.maxDepth,
-      planLimits: {maxFields: limits.maxFields, maxWork: limits.planWork,
-        maxBytes: limits.preview.maxWireBytes,
-        maxNodes: limits.preview.maxNodes,
-        maxDepth: limits.preview.maxDepth}});
-    // Created rows are applied in the Preview's canonical row order.
-    requests = requests.map((memberRequests, index) =>
-      preview.requestOrder[index].map(row => memberRequests[row]));
-    const body = JSON.parse(preview.wire);
-    const authoringContext = control.admitRunEvidence('authoring_context',
-      canonicalJson(body.authoring_context), plan.contractLimits);
-    const admittedPreview = control.admitEffectComputationPreview(
-      preview.wire, plan.runDefinition, authoringContext,
-      plan.contractLimits);
-    const holdings = await preparePinnedEffectSourceHoldings({
-      sources: sourceSet, store, control, preview: admittedPreview,
-      invocation: plan.invocation}).commit();
-    // The Preview binds the Stage of the Effect Unit's inputs: the Values
-    // Stage (0) of a source-free Program, a later Stage for an acquired one.
-    const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
-      checkedHost, inputs, previewContext.runInvocation,
-      moon.clientProgramEffectInputStage(
-        moon.clientProgramEffectInputAt(inputs, 0)), preview.wire,
-      preview.authoringCid, moon.clientProgramEffectPreviewInputLimits(
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, limits.maxWork, limits.maxFields,
-        limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth, members.length, limits.maxRows,
-        limits.maxWork, limits.maxWork)));
-    const plans = [];
-    for (const member of members) {
-      if (member.kind === 'create') continue;
-      const chunks = [];
-      const verified = await verifyPinnedEffectPlan({moon, execution,
-        previewInputs, previewIndex: member.memberIndex,
-        limits: moon.clientProgramEffectInputExportLimits(
-          ...exportLimits(plan.outputLimits)),
-        planLimits: {maxFields: limits.maxFields, maxWork: limits.planWork,
-          maxBytes: limits.preview.maxWireBytes,
-          maxNodes: limits.preview.maxNodes,
-          maxDepth: limits.preview.maxDepth,
-          maxUtf16Units: limits.preview.maxWireBytes},
-        onChunk: chunk => { chunks.push(chunk); }, signal});
-      plans.push({name: member.effectId, wire: chunks.join(''),
-        proof: verified.proof});
-    }
-    const computation = await issueCompletedEffectfulComputationEvidence({
-      execution, store, storedResults, control, admission: plan.admission,
-      runDefinition: plan.runDefinition, invocation: plan.invocation,
-      observation: plan.observation,
-      normalizationJournal: plan.normalizationJournal, authoringContext,
-      receiptEvidence: plan.receiptEvidence,
-      captureEvidence: plan.captureEvidence, preview: admittedPreview,
-      plans: plans.map(({name, wire}) => ({name, wire})),
-      effectSourceHoldings: holdings,
-      connectorRecovery: members.map((member, index) => ({
-        memberIndex: index, kind: 'salesforce-named-catalog',
-        observationCid: catalogs[index].observationCid,
-        wire: JSON.stringify({evidence: catalogs[index].evidence,
-          apiVersion: site.apiVersion, resourceName: member.resource,
-          operation: member.kind, externalTargetField: member.key,
-          fieldNames: [...member.fields],
-          resourceOrigin: site.instanceOrigin})})),
-      contractLimits: plan.contractLimits});
-    for (const payload of sourceSet.payloads) {
-      if (payload.prepared.status().pending) await payload.prepared.release();
-    }
-    const ledger = openLedger(identity);
-    try {
-      const applyPreview = effect.admitPreviewIdentity(preview.wire,
-        body.run_identity_cid, preview.authoringCid, requestScope,
-        preview.keys, limits.preview.maxWireBytes, limits.preview.maxNodes,
-        limits.preview.maxDepth);
-      const unitCid = cid({version: 'actql-installed-salesforce-effect-unit/0.1',
-        run_definition_cid: plan.runDefinition.identity,
-        stage_index: members[0].stageIndex});
-      const claims = body.effects.map((member, memberIndex) => ({
-        claims: member.changes.map((change, rowIndex) => {
-          const key = preview.keys[memberIndex][rowIndex];
-          const locator = effect.logicalItemLocator(requestScope,
-            unit.programId, unit.stageId, member.effect_id,
-            canonicalJson(change.target_row_identity),
-            limits.locator.maxBytes, limits.key.maxBytes,
-            limits.key.maxNodes, limits.key.maxDepth);
-          const canonicalRequestCid = checked(
-            salesforceMoon.salesforceSingleWriteRequestCid(
-              requests[memberIndex][rowIndex], site.instanceOrigin,
-              limits.maxIdentityBytes));
-          const basis = effect.ledgerBasis(requestScope, locator, key,
-            unitCid, member.effect_member_preview_cid,
-            change.row_preview_cid, canonicalRequestCid,
-            cid({version: 'actql-installed-salesforce-effect-recovery/0.1',
-              dispatch_request_cid: dispatches[memberIndex]}),
-            // A Salesforce single-record write carries no provider
-            // idempotency key.
-            'unavailable', member.capability_evidence_cid,
-            plan.results[0].retention.identity);
-          return {scope: requestScope, locator, key, basis,
-            intentFingerprintCid: change.row_preview_cid,
-            canonicalRequestCid};
-        })}));
-      const observedRows = body.effects.flatMap(member =>
-        member.effect_kind === 'create' ? [] : member.row_order);
-      const route = physicalRoute({members, requests, runInvocationCid,
-        dispatches, subjectCid: moon.clientProgramEffectApplySubjectCid(
-          previewInputs), observedRows, applyPreview, ledger, targetReads});
-      const preflight = {proofs: plans.map(item => item.proof),
-        ...basePreflight({effects: body.effects, members, requestScope,
-          keys: preview.keys})};
-      return Object.freeze({preview: admittedPreview, computation,
-        storedResults,
-        apply: {moon, capturedInputs: previewInputs, preflight, ledger,
-          members: claims, maxFrontierWork: limits.maxFrontierWork,
-          refreshPreflight: route.current, bindDispatch: route.bindDispatch,
-          authorization: {gate: site.authorization, scopes: scopes(members)}},
-        receipt: {ledger, preview: applyPreview, commonMoon: moon,
-          publicationPreview: admittedPreview,
-          authorizeEvidenceRead: authorizeEvidenceRead ?? (async () => true),
-          members: claims.map(member => ({rowOwners: member.claims.map(
-            claim => ({claim})), replayed: false})),
-          limits: plan.contractLimits},
-        publication: {execution, store, storedResults, control, computation,
-          preview: admittedPreview, ledger, request: plan.request,
-          attempt: plan.attempt, contractLimits: plan.contractLimits,
-          now: plan.now},
-        scopes: scopes(members),
-        continuationWire: continuationOf(plan, unit, members, dispatches),
-        releaseInputs,
-        dispose: () => { releaseInputs(); ledger.close(); }});
-    } catch (error) {
-      ledger.close();
-      throw error;
-    }
-  }
-
-  // Continue a recovered capture: the exact saved Preview, requests rebuilt
-  // from its rows and the retained describes, and the Ledger's durable
-  // claims. The installation must still be the one the Preview was authored
-  // against: a changed Mapping, Site generation, connection or runtime is
-  // refused before any provider I/O.
-  // Recovery acquires one local resource, its Effect Ledger handle. The
-  // handle's owner is given to `retainRecoveryOwner` (the Host's recovery
-  // custody) before any step that can fail, and is the stage's
-  // `cleanupOwner`; the Host, not this function, closes it on failure.
-  function prepareRecovered({moon: runMoon, control, store, recovered,
-    continuation, authorizeEvidenceRead, contractLimits, signal,
-    retainRecoveryOwner, targetReads}) {
-    if (runMoon !== moon || !recovered?.computation || !continuation ||
-        !contractLimits) {
-      fail('InvalidInstalledEffectRecovery');
-    }
-    signal?.throwIfAborted();
-    const provider = continuation.provider ?? continuation;
-    if (provider?.version !==
-          'actql-installed-salesforce-effect-continuation/0.1' ||
-        !Array.isArray(provider.members) || !text(provider.program_id) ||
-        !text(provider.stage_id)) {
-      fail('InstalledEffectContinuationMismatch');
-    }
-    const {requestIdentity, requestScope, computation: durable} = recovered;
-    const {computation, preview, storedResults} = durable;
-    const previewWire = control.effectComputationPreviewWire(preview);
-    const body = JSON.parse(previewWire);
-    if (body.effects.length !== provider.members.length) {
-      fail('InstalledEffectContinuationMismatch');
-    }
-    const members = Object.freeze(body.effects.map((member, index) => {
-      const saved = provider.members[index];
-      const mapping = installed.mappings.find(candidate =>
-        candidate.mappingCid === member.resolved_mapping_contract_cid);
-      if (saved?.effect_id !== member.effect_id ||
-          saved.mapping_cid !== member.resolved_mapping_contract_cid) {
-        fail('InstalledEffectContinuationMismatch');
-      }
-      if (mapping === undefined ||
-          writeKinds.get(mapping.write.kind) !== member.effect_kind) {
-        fail('SalesforceEffectMappingNotInstalled');
-      }
-      return Object.freeze({effectId: member.effect_id,
-        memberIndex: index, kind: member.effect_kind, mapping,
-        resource: mapping.write.resource,
-        fields: Object.freeze(mapping.write.fields ??
-          mapping.write.sources.map(source => source.target)),
-        key: mapping.write.key ?? ''});
-    }));
-    const runInvocationCid = body.invocation_cid;
-    const dispatches = members.map(member =>
-      memberDispatch(runInvocationCid, member));
-    if (dispatches.some((dispatch, index) =>
-      dispatch !== provider.members[index].dispatch_request_cid)) {
-      fail('InstalledEffectContinuationMismatch');
-    }
-    const admitted = control.effectComputationPreviewLedgerIdentity(preview);
-    const keys = effect.recoveredPreviewKeys(admitted, requestScope,
-      members.length, limits.maxRows, limits.maxWork, limits.key.maxBytes,
-      limits.key.maxNodes, limits.key.maxDepth);
-    const applyPreview = effect.admitPreviewIdentity(previewWire,
-      body.run_identity_cid, body.authoring_context.authoring_context_cid,
-      requestScope, keys, limits.preview.maxWireBytes,
-      limits.preview.maxNodes, limits.preview.maxDepth);
-    const ledger = openLedger(requestIdentity);
-    // The handle is released exactly once: it is marked released only after
-    // its close succeeds, so a failed close stays this owner's pending
-    // cleanup and a retry by the same owner closes it.
-    let closed = false;
-    const releaseLedger = () => {
-      if (closed) return;
-      ledger.close();
-      closed = true;
-    };
-    const ledgerOwner = Object.freeze({
-      async close() { releaseLedger(); },
-      async cleanup() { releaseLedger(); return true; },
-      cleanupPending: () => !closed});
-    if (retainRecoveryOwner !== undefined) {
-      try { retainRecoveryOwner(ledgerOwner); }
-      catch (error) { releaseLedger(); throw error; }
-    }
-    try {
-      const recorded = ledger.recoverClaimFacts({preview: admitted,
-        scope: requestScope, programId: provider.program_id,
-        nodeId: provider.stage_id, maxRows: limits.maxRows,
-        maxWork: limits.maxWork});
-      const rebuilt = recoverCapturedSalesforceSingleRequests({
-        moon: salesforceMoon, recovered: durable, recorded, previewWire,
-        runIdentityCid: body.run_identity_cid,
-        authoringContextCid: body.authoring_context.authoring_context_cid,
-        previewLimits: limits.preview, bodyLimits: limits.body,
-        requestLimits: limits.request, maxMembers: limits.maxMembers,
-        maxRows: limits.maxRows, maxRetainedBytes: limits.maxRetainedBytes});
-      // The Site as installed now must attest the same capability the
-      // Preview carries, for the same requests, before any provider I/O.
-      members.forEach((member, index) => {
-        let capability;
-        try {
-          capability = capabilityOf(member, rebuilt.requests[index],
-            rebuilt.catalogs[index], runInvocationCid, dispatches[index]);
-        } catch (error) {
-          fail('SalesforceEffectInstallationChanged', error);
-        }
-        if (capability.identity !== body.effects[index]
-          .capability_evidence_cid) {
-          fail('SalesforceEffectInstallationChanged');
-        }
-      });
-      const observedRows = body.effects.flatMap(member =>
-        member.effect_kind === 'create' ? [] : member.row_order);
-      const route = physicalRoute({members, requests: rebuilt.requests,
-        runInvocationCid, dispatches,
-        subjectCid: control.effectComputationPreviewSemanticCid(preview),
-        observedRows, applyPreview, ledger, targetReads});
-      const evidenceRead = authorizeEvidenceRead ?? (async () => true);
-      const reconcileStoredResponses = async ({members: claims,
-        preview: ledgerPreview}) => {
-        for (const [memberIndex, member] of claims.entries()) {
-          for (const [rowIndex, claim] of member.claims.entries()) {
-            const stored = ledger.readClaimedResponse(claim);
-            if (stored === undefined) continue;
-            await reconcileStoredSalesforceSingleEffectWrite({ledger,
-              commonMoon: moon, admittedPreview: ledgerPreview, memberIndex,
-              rowIndex, rowPreviewCid:
-                body.effects[memberIndex].changes[rowIndex].row_preview_cid,
-              claim, moon: salesforceMoon,
-              request: rebuilt.requests[memberIndex][rowIndex],
-              resourceOrigin: site.instanceOrigin,
-              authorizeEvidenceRead: evidenceRead, limits: limits.write,
-              maxRequestIdentityBytes: limits.maxIdentityBytes});
-          }
-        }
-      };
-      return Object.freeze({preview, computation, storedResults,
-        apply: {moon, store, publicationControl: control, computation,
-          preview, ledger, requestScope, programId: provider.program_id,
-          nodeId: provider.stage_id, maxRows: limits.maxRows,
-          maxFrontierWork: limits.maxFrontierWork,
-          maxRecoveryWork: limits.maxWork,
-          keyLimits: {...limits.key, maxWork: limits.maxWork},
-          reconcileStoredResponses,
-          refreshPreflight: ({signal: refreshSignal} = {}) => route.current({
-            signal: refreshSignal, preflight: basePreflight({
-              effects: body.effects, members, requestScope})}),
-          bindDispatch: route.bindDispatch,
-          authorization: {gate: site.authorization, scopes: scopes(members)}},
-        receipt: {ledger, preview: applyPreview, commonMoon: moon,
-          publicationPreview: preview,
-          authorizeEvidenceRead: evidenceRead,
-          members: recorded.members.map(member => ({rowOwners:
-            member.claims.map(claim => ({claim})), replayed: true})),
-          limits: contractLimits},
-        publication: {execution: null, store, storedResults, control,
-          computation, preview, ledger, request: provider.request,
-          // The saved attempt omits an absent idempotency key; the
-          // publication owner reads it as a present field.
-          attempt: {...provider.attempt, externalIdempotencyKey:
-            provider.attempt?.externalIdempotencyKey}, contractLimits,
-          now: () => new Date().toISOString()},
-        scopes: scopes(members),
-        continuationWire: canonicalJson(provider),
-        cleanupOwner: ledgerOwner,
-        dispose: () => { releaseLedger(); }});
-    } catch (error) {
-      // Without a Host custody the handle is this function's to release.
-      if (retainRecoveryOwner === undefined) releaseLedger();
-      throw error;
-    }
-  }
 
   return Object.freeze({
     environmentWire: installed.environment.wire,
@@ -1125,17 +415,9 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
       resource: mapping.write.resource, kind: mapping.write.kind,
       target: JSON.parse(mapping.body).target_ref,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}))),
-    targetReadInventory, prepareCaptured, prepareRecovered,
+    targetReadInventory,
+    prepareCaptured: input => rowEffect.prepareCaptured(input),
+    prepareRecovered: input => rowEffect.prepareRecovered(input),
     close: () => site.close(),
   });
 }
-
-const exportLimits = output => [output.maxResultFields,
-  output.maxResultMappingWork, output.maxResultOrderWork,
-  output.maxResultWorkspaceEntries, output.maxRows, output.maxValueNodes,
-  output.maxValueTextBytes, output.maxValueDepth, output.maxValueWork,
-  output.maxWireBytes, output.maxWireNodes, output.maxWireDepth,
-  output.maxColumns, output.maxOrderWork, output.maxLogicalWireBytes,
-  output.maxLogicalWireNodes, output.maxLogicalWireDepth,
-  output.maxSchemaFields, output.maxSchemaBytes, output.maxSchemaNodes,
-  output.maxSchemaDepth, output.maxBatchBytes];

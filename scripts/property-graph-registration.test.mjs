@@ -104,7 +104,7 @@ test('SourceView Graph fixture owns independent schema and the complete CID chai
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
   assert.equal(cid(body), 'sha256:b00de8912497c6af1596debd1c59ee8d3477faf0391be40f64ac82ebc6d9ebb7');
-  assert.equal(cid(registry), 'sha256:fee948e7f47074c96f02bf392cba9520473679beb4db16522ea15a22b20f8b84');
+  assert.equal(cid(registry), 'sha256:1513a0a6b1db1e5847fdb46b191a6f5d67cd806e1ba234843ac12f86f9f49b38');
   assert.equal(body.dependencies.property_graph_law.cid,
     'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc');
   assert.equal(body.dependencies.canonical_value_contract.cid,

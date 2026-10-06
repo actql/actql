@@ -16,6 +16,7 @@ pub enum Value {
   Decimal(DecimalValue)
   Array(FrozenArray[Value])
   Object(FrozenArray[(String, Value)])
+  JsonData(Value)
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
 }
@@ -49,6 +50,7 @@ struct ObjectBuilder {
   expected : Int
   mut previous : String?
   mut open : Bool
+  data_keys : Bool
 }
 
 ///|
@@ -119,11 +121,20 @@ pub fn cancel_array_value(builder : ArrayBuilder) -> Bool {
 }
 
 ///|
-pub fn prepare_object_value(length : Int) -> ObjectBuilder? {
+pub fn prepare_object_value(
+  length : Int,
+  data_keys? : Bool = false,
+) -> ObjectBuilder? {
   if length < 0 {
     None
   } else {
-    Some({ values: [], expected: length, previous: None, open: true, })
+    Some({
+      values: [],
+      expected: length,
+      previous: None,
+      open: true,
+      data_keys,
+    })
   }
 }
 
@@ -136,8 +147,11 @@ pub fn append_object_field(
   if !builder.open || builder.values.length() >= builder.expected {
     return false
   }
-  guard @canonical.normalize_nfc_lf(name) is Ok(normalized) &&
-    normalized == name &&
+  guard (if builder.data_keys {
+      @scalar.admit_utf8_length(name, 2147483647) is Ok(_)
+    } else {
+      @canonical.normalize_nfc_lf(name) == Ok(name)
+    }) &&
     (
       builder.previous is None ||
       @canonical.compare_utf16(builder.previous.unwrap(), name) < 0

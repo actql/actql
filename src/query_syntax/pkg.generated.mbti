@@ -168,6 +168,7 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
