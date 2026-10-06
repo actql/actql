@@ -2375,6 +2375,9 @@ assert.deepEqual(Object.keys(metadata.inputs).sort(), [
   'node_modules/@actql/sdk/check-presentation.mjs',
   'node_modules/@actql/sdk/checkpoints.mjs',
   'node_modules/@actql/sdk/index.mjs',
+  'node_modules/@actql/sdk/json-value-wire.generated.mjs',
+  'node_modules/@actql/sdk/operation-formats.mjs',
+  'node_modules/@actql/sdk/operation-presentation.mjs',
 ]);
 assert(Object.values(metadata.outputs).every(output =>
   output.imports.length === 0));
