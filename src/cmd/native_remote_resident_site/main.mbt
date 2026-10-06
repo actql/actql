@@ -719,6 +719,7 @@ priv struct RunningHolder {
   attempt : String
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
+  mut reported_revision : Int64?
 }
 
 ///|
@@ -1557,19 +1558,30 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
               match fresh_journal(environment) {
                 Some(journal) => {
-                  match
-                    @client.acknowledge_status(
-                      journal,
-                      client,
-                      observation_url,
-                      current.request,
-                    ) {
-                    Ok(_) => ()
-                    Err(issue) =>
-                      report("observation-pending", [
-                        ("attempt", current.attempt),
-                        ("reason", client_code(issue)),
-                      ])
+                  match journal.require(current.request) {
+                    Ok(record) =>
+                      if current.reported_revision !=
+                        Some(@remote.dispatch_record_revision(record)) {
+                        match
+                          @client.acknowledge_status(
+                            journal,
+                            client,
+                            observation_url,
+                            current.request,
+                          ) {
+                          Ok(Some(observed)) =>
+                            current.reported_revision = Some(
+                              @remote.dispatch_record_revision(observed),
+                            )
+                          Ok(None) => ()
+                          Err(issue) =>
+                            report("observation-pending", [
+                              ("attempt", current.attempt),
+                              ("reason", client_code(issue)),
+                            ])
+                        }
+                      }
+                    Err(_) => ()
                   }
                   ignore(journal.close())
                 }
@@ -1685,6 +1697,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                         attempt,
                         request,
                         next_report_ms: 0,
+                        reported_revision: None,
                       })
                       report("holder-started", [
                         ("attempt", attempt),
