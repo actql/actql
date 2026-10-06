@@ -429,7 +429,7 @@ if (process.argv.includes('--analytic-output-scope-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--analytic-countif-only') ||
-    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only') || process.argv.includes('--optional-output-as-only') || process.argv.includes('--boolean-cast-only') || process.argv.includes('--unnest-source-only')) return;
+    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only') || process.argv.includes('--unnest-source-only') || process.argv.includes('--optional-output-as-only') || process.argv.includes('--boolean-cast-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
