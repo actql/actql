@@ -2,6 +2,7 @@
 fn carrier_events_source_owner_with(
   time_type : String,
   rows : String,
+  payload_nullable? : Bool = false,
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check(
     input_cursor(
@@ -9,7 +10,9 @@ fn carrier_events_source_owner_with(
       "\"nullable\":false},\"occurred_at\":{\"type\":\"" +
       time_type +
       "\",\"nullable\":false},\"payload\":{\"type\":\"string\"," +
-      "\"nullable\":false}},\"rows\":" +
+      "\"nullable\":" +
+      (if payload_nullable { "true" } else { "false" }) +
+      "}},\"rows\":" +
       rows +
       "},\"as\":\"source\"}]",
     ),

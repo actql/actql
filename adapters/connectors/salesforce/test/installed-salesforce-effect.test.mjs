@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import {execFile} from 'node:child_process';
 import {readFile, writeFile} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
+import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
@@ -97,8 +100,10 @@ test('a denied commit or check read writes nothing',
     const cases = [
       ['commit', org => [recordEntry(org, 'read'),
         recordEntry(org, 'effect', 'deny')], 'ExecutionAuthorizationDenied'],
+      // Update Sets run on the Host's installed row Effect, whose common
+      // owner refuses the undecided target read.
       ['check read', org => [recordEntry(org, 'effect')],
-        'SalesforceEffectTargetReadNotAuthorized'],
+        'InstalledRowEffectCheckNotAuthorized'],
     ];
     for (const [label, entries, code] of cases) {
       const installation = await installedEffect(t, {writes: [update]});
@@ -224,7 +229,7 @@ test('a recovered Ledger handle whose close fails stays pending until its owner 
       () => undefined, error => error);
     // The primary failure is kept; the factory leaves the retained handle to
     // its owner.
-    assert.equal(failure?.code, 'SalesforceEffectInstallationChanged');
+    assert.equal(failure?.code, 'InstalledRowEffectInstallationChanged');
     assert.equal(owners.length, 1);
     assert.equal(owners[0].cleanupPending(), true);
     const counts = failLedgerCloses(t, 1);
@@ -278,13 +283,13 @@ test('a restarted Set is refused before any write when one target changed',
           'External_Key__c']}];
         await installation.publish({writes});
         return {writes};
-      }, 'SalesforceEffectMappingNotInstalled'],
+      }, 'InstalledRowEffectMappingNotInstalled'],
       ['Site generation', async installation => {
         await installation.writeSite({...installation.siteDocument,
           siteGeneration: 2});
         await installation.publish();
         return {};
-      }, 'SalesforceEffectInstallationChanged'],
+      }, 'InstalledRowEffectInstallationChanged'],
       ['target', async installation => {
         installation.org.setTargetName('changed-after-preview');
         return {};
@@ -293,7 +298,7 @@ test('a restarted Set is refused before any write when one target changed',
       // so the Preview's capability no longer matches.
       ['runtime', async () => ({options: {
         runtimeBundleCid: `sha256:${'c'.repeat(64)}`}}),
-      'SalesforceEffectInstallationChanged'],
+      'InstalledRowEffectInstallationChanged'],
     ];
     for (const [label, change, code] of changes) {
       const {installation, state, accepted, continuation} =
@@ -405,7 +410,7 @@ test('each member writes only under its own tuple\'s commit decision for the Set
       const failure = await host.run(updateProgram(host.installed.mappings),
         `commit-${label.replaceAll(' ', '-')}`).then(() => undefined,
         error => error);
-      assert.ok(['SalesforceEffectCommitNotAuthorized',
+      assert.ok(['InstalledRowEffectCommitNotAuthorized',
         'SalesforceCredentialGrantNotAuthorized'].includes(failure?.code),
       `${label}: ${failure?.code}`);
       assert.equal(writesOf(installation.org).length, 0, label);
@@ -824,3 +829,26 @@ test('an unknown row is never resent after a restart', async t => {
   assert.equal(writesOf(installation.org).length, 1);
   assert.equal(installation.org.records()[0].Name, 'a00000000000001');
 });
+
+// The common owner compares data values by their exact text, never by a
+// configuration normalization: a request whose value or target differs from
+// the Program only by Unicode normalization is refused before any send, and a
+// provider outcome is stored with its exact text. Each scenario wraps the
+// real driver in its own process (see row-effect-value-identity.child.mjs).
+for (const scenario of ['value', 'target', 'outcome', 'outcome-keys',
+  'outcome-single-key']) {
+  test(`installed row Effect keeps exact data values: ${scenario}`,
+    async () => {
+      const child = fileURLToPath(new URL(
+        './row-effect-value-identity.child.mjs', import.meta.url));
+      // The child is its own test run, not a subtest of this one.
+      const {NODE_TEST_CONTEXT: _parent, ...env} = process.env;
+      const {code, stdout} = await new Promise(resolve => execFile(
+        process.execPath, ['--experimental-test-module-mocks', '--test',
+          '--test-reporter=tap', child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
+          timeout: 300_000},
+        (error, out) => resolve({code: error?.code ?? 0, stdout: out})));
+      assert.equal(code, 0, stdout);
+      assert.match(stdout, /^# pass 1$/mu, stdout);
+    });
+}

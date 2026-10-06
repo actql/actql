@@ -1,6 +1,7 @@
 // Pure binding of an installed Effect's read inventory. This is preparation
 // data, never an approval or a provider dispatch permit.
-import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {createHash} from 'node:crypto';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 
 export const EFFECT_TARGET_CONTINUATION = 'actql-effect-target-read-continuation/0.1';
 const fail = () => { throw Object.assign(new Error('InvalidEffectTargetReadInventory'),
@@ -17,7 +18,7 @@ const freeze = value => {
 export function effectTargetReadInventory(inventory) {
   if (!Array.isArray(inventory) || inventory.length === 0 ||
       inventory.length > 1000) fail();
-  const wire = canonicalJson(inventory);
+  const wire = canonicalValueJson(inventory, {dataKeys: true});
   if (Buffer.byteLength(wire) > 256 * 1024) fail();
   const groups = new Map();
   for (const item of JSON.parse(wire)) {
@@ -28,7 +29,7 @@ export function effectTargetReadInventory(inventory) {
         item.physicalBinding === null || typeof item.physicalBinding !== 'object' ||
         Array.isArray(item.physicalBinding) ||
         !text(item.physicalBinding.version)) fail();
-    const key = canonicalJson(tuple);
+    const key = canonicalValueJson(tuple);
     let group = groups.get(key);
     if (group === undefined) {
       group = {index: groups.size, readTuple: tuple, physicalBindings: []};
@@ -37,8 +38,12 @@ export function effectTargetReadInventory(inventory) {
     group.physicalBindings.push(item.physicalBinding);
   }
   const targets = freeze([...groups.values()]);
-  return Object.freeze({targets, inventoryCid: contentCid({
-    version: 'actql-effect-target-read-inventory/0.1', targets})});
+  // The CID binds the same value-preserving preimage as the retained data.
+  // Opaque provider bindings are not configuration identities.
+  const preimage = canonicalValueJson({
+    version: 'actql-effect-target-read-inventory/0.1', targets}, {dataKeys: true});
+  return Object.freeze({targets, inventoryCid: `sha256:${createHash('sha256')
+    .update(preimage, 'utf8').digest('hex')}`});
 }
 
 export function effectTargetReadScope({runDefinitionCid, unitId,

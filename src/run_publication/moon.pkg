@@ -9,3 +9,5 @@ import {
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
 }
+
+formatter(ignore: [ "json_profile_identity.generated_wbtest.mbt" ])

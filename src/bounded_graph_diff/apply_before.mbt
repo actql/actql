@@ -54,7 +54,8 @@ fn start_before(
     max_depth: limits.max_identity_depth,
     max_text_bytes: limits.max_identity_bytes,
   }
-  guard @value.start_json_admission(before, limits) is Ok(admission) else {
+  guard @value.start_json_admission(before, limits, data_keys=true)
+    is Ok(admission) else {
     return None
   }
   Some({
@@ -84,11 +85,7 @@ fn advance_before(check : BeforeAdmission, quantum : Int) -> BeforePoll {
             check.admission = None
             check.before = Some(before)
             guard check.actual is Some(actual) &&
-              @value.start_recheck_runtime_value(
-                actual,
-                json_contract(),
-                check.limits,
-              )
+              @value.start_json_payload_recheck(actual, check.limits)
               is Some(recheck) else {
               return BeforeFailed(BeforeMismatch, work=used)
             }

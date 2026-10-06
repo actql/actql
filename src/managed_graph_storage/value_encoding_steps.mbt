@@ -24,6 +24,7 @@ priv struct ValueEncoding {
   mut index : Int
   mut writer : @encode.Writer?
   mut emission : @value.WireEmitCursor?
+  identity_body : Bool
 }
 
 ///|
@@ -39,6 +40,7 @@ fn start_value_encoding(
   values : Array[@value.CheckedValue],
   pending_bytes : Int,
   pending_work : Int,
+  identity_body? : Bool = false,
 ) -> ValueEncoding {
   {
     builder,
@@ -51,6 +53,7 @@ fn start_value_encoding(
     index: 0,
     writer: None,
     emission: None,
+    identity_body,
   }
 }
 
@@ -141,8 +144,16 @@ fn advance_value_encoding(
           return value_encoding_failed(value, Closed, used)
         }
         if values.get(value.index) is Some(checked) {
+          let payload = if value.identity_body {
+            guard @value.json_payload(checked.value) is Some(payload) else {
+              return value_encoding_failed(value, InvalidIdentity, used)
+            }
+            payload
+          } else {
+            checked.value
+          }
           value.emission = Some(
-            @value.start_wire_emit(checked.value, value.writer.unwrap()),
+            @value.start_wire_emit(payload, value.writer.unwrap()),
           )
           value.phase = EmitValueEncoding
         } else {

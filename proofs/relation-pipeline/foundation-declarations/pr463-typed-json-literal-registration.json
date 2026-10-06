@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr463-typed-json-literal-registration",
+  "kind": "change",
+  "revision": "e96e9b965cd1202b04c13a4404012bbeedc7b3eb",
+  "parents": [
+    "7e337afa9e5a64035c5925aca1d93ba0ef787aaf"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "7e337afa9e5a64035c5925aca1d93ba0ef787aaf",
+          "digest": "f5b869bdc533acc74590c41dfe363183a3d9e656abbdf0934e8f760e85462916",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8d5f0039c32e337752bc9be120c0e7c1250ac33cc207054ff81804b04da284ca",
+      "afterMode": "100644",
+      "reason": "Register the typed JSON literal contract, independent vectors, and contract regressions in the existing expression-syntax gate while retaining the prior checks."
+    }
+  ]
+}

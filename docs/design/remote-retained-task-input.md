@@ -221,3 +221,154 @@ saved fields. The existing Native constructor delegates to its actual execution
 Site. Authority, current lifetime and both Transfer grants remain separate
 checks. Across asynchronous Cloud persistence and delivery, the caller must
 retain its existing Owner revision fence and revalidate before sending.
+
+The resident consumer execution entry reads the exact saved envelope and
+rebuilds its admitted Run before calling a trusted retained-input restoration
+port. That port must reissue the checked edge from this preparation and admit
+the saved binding against the current original producer observation and the
+actual committed Transfer record/receipt. Reusing an input tied to a different
+preparation fails the existing capture-owner check; equal rows or schema do not
+replace that check. This restoration creates neither a borrow nor a reservation.
+
+The existing pinned borrow must name the exact consumer dispatch occurrence.
+Pre-admission refusal keeps it with the caller. The Runtime rechecks the original
+Run lifetime and live input custody at its exclusive start boundary, preserves
+the exact claim and performs Compute through the existing retained executor.
+After capture, its output cleanup returns that borrow; an unconfirmed Runtime
+close retains the same Runtime for retry. A guard refusal before capture cannot
+return a borrow that the Runtime never acquired. The entry does not deliver a
+poll operation, publish a Result, reclaim either holding or complete Run release.
+
+## Internal producer Transfer planning
+
+An internal acquisition task has no public Result definition or publication
+attempt. Its immutable `actql-remote-retained-input-intent/0.1` is issued from
+an available original producer and its checked consumer edge. It names the
+consumer input port and task, both logical fragments, producer output port and
+schema, and exact original completion/managed-subject identities. Existing
+Transfer/grant owners supply the separate movement policy. Protocol construction
+or JSON admission alone does not establish that checked edge or authorize I/O.
+
+`actql-remote-poll-retained-input-plan/0.1` carries the original canonical
+producer dispatch and this intent. It is distinct from public Output planning,
+physical handoff and consumer dispatch. The receiving Host compares the intent
+against its admitted checked producer, then derives the existing Direct Transfer
+request from the Runtime's actual held physical manifest. It does not open a
+payload reader, allocate a receiver or start Compute during planning. Current
+Site identity/generation/bundle, authority, lifetime and both grants must pass
+the existing retained-input preflight before returning the plan.
+
+The resulting `actql-remote-retained-input-plan/0.1` binds that intent and the
+original dispatch to canonical managed subject, execution evidence, physical
+manifest and Transfer request bodies and their identities. Readmission verifies
+all nested originals and their cross-bindings, including the exact Transfer
+occurrence, source material, schema/view/codec, counts and policy. This initial
+profile uses one independent receiver on the same original Site generation;
+it does not authorize generation migration. Physical handoff must revalidate
+current Owners, rather than treating a historical plan as permission to send.
+
+The wire schemas, bounds and fixed preimages are owned by
+`spec/contracts/actql-remote-retained-input-wire.json` and
+`spec/fixtures/remote-retained-input-wire-vectors.json`. String values preserve
+original Unicode and newline bytes; Int64 policy values use canonical decimal
+strings. Structural schema admission is followed by Int64-range, exact
+canonical identity and semantic cross-binding checks. The Coordinator must
+save the exact admitted intent/plan through its existing durable state and
+revision fence before delivering a handoff. Failed or uncertain persistence
+must send nothing. Retrying uses the same saved originals and occurrence, never
+refreshed expiry, regenerated materials or another attempt.
+
+The Run Host distribution exposes checked intent issuance and restoration as
+opaque in-process handles. The issuer obtains edge and completion fields from
+the original producer; a caller supplies only the separate Transfer policy.
+Restoration re-admits the exact saved body against a freshly checked producer.
+The poll-envelope entry rechecks that producer, so historical intent bytes do
+not authorize delivery after producer custody becomes unavailable.
+
+A reported Native plan is admitted against that intent and the original
+producer's actual subject and evidence. Its current ports inspect the existing
+Site generation/bundle, authority, lifetime and movement grants. There is no
+receiver record at the planning stage; admission does not invent a committed
+Transfer. Producer availability is checked again after trusted authorization,
+so a cleanup or replacement observed during that callback refuses the plan.
+Installed ports retain their functions, not their first successful answers.
+
+Canonical plan/Transfer/manifest projections are historical evidence only.
+The caller persists original intent and plan under its existing durable Owner,
+rechecks its revision across awaits and revalidates the plan immediately before
+handoff. Failure or uncertain persistence sends nothing. Reconstructed callers
+restore the same saved originals and install fresh current-owner ports; they
+do not refresh the transfer occurrence or original Run lifetime. JSON admission
+and a successful plan check issue no physical holding, borrow, start claim,
+consumer completion or cleanup evidence.
+
+The resident control process relays an internal planning envelope only to the
+live holder of that exact original producer dispatch. The holder rebuilds the
+original admitted Run from its saved Site-journal envelope and selects the
+checked producer using the durable completion evidence and managed subject.
+This reconstruction creates no reader, reservation or borrow. Missing envelope,
+foreign checked edge or absent completion evidence is a refusal, not permission
+to reacquire the Source.
+
+Local internal movement requires three explicit delegated identities:
+`--retained-source-grant-cid`, `--retained-destination-grant-cid` and
+`--retained-route-capability-cid`. All three must be configured together. The
+execution grant and evidence issuer are not substitutes for these roles. The
+holder rechecks the configured dispatch authority and live Site generation,
+Run lifetime, original intent and fresh producer journal before handoff.
+A durable cancellation request withholds movement; it is neither a cancellation
+terminal nor proof of physical stop or cleanup. A failed journal read withholds
+movement while retaining existing resource responsibilities.
+
+The plan is reported as its exact canonical body through the existing
+authenticated observation transport. Its HTTP acknowledgement is neither a
+receiver commit nor a consumer execution claim. Coordinator persistence and
+current authorization remain required before physical handoff; the local
+delegation cannot replace the Cloud grant Owner or its revision fence. A
+reported plan alone does not publish a Result or release either task.
+
+Native callers without this installed checked producer planning port reject
+the operation explicitly and retain the producer responsibility.
+
+The Native plan handoff constructor joins the exact admitted plan and intent to
+the original checked producer before selecting its Transfer request. It stores
+that immutable pair inside the existing physical Transfer owner, rather than
+creating another custody ledger. Every advance and committed-journal reopening
+revalidates the checked edge and live producer after current authorization. A
+producer release observed during that callback refuses receiver admission or
+the next physical step. Historical plan bytes do not authorize payload access.
+
+The constructor itself opens no reader and creates no receiver record, holding
+or borrow. Physical progress, pending chunks, exact receipt and capacity remain
+with the existing Direct Transfer journal and Site holding owner. Cleanup of an
+already acquired receiver duty is still possible after producer release or
+authorization expiry, and only its confirmed cleanup returns that reservation.
+
+The retained-transfer poll operation carries the exact saved intent, plan and
+original producer request. The Run Host issuer revalidates current producer and
+movement authority before producing that envelope. Recognition and canonical
+admission alone do not grant physical access. The resident control process
+relays it only to the matching live producer holder. Movement-enabled holders
+also require an explicit `--retained-input-root`, opened before execution,
+alongside all three movement delegation identities. The ordinary path with
+none of these settings remains valid. No transport or capacity ceiling is
+increased for this profile.
+
+The holder retains one existing Direct Transfer Owner for the checked edge.
+Bounded rounds advance exact chunks; an identical reoffer resumes that Owner,
+and another plan is refused while the responsibility is held. Receiver commit
+produces a canonical retained-input result containing the saved plan identity,
+the existing Transfer record reply and its exact destination receipt. The
+result snapshots these historical facts. A report retry can repost those same
+bytes without reading Source or payload again, even after current permission
+expires. Such reporting cannot revive receiver custody or permit a consumer.
+
+The Coordinator must durably admit the exact report through its existing Owner
+before acknowledging acceptance. Historical report admission is distinct from
+current binding issuance: current Transfer custody, Site generation, grants,
+borrow and start claim remain independently required. Transfer cleanup does
+not itself release committed receiver material. The holder's receiver cleanup
+waits for its existing material Owner to confirm reclamation before returning
+the Site reservation; producer and Named Result responsibilities remain
+separate. Reconstructing a lost holder requires saved original plan, receiver
+custody and reservation responsibility, rather than a new Source execution.

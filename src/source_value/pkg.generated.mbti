@@ -19,7 +19,17 @@ pub fn parse_json_bytes_measured(Bytes, ParseLimits, source_path? : String) -> R
 
 pub fn parse_json_bytes_preserving(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
+pub fn parse_json_literal(String, ParseLimits) -> Result[ParsedSource, ParseError]
+
 pub fn parse_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_json_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
 pub fn parse_yaml(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
@@ -29,7 +39,7 @@ pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> R
 
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
-pub fn start_json_parse(String, ParseLimits, source_path? : String) -> Result[JsonParse, ParseError]
+pub fn start_json_parse(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
 // Errors
 
@@ -79,6 +89,7 @@ pub(all) enum ParseIssue {
   InvalidUnicodeEscape
   InvalidNumber
   NumberOutOfRange
+  NumberPrecisionLoss
   NegativeZero
   ExpectedColon
   ExpectedArraySeparator
