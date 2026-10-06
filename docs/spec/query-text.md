@@ -547,14 +547,13 @@ filtering keep their existing meaning. The common Delta checker requires the
 same complete Graph contract for both operands; the Frontend does not infer
 compatible identity domains or implement a difference algorithm.
 
-The current common publication owner rejects a Result exposing `delta` with
-`ResultOrder(UnresolvedOrder)`, even without authored ORDER BY. A row-count
-bound is not publication-order evidence. The source and independently authored
-machine Program retain that refusal before Run admission; this connection is
-not execution acceptance of a public Delta Result. It is a separate common
-order/evidence gap, not a permanent restriction on the adopted Graph operation.
+The checked `graph_diff` operation completes exactly one Delta row. The common
+order owner derives logical order from that producer contract and preserves
+it through admitted projection, filtering and take operations. A row-count
+ceiling alone does not establish order for an arbitrary JSON Relation.
+Graph Delta application produces a Graph and establishes no Relation order.
 The Frontend does not synthesize a sort, key, scalar encoding or fallback to
-publish that JSON value.
+publish the JSON value.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
