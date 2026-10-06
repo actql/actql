@@ -1834,7 +1834,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                       ("request_cid", identity),
                       ("sent", current.child.terminate().to_string()),
                     ])
-                  } else if codes[0] == 3 {
+                  } else if codes[0] == 3 || codes[0] == 4 || codes[0] == 5 {
+                    // Terminal execution still owns cleanup, including a
+                    // consumer cancelled after borrow but before its start claim.
                     // Preserve completed execution and its evidence; release
                     // the exact retained output through its live owner.
                     report("cancel-release-relayed", [
@@ -2491,6 +2493,14 @@ fn serve_holder_output(
                 @slot.native_wait_milliseconds(250)
               }
             }
+            if consumer_executed.val is None &&
+              !confirm_unstarted_consumer_cleanup(
+                environment.journal,
+                @resident_host.resident_retained_consumer_request(owner),
+              ) {
+              report("consumer-release-pending", [("reason", "formal-cleanup")])
+              continue
+            }
             consumer_released = true
             ignore(
               @client.acknowledge_status(
@@ -3132,6 +3142,54 @@ fn serve_holder_output(
   ignore(transfer_journal.close())
   ignore(transfer.close())
   ignore(control.close())
+}
+
+///|
+/// Called only after the exact consumer Owner has closed its borrow/Runtime,
+/// the caller's untransferred bundle holding is returned, and the receiver
+/// holding Owner has confirmed reclamation. A durable exclusive start claim
+/// forbids the unstarted path; its physical execution needs Runtime recovery.
+/// Save both shared release transitions before retiring the relay obligation.
+fn confirm_unstarted_consumer_cleanup(
+  journal : @journal.Journal,
+  request : @remote.DispatchRequest,
+) -> Bool {
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  let codes = @remote.dispatch_record_state_codes(record)
+  if codes[2] == 2 &&
+    (codes[0] == 3 || codes[0] == 4 || codes[0] == 5) &&
+    codes[3] == 0 &&
+    codes[4] == 0 {
+    return true
+  }
+  if codes[0] != 5 || codes[1] != 0 || codes[3] != 0 || codes[4] != 0 {
+    return false
+  }
+  match journal.start_claimant(request) {
+    Ok(None) => ()
+    _ => return false
+  }
+  if codes[2] == 0 {
+    let transition = match @remote.prepare_begin_remote_release(record) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+    if journal.commit_transition(transition) is Err(_) {
+      return false
+    }
+  }
+  let current = match journal.require(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  let transition = match @remote.prepare_confirm_remote_release(current) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  journal.commit_transition(transition) is Ok(_)
 }
 
 ///|

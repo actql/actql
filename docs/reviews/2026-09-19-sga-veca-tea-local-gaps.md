@@ -320,6 +320,16 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The 2026-10-07 raw Text follow-up connects Object child conversion and
+array_agg to the existing resumed Value recheck owner, preserves original byte
+charges/data spelling, and uses the existing ArrayBuilder without a final
+whole-array copy. The real retained Host fixtures read producer/two-consumer
+results and exercise post-progress custody. Exact work/live/workspace and both
+conversion-phase stops are required evidence. See the
+[Text child record](2026-10-07-local-text-child-admission.md). Initial row-map
+preparation, short-name collisions and AggregateString's synchronous scans/join
+remain separate; no all-Local completion is asserted.
+
 The 2026-10-07 constructed-Object follow-up now sizes and charges long member
 names through the existing frame and appends through the existing Value owner
 bound to immutable admitted contract names. The real retained Host harness
