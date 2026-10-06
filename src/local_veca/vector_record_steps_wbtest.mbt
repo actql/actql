@@ -446,6 +446,11 @@ test "Score typed Text identity validation and ties keep bounded cursors" {
   let source = @records.finish_output(builder).unwrap()
   let owner = score_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
+  // Text completion shares the last code-unit poll (no separate end poll).
+  // Query/scratch 4; two records (1+1+3+3+1+514+2+1)=1052;
+  // two merge emissions and 514-unit tie scan 516; copy 2;
+  // emit setup 10; two appends (37+9 key chunks+9 value chunks)=110;
+  // finish 1. Total 1695, without deriving work from a successful run.
   for quantum in [1, 7, 256] {
     let active = start_score(
       @bounded.control(),
@@ -461,7 +466,8 @@ test "Score typed Text identity validation and ties keep bounded cursors" {
       if !done {
         match advance_score(active, quantum).unwrap() {
           ScoreContinue(..) => ()
-          ScoreComplete(output, ..) => {
+          ScoreComplete(output, work~, ..) => {
+            assert_eq(work, 1695L)
             let storage = @records.completed_storage(output).unwrap()
             assert_eq(@storage.record_count(storage), 2)
             for (index, suffix) in [(0, "a"), (1, "b")] {

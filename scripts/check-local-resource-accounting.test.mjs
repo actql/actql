@@ -61,6 +61,63 @@ test('Set requires nested comparison boundary evidence for both operations', () 
   }
 });
 
+test('Score and Normalize require stepped record limits, scans and public Store evidence', () => {
+  for (const prefix of ['normalize', 'score']) {
+    const operation = prefix === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const suffixes = ['record_limits', 'record_stop', 'role_stop', 'unused_stop',
+      ...(prefix === 'score' ? ['key_stop_order'] : [])];
+    for (const suffix of suffixes) {
+      const role = `${prefix}_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} stepped fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_record_public_store`);
+    }), new RegExp(`VecA ${operation}: stepped record public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests.find(item => item.role === `${prefix}_record_public_store`)
+        .suite = 'node:embedded_pool_keys';
+    }), /environment evidence must name an executable suite/u);
+  }
+});
+
+test('Score and Normalize public record evidence requires its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      "import './public-vector-record-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of ['score_vectors', 'normalize_vectors']) {
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: vector record public fixture is not suite-connected`));
+  }
+});
+
+test('Score and Normalize cannot replace the shared stepped append with an atomic call', () => {
+  for (const kernel of ['normalize', 'score']) {
+    const file = join(root, `src/local_veca/${kernel}.mbt`);
+    const operation = kernel === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+        '@records.start_record_append(', '@records.append_record(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: stepped record/name/key production connection is missing`));
+  }
+});
+
 test('DISTINCT requires nested comparison limits, stop and public Store evidence', () => {
   for (const suffix of ['quantum_order', 'stop_cleanup', 'workspace', 'work', 'public_barrier']) {
     const role = `distinct_nested_compare_${suffix}`;
