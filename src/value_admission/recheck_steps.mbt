@@ -5,6 +5,7 @@ priv enum RecheckFrame {
   CheckNode(Value, @contract.Contract, Int)
   ArrayItems(Array[Value], @contract.Contract, Int, Int)
   ObjectFields(Array[(String, Value)], @contract.Contract, Int, Int)
+  ObjectName(Array[(String, Value)], @contract.Contract, Int, Int, Int)
   JsonNode(Value, Int)
   JsonItems(Array[Value], Int, Int)
   JsonFields(Array[(String, Value)], Int, Int)
@@ -16,13 +17,15 @@ priv enum RecheckFrame {
 /// Resumable form of `recheck_runtime_value`: the same structural checks,
 /// budgets and result, one node, one container child, or at most 64 UTF-16
 /// text units per advance. A caller can stop inside large composite values
-/// and Text scalars.
+/// and Text scalars, including declared Object names. Opaque JSON member
+/// names remain data, separate from the declared Object identifier domain.
 struct RecheckCursor {
   value : Value
   contract : @contract.Contract
   limits : Limits
   budget : RecheckBudget
   stack : Array[RecheckFrame]
+  mut text_counts : (Int64, Int64)?
   mut finished : Bool
 }
 
@@ -52,6 +55,7 @@ pub fn start_recheck_runtime_value(
       max_depth: limits.max_depth,
     },
     stack: [CheckNode(value, contract, 0)],
+    text_counts: None,
     finished: false,
   })
 }
@@ -111,12 +115,73 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
           return recheck_step_fail(cursor)
         }
         let (name, child) = values[index]
-        if name != field.name || recheck_text(name, budget) is None {
+        if name.length() > 64 {
+          if name.length() != field.name.length() || name.length() > budget.text {
+            return recheck_step_fail(cursor)
+          }
+          cursor.stack.push(ObjectName(values, contract, index, depth, 0))
+        } else {
+          if name != field.name || recheck_text(name, budget) is None {
+            return recheck_step_fail(cursor)
+          }
+          cursor.stack.push(ObjectFields(values, contract, index + 1, depth))
+          cursor.stack.push(CheckNode(child, field.contract, depth + 1))
+        }
+      }
+    ObjectName(values, contract, field_index, depth, offset) => {
+      guard contract.shape is @contract.Object(fields) &&
+        @contract.field_at(fields, field_index) is Some(field) else {
+        return recheck_step_fail(cursor)
+      }
+      let (name, child) = values[field_index]
+      let mut index = offset
+      let end = offset + Int::min(64, name.length() - offset)
+      // Fields is opaque: every contract constructor/admitter checks NFC/LF.
+      // Exact equality therefore reuses that name evidence without applying
+      // identifier normalization to any child data String. Delay both child
+      // and sibling continuations until the name is completely checked, so
+      // the existing depth-stack custody suffices.
+      while index < end {
+        let unit = name[index].to_int()
+        if name[index] != field.name[index] {
           return recheck_step_fail(cursor)
         }
-        cursor.stack.push(ObjectFields(values, contract, index + 1, depth))
+        let mut units = 1
+        let bytes = if unit < 0x80 {
+          1
+        } else if unit < 0x800 {
+          2
+        } else if unit >= 0xd800 && unit <= 0xdbff {
+          if index + 1 >= name.length() ||
+            name[index + 1] != field.name[index + 1] ||
+            name[index + 1].to_int() < 0xdc00 ||
+            name[index + 1].to_int() > 0xdfff {
+            return recheck_step_fail(cursor)
+          }
+          units = 2
+          4
+        } else if unit >= 0xdc00 && unit <= 0xdfff {
+          return recheck_step_fail(cursor)
+        } else {
+          3
+        }
+        if bytes > budget.text {
+          return recheck_step_fail(cursor)
+        }
+        budget.text -= bytes
+        index += units
+      }
+      if index < name.length() {
+        cursor.stack.push(
+          ObjectName(values, contract, field_index, depth, index),
+        )
+      } else {
+        cursor.stack.push(
+          ObjectFields(values, contract, field_index + 1, depth),
+        )
         cursor.stack.push(CheckNode(child, field.contract, depth + 1))
       }
+    }
     JsonNode(value, depth) =>
       if !recheck_json_step(cursor, value, depth) {
         return recheck_step_fail(cursor)
@@ -270,6 +335,7 @@ fn recheck_text_units(
     cursor.stack.push(TextUnits(value, bounds, index, count, byte_count))
     true
   } else {
+    cursor.text_counts = Some((count, byte_count))
     (bounds.min_length is None || count >= bounds.min_length.unwrap()) &&
     (bounds.max_codepoints is None || count <= bounds.max_codepoints.unwrap()) &&
     (

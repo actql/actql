@@ -20,6 +20,7 @@ priv enum DedupePhase {
   EmitBegin
   EmitFields
   EmitCommit
+  EmitAppend
   Finish
 }
 
@@ -39,10 +40,12 @@ priv struct DedupeState {
   cell_count : Int
   keys : Int
   terms : Int
+  scratch : Int
   mut phase : DedupePhase
   mut record : Int
   mut field : Int
   mut term : Int
+  mut name_offset : Int
   mut current : (@schema.FieldName, @value.CheckedValue)?
   mut cells : Array[@value.CheckedValue?]
   mut source_order : Array[Int]
@@ -65,6 +68,7 @@ priv struct DedupeState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut append : @records.RecordAppend?
   mut control_work_remaining : Int
 }
 
@@ -113,7 +117,10 @@ fn dedupe_source_field(
 }
 
 ///|
+/// Private observation only; Session retains cleanup and completion authority.
+#warnings("-unused_field")
 struct DedupeExecution {
+  state : DedupeState
   session : @bounded.Session[DedupeState, @records.Completed, DedupeIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
@@ -314,6 +321,7 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
       }
       state.current = Some(value)
       state.term = 0
+      state.name_offset = 0
       state.phase = LoadTerm
       Ok(())
     }
@@ -322,7 +330,10 @@ fn dedupe_load_step(state : DedupeState) -> Result[Unit, DedupeIssue] {
         dedupe_term_name(state, state.term) is Some(expected) else {
         return Err(InvalidDedupeRecord(state.record))
       }
-      if @schema.reference_name(name) == @schema.reference_name(expected) {
+      let (equal, next) = event_name_equal(name, expected, state.name_offset)
+      state.name_offset = next
+      guard equal is Some(equal) else { return Ok(()) }
+      if equal {
         state.cells[state.record * state.terms + state.term] = Some(value)
       }
       state.term += 1
@@ -540,8 +551,10 @@ fn dedupe_emit_step(state : DedupeState) -> Result[Bool, DedupeIssue] {
       }
       let record = state.survivors[state.emit]
       guard dedupe_source_field_count(state.source, record) is Some(fields) &&
-        dedupe_checked_multiply(fields, 2) is Some(field_slots) &&
-        dedupe_checked_add(state.records, field_slots) is Some(temporary) else {
+        dedupe_checked_add(state.scratch, fields) is Some(field_slots) &&
+        dedupe_checked_add(field_slots, 1) is Some(owned) &&
+        event_emission_workspace(fields, 1, state.limits.max_value_depth, owned)
+        is Some(temporary) else {
         return Err(InvalidDedupeRecord(record))
       }
       let current = match state.output {
@@ -576,8 +589,30 @@ fn dedupe_emit_step(state : DedupeState) -> Result[Bool, DedupeIssue] {
       guard state.output is Some(output) else {
         return Err(InvalidDedupeKernel)
       }
-      match @records.append_record(output, state.emit_fields) {
-        Ok(_) => {
+      match
+        @records.start_record_append(
+          output,
+          state.emit_fields,
+          external_workspace_slots=state.scratch +
+            state.emit_fields.length() +
+            1,
+        ) {
+        Ok(append) => {
+          state.append = Some(append)
+          state.phase = EmitAppend
+          Ok(false)
+        }
+        Err(issue) => Err(DedupeOutput(issue))
+      }
+    }
+    EmitAppend => {
+      guard state.append is Some(append) else {
+        return Err(InvalidDedupeKernel)
+      }
+      match @records.advance_record_append(append) {
+        Ok(false) => Ok(false)
+        Ok(true) => {
+          state.append = None
           state.emit_fields = []
           state.emit += 1
           state.phase = EmitBegin
@@ -639,7 +674,7 @@ fn dedupe_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
-      EmitBegin | EmitFields | EmitCommit => {
+      EmitBegin | EmitFields | EmitCommit | EmitAppend => {
         used += 1
         match dedupe_emit_step(state) {
           Ok(emitted) => if emitted { progress += 1 }
@@ -665,11 +700,16 @@ fn dedupe_step(
 
 ///|
 fn cleanup_dedupe_state(state : DedupeState) -> Bool {
+  if state.append is Some(append) {
+    @records.cleanup_record_append(append) |> ignore
+    state.append = None
+  }
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
   }
   state.current = None
+  state.name_offset = 0
   state.cells = []
   state.source_order = []
   state.target_order = []
@@ -713,7 +753,8 @@ fn start_dedupe_source(
   guard dedupe_checked_add(keys, order) is Some(terms) &&
     terms > 0 &&
     dedupe_checked_multiply(records, terms) is Some(cell_count) &&
-    dedupe_scratch(records, terms) is Some(scratch_slots) else {
+    dedupe_scratch(records, terms) is Some(base_scratch) &&
+    dedupe_checked_add(base_scratch, 1) is Some(scratch_slots) else {
     return Err(DedupeWorkspaceLimit)
   }
   if scratch_slots > limits.max_workspace_slots {
@@ -741,10 +782,12 @@ fn start_dedupe_source(
     cell_count,
     keys,
     terms,
+    scratch: scratch_slots,
     phase: InitializeCells,
     record: 0,
     field: 0,
     term: 0,
+    name_offset: 0,
     current: None,
     cells: [],
     source_order: [],
@@ -767,12 +810,14 @@ fn start_dedupe_source(
     emit: 0,
     emit_field: 0,
     emit_fields: [],
+    append: None,
     control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, dedupe_step, cleanup_dedupe_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: 1,

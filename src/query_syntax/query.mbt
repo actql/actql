@@ -81,6 +81,7 @@ pub(all) enum QueryInteger {
 ///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -364,6 +365,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    UnnestSource(expression, element, offset) =>
+      Some(UnnestSource(expression, element, offset))
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -796,6 +799,37 @@ fn QueryParser::starts_join(self : QueryParser) -> Bool {
 }
 
 ///|
+// An omitted AS still introduces an explicit output alias. Reserve the pinned
+// GoogleSQL keyword set here so a clause or unsupported reserved form cannot
+// disappear into a column name. Backticks retain the ordinary quoted-name role.
+fn QueryParser::optional_output_alias(
+  self : QueryParser,
+) -> NamePart? raise QueryAbort {
+  if self.has("AS") {
+    self.keyword("AS")
+    return Some(self.name())
+  }
+  match self.peek().value {
+    QuotedName(_) => Some(self.name())
+    Word(value) if ![
+        "ALL", "AND", "ANY", "ARRAY", "AS", "ASC", "ASSERT_ROWS_MODIFIED", "AT",
+        "BETWEEN", "BY", "CASE", "CAST", "COLLATE", "CONTAINS", "CREATE", "CROSS",
+        "CUBE", "CURRENT", "DEFAULT", "DEFINE", "DESC", "DISTINCT", "ELSE", "END",
+        "ENUM", "ESCAPE", "EXCEPT", "EXCLUDE", "EXISTS", "EXTRACT", "FALSE", "FETCH",
+        "FOLLOWING", "FOR", "FROM", "FULL", "GRAPH_TABLE", "GROUP", "GROUPING", "GROUPS",
+        "HASH", "HAVING", "IF", "IGNORE", "IN", "INNER", "INTERSECT", "INTERVAL",
+        "INTO", "IS", "JOIN", "LATERAL", "LEFT", "LIKE", "LIMIT", "LOOKUP", "MERGE",
+        "NATURAL", "NEW", "NO", "NOT", "NULL", "NULLS", "OF", "ON", "OR", "ORDER",
+        "OUTER", "OVER", "PARTITION", "PRECEDING", "PROTO", "QUALIFY", "RANGE", "RECURSIVE",
+        "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME", "STRUCT",
+        "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE", "UNBOUNDED", "UNION", "UNNEST",
+        "USING", "WHEN", "WHERE", "WINDOW", "WITH", "WITHIN",
+      ].contains(upper_ascii(value)) => Some(self.name())
+    _ => None
+  }
+}
+
+///|
 fn QueryParser::projections(
   self : QueryParser,
 ) -> Array[Projection] raise QueryAbort {
@@ -827,14 +861,9 @@ fn QueryParser::projections(
       } else {
         None
       }
-      let name = if self.has("AS") {
-        self.keyword("AS")
-        Some(self.name())
-      } else {
-        None
-      }
+      let name = self.optional_output_alias()
       if (aggregate is Some(_) || analytic is Some(_)) && name is None {
-        raise QueryAbort("Function output requires AS name", self.peek().start)
+        raise QueryAbort("Function output requires a name", self.peek().start)
       }
       {
         expression: if analytic is Some(_) {
@@ -1155,16 +1184,65 @@ fn QueryParser::end(self : QueryParser) -> Unit raise QueryAbort {
 }
 
 ///|
+// Explicit UNNEST consumes an array value, not an installed Relation alias.
+// Element and offset names remain authored columns in the resulting scope.
+fn QueryParser::unnest_source(
+  self : QueryParser,
+) -> QueryOperation raise QueryAbort {
+  self.keyword("UNNEST")
+  self.symbol(40)
+  let expression = self.expression()
+  self.symbol(41)
+  if self.has("AS") {
+    self.keyword("AS")
+  }
+  if self.has("WITH") || self.peek().value == Pipe || self.peek().value == End {
+    raise QueryAbort(
+      "UNNEST requires an explicit element alias in this profile",
+      self.peek().start,
+    )
+  }
+  let element = self.name()
+  let offset = if self.has("WITH") {
+    self.keyword("WITH")
+    self.keyword("OFFSET")
+    let name = if self.has("AS") {
+      self.keyword("AS")
+      self.name()
+    } else if self.peek().value is QuotedName(_) {
+      self.name()
+    } else if self.optional_source_alias() is Some(name) {
+      name
+    } else {
+      { value: "offset", quoted: false, }
+    }
+    Some(name)
+  } else {
+    None
+  }
+  self.node()
+  UnnestSource(expression, element, offset)
+}
+
+///|
 fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
   if distinct {
     self.keyword("DISTINCT")
+  } else if self.has("ALL") {
+    self.keyword("ALL")
   }
   let projections = self.projections()
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
     self.keyword("FROM")
-    self.query_source()
+    if self.has("UNNEST") {
+      operations.push(self.unnest_source())
+      ([], None, [])
+    } else {
+      self.query_source()
+    }
   } else {
     ([], None, [])
   }
@@ -1176,7 +1254,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       ctes.push(cte)
     }
   }
-  let operations : Array[QueryOperation] = []
+
   if self.has("WHERE") {
     self.keyword("WHERE")
     self.node()
@@ -1357,6 +1435,7 @@ fn QueryParser::pipe(
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
     if cte_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
@@ -1366,6 +1445,9 @@ fn QueryParser::pipe(
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
     (relation, None, [])
+  } else if self.has("UNNEST") {
+    operations.push(self.unnest_source())
+    ([], None, [])
   } else {
     self.query_source()
   }
@@ -1377,7 +1459,7 @@ fn QueryParser::pipe(
       source_alias,
       graph,
       joins: [],
-      operations: [],
+      operations,
       sets: [],
       final_operations: [],
       effect: None,
@@ -1633,6 +1715,8 @@ fn QueryParser::pipe_tail(
       let distinct = self.has("DISTINCT")
       if distinct {
         self.keyword("DISTINCT")
+      } else if self.has("ALL") {
+        self.keyword("ALL")
       }
       let projections = self.projections()
       if projections.any(projection => projection.analytic is Some(_)) {

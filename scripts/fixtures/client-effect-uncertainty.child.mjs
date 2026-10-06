@@ -31,6 +31,7 @@ try {
   catch (error) { reconcileError = error.code; }
   console.log(JSON.stringify({ref, state, reconcileError,
     explanation: sdk.explainEffectUncertainty?.(state),
+    japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
     copiedExplanation: sdk.explainEffectUncertainty?.({...state})}));
 } finally {
   await client.close();

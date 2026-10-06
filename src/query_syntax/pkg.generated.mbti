@@ -401,6 +401,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)

@@ -13,20 +13,59 @@ test "aggregate WHERE preserves independent filters and ordinary demand" {
     NeedsInputs(_) => ()
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
-  let generated = compile(
-    @query.parse_query(
-      "SELECT COUNT(* WHERE TRUE) AS n, SUM(1 / 0 WHERE FALSE) AS total",
-      syntax_limits(),
-    ).unwrap(),
-    { ..fixture_context(), inputs: [], },
-    construction_limits(),
+  for
+    text in [
+      "SELECT COUNT(* WHERE TRUE) AS n, SUM(1 / 0 WHERE FALSE) AS total", "SELECT ALL COUNT(* WHERE TRUE) n, SUM(1 / 0 WHERE FALSE) total",
+    ] {
+    let generated = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(generated), semantic(expected))
+    match
+      @check.check_parsed(generated, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => ()
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
+
+///|
+test "aggregate WHERE reads the independently expanded UNNEST input" {
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"number","nullable":true}}},"stages":[{"id":"main","inputs":{},"steps":[{"as":"aql_source_free","values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]}},{"from":"aql_source_free","derive":{"aql_unnest_array_2":{"$param":"items"}}},{"unnest":{"column":"aql_unnest_array_2","as":"aql_unnest_element_3"}},{"group":{"by":[],"aggregates":{"n":{"fn":"count","filter":{"gt":[{"field":"aql_unnest_element_3"},{"literal":1}]}}}}},{"select":["n"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
   ).unwrap()
-  assert_eq(semantic(generated), semantic(expected))
-  match
-    @check.check_parsed(generated, check_environment(), None, check_limits()) {
-    Checked(_) => ()
-    NeedsInputs(_) => ()
-    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  for
+    text in [
+      "SELECT COUNT(* WHERE element > 1) AS n FROM UNNEST(@items) AS element", "SELECT ALL COUNT(* WHERE element > 1) n FROM UNNEST(@items) AS element",
+    ] {
+    let actual = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      {
+        ..fixture_context(),
+        inputs: [],
+        parameter_declarations: Some(unnest_parameters()),
+      },
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+    for program in [expected, actual] {
+      assert_true(
+        @check.check_parsed(
+          program,
+          check_environment(),
+          Some(unnest_value_cursor("{\"items\":[2,null,2]}")),
+          check_limits(),
+        )
+        is Checked(_),
+      )
+    }
   }
 }
 

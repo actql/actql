@@ -10,6 +10,8 @@ import {
 // Values
 pub fn all_fields_required(Knowledge) -> Bool
 
+pub fn compare_property_name_fragment(String, String, Int, Int) -> (Int?, Int, Int)
+
 pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
 
 pub fn event_clock_encoding(Events) -> ClockEncoding

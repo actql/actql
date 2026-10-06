@@ -6,15 +6,41 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
+import {localizeOperation} from './operation-presentation.mjs';
+export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+// Rejected transport observations retain only a safe classification and this
+// call's own input. No unvalidated reply, revision or location gains custody.
+const checkFailures = new WeakMap();
+
+export function getCheckFailureInput(error) {
+  return checkFailures.get(error)?.input;
+}
+
+export function explainCheckFailure(error, options) {
+  const failure = checkFailures.get(error);
+  if (!failure) return undefined;
+  const messages = {
+    unknown_outcome: ['The check reply contains an outcome this SDK cannot interpret.',
+      'Review Host and SDK contract support; this observation establishes no check verdict or retry permission.'],
+    contract_mismatch: ['The check reply does not match this SDK’s registered protocol identities.',
+      'Use matching Host and SDK contracts; the rejected reply establishes no check verdict.'],
+    malformed_response: ['The check reply violates the registered response contract or original input binding.',
+      'Ask the Host owner to investigate the protocol failure; it is not a diagnosed source error.'],
+  };
+  const [summary, hint] = localizeCheck(`protocol.${failure.problem}`, messages[failure.problem], options);
+  return freezeInput({kind: failure.kind, problem: failure.problem, summary, hint});
+}
+
+const checkRequests = new WeakMap();
 const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
@@ -42,6 +68,12 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+// Proposals require the original SDK response, not a copied wire value.
+export function getCheckFixes(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  return Object.freeze(outcome.report.reasons.flatMap(reason => reason.fixes ?? []));
 }
 
 // Compare typed public obligations, never translated explanations or severity.
@@ -122,16 +154,16 @@ export function getSubmissionInput(result) {
 
 // Local observation of this SDK read only. Lookup rechecks current authority;
 // this explanation proves neither publication nor execution nor resource release.
-export function explainReadFailure(result) {
-  return readExplanations.get(result);
+export function explainReadFailure(result, options) {
+  return localizeOperation(readExplanations.get(result), 'read', options);
 }
 
-export function explainSubmission(result) {
-  return submissionExplanations.get(result);
+export function explainSubmission(result, options) {
+  return localizeOperation(submissionExplanations.get(result), 'submission', options);
 }
 
-export function explainEffectUncertainty(state) {
-  return effectUncertainties.get(state);
+export function explainEffectUncertainty(state, options) {
+  return localizeOperation(effectUncertainties.get(state), 'effect', options);
 }
 
 const retainEffectUncertainty = (state, ref) => {
@@ -158,8 +190,8 @@ const retainEffectUncertainty = (state, ref) => {
   return state;
 };
 
-export function explainCancellation(result) {
-  return cancellationExplanations.get(result);
+export function explainCancellation(result, options) {
+  return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
 const retainCancellationExplanation = (result, context, observation, revision) => {
@@ -230,6 +262,11 @@ export function resolveCheckLocation(outcome, location, currentInput) {
 
 // Coordinates describe this submitted revision, never a newer editor buffer.
 export function resolveCheckTextRange(outcome, location, currentInput) {
+  return resolveCheckTextRangeEncoding(outcome, location, 'utf-16', currentInput);
+}
+
+export function resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput) {
+  if (!['utf-8', 'utf-16', 'utf-32'].includes(encoding)) return undefined;
   const resolved = resolveCheckLocation(outcome, location, currentInput);
   if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
   const text = resolved.input.text;
@@ -251,12 +288,143 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
       width++;
     }
     if (scalar === 13 || scalar === 10) { line++; character = 0; }
-    else character += units;
+    else character += encoding === 'utf-8' ? width : encoding === 'utf-16' ? units : 1;
     byte += width;
     at += units;
   }
-  return start && Object.freeze({...resolved, positionEncoding: 'utf-16',
+  return start && Object.freeze({...resolved, positionEncoding: encoding,
     range: Object.freeze({start, end})});
+}
+
+// A session owns one current unsaved buffer; replies retain their SDK input custody.
+export function createCheckDocumentSession(client, options) {
+  const {text, version, positionEncoding = 'utf-16'} = options ?? {};
+  const validDocument = (text, version) => typeof text === 'string' && text.isWellFormed() &&
+    Number.isInteger(version) && version >= -2147483648 && version <= 2147483647;
+  if (typeof client?.check !== 'function' || !validDocument(text, version) ||
+      !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
+  let current = {text, version}, checker = client, issued = 0n;
+  const observations = new WeakMap();
+  const currentRecord = observation => {
+    const record = observations.get(observation);
+    return current && record?.input && record.ticket === issued &&
+      observation.version === current.version && record.input.text === current.text ? record : undefined;
+  };
+  return Object.freeze({
+    update(text, version) {
+      if (!current) fail('CheckDocumentClosed');
+      if (!validDocument(text, version) || version <= current.version) fail('InvalidCheckDocument');
+      current = {text, version};
+    },
+    async check(options) {
+      if (!current) fail('CheckDocumentClosed');
+      const submitted = current, ticket = ++issued;
+      // Call the existing SDK before yielding so it also detaches supplied bindings.
+      const outcome = await checker.check(submitted.text, options);
+      const input = getCheckInput(outcome, 'source');
+      const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
+      observations.set(observation, {ticket, input: input?.kind === 'text' &&
+        input.text === submitted.text ? input : undefined, request: checkRequests.get(outcome)});
+      return observation;
+    },
+    async applyFixes(observation, fixes, options) {
+      // Read application accessors before checking the current observation.
+      const version = options?.version, reviewed = options?.reviewed;
+      const selected = Array.isArray(fixes) ? [...fixes] : undefined;
+      const record = currentRecord(observation);
+      if (!record?.request) fail('CheckFixStale');
+      if (reviewed !== true) fail('CheckFixReviewRequired');
+      if (!validDocument(current.text, version) || version <= current.version ||
+          !selected?.length || selected.length > 32) fail('InvalidCheckFixes');
+      const offered = getCheckFixes(observation.outcome);
+      if (selected.some(fix => !offered.includes(fix))) fail('InvalidCheckFixes');
+      const edits = selected.flatMap(fix => {
+        if (fix.target.document_id !== 'source' ||
+            fix.target.revision !== record.input.revision) fail('InvalidCheckFixes');
+        return fix.edits;
+      }).sort((a, b) => a.start_byte - b.start_byte || a.end_byte - b.end_byte);
+      const bytes = utf8.encode(record.input.text);
+      const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+        (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+      for (let i = 0; i < edits.length; i++) {
+        const edit = edits[i], previous = edits[i - 1];
+        if (!boundary(edit.start_byte) || !boundary(edit.end_byte) ||
+            edit.end_byte < edit.start_byte || !edit.replacement.isWellFormed() ||
+            (previous && (previous.end_byte > edit.start_byte ||
+              previous.start_byte === edit.start_byte))) fail('InvalidCheckFixes');
+      }
+      const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+      let cursor = 0, text = '';
+      for (const edit of edits) {
+        text += decoder.decode(bytes.subarray(cursor, edit.start_byte)) + edit.replacement;
+        cursor = edit.end_byte;
+      }
+      text += decoder.decode(bytes.subarray(cursor));
+      const checkOptions = {format: record.request.input.format,
+        parameterDeclarations: record.request.input.parameterDeclarations,
+        parameters: record.request.parameters};
+      const originalClient = checker;
+      const assertCurrent = () => {
+        if (currentRecord(observation) !== record) fail('CheckFixStale');
+      };
+      const assertContext = outcome => {
+        if (outcome.outcome !== 'completed' ||
+            outcome.report.context_ref !== observation.outcome.report.context_ref ||
+            getCheckInput(outcome, 'source')?.revision !== record.input.revision ||
+            selected.some(fix => !getCheckFixes(outcome)?.some(candidate =>
+              structuralKey(candidate) === structuralKey(fix)))) fail('CheckFixContextChanged');
+      };
+      // Bracket the candidate check with current-context checks of the original
+      // request. These are observations, not an authorization lease or execution.
+      const before = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(before);
+      const outcome = await originalClient.check(text, checkOptions);
+      assertCurrent();
+      const input = getCheckInput(outcome, 'source');
+      if (outcome.outcome !== 'completed' || input?.kind !== 'text' || input.text !== text) {
+        fail('CheckFixRecheckUnavailable');
+      }
+      const after = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(after);
+      // Commit the one-document edit and its rechecked observation together,
+      // without yielding. No partial update survives a failed check.
+      current = {text, version};
+      const ticket = ++issued;
+      const updated = Object.freeze({outcome, version, positionEncoding});
+      observations.set(updated, {ticket, input, request: checkRequests.get(outcome)});
+      return updated;
+    },
+    resolveTextRange(observation, location) {
+      const record = currentRecord(observation);
+      if (!record ||
+          location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
+      const range = resolveCheckTextRangeEncoding(observation.outcome, location,
+        positionEncoding, record.input);
+      // Location accessors can edit, close or issue a newer check while resolving.
+      return currentRecord(observation) === record ? range : undefined;
+    },
+    format(observation, options) {
+      let outcome, selected;
+      try {
+        outcome = observation?.outcome;
+        selected = {format: options?.format, maxBytes: options?.maxBytes,
+          currentInputs: options?.currentInputs, positionEncoding};
+      } catch { return undefined; }
+      try { selected.locale = options?.locale; } catch { selected.locale = 'en'; }
+      // Read application options before deciding whether editor positions are current.
+      const record = currentRecord(observation);
+      if (!record) selected.currentInputs = [];
+      else if (selected.currentInputs === undefined) selected.currentInputs = [...checkInputs.get(outcome).values()];
+      const rendered = formatCheckOutcome(outcome, selected);
+      // Input accessors can edit, close or issue a newer check while rendering.
+      return record && currentRecord(observation) !== record
+        ? formatCheckOutcome(outcome, {...selected, currentInputs: []}) : rendered;
+    },
+    close() {
+      current = undefined;
+      checker = undefined;
+    },
+  });
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
@@ -327,14 +495,15 @@ export function formatCheckOutcome(outcome, options) {
     snapshot = JSON.parse(JSON.stringify(outcome));
     if (!validCheckOutcome(snapshot)) return undefined;
   } catch { return undefined; }
-  let format, maxBytes, currentInputs, locale;
+  let format, maxBytes, currentInputs, locale, positionEncoding;
   try {
     format = options?.format ?? 'text';
     maxBytes = options?.maxBytes ?? 65536;
     currentInputs = options?.currentInputs;
+    positionEncoding = options?.positionEncoding ?? 'utf-16';
   } catch { return undefined; }
   try { locale = options?.locale; } catch { locale = 'en'; }
-  if (!['text', 'html', 'json'].includes(format) || !Number.isSafeInteger(maxBytes) ||
+  if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
   const presentation = getCheckPresentationInfo({locale});
   const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
@@ -388,7 +557,7 @@ export function formatCheckOutcome(outcome, options) {
         entry.location = {kind: resolved.kind, documentId: resolved.document_id, revision: resolved.revision,
           ...(resolved.kind === 'structured' ? {pointer: resolved.pointer} :
             {startByte: resolved.start_byte, endByte: resolved.end_byte, precision: resolved.precision})};
-        const range = resolved.kind === 'text' && resolveCheckTextRange(outcome, location, current);
+        const range = resolved.kind === 'text' && resolveCheckTextRangeEncoding(outcome, location, positionEncoding, current);
         if (range) Object.assign(entry.location, {positionEncoding: range.positionEncoding, range: range.range});
       }
     } catch { /* Missing or malformed editor input cannot hide safe explanations. */ }
@@ -476,6 +645,28 @@ export function explainCheckReason(reason, options) {
     invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
   };
   const issue = reason?.facts?.issue;
+  const jsonExplanations = {
+    invalid_unicode: ['The binding JSON contains invalid Unicode text.', 'Use valid Unicode scalar values in member names and string values.'],
+    unexpected_end: ['The binding JSON ends before a value is complete.', 'Complete the JSON value and its closing delimiters.'],
+    unexpected_token: ['The binding JSON contains an unexpected token.', 'Use a token allowed by JSON at the reported input location.'],
+    invalid_string: ['A binding JSON string is invalid.', 'Quote the string and escape control characters using JSON syntax.'],
+    invalid_escape: ['A binding JSON escape is invalid.', 'Use an escape sequence allowed by JSON.'],
+    invalid_number: ['A binding JSON number has invalid spelling.', 'Use a valid JSON number, including a complete exponent when present.'],
+    number_out_of_range: ['A binding JSON number is outside the admitted numeric range.', 'Use a number within the selected input numeric contract.'],
+    negative_zero: ['The binding JSON contains inadmissible negative zero.', 'Use an admitted numeric value; negative zero is not admitted.'],
+    expected_colon: ['A binding JSON member is missing its colon.', 'Separate the member name and value with a colon.'],
+    expected_array_separator: ['Binding JSON array elements are not separated correctly.', 'Use commas between array elements and a closing bracket.'],
+    expected_object_separator: ['Binding JSON object members are not separated correctly.', 'Use commas between object members and a closing brace.'],
+    duplicate_key: ['Two binding JSON member names compare equal under the admitted key rules.', 'Choose distinct member names under the input normalization rules.'],
+    trailing_content: ['Unexpected content follows the binding JSON value.', 'Submit one complete JSON value without trailing content.'],
+  };
+  if (reason?.code === 'binding_json_invalid' &&
+      ['parameters', 'parameter_declarations'].includes(reason?.facts?.document) &&
+      typeof issue === 'string' && Object.hasOwn(jsonExplanations, issue)) {
+    const [summary, hint] = localizeCheck(`binding_json.${issue}`, jsonExplanations[issue], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
     const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);
@@ -540,6 +731,33 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+// Read only own data properties: classification never evaluates untrusted
+// getters or keeps private reply content. Proxy failures give no usable header.
+const rejectedCheckHeader = value => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    return Object.fromEntries(['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
+      .map(key => [key, Object.getOwnPropertyDescriptor(value, key)?.value]));
+  } catch { return undefined; }
+};
+const rejectedCheckProblem = header => {
+  if (!header || !['version', 'reason_schema_cid', 'outcome_schema_cid', 'outcome']
+    .every(key => typeof header[key] === 'string' && header[key].length > 0)) return 'malformed_response';
+  if (header.version !== checkOutcomeProtocol.version ||
+      header.reason_schema_cid !== checkOutcomeProtocol.reasonSchemaCid ||
+      header.outcome_schema_cid !== checkOutcomeProtocol.outcomeSchemaCid) return 'contract_mismatch';
+  return checkOutcomeProtocol.outcomes.includes(header.outcome)
+    ? 'malformed_response' : 'unknown_outcome';
+};
+const rejectedCheck = (body, problem) => {
+  const error = new ClientError('InvalidHostCheckOutcome');
+  checkFailures.set(error, freezeInput({problem,
+    kind: problem === 'unknown_outcome' ? 'uninterpretable' : 'protocol_failure',
+    input: {text: body.input.text, format: body.input.format,
+      ...(body.input.parameterDeclarations === undefined ? {} :
+        {parameterDeclarations: body.input.parameterDeclarations}), parameters: body.parameters}}));
+  return error;
+};
 const submissionUnknown = (context, cause) => {
   const result = new ClientError('SubmissionUnknown', {...context, cause});
   const input = submissionContexts.get(context);
@@ -1249,39 +1467,48 @@ async function connectSelected(selected, port) {
         signal)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
-        throw new ClientError('InvalidHostCheckOutcome', {cause});
+        throw rejectedCheck(body, 'malformed_response');
       }
-      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
-      // Own this call's value before binding or freezing it. A Local Host may
-      // reuse its response object without replacing a previous SDK observation.
-      try { outcome = structuredClone(outcome); }
-      catch { fail('InvalidHostCheckOutcome'); }
-      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
-      const report = outcome.report ?? outcome.partial_report;
-      if (report) {
-        const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
-        if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
-          {kind: 'structured', value: body.input.parameterDeclarations});
-        if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
-        if (report.inputs.length !== received.size) fail('InvalidHostCheckOutcome');
-        const snapshots = new Map();
-        for (const document of report.inputs) {
-          const original = received.get(document.document_id);
-          if (!original || document.kind !== original.kind || document.byte_length !==
-              utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
-            fail('InvalidHostCheckOutcome');
+      const header = rejectedCheckHeader(outcome);
+      const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
+      try {
+        if (!validCheckOutcome(outcome)) reject();
+        // Own this call's value before binding or freezing it. A Local Host may
+        // reuse its response object without replacing a previous SDK observation.
+        try { outcome = structuredClone(outcome); }
+        catch { reject(); }
+        if (!validCheckOutcome(outcome)) reject();
+        const report = outcome.report ?? outcome.partial_report;
+        if (report) {
+          const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
+          if (body.input.parameterDeclarations !== undefined) received.set('parameter_declarations',
+            {kind: 'structured', value: body.input.parameterDeclarations});
+          if (body.parameters !== null) received.set('parameters', {kind: 'structured', value: body.parameters});
+          if (report.inputs.length !== received.size) reject();
+          const snapshots = new Map();
+          for (const document of report.inputs) {
+            const original = received.get(document.document_id);
+            if (!original || document.kind !== original.kind || document.byte_length !==
+                utf8.encode(original.kind === 'text' ? original.text : JSON.stringify(original.value)).length) {
+              reject();
+            }
+            snapshots.set(document.document_id, Object.freeze({...original,
+              documentId: document.document_id, revision: document.revision}));
           }
-          snapshots.set(document.document_id, Object.freeze({...original,
-            documentId: document.document_id, revision: document.revision}));
-        }
-        checkInputs.set(outcome, snapshots);
-        for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
-          if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
-            checkInputs.delete(outcome);
-            fail('InvalidHostCheckOutcome');
+          checkInputs.set(outcome, snapshots);
+          for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+            if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
+              checkInputs.delete(outcome);
+              reject();
+            }
           }
         }
+      } catch (cause) {
+        checkInputs.delete(outcome);
+        if (checkFailures.has(cause)) throw cause;
+        throw rejectedCheck(body, 'malformed_response');
       }
+      checkRequests.set(outcome, body);
       return freezeInput(outcome);
     },
     start: (program, options = {}) => {

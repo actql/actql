@@ -167,3 +167,31 @@ test('ancestor links cannot join mutable native inputs to the pristine workspace
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /scratch kept/);
 });
+
+test('each check reinspects shared ancestors and new inventoried source members', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const spaces = await mutationWorkspaces(root);
+const workspace = spaces.mutable;
+const before = workspace.check();
+const added = join(workspace.root, 'src/query_integration/added.mbt');
+writeFileSync(added, '// new inventoried member\n');
+const changed = workspace.check();
+assert.notEqual(changed.digest, before.digest);
+assert(Object.hasOwn(changed.sources, 'src/query_integration/added.mbt'));
+unlinkSync(added);
+assert.deepEqual(workspace.check(), before);
+// These roots are outside the recursively inspected source directories.
+// A prior successful prefix check must not mask a later ancestor replacement.
+for (const directory of ['scripts', 'docs/spec']) {
+  const path = join(workspace.root, directory), saved = path + '-saved';
+  renameSync(path, saved);
+  symlinkSync(join(spaces.pristine.root, directory), path, 'dir');
+  assert.throws(() => workspace.check(), /Linked inventoried source input/);
+  unlinkSync(path);
+  renameSync(saved, path);
+  assert.deepEqual(workspace.check(), before);
+}
+assert.equal(calls().length, 0);
+spaces.passed();
+`));
+});

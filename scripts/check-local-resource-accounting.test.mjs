@@ -48,6 +48,237 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('record projections require value, name, stop and public Store evidence', () => {
+  for (const operation of ['events', 'vectors']) {
+    for (const role of ['record_projection_value_limits',
+      'record_projection_stop_cleanup', 'record_projection_name_limits']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'record_projection_public_store');
+  }), /Bridge events: record projection public Store fixture is missing/u);
+});
+
+test('Graph projections require fragment, presence and public Store evidence', () => {
+  for (const operation of ['node_rows', 'edge_rows']) {
+    for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+      'graph_projection_label_limits', 'graph_projection_selection_limits',
+      'graph_projection_order_comparison']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item => item.role !== 'graph_projection_public_store');
+    }), new RegExp(`Bridge ${operation}: Graph projection public Store fixture is missing`, 'u'));
+  }
+});
+
+test('Graph labels require staged Text, reserved arrays and cleanup connections', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'count > source.label_workspace', 'false', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', 'source.label_reserved = count', 'source.label_reserved = 0', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.start_recheck_runtime_text(', 'missing_text(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.advance_recheck_runtime_value(', 'missing_advance(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.finish_array_value(', '@value.array_value(', 'Graph labels compute synchronously'],
+    ['src/local_bridge/events.mbt', '@value.cancel_array_value(builder)', 'missing_cleanup(builder)', 'Graph label cleanup custody is missing'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('Graph selection and ordering require retained comparison fragments', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'source.selection_name_offset = offset', 'source.selection_name_offset = 0', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@canonical.compare_utf16_fragment(', 'missing_raw_compare(', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@carrier.compare_property_name_fragment(', '@carrier.property_name_identity(', 'Graph selection computes synchronously'],
+    ['src/bounded_tuple_sort/sort.mbt', 'value.comparison_offset = offset', 'value.comparison_offset = 0', 'stepped Graph order comparison is missing'],
+    ['src/bounded_tuple_sort/sort.mbt', '@canonical.compare_utf16_fragment(', '@canonical.compare_utf16(', 'Graph order comparison computes synchronously'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('Graph projections reject missing cursor connections and atomic output', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, replacement, message] of [
+    ['@carrier.compare_property_name_fragment(', 'missing_fragment(', 'stepped Graph projection is missing'],
+    ['@execution.start_admitted_presence_output_row(', 'missing_presence(', 'stepped Graph projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'missing_advance(', 'stepped Graph projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'missing_cleanup(', 'Graph projection cleanup custody is missing'],
+    ['@execution.start_admitted_presence_output_row(', '@execution.append_admitted_output_presence(', 'Graph projection output computes synchronously'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('record projections reject missing production cursor and cleanup connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, message] of [
+    ['@schema.compare_reference_fragment(', 'stepped record projection is missing'],
+    ['@execution.start_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'record projection cleanup custody is missing'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replaceAll(marker, 'missing_cursor_connection(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['events', 'vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('record Bridges require in-value limits, stop and public Store evidence', () => {
+  for (const operation of ['to_events', 'to_vectors']) {
+    for (const role of ['bridge_record_value_limits', 'bridge_record_value_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'to_events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'bridge_record_value_public_store');
+  }), /Bridge to_events: Bridge value public Store fixture is missing/u);
+});
+
+test('record Bridges reject missing shared recheck and append connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [before, after] of [
+    ['@value.advance_recheck_runtime_value(', '@execution.producer_read_checked_cell('],
+    ['@records.start_record_append(', '@records.append_record('],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace(before, after)}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['to_events', 'to_vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: stepped Bridge custody is missing`));
+      assert.ok(result.errors.includes(
+        `Bridge ${operation}: Bridge value processing computes synchronously`));
+    }
+  }
+});
+
+test('Events input-name matching requires limits, stop and public Store evidence', () => {
+  for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
+    for (const role of ['events_input_name_limits', 'events_input_name_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'TEA' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'TEA' && r.operation === 'session');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'events_input_name_public_store');
+  }), /TEA session: Events input-name public Store fixture is missing/u);
+});
+
+test('Events input-name matching rejects a missing production cursor connection', () => {
+  for (const name of ['watermark', 'window', 'dedupe', 'session']) {
+    const file = join(root, `src/local_tea/${name}.mbt`);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace('event_name_equal(', 'atomic_name_equal(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.some(message =>
+      message.includes('stepped input-name custody is missing')));
+  }
+});
+
+test('Events record emission requires limits, stop and public Store evidence', () => {
+  for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
+    for (const role of ['events_record_emission_limits', 'events_record_emission_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'TEA' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(r => r.family === 'TEA' && r.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== 'events_record_emission_public_store');
+    }), new RegExp(`TEA ${operation}: Events record public Store fixture is missing`, 'u'));
+  }
+});
+
+test('Events record emission rejects a borrowed suite and missing Host import', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'TEA' && r.operation === 'session');
+    route.boundary_tests.find(item => item.role === 'events_record_emission_limits')
+      .suite = 'moon:local_veca';
+  }), /TEA session: boundary evidence must be suite-connected on all targets/u);
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-events-record-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'TEA session: Events record public fixture is not suite-connected'));
+});
+
+test('Events record emission rejects a missing common append connection', () => {
+  for (const name of ['watermark', 'window', 'dedupe', 'session']) {
+    const file = join(root, `src/local_tea/${name}.mbt`);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace('@records.start_record_append(',
+          '@records.append_record(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.some(message =>
+      message.includes('stepped emission custody is missing')));
+    assert.ok(result.errors.some(message =>
+      message.includes('record emission computes synchronously')));
+  }
+});
+
 test('Set requires nested comparison boundary evidence for both operations', () => {
   for (const operation of ['except', 'intersect']) {
     for (const suffix of ['quantum_order', 'work_workspace', 'stop_cleanup']) {
@@ -58,6 +289,63 @@ test('Set requires nested comparison boundary evidence for both operations', () 
         route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
       }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
     }
+  }
+});
+
+test('Score and Normalize require stepped record limits, scans and public Store evidence', () => {
+  for (const prefix of ['normalize', 'score']) {
+    const operation = prefix === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const suffixes = ['record_limits', 'record_stop', 'role_stop', 'unused_stop',
+      ...(prefix === 'score' ? ['key_stop_order'] : [])];
+    for (const suffix of suffixes) {
+      const role = `${prefix}_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} stepped fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_record_public_store`);
+    }), new RegExp(`VecA ${operation}: stepped record public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests.find(item => item.role === `${prefix}_record_public_store`)
+        .suite = 'node:embedded_pool_keys';
+    }), /environment evidence must name an executable suite/u);
+  }
+});
+
+test('Score and Normalize public record evidence requires its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      "import './public-vector-record-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of ['score_vectors', 'normalize_vectors']) {
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: vector record public fixture is not suite-connected`));
+  }
+});
+
+test('Score and Normalize cannot replace the shared stepped append with an atomic call', () => {
+  for (const kernel of ['normalize', 'score']) {
+    const file = join(root, `src/local_veca/${kernel}.mbt`);
+    const operation = kernel === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+        '@records.start_record_append(', '@records.append_record(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: stepped record/name/key production connection is missing`));
   }
 });
 
@@ -181,6 +469,35 @@ test('nearest public key evidence requires an actual suite connection', () => {
     'VecA nearest: nearest key public fixture is not suite-connected'));
 });
 
+test('nearest requires borrowed-name limits, qualification and public Store evidence', () => {
+  for (const role of ['nearest_name_limits_stop_cleanup',
+    'nearest_name_public_barrier', 'nearest_name_qualification']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_name_public_store');
+  }), /VecA nearest: nearest name public Store fixture is missing/u);
+});
+
+test('nearest cannot replace borrowed-name admission by flattened spelling', () => {
+  const file = join(root, 'src/local_veca/nearest.mbt');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace('compare_reference_fragment(', 'reference_name(')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest borrowed-name production boundary is missing'));
+});
+
 test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
   for (const [operation, prefix, publicName] of [
     ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],
@@ -209,19 +526,48 @@ test('VecA Relation input requires nested limits, shared scans and public custod
 });
 
 test('Pool output requires shared append accounting and public stop custody evidence', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item =>
+      item.role === 'pool_qualified_name_wire_sinks').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
   for (const role of ['pool_output_limits_stop_cleanup',
     'pool_output_record_limits', 'pool_output_record_cleanup',
     'pool_output_owner_exclusion', 'pool_identity_hash_limits',
     'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
     'pool_identity_output_control_stop', 'pool_record_contract_names',
     'pool_record_contract_workspace', 'pool_record_contract_cleanup',
-    'pool_record_contract_pair_limits', 'pool_record_contract_binding']) {
+    'pool_record_contract_pair_limits', 'pool_record_contract_binding',
+    'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
+    'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
+    'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
+    'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
+    'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
+    'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
+    'pool_field_binding_typed_role', 'pool_qualified_name_limits',
+    'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
+    'pool_qualified_name_wire_unicode', 'pool_name_match_common',
+    'pool_name_match_limits', 'pool_name_match_stop',
+    'pool_name_match_wide', 'pool_name_match_public_barrier']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');
       route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
     }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item =>
+      item.role === 'pool_name_match_common').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_name_match_public_store');
+  }), /VecA pool_vectors: Pool name matching public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
@@ -232,8 +578,26 @@ test('Pool output requires shared append accounting and public stop custody evid
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
     route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_field_binding_public_store');
+  }), /VecA pool_vectors: Pool field binding public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
       item.role !== 'pool_identity_output_public_store');
   }), /VecA pool_vectors: Pool identity output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_member_encoding_public_store');
+  }), /VecA pool_vectors: Pool member encoding public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_object_name_public_store');
+  }), /VecA pool_vectors: Pool Object name public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
@@ -311,6 +675,26 @@ test('ranking input requires unused-value limits, shared scans and public custod
       route.boundary_tests.find(item => item.role === role).suite = 'moon:local_veca';
     }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
   }
+});
+
+test('ranking name matching requires shared scans, exact limits and public custody', () => {
+  for (const role of ['ranking_name_match_common', 'ranking_name_match_limits_stop',
+    'ranking_name_match_wide_overlap', 'ranking_name_match_public_barrier']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_name_match_public_store');
+  }), /VecA merge_rankings: ranking name matching public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.boundary_tests.find(item => item.role === 'ranking_name_match_common')
+      .suite = 'moon:local_veca';
+  }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
 });
 
 test('ranking public evidence requires an actual suite connection', () => {

@@ -422,7 +422,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:b4d5d46aaa230a2b35b8a06d928128bae92a3f68227a484bcc4646671b4afb58"
+          "document_cid": "sha256:6c3f5263e8c4cf51f67d554ab9e578d4330baa58fb450f63684672e5481f56c2"
         }
       ]
     },
@@ -473,7 +473,7 @@
         {
           "path": "spec/manifests/actql-grammar-0.1.json",
           "pointer": "",
-          "cid": "sha256:5ea14396c398c745e2692fb82e98b4eb2915007f50d87c64c631b0912af2cc61",
+          "cid": "sha256:84fb20275e10be332e3408a455be6eec1b8dc7fba9feb82823fc1d929b7f5dbe",
           "version": "actql-grammar-manifest/0.1"
         },
         {
@@ -713,13 +713,13 @@
         {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/artifact_schemas/check_reason",
-          "cid": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace",
+          "cid": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61",
           "version": "actql-protocol-schema-registry/0.1"
         },
         {
           "path": "spec/contracts/actql-protocol-schemas.json",
           "pointer": "/artifact_schemas/check_outcome",
-          "cid": "sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0",
+          "cid": "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c",
           "version": "actql-protocol-schema-registry/0.1"
         },
         {
@@ -871,7 +871,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:b4d5d46aaa230a2b35b8a06d928128bae92a3f68227a484bcc4646671b4afb58"
+          "document_cid": "sha256:6c3f5263e8c4cf51f67d554ab9e578d4330baa58fb450f63684672e5481f56c2"
         }
       ]
     },
@@ -1131,7 +1131,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:b4d5d46aaa230a2b35b8a06d928128bae92a3f68227a484bcc4646671b4afb58"
+          "document_cid": "sha256:6c3f5263e8c4cf51f67d554ab9e578d4330baa58fb450f63684672e5481f56c2"
         },
         {
           "owner": "actql.execution",
@@ -1451,7 +1451,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:6fbc190851d208c89a3c636c22009479e789afc75a1d9ed0569134fb763bc6fe"
+          "document_cid": "sha256:00237d836dd45c348a828b2e467fb5bbae3433e752b7b8058b77780621295651"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1524,7 +1524,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:6fbc190851d208c89a3c636c22009479e789afc75a1d9ed0569134fb763bc6fe"
+          "document_cid": "sha256:00237d836dd45c348a828b2e467fb5bbae3433e752b7b8058b77780621295651"
         }
       ]
     },
@@ -1660,7 +1660,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:6fbc190851d208c89a3c636c22009479e789afc75a1d9ed0569134fb763bc6fe"
+          "document_cid": "sha256:00237d836dd45c348a828b2e467fb5bbae3433e752b7b8058b77780621295651"
         },
         {
           "owner": "actql.protocol.artifacts",
@@ -1837,7 +1837,7 @@
         {
           "owner": "actql.language",
           "version": "actql/0.1",
-          "document_cid": "sha256:b4d5d46aaa230a2b35b8a06d928128bae92a3f68227a484bcc4646671b4afb58"
+          "document_cid": "sha256:6c3f5263e8c4cf51f67d554ab9e578d4330baa58fb450f63684672e5481f56c2"
         },
         {
           "owner": "actql.execution",
@@ -1847,7 +1847,7 @@
         {
           "owner": "actql.protocol.contracts",
           "version": "actql/0.1",
-          "document_cid": "sha256:6fbc190851d208c89a3c636c22009479e789afc75a1d9ed0569134fb763bc6fe"
+          "document_cid": "sha256:00237d836dd45c348a828b2e467fb5bbae3433e752b7b8058b77780621295651"
         },
         {
           "owner": "actql.protocol.artifacts",
