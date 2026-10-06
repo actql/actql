@@ -9,7 +9,7 @@ import {validCheckpointPage, validCheckpointReview, validClientAdmission,
   validClientBody, validClientProfile, validDeliveryAttemptLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription, validCheckOutcome} from
+  validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -57,6 +57,14 @@ export function createNodeInProcessClientHost({
       const validationBody = operation === 'read'
         ? {...body, format: 'jsonl'} : body;
       if (!validClientBody(operation, validationBody)) {
+        fail('InvalidClientRequest');
+      }
+      if (operation === 'check') {
+        // Own the JSON request before awaiting caller-installed authentication.
+        try { body = snapshotCheckRequest(body); }
+        catch { fail('InvalidClientRequest'); }
+      }
+      if (operation === 'check' && !validClientBody(operation, body)) {
         fail('InvalidClientRequest');
       }
       let principalId;
