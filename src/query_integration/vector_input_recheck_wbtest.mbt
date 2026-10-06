@@ -3,19 +3,20 @@ fn vector_input_recheck_owner(
   id : Int,
   pooling? : Bool = false,
   object_names? : Bool = false,
+  json_names? : Bool = false,
   unused_items? : Int = 257,
   group_name? : String = "group",
   unused_name? : String = "zz_unused",
 ) -> @lower.BoundPrepared {
   let name = String::make(130, 'x')
-  let unused_schema = if object_names {
+  let unused_schema = if object_names || json_names {
     let object = "{\"type\":\"object\",\"nullable\":false," +
       "\"fields\":{\"" +
       name +
       "\":{\"type\":\"number\",\"nullable\":false}}}"
     "\"aa_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":112," +
-    "\"items\":{\"type\":\"number\",\"nullable\":false}},\"zz_unused\":" +
-    object
+    "\"items\":{\"type\":\"number\",\"nullable\":false}}" +
+    (if json_names { "" } else { ",\"zz_unused\":" + object })
   } else {
     "\"" +
     unused_name +
@@ -24,12 +25,11 @@ fn vector_input_recheck_owner(
     "," +
     "\"items\":{\"type\":\"number\",\"nullable\":false}}"
   }
-  let unused_values = if object_names {
+  let unused_values = if object_names || json_names {
     "\"aa_unused\":[" +
     Array::make(112, "1").join(",") +
-    "],\"zz_unused\":{\"" +
-    name +
-    "\":2}"
+    "]" +
+    (if json_names { "" } else { ",\"zz_unused\":{\"" + name + "\":2}" })
   } else {
     "\"" + unused_name + "\":[" + Array::make(unused_items, "1").join(",") + "]"
   }
@@ -39,6 +39,14 @@ fn vector_input_recheck_owner(
     ""
   }
   let group_value = if pooling { "\"" + group_name + "\":1," } else { "" }
+  let json_step = if json_names {
+    ",{\"derive\":{\"zz_unused\":{\"typed_literal\":{\"type\":\"json\",\"value\":" +
+    "\"{\\\"" +
+    name +
+    "\\\":2}\"}}},\"as\":\"rows\"}"
+  } else {
+    ""
+  }
   let keyed = if pooling {
     ",{\"from\":\"rows\",\"assert_rows\":{\"unique_by\":[\"id\"]}}"
   } else {
@@ -58,7 +66,10 @@ fn vector_input_recheck_owner(
         id.to_string() +
         ",\"embedding\":[1,2]," +
         unused_values +
-        "}]},\"as\":\"rows\"}" +
+        "}]},\"as\":\"" +
+        (if json_names { "seed" } else { "rows" }) +
+        "\"}" +
+        json_step +
         keyed +
         "]",
       ),
