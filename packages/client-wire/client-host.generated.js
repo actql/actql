@@ -534,7 +534,72 @@ const schemas = {
         "minLength": 1,
         "maxLength": 256
       }
-    }
+    },
+    "allOf": [
+      {
+        "oneOf": [
+          {
+            "required": [
+              "checkpoint"
+            ],
+            "properties": {
+              "state": {
+                "const": "waiting_checkpoint"
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "endReason"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "terminalErrorCode"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "properties": {
+              "state": {
+                "const": "resuming"
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "endReason"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "terminalErrorCode"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "required": [
+              "endReason"
+            ],
+            "properties": {
+              "state": {
+                "const": "ended"
+              }
+            }
+          }
+        ]
+      }
+    ]
   },
   "checkpoint_summary": {
     "oneOf": [
@@ -2129,6 +2194,22 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "parameter",
                             "domain"
                           ],
@@ -2410,6 +2491,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -2478,6 +2560,48 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
                           }
                         }
                       }
@@ -2694,7 +2818,8 @@ const schemas = {
                                 "query_expression_invalid",
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
-                                "operation_parameter_invalid"
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -2923,6 +3048,22 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "parameter",
                             "domain"
                           ],
@@ -3204,6 +3345,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -3272,6 +3414,48 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
                           }
                         }
                       }
@@ -3488,7 +3672,8 @@ const schemas = {
                                 "query_expression_invalid",
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
-                                "operation_parameter_invalid"
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -3622,7 +3807,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3960,6 +4145,22 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "parameter",
                             "domain"
                           ],
@@ -4241,6 +4442,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -4309,6 +4511,48 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
                           }
                         }
                       }
@@ -4525,7 +4769,8 @@ const schemas = {
                                 "query_expression_invalid",
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
-                                "operation_parameter_invalid"
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -4754,6 +4999,22 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "parameter",
                             "domain"
                           ],
@@ -5035,6 +5296,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -5103,6 +5365,48 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
                           }
                         }
                       }
@@ -5319,7 +5623,8 @@ const schemas = {
                                 "query_expression_invalid",
                                 "query_frame_invalid",
                                 "graph_operation_invalid",
-                                "operation_parameter_invalid"
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -5471,7 +5776,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5517,7 +5822,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6557,8 +6862,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
-export const checkOutcomeSchemaCid = "sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c";
+export const checkReasonSchemaCid = "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+export const checkOutcomeSchemaCid = "sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
@@ -6636,3 +6941,12 @@ export const validProfileContract = (value, selected) =>
 export const validAdmissionContract = (value, selected) =>
   validConnectionShape(selected) && validAdmissionShape(value) &&
   !(selected.durability === "durable" && value.durability !== "durable");
+export const validHeldContract = (value, expected) =>
+  valid(expected, schemas.held.properties.requestId) &&
+  ((valid(value, schemas.held) && value.requestId === expected));
+export const validRequestLookupContract = (value, expected) =>
+  valid(expected, schemas.lookup_found.properties.requestId) &&
+  ((valid(value, schemas.lookup_found) && value.requestId === expected) ||
+   valid(value, schemas.lookup_not_found) ||
+   valid(value, schemas.lookup_unknown) ||
+   (valid(value, schemas.held) && value.requestId === expected));

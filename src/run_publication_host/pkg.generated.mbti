@@ -722,6 +722,8 @@ pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int
 
 pub fn prepare_client_retained_input_edge(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue]
 
+pub fn prepare_client_retained_input_intent(ClientRetainedInputProducer, ClientRetainedInputTransferPolicy) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, ClientRetainedTaskInputIssue]
+
 pub fn prepare_client_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
 pub fn prepare_client_retained_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection, ClientRetainedTaskInput, ClientRetainedInputCurrent) -> Result[@remote_site_protocol.DispatchRequest, ClientRetainedTaskDispatchIssue]
@@ -843,6 +845,10 @@ pub fn start_captured_client_result_transformation(ClientResultTransformation, @
 pub fn[T] start_captured_managed_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
+
+pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
+
+pub fn validate_client_retained_input_plan(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputPlan, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -1524,6 +1530,15 @@ pub struct ClientRetainedInputProducer {
   evidence : @remote_site_protocol.RemoteExecutionEvidence
   subject : @remote_site_protocol.RemoteManagedOutputSubject
   available : () -> Bool
+}
+
+pub(all) struct ClientRetainedInputTransferPolicy {
+  destination_grant_cid : String
+  route_capability_cid : String
+  source_grant_cid : String
+  transfer_attempt : String
+  transfer_expires_unix_ms : Int64
+  transfer_max_bytes : Int64
 }
 
 pub(all) enum ClientRetainedTaskDispatchIssue {

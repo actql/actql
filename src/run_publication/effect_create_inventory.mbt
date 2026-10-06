@@ -27,17 +27,18 @@ pub fn derive_effect_create_row_inventory(
       return Err(Encoding)
     }
     remaining_bytes -= bytes.length()
-    let parsed = match
-      @source.parse_json(wire, {
-        max_input_bytes: bytes.length(),
+    // The enclosing state is structural, but its mapped value contains exact
+    // data keys. Preserve those keys through both parsing and admission.
+    let after = match
+      parse_contract_wire(
+        wire,
+        bytes.length(),
         max_nodes,
         max_depth,
-      }) {
+        data_keys=true,
+      ) {
       Ok(value) => value
       Err(_) => return Err(InvalidMember)
-    }
-    let after = @json.from_source(parsed, max_nodes, max_depth, bytes.length()) catch {
-      _ => return Err(InvalidMember)
     }
     guard @json.object_field(after, "state") is Some(@json.String("present")) &&
       @json.object_field(after, "value") is Some(value) &&

@@ -75,6 +75,29 @@ test('a new registration retains existing required obligations; deleting one is 
   assert.throws(() => compareCatalogs(catalog, removed), /Removed required action/u);
 });
 
+test('Bridge model and connection bind their proof closure, additions, modes and missing prerequisites', () => {
+  const files = new Map(base);
+  const proofFiles = ['Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'check.mjs'];
+  for (const file of proofFiles) files.set(`proofs/events-bridge/${file}`, file);
+  files.set('src/query_integration/moon.pkg', 'import { "actql/actql/bounded_execution" } for "wbtest"');
+  files.set('src/query_integration/events_bridge_evidence_wbtest.mbt', 'independent ordered nullable expectations');
+  for (const id of ['events-model', 'events-connection-js']) {
+    const selected = catalog.actions.find(value => value.id === id);
+    const original = inventory(files, 'a'.repeat(40), selected);
+    assert.deepEqual(original.unresolved, []);
+    assert(proofFiles.every(file => original.inputs.files.some(entry => entry.path === `proofs/events-bridge/${file}`)));
+    for (const [path, value] of [['proofs/events-bridge/Claims.lean', 'weakened type'],
+      ['proofs/events-bridge/new.lean', 'new dependency']]) {
+      const changed = new Map(files); changed.set(path, value);
+      assert.equal(compareInputs(original, inventory(changed, 'b'.repeat(40), selected)).eligible, false);
+    }
+    const changed = new Map(files); changed.delete('proofs/events-bridge/Claims.lean');
+    assert(inventory(changed, 'b'.repeat(40), selected).unresolved.includes('missing source input: proofs/events-bridge/Claims.lean'));
+    assert.equal(compareInputs(original, inventory(files, 'b'.repeat(40), selected,
+      {'proofs/events-bridge/Claims.lean': '100755'})).eligible, false);
+  }
+});
+
 test('literal normal, test and whitebox imports are tracked; arbitrary expressions are not guessed', () => {
   assert.deepEqual(packageImports('import { "actql/actql/a" @a } import { "moonbitlang/core/json" } for "wbtest"').imports,
     ['actql/actql/a', 'moonbitlang/core/json']);

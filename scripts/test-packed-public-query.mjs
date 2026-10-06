@@ -40,6 +40,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/limit-parameter-source-input.mjs', 'limit-parameter-source-input.mjs'],
   ['scripts/fixtures/having-object-property-source-input.mjs', 'having-object-property-source-input.mjs'],
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
@@ -47,6 +48,8 @@ for (const [source, destination] of [
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-following.program.json', 'analytic-frame-parameter.reversed-following.program.json'],
   ['docs/reviews/fixtures/analytic-frame-parameter.reversed-preceding.program.json', 'analytic-frame-parameter.reversed-preceding.program.json'],
   ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
+  ['scripts/fixtures/json-literal-source-input.mjs', 'json-literal-source-input.mjs'],
+  ['scripts/fixtures/typed-json-literal-input.mjs', 'typed-json-literal-input.mjs'],
   ['scripts/fixtures/public-query-profiles.mjs', 'public-query-profiles.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
@@ -56,6 +59,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
   ['scripts/fixtures/analytic-order-source-input.mjs', 'analytic-order-source-input.mjs'],
@@ -77,8 +81,10 @@ for (const [source, destination] of [
   ['scripts/fixtures/property-graph-traverse-path-source-input.mjs', 'property-graph-traverse-path-source-input.mjs'],
   ['scripts/fixtures/property-graph-diagnostics-source-input.mjs', 'property-graph-diagnostics-source-input.mjs'],
   ['scripts/fixtures/subgraph-source-input.mjs', 'subgraph-source-input.mjs'],
+  ['scripts/fixtures/graph-delta-source-input.mjs', 'graph-delta-source-input.mjs'],
   ['scripts/fixtures/analytic-offset-source-input.mjs', 'analytic-offset-source-input.mjs'],
   ['scripts/fixtures/property-graph-equality-source-input.mjs', 'property-graph-equality-source-input.mjs'],
+  ['scripts/fixtures/property-graph-difference-source-input.mjs', 'property-graph-difference-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
@@ -121,6 +127,10 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
+await writeFile(join(root, 'fixtures/property-graph-delta-application.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-delta-application.mjs')));
+await writeFile(join(root, 'fixtures/graph-delta-json-source.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/graph-delta-json-source.mjs')));
 await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
@@ -144,6 +154,12 @@ await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--json-literal-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_JSON_LITERAL_SOURCE_ONLY = '1';
+}
+if (process.argv.includes('--typed-json-literal-only')) {
+  runtimeEnvironment.ACTQL_TEST_TYPED_JSON_LITERAL_ONLY = '1';
+}
 if (process.argv.includes('--having-object-property-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY = '1';
 }
@@ -177,6 +193,9 @@ if (process.argv.includes('--graph-match-only')) {
 if (process.argv.includes('--graph-rows-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ROWS_ONLY = '1';
 }
+if (process.argv.includes('--graph-delta-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_DELTA_SOURCE_ONLY = '1';
+}
 if (process.argv.includes('--subgraph-only')) {
   runtimeEnvironment.ACTQL_TEST_SUBGRAPH_ONLY = '1';
 }
@@ -186,6 +205,9 @@ if (process.argv.includes('--analytic-offset-only')) {
 if (process.argv.includes('--graph-traverse-paths-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY = '1';
 }
+if (process.argv.includes('--graph-difference-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY = '1';
+}
 if (process.argv.includes('--graph-equality-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_EQUALITY_ONLY = '1';
 }
@@ -194,6 +216,9 @@ if (process.argv.includes('--order-ordinal-only')) {
 }
 if (process.argv.includes('--quoted-identifiers-only')) {
   runtimeEnvironment.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY = '1';
+}
+if (process.argv.includes('--limit-parameter-only')) {
+  runtimeEnvironment.ACTQL_TEST_LIMIT_PARAMETER_ONLY = '1';
 }
 if (process.argv.includes('--analytic-countif-only')) {
   runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1';
@@ -264,6 +289,9 @@ if (process.argv.includes('--computed-object-property-only')) {
 if (process.argv.includes('--having-projection-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_PROJECTION_ONLY = '1';
 }
+if (process.argv.includes('--ifnull-only')) {
+  runtimeEnvironment.ACTQL_TEST_IFNULL_ONLY = '1';
+}
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
 }
@@ -331,7 +359,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--graph-delta-source-only', '--json-literal-source-only', '--limit-parameter-only', '--typed-json-literal-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -341,7 +369,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--having-object-property-o
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
-  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-traverse-paths-only'].includes(flag));
+  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
@@ -379,12 +407,12 @@ try {
 }
 if (process.argv.includes('--having-object-property-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--analytic-countif-only') ||
-    process.argv.includes('--grouped-in-only')) return;
+    process.argv.includes('--grouped-in-only') || process.argv.includes('--ifnull-only')) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
-if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--analytic-partition-property-only', '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
+if (!process.argv.some(flag => ['--graph-delta-source-only', '--json-literal-source-only', '--limit-parameter-only', '--typed-json-literal-only', '--analytic-frame-parameter-only', '--analytic-profiles-only', '--analytic-order-only', '--analytic-partition-property-only', '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--quoted-identifiers-only', '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only',
   '--analytic-offset-only',
   '--graph-match-only',
   '--graph-diagnostics-only',
@@ -393,15 +421,19 @@ if (!process.argv.some(flag => ['--analytic-frame-parameter-only', '--analytic-p
   '--group-property-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
-  '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-traverse-paths-only'].includes(flag))) {
+  '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
-if (process.argv.includes('--analytic-frame-parameter-only') ||
+if (process.argv.includes('--limit-parameter-only') ||
+    process.argv.includes('--json-literal-source-only') ||
+    process.argv.includes('--typed-json-literal-only') ||
+    process.argv.includes('--analytic-frame-parameter-only') ||
     process.argv.includes('--analytic-profiles-only') ||
     process.argv.includes('--analytic-order-only') ||
     process.argv.includes('--analytic-partition-property-only') ||
     process.argv.includes('--order-ordinal-only') ||
+    process.argv.includes('--graph-delta-source-only') ||
     process.argv.includes('--analytic-offset-only') ||
     process.argv.includes('--subgraph-only') ||
     process.argv.includes('--graph-match-only') ||
@@ -435,6 +467,7 @@ if (process.argv.includes('--analytic-frame-parameter-only') ||
   process.argv.includes('--aggregate-property-only') ||
   process.argv.includes('--group-ordinal-only') ||
   process.argv.includes('--graph-equality-only') ||
+  process.argv.includes('--graph-difference-only') ||
   process.argv.includes('--graph-rows-only') ||
   process.argv.includes('--graph-traverse-paths-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {

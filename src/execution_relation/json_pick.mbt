@@ -43,6 +43,7 @@ fn json_pick_value(
       | @admitted.Array(_)
       | @admitted.Vector(_)
       | @admitted.Reference(_) => return Err(InvalidRows)
+      @admitted.JsonData(_) => return Err(InvalidRows)
     }
   }
   Ok(capture(current))

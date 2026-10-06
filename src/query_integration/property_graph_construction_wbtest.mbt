@@ -344,7 +344,9 @@ test "keyed MATCH reuses typed predicates and retains independent parallel edge 
       assert_eq(@execution.completed_row_count(output), count)
       for row in 0..<count {
         let expected = if nodes_match {
-          "{\"display\":\"one\",\"element\":" + node_id + "}"
+          "{\"display\":\"one\",\"element\":" +
+          property_graph_expected_json_wire(node_id) +
+          "}"
         } else {
           let edge_id = "{\"definition\":\"E\",\"domain\":\"" +
             domain +
@@ -352,11 +354,11 @@ test "keyed MATCH reuses typed predicates and retains independent parallel edge 
             (row + 10).to_string() +
             "],\"key_types\":[{\"kind\":\"number\"}]}"
           "{\"element\":" +
-          edge_id +
+          property_graph_expected_json_wire(edge_id) +
           ",\"from_node\":" +
-          node_id +
+          property_graph_expected_json_wire(node_id) +
           ",\"to_node\":" +
-          node_id +
+          property_graph_expected_json_wire(node_id) +
           "}"
         }
         assert_eq(
@@ -559,9 +561,9 @@ test "keyed edge MATCH preserves exact work workspace and every private stop bou
     let domain = @carrier_contract.property_graph_domain(
       @carrier_contract.graph_property_definition(carrier),
     )
-    let expected = "{\"key\":{\"definition\":\"E\",\"domain\":\"" +
+    let expected = "{\"key\":{\"$json\":{\"definition\":\"E\",\"domain\":\"" +
       domain +
-      "\",\"key\":[10],\"key_types\":[{\"kind\":\"number\"}]}}"
+      "\",\"key\":[10],\"key_types\":[{\"kind\":\"number\"}]}}}"
     let owner = keyed_graph_receiver(
       graph_owner,
       body="[{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"fields\":[\"key\"]" +
@@ -1177,19 +1179,19 @@ test "keyed paths preserve parallel self-loops under WALK TRAIL and ACYCLIC" {
       }
       for row, (first, second) in expected {
         let independent = "{\"edge_ids\":[" +
-          edge(first) +
+          property_graph_expected_json_wire(edge(first)) +
           "," +
-          edge(second) +
+          property_graph_expected_json_wire(edge(second)) +
           "],\"end_id\":" +
-          node +
+          property_graph_expected_json_wire(node) +
           ",\"hop_count\":2,\"node_ids\":[" +
-          node +
+          property_graph_expected_json_wire(node) +
           "," +
-          node +
+          property_graph_expected_json_wire(node) +
           "," +
-          node +
+          property_graph_expected_json_wire(node) +
           "],\"start_id\":" +
-          node +
+          property_graph_expected_json_wire(node) +
           "}"
         assert_eq(
           @execution.completed_output_row_wire(output, row, 10000, 10000, 50).unwrap(),

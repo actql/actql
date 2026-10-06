@@ -420,11 +420,11 @@ test "current Graph material remains owned across two MATCH consumers cancellati
     @carrier_contract.graph_property_definition(schema),
   )
   for row in 0..<2 {
-    let expected = "{\"id\":{\"definition\":\"E\",\"domain\":\"" +
+    let expected = "{\"id\":{\"$json\":{\"definition\":\"E\",\"domain\":\"" +
       domain +
       "\",\"key\":[" +
       (10 + row).to_string() +
-      "],\"key_types\":[{\"kind\":\"number\"}]}}"
+      "],\"key_types\":[{\"kind\":\"number\"}]}}}"
     assert_eq(
       @execution.completed_output_row_wire(second_output, row, 10000, 10000, 50).unwrap(),
       expected,

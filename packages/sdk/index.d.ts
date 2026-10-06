@@ -28,6 +28,14 @@ export type CheckExplanationOptions = Readonly<{locale?: string}>;
 /** The selected translation revision, separate from reason/outcome schema identity. */
 export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
   Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+/** Display formats for an admitted public observation; no execution or edit authority. */
+export type CheckFormatOptions = CheckExplanationOptions & Readonly<{
+  format?: 'text' | 'html' | 'json';
+  maxBytes?: number;
+  currentInputs?: readonly CheckInput[];
+}>;
+/** Undefined for malformed protocol data/options or a budget too small for the observation. */
+export declare function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions): string | undefined;
 export declare function explainCheckOutcome(outcome: unknown,
   options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
@@ -37,7 +45,7 @@ export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
-  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
   'parameter' | 'expected_type'>>;
 /** The known public parameter Requirements, not a complete future obligation list. */
 export type CheckRequirementFrontier = Readonly<{
@@ -89,6 +97,24 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type ReadFailureExplanation = Readonly<{
+  observation: 'read_incomplete' | 'cleanup_unknown';
+  cleanup?: 'unknown';
+  attemptId: string;
+  rowsYielded: number;
+  summary: string;
+  hint: string;
+  next: Readonly<{
+    operation: 'deliveryAttempt';
+    ref: Readonly<RunReference>;
+    resultName: string;
+    attemptId: string;
+    lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+  }>;
+}>;
+/** SDK-observed progress for this exact read error; no opening, Run or release proof. */
+export declare function explainReadFailure(result: unknown): ReadFailureExplanation | undefined;
+
 export type CancellationExplanation = Readonly<{
   summary: string;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;

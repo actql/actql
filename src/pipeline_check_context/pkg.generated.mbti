@@ -1296,6 +1296,8 @@ pub enum CapacityStageIssue {
   MissingJoinCeiling(Int)
   ResolvedTraversalLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
   MissingTraversalCeiling(Int, String)
+  ResolvedSequenceLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
+  MissingSequenceCeiling(Int, String)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -1678,6 +1680,25 @@ pub(all) enum GraphSelectorRule {
   RequireMembership
   RequireSelectorResources
 } derive(Eq, @debug.Debug)
+
+pub struct GraphSubtractionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedSubtraction
+  rule : @graph_typing.SubtractionObligation
+  policy : @capacity_policy.Policy
+}
+
+pub struct GraphUnionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  inputs : Array[@pipeline_typing.Target]
+  operation : @graph_typing.CheckedUnion
+  rule : @graph_typing.UnionObligation
+  policy : @capacity_policy.Policy
+}
 
 type GroupArrayLimit
 
@@ -2199,6 +2220,8 @@ pub(all) enum OperationExecutionCheck {
   SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
   GraphDeltaExecution(GraphDeltaCheck)
+  GraphUnionExecution(GraphUnionCheck)
+  GraphSubtractionExecution(GraphSubtractionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)

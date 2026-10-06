@@ -422,6 +422,15 @@ authorize another operation. Location helpers still require the exact SDK
 response and its original submitted snapshot. Explanations are immutable, safe
 English text; they do not expose private causes or inspect error messages.
 
+Before credentials or transport, `check` rejects non-finite numbers and negative
+zero in supplied parameters or declarations (including nested values, boxed
+Numbers and values returned by `toJSON`) with `InvalidCheckRequest`. Public
+Local/HTTPS ingress independently refuses these values as `InvalidClientRequest`
+before invoking check, including overflowing HTTPS numeric tokens. Local owns
+its detached request before awaiting authentication. JSON serialization must not replace these numbers with
+`null` or zero and check a different input. This is request admission, not an
+`invalid`, `verified` or `undetermined` checker verdict.
+
 A completed check may be invalid or undetermined. Its verdict is always bound to
 scope/context and does not start or authorize a Run. Wrong supplied types expose
 expected/actual types without values. Missing declared values expose Requirements
@@ -513,6 +522,16 @@ the reason does not claim which one failed. `explainCheckReason` provides a
 family-specific hint. The declaration snapshot is available through
 `getCheckInput(outcome, 'parameter_declarations')`; actual values are not facts.
 Other violations remain safely generic rather than guessing a cause.
+JSON parser failures in supplied values and declarations can also carry the
+original structural path before a decoded cursor exists. The existing preserving
+JSON reader supplies location material only when its typed failure and source
+position match the authoritative parser failure; it never changes the verdict.
+These retain
+`supplied_parameters_invalid` / `parameter_declarations_invalid`; the pointer
+belongs to the corresponding submitted input revision. Escaped unpaired
+surrogates identify the original value; an undecodable member name identifies
+the parser's known enclosing container. Unknown paths stay absent, and parser
+budgets remain checking limits without an input-violation location.
 Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
@@ -694,3 +713,71 @@ frontier remain unchanged. Rendering performs no transport or Owner action;
 translated hints do not authorize execution, cancellation, retry or recovery.
 Malformed outcome envelopes do not gain a usable outcome explanation through translation.
 Copied responses retain safe wording without reconstructing original input.
+
+
+### Interrupted read explanations
+
+`explainReadFailure(error)` returns immutable SDK-observed progress for the original
+read error. It includes the read reference, `rowsYielded`, and the original
+connection, Run and named Result target for `result.deliveryAttempt(attemptId)`.
+Copies and independently constructed errors have no retained explanation. Changing
+an error's message, code or public properties does not replace the observation.
+The explanation keeps no returned row values or credentials.
+
+For `rows()`, the count is complete rows yielded by that reader. For `batches()`, it
+counts rows in batches yielded to the caller, excluding an unfinished buffered
+batch. A failed `all()` returns no value and reports zero caller-yielded rows.
+These counts do not establish server-sent or application-persisted rows. A read
+failure can also retain `cleanup: 'unknown'` when cancellation of that reader
+separately failed; wrapping the reader does not erase either observation.
+
+The lookup suggestion performs no I/O and grants no retry permission. Use the
+original Client/Result and current authorization to inspect the attempt. An absent
+record does not prove that opening was never committed. If the caller explicitly
+opens another read after checking availability, it starts from the beginning;
+it does not append to or resume the interrupted iterator. Read interruption or
+cleanup uncertainty proves neither Run failure, Result publication nor resource
+release.
+
+
+`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?})`
+formats the validated public check observation for terminal output, HTML display,
+or structured agent data. Text is the default. It delegates summaries to the
+existing explanation helpers and preserves the Owner verdict, scope, completeness
+and context. Agent JSON keeps reason/outcome schema CIDs separately from the
+selected translation revision. Requirements, limits and protected unresolved boundaries stay distinct
+from violations. Unknown reasons have generic explanations; malformed known facts,
+wrong schema identities and unknown outcomes return `undefined`.
+
+HTML escapes markup. All formats escape untrusted control and bidirectional marks;
+agent JSON also escapes markup delimiters while preserving string data on parse.
+The output contains disclosed typed facts and locations, never original input text,
+parameter values, private causes, provider debug links, executable actions or input access. It performs no
+transport, checking, edit, submission or retry. Render HTML as this complete
+fragment; do not reinterpret its escaped strings as markup.
+
+Locations require the exact SDK response's original input association. Copied
+reports still display safe explanations but omit positions. For a current editor,
+pass `currentInputs` explicitly: missing, edited or stale revisions omit positions.
+Matching current inputs validate freshness; resolved locations use the SDK-owned
+immutable submitted snapshot, so later reads cannot switch to caller-mutated text.
+An absent option displays coordinates of the submitted revision only, never an
+assumed latest editor buffer. Text locations include original UTF-8 offsets and,
+when representable, the existing UTF-16 range. Structured pointers remain separate.
+This is display plumbing, not an LSP document-session owner or a fix applicator.
+
+The default output limit is 65,536 UTF-8 bytes; `maxBytes` must be an integer from
+1,024 through 1,048,576. Whole entries are retained in report order until the bound
+is reached. `omittedEntries` in JSON and an explicit omission line in text/HTML
+report the remaining count. Truncation never changes the observation or claims
+complete diagnostic display. If even the observation cannot fit, return
+`undefined`; callers retain the original typed outcome for another display.
+
+
+```js
+import {formatCheckOutcome} from '@actql/sdk';
+const outcome = await client.check(text, {format: 'sql'});
+const display = formatCheckOutcome(outcome, {format: 'text'});
+if (display === undefined) throw new Error('CheckDisplayUnavailable');
+console.log(display);
+```
