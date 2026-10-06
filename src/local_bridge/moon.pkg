@@ -4,6 +4,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/bounded_tuple_sort" @sort,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/canonical_value" @canonical,
   "actql/actql/carrier_projection" @projection,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,

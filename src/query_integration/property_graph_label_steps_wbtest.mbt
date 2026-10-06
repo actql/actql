@@ -1,7 +1,16 @@
 ///|
 test "Graph label output resumes Text and array construction with exact limits" {
   for
-    (many, edge) in [(false, false), (false, true), (true, false), (true, true)] {
+    (many, edge, selected) in [
+      (false, false, false),
+      (false, true, false),
+      (true, false, false),
+      (true, true, false),
+      (false, false, true),
+      (false, true, true),
+      (true, false, true),
+      (true, true, true),
+    ] {
     let labels = if many {
       Array::makei(128, index => {
         "L" +
@@ -63,7 +72,13 @@ test "Graph label output resumes Text and array construction with exact limits" 
     }
     let owner = keyed_graph_receiver(
       graph_owner,
-      body=if edge {
+      body=if selected {
+        "[{\"" +
+        (if edge { "edge_rows" } else { "node_rows" }) +
+        "\":{\"label\":\"" +
+        labels.last().unwrap().to_lower() +
+        "\"}}]"
+      } else if edge {
         "[{\"edge_rows\":true}]"
       } else {
         "[{\"node_rows\":true}]"
@@ -74,7 +89,10 @@ test "Graph label output resumes Text and array construction with exact limits" 
     // 11 first recheck, 11 row recheck and 12 stepped measurement polls.
     // 128 four-unit labels add 384 construction, 384 per recheck and 257
     // measurement polls. No successful execution supplies these allowances.
-    let work = (if edge { 255 } else { 104 }) + (if many { 1409 } else { 45 })
+    // Long selection uses nine fragments; wide selection settles 128 labels.
+    let work = (if edge { 255 } else { 104 }) +
+      (if many { 1409 } else { 45 }) +
+      (if selected { if many { 128 } else { 9 } } else { 0 })
     // Existing order/matched/recheck custody = 4+3+23 (node), 4+5+23 (edge).
     // Provisional labels remain reserved while row scope and two measurement
     // frames overlap: add label count and 6 (node) / 8 (edge).
@@ -126,7 +144,9 @@ test "Graph label output resumes Text and array construction with exact limits" 
           @local_bridge.Complete(output, work~, ..) => {
             assert_eq(
               work,
-              ((if edge { 255 } else { 104 }) + (if many { 1409 } else { 45 })).to_int64(),
+              ((if edge { 255 } else { 104 }) +
+              (if many { 1409 } else { 45 }) +
+              (if selected { if many { 128 } else { 9 } } else { 0 })).to_int64(),
             )
             assert_eq(@execution.completed_row_count(output), 1)
             let column = property_rows_column(output, "labels")
@@ -190,8 +210,15 @@ test "Graph label output resumes Text and array construction with exact limits" 
     }
     // Poll 34 is within Text construction, not after the whole labels field.
     // The wide variant also stops midway through the provisional label array.
+    // Selected variants stop within long-name fragments or candidate scanning.
     for
-      barrier in (if many {
+      barrier in (if selected {
+        if many {
+          [3, 64, 129]
+        } else {
+          [3, 8]
+        }
+      } else if many {
         if edge {
           [94, 200, 400]
         } else {
