@@ -1410,6 +1410,7 @@ pub(all) enum ManyOperator {
   Coalesce
   Concat
   ConcatStrict
+  Replace
 } derive(Eq, @debug.Debug)
 
 pub(all) enum NestIssue {
@@ -1806,6 +1807,7 @@ pub(all) enum UnaryOperator {
   IsTrue
   IsFalse
   IsUnknown
+  Length
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

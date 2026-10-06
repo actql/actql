@@ -55,6 +55,16 @@ pub fn unary(
   value : Value,
 ) -> Result[Value, ScalarIssue] {
   match op {
+    Length =>
+      match value {
+        Null => Ok(Null)
+        Text(text) =>
+          match @scalar.unicode_scalar_count(text) {
+            Some(count) => Ok(Number(count.to_double()))
+            None => Err(InvalidOperand)
+          }
+        _ => Err(InvalidOperand)
+      }
     IsNull | IsUnknown => Ok(Boolean(value is Null))
     NotNull => Ok(Boolean(!(value is Null)))
     IsTrue => Ok(Boolean(value is Boolean(true)))
@@ -350,7 +360,7 @@ pub fn boolean_pair(
           Boolean(false)
         },
       )
-    Coalesce | Concat | ConcatStrict => Err(InvalidOperand)
+    Coalesce | Concat | ConcatStrict | Replace => Err(InvalidOperand)
   }
 }
 

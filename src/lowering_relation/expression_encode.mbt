@@ -152,6 +152,7 @@ fn emit_frames(
                   IsTrue => "is_true"
                   IsFalse => "is_false"
                   IsUnknown => "is_unknown"
+                  Length => "len"
                 },
               ),
             )
@@ -184,6 +185,7 @@ fn emit_frames(
                   Coalesce => "coalesce"
                   Concat => "concat"
                   ConcatStrict => "concat_strict"
+                  Replace => "replace"
                 },
               ),
             )
