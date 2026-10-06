@@ -48,6 +48,8 @@ pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailur
 
 pub fn append_array_item(ArrayBuilder, Value) -> Bool
 
+pub fn append_contract_object_field(ObjectBuilder, Int, Value) -> Bool
+
 pub fn append_object_field(ObjectBuilder, String, Value) -> Bool
 
 pub fn append_vector_component(VectorBuilder, Double) -> Bool
@@ -139,6 +141,8 @@ pub fn number_value(Double) -> Value?
 pub fn object_value(Array[(String, Value)]) -> Value?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?
+
+pub fn prepare_contract_object_value(@value_contract.Contract) -> ObjectBuilder?
 
 pub fn prepare_object_value(Int, data_keys? : Bool) -> ObjectBuilder?
 

@@ -51,6 +51,7 @@ struct ObjectBuilder {
   mut previous : String?
   mut open : Bool
   data_keys : Bool
+  contract_fields : @contract.Fields?
 }
 
 ///|
@@ -134,6 +135,7 @@ pub fn prepare_object_value(
       previous: None,
       open: true,
       data_keys,
+      contract_fields: None,
     })
   }
 }
@@ -144,7 +146,9 @@ pub fn append_object_field(
   name : String,
   value : Value,
 ) -> Bool {
-  if !builder.open || builder.values.length() >= builder.expected {
+  if !builder.open ||
+    builder.values.length() >= builder.expected ||
+    builder.contract_fields is Some(_) {
     return false
   }
   guard (if builder.data_keys {
@@ -162,6 +166,42 @@ pub fn append_object_field(
   }
   builder.values.push((name, value))
   builder.previous = Some(name)
+  true
+}
+
+///|
+/// Bind immutable admitted member names to the existing builder. Contract
+/// construction has already fixed canonical UTF-16 order and normalization;
+/// this does not admit or prove the child values against their field types.
+pub fn prepare_contract_object_value(
+  contract : @contract.Contract,
+) -> ObjectBuilder? {
+  guard contract.shape is @contract.Object(fields) else { return None }
+  Some({
+    values: [],
+    expected: @contract.field_count(fields),
+    previous: None,
+    open: true,
+    data_keys: false,
+    contract_fields: Some(fields),
+  })
+}
+
+///|
+/// The caller cannot replace a name or reorder a field. Retrieve the next name
+/// from this exact admitted contract without copying, hashing or revalidating it.
+pub fn append_contract_object_field(
+  builder : ObjectBuilder,
+  index : Int,
+  value : Value,
+) -> Bool {
+  guard builder.open &&
+    index == builder.values.length() &&
+    builder.contract_fields is Some(fields) &&
+    @contract.field_at(fields, index) is Some(field) else {
+    return false
+  }
+  builder.values.push((field.name, value))
   true
 }
 
