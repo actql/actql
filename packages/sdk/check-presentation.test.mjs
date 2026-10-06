@@ -19,6 +19,7 @@ test('SDK package inventory includes its current check translation module', t =>
   assert.equal(packages.length, 1);
   assert.equal(packages[0].name, '@actql/sdk');
   assert.equal(packages[0].files.filter(file => file.path === 'check-presentation.mjs').length, 1);
+  assert.equal(packages[0].files.filter(file => file.path === 'operation-presentation.mjs').length, 1);
   assert.equal(packages[0].files.filter(file => file.path === 'json-value-wire.generated.mjs').length, 1);
   assert.equal(packages[0].files.some(file => file.path.endsWith('.test.mjs')), false);
 });
@@ -40,6 +41,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/checkpoints.mjs',
     'packages/sdk/index.mjs',
     'packages/sdk/json-value-wire.generated.mjs',
+    'packages/sdk/operation-presentation.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
   const sdk = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].contents).toString('base64')}`);

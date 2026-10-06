@@ -25,6 +25,11 @@ export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> 
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
 /** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
 export type CheckExplanationOptions = Readonly<{locale?: string}>;
+/** Operation display wording only; never changes an Owner observation or next operation. */
+export type OperationExplanationOptions = Readonly<{locale?: string}>;
+/** Operation translation revision, separate from check translation and wire schemas. */
+export declare function getOperationPresentationInfo(options?: OperationExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
 /** The selected translation revision, separate from reason/outcome schema identity. */
 export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
   Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
@@ -98,7 +103,7 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
-export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
 export type ReadFailureExplanation = Readonly<{
   observation: 'read_incomplete' | 'cleanup_unknown';
   cleanup?: 'unknown';
@@ -115,7 +120,7 @@ export type ReadFailureExplanation = Readonly<{
   }>;
 }>;
 /** SDK-observed progress for this exact read error; no opening, Run or release proof. */
-export declare function explainReadFailure(result: unknown): ReadFailureExplanation | undefined;
+export declare function explainReadFailure(result: unknown, options?: OperationExplanationOptions): ReadFailureExplanation | undefined;
 
 export type CancellationExplanation = Readonly<{
   summary: string;
@@ -124,7 +129,7 @@ export type CancellationExplanation = Readonly<{
   observation: 'accepted' | 'already_requested' | 'already_terminal'; revision: number;
 }> | Readonly<{observation: 'outcome_unknown'}>);
 /** Read-only advice for this exact Execution.cancel result; no cancellation-operation identity or stop/release proof. */
-export declare function explainCancellation(result: unknown): CancellationExplanation | undefined;
+export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
@@ -212,7 +217,7 @@ export type EffectUncertaintyExplanation = Readonly<{
 /** Presentation for the exact validated SDK status/wait/reconcile response.
  * Does not authorize retry, rollback, release or any reconciliation operation.
  */
-export declare function explainEffectUncertainty(state: unknown):
+export declare function explainEffectUncertainty(state: unknown, options?: OperationExplanationOptions):
   EffectUncertaintyExplanation | undefined;
 
 export type DeliveryAttemptLookup = WireDeliveryAttemptLookup;
