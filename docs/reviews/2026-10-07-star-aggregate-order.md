@@ -121,3 +121,42 @@ now executed at the explicitly recorded source SHA.
 
 No runtime overlay, post-lowering patch, fallback or second execution owner was
 used. Submitted-HEAD CI/content review remain separate; final destination main.
+
+## Main integration after restart
+
+Adopted main `c0321922f88cfbc32d5b9357f43984eacfe830a1` through an ordinary
+merge, recorded as `6d0d7303303ff640ce4039ba125c19b6cc3a7264`. This retains
+main's JOIN-star routing, current grammar pins and independent identity vectors.
+There were no conflicts or changes to the Graph contract. No legacy Graph
+adapter, identity reinterpretation or fallback was added.
+
+Focused checks on that integrated tree passed:
+
+```sh
+node scripts/local-checks.mjs test moon -- --target js \
+  src/query_program/star_aggregate_order_test.mbt \
+  src/query_program/star_replace_test.mbt \
+  src/query_program/join_star_test.mbt src/query_program/pipe_scope_test.mbt
+node scripts/local-checks.mjs test node -- \
+  scripts/star-replace-source-input.test.mjs scripts/join-star-source-input.test.mjs
+```
+
+Pinned MoonBit/Node PATH and MOON_HOME were used. JS passed 14/14
+(`focused-test-5qyF9q`), and Node passed 5/5 (`focused-test-7OQnOx`), under
+the existing nonzero-test wrapper. `git diff --check` passed. No full Core,
+all-target, packed campaign, performance run or manual CI restart was performed.
+The previous Local/HTTPS evidence remains tied to `6b263eb1...`; it is not
+submitted-HEAD packed or CI evidence after this merge.
+
+The candidate follow-up concerning SELECT range lifetime already has a public
+implementation at `fix/select-range-lifetime@7bf0fd937918021af6e4352f8538123039df68c2`.
+B did not duplicate that implementation. Its scope/evaluation obligations remain
+separate from this aggregate snapshot correction.
+
+Cleanup removed five byte-identical duplicate tarballs from the initial pack,
+retaining their corrected-pack copies, manifests and failure evidence. It also
+removed the completed qualified-star producer's dedicated npm content cache;
+logs were retained. The logical recovered size was 8,213,487 bytes. Exact paths,
+digests and retained copies are recorded in protected local evidence
+`review-artifacts/b-resume-2026-10-07/cleanup.json`. Current incremental builds,
+borrowed dependencies, toolchains, Stores and all original receipts were kept.
