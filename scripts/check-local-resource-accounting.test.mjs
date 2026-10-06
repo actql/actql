@@ -940,7 +940,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
   const directories = [];
   const observe = directory => directories.push(directory);
   assert.match(runCli(undefined, undefined, [], undefined, observe),
-    /69 operations, 5 implementation profiles/u);
+    /68 operations, 5 implementation profiles/u);
   assert.match(runCli(manifest => { manifest.bindings = []; },
     undefined, [], undefined, observe), /bindings must exactly preserve/u);
   assert.throws(() => runCli(undefined,
@@ -953,7 +953,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 64 production routes mapped, 5 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 64 production routes mapped, 4 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
@@ -1075,7 +1075,7 @@ test('current Delta Host stop records name executable conversion and application
   }
 });
 
-test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
+test('Graph constructor cannot borrow foreign boundary or cancellation evidence', () => {
   for (const field of ['path_assurance','resource_assurance']) {
     assert.match(run(undefined, value => {
       delete value.routes.find(route=>route.operation==='graph')[field].entrypoint;
@@ -1092,7 +1092,9 @@ test('keyed property constructor cannot borrow legacy boundary or cancellation e
     value.routes.find(route=>route.operation==='graph').environment_tests=[];
   }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   assert.match(run(undefined, value => {
-    value.routes.find(route=>route.operation==='graph').dispatch.marker='@bridge.start_rows_to_graph(';
+    const route = value.routes.find(route=>route.operation==='graph');
+    assert.equal(route.dispatch.marker, '@bridge.start_rows_to_graph(');
+    route.dispatch.marker='@bridge.start_rows_to_vectors(';
   }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
 });
 
@@ -3930,7 +3932,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
         ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget, ...extraEnv}});
   try {
     writeFileSync(target, JSON.stringify(manifestTemplate));
-    const stale = gapsTemplate.replace('| Registered operations | 69 |',
+    const stale = gapsTemplate.replace('| Registered operations | 68 |',
       '| Registered operations | 0 |');
     assert.notEqual(stale, gapsTemplate);
     writeFileSync(gapsTarget, stale);
@@ -3948,7 +3950,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
       String(error.stderr).includes('SGA subgraph: entrypoint boundary assurance is missing'));
     assert.equal(readFileSync(gapsTarget, 'utf8'), stale);
     writeFileSync(target, JSON.stringify(manifestTemplate));
-    assert.match(invoke(['--check-summary', '--write-summary']), /69 operations/u);
+    assert.match(invoke(['--check-summary', '--write-summary']), /68 operations/u);
     assert.equal(readFileSync(gapsTarget, 'utf8'), gapsTemplate);
     const rejected = structuredClone(manifestTemplate);
     rejected.bindings = [];
@@ -3964,7 +3966,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
       join(directory, 'missing.md')}), error =>
       error.status === 1 && /ledger is missing/u.test(String(error.stderr)));
     assert.match(invoke([], {ACTQL_LOCAL_RESOURCE_AUDIT: '',
-      ACTQL_LOCAL_RESOURCE_GAPS: ''}), /69 operations/u);
+      ACTQL_LOCAL_RESOURCE_GAPS: ''}), /68 operations/u);
   } finally {
     rmSync(directory, {recursive: true, force: true});
   }
