@@ -79,6 +79,11 @@ async function runPublicNearestBarrier(t, {
     let dispatches = 0;
     let completions = 0;
     let bridges = 0;
+    let bridgeWork = 0;
+    let bridgeProgress = 0;
+    // Each row: Text C+3, Vector 6, append start 1, append 25+2C.
+    // Two rows therefore cost 70+6C for C 64-code-unit Text fragments.
+    const perBridgeWork = 70 + 6 * Math.ceil((prefixLength + 1) / 64);
     let nearestWork = 0;
     let representations;
     const fixtureId = longNames ? 'public-nearest-names' :
@@ -103,10 +108,15 @@ async function runPublicNearestBarrier(t, {
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 2) return;
         if (!direct && bridges < 2) {
-          assert.equal(detail.progress, '2');
-          // Each bridge reads two fields and commits one record, twice.
-          assert.equal(detail.work, '6');
-          bridges++;
+          assert.equal(Number(detail.work), Math.min(256, perBridgeWork - bridgeWork));
+          bridgeWork += Number(detail.work);
+          bridgeProgress += Number(detail.progress);
+          if (bridgeWork === perBridgeWork) {
+            assert.equal(bridgeProgress, 2);
+            bridges++;
+            bridgeWork = 0;
+            bridgeProgress = 0;
+          }
           return;
         }
         // The existing Carrier cases retain both bridges in the fused task.

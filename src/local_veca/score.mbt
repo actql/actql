@@ -90,6 +90,7 @@ priv struct ScoreState {
   metric : @numeric.Metric
   dimensions : Int
   identity_count : Int
+  caller_workspace : Int
   component_name : @schema.FieldName
   mut name_offset : Int
   mut key_comparison : @value.BoundedKeyComparison?
@@ -183,21 +184,23 @@ fn score_workspace(
   identities : Int,
   output_fields : Int,
   append_slots : Int,
-) -> Int? {
+) -> (Int, Int)? {
   guard checked_add(identities, 2) is Some(score_slots) &&
     checked_multiply(records, score_slots) is Some(scored) &&
     checked_add(output_fields, 2) is Some(record_slots) &&
     checked_multiply(records, record_slots) is Some(retained) &&
     checked_add(dimensions, scored) is Some(first) &&
-    checked_add(first, retained) is Some(second) &&
-    checked_add(second, output_fields) is Some(third) &&
-    checked_add(third, identities) is Some(fourth) &&
-    checked_add(fourth, append_slots) is Some(fifth) &&
+    checked_add(first, output_fields) is Some(second) &&
+    checked_add(second, identities) is Some(third) &&
     // Name position, append handle, key handle and six borrowed key slots.
-    checked_add(fifth, 9) is Some(total) else {
+    checked_add(third, 9) is Some(caller) &&
+    checked_add(caller, append_slots) is Some(appending) &&
+    checked_add(appending, retained) is Some(total) else {
     return None
   }
-  Some(total)
+  // Append owns its internal cursor and retained rows; only this caller part
+  // must stay reserved while deeper contract or identity comparisons grow.
+  Some((total, caller))
 }
 
 ///|
@@ -539,7 +542,12 @@ fn append_score_value(state : ScoreState) -> Result[Unit, ScoreIssue] {
 ///|
 fn commit_score_record(state : ScoreState) -> Result[Unit, ScoreIssue] {
   guard state.output is Some(output) else { return Err(InvalidScoreKernel) }
-  match @records.start_record_append(output, state.emit_fields) {
+  match
+    @records.start_record_append(
+      output,
+      state.emit_fields,
+      external_workspace_slots=state.caller_workspace,
+    ) {
     Ok(cursor) => {
       state.output_append = Some(cursor)
       state.phase = ScoreAppendRecord
@@ -852,7 +860,7 @@ fn start_score_source(
     score_workspace(
       records, dimensions, identity_count, output_fields, append_slots,
     )
-    is Some(workspace) &&
+    is Some((workspace, caller_workspace)) &&
     workspace <= limits.max_workspace_slots else {
     return Err(ScoreWorkspaceLimit)
   }
@@ -887,6 +895,7 @@ fn start_score_source(
     metric: numeric_metric,
     dimensions,
     identity_count,
+    caller_workspace,
     component_name: @carrier.vector_components(vectors).name,
     name_offset: 0,
     key_comparison: None,

@@ -24,6 +24,7 @@ priv struct NormalizeState {
   limits : @storage.Limits
   component_name : @schema.FieldName
   append_slots : Int
+  mut caller_workspace : Int
   mut name_offset : Int
   mut output_append : @records.RecordAppend?
   dimensions : Int
@@ -134,6 +135,7 @@ fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
     return Err(WorkspaceLimit)
   }
   guard checked_add(state.dimensions, field_slots) is Some(temporary) &&
+    checked_add(temporary, 2) is Some(caller_workspace) &&
     checked_add(temporary, state.append_slots) is Some(appending) &&
     checked_add(appending, field_count + 2) is Some(retaining) &&
     checked_add(retaining, 2) is Some(needed) else {
@@ -144,6 +146,8 @@ fn begin_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
     return Err(WorkspaceLimit)
   }
   state.field = 0
+  // Keep the existing caller reservation while shared append continuations grow.
+  state.caller_workspace = caller_workspace
   state.component_field = -1
   state.fields = []
   state.source_vector = None
@@ -281,7 +285,12 @@ fn commit_record(state : NormalizeState) -> Result[Unit, NormalizeIssue] {
   state.output_vector = None
   let index = state.component_field
   state.fields[index] = (name, vector)
-  match @records.start_record_append(output, state.fields) {
+  match
+    @records.start_record_append(
+      output,
+      state.fields,
+      external_workspace_slots=state.caller_workspace,
+    ) {
     Ok(cursor) => {
       state.output_append = Some(cursor)
       state.phase = AppendRecord
@@ -481,6 +490,7 @@ fn start_normalize_source(
     limits,
     component_name: @carrier.vector_components(vectors).name,
     append_slots,
+    caller_workspace: 0,
     name_offset: 0,
     output_append: None,
     dimensions,
