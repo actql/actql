@@ -154,6 +154,10 @@ pub fn reference_same_issuer(ReferenceValue, ReferenceValue) -> Bool
 
 pub fn reference_wire(ReferenceValue) -> String
 
+pub fn start_bounded_author_order_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
+
+pub fn start_bounded_group_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
+
 pub fn start_bounded_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
 
 pub fn start_bounded_present_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]

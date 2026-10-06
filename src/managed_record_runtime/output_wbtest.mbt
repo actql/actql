@@ -248,6 +248,54 @@ fn limits() -> @storage.Limits {
 }
 
 ///|
+test "record output cursor excludes premature finish and releases custody once" {
+  let owner = producer_owner()
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 2048L, fn() {
+    true
+  }).unwrap()
+  let fields = [
+    (@schema.Unqualified("id"), number(7.0)),
+    (@schema.Unqualified("embedding"), vector("[1,2]")),
+  ]
+  let cursor = start_record_append(output, fields).unwrap()
+  assert_true(finish_output(output) is Err(Storage(@storage.Closed)))
+  assert_eq(append_record(output, fields), Err(Storage(@storage.Closed)))
+  assert_true(
+    start_record_append(output, fields) is Err(Storage(@storage.Closed)),
+  )
+  let mut done = false
+  for _ in 0..<40 {
+    if !done {
+      done = advance_record_append(cursor).unwrap()
+    }
+  }
+  assert_true(done)
+  assert_eq(advance_record_append(cursor), Err(Closed))
+  assert_false(cleanup_record_append(cursor))
+  let completed = finish_output(output).unwrap()
+  assert_eq(
+    completed_measure(completed),
+    @lifecycle.VectorsMeasure(records=1, dimensions=2),
+  )
+  assert_true(discard_completed(completed))
+  assert_false(discard_completed(completed))
+
+  let output = prepare_output(owner, @pipeline.Step(0), limits(), 2048L, fn() {
+    true
+  }).unwrap()
+  let cursor = start_record_append(output, fields).unwrap()
+  assert_eq(advance_record_append(cursor), Ok(false))
+  let held = output_workspace_slots(output)
+  assert_true(held > 0)
+  assert_true(cancel_output(output))
+  assert_eq(output_workspace_slots(output), 0)
+  assert_false(cleanup_record_append(cursor))
+  assert_eq(advance_record_append(cursor), Err(Closed))
+  assert_false(cancel_output(output))
+  assert_true(finish_output(output) is Err(Closed))
+}
+
+///|
 fn number(value : Double) -> @value.CheckedValue {
   @value.admit(
     @contract.primitive(@contract.NumberType, nullable=false),
