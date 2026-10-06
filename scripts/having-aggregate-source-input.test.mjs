@@ -54,6 +54,7 @@ test('HAVING aggregate cases join the ordinary packed corpus and a focused selec
   }
   assert.ok(fixture.includes('havingAggregateOnly ? {successes: havingAggregateSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_HAVING_AGGREGATE_ONLY = '1'"));
+  assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--having-aggregate-only'/u);
   assert.ok(driver.includes("['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs']"));
   const end = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
   assert.match(end, /process\.argv\.includes\('--having-aggregate-only'\).*?return;/su);
