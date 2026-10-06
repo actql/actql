@@ -82,13 +82,15 @@ export function installNodeClientCheck({moon, environment, publication,
 
   // Keyed by this Host over everything the verdict is about: the audience
   // and its disclosure policy, the exact source and format, the scope, the
-  // compiler and public checking selections, the visible names and supplied
+  // compiler, both reporting schema identities and public checking selections,
+  // the visible names and supplied
   // bindings. Equal requests give an equal reference here; the reference is
   // not a public hash of supplied values.
   const contextRef = (principalId, input, parameters, visible) => {
     const bound = {version: contextVersion, audience: principalId,
       disclosure_policy: disclosurePolicy, projection: version, scope,
       compiler, reason_schema_cid: checkReasonSchemaCid,
+      outcome_schema_cid: checkOutcomeSchemaCid,
       checking_context: checkingContext, visible_aliases: visible};
     let preimage;
     try {

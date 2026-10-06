@@ -35,10 +35,9 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
     1000,
   ).unwrap()
   let generated = task_test_generated(owner)
-  // One record on each side requires 66 control work: legacy 52 plus two scalar rechecks (2 each)
-  // and two 2D vector rechecks (node + two components + end + result = 5 each).
-  // Workspace: two 3-slot records + 4 scores + 3 sort scratch +
-  // two identity slots + 16 fixed slots + (max_depth 10 + 10) recheck = 51.
+  // One record on each side requires 66 control work and 52 workspace slots:
+  // Carrier 52 plus two scalar/Vector rechecks (2+5); structural 32 plus
+  // the shared depth-ten admission cursor (8+10+2).
   // The public default also uses max_work for output capture; keep its separate
   // value budget at 1000, as in the existing bounded-control fixtures.
   let active = @local_veca.start_nearest_inputs_with_relations(
@@ -50,7 +49,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    51,
+    52,
     1000,
     1000,
     [candidate_read, query_read],
@@ -120,7 +119,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      50,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -138,7 +137,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(candidate_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       [candidate_read, query_read],
@@ -156,7 +155,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       [candidate_read, query_read],

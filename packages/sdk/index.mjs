@@ -375,8 +375,10 @@ export function createCheckDocumentSession(client, options) {
       const record = currentRecord(observation);
       if (!record ||
           location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
-      return resolveCheckTextRangeEncoding(observation.outcome, location,
+      const range = resolveCheckTextRangeEncoding(observation.outcome, location,
         positionEncoding, record.input);
+      // Location accessors can edit, close or issue a newer check while resolving.
+      return currentRecord(observation) === record ? range : undefined;
     },
     format(observation, options) {
       let outcome, selected;

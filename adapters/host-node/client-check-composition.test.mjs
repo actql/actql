@@ -186,7 +186,7 @@ test('composition: missing read tuples and failed read owners preserve checking'
 // Fixed HMAC vectors derived independently with Python's JSON serialization
 // and hmac/sha256, the fixture's 32 bytes of 0x07, and literal context fields.
 // No product canonicalizer or returned context is used to build expectations.
-// The preimages include the registered actql-check-reason/0.1 schema CID.
+// The preimages include both registered reason and outcome schema CIDs.
 test('composition: exact Unicode source and received-input fallback have fixed references',
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
@@ -205,7 +205,7 @@ test('composition: exact Unicode source and received-input fallback have fixed r
           ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
         const call = {principalId: 'owner', input, parameters: null};
         const outcome = await f.check(call);
-        assert.equal(outcome.report.context_ref, refs[index]);
+        assert.equal(outcome.report.context_ref, refs[index], '[check-mutation:context-schema-vector]');
         assert.deepEqual(await f.check(call), outcome);
         assert.equal(f.checked.at(-1)[0], text, 'checker receives the authored spelling');
       }

@@ -24,9 +24,9 @@ test "Relation Pool Object names retain independent limits and stop custody" {
   // root+setup+3 names+child+end+finish=8. Extra field lookup costs 3:
   // 592-517+227+8+3=313. No allowance is inferred from a successful run.
   // Pool structural custody depends on records/roles, not unused field count:
-  // the same depth-three continuation and append reserve remains 55 slots.
+  // the depth-three continuation/append plus one name offset total 67 slots.
   let limits = {
-    ..direct_relation_pool_limits(55, 313),
+    ..direct_relation_pool_limits(67, 313),
     max_value_depth: 3,
     max_value_nodes: 113,
   }
@@ -36,7 +36,7 @@ test "Relation Pool Object names retain independent limits and stop custody" {
       prepared_sequence(owner),
       0,
       read,
-      { ..limits, max_workspace_slots: 54, },
+      { ..limits, max_workspace_slots: 66, },
       4096L,
       fn() { true },
     )

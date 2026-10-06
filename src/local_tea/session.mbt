@@ -22,6 +22,7 @@ priv enum SessionPhase {
   EmitBegin
   EmitFields
   EmitCommit
+  EmitAppend
   Finish
 }
 
@@ -51,6 +52,7 @@ priv struct SessionState {
   terms : Int
   gap : Int64
   scratch : Int
+  append_identities : Int
   start_name : @schema.FieldName
   end_name : @schema.FieldName
   id_name : @schema.FieldName
@@ -61,6 +63,7 @@ priv struct SessionState {
   mut record : Int
   mut field : Int
   mut term : Int
+  mut name_offset : Int
   mut current : (@schema.FieldName, @value.CheckedValue)?
   mut cells : Array[@value.CheckedValue?]
   mut times : Array[Int64]
@@ -93,6 +96,7 @@ priv struct SessionState {
   mut emit : Int
   mut emit_field : Int
   mut emit_fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut append : @records.RecordAppend?
   mut control_work_remaining : Int
 }
 
@@ -149,7 +153,10 @@ fn session_source_field(
 }
 
 ///|
+/// Private observation only; Session retains cleanup and completion authority.
+#warnings("-unused_field")
 struct SessionExecution {
+  state : SessionState
   session : @bounded.Session[SessionState, @records.Completed, SessionIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_bytes : Int
@@ -343,6 +350,7 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
       }
       state.current = Some(value)
       state.term = 0
+      state.name_offset = 0
       state.phase = LoadTerm
       Ok(())
     }
@@ -351,7 +359,10 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
         session_term_name(state, state.term) is Some(expected) else {
         return Err(InvalidSessionRecord(state.record))
       }
-      if @schema.reference_name(name) == @schema.reference_name(expected) {
+      let (equal, next) = event_name_equal(name, expected, state.name_offset)
+      state.name_offset = next
+      guard equal is Some(equal) else { return Ok(()) }
+      if equal {
         state.cells[state.record * state.terms + state.term] = Some(value)
       }
       state.term += 1
@@ -748,7 +759,16 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
       }
       let record = state.source_order[state.emit]
       guard session_source_field_count(state.source, record) is Some(fields) &&
-        session_checked_multiply(fields + 3, 2) is Some(temporary) else {
+        session_checked_add(fields, 3) is Some(width) &&
+        session_checked_add(state.scratch, width) is Some(field_slots) &&
+        session_checked_add(field_slots, 1) is Some(owned) &&
+        event_emission_workspace(
+          width,
+          state.append_identities,
+          state.limits.max_value_depth,
+          owned,
+        )
+        is Some(temporary) else {
         return Err(InvalidSessionRecord(record))
       }
       let current = match state.output {
@@ -756,8 +776,7 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
         None => return Err(InvalidSessionKernel)
       }
       if current > state.limits.max_workspace_slots ||
-        state.scratch > state.limits.max_workspace_slots - current ||
-        temporary > state.limits.max_workspace_slots - current - state.scratch {
+        temporary > state.limits.max_workspace_slots - current {
         return Err(SessionWorkspaceLimit)
       }
       state.emit_field = 0
@@ -807,8 +826,30 @@ fn session_emit_step(state : SessionState) -> Result[Bool, SessionIssue] {
       guard state.output is Some(output) else {
         return Err(InvalidSessionKernel)
       }
-      match @records.append_record(output, state.emit_fields) {
-        Ok(_) => {
+      match
+        @records.start_record_append(
+          output,
+          state.emit_fields,
+          external_workspace_slots=state.scratch +
+            state.emit_fields.length() +
+            1,
+        ) {
+        Ok(append) => {
+          state.append = Some(append)
+          state.phase = EmitAppend
+          Ok(false)
+        }
+        Err(issue) => Err(SessionOutput(issue))
+      }
+    }
+    EmitAppend => {
+      guard state.append is Some(append) else {
+        return Err(InvalidSessionKernel)
+      }
+      match @records.advance_record_append(append) {
+        Ok(false) => Ok(false)
+        Ok(true) => {
+          state.append = None
           state.emit_fields = []
           state.emit += 1
           state.phase = EmitBegin
@@ -856,7 +897,7 @@ fn session_step(
       GroupBegin | GroupCompareKey | GroupBoundary => session_group_step(state)
       IdentityBegin | IdentityTerm | IdentityCommit =>
         session_identity_step(state)
-      EmitBegin | EmitFields | EmitCommit =>
+      EmitBegin | EmitFields | EmitCommit | EmitAppend =>
         match session_emit_step(state) {
           Ok(emitted) => {
             if emitted {
@@ -887,11 +928,16 @@ fn session_step(
 
 ///|
 fn cleanup_session_state(state : SessionState) -> Bool {
+  if state.append is Some(append) {
+    @records.cleanup_record_append(append) |> ignore
+    state.append = None
+  }
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
   }
   state.current = None
+  state.name_offset = 0
   state.cells = []
   state.times = []
   state.source_order = []
@@ -948,7 +994,8 @@ fn start_session_with_source(
   }
   guard records <= limits.max_input_records &&
     records <= limits.max_records &&
-    session_scratch(records, terms) is Some(scratch) &&
+    session_scratch(records, terms) is Some(base_scratch) &&
+    session_checked_add(base_scratch, 1) is Some(scratch) &&
     scratch <= limits.max_workspace_slots else {
     return Err(SessionWorkspaceLimit)
   }
@@ -987,6 +1034,11 @@ fn start_session_with_source(
     terms,
     gap,
     scratch,
+    append_identities: if @carrier.kind(output_carrier) == @carrier.EventsKind {
+      1
+    } else {
+      0
+    },
     start_name,
     end_name,
     id_name,
@@ -1001,6 +1053,7 @@ fn start_session_with_source(
     record: 0,
     field: 0,
     term: 0,
+    name_offset: 0,
     current: None,
     cells: [],
     times: [],
@@ -1033,12 +1086,14 @@ fn start_session_with_source(
     emit: 0,
     emit_field: 0,
     emit_fields: [],
+    append: None,
     control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
     control, state, session_step, cleanup_session_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_bytes: limits.max_value_bytes,

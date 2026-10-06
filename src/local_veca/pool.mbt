@@ -29,6 +29,7 @@ priv enum PoolPhase {
   InitializeIdentities
   ReadField
   RecheckField
+  MatchComponent
   MatchGroup
   MatchIdentity
   ValidateGroups
@@ -69,7 +70,7 @@ priv struct PoolState {
   source_identity_count : Int
   encode_member_identity : Bool
   member_identity_contract : @contract.Contract?
-  component_name : String
+  component_name : @schema.FieldName
   output_component_contract : @contract.Contract
   member_count_contract : @contract.Contract
   output_id : String?
@@ -85,6 +86,7 @@ priv struct PoolState {
   mut identity_recheck : @value.RecheckCursor?
   mut identity_bytes : Int
   mut current_field : (@schema.FieldName, @value.CheckedValue)?
+  mut name_offset : Int
   mut source_vector : @value.CheckedValue?
   mut group_values : Array[@value.CheckedValue?]
   mut identity_values : Array[@value.CheckedValue?]
@@ -190,7 +192,8 @@ fn pool_workspace(
     pool_checked_add(sort_slots, output_slots) is Some(first) &&
     pool_checked_add(first, keys) is Some(second) &&
     pool_checked_add(second, recheck_slots) is Some(third) &&
-    pool_checked_add(third, append_slots) is Some(total) else {
+    pool_checked_add(third, append_slots) is Some(fourth) &&
+    pool_checked_add(fourth, 1) is Some(total) else {
     return None
   }
   Some(total)
@@ -262,6 +265,7 @@ fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
   state.identity_builder = None
   state.identity_bytes = 0
   state.current_field = None
+  state.name_offset = 0
   state.source_vector = None
   state.group_values = []
   state.identity_values = []
@@ -302,13 +306,27 @@ fn bind_pool_field(
   name : @schema.FieldName,
   checked : @value.CheckedValue,
 ) -> Result[Unit, PoolIssue] {
-  if @schema.reference_name(name) == state.component_name {
-    if state.source_vector is Some(_) {
-      return Err(InvalidPoolVector(state.record))
-    }
-    state.source_vector = Some(checked)
-  }
   state.current_field = Some((name, checked))
+  state.name_offset = 0
+  state.phase = MatchComponent
+  match_pool_component(state)
+}
+
+///|
+fn match_pool_component(state : PoolState) -> Result[Unit, PoolIssue] {
+  guard state.current_field is Some((name, checked)) else {
+    return Err(InvalidPoolKernel)
+  }
+  match pool_name_equal(state, name, state.component_name) {
+    None => return Ok(())
+    Some(false) => ()
+    Some(true) => {
+      if state.source_vector is Some(_) {
+        return Err(InvalidPoolVector(state.record))
+      }
+      state.source_vector = Some(checked)
+    }
+  }
   state.group_probe = 0
   state.phase = MatchGroup
   Ok(())
@@ -321,11 +339,15 @@ fn match_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
     is Some(group) else {
     return Err(InvalidPoolRecord(state.record))
   }
-  if @schema.reference_name(name) == group {
-    if state.group_values[state.group_probe] is Some(_) {
-      return Err(InvalidPoolGroup(state.record))
+  match pool_name_equal(state, name, @schema.Unqualified(group)) {
+    None => return Ok(())
+    Some(false) => ()
+    Some(true) => {
+      if state.group_values[state.group_probe] is Some(_) {
+        return Err(InvalidPoolGroup(state.record))
+      }
+      state.group_values[state.group_probe] = Some(checked)
     }
-    state.group_values[state.group_probe] = Some(checked)
   }
   state.group_probe += 1
   if state.group_probe >= state.group_count {
@@ -342,20 +364,26 @@ fn match_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let expected = match state.source {
     Relation(_) =>
-      @lower.vector_pool_identity_at(state.prepared, state.identity_probe)
+      @lower.vector_pool_identity_at(state.prepared, state.identity_probe).map(text => {
+        @schema.Unqualified(text)
+      })
     _ =>
       @carrier.vector_identity_at(state.vectors, state.identity_probe).map(identity => {
-        @schema.reference_name(identity.name)
+        identity.name
       })
   }
   guard expected is Some(expected) else {
     return Err(InvalidPoolRecord(state.record))
   }
-  if @schema.reference_name(name) == expected {
-    if state.identity_values[state.identity_probe] is Some(_) {
-      return Err(InvalidPoolIdentity(state.record))
+  match pool_name_equal(state, name, expected) {
+    None => return Ok(())
+    Some(false) => ()
+    Some(true) => {
+      if state.identity_values[state.identity_probe] is Some(_) {
+        return Err(InvalidPoolIdentity(state.record))
+      }
+      state.identity_values[state.identity_probe] = Some(checked)
     }
-    state.identity_values[state.identity_probe] = Some(checked)
   }
   state.identity_probe += 1
   if state.identity_probe >= state.source_identity_count {
@@ -903,22 +931,6 @@ fn finish_pool_component(state : PoolState) -> Result[Unit, PoolIssue] {
 }
 
 ///|
-fn group_value_by_name(
-  state : PoolState,
-  name : String,
-) -> @value.CheckedValue? {
-  for index in 0..<state.group_count {
-    if @lower.vector_pool_group_at(state.prepared, index) == Some(name) {
-      return Some(state.records[state.group_start].groups[index])
-    }
-  }
-  if state.group_count == 1 && state.output_id == Some(name) {
-    return Some(state.records[state.group_start].groups[0])
-  }
-  None
-}
-
-///|
 fn build_pool_output_field(state : PoolState) -> Result[Unit, PoolIssue] {
   guard @carrier.field_at(
       @carrier.vector_records(state.output_vectors),
@@ -927,29 +939,66 @@ fn build_pool_output_field(state : PoolState) -> Result[Unit, PoolIssue] {
     is Some(field) else {
     return Err(InvalidPoolKernel)
   }
-  let name = @schema.reference_name(field.name)
-  let value = if name == state.component_name {
-    guard state.pooled_vector is Some(vector) else {
-      return Err(InvalidPoolKernel)
+  // group_probe is reused for the output search: component, count, groups,
+  // then the existing single-group output-id alias. No key/name array is made.
+  let mut remaining = 64
+  for _ in 0..<8 {
+    let expected = if state.group_probe == -2 {
+      Some(state.component_name)
+    } else if state.group_probe == -1 {
+      Some(@schema.Unqualified("member_count"))
+    } else if state.group_probe < state.group_count {
+      @lower.vector_pool_group_at(state.prepared, state.group_probe).map(text => {
+        @schema.Unqualified(text)
+      })
+    } else if state.group_probe == state.group_count && state.group_count == 1 {
+      state.output_id.map(text => @schema.Unqualified(text))
+    } else {
+      None
     }
-    vector
-  } else if name == "member_count" {
-    guard @value.checked_number_value(
-        (state.group_end - state.group_start).to_double(),
-        state.member_count_contract,
-      )
-      is Some(count) else {
-      return Err(InvalidPoolKernel)
+    guard expected is Some(expected) else { return Err(InvalidPoolKernel) }
+    let (equal, spent) = pool_name_equal_budget(
+      state,
+      field.name,
+      expected,
+      remaining,
+    )
+    remaining -= spent
+    guard equal is Some(equal) else { return Ok(()) }
+    if !equal {
+      state.group_probe += 1
+      if remaining == 0 {
+        return Ok(())
+      }
+      continue
     }
-    count
-  } else {
-    guard group_value_by_name(state, name) is Some(group) else {
-      return Err(InvalidPoolKernel)
+    let value = if state.group_probe == -2 {
+      guard state.pooled_vector is Some(vector) else {
+        return Err(InvalidPoolKernel)
+      }
+      vector
+    } else if state.group_probe == -1 {
+      guard @value.checked_number_value(
+          (state.group_end - state.group_start).to_double(),
+          state.member_count_contract,
+        )
+        is Some(count) else {
+        return Err(InvalidPoolKernel)
+      }
+      count
+    } else {
+      state.records[state.group_start].groups[if state.group_probe ==
+        state.group_count {
+        0
+      } else {
+        state.group_probe
+      }]
     }
-    group
+    state.output_fields.push((field.name, value))
+    state.output_field += 1
+    state.group_probe = -2
+    return Ok(())
   }
-  state.output_fields.push((field.name, value))
-  state.output_field += 1
   Ok(())
 }
 
@@ -1047,6 +1096,13 @@ fn pool_step(
       MatchGroup => {
         used += 1
         match match_pool_group(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      MatchComponent => {
+        used += 1
+        match match_pool_component(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
@@ -1190,6 +1246,8 @@ fn pool_step(
           state.output_vector = None
           state.pooled_vector = Some(vector)
           state.output_field = 0
+          state.group_probe = -2
+          state.name_offset = 0
           state.output_fields = []
           state.phase = BuildOutput
         }
@@ -1276,6 +1334,7 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
     state.input_recheck = None
   }
   state.current_field = None
+  state.name_offset = 0
   if state.output_vector is Some(builder) {
     @value.cancel_vector_value(builder) |> ignore
     state.output_vector = None
@@ -1414,9 +1473,7 @@ fn start_pool_carrier_source(
     source_identity_count: identity_count,
     encode_member_identity: false,
     member_identity_contract: None,
-    component_name: @schema.reference_name(
-      @carrier.vector_components(vectors).name,
-    ),
+    component_name: @carrier.vector_components(vectors).name,
     output_component_contract: component_contract,
     member_count_contract,
     output_id: @lower.vector_pool_output_id(prepared),
@@ -1432,6 +1489,7 @@ fn start_pool_carrier_source(
     identity_recheck: None,
     identity_bytes: 0,
     current_field: None,
+    name_offset: 0,
     source_vector: None,
     group_values: [],
     identity_values: [],
@@ -1702,7 +1760,7 @@ pub fn start_relation_pool(
     source_identity_count,
     encode_member_identity,
     member_identity_contract,
-    component_name,
+    component_name: @schema.Unqualified(component_name),
     output_component_contract: component_contract,
     member_count_contract,
     output_id: @lower.vector_pool_output_id(prepared),
@@ -1718,6 +1776,7 @@ pub fn start_relation_pool(
     identity_recheck: None,
     identity_bytes: 0,
     current_field: None,
+    name_offset: 0,
     source_vector: None,
     group_values: [],
     identity_values: [],
