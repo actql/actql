@@ -1,7 +1,7 @@
 ///|
 fn publication_property_steps(split : Bool, node_match : Bool) -> String {
   let graph =
-    #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"NODE_INPUT","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"Link","properties":{"mode":"all_columns"}}]}]},"as":"g"}
+    #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"NODE_INPUT","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"Link","properties":{"mode":"all_columns"}}]}]},"as":"g"}
   "," +
   graph.replace(old="NODE_INPUT", new=if split { "seed" } else { "derived" }) +
   (if node_match {
@@ -22,7 +22,7 @@ fn checked_property_publication(
   checked_direct_program_fixture(
     graph_steps=prefix + publication_property_steps(split, node_match),
     graph_resources=resources,
-    property_graph=true,
+    graph=true,
   )
 }
 
@@ -38,15 +38,13 @@ test "keyed Graph publication retains shared and distinct producer owners throug
       assert_eq(publication_policy_source_count(policy), 0)
       assert_eq(publication_policy_carrier_step_count(policy), 2)
       let retained = publication_policy_carrier_step_at(policy, 1).unwrap()
-      guard retained.operation
-        is PropertyGraphConstruction(inputs~, checked=operation) else {
+      guard retained.operation is GraphConstruction(inputs~, checked=operation) else {
         fail("keyed constructor owner lost")
       }
       assert_eq(retained.step, 2)
       assert_false(retained.unknown_provenance)
       let original_step = @pipeline.step_at(unit.pipeline, 2).unwrap()
-      guard original_step.operation
-        is PropertyGraphConstruction(checked=original, ..) else {
+      guard original_step.operation is GraphConstruction(checked=original, ..) else {
         fail("original constructor owner lost")
       }
       assert_true(physical_equal(operation, original))
@@ -73,13 +71,13 @@ test "keyed Graph publication retains shared and distinct producer owners throug
       let mut envelopes = 0
       for i in 0..<@context.operation_closure_count(closure) {
         if @context.operation_closure_at(closure, i)
-          is Some(ExecutionCheck(PropertyGraphConstructionExecution(check))) {
+          is Some(ExecutionCheck(GraphConstructionExecution(check))) {
           assert_true(physical_equal(check.operation, operation))
           assert_true(physical_equal(check.site.pipeline, unit.pipeline))
           assert_true(physical_equal(check.step, original_step))
           assert_eq(
             @context.operation_execution_failure(
-              PropertyGraphConstructionExecution(check),
+              GraphConstructionExecution(check),
             ),
             RejectOperationOutput,
           )

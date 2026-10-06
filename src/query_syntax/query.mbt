@@ -14,12 +14,14 @@ pub(all) struct Projection {
   analytic : AnalyticCall?
   name : NamePart?
   star : String?
+  except_columns : Array[NamePart]
 }
 
 ///|
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?
@@ -80,6 +82,7 @@ pub(all) enum QueryInteger {
 ///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -91,7 +94,7 @@ pub(all) enum QueryOperation {
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
-  Having(Expression)
+  Having(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -363,6 +366,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    UnnestSource(expression, element, offset) =>
+      Some(UnnestSource(expression, element, offset))
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -385,20 +390,36 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         }),
       )
     Where(e) => Some(Where(e))
-    Extend(xs) => Some(Extend(xs.copy()))
+    Extend(xs) => Some(Extend(copy_projections(xs)))
     Set(xs) => Some(Set(xs.copy()))
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
-      Some(Group(keys.copy(), projections.copy(), scope))
-    Having(e) => Some(Having(e))
-    Analytic(projections) => Some(Analytic(projections.copy()))
-    Select(xs, distinct) => Some(Select(xs.copy(), distinct))
+      Some(Group(keys.copy(), copy_projections(projections), scope))
+    Having(e, calls) =>
+      Some(
+        Having(
+          e,
+          calls.map(pair => {
+            (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), })
+          }),
+        ),
+      )
+    Analytic(projections) => Some(Analytic(copy_projections(projections)))
+    Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
   }
+}
+
+///|
+fn copy_projections(projections : Array[Projection]) -> Array[Projection] {
+  projections.map(projection => {
+    ..projection,
+    except_columns: projection.except_columns.copy(),
+  })
 }
 
 ///|
@@ -564,6 +585,78 @@ fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
       self.expression_nodes += expression.nodes.length()
       self.index = next
       expression
+    }
+    Err(error) => raise QueryExpression(error)
+  }
+}
+
+///|
+fn QueryParser::aggregate_expression(
+  self : QueryParser,
+  prefix : String,
+) -> (Expression, Array[(NamePart, AggregateCall)]) raise QueryAbort {
+  let calls : Array[(NamePart, AggregateCall)] = []
+  let serial = [self.synthetic_sources]
+  let syntax_nodes = [0]
+  let limits = {
+    ..self.limits.expression,
+    max_nodes: self.limits.expression.max_nodes - self.expression_nodes,
+    max_work: self.limits.expression.max_work.min(
+      self.limits.max_work - self.work,
+    ),
+  }
+  let primary = fn(
+    index : Int,
+    limits : ExpressionLimits,
+  ) -> Result[(NamePart, Int, Int, Int)?, Diagnostic] {
+    let parser : QueryParser = {
+      source: self.source,
+      limits: {
+        ..self.limits,
+        expression: limits,
+        max_work: limits.max_work,
+        max_syntax_nodes: self.limits.max_syntax_nodes -
+        self.syntax_nodes -
+        syntax_nodes[0],
+      },
+      index,
+      work: 0,
+      expression_nodes: 0,
+      syntax_nodes: 0,
+      source_depth: 0,
+      synthetic_sources: serial[0],
+      cte_scopes: [],
+    }
+    if !parser.aggregate_head() {
+      return Ok(None)
+    }
+    try {
+      let call = parser.aggregate()
+      let name = parser.fresh_producer(prefix)
+      serial[0] = parser.synthetic_sources
+      syntax_nodes[0] += parser.syntax_nodes
+      calls.push((name, call))
+      Ok(Some((name, parser.index, parser.work, parser.expression_nodes)))
+    } catch {
+      QueryExpression(error) => Err(error)
+      QueryAbort(message, at) =>
+        Err({
+          issue: Syntax(message),
+          span: Some(
+            @origin.span(@origin.range(self.source.document, at, at).unwrap()),
+          ),
+        })
+    }
+  }
+  match
+    parse_fragment_resolved(self.source, self.index, limits, Some(primary)) {
+    Ok((expression, next, embedded_nodes)) => {
+      self.spend(expression.work)
+      self.expression_nodes += expression.nodes.length() + embedded_nodes
+      self.syntax_nodes += syntax_nodes[0]
+      self.index = next
+      self.synthetic_sources = serial[0]
+      (expression, calls)
     }
     Err(error) => raise QueryExpression(error)
   }
@@ -795,45 +888,115 @@ fn QueryParser::starts_join(self : QueryParser) -> Bool {
 }
 
 ///|
+// An omitted AS still introduces an explicit output alias. Reserve the pinned
+// GoogleSQL keyword set here so a clause or unsupported reserved form cannot
+// disappear into a column name. Backticks retain the ordinary quoted-name role.
+fn QueryParser::optional_output_alias(
+  self : QueryParser,
+) -> NamePart? raise QueryAbort {
+  if self.has("AS") {
+    self.keyword("AS")
+    return Some(self.name())
+  }
+  match self.peek().value {
+    QuotedName(_) => Some(self.name())
+    Word(value) if ![
+        "ALL", "AND", "ANY", "ARRAY", "AS", "ASC", "ASSERT_ROWS_MODIFIED", "AT",
+        "BETWEEN", "BY", "CASE", "CAST", "COLLATE", "CONTAINS", "CREATE", "CROSS",
+        "CUBE", "CURRENT", "DEFAULT", "DEFINE", "DESC", "DISTINCT", "ELSE", "END",
+        "ENUM", "ESCAPE", "EXCEPT", "EXCLUDE", "EXISTS", "EXTRACT", "FALSE", "FETCH",
+        "FOLLOWING", "FOR", "FROM", "FULL", "GRAPH_TABLE", "GROUP", "GROUPING", "GROUPS",
+        "HASH", "HAVING", "IF", "IGNORE", "IN", "INNER", "INTERSECT", "INTERVAL",
+        "INTO", "IS", "JOIN", "LATERAL", "LEFT", "LIKE", "LIMIT", "LOOKUP", "MERGE",
+        "NATURAL", "NEW", "NO", "NOT", "NULL", "NULLS", "OF", "ON", "OR", "ORDER",
+        "OUTER", "OVER", "PARTITION", "PRECEDING", "PROTO", "QUALIFY", "RANGE", "RECURSIVE",
+        "RESPECT", "RIGHT", "ROLLUP", "ROWS", "SELECT", "SET", "SOME", "STRUCT",
+        "TABLESAMPLE", "THEN", "TO", "TREAT", "TRUE", "UNBOUNDED", "UNION", "UNNEST",
+        "USING", "WHEN", "WHERE", "WINDOW", "WITH", "WITHIN",
+      ].contains(upper_ascii(value)) => Some(self.name())
+    _ => None
+  }
+}
+
+///|
 fn QueryParser::projections(
   self : QueryParser,
-) -> Array[Projection] raise QueryAbort {
+  aggregate_expressions? : Bool = false,
+) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
+  let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
+      let except_columns : Array[NamePart] = []
+      if self.has("EXCEPT") {
+        self.keyword("EXCEPT")
+        let open = self.advance()
+        if open.value != Symbol(40) {
+          raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
+        }
+        while true {
+          self.node()
+          except_columns.push(self.name())
+          if self.peek().value != Symbol(44) {
+            break
+          }
+          ignore(self.advance())
+        }
+        let close = self.advance()
+        if close.value != Symbol(41) {
+          raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
+        }
+      }
       {
         expression: None,
         aggregate: None,
         analytic: None,
         name: None,
         star: Some("*"),
+        except_columns,
       }
     } else {
-      let aggregate = if self.aggregate_head() {
-        Some(self.aggregate())
+      let (expression, aggregate) = if aggregate_expressions {
+        let serial = self.synthetic_sources
+        let (expression, calls) = self.aggregate_expression(
+          "aql_select_aggregate_",
+        )
+        let mut root = expression.root
+        while expression.nodes[root].kind is Parenthesized(child) {
+          root = child
+        }
+        if calls.length() == 1 &&
+          expression.nodes[root].kind is Reference(path) &&
+          path == [calls[0].0] {
+          // A whole aggregate keeps its existing projection and producer IDs.
+          // Only calls embedded in a scalar tree need private output slots.
+          self.synthetic_sources = serial
+          (None, Some(calls[0].1))
+        } else {
+          if !calls.is_empty() && self.has("OVER") {
+            raise QueryAbort(
+              "OVER requires one analytic call",
+              self.peek().start,
+            )
+          }
+          embedded.append(calls)
+          (Some(expression), None)
+        }
+      } else if self.aggregate_head() {
+        (None, Some(self.aggregate()))
       } else {
-        None
-      }
-      let expression = if aggregate is Some(_) {
-        None
-      } else {
-        Some(self.expression())
+        (Some(self.expression()), None)
       }
       let analytic = if self.has("OVER") {
         Some({ expression, aggregate, window: self.over(), })
       } else {
         None
       }
-      let name = if self.has("AS") {
-        self.keyword("AS")
-        Some(self.name())
-      } else {
-        None
-      }
+      let name = self.optional_output_alias()
       if (aggregate is Some(_) || analytic is Some(_)) && name is None {
-        raise QueryAbort("Function output requires AS name", self.peek().start)
+        raise QueryAbort("Function output requires a name", self.peek().start)
       }
       {
         expression: if analytic is Some(_) {
@@ -849,6 +1012,7 @@ fn QueryParser::projections(
         analytic,
         name,
         star: None,
+        except_columns: [],
       }
     }
     values.push(projection)
@@ -857,7 +1021,7 @@ fn QueryParser::projections(
     }
     ignore(self.advance())
   }
-  values
+  (values, embedded)
 }
 
 ///|
@@ -908,23 +1072,9 @@ fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
     self.keyword("PARTITION")
     self.keyword("BY")
     while true {
-      let start = self.peek().start
-      self.node()
-      let path = self.path()
-      // Keep the existing path grammar, but retain its original expression
-      // owner and span so ordinary prefix/property lowering can consume it.
-      partition_by.push({
-        source: self.source,
-        nodes: [
-          {
-            kind: Reference(path),
-            start,
-            end: self.source.tokens[self.index - 1].end,
-          },
-        ],
-        root: 0,
-        work: 1,
-      })
+      // Keep the ordinary expression owner, work budget and source span.
+      // Input scope and partition-key typing are checked during lowering.
+      partition_by.push(self.expression())
       if self.peek().value != Symbol(44) {
         break
       }
@@ -956,6 +1106,7 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
     Word(name) =>
       [
         "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
+        "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
       ].contains(upper_ascii(name)) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))
@@ -1001,6 +1152,12 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     self.keyword("IGNORE")
     self.keyword("NULLS")
   }
+  let filter = if self.has("WHERE") {
+    self.keyword("WHERE")
+    Some(self.expression())
+  } else {
+    None
+  }
   let order_by = if function_name == "ARRAY_AGG" ||
     function_name == "STRING_AGG" {
     self.keyword("ORDER")
@@ -1018,7 +1175,7 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
   if distinct && ["COUNTIF", "MIN", "MAX"].contains(function_name) {
     raise QueryAbort("DISTINCT is not valid for this aggregate", token.start)
   }
-  { function_name, argument, distinct, order_by, delimiter, }
+  { function_name, argument, filter, distinct, order_by, delimiter, }
 }
 
 ///|
@@ -1047,11 +1204,23 @@ fn QueryParser::group_keys(
 }
 
 ///|
-fn QueryParser::order(self : QueryParser) -> Array[SortTerm] raise QueryAbort {
+fn QueryParser::order(
+  self : QueryParser,
+  calls? : Array[(NamePart, AggregateCall)]? = None,
+) -> Array[SortTerm] raise QueryAbort {
   let terms : Array[SortTerm] = []
   while true {
     self.node()
-    let expression = self.expression()
+    let expression = match calls {
+      Some(calls) => {
+        let (expression, embedded) = self.aggregate_expression(
+          "aql_order_aggregate_",
+        )
+        calls.append(embedded)
+        expression
+      }
+      None => self.expression()
+    }
     let direction = if self.has("DESC") {
       self.keyword("DESC")
       "desc"
@@ -1148,6 +1317,47 @@ fn QueryParser::end(self : QueryParser) -> Unit raise QueryAbort {
 }
 
 ///|
+// Explicit UNNEST consumes an array value, not an installed Relation alias.
+// Element and offset names remain authored columns in the resulting scope.
+fn QueryParser::unnest_source(
+  self : QueryParser,
+) -> QueryOperation raise QueryAbort {
+  self.keyword("UNNEST")
+  self.symbol(40)
+  let expression = self.expression()
+  self.symbol(41)
+  if self.has("AS") {
+    self.keyword("AS")
+  }
+  if self.has("WITH") || self.peek().value == Pipe || self.peek().value == End {
+    raise QueryAbort(
+      "UNNEST requires an explicit element alias in this profile",
+      self.peek().start,
+    )
+  }
+  let element = self.name()
+  let offset = if self.has("WITH") {
+    self.keyword("WITH")
+    self.keyword("OFFSET")
+    let name = if self.has("AS") {
+      self.keyword("AS")
+      self.name()
+    } else if self.peek().value is QuotedName(_) {
+      self.name()
+    } else if self.optional_source_alias() is Some(name) {
+      name
+    } else {
+      { value: "offset", quoted: false, }
+    }
+    Some(name)
+  } else {
+    None
+  }
+  self.node()
+  UnnestSource(expression, element, offset)
+}
+
+///|
 fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
@@ -1156,10 +1366,25 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else if self.has("ALL") {
     self.keyword("ALL")
   }
-  let projections = self.projections()
+  let (projections, embedded) = self.projections(aggregate_expressions=true)
+  let group_projections = projections +
+    embedded.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+      except_columns: [],
+    })
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
     self.keyword("FROM")
-    self.query_source()
+    if self.has("UNNEST") {
+      operations.push(self.unnest_source())
+      ([], None, [])
+    } else {
+      self.query_source()
+    }
   } else {
     ([], None, [])
   }
@@ -1171,25 +1396,30 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       ctes.push(cte)
     }
   }
-  let operations : Array[QueryOperation] = []
+
   if self.has("WHERE") {
     self.keyword("WHERE")
     self.node()
     operations.push(Where(self.expression()))
   }
   let grouped = self.has("GROUP") ||
-    projections.any(projection => projection.aggregate is Some(_))
+    projections.any(projection => projection.aggregate is Some(_)) ||
+    !embedded.is_empty()
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), projections, SqlSelect))
+    operations.push(Group(self.group_keys(), group_projections, SqlSelect))
   } else if grouped {
-    operations.push(Group([], projections, SqlSelect))
+    operations.push(Group([], group_projections, SqlSelect))
   }
   if self.has("HAVING") {
-    if !grouped {
-      raise QueryAbort("HAVING requires grouping", self.peek().start)
-    }
     self.keyword("HAVING")
-    operations.push(Having(self.expression()))
+    let (predicate, calls) = self.aggregate_expression("aql_having_aggregate_")
+    if !grouped {
+      if calls.is_empty() {
+        raise QueryAbort("HAVING requires grouping", self.peek().start)
+      }
+      operations.push(Group([], group_projections, SqlSelect))
+    }
+    operations.push(Having(predicate, calls))
   }
   if projections.any(projection => projection.analytic is Some(_)) {
     operations.push(Analytic(projections))
@@ -1277,7 +1507,7 @@ fn QueryParser::query(
 
 ///|
 fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
-  let term = self.sql_operand()
+  let mut term = self.sql_operand()
   let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
@@ -1329,14 +1559,57 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
   }
   let tail : Array[QueryOperation] = []
+  let order_calls : Array[(NamePart, AggregateCall)] = []
+  let order_start = self.peek().start
   if self.has("ORDER") {
     self.keyword("ORDER")
     self.keyword("BY")
-    tail.push(Order(self.order()))
+    tail.push(Order(self.order(calls=Some(order_calls))))
   }
   if self.has("LIMIT") {
     self.node()
     tail.push(self.limit())
+  }
+  if !order_calls.is_empty() {
+    // ORDER belongs to this SELECT, not to an inner producer or a set's
+    // already projected output. Keep calls in the existing Group plan.
+    if !sets.is_empty() ||
+      !term.operations.any(operation => operation is Select(_, _)) {
+      raise QueryAbort(
+        "Aggregate ORDER BY requires a SELECT query scope", order_start,
+      )
+    }
+    let hidden = order_calls.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+      except_columns: [],
+    })
+    let operations : Array[QueryOperation] = []
+    let mut grouped = false
+    let selected = term.operations.filter_map(operation => {
+        match operation {
+          Select(projections, _) => Some(projections)
+          _ => None
+        }
+      })[0]
+    for operation in term.operations {
+      match operation {
+        Group(keys, projections, SqlSelect) => {
+          operations.push(Group(keys, projections + hidden, SqlSelect))
+          grouped = true
+        }
+        Analytic(_) | Select(_, _) if !grouped => {
+          operations.push(Group([], selected + hidden, SqlSelect))
+          operations.push(operation)
+          grouped = true
+        }
+        _ => operations.push(operation)
+      }
+    }
+    term = { ..term, operations, }
   }
   if sets.is_empty() {
     { ..term, operations: term.operations + tail, work: self.work, }
@@ -1352,6 +1625,7 @@ fn QueryParser::pipe(
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
     if cte_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
@@ -1361,6 +1635,9 @@ fn QueryParser::pipe(
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
     (relation, None, [])
+  } else if self.has("UNNEST") {
+    operations.push(self.unnest_source())
+    ([], None, [])
   } else {
     self.query_source()
   }
@@ -1372,7 +1649,7 @@ fn QueryParser::pipe(
       source_alias,
       graph,
       joins: [],
-      operations: [],
+      operations,
       sets: [],
       final_operations: [],
       effect: None,
@@ -1452,7 +1729,7 @@ fn QueryParser::pipe_tail(
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()
           // Syntax preserves a label. Its owner is resolved by lowering:
-          // property graphs carry label membership themselves; the legacy
+          // graphs carry label membership themselves; the legacy
           // property-mapping profile requires its explicit annotation.
           graph = Some({ ..current, pattern: Some(pattern), })
         }
@@ -1562,7 +1839,7 @@ fn QueryParser::pipe_tail(
       operations.push(Where(self.expression()))
     } else if self.has("EXTEND") {
       self.keyword("EXTEND")
-      let values = self.projections()
+      let (values, _) = self.projections()
       if values.any(p => p.name is None || p.expression is None) {
         raise QueryAbort(
           "EXTEND requires named scalar expressions",
@@ -1617,7 +1894,7 @@ fn QueryParser::pipe_tail(
       operations.push(Alias(self.name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
-      let aggregates = self.projections()
+      let (aggregates, _) = self.projections()
       if aggregates.any(projection => projection.aggregate is None) {
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }
@@ -1631,7 +1908,7 @@ fn QueryParser::pipe_tail(
       } else if self.has("ALL") {
         self.keyword("ALL")
       }
-      let projections = self.projections()
+      let (projections, _) = self.projections()
       if projections.any(projection => projection.analytic is Some(_)) {
         operations.push(Analytic(projections))
       }

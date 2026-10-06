@@ -1,9 +1,9 @@
 ///|
-test "unified source lowers Property Graph to the ordinary keyed Program" {
+test "unified source lowers Graph to the ordinary keyed Program" {
   let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   let result = lower(source, Text, Some(context)).unwrap()
-  assert_true(result.document.contains("\"property_graph\""))
+  assert_true(result.document.contains("\"graph\""))
   assert_true(result.document.contains("\"match_nodes\""))
   assert_true(!result.document.contains("\"graph\":{\"nodes\""))
   assert_true(lower(source, Sql, Some(context)) is Err(WrongQueryForm))
@@ -16,7 +16,7 @@ test "unified dependency checkpoint keeps logical Relation DATA and explicit Res
   let result = lower(source, Text, Some(context)).unwrap()
   assert_true(result.document.contains("\"original\""))
   assert_true(result.document.contains("\"active\""))
-  assert_true(!result.document.contains("\"property_graph\""))
+  assert_true(!result.document.contains("\"graph\""))
   assert_true(!result.document.contains("\"connector\""))
 }
 
@@ -55,7 +55,7 @@ test "unified Graph equality DATA lowers to its independent complete Program" {
   // naming rules, not from serialized lowerer output or legacy SGA dispatch.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"frontend.route","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_0"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"id","to":"id"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","graphs_equal":{"with":"aql_data_2"},"as":"aql_sga_4"},{"from":"aql_sga_4","select":["equal"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["equal"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"frontend.route","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1}}},{"select":[{"id":"aql_query_expr_0"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"id","to":"id"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","graphs_equal":{"with":"aql_data_2"},"as":"aql_sga_4"},{"from":"aql_sga_4","select":["equal"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["equal"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     {
       source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },

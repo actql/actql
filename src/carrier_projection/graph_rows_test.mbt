@@ -4,7 +4,7 @@ fn graph_row_definition(
   key_column : String,
   property_name : String,
   label? : String = "Person",
-) -> @carrier.PropertyNodeDefinition {
+) -> @carrier.GraphNodeDefinition {
   let number = @contract.primitive(NumberType, nullable=false)
   let props = @carrier.rows(
     [
@@ -17,7 +17,7 @@ fn graph_row_definition(
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  @carrier.property_node_definition(
+  @carrier.graph_node_definition(
     name,
     [number],
     props,
@@ -35,7 +35,7 @@ fn graph_label_definition(
   nullable : Bool,
   extra : Bool,
   string_key? : Bool = false,
-) -> @carrier.PropertyNodeDefinition {
+) -> @carrier.GraphNodeDefinition {
   let number = @contract.primitive(NumberType, nullable=false)
   let p = @contract.primitive(NumberType, nullable~)
   let person = @carrier.rows(
@@ -60,7 +60,7 @@ fn graph_label_definition(
   } else {
     person
   }
-  @carrier.property_node_definition(
+  @carrier.graph_node_definition(
     name,
     [
       if string_key {
@@ -88,7 +88,7 @@ fn graph_label_definition(
 
 ///|
 test "label candidates reject incompatible raw key types and role collisions" {
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
       graph_label_definition("A", "raw_key", false, false),
@@ -104,7 +104,7 @@ test "label candidates reject incompatible raw key types and role collisions" {
   )
   for
     (key, property) in [("id", "p"), ("raw_key", "ID"), ("raw_key", "RAW_KEY")] {
-    let graph = @carrier.property_graph(
+    let graph = @carrier.graph(
       "sha256:" + "0".repeat(64),
       [graph_row_definition("A", key, property)],
       [],
@@ -120,7 +120,7 @@ test "label candidates reject incompatible raw key types and role collisions" {
 
 ///|
 test "label row schema includes every declared candidate and keeps conditional columns" {
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
       graph_label_definition("A", "a_key", false, false),
@@ -185,7 +185,7 @@ test "label row schema includes every declared candidate and keeps conditional c
     })
     is Err({ kind: BudgetExceeded, .. }),
   )
-  let reordered = @carrier.property_graph(
+  let reordered = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
       graph_row_definition("C", "c_key", "q", label="Company"),
@@ -222,7 +222,7 @@ test "label row schema includes every declared candidate and keeps conditional c
 test "graph rows finite schema separates roles raw keys presence and nullable" {
   let first = graph_row_definition("N", "person_key", "p")
   let second = graph_row_definition("M", "company_key", "p")
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [first, second],
     [],
@@ -250,7 +250,7 @@ test "graph rows finite schema separates roles raw keys presence and nullable" {
   )
   assert_eq(@row.lookup_reference(schema, "p").unwrap().presence, @row.Required)
   assert_true(@row.lookup(schema, @row.Unqualified("p")).unwrap().nullable)
-  let reordered = @carrier.property_graph(
+  let reordered = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [second, first],
     [],
@@ -272,7 +272,7 @@ test "graph row role property key collisions reject instead of overwrite" {
       ("person_key", "ID"),
       ("person_key", "PERSON_KEY"),
     ] {
-    let graph = @carrier.property_graph(
+    let graph = @carrier.graph(
       "sha256:" + "0".repeat(64),
       [graph_row_definition("N", key, property)],
       [],
@@ -284,7 +284,7 @@ test "graph row role property key collisions reject instead of overwrite" {
       is Err({ kind: OutputCollision(_), .. }),
     )
   }
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
       graph_row_definition("N", "person_key", "p"),
@@ -302,7 +302,7 @@ test "graph row role property key collisions reject instead of overwrite" {
 
 ///|
 test "definition row selection derives presence from declarations not data" {
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
       graph_row_definition("Person", "person_key", "p"),

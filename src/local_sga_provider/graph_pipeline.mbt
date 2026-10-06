@@ -22,7 +22,7 @@ priv enum RelationExecution {
   GraphRowsExecution(@bridge.EventsToRowsExecution)
   GraphBoundsExecution(@sga.GraphBoundsExecution)
   GraphDegreeExecution(@sga.GraphDegreeExecution)
-  PropertyEqualityExecution(@sga.PropertyEqualityExecution)
+  GraphEqualityExecution(@sga.GraphEqualityExecution)
   DeltaDiffExecution(@sga.DeltaDiffExecution)
   ComponentsExecution(@sga.ComponentsExecution)
 }
@@ -176,7 +176,7 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
       @execution.generated_prepared_sequence(sequence),
       selected.unwrap_or(0),
     ) {
-    Some(@lower.PropertyGraphConstructionStep(_))
+    Some(@lower.GraphConstructionStep(_))
     | Some(@lower.GraphNormalizeStep(_))
     | Some(@lower.GraphUnionStep(_))
     | Some(@lower.GraphSubtractionStep(_)) => true
@@ -258,8 +258,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
       }
     }
     match operation {
-      @lower.PropertyGraphConstructionStep(_) =>
-        @lower.operation(node) == "BRIDGE.rows.to_property_graph" &&
+      @lower.GraphConstructionStep(_) =>
+        @lower.operation(node) == "BRIDGE.rows.to_graph" &&
         current_graph(@lower.node_output_carrier(node))
       @lower.GraphMatchStep(matched) => {
         guard @lower.node_input_target(node, 0) is Some(input) &&
@@ -418,7 +418,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     // Programs use the existing selected-step task composition instead.
     match
       @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 0) {
-      Some(@lower.PropertyGraphConstructionStep(_)) => ()
+      Some(@lower.GraphConstructionStep(_)) => ()
       _ => return false
     }
     match
@@ -550,7 +550,7 @@ fn complete_graph_poll(
   let material = match value.snapshot_policy {
     None => @graph.completed_material(output).map_err(_ => issue())
     Some(policy) =>
-      @bridge.completed_property_snapshot_material(
+      @bridge.completed_graph_snapshot_material(
         value.control,
         @execution.generated_sequence_owner(value.generated),
         @pipeline.Step(step),
@@ -740,9 +740,9 @@ fn advance_execution(
         // The keyed contract uses the existing bounded construction session;
         // completion and cleanup stay with the same provider and lifecycle.
         let started = match @lower.sequence_step(value.sequence, step) {
-          Some(@lower.PropertyGraphConstructionStep(graph)) => {
-            let count = @lower.property_graph_construction_node_count(graph) +
-              @lower.property_graph_construction_edge_count(graph)
+          Some(@lower.GraphConstructionStep(graph)) => {
+            let count = @lower.graph_construction_node_count(graph) +
+              @lower.graph_construction_edge_count(graph)
             let inputs = []
             for edge in 0..<count {
               guard input_at(value, step, edge) is Some(input) else {
@@ -750,7 +750,7 @@ fn advance_execution(
               }
               inputs.push(input)
             }
-            @bridge.start_rows_to_property_graph(
+            @bridge.start_rows_to_graph(
               value.control,
               value.sequence,
               step,
@@ -795,7 +795,7 @@ fn advance_execution(
               let prepared_material = match value.snapshot_policy {
                 None => @graph.completed_material(output).map_err(_ => issue())
                 Some(policy) =>
-                  @bridge.completed_property_snapshot_material(
+                  @bridge.completed_graph_snapshot_material(
                     value.control,
                     @execution.generated_sequence_owner(value.generated),
                     @pipeline.Step(value.selected_step.unwrap_or(0)),
@@ -1320,7 +1320,7 @@ fn advance_execution(
               return fail_execution(value)
             }
             match
-              @sga.start_property_equality_views(
+              @sga.start_graph_equality_views(
                 value.control,
                 @execution.generated_completion_preparation(value.generated),
                 value.sequence,
@@ -1339,7 +1339,7 @@ fn advance_execution(
                 value.limits.max_value_bytes,
                 value.limits.max_work,
               ) {
-              Ok(execution) => PropertyEqualityExecution(execution)
+              Ok(execution) => GraphEqualityExecution(execution)
               Err(_) => return fail_execution(value)
             }
           }
@@ -1426,15 +1426,15 @@ fn advance_execution(
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
-          PropertyEqualityExecution(execution) =>
-            match @sga.advance_property_equality(execution, quantum) {
-              Ok(@sga.PropertyEqualityContinue(progress~, work~)) =>
+          GraphEqualityExecution(execution) =>
+            match @sga.advance_graph_equality(execution, quantum) {
+              Ok(@sga.GraphEqualityContinue(progress~, work~)) =>
                 Ok(RelationContinue(progress, work))
-              Ok(@sga.PropertyEqualityComplete(output, progress~, work~)) =>
+              Ok(@sga.GraphEqualityComplete(output, progress~, work~)) =>
                 Ok(RelationComplete(output, progress, work))
-              Ok(@sga.PropertyEqualityFailed(_, progress~, work~)) =>
+              Ok(@sga.GraphEqualityFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
-              Ok(@sga.PropertyEqualityStopped(_, progress~, work~)) =>
+              Ok(@sga.GraphEqualityStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -1561,8 +1561,8 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
-      PropertyEqualityExecution(execution) =>
-        match @sga.cleanup_property_equality(execution) {
+      GraphEqualityExecution(execution) =>
+        match @sga.cleanup_graph_equality(execution) {
           Ok(_) => ()
           Err(_) => failed = true
         }
@@ -1616,8 +1616,8 @@ fn cleanup_execution(
       @sga.graph_bounds_cleanup_pending(active)
     Some(GraphDegreeExecution(active)) =>
       @sga.graph_degree_cleanup_pending(active)
-    Some(PropertyEqualityExecution(active)) =>
-      @sga.property_equality_cleanup_pending(active)
+    Some(GraphEqualityExecution(active)) =>
+      @sga.graph_equality_cleanup_pending(active)
     Some(DeltaDiffExecution(active)) => @sga.delta_diff_cleanup_pending(active)
     Some(ComponentsExecution(active)) => @sga.components_cleanup_pending(active)
     None => false
@@ -1864,10 +1864,10 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.PropertyGraphConstructionStep(graph)) =>
+        Some(@lower.GraphConstructionStep(graph)) =>
           Some(
-            @lower.property_graph_construction_node_count(graph) +
-            @lower.property_graph_construction_edge_count(graph),
+            @lower.graph_construction_node_count(graph) +
+            @lower.graph_construction_edge_count(graph),
           )
         _ => None
       }

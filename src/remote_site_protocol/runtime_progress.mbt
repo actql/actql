@@ -60,6 +60,7 @@ struct RemoteRuntimeCustody {
   mut stop_required : Bool
   mut stop_confirmed : Bool
   mut cancelled : Bool
+  mut completed_restoration : (String, Int, String, String, String)?
 }
 
 ///|
@@ -76,7 +77,144 @@ pub fn create_remote_runtime_custody() -> RemoteRuntimeCustody {
     stop_required: false,
     stop_confirmed: true,
     cancelled: false,
+    completed_restoration: None,
   }
+}
+
+///|
+/// Restore only the settled-operation fact of an exact completed occurrence.
+/// The caller must separately verify current Site/authority and exclusive
+/// physical custody. No output, holding, bundle, reservation or start permit
+/// is created here; actual resource handles must be reacquired by their owners.
+pub fn restore_remote_runtime_completed_custody(
+  record : DispatchRecord,
+  evidence : RemoteExecutionEvidence,
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Result[RemoteRuntimeCustody, DispatchIssue] {
+  if record.execution != NativeSettled ||
+    record.cleanup != CleanupActive ||
+    !record.material_available ||
+    record.quarantined_capacity {
+    return Err(InvalidTransition)
+  }
+  if !remote_managed_output_subject_matches_evidence(
+      subject,
+      evidence,
+      record.request,
+    ) ||
+    !remote_managed_output_subject_matches_measurement(subject, measurement) {
+    return Err(DispatchIdentityMismatch)
+  }
+  guard record.evidence is EvidenceDurable(material, holding, saved_evidence) else {
+    return Err(InvalidTransition)
+  }
+  if material != subject.material_generation ||
+    holding != subject.holding_evidence_cid ||
+    saved_evidence != evidence.evidence_cid {
+    return Err(DispatchIdentityMismatch)
+  }
+  let custody = create_remote_runtime_custody()
+  // NativeSettled plus the exact durable completion proves the original
+  // operation settled. This does not acquire a new physical operation.
+  custody.operation_acquired = true
+  custody.operation_settled = true
+  custody.completed_restoration = Some(
+    (
+      record.request.dispatch_request_cid,
+      record.revision,
+      subject.subject_cid,
+      evidence.evidence_cid,
+      measurement.measurement_cid,
+    ),
+  )
+  Ok(custody)
+}
+
+///|
+/// Confirm resource ownership was reconstructed, not that execution happened
+/// again or cleanup finished. Every actual handle must already be attached by
+/// its existing owner, and the original durable revision must remain current.
+pub fn confirm_remote_runtime_completed_restoration(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+) -> Bool {
+  guard custody.completed_restoration
+    is Some((request_cid, revision, _, evidence_cid, _)) else {
+    return false
+  }
+  if request_cid != record.request.dispatch_request_cid ||
+    revision != record.revision ||
+    record.execution != NativeSettled ||
+    record.cleanup != CleanupActive ||
+    !record.material_available ||
+    record.quarantined_capacity ||
+    !(record.evidence is EvidenceDurable(_, _, saved) && saved == evidence_cid) ||
+    !custody.operation_settled ||
+    !custody.bundle_acquired ||
+    custody.bundle_released ||
+    !custody.output_acquired ||
+    custody.output_released ||
+    !custody.holding_acquired ||
+    custody.holding_released {
+    return false
+  }
+  custody.completed_restoration = None
+  true
+}
+
+///|
+/// A concurrent cleanup transition cannot authorize readable restoration.
+/// Attach the exact original resource handles for cleanup only, preserving
+/// completion identity. This changes no dispatch state and confirms no release.
+pub fn confirm_remote_runtime_completed_cleanup_restoration(
+  record : DispatchRecord,
+  custody : RemoteRuntimeCustody,
+  evidence : RemoteExecutionEvidence,
+  subject : RemoteManagedOutputSubject,
+  measurement : RemoteManagedOutputMeasurement,
+) -> Bool {
+  guard custody.completed_restoration
+    is Some((request_cid, revision, subject_cid, evidence_cid, measurement_cid)) else {
+    return false
+  }
+  if request_cid != record.request.dispatch_request_cid ||
+    record.revision < revision ||
+    record.execution != NativeSettled ||
+    record.quarantined_capacity ||
+    (
+      record.cleanup != CleanupActive &&
+      record.cleanup != CleanupReleasing &&
+      record.cleanup != CleanupUnknown
+    ) ||
+    subject.subject_cid != subject_cid ||
+    evidence.evidence_cid != evidence_cid ||
+    measurement.measurement_cid != measurement_cid ||
+    !remote_managed_output_subject_matches_evidence(
+      subject,
+      evidence,
+      record.request,
+    ) ||
+    !remote_managed_output_subject_matches_measurement(subject, measurement) ||
+    !custody.operation_settled ||
+    !custody.bundle_acquired ||
+    custody.bundle_released ||
+    !custody.output_acquired ||
+    custody.output_released ||
+    !custody.holding_acquired ||
+    custody.holding_released {
+    return false
+  }
+  guard record.evidence is EvidenceDurable(material, holding, saved_evidence) else {
+    return false
+  }
+  if material != subject.material_generation ||
+    holding != subject.holding_evidence_cid ||
+    saved_evidence != evidence_cid {
+    return false
+  }
+  custody.completed_restoration = None
+  true
 }
 
 ///|
@@ -273,6 +411,7 @@ pub fn remote_runtime_custody_stop_pending(
 pub fn remote_runtime_custody_resources_reclaimed(
   custody : RemoteRuntimeCustody,
 ) -> Bool {
+  custody.completed_restoration is None &&
   (!custody.output_acquired || custody.output_released) &&
   (!custody.holding_acquired || custody.holding_released) &&
   (!custody.bundle_acquired || custody.bundle_released)
@@ -286,6 +425,9 @@ pub fn prepare_remote_runtime_success(
   record : DispatchRecord,
   custody : RemoteRuntimeCustody,
 ) -> Result[RemoteRuntimeSuccessAction, DispatchIssue] {
+  if custody.completed_restoration is Some(_) {
+    return Err(MaterialUnavailable)
+  }
   if record.cleanup != CleanupActive ||
     record.quarantined_capacity ||
     custody.stop_required ||
@@ -607,6 +749,11 @@ pub fn prepare_owned_remote_runtime_cleanup(
   record : DispatchRecord,
   custody : RemoteRuntimeCustody,
 ) -> Result[RemoteRuntimeStep, DispatchIssue] {
+  // Historical holding/output obligations are still real while their handles
+  // are being reconstructed. Absence of an attached handle is not cleanup.
+  if custody.completed_restoration is Some(_) {
+    return Err(MaterialUnavailable)
+  }
   prepare_remote_runtime_cleanup(
     record,
     custody.cancelled,

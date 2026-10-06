@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
-import {graphSchemas, legacyGraphSchemas, checkGraphSchemas} from './graph-schema.mjs';
+import {graphSchemas, baseGraphOperationSchemas, checkGraphSchemas} from './graph-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
-  const s = legacyGraphSchemas();
+  const s = baseGraphOperationSchemas();
   assert.equal(s.mean_graphs.additionalProperties, false);
   assert.deepEqual(s.mean_graphs.required, ['with','weights','support','properties']);
   assert.equal(s.mean_graphs.properties.with.uniqueItems, undefined);
@@ -79,7 +79,7 @@ test('graph bodies preserve literal options and optional positive component guar
 });
 
 test('keyed schemas are explicit closed alternatives and preserve complete legacy branches', () => {
-  const legacy = legacyGraphSchemas(), current = graphSchemas();
+  const legacy = baseGraphOperationSchemas(), current = graphSchemas();
   for (const name of Object.keys(legacy)) {
     if (['node_rows','edge_rows'].includes(name)) {
       assert.equal(current[name].oneOf.length, 3);
@@ -98,10 +98,10 @@ test('keyed schemas are explicit closed alternatives and preserve complete legac
       assert.equal(legacy[name].properties.path_mode, undefined);
     } else assert.deepEqual(current[name], legacy[name]);
   }
-  const c = current.property_graph;
+  const c = current.graph;
   assert.equal(c.additionalProperties, false);
   assert.deepEqual(c.required, ['version','nodes','edges']);
-  assert.equal(c.properties.version.const, 'actql-property-graph-constructor/0.1');
+  assert.equal(c.properties.version.const, 'actql-graph-constructor/0.1');
   assert.equal(c.properties.domain, undefined);
   for (const kind of ['nodes','edges']) {
     const element = c.properties[kind].items;

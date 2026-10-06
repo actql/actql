@@ -99,7 +99,7 @@ fn check_supported_source(
               | "session"
               | "sequence"
               | "events"
-              | "property_graph"
+              | "graph"
               | "node_rows"
               | "edge_rows"
               | "match_nodes"
@@ -157,7 +157,7 @@ fn check(
   text_rank? : @environment.SelectedTextRankProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
@@ -188,7 +188,7 @@ fn check(
     references_out=Some(references),
     capacity_inputs~,
     effect_headers~,
-    property_graph~,
+    graph~,
     model_tasks~,
   )
   let conversion = Some(conversions[0])

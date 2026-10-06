@@ -38,7 +38,7 @@ fn lower_script_join_relation(
   if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
   }
-  if @query.join_part_count(query) > 1 {
+  if @query.join_part_count(query) > 1 || join_requires_group_scope(query) {
     let scoped = { ..context, inputs: known, }
     let selected = selected_input(query, scoped, limits)
     let left = bind_script_input(

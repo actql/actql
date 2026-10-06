@@ -55,7 +55,7 @@ pub fn union_workspace_slots(
   if input_count < 2 {
     return None
   }
-  guard @storage.property_snapshot_append_workspace_slots(graph, limits)
+  guard @storage.graph_snapshot_append_workspace_slots(graph, limits)
     is Some(append) else {
     return None
   }

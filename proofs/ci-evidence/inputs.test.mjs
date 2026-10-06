@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readCatalog, compareCatalogs} from './actions.mjs';
-import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {actionInputs, compareInputs, packageImports, sharedFiles, mutationSnapshotExtras, mutationPackages, mutationSourceInputs} from './inputs.mjs';
+import {mutationContracts} from './mutation-inventory.mjs';
 import {reviewedPackageConfiguration, reviewedPackageConfigurations, packageConfigurationReview} from './package-configurations.mjs';
 
 const catalog = readCatalog();
@@ -135,7 +136,7 @@ test('literal formatter exclusions remain bound; dynamic configuration stays ope
   assert.equal(compareInputs(inventory(), inventory(changed)).eligible, false);
 });
 
-test('mutation restoration inputs include unrelated src members and the actual resource audit JSON files', () => {
+test('mutation input identity follows the physically staged package cohort and retains audit inputs', () => {
   const selected = catalog.actions.find(value => value.id === 'mutations-js'), files = new Map(base);
   for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path, 'independent audit');
   files.set('proofs/bounded-session/mutations.mjs', 'original mutation executor');
@@ -143,8 +144,10 @@ test('mutation restoration inputs include unrelated src members and the actual r
   files.set('src/connectors/local/moon.pkg', ''); files.set('src/query_integration/moon.pkg', '');
   const original = inventory(files, 'a'.repeat(40), selected);
   assert.equal(original.unresolved.length, 0);
+  const unrelated = new Map(files); unrelated.set('src/unrelated/new.mbt', 'absent from isolated image');
+  assert.equal(compareInputs(original, inventory(unrelated, 'b'.repeat(40), selected)).eligible, true);
   for (const change of [
-    map => map.set('src/unrelated/new.mbt', 'read by snapshot even without a compilation import'),
+    map => map.set('src/connectors/local/new.mbt', 'physically staged package member'),
     map => map.set(mutationSnapshotExtras[2], 'changed audit'),
     map => map.delete(mutationSnapshotExtras[3]),
     map => map.delete('proofs/bounded-session/mutations.mjs'),
@@ -152,4 +155,37 @@ test('mutation restoration inputs include unrelated src members and the actual r
     const changed = new Map(files); change(changed);
     assert.equal(compareInputs(original, inventory(changed, 'b'.repeat(40), selected)).eligible, false);
   }
+});
+
+test('mutation roots match the actual thirteen registered test suites', () => {
+  const actual = [...new Set(Object.values(mutationContracts).map(entry => entry.suite.endsWith('.mbt') ?
+    entry.suite.slice(0, entry.suite.lastIndexOf('/')) : entry.suite))].sort();
+  assert.deepEqual(actual, mutationPackages.slice().sort());
+});
+
+test('a changed transitive test import expands the physical cohort and invalidates the mutation key', () => {
+  const selected = catalog.actions.find(value => value.id === 'mutations-js'), files = new Map(base);
+  for (const path of mutationSnapshotExtras) if (!files.has(path)) files.set(path, 'audit');
+  files.set('proofs/bounded-session/mutations.mjs', 'executor');
+  files.set('src/connectors/local/moon.pkg', ''); files.set('src/query_integration/moon.pkg', '');
+  files.set('src/new_dependency/moon.pkg', ''); files.set('src/new_dependency/value.mbt', 'value');
+  const before = inventory(files, 'a'.repeat(40), selected);
+  assert(!mutationSourceInputs(tree(files)).paths.includes('src/new_dependency/value.mbt'));
+  files.set('src/query_integration/moon.pkg', 'import { "actql/actql/new_dependency" } for "wbtest"');
+  assert(mutationSourceInputs(tree(files)).paths.includes('src/new_dependency/value.mbt'));
+  assert.equal(compareInputs(before, inventory(files, 'b'.repeat(40), selected)).eligible, false);
+  const imported = inventory(files, 'b'.repeat(40), selected);
+  files.set('src/new_dependency/value.mbt', 'changed');
+  assert.equal(compareInputs(imported, inventory(files, 'c'.repeat(40), selected)).eligible, false);
+});
+
+test('unknown mutation dependency configuration preserves broad sources and explicit refusal reasons', () => {
+  const files = new Map(base);
+  files.set('src/connectors/local/moon.pkg', '');
+  files.set('src/query_integration/moon.pkg', 'options(pre_build: dynamic_command())');
+  files.set('src/unrelated/value.mbt', 'conservative source');
+  const selected = mutationSourceInputs(tree(files));
+  assert(selected.paths.includes('src/unrelated/value.mbt'));
+  assert(selected.unresolved.length > 0);
+  assert(selected.directories.some(entry => entry.path === 'src/**'));
 });

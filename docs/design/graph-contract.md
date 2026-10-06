@@ -1,80 +1,34 @@
 # Graph structural contract identity
 
-The current implementation target is the definition-keyed Property Graph
+The current implementation target is the definition-keyed Graph
 profile described below. Its model and law body are owned in ActQL, with no
 dependency on `smoothhq/aoa` or its PR #2. Historical law and snapshot records
 remain immutable evidence, not a compatibility or fallback requirement.
 
-## Historical endpoint-tuple profile
+## Contract admission and bounds
 
-This section records the retired profile and its evidence. Current public
-Program and SourceView admission do not select this profile.
+The Graph contract codec admits only complete, definition-scoped metadata.
+Unknown carriers, open or untyped property schemas and inconsistent labels,
+keys or endpoints are rejected by the existing Carrier and value owners.
+Contract admission does not certify row admission, execution authority,
+retention or cleanup completion.
 
-`graph_contract` builds the closed preimage specified by
-[Carriers](../spec/language.md#carriers) from a complete `carrier_contract.Graph`.
-It rejects unknown carriers, open property sets and untyped properties. The
-opaque result retains the immutable Graph contract and its computed CID; it is
-not a snapshot, a validated Delta, or proof of any data's admission.
+CID emission uses the bounded canonical hashing writer without constructing
+a second contract tree, serialized String or full UTF-8 byte array. Indexed
+definition and property access avoids collection copies. Nodes, depth and
+encoded bytes are bounded and returned to the enclosing owner for accounting.
+These bounds are not a total-heap theorem. Text emission uses the same codec
+with its own bounded sink. Delta admission separately validates contract,
+base and target identities and complete records.
 
-Property contracts include their complete checked nullability and extents.
-Property names and closed label domains use canonical UTF-16 order. Unknown
-labels (`null`) and a known empty domain (`[]`) remain different. Source aliases,
-enumeration order and observations are not members of this preimage.
+## Definition-keyed Graph profile
 
-### Historical law binding decision
-
-The existing language contract required exact identity and value law CIDs, but
-the pinned AoA contract only supplied the SGA structural-field law body. The
-new `aoa-sga-identity-laws/0.1` body fixes both graph laws in one manifest and
-both CID members resolve that same body. This completes the normative binding;
-it does not add string-only identity restrictions from the reference adapter.
-The manifest states contract requirements, not execution-conformance evidence.
-Its addition changes the admitted AoA contract CID and dependent pins.
-
-The pinned AoA reference uses string IDs and optional/partial graph records.
-Those representations are not substituted for ActQL's complete typed contract
-or complete Delta records. The compatibility gap remains at lowering.
-
-### Historical allocation and bounds
-
-`read_cursor` consumes the same closed normative body and returns the existing
-opaque CheckedContract. It reuses checked value-contract admission and Carrier
-constructors rather than inferring types from graph values. Both law members
-must match the selected SGA law. A supplied label array is already strictly
-UTF-16 sorted and unique; the reader rejects noncanonical arrays rather than
-relying on the constructor to repair them. Null and empty label domains retain
-their distinct meanings. Property maps are complete and never contain unknown
-types or provenance-qualified source fields.
-
-Reader construction shares a cumulative node/text budget across the identity,
-properties and labels; child type traversal is nonrecursive. The existing
-canonical emitter then enforces the complete body's serialized byte, node and
-depth limits. Admission of a decoded cursor does not prove that the original
-wire bytes were canonical, authenticate a Contract Envelope, or admit graph
-contents. Those boundaries retain their own checks.
-
-CID emission uses the bounded canonical hashing writer, without building a
-second contract tree, serialized String or full UTF-8 byte array. Indexed
-property/label access avoids collection copies. Nodes, container depth and
-serialized UTF-8 bytes are bounded by the writer; these are not total heap
-limits. The text API uses the same emitter with an independently bounded sink.
-Successful hashing retains the emitted byte and value-node counts for consumers
-to debit shared budgets, without measuring or serializing the contract again.
-
-Tests fix an independently calculated canonical CID, label-domain distinctions,
-incomplete-evidence rejection and output budget boundaries. These check contract
-identity, not Graph execution. Delta checking must separately bind the expected
-contract, base and target identities and verify snapshot admission; a payload
-or matching self-CID cannot manufacture those proofs.
-
-## Definition-keyed Property Graph profile
-
-The separate `actql-property-graph-contract/0.1` profile retains its definition
+The separate `actql-graph-contract/0.1` profile retains its definition
 domain, ordered non-null key contracts and key-column/component correspondence,
 complete definition-local property
 contracts, static label sets and each label's exposed property subset. Edge
 definitions bind their source and target node definitions. The distinct
-Property Graph law manifest binds its identity and value laws. Neither a new
+Graph law manifest binds its identity and value laws. Neither a new
 profile tag nor a self-CID authorizes a received constructor domain: the
 checking context must establish definition provenance independently.
 
@@ -86,19 +40,19 @@ rejects it rather than falling back to endpoint-tuple identity.
 
 The current schema reader shares the existing checked value and Carrier
 validators. Structural JSON nodes/text/depth and type/label comparison work
-have separate bounds. `read_property_graph_cursor_usage` returns consumed
+have separate bounds. `read_graph_cursor_usage` returns consumed
 comparison work to the enclosing admission owner, which debits it once across
 all schemas, including unused definitions. No second schema or Graph validator
 is introduced. Successful schema admission is not row or snapshot admission.
 
 ### Construction quantities and checker selection
 
-The installed checker declares the Property Graph profile separately from legacy
+The installed checker declares the Graph profile separately from legacy
 SGA support. Old SGA declarations alone do not admit the new constructor. This
 declaration is not execution authority or an assertion of backend availability.
 The existing operation and resource owners retain the exact checked definition.
 
-`actql-bound-property-graph-laws/0.1` sums the row premises of each node or edge
+`actql-bound-graph-construction-laws/0.1` sums the row premises of each node or edge
 definition through the existing capacity-application owner. Repeated producer
 uses remain separate data-edge occurrences. An empty family has bound zero;
 unknown premises are not zero. Premises retain their quantity, target and
@@ -111,7 +65,7 @@ never invent nodes from endpoint values.
 ### Snapshot preimage and custody
 
 The new canonical preimage is
-`["actql-property-graph-snapshot/0.1", graph_contract_cid, graph_contract, nodes, edges]`.
+`["actql-graph-snapshot/0.1", graph_contract_cid, graph_contract, nodes, edges]`.
 The embedded complete contract must hash to `graph_contract_cid` and match the
 consumer's independently expected contract. It preserves labels and typing for
 empty graphs without inferring a schema from data. A received contract is not

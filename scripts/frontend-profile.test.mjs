@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import { checkVocabulary } from './generate-aql-text-vocabulary.mjs';
-import {legacyGraphSchemas} from './graph-schema.mjs';
+import {baseGraphOperationSchemas} from './graph-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url));
@@ -61,7 +62,7 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   assert.equal(new Set(operations).size, 72);
   // The adopted frontend matrix is a frozen baseline, not a claim that the
   // separately selected keyed machine constructor has a frontend spelling.
-  assert.deepEqual([...operations, 'property_graph'].sort(), [...manifest.operations].sort());
+  assert.deepEqual([...operations].sort(), [...manifest.operations].sort());
   // PR-0 is a frozen historical observation, not the live compilation manifest.
   const {grammar_manifest_cid: _oldCid,
     expression_contract_cid: oldExpression, ...oldBody} = baseline.grammar_manifest;
@@ -82,7 +83,14 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   const currentProgram = json('spec/contracts/actql-protocol-schemas.json')
     .artifact_schemas.executable_plan.properties.execution_material.properties.program;
   assert.equal(machineCid(currentProgram), sourceGrammar);
-  const priorProgram = structuredClone(currentProgram);
+  // Read the actual pre-migration source; a clone of today's renamed schema
+  // cannot stand in for the frozen constructor vocabulary.
+  const frozenProtocol = JSON.parse(execFileSync('git', ['show',
+    'f503f2afa804a05e58ea430af1782319c007bfc9:spec/contracts/actql-protocol-schemas.json'],
+  {encoding: 'utf8', maxBuffer: 16 * 1024 * 1024}));
+  const frozenProgram = frozenProtocol.artifact_schemas.executable_plan.properties
+    .execution_material.properties.program;
+  const priorProgram = structuredClone(frozenProgram);
   // Preserve the historical pre-typed-JSON schema, not a regenerated baseline.
   const removeTypedJson = node => {
     if (node === null || typeof node !== 'object') return;
@@ -96,7 +104,7 @@ test('machine Program vocabulary matches the current closed inventory', () => {
   removeTypedJson(priorExpressions);
   assert.equal(oldExpression, machineCid(priorExpressions));
   removeTypedJson(priorProgram);
-  Object.assign(priorProgram.properties.steps.items.properties, legacyGraphSchemas());
+  Object.assign(priorProgram.properties.steps.items.properties, baseGraphOperationSchemas());
   delete priorProgram.properties.steps.items.properties.property_graph;
   assert.equal(machineCid(priorProgram), oldBody.source_grammar_cid);
   assert.equal(oldBody.expression_text_rules_sha256,
@@ -106,7 +114,7 @@ test('machine Program vocabulary matches the current closed inventory', () => {
     .split('<a id="expression-text"></a>')[1].split('<a id="predicates"></a>')[0]
     .replace(/^/, '<a id="expression-text"></a>')));
   unchangedBody.source_grammar_cid = machineCid(priorProgram);
-  unchangedBody.operations = currentOperations.filter(name => name !== 'property_graph');
+  unchangedBody.operations = [...currentOperations];
   assert.deepEqual(oldBody, unchangedBody);
   assert.equal(grammar, hash(read('spec/grammar/actql-text-0.1.ebnf')));
   assert.equal(rules, hash(read('docs/spec/structural-text.md')));

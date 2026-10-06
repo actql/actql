@@ -42,7 +42,7 @@ test "conditional Relation task ports bind the shared presence schema identity" 
 ///|
 fn keyed_task_contract_body() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"}
   )
 }
 
@@ -60,17 +60,17 @@ test "task Graph ports explicitly select the new complete property contract and 
     max_string_bytes: 10000,
     max_total_string_bytes: 10000,
   }).unwrap()
-  let profile = @graph_contract.read_property_graph_cursor(cursor, {
+  let profile = @graph_contract.read_cursor(cursor, {
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 100,
   }).unwrap()
-  let carrier = @carrier.graph_carrier(@graph_contract.property_graph(profile))
+  let carrier = @carrier.graph_carrier(@graph_contract.graph(profile))
   assert_eq(
     client_task_carrier_contract(carrier, body.length(), 1000, 100),
     Some(
       (
-        "graph", "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+        "graph", "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
       ),
     ),
   )

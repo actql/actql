@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {connectInProcess} from './host-port.mjs';
-import {ClientError, explainCheckFailure, getCheckFailureInput, getCheckInput,
+import {connect, ClientError, explainCheckFailure, getCheckFailureInput, getCheckInput,
   explainCheckOutcome, resolveCheckLocation} from './index.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL(
@@ -134,4 +134,56 @@ test('check protocol failures do not brand input or transport refusal as a diagn
   await assert.rejects(value.check('SELECT 1 AS n', {format: 'sql'}), error => {
     assert.equal(error, refusal); assert.equal(explainCheckFailure(error), undefined); return true;
   });
+});
+
+for (const asynchronous of [false, true]) {
+  test(`check does not brand ${asynchronous ? 'asynchronous' : 'synchronous'} credential failures as received replies`, async t => {
+    const refusal = new Error('Synthetic credential provider refusal');
+    const requests = [];
+    let credentials = 0;
+    t.mock.method(globalThis, 'fetch', async url => {
+      requests.push(url.pathname);
+      assert.equal(url.pathname, '/actql/client/0.1/connect');
+      return Response.json({...profile, mode: 'remote', owner: 'remote'});
+    });
+    const value = await connect({mode: 'remote', endpoint: 'https://host.example/',
+      token() {
+        credentials++;
+        if (credentials === 1) return 'synthetic-connect-token';
+        if (asynchronous) return Promise.reject(refusal);
+        throw refusal;
+      }});
+    let rejected;
+    try { await value.check('SELECT 1 AS n', {format: 'sql'}); }
+    catch (error) { rejected = error; }
+    assert.ok(rejected);
+    assert.equal(credentials, 2);
+    assert.deepEqual(requests, ['/actql/client/0.1/connect']);
+    assert.deepEqual({originalError: rejected === refusal,
+      explanation: explainCheckFailure(rejected), input: getCheckFailureInput(rejected)},
+    {originalError: true, explanation: undefined, input: undefined});
+  });
+}
+
+test('check still brands malformed received JSON after successful credentials', async t => {
+  const requests = [];
+  let credentials = 0;
+  t.mock.method(globalThis, 'fetch', async url => {
+    requests.push(url.pathname);
+    if (url.pathname === '/actql/client/0.1/connect') {
+      return Response.json({...profile, mode: 'remote', owner: 'remote'});
+    }
+    assert.equal(url.pathname, '/actql/client/0.1/check');
+    return new Response('{', {headers: {'content-type': 'application/json'}});
+  });
+  const value = await connect({mode: 'remote', endpoint: 'https://host.example/',
+    token() { credentials++; return 'synthetic-check-token'; }});
+  const error = await capture(value.check('SELECT 1 AS n', {format: 'sql'}));
+  assert.equal(credentials, 2);
+  assert.deepEqual(requests, ['/actql/client/0.1/connect', '/actql/client/0.1/check']);
+  const view = explainCheckFailure(error);
+  assert.deepEqual({kind: view.kind, problem: view.problem},
+    {kind: 'protocol_failure', problem: 'malformed_response'});
+  assert.deepEqual(getCheckFailureInput(error),
+    {text: 'SELECT 1 AS n', format: 'sql', parameters: null});
 });

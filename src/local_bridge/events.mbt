@@ -495,7 +495,7 @@ fn events_to_rows_step(
           used += 1
         } else {
           source.order = match
-            @sort.prepare(source.order_keys, source.order_slots) {
+            @sort.prepare_deferred(source.order_keys, source.order_slots) {
             Ok(sort) => Some(sort)
             Err(issue) =>
               return @bounded.Failed(GraphOrder(issue), progress, used)

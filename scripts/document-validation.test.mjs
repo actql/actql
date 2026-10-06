@@ -101,19 +101,19 @@ test('Unicode business values and quoted version fields are accepted', () => {
   const p = programs('version: "actql/0.1"\nid: demo\nvalue: 日本語', 'demo.aql');
   assert.equal(p[0].value, '\u65e5\u672c\u8a9e');
 });
-test('README Property Graph excerpt uses the current independent public Program', () => {
+test('README Graph excerpt uses the current independent public Program', () => {
   const readme = readFileSync('README.md', 'utf8');
-  const section = readme.split('**Property Graph.**')[1]?.split('**Vector search.**')[0];
+  const section = readme.split('**Graph.**')[1]?.split('**Vector search.**')[0];
   assert.ok(section, 'the current Graph example is present');
   const blocks = nodes(markdown(section)).filter(node => node.type === 'code');
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].lang, 'yaml');
-  const fixturePath = 'scripts/fixtures/property-graph-parallel.program.json';
+  const fixturePath = 'scripts/fixtures/graph-parallel.program.json';
   const fixture = JSON.parse(readFileSync(fixturePath, 'utf8'));
   // This hand-authored fixture already has independent Local/HTTPS Result,
   // identity, snapshot and refusal checks. Do not generate it from a compiler
   // or replace those execution checks with this documentation comparison.
-  assert.deepEqual(decodeYaml(blocks[0].value, 'README Property Graph'),
+  assert.deepEqual(decodeYaml(blocks[0].value, 'README Graph'),
     fixture.stages[0].steps.slice(2));
   assert.ok(section.includes(`](${fixturePath})`));
   assert.ok(section.includes("format: 'json'"));

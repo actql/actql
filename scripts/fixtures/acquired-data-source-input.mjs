@@ -1,4 +1,4 @@
-// Authored from DATA/Relation and Property Graph contracts, not compiler output.
+// Authored from DATA/Relation and Graph contracts, not compiler output.
 // The existing packed harness installs these rows through the real source
 // profile, then compares Named Result rows and describe() column contracts.
 const number = (name, nullable = false) => ({name,

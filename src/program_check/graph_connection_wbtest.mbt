@@ -20,7 +20,7 @@ fn graph_conversion_fixture(
       ).unwrap(),
     ).unwrap(),
   )
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(StringType, nullable=false)],
     fields,
@@ -28,7 +28,7 @@ fn graph_conversion_fixture(
     max_fields=1,
     max_name_bytes=1,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "1".repeat(64),
     [definition],
     [],

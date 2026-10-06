@@ -277,6 +277,101 @@ fn failed_after_runtime(
 }
 
 ///|
+/// Install the existing checked executor and Runtime without entering it.
+/// Ordinary execution and completed-output restoration use this same registry.
+fn open_resident_attempt_runtime(
+  journal : @journal.Journal,
+  execution : ResidentExecution,
+  rebuilt : @host.ClientRunMaterials,
+  binding : @remote.RemoteInputBinding,
+  request : @remote.DispatchRequest,
+  current_time : () -> String,
+  source_observe : ((ResidentSourceComputeEvent) -> Bool)?,
+) -> Result[(@runtime.NativeRemoteRuntime, String?), ResidentExecutionFailure] {
+  Ok(
+    match rebuilt.compilation {
+      // This resident transport installs read-only task/Values executors.
+      // An enclosing Effect Run needs the installed Effect owner instead.
+      @host.Effects(_) => return Err(failed(Refused(@resident.UnsupportedTask)))
+      @host.Tasks(compilation) => {
+        guard execution.source is Some(source) else {
+          return Err(failed(Source(UnsupportedSource)))
+        }
+        let (executor, result_definition_cid) = match
+          install_resident_source_executor(
+            rebuilt,
+            compilation,
+            binding,
+            request,
+            execution,
+            source,
+            current_time,
+            observe=event => {
+              match source_observe {
+                Some(observer) => observer(event)
+                None => true
+              }
+            },
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(failed(Source(issue)))
+        }
+        let runtime = match
+          @output.open_native_remote_standard_site_runtime(
+            execution.site,
+            execution.active_runtime,
+            execution.operation_capability_cid,
+            execution.issuer_capability_cid,
+            [executor],
+            journal,
+            execution.bundles,
+            execution.budgets,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(failed(Source(Standard(issue))))
+        }
+        (runtime, result_definition_cid)
+      }
+      @host.Values(compilation) => {
+        let executor = match
+          @values.install_native_remote_values_task_executor(
+            rebuilt.prepared,
+            compilation,
+            rebuilt.admission,
+            rebuilt.run_definition,
+            binding,
+            execution.registry_body,
+            execution.values_body,
+            execution.fixed_ms,
+            execution.per_row_ms,
+            execution.per_wire_byte_ms,
+            execution.per_pair_ms,
+            execution.limits,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(failed(Values(issue)))
+        }
+        let runtime = match
+          @values.open_native_remote_values_site_runtime(
+            execution.site,
+            execution.active_runtime,
+            execution.operation_capability_cid,
+            execution.issuer_capability_cid,
+            executor,
+            journal,
+            execution.bundles,
+            execution.budgets,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(failed(Values(issue)))
+        }
+        (runtime, Some(executor.result_definition_cid()))
+      }
+    },
+  )
+}
+
+///|
 /// Run one accepted attempt in the executing process. The kept envelope is
 /// read back and the Run rebuilt again from its materials, its lifetime is
 /// checked at the Site's clock, and the start is an exclusive claim by
@@ -321,84 +416,12 @@ pub fn execute_resident_attempt(
       current_time(),
     )
     is Ok(_)
-  let (runtime, result_definition_cid) = match rebuilt.compilation {
-    // This resident transport installs read-only task/Values executors.
-    // An enclosing Effect Run needs the installed Effect owner instead.
-    @host.Effects(_) => return Err(failed(Refused(@resident.UnsupportedTask)))
-    @host.Tasks(compilation) => {
-      guard execution.source is Some(source) else {
-        return Err(failed(Source(UnsupportedSource)))
-      }
-      let (executor, result_definition_cid) = match
-        install_resident_source_executor(
-          rebuilt,
-          compilation,
-          binding,
-          request,
-          execution,
-          source,
-          current_time,
-          observe=event => {
-            match source_observe {
-              Some(observer) => observer(event)
-              None => true
-            }
-          },
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(failed(Source(issue)))
-      }
-      let runtime = match
-        @output.open_native_remote_standard_site_runtime(
-          execution.site,
-          execution.active_runtime,
-          execution.operation_capability_cid,
-          execution.issuer_capability_cid,
-          [executor],
-          journal,
-          execution.bundles,
-          execution.budgets,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(failed(Source(Standard(issue))))
-      }
-      (runtime, result_definition_cid)
-    }
-    @host.Values(compilation) => {
-      let executor = match
-        @values.install_native_remote_values_task_executor(
-          rebuilt.prepared,
-          compilation,
-          rebuilt.admission,
-          rebuilt.run_definition,
-          binding,
-          execution.registry_body,
-          execution.values_body,
-          execution.fixed_ms,
-          execution.per_row_ms,
-          execution.per_wire_byte_ms,
-          execution.per_pair_ms,
-          execution.limits,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(failed(Values(issue)))
-      }
-      let runtime = match
-        @values.open_native_remote_values_site_runtime(
-          execution.site,
-          execution.active_runtime,
-          execution.operation_capability_cid,
-          execution.issuer_capability_cid,
-          executor,
-          journal,
-          execution.bundles,
-          execution.budgets,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(failed(Values(issue)))
-      }
-      (runtime, Some(executor.result_definition_cid()))
-    }
+  let (runtime, result_definition_cid) = match
+    open_resident_attempt_runtime(
+      journal, execution, rebuilt, binding, request, current_time, source_observe,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
   }
   // From here the runtime may own cleanup: every failure keeps it until its
   // close is confirmed.

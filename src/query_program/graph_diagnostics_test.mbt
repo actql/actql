@@ -12,7 +12,7 @@ fn graph_diagnostic_expected(
   fields : String,
 ) -> @program.Program {
   @program.parse(
-    "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_1\"},{\"from\":\"aql_script_seed_1\",\"derive\":{\"aql_query_expr_0\":{\"literal\":1}}},{\"select\":[{\"node_key\":\"aql_query_expr_0\"}],\"as\":\"aql_data_0\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"aql_data_0\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"aql_data_2\"},{\"from\":\"aql_data_2\",\"" +
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"aql_source_free_unit\":{\"type\":\"boolean\",\"nullable\":false}},\"rows\":[{\"aql_source_free_unit\":true}]},\"as\":\"aql_script_seed_1\"},{\"from\":\"aql_script_seed_1\",\"derive\":{\"aql_query_expr_0\":{\"literal\":1}}},{\"select\":[{\"node_key\":\"aql_query_expr_0\"}],\"as\":\"aql_data_0\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"aql_data_0\",\"key\":[\"node_key\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}],\"edges\":[]},\"as\":\"aql_data_2\"},{\"from\":\"aql_data_2\",\"" +
     operation +
     "\":" +
     body +
@@ -105,7 +105,7 @@ test "Graph diagnostic DATA reuses the normalized producer and current columns" 
     "DATA `stats` = FROM g |> normalize_graph() |> degree(direction: 'out'); FROM `stats` |> WHERE degree = 0 |> SELECT degree, node |> ORDER BY degree |> LIMIT 1",
   )
   let body = semantic(program)
-  assert_eq(body.split("\"property_graph\":").length(), 2)
+  assert_eq(body.split("\"graph\":").length(), 2)
   assert_eq(body.split("\"degree\":{").length(), 2)
   assert_true(body.contains("\"normalize_graph\":true"))
   assert_true(body.contains("\"take\":{\"count\":1,\"offset\":0}"))

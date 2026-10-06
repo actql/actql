@@ -1,10 +1,10 @@
 ///|
 fn graph_input() -> @carrier.Carrier {
-  query_property_graph()
+  query_graph()
 }
 
 ///|
-fn graph_property_scope_input() -> @carrier.Carrier {
+fn graph_graph_scope_input() -> @carrier.Carrier {
   let props = @carrier.rows(
     [
       (
@@ -16,7 +16,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(NumberType, nullable=false)],
     props,
@@ -24,8 +24,8 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [@contract.primitive(NumberType, nullable=false)],
       props,
@@ -36,7 +36,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],
@@ -47,7 +47,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
 
 ///|
 test "current traverse homogeneous predicates reach the typed expression owner" {
-  let graph = graph_property_scope_input()
+  let graph = graph_graph_scope_input()
   let relation = @carrier.relation(
     @carrier.rows(
       [(Unqualified("id"), Some(@contract.primitive(JsonType, nullable=false)))],
@@ -84,7 +84,7 @@ test "current traverse homogeneous predicates reach the typed expression owner" 
 
 ///|
 test "TRAIL without predicates has no slots while MATCH keeps the common expression owner" {
-  let graph = graph_property_scope_input()
+  let graph = graph_graph_scope_input()
   let relation = @carrier.relation(
     @carrier.rows(
       [(Unqualified("id"), Some(@contract.primitive(JsonType, nullable=false)))],
@@ -168,7 +168,7 @@ test "current TRAIL retains selector inputs and complete independent identity ar
   guard step.operation is Traverse(selector=Some(Input(1)), checked~) else {
     fail("current TRAIL")
   }
-  assert_eq(@graph.traverse_property_path_mode(checked), Trail)
+  assert_eq(@graph.traverse_graph_path_mode(checked), Trail)
   assert_true(physical_equal(@graph.traverse_input(checked), g))
   let edges = @pipeline_typing.input_occurrences(step)
   assert_eq(edges.length(), 2)
@@ -224,7 +224,7 @@ test "current TRAIL retains selector inputs and complete independent identity ar
 
 ///|
 test "definition-scoped property MATCH connects Relation consumers and preserves predicate diagnostics" {
-  let graph = graph_property_scope_input()
+  let graph = graph_graph_scope_input()
   for (op, definition) in [("match_nodes", "N"), ("match_edges", "E")] {
     let body = cursor(
       "[{\"" +
@@ -245,7 +245,7 @@ test "definition-scoped property MATCH connects Relation consumers and preserves
     let step = @pipeline_typing.step_at(p, 0).unwrap()
     guard step.operation is GraphMatch(checked) else { fail("scoped MATCH") }
     assert_true(physical_equal(@graph.match_input(checked), graph))
-    assert_eq(@graph.match_property_definition_name(checked), definition)
+    assert_eq(@graph.match_graph_element_definition_name(checked), definition)
     let edges = @pipeline_typing.input_occurrences(step)
     assert_eq(edges.length(), 1)
     assert_eq(edges[0].target, Input(0))
@@ -370,10 +370,7 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
         body +
         "}]",
       ),
-      [
-        ("g", graph_property_scope_input()),
-        ("peer", graph_property_scope_input()),
-      ],
+      [("g", graph_graph_scope_input()), ("peer", graph_graph_scope_input())],
       None,
       None,
       limits(),
@@ -394,7 +391,7 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
     assert_true(
       @pipeline_typing.check_carriers(
         cursor("[{\"from\":\"g\",\"" + name + "\":" + body + "}]"),
-        [("g", graph_property_scope_input())],
+        [("g", graph_graph_scope_input())],
         None,
         None,
         limits(),
@@ -452,7 +449,7 @@ test "unsupported mean validates authored options without issuing Graph work" {
     ] {
     let issue = @pipeline_typing.check_carriers(
       cursor("[{\"as\":\"mean\",\"mean_graphs\":" + body + "}]"),
-      [("g", graph_property_scope_input())],
+      [("g", graph_graph_scope_input())],
       None,
       None,
       limits(),
@@ -464,7 +461,7 @@ test "unsupported mean validates authored options without issuing Graph work" {
 
 ///|
 test "current Graph checks Delta application while retaining runtime admission obligations" {
-  let graph = graph_property_scope_input()
+  let graph = graph_graph_scope_input()
   let contract = @graph_contract.admit(graph, {
     max_bytes: 10000,
     max_nodes: 1000,

@@ -1462,9 +1462,9 @@ async function connectSelected(selected, port) {
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');
       }
+      const response = await exchange('check', body, signal);
       let outcome;
-      try { outcome = await controlValue(await exchange('check', body,
-        signal)); }
+      try { outcome = await controlValue(response); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw rejectedCheck(body, 'malformed_response');
@@ -1586,9 +1586,9 @@ async function connectSelected(selected, port) {
       const body = {resourceConnection, query, limit};
       if (!validClientBody('resources', {connection: selected.wire,
         ...body})) fail('InvalidResourceListing');
+      const response = await exchange('resources', body, signal);
       let listing;
-      try { listing = await controlValue(await exchange('resources', body,
-        signal)); }
+      try { listing = await controlValue(response); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourceListing', {cause});
@@ -1607,9 +1607,9 @@ async function connectSelected(selected, port) {
       const body = {resourceConnection, resource, maxBytes};
       if (!validClientBody('resource-inspect', {connection: selected.wire,
         ...body})) fail('InvalidResourceInspection');
+      const response = await exchange('resource-inspect', body, signal);
       let inspection;
-      try { inspection = await controlValue(await exchange('resource-inspect',
-        body, signal), jsonPayloadWireBytes(maxBytes)); }
+      try { inspection = await controlValue(response, jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourceInspection', {cause});
@@ -1631,9 +1631,9 @@ async function connectSelected(selected, port) {
         maxBytes};
       if (!validClientBody('resource-peek', {connection: selected.wire,
         ...body})) fail('InvalidResourcePeek');
+      const response = await exchange('resource-peek', body, signal);
       let peek;
-      try { peek = await controlValue(await exchange('resource-peek', body,
-        signal), jsonPayloadWireBytes(maxBytes)); }
+      try { peek = await controlValue(response, jsonPayloadWireBytes(maxBytes)); }
       catch (cause) {
         if (cause instanceof ClientError) throw cause;
         throw new ClientError('InvalidHostResourcePeek', {cause});

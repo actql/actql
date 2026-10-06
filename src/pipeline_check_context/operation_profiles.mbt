@@ -20,7 +20,7 @@ pub(all) enum OperationProfilesIssue {
 struct OperationProfileChecks {
   preparation : ProgramPreparation
   declared : PureOperationProfiles
-  property_graph : Bool
+  graph : Bool
   count : Int
   work : Int
 }
@@ -32,7 +32,7 @@ pub fn check_operation_profiles(
   preparation : ProgramPreparation,
   declared : PureOperationProfiles,
   max_work : Int,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> Result[OperationProfileChecks, OperationProfilesIssue] {
   if max_work < 0 {
     return Err(InvalidLimits)
@@ -70,7 +70,7 @@ pub fn check_operation_profiles(
             SGA => declared.sga
             // The new contract needs an explicit checker declaration; the
             // legacy SGA switch cannot silently claim its distinct laws.
-            PropertyGraph => property_graph
+            GraphProfile => graph
             TEA => declared.tea
             VecA => preparation.profiles.profiles.veca
             CalendarProfile => declared.calendar
@@ -84,13 +84,13 @@ pub fn check_operation_profiles(
       }
     }
   }
-  Ok({ preparation, declared, property_graph, count, work, })
+  Ok({ preparation, declared, graph, count, work, })
 }
 
 ///|
 /// A checker declaration only, not backend execution or resource admission.
-pub fn operation_profiles_property_graph(v : OperationProfileChecks) -> Bool {
-  v.property_graph
+pub fn operation_profiles_graph(v : OperationProfileChecks) -> Bool {
+  v.graph
 }
 
 ///|

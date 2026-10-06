@@ -62,10 +62,10 @@ test "Delta check rejects different saved definitions and incomplete Graphs" {
     @carrier.GraphValue(graph) => graph
     _ => abort("Graph")
   }
-  let definition = @carrier.graph_property_definition(graph)
-  let other = @carrier.property_graph(
+  let definition = @carrier.graph_definition(graph)
+  let other = @carrier.graph(
     "sha256:" + "1".repeat(64),
-    @carrier.property_graph_node_definitions(definition),
+    @carrier.graph_node_definitions(definition),
     [],
     max_definitions=1,
     max_contract_work=100,

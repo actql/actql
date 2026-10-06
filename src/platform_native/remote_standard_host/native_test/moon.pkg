@@ -1,0 +1,23 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/execution_site" @site,
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/platform_native/executor_slot" @slot,
+  "actql/actql/platform_native/remote_journal" @journal,
+  "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/platform_native/remote_standard_host" @standard,
+  "actql/actql/platform_native/retained_task_file" @retained_file,
+  "actql/actql/platform_native/runtime_bundle" @bundle,
+  "actql/actql/platform_native/signature",
+  "actql/actql/platform_native/sqlite",
+  "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+} for "test"
+
+options(
+  "native-stub": [ "restoration_test_stub.c" ],
+)

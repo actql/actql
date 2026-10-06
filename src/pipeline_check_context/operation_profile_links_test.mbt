@@ -49,10 +49,10 @@ test "VecA and TEA profile links retain checker claims without lexical artifacts
 }
 
 ///|
-test "Property Graph profile links retain the construction owner across repeated producer visits" {
+test "Graph profile links retain the construction owner across repeated producer visits" {
   let requirements = operation_order_fixture(
     property_execution_steps(),
-    property_graph=true,
+    graph=true,
   )
   let orders = link_program_operation_orders(requirements, 10000000, 100).unwrap()
   let scalars = check_program_operation_scalars(orders, 10000000, 100).unwrap()
@@ -64,15 +64,15 @@ test "Property Graph profile links retain the construction owner across repeated
   assert_eq(operation_profile_links_count(result), 3)
   for i in 0..<3 {
     let entry = operation_profile_links_at(result, i).unwrap()
-    assert_eq(entry.profile, @pipeline.PropertyGraph)
+    assert_eq(entry.profile, @pipeline.GraphProfile)
     assert_eq(operation_profile_adopted_law_count(entry), 1)
     assert_eq(
       operation_profile_adopted_law_at(entry, 0),
-      Some(@pipeline.PropertyGraphLaw),
+      Some(@pipeline.GraphLaw),
     )
     assert_true(operation_profile_adopted_law_at(entry, 1) is None)
     assert_true(entry.lexical is None)
-    assert_true(operation_profiles_property_graph(entry.checks))
+    assert_true(operation_profiles_graph(entry.checks))
     assert_false(operation_profiles_declared(entry.checks).sga)
     assert_eq(entry.site.step, 2)
   }

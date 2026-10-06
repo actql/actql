@@ -1,5 +1,5 @@
 ///|
-test "formal Property Graph matches retain definition labels selectors and resources through imports" {
+test "formal Graph matches retain definition labels selectors and resources through imports" {
   for empty in [true, false] {
     for
       (body, node, types, predicate) in [
@@ -45,14 +45,14 @@ test "formal Property Graph matches retain definition labels selectors and resou
         through_check=true,
         checked_results=programs,
         second_stage=true,
-        property_graph=true,
+        graph=true,
         graph_construction_limit=Some(1000),
         graph_input_limit=Some(1),
         graph_output_limit=Some(1),
         generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
         producer_suffix="," +
           (
-            #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},
+            #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},
           ) +
           body +
           suffix,
@@ -71,9 +71,9 @@ test "formal Property Graph matches retain definition labels selectors and resou
         assert_true(physical_equal(check.site.pipeline, producer))
         assert_eq(check.site.step, 3)
         assert_eq(check.input, @pipeline.Step(2))
-        assert_eq(@graph.match_property_definition(check.operation), 0)
+        assert_eq(@graph.match_definition_index(check.operation), 0)
         assert_eq(
-          @graph.match_property_definition_name(check.operation),
+          @graph.match_graph_element_definition_name(check.operation),
           if node {
             "N"
           } else {

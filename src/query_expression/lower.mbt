@@ -190,12 +190,13 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
-    "LENGTH" => ("len", 1, 1)
+    "LENGTH" | "CHAR_LENGTH" | "CHARACTER_LENGTH" => ("len", 1, 1)
     "SQRT" => ("sqrt", 1, 1)
     "FLOOR" => ("floor", 1, 1)
     "LOWER" => ("lower", 1, 1)
     "UPPER" => ("upper", 1, 1)
     "TRIM" => ("trim", 1, 1)
+    "REPLACE" => ("replace", 3, 3)
     "COALESCE" => ("coalesce", 1, 2147483647)
     "IFNULL" => ("coalesce", 2, 2)
     "IF" => ("if", 3, 3)
@@ -403,6 +404,11 @@ fn append_resolved(
                   lowering.form("literal", raw)
                 }
                 _ if op == "-" => lowering.form("negate", nodes[child])
+                _ if op == "+" && literals[child] is None =>
+                  // Two type-preserving numeric negations keep the existing
+                  // checker signature and reference the operand exactly once.
+                  // Dropping the operator would also admit nonnumeric values.
+                  lowering.form("negate", lowering.form("negate", nodes[child]))
                 _ => raise Abort(InvalidArguments)
               }
             _ => raise Abort(InvalidArguments)
@@ -449,7 +455,18 @@ fn append_resolved(
             }
           }
         Predicate(op, args) =>
-          if op == "IN" || op == "NOT IN" {
+          if op == "IN UNNEST" || op == "NOT IN UNNEST" {
+            // The existing membership operator consumes the array expression
+            // itself. It is not a scalar item wrapped in a literal list.
+            lowering.arguments(
+              if op == "IN UNNEST" {
+                "in"
+              } else {
+                "not_in"
+              },
+              args.map(i => nodes[i]),
+            )
+          } else if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []
             for j in 1..<args.length() {
               match literals[args[j]] {

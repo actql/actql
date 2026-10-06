@@ -6,122 +6,586 @@
   },
   "production_routes": "docs/reviews/2026-09-23-local-resource-production-routes.json",
   "assured_production_paths": [
-    {"family": "SGA", "operation": "subtract_graphs", "path": "entrypoint"},
-    {"family": "SGA", "operation": "union_graphs", "path": "entrypoint"},
-    {"family": "RelA", "operation": "filter", "path": "entrypoint"},
-    {"family": "RelA", "operation": "filter", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "filter", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "select", "path": "entrypoint"},
-    {"family": "RelA", "operation": "select", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "select", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "rename", "path": "entrypoint"},
-    {"family": "RelA", "operation": "rename", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "drop", "path": "entrypoint"},
-    {"family": "RelA", "operation": "drop", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "derive", "path": "entrypoint"},
-    {"family": "RelA", "operation": "derive", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "derive", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "assert_rows", "path": "entrypoint"},
-    {"family": "RelA", "operation": "assert_rows", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "assert_rows", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "sort", "path": "entrypoint"},
-    {"family": "RelA", "operation": "sort", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "sort", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "take", "path": "entrypoint"},
-    {"family": "RelA", "operation": "take", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "take", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "top_k", "path": "entrypoint"},
-    {"family": "RelA", "operation": "top_k", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "top_k", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "top_k_by", "path": "entrypoint"},
-    {"family": "RelA", "operation": "top_k_by", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "top_k_by", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "row_window", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "json_pick", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "unpivot", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "unnest", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "values", "path": "entrypoint"},
-    {"family": "RelA", "operation": "values", "path": "zero_input_entrypoint"},
-    {"family": "RelA", "operation": "cross_join", "path": "entrypoint"},
-    {"family": "RelA", "operation": "cross_join", "path": "external_input_entrypoint"},
-    {"family": "RelA", "operation": "cross_join", "path": "same_stage_entrypoint"},
-    {"family": "RelA", "operation": "append", "path": "entrypoint"},
-    {"family": "RelA", "operation": "append", "path": "external_input_entrypoint"},
-    {"family": "RelA", "operation": "append", "path": "same_stage_entrypoint"},
-    {"family": "RelA", "operation": "distinct", "path": "entrypoint"},
-    {"family": "RelA", "operation": "distinct", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "distinct", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "dedupe_rows", "path": "entrypoint"},
-    {"family": "RelA", "operation": "dedupe_rows", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "dedupe_rows", "path": "ordinary_entrypoint"},
-    {"family": "RelA", "operation": "lag", "path": "entrypoint"},
-    {"family": "RelA", "operation": "lag", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "watermark_rows", "path": "entrypoint"},
-    {"family": "RelA", "operation": "watermark_rows", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "group", "path": "global_count_entrypoint"},
-    {"family": "RelA", "operation": "pivot", "path": "entrypoint"},
-    {"family": "RelA", "operation": "pivot", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "analytic", "path": "entrypoint"},
-    {"family": "RelA", "operation": "group", "path": "entrypoint"},
-    {"family": "RelA", "operation": "window_group", "path": "entrypoint"},
-    {"family": "RelA", "operation": "nest", "path": "entrypoint"},
-    {"family": "RelA", "operation": "except", "path": "entrypoint"},
-    {"family": "RelA", "operation": "intersect", "path": "entrypoint"},
-    {"family": "RelA", "operation": "row_window", "path": "entrypoint"},
-    {"family": "RelA", "operation": "unpivot", "path": "entrypoint"},
-    {"family": "RelA", "operation": "json_pick", "path": "entrypoint"},
-    {"family": "RelA", "operation": "unnest", "path": "entrypoint"},
-    {"family": "RelA", "operation": "join", "path": "entrypoint"},
-    {"family": "RelA", "operation": "join", "path": "selected_entrypoint"},
-    {"family": "RelA", "operation": "join", "path": "external_input_entrypoint"},
-    {"family": "RelA", "operation": "join", "path": "same_stage_entrypoint"},
-    {"family": "SGA", "operation": "components", "path": "entrypoint"},
-    {"family": "SGA", "operation": "components", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graph_bounds", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "degree", "path": "entrypoint"},
-    {"family": "SGA", "operation": "degree", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "match_nodes", "path": "entrypoint"},
-    {"family": "SGA", "operation": "match_nodes", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "match_edges", "path": "entrypoint"},
-    {"family": "SGA", "operation": "match_edges", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "traverse", "path": "entrypoint"},
-    {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},
-    {"family": "SGA", "operation": "subgraph", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "graphs_equal", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graphs_equal", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "apply_graph_delta", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graph_diff", "path": "entrypoint"},
-    {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
-    {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
-    {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
-    {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
-    {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
-    {"family": "TEA", "operation": "session", "path": "entrypoint"},
-    {"family": "TEA", "operation": "session", "path": "relation_entrypoint"},
-    {"family": "TEA", "operation": "session", "path": "view_entrypoint"},
-    {"family": "TEA", "operation": "time_series", "path": "entrypoint"},
-    {"family": "TEA", "operation": "interval_join", "path": "entrypoint"},
-    {"family": "TEA", "operation": "asof_join", "path": "entrypoint"},
-    {"family": "TEA", "operation": "asof_join", "path": "view_entrypoint"},
-    {"family": "TEA", "operation": "sequence", "path": "entrypoint"},
-    {"family": "VecA", "operation": "normalize_vectors", "path": "entrypoint"},
-    {"family": "VecA", "operation": "score_vectors", "path": "entrypoint"},
-    {"family": "VecA", "operation": "nearest", "path": "entrypoint"},
-    {"family": "VecA", "operation": "nearest", "path": "relation_entrypoint"},
-    {"family": "VecA", "operation": "pool_vectors", "path": "entrypoint"},
-    {"family": "VecA", "operation": "pool_vectors", "path": "relation_entrypoint"},
-    {"family": "VecA", "operation": "pool_vectors", "path": "view_entrypoint"},
-    {"family": "VecA", "operation": "merge_rankings", "path": "entrypoint"},
-    {"family": "VecAExpression", "operation": "vector_score", "path": "entrypoint"},
-    {"family": "VecAExpression", "operation": "vector_concat", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "property_graph", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "to_events", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "events", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "to_vectors", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "vectors", "path": "entrypoint"}
+    {
+      "family": "SGA",
+      "operation": "subtract_graphs",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "union_graphs",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "filter",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "filter",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "filter",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "select",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "select",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "select",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "rename",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "rename",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "drop",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "drop",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "derive",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "derive",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "derive",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "assert_rows",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "assert_rows",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "assert_rows",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "sort",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "sort",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "sort",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "take",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "take",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "take",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k_by",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k_by",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "top_k_by",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "row_window",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "json_pick",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "unpivot",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "unnest",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "values",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "values",
+      "path": "zero_input_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "cross_join",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "cross_join",
+      "path": "external_input_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "cross_join",
+      "path": "same_stage_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "append",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "append",
+      "path": "external_input_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "append",
+      "path": "same_stage_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "distinct",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "distinct",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "distinct",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "dedupe_rows",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "dedupe_rows",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "dedupe_rows",
+      "path": "ordinary_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "lag",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "lag",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "watermark_rows",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "watermark_rows",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "group",
+      "path": "global_count_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "pivot",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "pivot",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "analytic",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "group",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "window_group",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "nest",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "except",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "intersect",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "row_window",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "unpivot",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "json_pick",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "unnest",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "join",
+      "path": "entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "join",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "join",
+      "path": "external_input_entrypoint"
+    },
+    {
+      "family": "RelA",
+      "operation": "join",
+      "path": "same_stage_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "components",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "components",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_bounds",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_bounds",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "degree",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "degree",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_nodes",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_nodes",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_edges",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "match_edges",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "traverse",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "subgraph",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "subgraph",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graphs_equal",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graphs_equal",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "apply_graph_delta",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_diff",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "normalize_graph",
+      "path": "entrypoint"
+    },
+    {
+      "family": "SGA",
+      "operation": "normalize_graph",
+      "path": "selected_entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "window_events",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "watermark_events",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "dedupe_events",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "session",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "session",
+      "path": "relation_entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "session",
+      "path": "view_entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "time_series",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "interval_join",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "asof_join",
+      "path": "entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "asof_join",
+      "path": "view_entrypoint"
+    },
+    {
+      "family": "TEA",
+      "operation": "sequence",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "normalize_vectors",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "score_vectors",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "nearest",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "nearest",
+      "path": "relation_entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "path": "relation_entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "path": "view_entrypoint"
+    },
+    {
+      "family": "VecA",
+      "operation": "merge_rankings",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_score",
+      "path": "entrypoint"
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_concat",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "graph",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "node_rows",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "edge_rows",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_events",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "events",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_vectors",
+      "path": "entrypoint"
+    },
+    {
+      "family": "Bridge",
+      "operation": "vectors",
+      "path": "entrypoint"
+    }
   ],
   "required_facets": [
     "admission_before_allocation",
@@ -166,22 +630,31 @@
       ],
       "evidence": [
         {
-          "facets": ["admission_before_allocation"],
+          "facets": [
+            "admission_before_allocation"
+          ],
           "path": "src/execution_relation/window_group_scale_wbtest.mbt",
           "fixture": "numeric window group arrays respect the exact workspace boundary"
         },
         {
-          "facets": ["charged_bounded_work"],
+          "facets": [
+            "charged_bounded_work"
+          ],
           "path": "src/execution_relation/binary_scale_wbtest.mbt",
           "fixture": "cross join work and retention follow the emitted product"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
           "path": "src/query_integration/local_managed_cross_join_wbtest.mbt",
           "fixture": "standard Host cancels external cross join after pair work"
         },
         {
-          "facets": ["temporary_retained_peak_scope"],
+          "facets": [
+            "temporary_retained_peak_scope"
+          ],
           "path": "src/execution_relation/layout_leases_wbtest.mbt",
           "fixture": "conversion capacity includes source and destination without partial reservations"
         }
@@ -206,7 +679,7 @@
         "cleanup": "cancel nested evaluation and clear selectors, snapshots, frontiers, scratch, and unpublished builders"
       },
       "sources": [
-        "src/local_bridge/property_graph.mbt",
+        "src/local_bridge/graph_constructor.mbt",
         "src/local_sga/match_nodes.mbt",
         "src/local_sga/match_edges.mbt",
         "src/local_sga/traverse_paths.mbt",
@@ -214,8 +687,8 @@
         "src/local_sga/union.mbt",
         "src/local_sga/union_fold.mbt",
         "src/local_sga/union_property.mbt",
-        "src/managed_graph_storage/property_snapshot_steps.mbt",
-        "src/managed_graph_storage/property_storage.mbt",
+        "src/managed_graph_storage/snapshot_append_steps.mbt",
+        "src/managed_graph_storage/definition_records.mbt",
         "src/managed_graph_runtime/output.mbt"
       ],
       "evidence": [
@@ -225,7 +698,7 @@
             "charged_bounded_work",
             "temporary_retained_peak_scope"
           ],
-          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "path": "src/query_integration/graph_construction_wbtest.mbt",
           "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
         },
         {
@@ -233,7 +706,7 @@
             "finite_stop_observation",
             "cleanup_owner"
           ],
-          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "path": "src/query_integration/graph_construction_wbtest.mbt",
           "fixture": "keyed MATCH failure and cancellation retain cleanup without partial output"
         },
         {
@@ -258,57 +731,82 @@
             "finite_stop_observation",
             "cleanup_owner"
           ],
-          "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
+          "path": "src/query_integration/graph_snapshot_wbtest.mbt",
           "fixture": "property snapshot reload capacity cancellation input loss and work exhaustion never hand off partial material"
         },
         {
-          "facets": ["charged_bounded_work"],
-          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "facets": [
+            "charged_bounded_work"
+          ],
+          "path": "src/query_integration/graph_diff_provider_wbtest.mbt",
           "fixture": "Graph diff provider admits exact workspace and control work and rejects one short"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_diff_provider_wbtest.mbt",
           "fixture": "Graph diff provider cancellation preserves work and borrowed input custody across import"
         },
         {
-          "facets": ["cleanup_owner"],
-          "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
+          "facets": [
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_diff_provider_wbtest.mbt",
           "fixture": "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs"
         },
         {
-          "facets": ["charged_bounded_work"],
-          "path": "src/query_integration/property_graph_union_wbtest.mbt",
-          "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
+          "facets": [
+            "charged_bounded_work"
+          ],
+          "path": "src/query_integration/graph_union_wbtest.mbt",
+          "fixture": "Graph union empty occurrences share one independent operation wide work budget"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_union_custody_wbtest.mbt",
           "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
         },
         {
-          "facets": ["charged_bounded_work", "cleanup_owner"],
+          "facets": [
+            "charged_bounded_work",
+            "cleanup_owner"
+          ],
           "path": "src/local_sga/union_fold_wbtest.mbt",
           "fixture": "union fold rejects endpoint collision after positive work without exposing output or reclaiming inputs"
         },
         {
-          "facets": ["charged_bounded_work"],
-          "path": "src/managed_graph_storage/property_snapshot_steps_wbtest.mbt",
+          "facets": [
+            "charged_bounded_work"
+          ],
+          "path": "src/managed_graph_storage/snapshot_append_steps_wbtest.mbt",
           "fixture": "typed record append has independent construction work and an exact one short boundary"
         },
         {
-          "facets": ["charged_bounded_work"],
-          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
-          "fixture": "property Graph subtraction empty occurrences have independent work seven and one short rejection"
+          "facets": [
+            "charged_bounded_work"
+          ],
+          "path": "src/query_integration/graph_subtraction_wbtest.mbt",
+          "fixture": "Graph subtraction empty occurrences have independent work seven and one short rejection"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
-          "fixture": "property Graph subtraction cancellation after positive work preserves borrowed input custody"
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_subtraction_wbtest.mbt",
+          "fixture": "Graph subtraction cancellation after positive work preserves borrowed input custody"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_union_custody_wbtest.mbt",
           "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
         }
       ],
@@ -340,22 +838,31 @@
       ],
       "evidence": [
         {
-          "facets": ["charged_bounded_work"],
+          "facets": [
+            "charged_bounded_work"
+          ],
           "path": "src/local_tea/window_wbtest.mbt",
           "fixture": "fixed and sliding event windows preserve order with bounded steps"
         },
         {
-          "facets": ["admission_before_allocation"],
+          "facets": [
+            "admission_before_allocation"
+          ],
           "path": "src/local_tea/dedupe_wbtest.mbt",
           "fixture": "event dedupe admits scratch before allocation and observes cancellation"
         },
         {
-          "facets": ["finite_stop_observation"],
+          "facets": [
+            "finite_stop_observation"
+          ],
           "path": "src/local_tea/session_wbtest.mbt",
           "fixture": "session identity construction can stop between scalar parts"
         },
         {
-          "facets": ["temporary_retained_peak_scope", "cleanup_owner"],
+          "facets": [
+            "temporary_retained_peak_scope",
+            "cleanup_owner"
+          ],
           "path": "src/local_tea/watermark_wbtest.mbt",
           "fixture": "watermark retains completed output custody until stop cleanup"
         }
@@ -392,17 +899,25 @@
       ],
       "evidence": [
         {
-          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
+          "facets": [
+            "admission_before_allocation",
+            "temporary_retained_peak_scope"
+          ],
           "path": "src/local_veca/pool_wbtest.mbt",
           "fixture": "pool admits structural workspace before allocating sort state"
         },
         {
-          "facets": ["charged_bounded_work", "finite_stop_observation"],
+          "facets": [
+            "charged_bounded_work",
+            "finite_stop_observation"
+          ],
           "path": "src/local_veca/score_wbtest.mbt",
           "fixture": "score observes cancellation between bounded work units"
         },
         {
-          "facets": ["cleanup_owner"],
+          "facets": [
+            "cleanup_owner"
+          ],
           "path": "src/local_veca/pool_wbtest.mbt",
           "fixture": "pool observes cancellation and reclaims partial output"
         }
@@ -440,22 +955,33 @@
       ],
       "evidence": [
         {
-          "facets": ["admission_before_allocation", "charged_bounded_work", "temporary_retained_peak_scope"],
-        "path": "src/query_integration/property_graph_construction_wbtest.mbt",
-        "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
+          "facets": [
+            "admission_before_allocation",
+            "charged_bounded_work",
+            "temporary_retained_peak_scope"
+          ],
+          "path": "src/query_integration/graph_construction_wbtest.mbt",
+          "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-        "path": "src/query_integration/property_graph_construction_wbtest.mbt",
-        "fixture": "keyed constructor capacity failure and cancellation never hand off partial material"
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/graph_construction_wbtest.mbt",
+          "fixture": "keyed constructor capacity failure and cancellation never hand off partial material"
         },
         {
-          "facets": ["temporary_retained_peak_scope"],
+          "facets": [
+            "temporary_retained_peak_scope"
+          ],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "bounded Events bridge round trip feeds two Relation consumers"
         },
         {
-          "facets": ["charged_bounded_work"],
+          "facets": [
+            "charged_bounded_work"
+          ],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "standard Host runs the vector bridge through two consumers"
         }
@@ -467,11 +993,35 @@
       "inventory": "rela",
       "profile": "rela_rows",
       "operations": [
-        "filter", "select", "rename", "drop", "derive", "sort", "take",
-        "top_k", "top_k_by", "row_window", "window_group", "lag",
-        "watermark_rows", "pivot", "unpivot", "json_pick", "unnest",
-        "join", "nest", "group", "distinct", "dedupe_rows", "assert_rows",
-        "append", "values", "except", "intersect", "cross_join", "analytic"
+        "filter",
+        "select",
+        "rename",
+        "drop",
+        "derive",
+        "sort",
+        "take",
+        "top_k",
+        "top_k_by",
+        "row_window",
+        "window_group",
+        "lag",
+        "watermark_rows",
+        "pivot",
+        "unpivot",
+        "json_pick",
+        "unnest",
+        "join",
+        "nest",
+        "group",
+        "distinct",
+        "dedupe_rows",
+        "assert_rows",
+        "append",
+        "values",
+        "except",
+        "intersect",
+        "cross_join",
+        "analytic"
       ]
     },
     {
@@ -479,10 +1029,23 @@
       "family": "SGA",
       "profile": "sga_graph",
       "operations": [
-        "normalize_graph", "match_nodes", "match_edges", "traverse",
-        "shortest_path", "components", "reach", "graph_bounds", "degree",
-        "graph_diff", "graft_graph", "union_graphs", "subtract_graphs",
-        "subgraph", "graphs_equal", "apply_graph_delta", "mean_graphs"
+        "normalize_graph",
+        "match_nodes",
+        "match_edges",
+        "traverse",
+        "shortest_path",
+        "components",
+        "reach",
+        "graph_bounds",
+        "degree",
+        "graph_diff",
+        "graft_graph",
+        "union_graphs",
+        "subtract_graphs",
+        "subgraph",
+        "graphs_equal",
+        "apply_graph_delta",
+        "mean_graphs"
       ]
     },
     {
@@ -490,8 +1053,14 @@
       "family": "TEA",
       "profile": "tea_events",
       "operations": [
-        "window_events", "watermark_events", "session", "time_series",
-        "interval_join", "dedupe_events", "asof_join", "sequence"
+        "window_events",
+        "watermark_events",
+        "session",
+        "time_series",
+        "interval_join",
+        "dedupe_events",
+        "asof_join",
+        "sequence"
       ]
     },
     {
@@ -499,7 +1068,10 @@
       "family": "VecA",
       "profile": "veca_vectors",
       "operations": [
-        "normalize_vectors", "score_vectors", "nearest", "pool_vectors",
+        "normalize_vectors",
+        "score_vectors",
+        "nearest",
+        "pool_vectors",
         "merge_rankings"
       ]
     },
@@ -508,15 +1080,23 @@
       "family": "Bridge",
       "profile": "carrier_bridges",
       "operations": [
-        "property_graph", "graph", "node_rows", "edge_rows", "to_events", "events",
-        "to_vectors", "vectors"
+        "graph",
+        "node_rows",
+        "edge_rows",
+        "to_events",
+        "events",
+        "to_vectors",
+        "vectors"
       ]
     },
     {
       "inventory": "families",
       "family": "VecAExpression",
       "profile": "veca_vectors",
-      "operations": ["vector_score", "vector_concat"]
+      "operations": [
+        "vector_score",
+        "vector_concat"
+      ]
     }
   ]
 }

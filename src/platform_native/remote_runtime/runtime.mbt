@@ -27,6 +27,7 @@ struct NativeRemoteOutput {
   ]
   release : () -> Bool
   source_observation : @remote.RemoteSourceObservation?
+  file_custody : @journal.NativeOutputFileCustody?
 }
 
 ///|
@@ -136,7 +137,7 @@ struct NativeRemoteTaskExecutor {
 priv struct NativeRemoteRuntimeOwner {
   request : @remote.DispatchRequest
   binding : @remote.RemoteInputBinding
-  record : @remote.DispatchRecord
+  mut record : @remote.DispatchRecord
   registration : NativeRemoteRuntimeRegistration
   custody : @remote.RemoteRuntimeCustody
   bundle_hold_id : String
@@ -149,6 +150,12 @@ priv struct NativeRemoteRuntimeOwner {
   mut subject : @remote.RemoteManagedOutputSubject?
   mut measurement : @remote.RemoteManagedOutputMeasurement?
   mut active_readers : Int
+  mut restoration_pending : Bool
+  restoration_current : (() -> Bool)?
+  restoration_cleanup_port : NativeCompletedCleanupRestoration?
+  holding_restoration : @site.SiteHoldingRestoration?
+  restoration_observation : @journal.RecoveredSiteDispatch?
+  mut restoration_cleanup : (() -> Bool)?
 }
 
 ///|
@@ -208,6 +215,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
   /// Cancellation won the Accepted state; this runtime did not execute.
   StartCancelled
   CleanupPending(String)
+  CompletedRestorationPending
+  CompletedMaterialUnavailable(String)
   Protocol(@remote.DispatchIssue)
   Journal(@journal.NativeRemoteJournalIssue)
   Bundle(@bundle.NativeRuntimeBundleStoreIssue)
@@ -251,6 +260,7 @@ pub fn prepare_native_remote_output(
     String,
   ],
   release : () -> Bool,
+  file_custody? : @journal.NativeOutputFileCustody? = None,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
   let manifest = facts.physical_manifest
   guard readmit_native_remote_output_manifest(manifest)
@@ -262,6 +272,19 @@ pub fn prepare_native_remote_output(
     admitted_manifest.codec_contract_cid != facts.representation_codec_cid ||
     admitted_manifest.row_count != facts.row_count ||
     admitted_manifest.referenced_bytes != facts.retained_bytes {
+    return Err(OutputRejected)
+  }
+  if file_custody is Some(custody) &&
+    (
+      @journal.native_output_file_custody_material_generation(custody) !=
+      facts.material_generation ||
+      @journal.native_output_file_custody_generation(custody).size !=
+      facts.retained_bytes ||
+      @manifest.manifest_cid(
+        @journal.native_output_file_custody_manifest(custody),
+      ) !=
+      @manifest.manifest_cid(admitted_manifest)
+    ) {
     return Err(OutputRejected)
   }
   let measurement_cid = @remote.remote_managed_output_measurement_cid(
@@ -289,6 +312,7 @@ pub fn prepare_native_remote_output(
           open_manifest_reader,
           release,
           source_observation: None,
+          file_custody,
         }),
       )
     Err(_) => Err(OutputRejected)
@@ -715,14 +739,27 @@ fn NativeRemoteRuntime::reclaim_owner_resources(
   self : NativeRemoteRuntime,
   owner : NativeRemoteRuntimeOwner,
 ) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+    return Err(CleanupPending("restoration-custody"))
+  }
   if @remote.remote_runtime_custody_output_acquired(owner.custody) &&
     !@remote.remote_runtime_custody_output_released(owner.custody) {
     if owner.active_readers != 0 {
       return Err(CleanupPending("output-readers"))
     }
-    guard owner.output is Some(output) else { return Err(CustodyRejected) }
-    if !(output.release)() {
+    let release = match owner.output {
+      Some(output) => output.release
+      None =>
+        match owner.restoration_cleanup {
+          Some(cleanup) => cleanup
+          None => return Err(CustodyRejected)
+        }
+    }
+    if !release() {
       return Err(CleanupPending("output"))
+    }
+    if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+      return Err(CleanupPending("restoration-custody"))
     }
     if !@remote.remote_runtime_custody_release_output(owner.custody) {
       return Err(CustodyRejected)
@@ -826,6 +863,22 @@ fn NativeRemoteRuntime::drive_cleanup(
 fn native_remote_runtime_completion(
   owner : NativeRemoteRuntimeOwner,
 ) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue] {
+  if owner.restoration_pending {
+    return Err(CompletedRestorationPending)
+  }
+  if owner.restoration_cleanup_port is Some(port) && !(port.current)() {
+    return Err(StartAuthorizationRejected)
+  }
+  if owner.restoration_current is Some(current) &&
+    (
+      !current() ||
+      !completed_restoration_site_current(
+        owner.registration.site,
+        owner.request,
+      )
+    ) {
+    return Err(StartAuthorizationRejected)
+  }
   guard owner.evidence is Some(evidence) else { return Err(OutputRejected) }
   guard owner.subject is Some(subject) else { return Err(OutputRejected) }
   guard owner.measurement is Some(measurement) else {
@@ -1097,7 +1150,14 @@ fn NativeRemoteRuntime::run_success(
                 ),
               )
             }
-            if output.facts.retained_bytes > retained_bytes {
+            if output.facts.retained_bytes > retained_bytes ||
+              (
+                output.file_custody is Some(custody) &&
+                !@journal.native_output_file_custody_matches_request(
+                  custody,
+                  owner.request,
+                )
+              ) {
               return Err(
                 self.retain_failed_owner(
                   identity,
@@ -1424,6 +1484,7 @@ fn NativeRemoteRuntime::run_success(
             subject,
             measurement,
             source_observation=output.source_observation,
+            file_custody=output.file_custody,
           ) {
           Ok(_) => {
             owner.evidence = Some(evidence)
@@ -1517,6 +1578,13 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
   }
   if !self.admitting.is_empty() {
     return Err(DispatchAlreadyStarted)
+  }
+  // Rebuild historical capacity before admitting any new operation. A pending
+  // reconstruction is an original obligation, not unused Site capacity.
+  for owner in self.owners.values() {
+    if owner.restoration_pending {
+      return Err(CompletedRestorationPending)
+    }
   }
   let identity = @remote.dispatch_request_identity(request)
   if self.pending_cleanup.contains(identity) {
@@ -1631,6 +1699,12 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
     subject: None,
     measurement: None,
     active_readers: 0,
+    restoration_pending: false,
+    restoration_current: None,
+    restoration_cleanup_port: None,
+    holding_restoration: None,
+    restoration_observation: None,
+    restoration_cleanup: None,
   }
   self.run_success(owner, budget)
 }
@@ -2026,6 +2100,13 @@ pub fn NativeRemoteRuntime::retains_dispatch_resources(
 pub fn NativeRemoteRuntime::close(
   self : NativeRemoteRuntime,
 ) -> Result[Bool, NativeRemoteRuntimeIssue] {
+  // Do not poison the retry entry before historical resource handles have
+  // been reconstructed. Pending already prevents admission of new work.
+  for owner in self.owners.values() {
+    if owner.restoration_pending {
+      return Err(CompletedRestorationPending)
+    }
+  }
   let changed = !self.closed
   self.closed = true
   let mut failure : NativeRemoteRuntimeIssue? = None

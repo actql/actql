@@ -77,6 +77,14 @@ pub fn Journal::observation(
 }
 
 ///|
+pub fn Journal::require_completed_cleanup(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::recover_after(
   _self : Journal,
   after_key : String,
@@ -122,7 +130,9 @@ pub fn Journal::commit_evidence_transition(
   subject : @remote.RemoteManagedOutputSubject,
   measurement : @remote.RemoteManagedOutputMeasurement,
   source_observation? : @remote.RemoteSourceObservation? = None,
+  file_custody? : NativeOutputFileCustody? = None,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
+  ignore(file_custody)
   ignore(source_observation)
   ignore(transition)
   ignore(evidence)

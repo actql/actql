@@ -8,7 +8,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
       "{\"ids\":[" + identity + "," + identity + "]}"
     }
     let step = if relation { 4 } else { 3 }
-    let suffix = ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"}" +
+    let suffix = ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"}" +
       (if relation {
         ",{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":{\"literal\":true},\"fields\":[\"element\"]},\"as\":\"starts\"}"
       } else {
@@ -23,7 +23,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
       through_check=true,
       checked_results=programs,
       second_stage=true,
-      property_graph=true,
+      graph=true,
       graph_construction_limit=Some(1000),
       traversal_capacity=true,
       traversal_step=step,
@@ -59,7 +59,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
       graph_traversal="traverse",
       graph_traversal_step=step,
       graph_step_limit=if relation { 7 } else { 6 },
-      property_graph=true,
+      graph=true,
     ) catch {
       Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
         fail("selector publication pipeline: " + @debug.to_string(issue.kind))

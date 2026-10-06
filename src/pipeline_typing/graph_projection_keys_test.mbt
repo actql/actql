@@ -1,7 +1,7 @@
 ///|
 fn key_projection_graph() -> @carrier.Carrier {
   // Shared audit input is current definition-keyed Graph, never a tuple issuer.
-  query_property_graph()
+  query_graph()
 }
 
 ///|
@@ -24,10 +24,10 @@ test "Graph definition presence permits guaranteed projection but never sample-b
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [
-      @carrier.property_node_definition(
+      @carrier.graph_node_definition(
         "N",
         [number],
         optional,
@@ -36,7 +36,7 @@ test "Graph definition presence permits guaranteed projection but never sample-b
         max_fields=4,
         max_name_bytes=100,
       ).unwrap(),
-      @carrier.property_node_definition(
+      @carrier.graph_node_definition(
         "M",
         [number],
         empty,
@@ -85,7 +85,7 @@ test "Graph row projection requires true with exact public diagnostics" {
     assert_true(
       @pipeline_typing.check_carriers(
         cursor("[{\"" + key + "\":true}]"),
-        [("g", query_property_graph())],
+        [("g", query_graph())],
         None,
         None,
         limits(),
@@ -95,7 +95,7 @@ test "Graph row projection requires true with exact public diagnostics" {
     for body in ["false", "null", "{}", "[]", "1", "\"true\""] {
       let issue = @pipeline_typing.check_carriers(
         cursor("[{\"" + key + "\":" + body + "}]"),
-        [("g", query_property_graph())],
+        [("g", query_graph())],
         None,
         None,
         limits(),
@@ -119,7 +119,7 @@ test "Graph row projection requires true with exact public diagnostics" {
       assert_true(
         @pipeline_typing.check_carriers(
           cursor("[{\"" + key + "\":true}]"),
-          [("g", query_property_graph())],
+          [("g", query_graph())],
           None,
           None,
           cap,
@@ -141,7 +141,7 @@ test "Graph edge row roles do not invent retired endpoint names for joins" {
     assert_true(
       @pipeline_typing.check_carriers(
         source,
-        [("g", query_property_graph())],
+        [("g", query_graph())],
         None,
         None,
         limits(),
@@ -153,7 +153,7 @@ test "Graph edge row roles do not invent retired endpoint names for joins" {
 
 ///|
 test "Graph row projections do not manufacture global candidate key evidence" {
-  for graph in [query_property_graph()] {
+  for graph in [query_graph()] {
     for
       (body, removed) in [
         ("node_rows", "[\"id\"]"),

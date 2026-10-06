@@ -50,7 +50,7 @@ pub fn operation_count(Query) -> Int
 
 pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Result[Expression, Diagnostic]
 
-pub fn parse_property_graph(String, QueryLimits, source_path? : String) -> Result[PropertyGraphConstructor, Diagnostic]
+pub fn parse_graph(String, QueryLimits, source_path? : String) -> Result[GraphConstructor, Diagnostic]
 
 pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
 
@@ -108,6 +108,7 @@ pub fn usage(Tokens, Resource) -> Int
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?
@@ -152,7 +153,7 @@ pub(all) struct DataDeclaration {
 
 pub(all) enum DataExpression {
   RelationQuery(Query)
-  PropertyGraph(PropertyGraphConstructor)
+  Graph(GraphConstructor)
   NamedGraphCall(SgaCall)
 }
 
@@ -209,6 +210,22 @@ pub(all) enum GraphConstraint {
   Properties(Array[(NamePart, Expression)])
 }
 
+pub(all) struct GraphConstructor {
+  nodes : Array[GraphNodeDefinition]
+  edges : Array[GraphEdgeDefinition]
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphEdgeDefinition {
+  producer : Array[NamePart]
+  name : NamePart
+  key : Array[NamePart]
+  source : GraphEndpointReference
+  destination : GraphEndpointReference
+  labels : Array[GraphLabel]
+} derive(Eq, @debug.Debug)
+
 pub(all) struct GraphEdgePattern {
   variable : NamePart?
   label : NamePart?
@@ -220,6 +237,24 @@ pub(all) struct GraphEdgePattern {
   start : Int
   end : Int
 }
+
+pub(all) struct GraphEndpointReference {
+  key : Array[NamePart]
+  definition : NamePart
+  referenced_key : Array[NamePart]?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphLabel {
+  name : NamePart
+  properties : GraphPropertySelection
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GraphNodeDefinition {
+  producer : Array[NamePart]
+  name : NamePart
+  key : Array[NamePart]
+  labels : Array[GraphLabel]
+} derive(Eq, @debug.Debug)
 
 pub(all) struct GraphNodePattern {
   variable : NamePart?
@@ -347,41 +382,8 @@ pub(all) struct Projection {
   analytic : AnalyticCall?
   name : NamePart?
   star : String?
+  except_columns : Array[NamePart]
 }
-
-pub(all) struct PropertyEdgeDefinition {
-  producer : Array[NamePart]
-  name : NamePart
-  key : Array[NamePart]
-  source : PropertyEndpointReference
-  destination : PropertyEndpointReference
-  labels : Array[PropertyGraphLabel]
-} derive(Eq, @debug.Debug)
-
-pub(all) struct PropertyEndpointReference {
-  key : Array[NamePart]
-  definition : NamePart
-  referenced_key : Array[NamePart]?
-} derive(Eq, @debug.Debug)
-
-pub(all) struct PropertyGraphConstructor {
-  nodes : Array[PropertyNodeDefinition]
-  edges : Array[PropertyEdgeDefinition]
-  start : Int
-  end : Int
-} derive(Eq, @debug.Debug)
-
-pub(all) struct PropertyGraphLabel {
-  name : NamePart
-  properties : GraphPropertySelection
-} derive(Eq, @debug.Debug)
-
-pub(all) struct PropertyNodeDefinition {
-  producer : Array[NamePart]
-  name : NamePart
-  key : Array[NamePart]
-  labels : Array[PropertyGraphLabel]
-} derive(Eq, @debug.Debug)
 
 type Query
 
@@ -400,6 +402,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -411,7 +414,7 @@ pub(all) enum QueryOperation {
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
-  Having(Expression)
+  Having(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])

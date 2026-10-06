@@ -80,8 +80,7 @@ row bridges explicitly validate both the output and dependency units below.
 | `nearest` | `actql.bound.nearest`, query bound times the checked `k`, or query bound times `min(candidate bound, k)` with both input applications retained. |
 | `text_rank` | `actql.bound.text-rank`, query bound times `k`, or query bound times `min(corpus bound, k)` with both actual input applications retained. Zero-score filtering does not establish an exact count. |
 | `merge_rankings` | `actql.bound.merge-rankings`, sum all ordered input upper bounds; with empty `by`, clamp that sum to `k`, or use an input-independent `k` upper bound. |
-| Explicit `graph` construction | `actql.bound.graph-nodes` converts the actual node branch's row upper bound to `nodes`; `actql.bound.graph-edges` converts the actual edge branch's row upper bound to `edges`. Each uses a source derivation with its exact input application. |
-| Concise edge-list `graph` | The same Graph laws use the actual edge input: at most two endpoint nodes per row and at most one edge per row. Checked multiplication fails on overflow. |
+| `graph` construction | `actql.bound.graph-construction-nodes` sums node-definition row bounds and `actql.bound.graph-construction-edges` sums edge-definition row bounds. Every ordered definition occurrence retains its actual producer witness, including repeated producers. No endpoint-derived nodes are created. |
 | `node_rows`, `edge_rows` | `actql.bound.graph-node-rows` and `actql.bound.graph-edge-rows` convert an actual producer's respective `nodes` or `edges` bound into `rows`, using a source derivation. |
 | `degree` | `actql.bound.graph-degree` converts the original node upper bound into an output-row upper bound, independently of edge degree or direction. |
 | `components` | `actql.bound.components-input-nodes` retains the input node bound; `actql.bound.components-nodes` converts it to an output-row bound. These are candidates, not the separately enforced `components-output` limit. |
@@ -89,15 +88,11 @@ row bridges explicitly validate both the output and dependency units below.
 | `graft_graph`, `union_graphs` | `actql.bound.graph-nodes` / `actql.bound.graph-edges` sum the same-unit bounds from every actual operand occurrence. Union lists include the current input first, then every listed reference, including repetitions. |
 | `subtract_graphs` | The same measure-specific laws retain the left input bound; subtraction cannot add entities. The right data dependency and all property/endpoint validation obligations remain on the checked operation. |
 
-Graph measure conversion is a source-law application, not a same-unit preserve
-or multiply derivation. The fixed Sketch compiler separately materializes the
-concise endpoint union (`actql.bound.graph-endpoints`) before Graph construction;
-the local checked source step retains the authored Graph operation and validates
-its composed two-endpoint upper bound without inventing lowered step identities.
-Explicit construction retains both data branches even though each measure's
-proof uses only its respective branch. Endpoint closure, graph identity and
-property admission still require their existing validations; upper bounds do
-not assert that every input occurrence survives or becomes a distinct entity.
+Graph measure conversion retains the selected quantity and exact input
+occurrence. Construction uses the sole definition-keyed count owner and its
+checked ordered sums. Input admission, duplicate-key refusal and endpoint
+membership remain independent obligations; count bounds do not certify which
+rows survive NULL-key or missing-endpoint exclusion.
 
 The match bound does not evaluate predicates or deduplicate authored identity
 selectors. It uses the original entity upper bound even for repeated IDs and

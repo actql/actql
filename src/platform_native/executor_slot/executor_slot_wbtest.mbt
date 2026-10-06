@@ -95,9 +95,36 @@ test "executor slot refuses a holder when the slot is not held or replaced" {
   let mismatched : NativeExecutorSlot = {
     path: root + "/replaced-other.lock",
     descriptor: replaced.descriptor,
+    acquired: true,
   }
   assert_true(
     mismatched.spawn_holder("/bin/sh", ["-c", "exit 0"]) is Err(Replaced),
   )
   ignore(replaced.close())
+}
+
+///|
+test "executor slot current observation cannot acquire or follow a replacement" {
+  let root = slot_test_root().unwrap_or_else(() => {
+    abort("private slot root required")
+  })
+  let path = root + "/current.lock"
+  let owner = open_native_executor_slot(path).unwrap()
+  let other = open_native_executor_slot(path).unwrap()
+  assert_true(owner.verify_current_hold() is Err(NotHeld))
+  assert_true(other.try_acquire().unwrap())
+  assert_true(owner.verify_current_hold() is Err(NotHeld))
+  assert_true(other.close())
+  assert_true(owner.try_acquire().unwrap())
+  owner.verify_current_hold().unwrap()
+  let different = open_native_executor_slot(root + "/current-other.lock").unwrap()
+  let mismatched : NativeExecutorSlot = {
+    path: root + "/current-other.lock",
+    descriptor: owner.descriptor,
+    acquired: true,
+  }
+  assert_true(mismatched.verify_current_hold() is Err(Replaced))
+  assert_true(different.close())
+  assert_true(owner.close())
+  assert_true(owner.verify_current_hold() is Err(Closed))
 }

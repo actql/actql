@@ -1,5 +1,5 @@
 // Runs unchanged in the clean installation. Only the installed SDK and Host
-// check, admit and control the independent machine-input Property Graph Program.
+// check, admit and control the independent machine-input Graph Program.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -11,7 +11,7 @@ import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 
-const source = await readFile('fixtures/property-graph-parallel.program.json',
+const source = await readFile('fixtures/graph-parallel.program.json',
   'utf8');
 const deferred = () => {
   let resolve;
@@ -116,7 +116,7 @@ for (const mode of ['local', 'remote']) {
     assert.equal(steps.filter(name => name === 'physical_start_reserved').length,
       0);
     assert.equal(steps.filter(name => name === 'computed').length, 0);
-    console.log(`packed ${mode} Property Graph Run cancellation before physical start passed`);
+    console.log(`packed ${mode} Graph Run cancellation before physical start passed`);
   } finally {
     release.resolve();
     await submission?.catch(() => {});

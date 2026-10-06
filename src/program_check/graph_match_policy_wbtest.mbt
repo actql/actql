@@ -2,7 +2,7 @@
 test "current Graph matches preserve original Source policy and typed selector provenance" {
   // Independently hash the authored constructor and fixed SourceView body
   // preimage. The two producer occurrences remain ordered, even when shared.
-  let domain = "sha256:e95f67084a112ecd81cf96752d7dcffc731922c81ee7946fcf8ab2ef11a5b4a5"
+  let domain = "sha256:615881778171766fa880dd151f9e06edc4013804ac235910c5c7a9253518a2cf"
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
@@ -39,10 +39,10 @@ test "current Graph matches preserve original Source policy and typed selector p
       ),
     ] {
     let graph_body =
-      #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"}
+      #|{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"}
     let program = checked_direct_program_fixture(
       graph_steps=graph_body + "," + body,
-      property_graph=true,
+      graph=true,
     )
     assert_eq(source_graph_domain(program, 0), domain)
     let unit = program.units[0]

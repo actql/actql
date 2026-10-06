@@ -116,3 +116,13 @@ pub fn acknowledge_retained_input_result(
 ) -> Result[Unit, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+/// A transport ACK does not extend the lifetime of this current observation.
+pub fn acknowledge_retained_input_current(
+  _client : @http.Client,
+  _url : String,
+  _reply : @remote.RemoteRetainedCurrentReply,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}

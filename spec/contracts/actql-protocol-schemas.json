@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:a12df3aecca3311ad2f72413f4e786c63cd9e53268f2aaaeb22ec09c58526c64",
+  "artifact_registry_cid": "sha256:61ac74bece5a60e17222391356ace098c82686c4a702a87daef353602db627fe",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:fe0af9afcf8a8d1af4740dd77b321bab61a3fe4d0890a3e57b6e96c8a6d7cc02",
+    "executable_plan": "sha256:30e187b2bcfd91b2a993e3b509b7d52cc6785d7d2f285c18c72dcaadf9315705",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:e072e415a6ee3c6a2c0f90fd1dd28205172e8ea3d23cdd74a3d6c07a825e682b",
+    "plan_document": "sha256:2c209c193fd390ddeae115bf8f9eee9bb37e58729f82e517aac19b16913edc38",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -34033,101 +34033,344 @@
                         ]
                       },
                       "graph": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "nodes",
-                              "edges"
-                            ],
-                            "properties": {
-                              "nodes": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "from",
-                                  "id"
-                                ],
-                                "properties": {
-                                  "from": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "version",
+                          "nodes",
+                          "edges"
+                        ],
+                        "properties": {
+                          "version": {
+                            "const": "actql-graph-constructor/0.1"
+                          },
+                          "nodes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "name",
+                                "from",
+                                "key"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "from": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "key": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "uniqueItems": true,
+                                  "items": {
                                     "type": "string",
                                     "minLength": 1
-                                  },
-                                  "id": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true
                                   }
-                                }
-                              },
-                              "edges": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "from",
-                                  "source",
-                                  "target"
-                                ],
-                                "properties": {
-                                  "from": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "source": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "target": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "label": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true
+                                },
+                                "labels": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "properties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "no_properties"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "except"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns_except"
+                                              },
+                                              "except": {
+                                                "type": "array",
+                                                "uniqueItems": true,
+                                                "items": {
+                                                  "type": "string",
+                                                  "minLength": 1
+                                                }
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "columns"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "columns"
+                                              },
+                                              "columns": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "from",
+                                                    "to"
+                                                  ],
+                                                  "properties": {
+                                                    "from": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    },
+                                                    "to": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
                                   }
                                 }
                               }
                             }
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "source",
-                              "target"
-                            ],
-                            "properties": {
-                              "source": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "target": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "label": {
-                                "type": "string",
-                                "minLength": 1
+                          "edges": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "name",
+                                "from",
+                                "key",
+                                "source",
+                                "target"
+                              ],
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "from": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "key": {
+                                  "type": "array",
+                                  "minItems": 1,
+                                  "uniqueItems": true,
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "labels": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "name"
+                                    ],
+                                    "properties": {
+                                      "name": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "properties": {
+                                        "oneOf": [
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "no_properties"
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "except"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "all_columns_except"
+                                              },
+                                              "except": {
+                                                "type": "array",
+                                                "uniqueItems": true,
+                                                "items": {
+                                                  "type": "string",
+                                                  "minLength": 1
+                                                }
+                                              }
+                                            }
+                                          },
+                                          {
+                                            "type": "object",
+                                            "additionalProperties": false,
+                                            "required": [
+                                              "mode",
+                                              "columns"
+                                            ],
+                                            "properties": {
+                                              "mode": {
+                                                "const": "columns"
+                                              },
+                                              "columns": {
+                                                "type": "array",
+                                                "items": {
+                                                  "type": "object",
+                                                  "additionalProperties": false,
+                                                  "required": [
+                                                    "from",
+                                                    "to"
+                                                  ],
+                                                  "properties": {
+                                                    "from": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    },
+                                                    "to": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  }
+                                },
+                                "source": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "definition",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "definition": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "references_key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                },
+                                "target": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "definition",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "definition": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "references_key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             }
                           }
-                        ]
+                        }
                       },
                       "graft_graph": {
                         "type": "object",
@@ -35881,346 +36124,6 @@
                                     "type": "number",
                                     "minimum": 0,
                                     "maximum": 1
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "property_graph": {
-                        "type": "object",
-                        "additionalProperties": false,
-                        "required": [
-                          "version",
-                          "nodes",
-                          "edges"
-                        ],
-                        "properties": {
-                          "version": {
-                            "const": "actql-property-graph-constructor/0.1"
-                          },
-                          "nodes": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "name",
-                                "from",
-                                "key"
-                              ],
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "from": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "key": {
-                                  "type": "array",
-                                  "minItems": 1,
-                                  "uniqueItems": true,
-                                  "items": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                },
-                                "labels": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "name"
-                                    ],
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "properties": {
-                                        "oneOf": [
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "all_columns"
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "no_properties"
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode",
-                                              "except"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "all_columns_except"
-                                              },
-                                              "except": {
-                                                "type": "array",
-                                                "uniqueItems": true,
-                                                "items": {
-                                                  "type": "string",
-                                                  "minLength": 1
-                                                }
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode",
-                                              "columns"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "columns"
-                                              },
-                                              "columns": {
-                                                "type": "array",
-                                                "items": {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "required": [
-                                                    "from",
-                                                    "to"
-                                                  ],
-                                                  "properties": {
-                                                    "from": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    },
-                                                    "to": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "edges": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "additionalProperties": false,
-                              "required": [
-                                "name",
-                                "from",
-                                "key",
-                                "source",
-                                "target"
-                              ],
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "from": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "key": {
-                                  "type": "array",
-                                  "minItems": 1,
-                                  "uniqueItems": true,
-                                  "items": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                },
-                                "labels": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "name"
-                                    ],
-                                    "properties": {
-                                      "name": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "properties": {
-                                        "oneOf": [
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "all_columns"
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "no_properties"
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode",
-                                              "except"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "all_columns_except"
-                                              },
-                                              "except": {
-                                                "type": "array",
-                                                "uniqueItems": true,
-                                                "items": {
-                                                  "type": "string",
-                                                  "minLength": 1
-                                                }
-                                              }
-                                            }
-                                          },
-                                          {
-                                            "type": "object",
-                                            "additionalProperties": false,
-                                            "required": [
-                                              "mode",
-                                              "columns"
-                                            ],
-                                            "properties": {
-                                              "mode": {
-                                                "const": "columns"
-                                              },
-                                              "columns": {
-                                                "type": "array",
-                                                "items": {
-                                                  "type": "object",
-                                                  "additionalProperties": false,
-                                                  "required": [
-                                                    "from",
-                                                    "to"
-                                                  ],
-                                                  "properties": {
-                                                    "from": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    },
-                                                    "to": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  }
-                                },
-                                "source": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "definition",
-                                    "key"
-                                  ],
-                                  "properties": {
-                                    "definition": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "references_key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
-                                  }
-                                },
-                                "target": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "definition",
-                                    "key"
-                                  ],
-                                  "properties": {
-                                    "definition": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "references_key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
                                   }
                                 }
                               }
@@ -63878,101 +63781,344 @@
                             ]
                           },
                           "graph": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "nodes",
-                                  "edges"
-                                ],
-                                "properties": {
-                                  "nodes": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "from",
-                                      "id"
-                                    ],
-                                    "properties": {
-                                      "from": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "version",
+                              "nodes",
+                              "edges"
+                            ],
+                            "properties": {
+                              "version": {
+                                "const": "actql-graph-constructor/0.1"
+                              },
+                              "nodes": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "from",
+                                    "key"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "from": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
                                         "type": "string",
                                         "minLength": 1
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "fields": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "string",
-                                          "minLength": 1
-                                        },
-                                        "uniqueItems": true
                                       }
-                                    }
-                                  },
-                                  "edges": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "from",
-                                      "source",
-                                      "target"
-                                    ],
-                                    "properties": {
-                                      "from": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "source": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "target": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "label": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "fields": {
-                                        "type": "array",
-                                        "items": {
-                                          "type": "string",
-                                          "minLength": 1
-                                        },
-                                        "uniqueItems": true
+                                    },
+                                    "labels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "properties": {
+                                            "oneOf": [
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "no_properties"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "except"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns_except"
+                                                  },
+                                                  "except": {
+                                                    "type": "array",
+                                                    "uniqueItems": true,
+                                                    "items": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "columns"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "columns"
+                                                  },
+                                                  "columns": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "required": [
+                                                        "from",
+                                                        "to"
+                                                      ],
+                                                      "properties": {
+                                                        "from": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        },
+                                                        "to": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
                                       }
                                     }
                                   }
                                 }
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "source",
-                                  "target"
-                                ],
-                                "properties": {
-                                  "source": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "target": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "label": {
-                                    "type": "string",
-                                    "minLength": 1
+                              "edges": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "name",
+                                    "from",
+                                    "key",
+                                    "source",
+                                    "target"
+                                  ],
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "from": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "key": {
+                                      "type": "array",
+                                      "minItems": 1,
+                                      "uniqueItems": true,
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "labels": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "name"
+                                        ],
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          },
+                                          "properties": {
+                                            "oneOf": [
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "no_properties"
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "except"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "all_columns_except"
+                                                  },
+                                                  "except": {
+                                                    "type": "array",
+                                                    "uniqueItems": true,
+                                                    "items": {
+                                                      "type": "string",
+                                                      "minLength": 1
+                                                    }
+                                                  }
+                                                }
+                                              },
+                                              {
+                                                "type": "object",
+                                                "additionalProperties": false,
+                                                "required": [
+                                                  "mode",
+                                                  "columns"
+                                                ],
+                                                "properties": {
+                                                  "mode": {
+                                                    "const": "columns"
+                                                  },
+                                                  "columns": {
+                                                    "type": "array",
+                                                    "items": {
+                                                      "type": "object",
+                                                      "additionalProperties": false,
+                                                      "required": [
+                                                        "from",
+                                                        "to"
+                                                      ],
+                                                      "properties": {
+                                                        "from": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        },
+                                                        "to": {
+                                                          "type": "string",
+                                                          "minLength": 1
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "source": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "definition",
+                                        "key"
+                                      ],
+                                      "properties": {
+                                        "definition": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "references_key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "target": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "definition",
+                                        "key"
+                                      ],
+                                      "properties": {
+                                        "definition": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        },
+                                        "references_key": {
+                                          "type": "array",
+                                          "minItems": 1,
+                                          "uniqueItems": true,
+                                          "items": {
+                                            "type": "string",
+                                            "minLength": 1
+                                          }
+                                        }
+                                      }
+                                    }
                                   }
                                 }
                               }
-                            ]
+                            }
                           },
                           "graft_graph": {
                             "type": "object",
@@ -65726,346 +65872,6 @@
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 1
-                                      }
-                                    }
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "property_graph": {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "version",
-                              "nodes",
-                              "edges"
-                            ],
-                            "properties": {
-                              "version": {
-                                "const": "actql-property-graph-constructor/0.1"
-                              },
-                              "nodes": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "name",
-                                    "from",
-                                    "key"
-                                  ],
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "from": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "labels": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "name"
-                                        ],
-                                        "properties": {
-                                          "name": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          },
-                                          "properties": {
-                                            "oneOf": [
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "all_columns"
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "no_properties"
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode",
-                                                  "except"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "all_columns_except"
-                                                  },
-                                                  "except": {
-                                                    "type": "array",
-                                                    "uniqueItems": true,
-                                                    "items": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode",
-                                                  "columns"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "columns"
-                                                  },
-                                                  "columns": {
-                                                    "type": "array",
-                                                    "items": {
-                                                      "type": "object",
-                                                      "additionalProperties": false,
-                                                      "required": [
-                                                        "from",
-                                                        "to"
-                                                      ],
-                                                      "properties": {
-                                                        "from": {
-                                                          "type": "string",
-                                                          "minLength": 1
-                                                        },
-                                                        "to": {
-                                                          "type": "string",
-                                                          "minLength": 1
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            ]
-                                          }
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              },
-                              "edges": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "name",
-                                    "from",
-                                    "key",
-                                    "source",
-                                    "target"
-                                  ],
-                                  "properties": {
-                                    "name": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "from": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "key": {
-                                      "type": "array",
-                                      "minItems": 1,
-                                      "uniqueItems": true,
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "labels": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "name"
-                                        ],
-                                        "properties": {
-                                          "name": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          },
-                                          "properties": {
-                                            "oneOf": [
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "all_columns"
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "no_properties"
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode",
-                                                  "except"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "all_columns_except"
-                                                  },
-                                                  "except": {
-                                                    "type": "array",
-                                                    "uniqueItems": true,
-                                                    "items": {
-                                                      "type": "string",
-                                                      "minLength": 1
-                                                    }
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                "type": "object",
-                                                "additionalProperties": false,
-                                                "required": [
-                                                  "mode",
-                                                  "columns"
-                                                ],
-                                                "properties": {
-                                                  "mode": {
-                                                    "const": "columns"
-                                                  },
-                                                  "columns": {
-                                                    "type": "array",
-                                                    "items": {
-                                                      "type": "object",
-                                                      "additionalProperties": false,
-                                                      "required": [
-                                                        "from",
-                                                        "to"
-                                                      ],
-                                                      "properties": {
-                                                        "from": {
-                                                          "type": "string",
-                                                          "minLength": 1
-                                                        },
-                                                        "to": {
-                                                          "type": "string",
-                                                          "minLength": 1
-                                                        }
-                                                      }
-                                                    }
-                                                  }
-                                                }
-                                              }
-                                            ]
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "source": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "required": [
-                                        "definition",
-                                        "key"
-                                      ],
-                                      "properties": {
-                                        "definition": {
-                                          "type": "string",
-                                          "minLength": 1
-                                        },
-                                        "key": {
-                                          "type": "array",
-                                          "minItems": 1,
-                                          "uniqueItems": true,
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        },
-                                        "references_key": {
-                                          "type": "array",
-                                          "minItems": 1,
-                                          "uniqueItems": true,
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        }
-                                      }
-                                    },
-                                    "target": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "required": [
-                                        "definition",
-                                        "key"
-                                      ],
-                                      "properties": {
-                                        "definition": {
-                                          "type": "string",
-                                          "minLength": 1
-                                        },
-                                        "key": {
-                                          "type": "array",
-                                          "minItems": 1,
-                                          "uniqueItems": true,
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        },
-                                        "references_key": {
-                                          "type": "array",
-                                          "minItems": 1,
-                                          "uniqueItems": true,
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        }
                                       }
                                     }
                                   }

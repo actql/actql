@@ -205,12 +205,12 @@ fn client_task_carrier_contract(
       // Public task ports use the keyed contract exclusively. Old carrier
       // bodies are not an alternative admission path after a failed check.
       match
-        @graph_contract.admit_property_graph(carrier, {
+        @graph_contract.admit(carrier, {
           max_bytes: max_wire_bytes,
           max_nodes,
           max_depth,
         }) {
-        Ok(contract) => Some(("graph", @graph_contract.property_cid(contract)))
+        Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
         Err(_) => None
       }
     EventsKind | VectorsKind =>

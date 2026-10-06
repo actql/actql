@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn qualified_name_records() -> @carrier.Carrier {
   @carrier.relation(
@@ -31,7 +34,11 @@ test "qualified record emission preserves independently derived limits" {
       qualified_name_records(),
       append_step_limits(slots, work, bytes),
     ).unwrap()
-    let cursor = start_append(builder, [(field, number_for_append_steps())]).unwrap()
+    let cursor = start_append(
+      builder,
+      [(field, number_for_append_steps())],
+      external_workspace_slots=0,
+    ).unwrap()
     let (result, _) = identity_step_result(cursor, 100)
     assert_eq(result, expected)
     if expected == Ok(true) {
@@ -57,7 +64,7 @@ test "qualified emission cancellation keeps prior rows until separate cleanup" {
   let fields = [(field, number_for_append_steps())]
   assert_eq(append(builder, fields), Ok(()))
   let retained = builder_retained_value_bytes(builder)
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   let mut found = false
   for _ in 0..<100 {
     if cursor.phase is FieldName {

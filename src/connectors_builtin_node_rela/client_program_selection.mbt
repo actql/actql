@@ -5,7 +5,7 @@ fn selected_sga_supported() -> Bool {
 }
 
 ///|
-fn selected_property_graph_supported() -> Bool {
+fn selected_graph_supported() -> Bool {
   false
 }
 

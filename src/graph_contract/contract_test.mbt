@@ -13,7 +13,7 @@ fn with_labels(
   rows : @carrier.Knowledge,
   labels : Array[String],
 ) -> @carrier.Carrier {
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@value.primitive(NumberType, nullable=false)],
     rows,
@@ -21,8 +21,8 @@ fn with_labels(
     max_fields=100,
     max_name_bytes=1000,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [@value.primitive(NumberType, nullable=false)],
       rows,
@@ -33,7 +33,7 @@ fn with_labels(
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],
@@ -84,7 +84,7 @@ test "complete property types participate independently of enumeration order" {
     max_name_bytes=1,
   ).unwrap()
   assert_true(
-    @carrier.property_node_definition(
+    @carrier.graph_node_definition(
       "N",
       [number],
       incomplete,
@@ -136,7 +136,7 @@ test "graph contract identity matches independently fixed canonical preimage" {
   // Node canonicalText + crypto SHA-256, independently computed from this body.
   assert_eq(
     @graph_contract.cid(c),
-    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+    "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
   )
   let text = @graph_contract.stringify(c, caps())
   assert_eq(@graph_contract.bytes(c), text.length())
@@ -179,11 +179,11 @@ test "closed label knowledge is semantic and declaration order is not" {
       @graph_contract.admit(with_labels(empty, []), caps()).unwrap(),
     ),
   )
-  let definition = @carrier.property_graph_node_at(
-    @carrier.graph_property_definition(@graph_contract.graph(a)),
+  let definition = @carrier.graph_node_at(
+    @carrier.graph_definition(@graph_contract.graph(a)),
     0,
   ).unwrap()
-  assert_eq(@carrier.property_definition_labels(definition), ["a", "b"])
+  assert_eq(@carrier.graph_element_definition_labels(definition), ["a", "b"])
 }
 
 ///|

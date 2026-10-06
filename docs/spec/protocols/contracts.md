@@ -203,7 +203,7 @@ type declarations, not actual values, Ref issuers or execution authority.
 Each supplied `carrier_schema` body MUST use exactly one of the following closed
 forms, including unused envelopes. Relation uses the non-null canonical checked
 object value contract, including `fields: {}`. Graph uses the ActQL-owned
-`actql-property-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
+`actql-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
 The retired endpoint-tuple body is rejected, not converted or interpreted as
 the keyed contract. Structural admission preserves the declared definition
 domain, typed keys, ordered key-column/component correspondence, label sets and independent edge definitions; it does not
@@ -525,8 +525,8 @@ multiplier is one; count evidence does not establish order or acquisition comple
 ```
 
 <!-- requirement-block: capacity-law-registry.graph-count-body capacity-law-registry.graph-count-machine -->
-The pinned `actql-bound-graph-laws/0.1` body governs Graph extent construction,
-combination, preservation and conversion to Relation row bounds, including
+The pinned `actql-bound-graph-laws/0.1` body governs established Graph entity
+quantities, combination, preservation and conversion to Relation row bounds, including
 node traversal and shortest-path selection. Applications MUST retain quantity,
 actual input and selector dependencies and reject unsafe arithmetic. Node
 emission bounds do not establish path-emission bounds, observed graph sizes,
@@ -534,21 +534,21 @@ completeness or discharged resource enforcement.
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-graph-laws.json# sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48
+../../../spec/contracts/actql-bound-graph-laws.json# sha256:2d71fa65e17dab552994446422b7e1d93a13e96b1376d060d21b1fc7a19ce50e
 ```
 
-<!-- requirement-block: capacity-law-registry.property-graph-count-body capacity-law-registry.property-graph-count-machine -->
-The separately identified `actql-bound-property-graph-laws/0.1` body governs
+<!-- requirement-block: capacity-law-registry.graph-construction-count-body capacity-law-registry.graph-construction-count-machine -->
+The `actql-bound-graph-construction-laws/0.1` body governs
 independently keyed construction extents and definition-local selection.
 Applications MUST retain each definition's actual input occurrence, sum the
 respective node or edge row bounds with exact safe-integer arithmetic, and
 retain admission and resource obligations. Empty definition families have
 bound zero; unknown required premises do not. These quantity rules neither
-change legacy Graph semantics nor establish a path-emission bound.
+establish a path-emission bound nor discharge the Graph's other obligations.
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-property-graph-laws.json# sha256:5302fcd9ffaddc5d0bc61bb64a5769ed435fd4cc7cb95765947b2c1ed27d9c08
+../../../spec/contracts/actql-bound-graph-construction-laws.json# sha256:4ce27912b3cf5638294b674614fcec2ee460e67846899a00585063e039167fb7
 ```
 
 <!-- requirement-block: capacity-law-registry.ranking-series-body capacity-law-registry.ranking-machine capacity-law-registry.series-machine -->
@@ -572,7 +572,7 @@ or resource enforcement.
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:fb1014c7dfd2302c966dd45a7eaf347a11ed5db493b038f6049f0f5a571b688c
+../../../spec/contracts/actql-bound-law-registry.json# sha256:f8a41d10bb02ce9e3d52e17da0dd4e3f42ed047c7f93dd5007de2f92dba01e9c
 ```
 
 <a id="capacity-host-policy"></a>
@@ -1330,7 +1330,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:72bd3ccdb57d85219f9bd967eb59998e49d6807daf1afb725af9ab2bfca54a71 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:4858fa6a4da0e4b1f65485ba5d49a898354e6259903a352eea1202ea47455395 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
@@ -1899,7 +1899,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:b6dd6fb12235ad2a40a484d5229699bd674d4095932d81bc40eeaca604dcbf21
+../../../spec/contracts/actql-check-environment.json# sha256:d69036f2a12e048f26d8b622a6f4a9ca53ff2ac82f9660dea9ddcb48f63c6fbb
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
@@ -1928,11 +1928,11 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:fe0af9afcf8a8d1af4740dd77b321bab61a3fe4d0890a3e57b6e96c8a6d7cc02
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:30e187b2bcfd91b2a993e3b509b7d52cc6785d7d2f285c18c72dcaadf9315705
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:e072e415a6ee3c6a2c0f90fd1dd28205172e8ea3d23cdd74a3d6c07a825e682b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:2c209c193fd390ddeae115bf8f9eee9bb37e58729f82e517aac19b16913edc38
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c

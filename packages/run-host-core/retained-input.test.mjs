@@ -16,7 +16,8 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
   retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
   retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
-  retainedInputResultFacts,
+  retainedInputResultFacts, prepareRetainedInputCurrentQuery, retainedInputCurrentEnvelope,
+  admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
   prepareTaskPhysicalStart}
@@ -836,6 +837,67 @@ test('checked whole Run projection retains failure and cancellation cleanup with
   assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'none']);
 });
 
+test('checked whole Run projection cancels a fenced unclaimed consumer after exact producer cleanup', () => {
+  const {original, fixture, keys, project} = projectionFixture();
+  let state = project([fixture.completed], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.equal(project([fixture.completed], true, [keys[0]]).cleanupComplete, false);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  // Raw graph progress still requires both checked task observations. Only
+  // the cancellation projection discharges the never-started task obligation.
+  assert.equal(inspectTaskProgress(original.prepared, original.compilation, original.admission,
+    original.definition, fixture.completed.authority,
+    [fixture.completed.current().durableRecordWire]).cleanupComplete, false);
+  state = project([fixture.completed], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, true);
+  assert.equal(state.execution, 'cancelled');
+  assert.equal(JSON.parse(state.stateWire).status, 'cancelled');
+  assert.equal(state.executionComplete, false);
+  assert.equal(state.publicationReady, false);
+  assert.equal(state.nextTask, undefined);
+  assert.deepEqual(state.tasks.map(task => task.nextWork), ['none', 'none']);
+  assert.deepEqual(state.tasks.map(task => task.cleanup), ['released', 'unobserved']);
+});
+
+test('checked whole Run projection keeps missing claimed consumer and unfenced absence unresolved', () => {
+  const {fixture, keys, project} = projectionFixture();
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  const claimed = project([fixture.completed], true, keys);
+  assert.equal(claimed.execution, 'unknown');
+  assert.equal(claimed.cleanupComplete, false);
+  assert.equal(claimed.tasks[1].nextWork, 'reconcile');
+  assert.notEqual(JSON.parse(claimed.stateWire).status, 'cancelled');
+  const unfenced = project([fixture.completed], false, [keys[0]]);
+  assert.equal(unfenced.cleanupComplete, false);
+  assert.notEqual(unfenced.execution, 'cancelled');
+  assert.equal(unfenced.nextTask, 1);
+});
+
+test('checked whole Run projection requires terminal and cleanup proof from every dispatched consumer', () => {
+  const {fixture, consumer, keys, project} = projectionFixture();
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  // Even without a Host start claim, a persisted consumer dispatch has
+  // custody. Historical Accepted is not proof of physical stop or cleanup.
+  let state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  assert.equal(state.tasks[1].nextWork, 'cancel');
+  consumer.observe([5, 0, 0, 0, 0], 1, false);
+  state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  consumer.observe([5, 0, 1, 0, 0], 2, false);
+  assert.equal(project([fixture.completed, consumer], true, [keys[0]]).cleanupComplete, false);
+  consumer.observe([5, 0, 2, 0, 0], 3, false);
+  state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, true);
+  assert.equal(state.execution, 'cancelled');
+});
+
 
 test('checked whole Run projection distinguishes recovered custody from normal Released', () => {
   const {fixture, consumer, project} = projectionFixture();
@@ -934,4 +996,61 @@ test('checked task physical start uses producer proof for the exact dependent co
   assert.equal(start([producer, consumer], {...changes, cancelled: true}), false);
   consumer.observe([1, 0, 0, 0, 0], 1, false);
   assert.equal(start([producer, consumer], changes), false);
+});
+
+function retainedCurrentReplyFixture(fixture, queryId, changes = {}) {
+  return identifyRetainedWire({destination_receipt_cid: fixture.receipt.cid,
+    destination_receipt_json: fixture.receipt.wire,
+    dispatch_request_cid: fixture.completed.issued.cid,
+    plan_cid: fixture.reply.cid, query_id: queryId,
+    transfer_record_json: fixture.wire(),
+    version: 'actql-remote-retained-input-current-reply/0.1', ...changes});
+}
+
+test('retained current query joins actual durable protocol record and rejects stale challenges', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const query = prepareRetainedInputCurrentQuery(plan, 'e\u0301\r\n');
+  assert.deepEqual(JSON.parse(retainedInputCurrentEnvelope(query)), {
+    dispatch_request_cid: fixture.completed.issued.cid,
+    handoff_json: retainedInputTransferEnvelope(plan), plan_cid: fixture.reply.cid,
+    query_id: 'e\u0301\r\n', version: 'actql-remote-poll-retained-input-current/0.1'});
+  const incomplete = retainedCurrentReplyFixture(fixture, 'e\u0301\r\n');
+  assert.throws(() => admitRetainedInputCurrentReply(query, incomplete, planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  fixture.commit();
+  const before = fixture.wire();
+  const saved = retainedCurrentReplyFixture(fixture, 'e\u0301\r\n');
+  const reply = admitRetainedInputCurrentReply(query, saved, planLimits);
+  assert.deepEqual(retainedInputCurrentReplyFacts(reply), {...saved,
+    transferRecordWire: before, receipt: fixture.receipt});
+  assert.equal(fixture.wire(), before);
+  const newer = prepareRetainedInputCurrentQuery(plan, 'next-live-query');
+  assert.throws(() => admitRetainedInputCurrentReply(newer, saved, planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  for (const change of [{plan_cid: cid('f')}, {dispatch_request_cid: cid('f')},
+    {destination_receipt_cid: cid('f')}]) {
+    assert.throws(() => admitRetainedInputCurrentReply(query,
+      retainedCurrentReplyFixture(fixture, 'e\u0301\r\n', change), planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  }
+  for (const forged of [plan, {}, retainedInputPlanFacts(plan)]) {
+    assert.throws(() => retainedInputCurrentEnvelope(forged), {message: 'ForeignRunHostHandle'});
+  }
+  assert.throws(() => prepareRetainedInputCurrentQuery(plan, 'x'.repeat(257)),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  for (const [set, value] of [[fixture.siteCurrent, false], [fixture.authorized, false],
+    [fixture.clock, 2000000000000n]]) {
+    set(value);
+    assert.throws(() => retainedInputCurrentEnvelope(query), {code: 'RunHostRetainedInputCurrentRejected'});
+    assert.throws(() => admitRetainedInputCurrentReply(query, saved, planLimits),
+      {code: 'RunHostRetainedInputCurrentRejected'});
+    fixture.siteCurrent(true); fixture.authorized(true); fixture.clock(1900000000000n);
+  }
+  for (const limits of [{...planLimits, maxChunks: 2147483648},
+    {...planLimits, maxReferencedBytes: 8}, {...planLimits, extra: 1}]) {
+    assert.throws(() => admitRetainedInputCurrentReply(query, saved, limits),
+      {message: 'InvalidRunHostRetainedInputCurrentLimits'});
+  }
+  assert.deepEqual(retainedInputCurrentReplyFacts(reply).transferRecordWire, before);
 });

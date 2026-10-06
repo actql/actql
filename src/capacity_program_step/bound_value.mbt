@@ -16,7 +16,7 @@ fn calculate_bound_value(
         Ok(v) => @numeric.value(v)
         Err(_) => return Err(BoundOverflow)
       }
-    PropertyGraphMeasure(_, _, _) => {
+    GraphConstructionMeasure(_, _, _) => {
       let mut total = @numeric.read(0L).unwrap()
       for i in 0..<n {
         total = match @numeric.add(total, input_value(i)) {

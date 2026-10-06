@@ -59,7 +59,7 @@ envelope withdraws its *text path*, not the common Graph operation.
 | VecA/TEA OP forms | Their adopted domain vocabulary and existing logical operators | Surface productions and lowering must preserve the selected common contracts | Independent Program/result cases; never approximate with SQL scalar functions |
 
 Source-free Relation examples use the adopted FROM-optional SELECT and set
-syntax. The adopted [Property Graph mapping](frontend-standard-profiles.md#property-graph-mapping-and-element-identity)
+syntax. The adopted [Graph mapping](frontend-standard-profiles.md#graph-mapping-and-element-identity)
 uses NODE TABLES, EDGE TABLES, independent KEYs, REFERENCES and static label
 sets inside an explicit pure ActQL constructor. It requires a coordinated
 common Graph representation and independently authored expected Programs;

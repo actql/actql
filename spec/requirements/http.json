@@ -32,7 +32,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     }
   ]

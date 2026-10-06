@@ -510,10 +510,10 @@
     },
     {
       "requirement_id": "actql.language/carriers.graph-law-body",
-      "statement_sha256": "a6958297cd6fd9121c29897ef4704e29b18e0cd3b4e3b74be846b1a45de4b2d0",
+      "statement_sha256": "6973f92cd534fb7dd75ec2e196d295515ea80ed8088d67c728abdff0478e280b",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "carriers",
         "kind": "prose"
@@ -2111,7 +2111,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "predicates",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -2144,7 +2144,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "predicates",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -2655,10 +2655,10 @@
     },
     {
       "requirement_id": "actql.language/operation-inventory.family-operation-input-output",
-      "statement_sha256": "d81aea146e88b9d26ed11d765673728a3f6a435060979bb3f9c9173a4bf75654",
+      "statement_sha256": "939cbcd2fa8d3809b68cf3c512caa70083b6d971167543c3ada9c6537a8cffe6",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "operation-inventory",
         "kind": "table"
@@ -3398,7 +3398,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "derive",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -4733,127 +4733,6 @@
       }
     },
     {
-      "requirement_id": "actql.language/graph-construction.node-and-edge-branches-must-name-relation-inputs",
-      "statement_sha256": "373cb68b6ec0b4e97f2e8c12056ed2f3e1ad936c9e797a52bd6d6e398dcb509b",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.id-source-and-target-are-semantic-identity-fields-and-must",
-      "statement_sha256": "4d83d64e66536db8f857d4a8b1cbd47a240923c14a60d67f3de296d1a3154a72",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.source-forms",
-      "statement_sha256": "ef12d4cb1e02a914a8e611c86548bb6021f6122d090a20fa2689cc7ab783043a",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.identity-domains",
-      "statement_sha256": "b75de712890426eded401a1b14dd22b9cd227e6ca118d2408458322517a471b3",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.property-projection",
-      "statement_sha256": "aed8a53e27b32574b6c5b9eec878e0063a519ae57c50137c37edd5d8dbdda3c1",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.label-completion",
-      "statement_sha256": "de4c57a61c8f3146ee0e94ad34c398add0b86305aeff083714e092a3ade9ecac",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.before-graph-construction-the-compiler-must-close-both-edge-endpoints",
-      "statement_sha256": "0fdf670fa970f310ccb0ba01f5cfdec97951abd49857687fcef75ac69f692f77",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.for-the-concise-relation-form-a-statically-known-field-named",
-      "statement_sha256": "4baaabfd7d1e0bc92acca4258bf4065bd9b3fc68a0aab6695ec3d0669fa03257",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.any-typed-traversal-or-shortest-path-constraint-over-edge-types-must-fail",
-      "statement_sha256": "7e91495d8971adf9720448bf39c85637fc0b6cf82375d0c415ca4c0947319ad2",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.the-compiler-must-not-reinterpret-an-arbitrary-retained-property-as",
-      "statement_sha256": "4a0f205cab7845917de7789ec05593f4e3f99a73abef3a4b2f2a1429b8136465",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
-      "requirement_id": "actql.language/graph-construction.external-opaque-graphs-without-that-evidence-may-be-normalized-or",
-      "statement_sha256": "ae140b6b07d70ae5bb2279ac7e73bd8a8efa9ae4282eef52bb6f8cd875d9c085",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
-      "source": {
-        "anchor": "graph-construction",
-        "kind": "prose"
-      }
-    },
-    {
       "requirement_id": "actql.language/graph-construction.capacity-selection",
       "statement_sha256": "51451022093011f756b765cea567b607e30e26b25feaf4c5d9f9cad821ef8115",
       "status": "pending",
@@ -4865,11 +4744,22 @@
       }
     },
     {
-      "requirement_id": "actql.language/graph-construction.capacity-enforcement",
-      "statement_sha256": "894dea92543532737faac5d5a72f0c809096aeddbccbd871241994d3b76b4907",
+      "requirement_id": "actql.language/graph-construction.resource-enforcement",
+      "statement_sha256": "419841b94057a677829cfcf037498275b95da913be4c47049c89bb517fad9288",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-construction",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/graph-construction.no-partial-output",
+      "statement_sha256": "757fc64ede59db7aa9480efcae8c1f553011bd780fa90995c57400c3cc8d5001",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "graph-construction",
         "kind": "prose"
@@ -5328,10 +5218,10 @@
     },
     {
       "requirement_id": "actql.language/structural-graphs.union-identity-compatible-definitions",
-      "statement_sha256": "73346e604197ebfd1437d7f1d1f4630c38c280297fec243425e1228e4333519d",
+      "statement_sha256": "55048676e027c95d75156bd5f29fbb3ae873aaa949803af9259891531007ac26",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "structural-graphs",
         "kind": "prose"
@@ -5752,7 +5642,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "vector-arithmetic",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -6137,7 +6027,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "infer",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -7627,10 +7517,10 @@
     },
     {
       "requirement_id": "actql.language/algebra-lowering.actql-surface-form-canonical-aoa-registry-operation",
-      "statement_sha256": "c6485d80e405f6b2fe2fc275527ef199427b6182cc0e4dc3d5e398599f31f764",
+      "statement_sha256": "fe4b4ae09ab87546b28b6cbbd970d40cb996df3e43a359aac1b57cdc989628a0",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "algebra-lowering",
         "kind": "table"
@@ -7655,7 +7545,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "operation-binding",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -8315,7 +8205,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "resolved-limits",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -8447,7 +8337,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "local-approval",
-        "kind": "envelope"
+        "kind": "prose"
       }
     },
     {
@@ -8634,7 +8524,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "structural-grammar",
-        "kind": "code"
+        "kind": "prose"
       }
     },
     {
@@ -8650,13 +8540,13 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "c65aed6df7eb9a972feccf90c1bf8a0d301677678af8c0ad4b747464f6bcdb5e",
+      "statement_sha256": "73049c7a78ece9028fdfe3a0567fa27ab76c86f5c99eb4397bdbb0814f0a9138",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -10306,7 +10196,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "effect-application",
-        "kind": "envelope"
+        "kind": "prose"
       }
     },
     {
@@ -10350,7 +10240,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "policy-routing",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -10361,7 +10251,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "policy-routing",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -10922,7 +10812,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "authoring-context-wire",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -11469,7 +11359,7 @@
       "statement_sha256": "283586165cb70f762468ea2b5c4c6a3bee4106beae609be3f870439789763c31",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-law-registry",
         "kind": "prose"
@@ -11477,32 +11367,32 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-count-machine",
-      "statement_sha256": "9331d58f30c6259db6b93cfb0bef5ec676ff3820796edba50ef832c53b40e185",
+      "statement_sha256": "40c6babdb7ebe0f73d87026aaf7d005dfb1d36f1d32653401e53ecaf12bcb62c",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-law-registry",
         "kind": "prose"
       }
     },
     {
-      "requirement_id": "actql.protocol.contracts/capacity-law-registry.property-graph-count-body",
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-construction-count-body",
       "statement_sha256": "ceaa6dcf600b7583bd3135e60f468b1c4299aa1132ef461695e53f8e522bfca1",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-law-registry",
         "kind": "prose"
       }
     },
     {
-      "requirement_id": "actql.protocol.contracts/capacity-law-registry.property-graph-count-machine",
-      "statement_sha256": "651a5c2438f3014b6bad85b71758ef7c4cbbb0712230c34030eb32c45b49a3f1",
+      "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-construction-count-machine",
+      "statement_sha256": "6d58002d68c9d3f626d989eede40c5a4a154436827f5598d11f293409124dde7",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-law-registry",
         "kind": "prose"
@@ -11543,10 +11433,10 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
-      "statement_sha256": "ee721c58c5970da88b752b20d45b56fa6d0e1357b3dcbf8c6c1e2c5d39480aa9",
+      "statement_sha256": "1d31be7d0b533b8401ab0d6866463db6c16dbb9b9f4f45c2b115a4ab976fd5a6",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-law-registry",
         "kind": "prose"
@@ -11593,7 +11483,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "capacity-host-policy",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -12253,7 +12143,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "bound-template-wire",
-        "kind": "envelope"
+        "kind": "prose"
       }
     },
     {
@@ -12528,7 +12418,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "compilation-identities",
-        "kind": "envelope"
+        "kind": "prose"
       }
     },
     {
@@ -12572,7 +12462,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "diagnostic-documents",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -13160,13 +13050,13 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "f02697bd4cc8acc8635b01bcfa4695fcd09a3a0677eaafe3cc4cba797e1a0a8d",
+      "statement_sha256": "25920ff9010b4616088981b97a2987c03ae18654cbcf27f2aa6700304d7c6eef",
       "status": "pending",
       "reason": "implementation_evidence_required",
-      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -13177,7 +13067,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-artifacts",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -13210,7 +13100,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-artifacts",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -13430,7 +13320,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -13463,7 +13353,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -13474,7 +13364,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -13496,7 +13386,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -13584,7 +13474,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-delivery",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -13804,7 +13694,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -14123,7 +14013,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "preview-row-state",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -14541,7 +14431,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -14607,7 +14497,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -14640,7 +14530,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {
@@ -14695,7 +14585,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "control-milestones",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -14750,7 +14640,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     },
     {

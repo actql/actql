@@ -39,7 +39,7 @@ fn checked_direct_program_fixture(
   lexical_material? : Bool = true,
   graph_steps? : String = "",
   graph_step_limit? : Int = 6,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
   graph_right? : Bool = false,
   graph_resources? : Bool = true,
   graph_traversal? : String = "",
@@ -505,7 +505,7 @@ fn checked_direct_program_fixture(
     { text_time: false, veca: vector_steps != "" || lexical_steps != "", },
     {
       rela: true,
-      sga: graph_steps != "" && !property_graph,
+      sga: graph_steps != "" && !graph,
       tea: temporal_step != "" ||
       series_steps != "" ||
       event_kind != "" ||
@@ -551,7 +551,7 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
     numeric_profile~,
-    property_graph~,
+    graph~,
     text_rank=lexical,
     calendar=if calendar_series {
       Some(calendar_policy_fixture(environment))

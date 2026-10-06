@@ -24,7 +24,7 @@ fn property_view_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let n = @carrier.property_node_definition(
+  let n = @carrier.graph_node_definition(
     "N",
     [number],
     name,
@@ -32,7 +32,7 @@ fn property_view_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let other = @carrier.property_node_definition(
+  let other = @carrier.graph_node_definition(
     "Other",
     [number],
     empty,
@@ -40,7 +40,7 @@ fn property_view_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let e = @carrier.property_node_definition(
+  let e = @carrier.graph_node_definition(
     "E",
     [number],
     weight,
@@ -48,10 +48,10 @@ fn property_view_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     [n, other],
-    [@carrier.property_edge_definition(e, "N", "N").unwrap()],
+    [@carrier.graph_edge_definition(e, "N", "N").unwrap()],
     max_definitions=3,
     max_contract_work=1000,
   ).unwrap()
@@ -128,7 +128,7 @@ fn property_view_receiver(owner : @lower.BoundPrepared) -> @lower.BoundPrepared 
 }
 
 ///|
-test "property graph view retains heterogeneous definitions and independent edge identity on one owner" {
+test "graph view retains heterogeneous definitions and independent edge identity on one owner" {
   let owner = property_view_owner()
   let live = Ref(true)
   let output = prepare_output(
@@ -139,24 +139,14 @@ test "property graph view retains heterogeneous definitions and independent edge
     4096L,
     () => live.val,
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
-  append_property_node(output, 1, [number(1.0)], []).unwrap()
-  append_property_edge(
-    output,
-    0,
-    [number(10.0)],
-    [number(1.0)],
-    [number(1.0)],
-    [number(3.0)],
-  ).unwrap()
-  append_property_edge(
-    output,
-    0,
-    [number(11.0)],
-    [number(1.0)],
-    [number(1.0)],
-    [number(4.0)],
-  ).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(output, 1, [number(1.0)], []).unwrap()
+  append_edge(output, 0, [number(10.0)], [number(1.0)], [number(1.0)], [
+    number(3.0),
+  ]).unwrap()
+  append_edge(output, 0, [number(11.0)], [number(1.0)], [number(1.0)], [
+    number(4.0),
+  ]).unwrap()
   let completed = finish_output(output).unwrap()
   let receiver = property_view_receiver(owner)
   let read = prepare_producer_read(receiver, 0, owner, completed).unwrap()
@@ -166,12 +156,12 @@ test "property graph view retains heterogeneous definitions and independent edge
   assert_eq(@lifecycle.producer_view_node_definition(view, 0), Ok(0))
   assert_eq(@lifecycle.producer_view_node_definition(view, 1), Ok(1))
   assert_eq(@lifecycle.producer_view_edge_definition(view, 1), Ok(0))
-  let definition = @lifecycle.producer_view_property_graph_definition(view).unwrap()
-  let element = @carrier.property_edge_element(
-    @carrier.property_graph_edge_at(definition, 0).unwrap(),
+  let definition = @lifecycle.producer_view_graph_definition(view).unwrap()
+  let element = @carrier.graph_edge_element(
+    @carrier.graph_edge_at(definition, 0).unwrap(),
   )
-  assert_true(@carrier.property_definition_has_label(element, "R"))
-  assert_false(@carrier.property_definition_has_label(element, "weight"))
+  assert_true(@carrier.graph_element_definition_has_label(element, "R"))
+  assert_false(@carrier.graph_element_definition_has_label(element, "weight"))
   assert_true(
     @lifecycle.producer_view_node_key(view, 0, 0).unwrap().value
     is @value.Number(1.0),
@@ -243,11 +233,11 @@ test "property graph view retains heterogeneous definitions and independent edge
     @lifecycle.producer_view_edge_identity_index(same, second),
     Ok(Some(1)),
   )
-  let definition = @lifecycle.producer_view_property_graph_definition(view).unwrap()
+  let definition = @lifecycle.producer_view_graph_definition(view).unwrap()
   assert_eq(
-    @carrier.property_definition_labels(
-      @carrier.property_edge_element(
-        @carrier.property_graph_edge_at(definition, 0).unwrap(),
+    @carrier.graph_element_definition_labels(
+      @carrier.graph_edge_element(
+        @carrier.graph_edge_at(definition, 0).unwrap(),
       ),
     ),
     ["R"],
@@ -276,13 +266,13 @@ test "property graph view retains heterogeneous definitions and independent edge
     is Err(@lifecycle.Unavailable),
   )
   assert_true(
-    @lifecycle.producer_view_property_graph_definition(view)
+    @lifecycle.producer_view_graph_definition(view)
     is Err(@lifecycle.Unavailable),
   )
 }
 
 ///|
-test "property graph output failures reclaim the same builder without completing partial material" {
+test "graph output failures reclaim the same builder without completing partial material" {
   let owner = property_view_owner()
   let output = prepare_output(
     owner,
@@ -292,24 +282,14 @@ test "property graph output failures reclaim the same builder without completing
     4096L,
     () => true,
   ).unwrap()
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
-  append_property_edge(
-    output,
-    0,
-    [number(10.0)],
-    [number(1.0)],
-    [number(1.0)],
-    [number(3.0)],
-  ).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_edge(output, 0, [number(10.0)], [number(1.0)], [number(1.0)], [
+    number(3.0),
+  ]).unwrap()
   assert_true(
-    append_property_edge(
-      output,
-      0,
-      [number(11.0)],
-      [number(1.0)],
-      [number(1.0)],
-      [number(4.0)],
-    )
+    append_edge(output, 0, [number(11.0)], [number(1.0)], [number(1.0)], [
+      number(4.0),
+    ])
     is Err(_),
   )
   assert_true(finish_output(output) is Err(_))

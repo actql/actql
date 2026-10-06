@@ -7,7 +7,7 @@ priv enum OperationCountContract {
   Relation
   Join
   Window
-  PropertyGraph
+  GraphProfile
   Ranking
   Series
   ClassificationOnly
@@ -33,7 +33,7 @@ fn operation_count_contract(
     | @pipeline.IntervalJoin(..)
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
-    @pipeline.PropertyGraphConstruction(..) => PropertyGraph
+    @pipeline.GraphConstruction(..) => GraphProfile
     @pipeline.GraphMatch(_)
     | @pipeline.GraphBounds(_)
     | @pipeline.GraphDegree(_)
@@ -41,7 +41,7 @@ fn operation_count_contract(
     | @pipeline.GraphNormalize(_)
     | @pipeline.GraphComponents(_)
     | @pipeline.Subgraph(..)
-    | @pipeline.Traverse(..) => PropertyGraph
+    | @pipeline.Traverse(..) => GraphProfile
     @pipeline.Projection(_) => ClassificationOnly
     // Delta and union ceilings are not yet selected here. Retain the
     // common transfer root without borrowing the constructor's count proof;
@@ -134,9 +134,12 @@ fn core_operation_count_root(
     }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)
     // The multi-definition keyed sum is in the distinct adopted contract,
-    // not the legacy two-operand/derived-endpoint Graph count body.
-    PropertyGraph =>
-      (OperationGraphCountRules(stage, visit, step), PropertyGraphCountRules)
+    // not an endpoint-derived or two-operand constructor count.
+    GraphProfile =>
+      (
+        OperationGraphCountRules(stage, visit, step),
+        GraphConstructionCountRules,
+      )
     Ranking =>
       (OperationRankingCountRules(stage, visit, step), RankingCountRules)
     Series => (OperationSeriesCountRules(stage, visit, step), SeriesCountRules)

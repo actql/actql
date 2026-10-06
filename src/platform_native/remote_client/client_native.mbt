@@ -153,6 +153,7 @@ pub fn poll(
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
     Ok(Some(@remote.RetainedPlan(_)))
     | Ok(Some(@remote.RetainedTransfer(_)))
+    | Ok(Some(@remote.RetainedCurrent(_)))
     | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
@@ -379,6 +380,24 @@ pub fn acknowledge_retained_input_result(
     client.post_json(
       url,
       @utf8.encode(@remote.remote_retained_input_result_json(result)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// A transport ACK does not extend the lifetime of this current observation.
+pub fn acknowledge_retained_input_current(
+  client : @http.Client,
+  url : String,
+  reply : @remote.RemoteRetainedCurrentReply,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_retained_input_current_reply_json(reply)),
     ) {
     Ok(value) if value.status == 200 => Ok(())
     Ok(value) => Err(HttpStatus(value.status))

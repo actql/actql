@@ -16,7 +16,9 @@ import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   retainedTaskInputFacts, prepareRetainedInputIntent, admitRetainedInputIntent,
   retainedInputIntentFacts, retainedInputPlanEnvelope, admitRetainedInputPlan,
   validateRetainedInputPlan, retainedInputPlanFacts, retainedInputTransferEnvelope,
-  admitRetainedInputResult, retainedInputResultFacts} from
+  admitRetainedInputResult, retainedInputResultFacts,
+  prepareRetainedInputCurrentQuery, retainedInputCurrentEnvelope,
+  admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -152,3 +154,15 @@ admitRetainedInputResult(inputIntent, {cid: 'c', wire: 'w'});
 retainedInputResultFacts(retainedInputResultFacts(inputResult));
 // @ts-expect-error Committed historical evidence is not a current input binding.
 validateRetainedTaskInput(inputResult);
+
+const receiverQuery = prepareRetainedInputCurrentQuery(inputPlan, 'fresh-query');
+retainedInputCurrentEnvelope(receiverQuery);
+const receiverReply = admitRetainedInputCurrentReply(receiverQuery,
+  {cid: 'c', wire: 'w'}, {maxChunks: 1, maxManifestBytes: 4096, maxReferencedBytes: 8n});
+retainedInputCurrentReplyFacts(receiverReply);
+// @ts-expect-error A historical receiver result is not a live query.
+retainedInputCurrentEnvelope(inputResult);
+// @ts-expect-error A current snapshot is not a physical borrow or input binding.
+validateRetainedTaskInput(receiverReply);
+// @ts-expect-error Copied current facts cannot forge a reply handle.
+retainedInputCurrentReplyFacts(retainedInputCurrentReplyFacts(receiverReply));

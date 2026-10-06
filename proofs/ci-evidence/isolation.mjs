@@ -7,7 +7,7 @@ import {constants, openSync, closeSync, readSync, fstatSync, lstatSync, mkdirSyn
 import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {hash, mutationSnapshotExtras} from './inputs.mjs';
+import {hash, mutationSnapshotExtras, mutationSourceInputs} from './inputs.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
@@ -20,6 +20,9 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
 const child = isolatedSourceFiles[0];
+// OrbStack's amd64 execution exposes this actual libuv setting. Bind it only
+// in the local diagnostic; never erase it or expand the Actions environment.
+export const localIsolatedEnvironment = Object.freeze({...isolatedEnvironment, UV_USE_IO_URING: '0'});
 // The pinned Moon runner writes its selected workspace's own database and
 // all_pkgs.json. Installed core contributes prebuilt .mi/.core inputs, not the
 // build owner's database or bundle metadata. Keep those four files physically
@@ -33,8 +36,9 @@ const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(pat
 const stable = (a, b) => ['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
 
 export function mutationSourcePaths(tree) {
-  const paths = [...new Set([...tree.entries.keys()].filter(path => path.startsWith('src/') ||
-    path.startsWith('proofs/bounded-session/')).concat(mutationSnapshotExtras, isolatedSourceFiles))].sort();
+  const paths = [...new Set(mutationSourceInputs(tree).paths.concat(
+    [...tree.entries.keys()].filter(path => path.startsWith('proofs/bounded-session/')),
+    mutationSnapshotExtras, isolatedSourceFiles))].sort();
   assert(paths.includes('proofs/bounded-session/mutations.mjs'), 'Missing original mutation executor');
   for (const path of paths) {
     const entry = tree.entries.get(path);
@@ -161,15 +165,28 @@ export function isolatedRunArguments({imageId, cidFile, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
   assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
   assert(typeof owner === 'string' && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Use the actual run/attempt/job owner');
-  return ['run', '--rm', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
+  return runArguments({imageId, cidFile, owner, label: 'org.actql.ci.owner'});
+}
+
+export function localIsolatedRunArguments({imageId, cidFile, owner}) {
+  assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
+  assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
+  assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
+  return runArguments({imageId, cidFile, owner, label: 'org.actql.local.owner'});
+}
+
+function runArguments({imageId, cidFile, owner, label}) {
+  return ['run', '--rm', '--platform=linux/amd64', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
     '--security-opt=no-new-privileges', '--user=1000:1000', '--hostname=actql-session',
-    '--label', `org.actql.ci.owner=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
+    '--label', `${label}=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
     '--tmpfs', '/workspace:rw,nosuid,nodev,mode=1777', '--workdir=/workspace',
     '--entrypoint=/runtime/node', imageId, `/source/${child}`];
 }
 
-export function scratchDockerfile() {
-  return ['FROM scratch', 'COPY root/ /', ...Object.entries(isolatedEnvironment).map(([name, value]) => `ENV ${name}=${value}`),
+export function scratchDockerfile() { return dockerfile(isolatedEnvironment); }
+export function localScratchDockerfile() { return dockerfile(localIsolatedEnvironment); }
+function dockerfile(environment) {
+  return ['FROM scratch', 'COPY root/ /', ...Object.entries(environment).map(([name, value]) => `ENV ${name}=${value}`),
     'USER 1000:1000', 'WORKDIR /workspace', `ENTRYPOINT ["/runtime/node", "/source/${child}"]`, ''].join('\n');
 }
 
@@ -178,14 +195,24 @@ export function scratchDockerfile() {
 // volumes before running any command from that image. Never print ENV values.
 export function checkImageDefinition({image, imageId, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Invalid image identity/owner');
+  return imageDefinition({image, imageId, owner, label: 'org.actql.ci.owner', environment: isolatedEnvironment});
+}
+
+export function checkLocalImageDefinition({image, imageId, owner}) {
+  assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid local image identity/owner');
+  assert(!image.Config?.Labels?.['org.actql.ci.owner'], 'Local image cannot carry Actions authority');
+  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner', environment: localIsolatedEnvironment});
+}
+
+function imageDefinition({image, imageId, owner, label, environment}) {
   assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
   const config = image.Config;
-  assert(config?.Labels?.['org.actql.ci.owner'] === owner, 'Wrong built image owner');
+  assert(config?.Labels?.[label] === owner, 'Wrong built image owner');
   // Builders can retain the position of an existing default PATH when ENV
   // replaces its value. Order is not a dependency when all names are unique;
   // exact sorted entries still reject extra, missing, duplicate or changed ENV.
   assert(Array.isArray(config.Env) && config.Env.every(value => typeof value === 'string') &&
-    encode([...config.Env].sort()) === encode(Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`).sort()),
+    encode([...config.Env].sort()) === encode(Object.entries(environment).map(([name, value]) => `${name}=${value}`).sort()),
   'Unexpected built image environment');
   assert(config.User === '1000:1000' && config.WorkingDir === '/workspace', 'Changed image user/workdir');
   assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${child}`]), 'Changed image entrypoint');

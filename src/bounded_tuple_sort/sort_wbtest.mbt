@@ -29,6 +29,12 @@ test "tuple sort admits workspace before initialization" {
 }
 
 ///|
+test "eager tuple sort still rejects key shapes during preparation" {
+  assert_true(prepare([["a"], ["b", "c"]], 4) is Err(InvalidKey))
+  assert_true(prepare([[]], 2) is Err(InvalidKey))
+}
+
+///|
 test "deferred tuple sort preserves ordering and validates all key shapes" {
   let sort = prepare_deferred([["z"], ["a"], ["b"]], 6).unwrap()
   for _ in 0..<100 {

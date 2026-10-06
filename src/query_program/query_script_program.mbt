@@ -247,6 +247,7 @@ pub fn compile_query_script(
               steps,
               reserved,
               known~,
+              graphs~,
             )
             if @query.operation_count(@query.after_graph_calls(query)) != 0 {
               raise Abort(UnsupportedGraph)
@@ -276,7 +277,7 @@ pub fn compile_query_script(
             !same_name(graph.name, declaration.name)
           })
         }
-        PropertyGraph(mapping) => {
+        Graph(mapping) => {
           // Resolve against the original source kind: binding a captured
           // Relation must not turn its quoted-name rules into DATA alias rules.
           let producer_names : Map[String, String] = Map([])
@@ -292,7 +293,7 @@ pub fn compile_query_script(
             }
           }
           steps.push(
-            lower_property_graph_step(
+            lower_graph_step(
               construction,
               mapping,
               known,

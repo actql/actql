@@ -8,7 +8,7 @@ import {release, cpus} from 'node:os';
 import {inventoryDistribution} from './runtime.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
@@ -48,22 +48,23 @@ export function observeImageRoot(root) {
   return {entries: entries.sort((a, b) => a.path.localeCompare(b.path)), unresolved: unresolved.sort(), links};
 }
 
-export function imageRuntime(manifest) {
+export function imageRuntime(manifest, {local = false} = {}) {
+  assert(local ? manifest.localDiagnostic === true : manifest.localDiagnostic === undefined, 'Wrong local/Actions input authority');
   assert.equal(manifest.version, 'actql-isolated-mutation-inputs/0.1');
   const runtimeEntries = manifest.root.entries.filter(entry => !entry.path.startsWith('source/') && entry.path !== 'source');
-  return {profile: isolatedProfile, platform: 'linux', architecture: 'x64',
-    environment: isolatedEnvironment, platformInputs: manifest.platformInputs,
+  return {profile: local ? 'local-isolated-session-mutations-linux' : isolatedProfile, platform: 'linux', architecture: 'x64',
+    environment: local ? localIsolatedEnvironment : isolatedEnvironment, platformInputs: manifest.platformInputs,
     rootDigest: hash(encode({entries: runtimeEntries, links: manifest.root.links.filter(link => !link.path.startsWith('source/')),
       unresolved: manifest.root.unresolved.filter(reason => !reason.startsWith('source: '))})),
     specificationDigest: hash(manifest.dockerfile),
-    contract: matchesIsolatedContract(manifest) ? isolatedContract : null,
-    unresolved: matchesIsolatedContract(manifest) ? [] : [isolatedResidual]};
+    contract: !local && matchesIsolatedContract(manifest) ? isolatedContract : null,
+    unresolved: local ? [isolatedResidual, 'local physical execution has no authenticated Actions origin'] : matchesIsolatedContract(manifest) ? [] : [isolatedResidual]};
 }
 
-export function checkIsolatedInputs({runtime, manifest, tree}) {
-  assert.equal(encode(runtime), encode(imageRuntime(manifest)), 'Wrong isolated runtime inputs or erased residual');
-  assert.equal(encode(manifest.environment), encode(isolatedEnvironment), 'Changed isolated environment');
-  assert.equal(manifest.dockerfile, scratchDockerfile(), 'Changed isolated executor definition');
+export function checkIsolatedInputs({runtime, manifest, tree, local = false}) {
+  assert.equal(encode(runtime), encode(imageRuntime(manifest, {local})), 'Wrong isolated runtime inputs or erased residual');
+  assert.equal(encode(manifest.environment), encode(local ? localIsolatedEnvironment : isolatedEnvironment), 'Changed isolated environment');
+  assert.equal(manifest.dockerfile, local ? localScratchDockerfile() : scratchDockerfile(), 'Changed isolated executor definition');
   assert.equal(manifest.sourceSnapshotDigest, snapshotFromGit(tree).digest, 'Wrong reviewed source cohort');
   assert.equal(manifest.experimentDigest, isolatedExperimentDigest(tree), 'Wrong reviewed finite experiment');
   assert.equal(manifest.toolchainDigest, hash(tree.read('toolchain.json')), 'Wrong reviewed toolchain pin');
@@ -143,6 +144,21 @@ export function snapshotFromGit(tree) {
   tree.prefetch?.(paths);
   const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
   return {digest: hash(JSON.stringify(sources)), sources};
+}
+
+// Check only the action's selected physical source inputs. Collection retains
+// its separate full-checkout clean/HEAD checks for every candidate action.
+// Reading unrelated blob bytes here would put them back into this action's
+// dependency boundary even when they are absent from the isolated image.
+export function checkMutationCheckout({root, tree}) {
+  const expected = snapshotFromGit(tree);
+  for (const [path, digest] of Object.entries(expected.sources)) {
+    const entry = tree.entries.get(path), file = join(root, path), state = lstatSync(file);
+    assert(state.isFile() && !state.isSymbolicLink(), 'Nonregular mutation checkout input');
+    assert.equal(state.mode & 0o777, Number.parseInt(entry.mode.slice(-3), 8), 'Mutation checkout mode differs from Git');
+    assert.equal(hash(readFileSync(file)), digest, 'Mutation checkout bytes differ from Git');
+  }
+  return expected;
 }
 
 export function checkIsolatedResult({payload, manifest, before}) {

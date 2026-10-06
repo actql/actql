@@ -2,9 +2,7 @@
 test "subgraph execution binds each body obligation to its checked owner" {
   let graph = current_match_custody_graph()
   guard graph is @carrier.GraphValue(value) else { fail("Graph") }
-  let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(value),
-  )
+  let domain = @carrier.graph_domain(@carrier.graph_definition(value))
   let pipeline = @pipeline.check_carriers(
     asof_test_cursor(
       "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[{\"definition\":\"N\",\"domain\":\"" +

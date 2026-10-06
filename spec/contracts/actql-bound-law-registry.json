@@ -12,6 +12,8 @@
     "actql.bound.components-output",
     "actql.bound.effect-scope",
     "actql.bound.global-group",
+    "actql.bound.graph-construction-edges",
+    "actql.bound.graph-construction-nodes",
     "actql.bound.graph-degree",
     "actql.bound.graph-edge-rows",
     "actql.bound.graph-edges",
@@ -32,8 +34,6 @@
     "actql.bound.merge-rankings",
     "actql.bound.nearest",
     "actql.bound.nest-empty-array",
-    "actql.bound.property-graph-edges",
-    "actql.bound.property-graph-nodes",
     "actql.bound.reach-nodes",
     "actql.bound.row-window",
     "actql.bound.sequence-output",
@@ -83,16 +83,60 @@
     "actql.host.temporal-output"
   ],
   "author_guard_laws": {
-    "join": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.join-output" },
-    "cross_join": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.join-output" },
-    "interval_join": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.join-output" },
-    "nest": { "field": "max_items", "unit": "array_items", "law_id": "actql.guard.nested-array-items" },
-    "array_agg": { "field": "max_items", "unit": "array_items", "law_id": "actql.guard.array-aggregate" },
-    "string_agg": { "field": "max_bytes", "unit": "bytes", "law_id": "actql.guard.string-aggregate" },
-    "sequence_matches": { "field": "max_matches_per_key", "unit": "matches_per_key", "law_id": "actql.guard.sequence-matches" },
-    "sequence_output": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.sequence-output" },
-    "components": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.components-output" },
-    "traverse": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.traverse-output" },
-    "shortest_path": { "field": "max_output_rows", "unit": "rows", "law_id": "actql.guard.shortest-output" }
+    "join": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.join-output"
+    },
+    "cross_join": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.join-output"
+    },
+    "interval_join": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.join-output"
+    },
+    "nest": {
+      "field": "max_items",
+      "unit": "array_items",
+      "law_id": "actql.guard.nested-array-items"
+    },
+    "array_agg": {
+      "field": "max_items",
+      "unit": "array_items",
+      "law_id": "actql.guard.array-aggregate"
+    },
+    "string_agg": {
+      "field": "max_bytes",
+      "unit": "bytes",
+      "law_id": "actql.guard.string-aggregate"
+    },
+    "sequence_matches": {
+      "field": "max_matches_per_key",
+      "unit": "matches_per_key",
+      "law_id": "actql.guard.sequence-matches"
+    },
+    "sequence_output": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.sequence-output"
+    },
+    "components": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.components-output"
+    },
+    "traverse": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.traverse-output"
+    },
+    "shortest_path": {
+      "field": "max_output_rows",
+      "unit": "rows",
+      "law_id": "actql.guard.shortest-output"
+    }
   }
 }

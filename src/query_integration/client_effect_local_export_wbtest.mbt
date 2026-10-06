@@ -1,6 +1,6 @@
 ///|
 fn local_effect_export_fixture(
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> (
   String,
   @program_check.CheckEnvironment,
@@ -23,7 +23,7 @@ fn local_effect_export_fixture(
     "\"," +
     after
   let prefix = "{\"command_contracts\":[],\"connector_capabilities\":[],\"connector_catalogs\":[{\"catalog_cid\":\"sha256:9faf09f5a3177d36dc7c9fab868f6fe4437e4597dd12bcdc051166ec2e6ad8fd\",\"commands\":[],\"connector_id\":\"crm\",\"connector_version\":\"fixture\",\"contracts\":[],\"schema\":\"actql.connector_catalog/0.1\",\"source_views\":[]}],\"connector_manifest\":{\"connectors\":[{\"connector\":\"crm\",\"connector_id\":\"crm\",\"connector_version\":\"fixture\"}],\"version\":\"actql-connectors/0.1\"},\"contract_registry\":[],"
-  let graph_capacity = if property_graph {
+  let graph_capacity = if graph {
     "\"max_graph_construction_edges\":1000,\"max_graph_construction_input_rows\":1000,\"max_graph_construction_nodes\":1000,"
   } else {
     ""
@@ -45,7 +45,7 @@ fn local_effect_export_fixture(
     bundle,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    property_graph~,
+    graph~,
   )
   let input : @syntax.Limits = {
     source: { max_input_bytes: 10000, max_nodes: 1000, max_depth: 100, },

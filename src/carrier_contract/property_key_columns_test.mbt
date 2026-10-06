@@ -3,7 +3,7 @@ test "constructor key columns retain component order types and detached names" {
   let number = @value.primitive(NumberType, nullable=true)
   let text = @value.primitive(StringType, nullable=false)
   let columns = ["person_key", "tenant_key"]
-  let definition = property_node_definition(
+  let definition = graph_node_definition(
     "Person",
     [number, text],
     rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap(),
@@ -14,21 +14,23 @@ test "constructor key columns retain component order types and detached names" {
   ).unwrap()
   columns.clear()
   assert_eq(
-    property_definition_key_column_at(definition, 0),
+    graph_element_definition_key_column_at(definition, 0),
     Some("person_key"),
   )
   assert_eq(
-    property_definition_key_column_at(definition, 1),
+    graph_element_definition_key_column_at(definition, 1),
     Some("tenant_key"),
   )
-  assert_true(property_definition_key_column_at(definition, 2) is None)
+  assert_true(graph_element_definition_key_column_at(definition, 2) is None)
   assert_true(
-    property_definition_key_at(definition, 0).unwrap().shape is @value.Number,
+    graph_element_definition_key_at(definition, 0).unwrap().shape
+    is @value.Number,
   )
   assert_true(
-    property_definition_key_at(definition, 1).unwrap().shape is @value.Text(_),
+    graph_element_definition_key_at(definition, 1).unwrap().shape
+    is @value.Text(_),
   )
-  assert_false(property_definition_key_at(definition, 0).unwrap().nullable)
+  assert_false(graph_element_definition_key_at(definition, 0).unwrap().nullable)
 }
 
 ///|
@@ -37,7 +39,7 @@ test "key column correspondence rejects missing components duplicate names and l
   let properties = rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap()
   for columns in [["one"], ["one", "ONE"], ["one", "e\u0301"]] {
     assert_true(
-      property_node_definition(
+      graph_node_definition(
         "N",
         [number, number],
         properties,
@@ -50,7 +52,7 @@ test "key column correspondence rejects missing components duplicate names and l
     )
   }
   assert_true(
-    property_node_definition(
+    graph_node_definition(
       "N",
       [number],
       properties,
@@ -61,7 +63,7 @@ test "key column correspondence rejects missing components duplicate names and l
     )
     is Err(LimitExceeded),
   )
-  let (_, work) = property_node_definition_usage(
+  let (_, work) = graph_node_definition_usage(
     "N",
     [number],
     properties,
@@ -71,7 +73,7 @@ test "key column correspondence rejects missing components duplicate names and l
     max_name_bytes=100,
   ).unwrap()
   assert_true(
-    property_node_definition_usage(
+    graph_node_definition_usage(
       "N",
       [number],
       properties,

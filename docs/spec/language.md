@@ -668,14 +668,14 @@ schemas, external Contracts, expressions, and Results.
 ### Carriers
 
 The graph structural contract has the closed canonical body
-`{version: "actql-property-graph-contract/0.1", domain, node_definitions,
+`{version: "actql-graph-contract/0.1", domain, node_definitions,
 edge_definitions, identity_law_cid, value_law_cid}`. Each definition retains its
 name, nonempty ordered key contracts, matching ordered `key_columns`, complete property contracts and static
 label-to-property sets. Edge definitions additionally name their source and
 target node definitions. Element identity is the admitted definition domain,
 definition name and complete typed key, not an endpoint tuple. Independently
 keyed parallel edges are retained. Property types and shared label property
-sets obey the graph-wide rules in [Property Graph construction](#property-graph-construction).
+sets obey the graph-wide rules in [Graph construction](#graph-construction).
 `graph_contract_cid` is the ordinary ActQL CID of exactly this body, without a
 self-CID member. `key_columns` binds each retained constructor key-column name
 to its component position and type; an anonymous structural definition uses
@@ -691,8 +691,8 @@ their old tuple-based implementations are not a fallback.
 
 <!-- requirement-block: carriers.graph-law-body -->
 For the 0.1 contract, both graph law CID members MUST equal
-`property_graph_law_manifest_cid` in the owned operation-contract inventory.
-That pin resolves `actql-property-graph-laws/0.1`, maintained inside ActQL,
+`graph_law_manifest_cid` in the owned operation-contract inventory.
+That pin resolves `actql-graph-laws/0.1`, maintained inside ActQL,
 which contains the semantic identity and typed value equality laws together.
 Computing a structural contract CID proves
 neither snapshot admission nor base/target content identity.
@@ -3163,8 +3163,7 @@ The complete canonical vocabulary is:
 | VecA | [`nearest`](#nearest) | relation/vectors x relation/vectors -> relation |
 | VecA | [`pool_vectors`](#pool-vectors) | relation/vectors -> vectors |
 | VecA | [`merge_rankings`](#merge-rankings) | relation x relation (RRF: nonempty finite relation list) -> relation |
-| Bridge | [`graph`](#graph-construction) | relation x relation -> graph |
-| Bridge | [`property_graph`](#property-graph-construction) | finite ordered relation occurrences -> keyed property graph |
+| Bridge | [`graph`](#graph-construction) | finite ordered relation occurrences -> graph |
 | Bridge | [`node_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`edge_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`to_events`](#event-bridges) | relation -> events |
@@ -5399,17 +5398,15 @@ application to an external graph store.
 MDM completeness remains a separate future profile. Property match and typed
 traversal/path query are part of SGA 0.1 and do not imply MDM authority.
 
-<a id="property-graph-construction"></a>
+<a id="graph-construction"></a>
 
-#### `property_graph`: keyed Graph construction
+#### `graph`: keyed Graph construction
 
-`actql-property-graph-constructor/0.1` selects the distinct
-`actql-property-graph-contract/0.1` representation. It is not an alias,
-normalization or migration of the retired `graph` constructor below. Current
-public Program admission rejects that constructor; no compatibility adapter
-or automatic upgrade is provided. Historical tuple-identity and snapshot bytes
-are not rewritten. The keyed profile requires explicit installed profile
-selection; claiming the legacy SGA module alone does not enable it.
+`actql-graph-constructor/0.1` selects the sole
+`actql-graph-contract/0.1` representation. Unversioned constructor bodies and
+previous stored contracts are rejected without conversion. Historical evidence
+retains its original bytes and identities. The Graph profile requires explicit
+installed profile selection; claiming the SGA module alone does not enable it.
 
 The closed constructor body has `version`, `nodes` and `edges`. Each ordered
 node definition has `name`, `from`, a nonempty ordered `key` column list and
@@ -5476,160 +5473,35 @@ vertical path are not a claim of complete SGA support.
 Construction and reload reuse the existing bounded Graph storage, checking,
 stop and cleanup owners. Selected construction row/node/edge ceilings apply
 before exposing a complete Graph; failure or cancellation exposes no partial
-Graph. `actql-property-graph-snapshot/0.1` separately records the admitted
+Graph. `actql-graph-snapshot/0.1` separately records the admitted
 contract, full typed identities, properties, labels and endpoints. Reload
 revalidates this correspondence and exact content identity, without creating a
 new domain or implicitly interpreting legacy snapshot bytes.
-
-<a id="graph-construction"></a>
-
-#### `graph` (retired constructor)
-
-The following describes historical tuple-identity input, retained as a record
-of the breaking change. It is not a current executable constructor, and cannot
-be used to bypass the keyed Property Graph admission rules.
-
-```yaml
-- graph:
-    nodes:
-      from: customers
-      id: customer_id
-      fields: [name, segment]
-    edges:
-      from: interactions
-      source: customer_id
-      target: product_id
-      label: relation
-      fields: [occurred_at]
-  as: customer_graph
-```
-
-<!-- requirement-block: graph-construction.node-and-edge-branches-must-name-relation-inputs graph-construction.id-source-and-target-are-semantic-identity-fields-and-must -->
-Node and edge branches MUST name relation inputs. The compiler deterministically
-inserts branch filters and projections before
-`BRIDGE.rows.to_graph`. `id`, `source`, and `target` are semantic identity
-fields and MUST be explicit. ActQL 0.1 supports directed graphs only.
-Direction is therefore a language invariant recorded in the Plan, not an
-authoring field.
-
-<!-- requirement-block: graph-construction.source-forms -->
-Construction MUST use either both named `nodes` and `edges` branches, or the
-concise `{source, target, label?}` current-Relation form, never a mixture. The
-explicit form has no implicit current operand, requires step `as`, and rejects
-step `from`. Branch names are independently resolved, retaining both occurrences
-when they name the same Relation. Branch bodies are closed: nodes has `from`,
-`id`, optional `fields`; edges has `from`, `source`, `target`, optional `label`
-and `fields`. Input filtering, if authored, is an upstream operation.
-
-<!-- requirement-block: graph-construction.identity-domains -->
-Node IDs and both endpoint fields MUST have known non-null KeyComparable types
-with compatible domains under recursive common-type rules. They retain that
-common identity type, not an implicit string encoding. Endpoint-derived nodes
-use the semantic name `node_id` and have no properties. Type compatibility does
-not establish uniqueness, payload agreement or observed endpoint membership.
-
-<!-- requirement-block: graph-construction.property-projection -->
-An explicit `fields` list MUST have distinct existing field references; an empty
-or omitted branch list selects no properties. Already selected identity/label
-roles are not duplicated as properties if listed. Other selected property names
-must be flat authored names; qualified inputs require upstream aliasing.
-The concise form retains all non-role edge properties and their known field/type
-evidence. Unknown remaining properties are not replaced by a closed empty map.
-
-<!-- requirement-block: graph-construction.label-completion -->
-Explicit label roles MUST have a known string type, with nullable strings
-allowed for absent labels. Only the concise form completes an omitted label
-from a statically known `edge_type` field, otherwise a known `rel` field, in
-that priority order; an explicit label overrides completion. Completion is
-journaled. A field retained only in explicit `edges.fields` never establishes
-a semantic label role. Known role type and a proven closed label-value domain
-are separate evidence; construction does not invent a closed value domain.
-
-<!-- requirement-block: graph-construction.before-graph-construction-the-compiler-must-close-both-edge-endpoints -->
-When an explicit `nodes` branch is present, it defines the complete graph node
-universe. Before graph construction the compiler MUST close both edge
-endpoints against that node identity using deterministic equality joins;
-edges whose source or target is absent are excluded. This is induced-graph
-construction, not implicit entity creation, and is journaled as
-`actql.graph.endpoint-closure-completion`. Duplicate or conflicting node
-identity remains an error under the rules below.
-
-SGA 0.1 is a directed simple property graph. Node identity is the declared
-node ID. Edge identity is the canonical tuple `(source_id, target_id,
-edge_type)`, where absent edge type is canonical null. Parallel edges with the
-same tuple are not admitted. Duplicate node or edge declarations collapse only
-when their complete canonical payloads are equal; an identity-equal payload
-conflict fails graph construction. Equal duplicate payloads collapse by this
-fixed identity law; authors do not request a separate branch-level distinct
-operation.
-
-<!-- requirement-block: graph-construction.for-the-concise-relation-form-a-statically-known-field-named graph-construction.any-typed-traversal-or-shortest-path-constraint-over-edge-types-must-fail graph-construction.the-compiler-must-not-reinterpret-an-arbitrary-retained-property-as -->
-The authored `edges.label` field is semantic graph type evidence; listing a
-field only under `edges.fields` preserves a property but does not turn it into
-the traversal label. For the concise relation form, a statically known field
-named exactly `edge_type` or `rel` is the sole deterministic completion for
-`edges.label` and MUST be journaled. Any typed traversal or shortest-path
-constraint over `edge_types` MUST fail check when the graph has no semantic
-edge-label evidence. The compiler MUST NOT reinterpret an arbitrary retained
-property as an edge label.
-
-<!-- requirement-block: graph-construction.external-opaque-graphs-without-that-evidence-may-be-normalized-or -->
-Every typed graph carrier binds a complete node-property schema, edge-property
-schema, node identity, edge identity rule, and optional closed label/type
-evidence. External opaque graphs without that evidence may be normalized or
-projected, but property predicates MUST fail check because their fields cannot
-be proven. Normalization preserves the opaque evidence level. Projection
-retains only the field and type evidence actually known, including unknown or
-columns-only Relation evidence where appropriate; it does not replace unknown
-properties with an empty closed schema or invented `json` contracts. Later
-consumers and Result publication retain their ordinary proof requirements.
-
-For a plain edge-list relation, the shorter form is deterministic:
-
-```yaml
-- graph:
-    source: caller_service
-    target: callee_service
-```
-
-The compiler derives the node relation as the distinct union of both endpoint
-columns and retains no undeclared node metadata. No undirected authoring form
-exists in ActQL 0.1.
 
 <!-- requirement-block: graph-construction.capacity-selection -->
 Graph construction MUST select all three construction ceilings from the admitted
 Host capacity policy: `max_graph_construction_input_rows`,
 `max_graph_construction_nodes`, and `max_graph_construction_edges`.
-They are positive safe integers, optional for policies not used for construction;
-absence does not select a default or waive a construction check. Input rows are
-the sum of row occurrences in the explicit nodes and edges operands before
-endpoint closure or duplicate collapse, or the edge operand alone for concise
-construction. Reusing one Relation in both explicit roles counts twice in this
-logical scope, independently of physical read reuse. The output scopes count
-distinct nodes and edges of the successfully constructed Graph after the fixed
-endpoint and equal-payload rules, not intermediate join rows or conflicting
-declarations. Input-Graph preflight ceilings and Graph-query row ceilings are
-different scopes and cannot replace these selections.
+They are positive safe integers; absence does not select a default or waive a
+construction check. Input rows sum the ordered node-definition and
+edge-definition input occurrences before NULL-key or missing-endpoint
+exclusion. Repeated producer references count once per occurrence.
+Output node and edge scopes count the independently keyed elements in the
+successfully constructed Graph. Input-Graph preflight ceilings and query-row
+ceilings are separate scopes.
 
-<!-- requirement-block: graph-construction.capacity-enforcement -->
-Construction MUST enforce each selected ceiling inclusively and reject excess
-without exposing a partial Graph. Empty operands have zero usage; equal duplicate
-declarations still count as input occurrences. An unknown static count or a
-conservative bound above a ceiling is not an observed violation. Input accounting
-is incremental before the corresponding row is used, and output accounting is
-enforced while constructing distinct entities, before output exposure. These
-logical quantities neither bound physical memory nor waive value admission,
-payload-conflict failure, backend work, bytes, retained-copy or cancellation
-contracts. A backend unable to enforce these scopes is not a valid realization.
-The ceilings are selected execution constraints, not observed count proofs or
-additions to Unit Definition semantics; the selected policy remains an Invocation
-dependency under the ordinary policy identity rules.
+<!-- requirement-block: graph-construction.resource-enforcement graph-construction.no-partial-output -->
+Construction MUST enforce these ceilings, value admission, work and retention
+budgets using the existing resource owner. Failure or cancellation MUST expose
+no partial Graph. Pending physical cleanup retains its reservation until the
+same owner confirms release. Neither a checked contract nor a content CID is
+execution, storage or cleanup authority.
 
 <a id="graph-rows"></a>
 
 #### `node_rows` and `edge_rows`
 
-These operations convert the admitted Property Graph to the existing Relation
+These operations convert the admitted Graph to the existing Relation
 using the corresponding registered bridge. Bare `to_rows` is not accepted for a graph because node rows and edge
 rows are distinct meanings.
 
@@ -6109,7 +5981,7 @@ null. A present record must contain every declared property even when nullable.
 Empty graphs retain those contracts and do not bypass compatibility checking.
 
 <!-- requirement-block: structural-graphs.union-identity-compatible-definitions -->
-The initial Property Graph union realization MUST accept only a single identity
+The initial Graph union realization MUST accept only a single identity
 domain and the same named node and edge definition sets. Definition and property
 declaration order may differ; align them by the existing name rules. The exact
 definition spelling embedded in identity and each ordered key type descriptor
@@ -6279,8 +6151,8 @@ arbitrary JSON instructions or implicit property merge exist.
 
 <!-- requirement-block: graph-equality-and-delta.snapshot-owner graph-equality-and-delta.snapshot-identity graph-equality-and-delta.snapshot-identity-backend-independence -->
 The base and target graph CIDs hash one canonical JSON array with preimage
-`["actql-property-graph-snapshot/0.1", graph_contract_cid,
-admitted_definition_body, nodes, edges]`. This is the formal Property Graph
+`["actql-graph-snapshot/0.1", graph_contract_cid,
+admitted_definition_body, nodes, edges]`. This is the formal Graph
 snapshot identity, including the saved admitted constructor definitions;
 Delta MUST reuse that snapshot contract rather than a separate digest domain.
 `nodes` and `edges` contain complete closed records in their respective
@@ -8302,7 +8174,6 @@ operations is:
 | `edge_rows` | `BRIDGE.graph.to_edge_rows` |
 | `node_rows` | `BRIDGE.graph.to_node_rows` |
 | `graph` | `BRIDGE.rows.to_graph` |
-| `property_graph` | `BRIDGE.rows.to_property_graph` |
 | `events` | `BRIDGE.events.to_rows` |
 | `to_events` | `BRIDGE.rows.to_events` |
 | `vectors` | `BRIDGE.vectors.to_rows` |
@@ -10027,8 +9898,8 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958
-../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
+../../spec/contracts/actql-aoa.json# sha256:6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85
+../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

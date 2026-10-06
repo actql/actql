@@ -1,0 +1,21 @@
+{
+  "version": "actql/0.1",
+  "id": "graph-selector-derive",
+  "stages": [{
+    "id": "source", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"person_key": {"type": "number", "nullable": false}, "p": {"type": "number", "nullable": true}}, "rows": [{"person_key": 2, "p": null}, {"person_key": 1, "p": 7}]}, "as": "persons"},
+      {"values": {"schema": {"company_key": {"type": "number", "nullable": false}, "p": {"type": "number", "nullable": false}, "q": {"type": "string", "nullable": false}}, "rows": [{"company_key": 3, "p": 9, "q": "company"}]}, "as": "companies"},
+      {"graph": {"version": "actql-graph-constructor/0.1", "nodes": [
+        {"name": "Person", "from": "persons", "key": ["person_key"], "labels": [{"name": "Person", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}]},
+        {"name": "Company", "from": "companies", "key": ["company_key"], "labels": [{"name": "PERSON", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}, {"name": "Company", "properties": {"mode": "columns", "columns": [{"from": "q", "to": "q"}]}}]}
+      ], "edges": []}, "as": "g"},
+      {"from": "g", "node_rows": {"label": "person"}, "as": "people"},
+      {"filter": "p IS NULL OR p > 0", "as": "filtered"},
+      {"derive": {"z": "p + 1"}, "as": "derived"},
+      {"select": ["id", "z"], "as": "projected"}
+    ],
+    "results": {"out": {"from": "projected", "fields": ["id", "z"]}}
+  }],
+  "results": {"answer": {"from": {"stage": "source", "result": "out"}}}
+}

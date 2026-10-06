@@ -442,6 +442,38 @@ isolates the affected pool. It is not ordinary cleanup and does not refund or
 reuse physical capacity. Late exact cleanup evidence may resolve the old
 responsibility without reviving a failed Run or completion.
 
+### Cleanup during interrupted completed restoration
+
+A completed Native holder may lose use authority while reconstructing its
+original resources. The adopted cleanup handoff separates permission to expose
+output from verified exclusive physical custody. Initial restoration still
+requires the current Site, admitted completion, original input binding and
+current authority. The Runtime then retains one owner and its initial file
+custody, evidence, material generation and Source observation through retry.
+No retry substitutes another occurrence or reacquires Source/execution.
+
+The existing ExecutionSite accounting owner prepares one opaque historical
+holding token at that authorized boundary. A pending token owns a real cleanup
+responsibility but reserves no bytes, so capacity rejection cannot make Site
+teardown appear clean. Under the same verified exclusive custody, successful
+consumption transfers that responsibility into one real holding for the original
+byte count, subject to the unchanged held-plus-reserved capacity ceiling. This
+cleanup accounting may complete after Site revocation; the token cannot be
+consumed twice or abandoned to erase the obligation. Normal holding, operation
+and read admission retain their existing revocation guards.
+
+Already-owned pending restoration reconciles only monotone completed cleanup
+progress before physical I/O. Releasing or unknown cleanup and loss of use
+authority enter the exact cleanup-only path. Foreign, regressed, terminal,
+changed-material and quarantined records remain refused. Physical release must
+succeed and exclusive custody must still hold before returning Site capacity or
+bundle ownership. Root-open or unlink/sync failure retains the same callback;
+a retry may reconstruct only the original cleanup handle and must preserve a
+foreign replacement. Loss of exclusive custody retains responsibility.
+
+This extends cleanup accounting within the existing owner. It changes no wire
+identity, execution evidence, generation-restart authority or release contract.
+
 ## Transport and authentication
 
 The initial control candidate is authenticated outbound HTTPS. The selection

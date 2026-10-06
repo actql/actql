@@ -21,11 +21,11 @@ test('typed JSON roots and ordinary README use the same preparation and compilat
     max_graph_construction_nodes: 1000,
   });
   const body = canonicalText({...selected, evidence_bundle_cid: machineCid(selected)});
-  const environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(body,
+  const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(body,
     JSON.parse(body).evidence_bundle_cid,
     false, true, true, true, true, false, false,
     machineCid(JSON.parse(readFileSync('spec/contracts/actql-numeric-reduction.json'))),
-    machineCid(JSON.parse(readFileSync('spec/dependencies/actql-property-graph-laws.json'))));
+    machineCid(JSON.parse(readFileSync('spec/dependencies/actql-graph-laws.json'))));
   assert.ok(environment);
   const cases = [{text: readmeQuickstart(readFileSync('README.md', 'utf8')).program,
     format: 'yaml'}, ...typedJsonLiteralSuccesses];

@@ -91,7 +91,7 @@ fn prepare_catalog_source(
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = match
     @stages.prepare(program, {
@@ -145,7 +145,7 @@ fn prepare_catalog_source(
     expression_profiles,
     operation_profiles,
     limits,
-    property_graph~,
+    graph~,
   )
 }
 
@@ -156,7 +156,7 @@ fn prepare_selected_source(
   expression_profiles : @context.ExpressionProfiles,
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let (generated_bytes, generated_nodes) = @context.selected_capacity_metadata_usage(
     selected,
@@ -207,7 +207,7 @@ fn prepare_selected_source(
       max_policy_depth=limits.max_policy_depth,
       max_requirements=limits.max_requirements,
       max_regex_depth=limits.max_regex_depth,
-      property_graph~,
+      graph~,
     ) {
     Ok(v) => v
     Err(e) => raise Checks(e)

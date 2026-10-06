@@ -821,7 +821,7 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphDeltaStep(_)
       | @lower.GraphUnionStep(_)
       | @lower.GraphSubtractionStep(_)
-      | @lower.PropertyGraphConstructionStep(_)
+      | @lower.GraphConstructionStep(_)
       | @lower.VectorStep(_)
       | @lower.EventStep(_)
       | @lower.CarrierProjectionStep(_)

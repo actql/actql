@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn field_binding_carrier(name : String) -> @carrier.Carrier {
   @carrier.relation(
@@ -19,9 +22,11 @@ fn field_binding_carrier(name : String) -> @carrier.Carrier {
 test "record field binding yields before a long declared name is accepted" {
   let name = String::make(130, 'a')
   let builder = prepare(field_binding_carrier(name), limits()).unwrap()
-  let cursor = start_append(builder, [
-    (@schema.Unqualified(name), number_for_append_steps()),
-  ]).unwrap()
+  let cursor = start_append(
+    builder,
+    [(@schema.Unqualified(name), number_for_append_steps())],
+    external_workspace_slots=0,
+  ).unwrap()
   assert_eq(advance_append(cursor), Ok(false))
   assert_eq(cursor.fields.length(), 0)
   assert_eq(cursor.index, 0)
@@ -50,9 +55,11 @@ test "record field names keep independent wire and workspace boundaries" {
       field_binding_carrier(name),
       append_step_limits(slots, work, bytes),
     ).unwrap()
-    let cursor = start_append(builder, [
-      (@schema.Unqualified(name), number_for_append_steps()),
-    ]).unwrap()
+    let cursor = start_append(
+      builder,
+      [(@schema.Unqualified(name), number_for_append_steps())],
+      external_workspace_slots=0,
+    ).unwrap()
     let (outcome, _) = identity_step_result(cursor, 60)
     assert_eq(outcome, expected)
     if expected == Ok(true) {
@@ -96,7 +103,7 @@ test "record name fingerprint collisions retain exact field identity" {
     (@schema.Unqualified("ab"), number_for_append_steps()),
     (@schema.Unqualified("bA"), number_for_append_steps()),
   ]
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   assert_eq(identity_step_result(cursor, 100).0, Ok(true))
   let stored = finish(builder).unwrap()
   assert_eq(record_field_at(stored, 0, 0).unwrap().0, @schema.Unqualified("ab"))
@@ -115,7 +122,7 @@ test "record field binding preserves long duplicate missing and absent refusal" 
       [],
     ] {
     let builder = prepare(field_binding_carrier(name), limits()).unwrap()
-    let cursor = start_append(builder, fields).unwrap()
+    let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
     assert_eq(identity_step_result(cursor, 100).0, Err(InvalidRecord))
     assert_eq(builder_record_count(builder), 0)
     assert_true(cancel(builder))
@@ -151,7 +158,7 @@ test "record name continuation binds the captured field across caller mutation" 
   let name = String::make(130, 'a')
   let builder = prepare(field_binding_carrier(name), limits()).unwrap()
   let fields = [(@schema.Unqualified(name), number_for_append_steps())]
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   assert_eq(advance_append(cursor), Ok(false))
   fields[0] = (@schema.Unqualified("foreign"), number_for_append_steps())
   assert_eq(identity_step_result(cursor, 100).0, Ok(true))
@@ -171,7 +178,7 @@ test "record prior identity name scan retains earlier rows through cleanup" {
   let fields = [(@schema.Unqualified(name), number_for_append_steps())]
   assert_eq(append(builder, fields), Ok(()))
   let retained = builder_retained_value_bytes(builder)
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   let mut reached = false
   for _ in 0..<100 {
     if cursor.phase is ReadPriorIdentity &&
@@ -213,7 +220,11 @@ test "record schema binding preserves typed qualification after spelling equalit
       (@schema.Qualified(@schema.Right, text), false),
     ] {
     let builder = prepare(@carrier.relation(records), limits()).unwrap()
-    let cursor = start_append(builder, [(supplied, number_for_append_steps())]).unwrap()
+    let cursor = start_append(
+      builder,
+      [(supplied, number_for_append_steps())],
+      external_workspace_slots=0,
+    ).unwrap()
     assert_eq(
       identity_step_result(cursor, 100).0,
       if success {
@@ -256,7 +267,7 @@ test "record name collision buckets yield before traversing every prior field" {
   let fields = names.map(name => {
     (@schema.Unqualified(name), number_for_append_steps())
   })
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   let mut yielded = false
   for _ in 0..<100 {
     if cursor.fields.length() > 8 &&
@@ -288,7 +299,7 @@ test "empty record append retains its original workspace boundary" {
       ..append_step_limits(slots, 2, 2),
       max_value_depth: 1,
     }).unwrap()
-    let cursor = start_append(builder, []).unwrap()
+    let cursor = start_append(builder, [], external_workspace_slots=0).unwrap()
     assert_eq(identity_step_result(cursor, 10).0, expected)
     assert_true(cursor.binding is None)
     if expected == Ok(true) {

@@ -9,7 +9,7 @@ priv enum GraphRowsRead {
 ///|
 priv struct GraphRowsSource {
   source : GraphRowsRead
-  definition : @carrier.PropertyGraphDefinition
+  definition : @carrier.GraphDefinition
   selected_definition : String?
   selected_label : String?
   mut selection_label_index : Int
@@ -76,7 +76,7 @@ fn graph_rows_count(source : GraphRowsSource) -> Int? {
 fn graph_row_definition(
   source : GraphRowsSource,
   record : Int,
-) -> @carrier.PropertyNodeDefinition? {
+) -> @carrier.GraphNodeDefinition? {
   let index = match source.source {
     StoredGraph(storage) =>
       if source.edge {
@@ -93,11 +93,11 @@ fn graph_row_definition(
   }
   index.bind(index => {
     if source.edge {
-      @carrier.property_graph_edge_at(source.definition, index).map(
-        @carrier.property_edge_element,
+      @carrier.graph_edge_at(source.definition, index).map(
+        @carrier.graph_edge_element,
       )
     } else {
-      @carrier.property_graph_node_at(source.definition, index)
+      @carrier.graph_node_at(source.definition, index)
     }
   })
 }
@@ -134,7 +134,7 @@ fn graph_row_selected(
 
 ///|
 fn graph_definition_selected(
-  definition : @carrier.PropertyNodeDefinition,
+  definition : @carrier.GraphNodeDefinition,
   selected_definition : String?,
   selected_label : String?,
   index : Int,
@@ -142,17 +142,17 @@ fn graph_definition_selected(
 ) -> (GraphRowSelection, Int, Int) {
   let (compared, next, _) = if selected_definition is Some(name) {
     @canonical.compare_utf16_fragment(
-      @carrier.property_definition_name(definition),
+      @carrier.graph_element_definition_name(definition),
       name,
       offset,
       64,
     )
   } else if selected_label is Some(label) {
-    let count = @carrier.property_definition_label_count(definition)
+    let count = @carrier.graph_element_definition_label_count(definition)
     if index >= count {
       return (SkipRow, 0, 0)
     }
-    let (candidate, _) = @carrier.property_definition_label_at(
+    let (candidate, _) = @carrier.graph_element_definition_label_at(
       definition, index,
     ).unwrap()
     @carrier.compare_property_name_fragment(candidate, label, offset, 64)
@@ -164,7 +164,7 @@ fn graph_definition_selected(
     Some(0) => (SelectedRow, 0, 0)
     Some(_) =>
       if selected_definition is Some(_) ||
-        index + 1 == @carrier.property_definition_label_count(definition) {
+        index + 1 == @carrier.graph_element_definition_label_count(definition) {
         (SkipRow, 0, 0)
       } else {
         (PendingSelection, index + 1, 0)
@@ -179,8 +179,10 @@ fn graph_rows_field_count(source : GraphRowsSource, record : Int) -> Int? {
   .bind(record => graph_row_definition(source, record))
   .map(definition => {
     (if source.edge { 4 } else { 2 }) +
-    @carrier.property_definition_key_count(definition) +
-    @carrier.field_count(@carrier.property_definition_properties(definition))
+    @carrier.graph_element_definition_key_count(definition) +
+    @carrier.field_count(
+      @carrier.graph_element_definition_properties(definition),
+    )
   })
 }
 
@@ -223,7 +225,7 @@ fn graph_rows_field(
   } else {
     ["id", "labels"]
   }
-  let key_count = @carrier.property_definition_key_count(definition)
+  let key_count = @carrier.graph_element_definition_key_count(definition)
   let (name, cell) = if field < roles.length() {
     guard roles.get(field) is Some(name) else {
       return Err(InvalidRecord(record))
@@ -248,7 +250,7 @@ fn graph_rows_field(
         )
       })
     } else {
-      let count = @carrier.property_definition_label_count(definition)
+      let count = @carrier.graph_element_definition_label_count(definition)
       if count >= source.limits.max_nodes {
         return Err(InvalidRecord(record))
       }
@@ -268,7 +270,7 @@ fn graph_rows_field(
       }
       if source.label_index < count {
         if source.label_recheck is None {
-          let (label, _) = @carrier.property_definition_label_at(
+          let (label, _) = @carrier.graph_element_definition_label_at(
             definition,
             source.label_index,
           ).unwrap()
@@ -306,7 +308,7 @@ fn graph_rows_field(
     (name, cell)
   } else if field - roles.length() < key_count {
     let component = field - roles.length()
-    guard @carrier.property_definition_key_column_at(definition, component)
+    guard @carrier.graph_element_definition_key_column_at(definition, component)
       is Some(name) else {
       return Ok(AbsentField)
     }
@@ -328,7 +330,7 @@ fn graph_rows_field(
   } else {
     let index = field - roles.length() - key_count
     guard @carrier.field_at(
-        @carrier.property_definition_properties(definition),
+        @carrier.graph_element_definition_properties(definition),
         index,
       )
       is Some(property) else {
@@ -384,7 +386,7 @@ pub fn start_graph_view_to_rows(
       step,
       0,
     ) &&
-    @lifecycle.producer_view_property_graph_definition(input) is Ok(definition) &&
+    @lifecycle.producer_view_graph_definition(input) is Ok(definition) &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
       @pipeline.Step(step),
@@ -472,7 +474,7 @@ pub fn start_graph_to_rows(
   }
   let source : GraphRowsSource = {
     source: StoredGraph(storage),
-    definition: @carrier.graph_property_definition(graph),
+    definition: @carrier.graph_definition(graph),
     selected_definition: @lower.carrier_projection_definition(projection),
     selected_label: @lower.carrier_projection_label(projection),
     selection_label_index: 0,

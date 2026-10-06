@@ -2,15 +2,15 @@
 priv struct ScriptGraph {
   name : @query.NamePart
   producer : String
-  mapping : @query.PropertyGraphConstructor
+  mapping : @query.GraphConstructor
   inputs : Array[Input]
 }
 
 ///|
 fn keyed_start_definitions(
-  mapping : @query.PropertyGraphConstructor,
+  mapping : @query.GraphConstructor,
   node : @query.GraphNodePattern,
-) -> Array[@query.PropertyNodeDefinition] raise Abort {
+) -> Array[@query.GraphNodeDefinition] raise Abort {
   let selected = match node.label {
     Some(name) =>
       mapping.nodes.filter(definition => {
@@ -28,7 +28,7 @@ fn keyed_start_definitions(
 // This is schema-name projection, not Graph admission. The common owner
 // still validates global property types, label sets, keys and identities.
 fn keyed_node_fields(
-  definition : @query.PropertyNodeDefinition,
+  definition : @query.GraphNodeDefinition,
   node : @query.GraphNodePattern,
   input : Input,
 ) -> Array[String] raise Abort {
@@ -167,7 +167,7 @@ fn keyed_node_constraint(
 fn keyed_start_match(
   construction : Construction,
   graph : ScriptGraph,
-  definition : @query.PropertyNodeDefinition,
+  definition : @query.GraphNodeDefinition,
   node : @query.GraphNodePattern,
   fields : Array[String],
   identity : String,

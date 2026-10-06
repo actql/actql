@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, createHmac, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -545,7 +545,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: Graph components expose typed argument violations`, async t => {
     const client = await open(t, configurations.denied);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
     for (const format of ['aql-text']) {
       for (const kind of ['weak', 'strong']) {
@@ -1580,7 +1580,7 @@ for (const entrance of ['local', 'http']) {
 
   test(`${entrance}: Subgraph selector violations preserve the common Owner reason`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
     for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
       const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
@@ -1782,8 +1782,8 @@ for (const entrance of ['local', 'http']) {
 }
 const numericContract = JSON.parse(await readFile(join(repository,
   'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
-const propertyGraphLaw = JSON.parse(await readFile(join(repository,
-  'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
+const graphLaw = JSON.parse(await readFile(join(repository,
+  'spec/dependencies/actql-graph-laws.json'), 'utf8'));
 const fixtureCid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
@@ -1941,26 +1941,26 @@ test('the admitted checker exposes exact selections without private Source inven
     const expected = {host_policy_profile: sourceEnvironment.host_policy_profile,
       model_task_contract_cids: [], profiles: {
         ...Object.fromEntries(flags.map(flag => [flag, flag === enabled])),
-        property_graph: false, property_graph_law_cid: null, model_tasks: true,
+        graph: false, graph_law_cid: null, model_tasks: true,
         numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}};
     assert.deepEqual(JSON.parse(moon.clientProgramCheckContextIdentity(admitted)), expected);
   }
   const numericCid = fixtureCid(numericContract);
-  const propertyCid = fixtureCid(propertyGraphLaw);
+  const propertyCid = fixtureCid(graphLaw);
   const numeric = moon.clientProgramCheckEnvironmentWithNumericProfile(
     canonicalText(absentEnvironment), absentEnvironment.evidence_bundle_cid,
     false, false, true, true, false, false, false, numericCid);
   assert.notEqual(numeric, undefined);
   assert.equal(JSON.parse(moon.clientProgramCheckContextIdentity(numeric))
     .profiles.numeric_profile_cid, numericCid);
-  const graph = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+  const graph = moon.clientProgramCheckEnvironmentWithGraphProfile(
     canonicalText(absentEnvironment), absentEnvironment.evidence_bundle_cid,
     false, false, true, true, false, false, false, numericCid, propertyCid);
   assert.notEqual(graph, undefined);
   assert.deepEqual(JSON.parse(moon.clientProgramCheckContextIdentity(graph)).profiles,
     {text_time: false, veca: false, rela: true, sga: true, tea: false,
-      calendar: false, text_rank: false, property_graph: true,
-      property_graph_law_cid: propertyCid, model_tasks: true,
+      calendar: false, text_rank: false, graph: true,
+      graph_law_cid: propertyCid, model_tasks: true,
       numeric_profile_cid: numericCid, calendar_profile_cid: null, text_rank_profile_cid: null});
   const paddedPolicy = {capacity: sourceEnvironment.host_policy_profile.capacity,
     padding: ''};
@@ -4219,7 +4219,7 @@ for (const entrance of ['local', 'http']) {
       checking_context: {host_policy_profile: sourceEnvironment.host_policy_profile,
         model_task_contract_cids: [], profiles: {text_time: false, veca: false,
           rela: true, sga: true, tea: false, calendar: false, text_rank: false,
-          property_graph: false, property_graph_law_cid: null, model_tasks: true,
+          graph: false, graph_law_cid: null, model_tasks: true,
           numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}},
       visible_aliases: []};
     const hash = value => 'ctx:' + createHmac('sha256', new Uint8Array(32).fill(7))

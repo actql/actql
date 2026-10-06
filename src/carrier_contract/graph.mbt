@@ -1,0 +1,670 @@
+///|
+/// Checked schema knowledge, not admitted rows, uniqueness or execution rights.
+/// Canonical internal name for an admitted Graph node definition.
+struct GraphNodeDefinition {
+  name : String
+  key_contracts : Array[@value.Contract]
+  key_columns : Array[String]
+  properties : Knowledge
+  labels : Array[String]
+  label_properties : Array[(String, Knowledge)]
+  label_membership : Map[String, Bool]
+}
+
+///|
+/// Canonical internal name for an admitted Graph edge definition.
+struct GraphEdgeDefinition {
+  element : GraphNodeDefinition
+  source_definition : String
+  target_definition : String
+}
+
+///|
+/// Canonical internal name for an admitted Graph definition.
+struct GraphDefinition {
+  domain : String
+  nodes : Array[GraphNodeDefinition]
+  edges : Array[GraphEdgeDefinition]
+  node_names : Map[String, Int]
+  edge_names : Map[String, Int]
+}
+
+///|
+/// The scalar descriptor embedded in Graph identity, not the full value
+/// contract. Nullability and text extents do not change this descriptor.
+pub(all) enum GraphKeyDescriptor {
+  NumberKey
+  TextKey
+  BooleanKey
+  DateKey
+  TimestampKey
+  DecimalKey(precision~ : Int, scale~ : Int)
+  ResourceKey(resource_kind~ : String)
+  ArtifactKey(media_type~ : String?)
+} derive(Eq, Debug)
+
+///|
+/// Shared by constructor admission, identity encoding and structural checking.
+pub fn graph_key_descriptor(contract : @value.Contract) -> GraphKeyDescriptor? {
+  match contract.shape {
+    @value.Number => Some(NumberKey)
+    @value.Text(_) => Some(TextKey)
+    @value.Boolean => Some(BooleanKey)
+    @value.Date => Some(DateKey)
+    @value.Timestamp => Some(TimestampKey)
+    @value.Decimal(precision~, scale~) => Some(DecimalKey(precision~, scale~))
+    @value.ResourceRef(resource_kind~) => Some(ResourceKey(resource_kind~))
+    @value.ArtifactRef(media_type~) => Some(ArtifactKey(media_type~))
+    _ => None
+  }
+}
+
+///|
+pub(all) enum GraphIssue {
+  InvalidLimits
+  InvalidName
+  InvalidKey
+  IncompleteProperties
+  InvalidLabel
+  DuplicateLabel
+  DuplicateDefinition
+  UnknownEndpointDefinition
+  LabelPropertyConflict
+  PropertyTypeConflict
+  LimitExceeded
+  InvalidDomain
+} derive(Eq, Debug)
+
+///|
+fn property_name(value : String) -> Bool {
+  !value.is_empty() && @canonical.normalize_nfc_lf(value) == Ok(value)
+}
+
+///|
+fn property_name_key(value : String) -> String {
+  value.to_lower()
+}
+
+///|
+/// Shared admitted Graph name equality. Display spelling remains unchanged.
+pub fn graph_name_identity(value : String) -> String {
+  property_name_key(value)
+}
+
+///|
+pub fn graph_node_definition(
+  name : String,
+  key_contracts : Array[@value.Contract],
+  properties : Knowledge,
+  labels : Array[String],
+  max_fields~ : Int,
+  max_name_bytes~ : Int,
+  label_properties? : Array[(String, Knowledge)] = [],
+  key_columns? : Array[String] = [],
+  max_contract_work? : Int = 10000,
+) -> Result[GraphNodeDefinition, GraphIssue] {
+  graph_node_definition_usage(
+    name,
+    key_contracts,
+    properties,
+    labels,
+    max_fields~,
+    max_name_bytes~,
+    label_properties~,
+    key_columns~,
+    max_contract_work~,
+  ).map(pair => pair.0)
+}
+
+///|
+/// Validation shares its remaining work budget with the enclosing checker.
+pub fn graph_node_definition_usage(
+  name : String,
+  key_contracts : Array[@value.Contract],
+  properties : Knowledge,
+  labels : Array[String],
+  max_fields~ : Int,
+  max_name_bytes~ : Int,
+  label_properties? : Array[(String, Knowledge)] = [],
+  key_columns? : Array[String] = [],
+  max_contract_work? : Int = 10000,
+) -> Result[(GraphNodeDefinition, Int), GraphIssue] {
+  if max_fields < 0 || max_name_bytes < 0 || max_contract_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if !property_name(name) {
+    return Err(InvalidName)
+  }
+  if key_contracts.is_empty() {
+    return Err(InvalidKey)
+  }
+  if key_contracts.length() > max_fields ||
+    field_count(properties) > max_fields ||
+    labels.length() > max_fields {
+    return Err(LimitExceeded)
+  }
+  let mut work = max_contract_work
+  if !key_columns.is_empty() && key_columns.length() != key_contracts.length() {
+    return Err(InvalidKey)
+  }
+  let key_names : Map[String, Bool] = Map([])
+  let mut key_bytes = max_name_bytes
+  for column in key_columns {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    if !property_name(column) || key_names.contains(property_name_key(column)) {
+      return Err(InvalidKey)
+    }
+    key_names[property_name_key(column)] = true
+    match @scalar.admit_utf8_length(column, key_bytes) {
+      Ok(size) => key_bytes -= size
+      Err(_) => return Err(LimitExceeded)
+    }
+  }
+  for contract in key_contracts {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    if graph_key_descriptor(contract) is None {
+      return Err(InvalidKey)
+    }
+  }
+  if field_set(properties) != Closed || properties.has_qualified_fields {
+    return Err(IncompleteProperties)
+  }
+  let property_names : Map[String, Bool] = Map([])
+  for index in 0..<field_count(properties) {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    let field = field_at(properties, index).unwrap()
+    if field.contract is None || field.presence != @row.Required {
+      return Err(IncompleteProperties)
+    }
+    let folded = property_name_key(@row.reference_name(field.name))
+    if property_names.contains(folded) {
+      return Err(IncompleteProperties)
+    }
+    property_names[folded] = true
+  }
+  let seen : Map[String, Bool] = Map([])
+  let mut bytes = key_bytes
+  for text in [name, ..labels] {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    let size = match @scalar.admit_utf8_length(text, bytes) {
+      Ok(size) => size
+      Err(_) => return Err(LimitExceeded)
+    }
+    bytes -= size
+  }
+  let admitted : Array[String] = []
+  for label in labels {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    if !property_name(label) {
+      return Err(InvalidLabel)
+    }
+    let folded = property_name_key(label)
+    if seen.contains(folded) {
+      return Err(DuplicateLabel)
+    }
+    seen[folded] = true
+    admitted.push(label)
+  }
+  admitted.sort_by(@canonical.compare_utf16)
+  let scoped : Array[(String, Knowledge)] = []
+  if !label_properties.is_empty() &&
+    label_properties.length() != admitted.length() {
+    return Err(IncompleteProperties)
+  }
+  for label in admitted {
+    let mut selected = None
+    if label_properties.is_empty() {
+      selected = Some(properties)
+    } else {
+      for (candidate, knowledge) in label_properties {
+        if work == 0 {
+          return Err(LimitExceeded)
+        }
+        work -= 1
+        if property_name_key(candidate) == property_name_key(label) {
+          if selected is Some(_) {
+            return Err(DuplicateLabel)
+          }
+          selected = Some(knowledge)
+        }
+      }
+    }
+    guard selected is Some(selected) &&
+      field_set(selected) == Closed &&
+      !selected.has_qualified_fields else {
+      return Err(IncompleteProperties)
+    }
+    let selected_names : Map[String, Bool] = Map([])
+    for index in 0..<field_count(selected) {
+      let field = field_at(selected, index).unwrap()
+      let folded = property_name_key(@row.reference_name(field.name))
+      if selected_names.contains(folded) || field.contract is None {
+        return Err(IncompleteProperties)
+      }
+      selected_names[folded] = true
+      let mut expected = None
+      for parent in 0..<field_count(properties) {
+        if work == 0 {
+          return Err(LimitExceeded)
+        }
+        work -= 1
+        let parent = field_at(properties, parent).unwrap()
+        if property_name_key(@row.reference_name(parent.name)) == folded {
+          expected = parent.contract
+          break
+        }
+      }
+      guard expected is Some(expected) else { return Err(IncompleteProperties) }
+      try {
+        let (forward, used) = @value.assignable_usage(
+          field.contract.unwrap(),
+          expected,
+          work,
+        )
+        work -= used
+        let (backward, used) = @value.assignable_usage(
+          expected,
+          field.contract.unwrap(),
+          work,
+        )
+        work -= used
+        if !forward || !backward {
+          return Err(IncompleteProperties)
+        }
+      } catch {
+        _ => return Err(LimitExceeded)
+      }
+    }
+    scoped.push((label, selected))
+  }
+  Ok(
+    (
+      {
+        name,
+        key_contracts: key_contracts.map(contract => {
+          @value.with_nullability(contract, false)
+        }),
+        key_columns: key_columns.copy(),
+        properties,
+        labels: admitted,
+        label_properties: scoped,
+        label_membership: seen,
+      },
+      max_contract_work - work,
+    ),
+  )
+}
+
+///|
+pub fn graph_edge_definition(
+  element : GraphNodeDefinition,
+  source_definition : String,
+  target_definition : String,
+) -> Result[GraphEdgeDefinition, GraphIssue] {
+  if !property_name(source_definition) || !property_name(target_definition) {
+    return Err(InvalidName)
+  }
+  Ok({ element, source_definition, target_definition, })
+}
+
+///|
+/// New Graph profile. The domain is a definition-provenance CID supplied by
+/// the checking context; this structural constructor does not issue that CID
+/// or certify that an arbitrary caller has established its provenance.
+pub fn graph(
+  domain : String,
+  nodes : Array[GraphNodeDefinition],
+  edges : Array[GraphEdgeDefinition],
+  max_definitions~ : Int,
+  max_contract_work~ : Int,
+) -> Result[Carrier, GraphIssue] {
+  graph_usage(domain, nodes, edges, max_definitions~, max_contract_work~).map(pair => {
+    pair.0
+  })
+}
+
+///|
+pub fn graph_usage(
+  domain : String,
+  nodes : Array[GraphNodeDefinition],
+  edges : Array[GraphEdgeDefinition],
+  max_definitions~ : Int,
+  max_contract_work~ : Int,
+) -> Result[(Carrier, Int), GraphIssue] {
+  if max_definitions < 0 || max_contract_work < 0 {
+    return Err(InvalidLimits)
+  }
+  if !domain.has_prefix("sha256:") || domain.length() != 71 {
+    return Err(InvalidDomain)
+  }
+  for character in domain.to_array()[7:] {
+    if !(character >= '0' && character <= '9') &&
+      !(character >= 'a' && character <= 'f') {
+      return Err(InvalidDomain)
+    }
+  }
+  if nodes.length() > max_definitions ||
+    edges.length() > max_definitions - nodes.length() {
+    return Err(LimitExceeded)
+  }
+  let node_names : Map[String, Int] = Map([])
+  let names : Map[String, Bool] = Map([])
+  let mut work = max_contract_work
+  for index, node in nodes {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    let key = property_name_key(node.name)
+    if names.contains(key) {
+      return Err(DuplicateDefinition)
+    }
+    names[key] = true
+    node_names[key] = index
+  }
+  let edge_names : Map[String, Int] = Map([])
+  for index, edge in edges {
+    if work == 0 {
+      return Err(LimitExceeded)
+    }
+    work -= 1
+    let key = property_name_key(edge.element.name)
+    if names.contains(key) {
+      return Err(DuplicateDefinition)
+    }
+    names[key] = true
+    edge_names[key] = index
+    if !node_names.contains(property_name_key(edge.source_definition)) ||
+      !node_names.contains(property_name_key(edge.target_definition)) {
+      return Err(UnknownEndpointDefinition)
+    }
+  }
+  // One label namespace spans both element families. Its exposed property set
+  // is a separate obligation from graph-wide value-type compatibility below.
+  let known : Map[String, Knowledge] = Map([])
+  for kind in 0..<2 {
+    let selected = if kind == 0 {
+      nodes
+    } else {
+      edges.map(edge => edge.element)
+    }
+    for definition in selected {
+      for (label, exposed_properties) in definition.label_properties {
+        if work == 0 {
+          return Err(LimitExceeded)
+        }
+        work -= 1
+        let folded = property_name_key(label)
+        match known.get(folded) {
+          None => known[folded] = exposed_properties
+          Some(previous) => {
+            if field_count(previous) != field_count(exposed_properties) {
+              return Err(LabelPropertyConflict)
+            }
+            for index in 0..<field_count(previous) {
+              let field = field_at(previous, index).unwrap()
+              let mut current = None
+              for candidate in 0..<field_count(exposed_properties) {
+                if work == 0 {
+                  return Err(LimitExceeded)
+                }
+                work -= 1
+                let candidate = field_at(exposed_properties, candidate).unwrap()
+                if property_name_key(@row.reference_name(field.name)) ==
+                  property_name_key(@row.reference_name(candidate.name)) {
+                  current = candidate.contract
+                  break
+                }
+              }
+              guard current is Some(current) else {
+                return Err(LabelPropertyConflict)
+              }
+              try {
+                let (joined, used) = @value.join_nullability_usage(
+                  field.contract.unwrap(),
+                  current,
+                  work,
+                )
+                work -= used
+                if joined is None {
+                  return Err(LabelPropertyConflict)
+                }
+              } catch {
+                _ => return Err(LimitExceeded)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // Property names have graph-wide value types, even under different labels.
+  // Joining checks existing value compatibility without replacing any
+  // definition's declared nullability or creating a homogeneous Graph schema.
+  let property_types : Map[String, @value.Contract] = Map([])
+  for kind in 0..<2 {
+    let selected = if kind == 0 {
+      nodes
+    } else {
+      edges.map(edge => edge.element)
+    }
+    for definition in selected {
+      for index in 0..<field_count(definition.properties) {
+        if work == 0 {
+          return Err(LimitExceeded)
+        }
+        work -= 1
+        let field = field_at(definition.properties, index).unwrap()
+        let folded = property_name_key(@row.reference_name(field.name))
+        let contract = field.contract.unwrap()
+        match property_types.get(folded) {
+          None => property_types[folded] = contract
+          Some(previous) =>
+            try {
+              let (joined, used) = @value.join_nullability_usage(
+                previous, contract, work,
+              )
+              work -= used
+              guard joined is Some(joined) else {
+                return Err(PropertyTypeConflict)
+              }
+              property_types[folded] = joined
+            } catch {
+              _ => return Err(LimitExceeded)
+            }
+        }
+      }
+    }
+  }
+  let json = @value.primitive(JsonType, nullable=false)
+  Ok(
+    (
+      GraphValue({
+        graph: {
+          domain,
+          nodes: nodes.copy(),
+          edges: edges.copy(),
+          node_names,
+          edge_names,
+        },
+        identity: json,
+      }),
+      max_contract_work - work,
+    ),
+  )
+}
+
+///|
+pub fn graph_definition(graph : Graph) -> GraphDefinition {
+  graph.graph
+}
+
+///|
+pub fn graph_domain(value : GraphDefinition) -> String {
+  value.domain
+}
+
+///|
+pub fn graph_node_definitions(
+  value : GraphDefinition,
+) -> Array[GraphNodeDefinition] {
+  value.nodes.copy()
+}
+
+///|
+pub fn graph_edge_definitions(
+  value : GraphDefinition,
+) -> Array[GraphEdgeDefinition] {
+  value.edges.copy()
+}
+
+///|
+pub fn graph_node_at(
+  value : GraphDefinition,
+  index : Int,
+) -> GraphNodeDefinition? {
+  value.nodes.get(index)
+}
+
+///|
+pub fn graph_node_named(
+  value : GraphDefinition,
+  name : String,
+) -> GraphNodeDefinition? {
+  value.node_names
+  .get(property_name_key(name))
+  .bind(index => value.nodes.get(index))
+}
+
+///|
+pub fn graph_edge_at(
+  value : GraphDefinition,
+  index : Int,
+) -> GraphEdgeDefinition? {
+  value.edges.get(index)
+}
+
+///|
+pub fn graph_edge_named(
+  value : GraphDefinition,
+  name : String,
+) -> GraphEdgeDefinition? {
+  value.edge_names
+  .get(property_name_key(name))
+  .bind(index => value.edges.get(index))
+}
+
+///|
+pub fn graph_node_count(value : GraphDefinition) -> Int {
+  value.nodes.length()
+}
+
+///|
+pub fn graph_edge_count(value : GraphDefinition) -> Int {
+  value.edges.length()
+}
+
+///|
+pub fn graph_element_definition_name(value : GraphNodeDefinition) -> String {
+  value.name
+}
+
+///|
+pub fn graph_element_definition_key_count(value : GraphNodeDefinition) -> Int {
+  value.key_contracts.length()
+}
+
+///|
+/// Indexed reads let consumers charge a shared budget before visiting entries.
+pub fn graph_element_definition_key_at(
+  value : GraphNodeDefinition,
+  index : Int,
+) -> @value.Contract? {
+  value.key_contracts.get(index)
+}
+
+///|
+/// Original constructor key-column name at the corresponding typed component.
+/// An unnamed structurally admitted key does not synthesize a public alias.
+pub fn graph_element_definition_key_column_at(
+  value : GraphNodeDefinition,
+  index : Int,
+) -> String? {
+  value.key_columns.get(index)
+}
+
+///|
+pub fn graph_element_definition_label_count(value : GraphNodeDefinition) -> Int {
+  value.label_properties.length()
+}
+
+///|
+/// Static label and its exact admitted public property schema, without copying.
+pub fn graph_element_definition_label_at(
+  value : GraphNodeDefinition,
+  index : Int,
+) -> (String, Knowledge)? {
+  value.label_properties.get(index)
+}
+
+///|
+pub fn graph_element_definition_keys(
+  value : GraphNodeDefinition,
+) -> Array[@value.Contract] {
+  value.key_contracts.copy()
+}
+
+///|
+pub fn graph_element_definition_properties(
+  value : GraphNodeDefinition,
+) -> Knowledge {
+  value.properties
+}
+
+///|
+pub fn graph_element_definition_labels(
+  value : GraphNodeDefinition,
+) -> Array[String] {
+  value.labels.copy()
+}
+
+///|
+pub fn graph_element_definition_label_properties(
+  value : GraphNodeDefinition,
+) -> Array[(String, Knowledge)] {
+  value.label_properties.copy()
+}
+
+///|
+/// Membership comes from admitted static labels, never from property values.
+pub fn graph_element_definition_has_label(
+  value : GraphNodeDefinition,
+  label : String,
+) -> Bool {
+  value.label_membership.contains(property_name_key(label))
+}
+
+///|
+pub fn graph_edge_element(value : GraphEdgeDefinition) -> GraphNodeDefinition {
+  value.element
+}
+
+///|
+pub fn graph_edge_endpoints(value : GraphEdgeDefinition) -> (String, String) {
+  (value.source_definition, value.target_definition)
+}

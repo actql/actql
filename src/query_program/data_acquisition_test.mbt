@@ -4,7 +4,7 @@ fn data_acquisition_environment() -> @check.CheckEnvironment {
     @check.checking_environment_wire(check_environment()),
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    property_graph=true,
+    graph=true,
   )
 }
 

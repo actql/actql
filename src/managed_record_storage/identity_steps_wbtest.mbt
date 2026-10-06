@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn identity_step_builder(slots : Int, work : Int, bytes : Int) -> Builder {
   prepare_with_additional_identities(
@@ -35,7 +38,11 @@ test "record identity hash keeps exact wire limits without assembled Text" {
       (29, 1000, 277, Err(ValueLimit), 21),
     ] {
     let builder = identity_step_builder(slots, work, bytes)
-    let cursor = start_append(builder, relation_record(text)).unwrap()
+    let cursor = start_append(
+      builder,
+      relation_record(text),
+      external_workspace_slots=0,
+    ).unwrap()
     let (result, polls) = identity_step_result(cursor, 50)
     assert_eq(result, expected)
     assert_eq(polls, expected_polls)
@@ -68,7 +75,11 @@ test "record identity collision equality yields and retains cleanup custody" {
   for (slots, expected) in [(44, DuplicateIdentity), (43, WorkspaceLimit)] {
     let builder = identity_step_builder(slots, 100, 1000)
     append(builder, relation_record(text)).unwrap()
-    let cursor = start_append(builder, relation_record(text)).unwrap()
+    let cursor = start_append(
+      builder,
+      relation_record(text),
+      external_workspace_slots=0,
+    ).unwrap()
     let mut comparisons = 0
     let mut outcome = None
     for _ in 0..<100 {
@@ -100,7 +111,11 @@ test "record identity collision equality yields and retains cleanup custody" {
   }
   let builder = identity_step_builder(44, 100, 1000)
   append(builder, relation_record(text)).unwrap()
-  let cursor = start_append(builder, relation_record(text)).unwrap()
+  let cursor = start_append(
+    builder,
+    relation_record(text),
+    external_workspace_slots=0,
+  ).unwrap()
   for _ in 0..<100 {
     if cursor.phase is CompareKey && cursor.comparison.unwrap().left.offset > 0 {
       break
@@ -123,7 +138,11 @@ test "record identity digest collisions never replace exact wire equality" {
   let first = String::make(130, 'a')
   let second = String::make(130, 'b')
   append(builder, relation_record(first)).unwrap()
-  let cursor = start_append(builder, relation_record(second)).unwrap()
+  let cursor = start_append(
+    builder,
+    relation_record(second),
+    external_workspace_slots=0,
+  ).unwrap()
   // Force the first record into the second digest bucket at the boundary.
   // This tests collision safety without assuming an actual SHA-256 collision.
   while !(cursor.phase is FinishKey) {

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
 import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
+import {boundedSorterAliases, isProductionMoonSource, localResourceApiIssues} from './local-resource-api-guard.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-local-resource-accounting.mjs');
@@ -47,6 +48,174 @@ function run(...args) {
   const result = evaluate(...args);
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
+
+function apiGuardErrors(sources) {
+  return validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources}).errors.filter(error =>
+    error.includes('eager bounded_tuple_sort.prepare reference') ||
+    error.includes('must require external_workspace_slots~'));
+}
+
+function sorterFixture(code, descriptor = 'import { "actql/actql/bounded_tuple_sort" @sort }',
+  name = 'consumer.mbt') {
+  const directory = join(root, 'src/unregistered_sorter_consumer');
+  return Object.freeze({...sourceTemplate,
+    [join(directory, 'moon.pkg')]: Object.freeze({exists: true, text: descriptor}),
+    [join(directory, name)]: Object.freeze({exists: true, text: code}),
+  });
+}
+
+test('bounded resource API guard accepts current source and rejects eager consumers', () => {
+  assert.deepEqual(apiGuardErrors(sourceTemplate), []);
+  let checked = 0;
+  for (const [file, source] of Object.entries(sourceTemplate)) {
+    if (!source.exists || !isProductionMoonSource(file)) continue;
+    const descriptor = sourceTemplate[join(dirname(file), 'moon.pkg')]?.text;
+    if (!descriptor) continue;
+    for (const alias of boundedSorterAliases(descriptor)) {
+      const marker = `@${alias}.prepare_deferred`;
+      if (!source.text.includes(marker)) continue;
+      checked++;
+      const sources = Object.freeze({...sourceTemplate,
+        [file]: Object.freeze({...source, text: source.text.replace(marker, `@${alias}.prepare`)}),
+      });
+      assert.match(apiGuardErrors(sources).join('\n'), /eager bounded_tuple_sort\.prepare reference/u);
+    }
+  }
+  assert.ok(checked > 0, 'must mutate actual bounded sorter consumers');
+});
+
+test('bounded sorter guard resolves import aliases and catches function-value references', () => {
+  for (const [descriptor, code] of [
+    ['import { "actql/actql/bounded_tuple_sort" @alternate }',
+      'fn bad() { @alternate.prepare(keys, slots) }'],
+    ['import { "actql/actql/bounded_tuple_sort"\n @alternate }',
+      'fn bad() { @alternate \n . /* gap */ prepare \n (keys, slots) }'],
+    ['import { "actql/actql/bounded_tuple_sort" @alternate }',
+      'fn bad() { let eager = @alternate.prepare; eager(keys, slots) }'],
+    ['import { "actql/actql/bounded_tuple_sort" }',
+      'fn bad() { let eager = @bounded_tuple_sort.prepare }'],
+    ['import { "actql/actql/bounded_tuple_sort" @sort }',
+      String.raw`fn bad() { let label = "sort: \{@sort.prepare([["a"]], slots)}" }`],
+    ['import { "actql/actql/bounded_tuple_sort" @sort }',
+      String.raw`fn bad() {
+        let label =
+          $|sort: \{ { let eager = @sort.prepare; eager(keys, slots) } }
+      }`],
+  ]) {
+    const errors = apiGuardErrors(sorterFixture(code, descriptor));
+    assert.equal(errors.length, 1);
+    assert.match(errors[0], /unregistered_sorter_consumer\/consumer\.mbt: eager/u);
+  }
+});
+
+test('bounded sorter guard ignores comments, literal mentions, and test code', () => {
+  const code = String.raw`
+    // @sort.prepare(keys, slots)
+    /* @sort.prepare /* nested comment */ (keys, slots) */
+    fn allowed() {
+      let quoted = "@sort.prepare with an escaped \" quote"
+      let raw =
+        #|@sort.prepare(keys, slots)
+      let multiline =
+        $|@sort.prepare(keys, slots)
+      let character = '"'
+      let sorter = @sort.prepare_deferred(keys, slots)
+    }
+    test "eager compatibility still works" {
+      let eager = @sort.prepare
+      if true { eager(keys, slots) }
+    }
+    test { @sort.prepare(keys, slots) }
+  `;
+  assert.deepEqual(apiGuardErrors(sorterFixture(code)), []);
+  for (const name of ['compatibility_test.mbt', 'compatibility_wbtest.mbt', 'compatibility_bbtest.mbt']) {
+    assert.deepEqual(apiGuardErrors(sorterFixture('@sort.prepare(keys, slots)', undefined, name)), []);
+  }
+  assert.equal(apiGuardErrors(sorterFixture(code + '\nfn bad() { @sort.prepare }')).length, 1);
+});
+
+test('bounded sorter guard matches the exact production import, not spelling alone', () => {
+  for (const descriptor of [
+    'import { "another/module/bounded_tuple_sort" @sort }',
+    'import { "actql/actql/bounded_tuple_sort_extra" @sort }',
+    '// import { "actql/actql/bounded_tuple_sort" @sort }',
+    '/* import { "actql/actql/bounded_tuple_sort" @sort } */',
+    'note = "actql/actql/bounded_tuple_sort"',
+    'import { "actql/actql/bounded_tuple_sort" @sort } for "test"',
+    'import { "actql/actql/bounded_tuple_sort" @sort } for "wbtest"',
+  ]) {
+    assert.deepEqual(apiGuardErrors(sorterFixture('fn allowed() { @sort.prepare }', descriptor)), []);
+  }
+  assert.deepEqual(apiGuardErrors(sorterFixture('fn allowed() { @sort.prepare }',
+    'import { "actql/actql/bounded_tuple_sort" @actual_sort }')), []);
+  assert.equal(apiGuardErrors(sorterFixture('fn bad() { @sort.prepare }',
+    '/* import { "another/module" @sort } */\nimport { "actql/actql/bounded_tuple_sort" @sort }')).length, 1);
+});
+
+test('resource snapshots discover new nested bounded sorter consumers without inventory entries', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-resource-api-'));
+  const consumer = join(directory, 'src/new/nested_consumer');
+  const file = join(consumer, 'new.mbt');
+  try {
+    mkdirSync(consumer, {recursive: true});
+    writeFileSync(join(directory, 'package.json'), '{}');
+    writeFileSync(join(directory, 'inventory.json'), '{}');
+    writeFileSync(join(consumer, 'moon.pkg'),
+      'import { "actql/actql/bounded_tuple_sort" @fresh }');
+    writeFileSync(file, 'fn bad() { let eager = @fresh.prepare }');
+    writeFileSync(join(consumer, 'compatibility_wbtest.mbt'), '@fresh.prepare');
+    const manifest = {inventories: {rela: 'inventory.json', families: 'inventory.json'}};
+    const first = loadResourceAccountingSources({root: directory, manifest, routes: {}});
+    assert.equal(first[file].text, 'fn bad() { let eager = @fresh.prepare }');
+    assert.ok(Object.isFrozen(first[file]));
+    assert.equal(first[join(consumer, 'compatibility_wbtest.mbt')], undefined);
+    const eagerErrors = sources => localResourceApiIssues({root: directory, sources})
+      .filter(error => error.includes('eager bounded_tuple_sort.prepare reference'));
+    assert.equal(eagerErrors(first).length, 1);
+    writeFileSync(file, 'fn good() { @fresh.prepare_deferred(keys, slots) }');
+    assert.equal(eagerErrors(first).length, 1, 'validation reads captured bytes only');
+    const reused = loadResourceAccountingSources({root: directory, manifest,
+      routes: {}, previousSources: first});
+    assert.equal(eagerErrors(reused).length, 1);
+    const fresh = loadResourceAccountingSources({root: directory, manifest, routes: {}});
+    assert.deepEqual(eagerErrors(fresh), []);
+    assert.equal(eagerErrors(first).length, 1, 'a fresh load must not alter an older snapshot');
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
+});
+
+test('record append APIs cannot restore optional caller workspace reservations', () => {
+  for (const relative of ['src/managed_record_storage/append_steps.mbt',
+    'src/managed_record_runtime/output.mbt']) {
+    const file = join(root, relative);
+    const marker = 'external_workspace_slots~ : Int';
+    assert.ok(sourceTemplate[file].text.includes(marker));
+    for (const replacement of ['external_workspace_slots? : Int = 0',
+      'external_workspace_slots? : Int', 'external_workspace_slots~ : Int = 0',
+      'external_workspace_slots : Int']) {
+      const sources = Object.freeze({...sourceTemplate,
+        [file]: Object.freeze({...sourceTemplate[file],
+          text: sourceTemplate[file].text.replace(marker, replacement)}),
+      });
+      const errors = apiGuardErrors(sources);
+      assert.equal(errors.length, 1);
+      assert.ok(errors[0].startsWith(relative + ':'));
+      assert.match(errors[0], /must require external_workspace_slots~ : Int without a default/u);
+    }
+  }
+});
+
+test('Pool cannot omit caller reservation lifetime evidence', () => {
+  for (const role of ['pool_caller_workspace_exact_one_short',
+    'pool_caller_workspace_stop_cleanup', 'pool_relation_caller_workspace_exact_one_short']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(item => item.family === 'VecA' && item.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+});
 
 test('record projections require value, name, stop and public Store evidence', () => {
   for (const operation of ['events', 'vectors']) {
@@ -771,7 +940,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
   const directories = [];
   const observe = directory => directories.push(directory);
   assert.match(runCli(undefined, undefined, [], undefined, observe),
-    /69 operations, 5 implementation profiles/u);
+    /68 operations, 5 implementation profiles/u);
   assert.match(runCli(manifest => { manifest.bindings = []; },
     undefined, [], undefined, observe), /bindings must exactly preserve/u);
   assert.throws(() => runCli(undefined,
@@ -784,7 +953,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 64 production routes mapped, 5 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 64 production routes mapped, 4 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
@@ -860,11 +1029,11 @@ test('current Graph diagnostics require their own bounded and Host stop fixtures
 
 test('current Graph equality requires its selected value, resource, and Host evidence', () => {
   for (const role of [
-    'property_equality_work_exact_one_short',
-    'property_equality_workspace_exact_one_short',
-    'property_equality_cancel_cleanup',
-    'property_equality_nested_value_work_ceiling',
-    'property_equality_long_text_quantum_cancel_cleanup',
+    'graph_equality_work_exact_one_short',
+    'graph_equality_workspace_exact_one_short',
+    'graph_equality_cancel_cleanup',
+    'graph_equality_nested_value_work_ceiling',
+    'graph_equality_long_text_quantum_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&
@@ -874,8 +1043,8 @@ test('current Graph equality requires its selected value, resource, and Host evi
     /SGA graphs_equal: Graph equality control-work evidence is missing/u);
   }
   for (const role of [
-    'property_equality_retained_named_results',
-    'property_equality_host_in_flight_cancel',
+    'graph_equality_retained_named_results',
+    'graph_equality_host_in_flight_cancel',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&
@@ -906,25 +1075,27 @@ test('current Delta Host stop records name executable conversion and application
   }
 });
 
-test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
+test('Graph constructor cannot borrow foreign boundary or cancellation evidence', () => {
   for (const field of ['path_assurance','resource_assurance']) {
     assert.match(run(undefined, value => {
-      delete value.routes.find(route=>route.operation==='property_graph')[field].entrypoint;
-    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+      delete value.routes.find(route=>route.operation==='graph')[field].entrypoint;
+    }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   }
-  for (const role of ['property_graph_control_work_workspace_exact_one_short',
-    'property_graph_private_capacity_cancel_cleanup']) {
+  for (const role of ['graph_control_work_workspace_exact_one_short',
+    'graph_private_capacity_cancel_cleanup']) {
     assert.match(run(undefined, value => {
-      const route = value.routes.find(route=>route.operation==='property_graph');
+      const route = value.routes.find(route=>route.operation==='graph');
       route.boundary_tests = route.boundary_tests.filter(item=>item.role!==role);
-    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   }
   assert.match(run(undefined, value => {
-    value.routes.find(route=>route.operation==='property_graph').environment_tests=[];
-  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    value.routes.find(route=>route.operation==='graph').environment_tests=[];
+  }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
   assert.match(run(undefined, value => {
-    value.routes.find(route=>route.operation==='property_graph').dispatch.marker='@bridge.start_rows_to_graph(';
-  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+    const route = value.routes.find(route=>route.operation==='graph');
+    assert.equal(route.dispatch.marker, '@bridge.start_rows_to_graph(');
+    route.dispatch.marker='@bridge.start_rows_to_vectors(';
+  }), /Bridge graph: keyed production work\/workspace and Host cancellation evidence are required/u);
 });
 
 test('retained source-free Values requires exact admission and Host evidence', () => {
@@ -3197,7 +3368,7 @@ test('resource gate rejects a bypassed provider call', () => {
 test('resource gate refuses a test fixture as the production entrypoint', () => {
   assert.match(run(undefined, value => {
     value.routes.find(entry => entry.operation === 'match_nodes')
-      .entrypoint.path = 'src/query_integration/property_graph_construction_wbtest.mbt';
+      .entrypoint.path = 'src/query_integration/graph_construction_wbtest.mbt';
   }), /SGA match_nodes: entrypoint must bind a production source/);
 });
 
@@ -3761,7 +3932,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
         ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget, ...extraEnv}});
   try {
     writeFileSync(target, JSON.stringify(manifestTemplate));
-    const stale = gapsTemplate.replace('| Registered operations | 69 |',
+    const stale = gapsTemplate.replace('| Registered operations | 68 |',
       '| Registered operations | 0 |');
     assert.notEqual(stale, gapsTemplate);
     writeFileSync(gapsTarget, stale);
@@ -3779,7 +3950,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
       String(error.stderr).includes('SGA subgraph: entrypoint boundary assurance is missing'));
     assert.equal(readFileSync(gapsTarget, 'utf8'), stale);
     writeFileSync(target, JSON.stringify(manifestTemplate));
-    assert.match(invoke(['--check-summary', '--write-summary']), /69 operations/u);
+    assert.match(invoke(['--check-summary', '--write-summary']), /68 operations/u);
     assert.equal(readFileSync(gapsTarget, 'utf8'), gapsTemplate);
     const rejected = structuredClone(manifestTemplate);
     rejected.bindings = [];
@@ -3795,7 +3966,7 @@ test('resource CLI honors environment, strict checks, and summary write custody'
       join(directory, 'missing.md')}), error =>
       error.status === 1 && /ledger is missing/u.test(String(error.stderr)));
     assert.match(invoke([], {ACTQL_LOCAL_RESOURCE_AUDIT: '',
-      ACTQL_LOCAL_RESOURCE_GAPS: ''}), /69 operations/u);
+      ACTQL_LOCAL_RESOURCE_GAPS: ''}), /68 operations/u);
   } finally {
     rmSync(directory, {recursive: true, force: true});
   }

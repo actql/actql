@@ -109,7 +109,7 @@ fn issued_fixture_checked(
     ]
   } else if components {
     // This historical authoring probe has no current execution grant.
-    // The sole Property Graph admission refuses its retired constructor.
+    // The sole Graph admission refuses its retired constructor.
     let _ = components_rows
     []
   } else if reach {
@@ -143,7 +143,7 @@ fn issued_fixture_checked(
         environment,
         { text_time: false, veca, },
         { rela: true, sga, tea, calendar: false, text_rank: false, },
-        property_graph=sga,
+        graph=sga,
         numeric_profile=if numeric {
           Some(@numeric.builtin_profile())
         } else {

@@ -102,10 +102,10 @@ const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
 // Current Graph acceptance uses the admitted keyed Program, never the retired
 // frontend tuple generator. Rich snapshot/identity acceptance is registered
-// separately in test-packed-property-graph.mjs.
-await writeFile(join(root, 'property-graph-parallel.json'),
+// separately in test-packed-graph.mjs.
+await writeFile(join(root, 'graph-parallel.json'),
   await readFile(join(repository,
-    'scripts/fixtures/property-graph-parallel.program.json'), 'utf8'));
+    'scripts/fixtures/graph-parallel.program.json'), 'utf8'));
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1033,10 +1033,10 @@ const computedValuesQueryDocument = readFileSync('query-computed-values.json',
 const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
 const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
-async function checkCurrentPropertyGraph(client, suffix) {
-  const program = JSON.parse(readFileSync('property-graph-parallel.json', 'utf8'));
+async function checkCurrentGraph(client, suffix) {
+  const program = JSON.parse(readFileSync('graph-parallel.json', 'utf8'));
   const execution = await client.aql(JSON.stringify(program),
-    {format: 'json', requestId: 'packed-property-graph-' + suffix});
+    {format: 'json', requestId: 'packed-graph-' + suffix});
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify(state));
   const result = execution.result('answer');
@@ -1047,7 +1047,7 @@ async function checkCurrentPropertyGraph(client, suffix) {
   assert.deepEqual(await Array.fromAsync(reader), [{key: 10}, {key: 11}]);
   assert.equal(reader.state(), 'complete');
 
-  program.id = 'packed-property-graph-trail';
+  program.id = 'packed-graph-trail';
   program.stages[0].steps.splice(3, 1,
     {from: 'g', match_nodes: {definition: 'N', label: 'Node',
       bindings: {identity: 'element'}, where: 'true', fields: ['element']},
@@ -1593,7 +1593,7 @@ async function runAcquiredApplication(options, requestId) {
 if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   const local = await connect({mode: 'local', owner: 'local',
     durability: 'durable'});
-  await checkCurrentPropertyGraph(local, 'projection-local');
+  await checkCurrentGraph(local, 'projection-local');
   await checkOrderScopes(local, 'projection-local');
   local.close();
   globalThis.fetch = originalFetch;
@@ -1603,7 +1603,7 @@ if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   assert.equal(released.status, 200);
   const remote = await connect({mode: 'remote', endpoint,
     token: 'packed-test-token', durability: 'durable'});
-  await checkCurrentPropertyGraph(remote, 'projection-remote');
+  await checkCurrentGraph(remote, 'projection-remote');
   await checkOrderScopes(remote, 'projection-remote');
   remote.close();
   process.exit(0);
@@ -1645,7 +1645,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
-await checkCurrentPropertyGraph(installedLocal, 'local');
+await checkCurrentGraph(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -1853,7 +1853,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
-await checkCurrentPropertyGraph(installedRemote, 'remote');
+await checkCurrentGraph(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
   console.log('packed Graph Local and HTTP smoke passed');

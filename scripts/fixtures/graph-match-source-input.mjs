@@ -7,7 +7,7 @@ const parameters = {a: 10, b: 20, c: null};
 const nodes = [{node_key: 2, p: 10}, {node_key: 1, p: 20}, {node_key: 3, p: null}];
 const edges = [{edge_key: 11, src_key: 1, dst_key: 2, weight: 10},
   {edge_key: 10, src_key: 1, dst_key: 2, weight: 20}];
-const mapping = {version: 'actql-property-graph-constructor/0.1',
+const mapping = {version: 'actql-graph-constructor/0.1',
   nodes: [{name: 'N', from: 'n', key: ['node_key'], labels: [{name: 'Person',
     properties: {mode: 'columns', columns: ['node_key', 'p'].map(name => ({from: name, to: name}))}}]}],
   edges: [{name: 'E', from: 'e', key: ['edge_key'],
@@ -35,7 +35,7 @@ const jsonControl = (operation, body, fields, order) => JSON.stringify({
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {node_key: number, p: nullableNumber}, rows: nodes}, as: 'n'},
     {values: {schema: {edge_key: number, src_key: number, dst_key: number, weight: number}, rows: edges}, as: 'e'},
-    {property_graph: mapping, as: 'g'},
+    {graph: mapping, as: 'g'},
     {from: 'g', [operation]: body, as: 'matched'},
     {from: 'matched', select: fields},
     {sort: [{field: order, dir: 'asc', nulls: 'first'}], as: 'ordered'},

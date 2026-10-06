@@ -75,7 +75,7 @@ pub fn close_program_operations(
           TraversalLimits(v) => v.site
           TraversalOutputGuard(v) => v.site
           TraversalExecution(v) => v.site
-          PropertyGraphConstructionExecution(v) => v.site
+          GraphConstructionExecution(v) => v.site
           AsOfExecution(v) => v.site
           IntervalExecution(v) => v.site
           IntervalSearch(v) => v.site

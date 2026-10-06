@@ -5,7 +5,7 @@ test "current TRAIL retains original publication and independently selected trav
       // An admitted Values producer owns this definition. The unused Source
       // cannot lend provenance to it; external Source-definition admission
       // requires separate admission, not inference from its name or bound bytes.
-      let steps = "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"seed\"},{\"filter\":\"id = id\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[" +
+      let steps = "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1},{\"id\":2}]},\"as\":\"seed\"},{\"filter\":\"id = id\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[" +
         current_trail_guarantee_identity() +
         "]},\"path_mode\":\"trail\",\"emit\":\"paths\",\"min_hops\":0,\"direction\":\"" +
         direction +
@@ -15,7 +15,7 @@ test "current TRAIL retains original publication and independently selected trav
       let program = checked_direct_program_fixture(
         graph_steps=steps,
         graph_traversal="traverse",
-        property_graph=true,
+        graph=true,
       ) catch {
         Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
           fail("current TRAIL pipeline: " + @debug.to_string(issue.kind))

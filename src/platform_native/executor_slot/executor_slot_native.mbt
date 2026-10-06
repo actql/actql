@@ -43,6 +43,7 @@ extern "C" fn current_executable_ffi() -> Bytes = "actql_executor_slot_current_e
 struct NativeExecutorSlot {
   path : String
   mut descriptor : Int
+  mut acquired : Bool
 }
 
 ///|
@@ -70,7 +71,7 @@ pub fn open_native_executor_slot(
   if descriptor < 0 {
     return Err(OpenFailed)
   }
-  Ok({ path, descriptor, })
+  Ok({ path, descriptor, acquired: false, })
 }
 
 ///|
@@ -83,7 +84,10 @@ pub fn NativeExecutorSlot::try_acquire(
     return Err(Closed)
   }
   match slot_try_lock_ffi(self.descriptor) {
-    0 => Ok(true)
+    0 => {
+      self.acquired = true
+      Ok(true)
+    }
     1 => Ok(false)
     _ => Err(LockFailed)
   }
@@ -181,6 +185,7 @@ fn NativeExecutorSlot::spawn_holder_reading(
   }
   ignore(slot_close_ffi(self.descriptor))
   self.descriptor = -1
+  self.acquired = false
   Ok({ pid, exit: None, })
 }
 
@@ -201,7 +206,12 @@ pub fn inherited_native_executor_slot(
       encoded,
       encoded.length(),
     ) {
-    0 => Ok({ path, descriptor: NATIVE_EXECUTOR_SLOT_INHERITED_FD, })
+    0 =>
+      Ok({
+        path,
+        descriptor: NATIVE_EXECUTOR_SLOT_INHERITED_FD,
+        acquired: true,
+      })
     1 => Err(NotHeld)
     2 => Err(Replaced)
     _ => Err(NotHeld)
@@ -217,7 +227,29 @@ pub fn NativeExecutorSlot::close(self : NativeExecutorSlot) -> Bool {
   }
   let closed = slot_close_ffi(self.descriptor) == 0
   self.descriptor = -1
+  self.acquired = false
   closed
+}
+
+///|
+/// Recheck an already-acquired/inherited description against the current
+/// named private file. A fresh opener cannot acquire through this observer.
+pub fn NativeExecutorSlot::verify_current_hold(
+  self : NativeExecutorSlot,
+) -> Result[Unit, NativeExecutorSlotIssue] {
+  if self.descriptor < 0 {
+    return Err(Closed)
+  }
+  if !self.acquired {
+    return Err(NotHeld)
+  }
+  let encoded = @utf8.encode(self.path)
+  match slot_verify_ffi(self.descriptor, encoded, encoded.length()) {
+    0 => Ok(())
+    1 => Err(NotHeld)
+    2 => Err(Replaced)
+    _ => Err(LockFailed)
+  }
 }
 
 ///|

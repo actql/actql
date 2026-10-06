@@ -11,9 +11,9 @@ const manifests = [
   ['scalar', 'aoa-rela-scalar-laws', 'rela_scalar_law_manifest_cid', 'aoa-rela-scalar-laws/0.1'],
   ['primitive', 'aoa-rela-primitive-laws', 'rela_primitive_law_manifest_cid', 'aoa-rela-laws/0.1'],
   ['vector', 'aoa-veca-numeric-laws', 'veca_numeric_law_manifest_cid', 'aoa-veca-numeric-laws/0.1'],
-  ['graph', 'aoa-sga-structural-laws', 'sga_structural_law_manifest_cid', 'aoa-sga-structural-laws/0.1'],
+  ['sgaStructural', 'aoa-sga-structural-laws', 'sga_structural_law_manifest_cid', 'aoa-sga-structural-laws/0.1'],
   ['graphIdentity', 'aoa-sga-identity-laws', 'sga_identity_law_manifest_cid', 'aoa-sga-identity-laws/0.1'],
-  ['propertyGraph', 'actql-property-graph-laws', 'property_graph_law_manifest_cid', 'actql-property-graph-laws/0.1'],
+  ['graph', 'actql-graph-laws', 'graph_law_manifest_cid', 'actql-graph-laws/0.1'],
 ];
 
 export function checkVersionTokens(text, context = 'AoA identifier') {

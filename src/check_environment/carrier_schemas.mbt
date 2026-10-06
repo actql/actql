@@ -123,10 +123,9 @@ fn read_carrier_body(
     return (@carrier.relation(carrier_records(root, limits)), 0)
   }
   let version = carrier_name(obj, "version", root)
-  if version == "actql-property-graph-contract/0.1" {
-    return match
-      @graph.read_property_graph_cursor_usage(root, limits, max_contract_work~) {
-      Ok((v, used)) => (@carrier.graph_carrier(@graph.property_graph(v)), used)
+  if version == "actql-graph-contract/0.1" {
+    return match @graph.read_cursor_usage(root, limits, max_contract_work~) {
+      Ok((v, used)) => (@carrier.graph_carrier(@graph.graph(v)), used)
       Err(e) => carrier_fail(InvalidGraph(e), root)
     }
   }
