@@ -1,0 +1,107 @@
+{
+  "version": "actql-local-workspace-cost-comparison/0.1",
+  "authority": "local-filesystem-check-only",
+  "reuseAuthorized": false,
+  "netRunnerSavings": null,
+  "baseline": "25f132c9da9c9e2bc1690097b6add335d300986b",
+  "candidate": "78ce1df54c1473dd0021f39edda9bd1da81503f7",
+  "sourcePath": "proofs/relation-pipeline/workspaces.mjs",
+  "sourceBytes": {
+    "before": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+    "after": "77eaf528a157551837fc1a08b1427e28b47ade5d48ffb3ef26d93e644ea52557"
+  },
+  "node": "v22.23.2",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "condition": "Same candidate filesystem and process; two warm-ups per implementation; nine alternating-order pairs; no timed syscall instrumentation; separate untimed counts.",
+  "sourceDigest": "44b113ac27867ceab1aae84497ced5e4a93c004586e2436d7d4f4c84bfa1e950",
+  "sourceFiles": 4695,
+  "pairs": [
+    {
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 591.5181670000002,
+      "after": 527.3929170000001
+    },
+    {
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 377.38479200000074,
+      "before": 339.85695900000064
+    },
+    {
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 410.8610829999998,
+      "after": 327.7569170000006
+    },
+    {
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 401.2188329999999,
+      "before": 359.3405409999996
+    },
+    {
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 325.32087500000034,
+      "after": 317.4294580000005
+    },
+    {
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 383.6142920000002,
+      "before": 354.83208299999933
+    },
+    {
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 337.5382090000003,
+      "after": 304.14037500000086
+    },
+    {
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 308.34341700000004,
+      "before": 324.44424999999865
+    },
+    {
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 328.9306250000009,
+      "after": 267.45229199999994
+    }
+  ],
+  "meanMilliseconds": {
+    "before": 374.73808799999995,
+    "after": 357.19258811111143
+  },
+  "lstatCalls": {
+    "before": 20259,
+    "after": 9925
+  },
+  "unverified": [
+    "Moon/compiler execution costs",
+    "whole mutation campaign",
+    "hosted runner savings",
+    "cross-revision evidence reuse"
+  ]
+}
