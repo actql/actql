@@ -837,6 +837,67 @@ test('checked whole Run projection retains failure and cancellation cleanup with
   assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'none']);
 });
 
+test('checked whole Run projection cancels a fenced unclaimed consumer after exact producer cleanup', () => {
+  const {original, fixture, keys, project} = projectionFixture();
+  let state = project([fixture.completed], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.equal(project([fixture.completed], true, [keys[0]]).cleanupComplete, false);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  // Raw graph progress still requires both checked task observations. Only
+  // the cancellation projection discharges the never-started task obligation.
+  assert.equal(inspectTaskProgress(original.prepared, original.compilation, original.admission,
+    original.definition, fixture.completed.authority,
+    [fixture.completed.current().durableRecordWire]).cleanupComplete, false);
+  state = project([fixture.completed], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, true);
+  assert.equal(state.execution, 'cancelled');
+  assert.equal(JSON.parse(state.stateWire).status, 'cancelled');
+  assert.equal(state.executionComplete, false);
+  assert.equal(state.publicationReady, false);
+  assert.equal(state.nextTask, undefined);
+  assert.deepEqual(state.tasks.map(task => task.nextWork), ['none', 'none']);
+  assert.deepEqual(state.tasks.map(task => task.cleanup), ['released', 'unobserved']);
+});
+
+test('checked whole Run projection keeps missing claimed consumer and unfenced absence unresolved', () => {
+  const {fixture, keys, project} = projectionFixture();
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  const claimed = project([fixture.completed], true, keys);
+  assert.equal(claimed.execution, 'unknown');
+  assert.equal(claimed.cleanupComplete, false);
+  assert.equal(claimed.tasks[1].nextWork, 'reconcile');
+  assert.notEqual(JSON.parse(claimed.stateWire).status, 'cancelled');
+  const unfenced = project([fixture.completed], false, [keys[0]]);
+  assert.equal(unfenced.cleanupComplete, false);
+  assert.notEqual(unfenced.execution, 'cancelled');
+  assert.equal(unfenced.nextTask, 1);
+});
+
+test('checked whole Run projection requires terminal and cleanup proof from every dispatched consumer', () => {
+  const {fixture, consumer, keys, project} = projectionFixture();
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  // Even without a Host start claim, a persisted consumer dispatch has
+  // custody. Historical Accepted is not proof of physical stop or cleanup.
+  let state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  assert.equal(state.tasks[1].nextWork, 'cancel');
+  consumer.observe([5, 0, 0, 0, 0], 1, false);
+  state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, false);
+  assert.notEqual(state.execution, 'cancelled');
+  consumer.observe([5, 0, 1, 0, 0], 2, false);
+  assert.equal(project([fixture.completed, consumer], true, [keys[0]]).cleanupComplete, false);
+  consumer.observe([5, 0, 2, 0, 0], 3, false);
+  state = project([fixture.completed, consumer], true, [keys[0]]);
+  assert.equal(state.cleanupComplete, true);
+  assert.equal(state.execution, 'cancelled');
+});
+
 
 test('checked whole Run projection distinguishes recovered custody from normal Released', () => {
   const {fixture, consumer, project} = projectionFixture();
