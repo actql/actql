@@ -17,7 +17,11 @@ fn join_requires_group_scope(query : @query.Query) -> Bool {
     }
     if @query.operation_at(query, index) is Some(Select(projections, _)) &&
       projections.any(projection => {
-        projection.star is Some(_) && projection.expression is Some(_)
+        projection.star is Some(_) &&
+        (
+          projection.expression is Some(_) ||
+          !projection.replacements.is_empty()
+        )
       }) {
       return true
     }
