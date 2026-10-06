@@ -4,7 +4,7 @@ test "adopted law selection distinguishes profile rules from backend support" {
     (profile, expected) in [
       (@pipeline_typing.RelA, [@pipeline_typing.RelaScalar, RelaPrimitive]),
       (SGA, [SgaStructural, SgaIdentity]),
-      (Graph, [GraphLaw]),
+      (GraphProfile, [GraphLaw]),
       (VecA, [VecaNumeric]),
       (TEA, []),
       (CalendarProfile, []),
