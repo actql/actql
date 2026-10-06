@@ -81,10 +81,10 @@ export function baseGraphOperationSchemas() {
   };
 }
 
-// Separate closed alternatives, not a permissive union of legacy and keyed
-// members. Semantic key/domain admission remains with the common typed owner.
+// Current Graph bodies are closed and require definition/path-mode selection.
+// Semantic key/domain admission remains with the common typed owner.
 export function graphSchemas() {
-  const legacy = baseGraphOperationSchemas();
+  const base = baseGraphOperationSchemas();
   const field = {type:'string',minLength:1};
   const keys = {type:'array',minItems:1,uniqueItems:true,items:field};
   const properties = {oneOf:[
@@ -98,7 +98,7 @@ export function graphSchemas() {
     labels:{type:'array',items:{type:'object',additionalProperties:false,required:['name'],properties:{name:field,properties}}},
   }};
   const endpoint = {type:'object',additionalProperties:false,required:['definition','key'],properties:{definition:field,key:keys,references_key:keys}};
-  const result = {...legacy,
+  const result = {...base,
     node_rows:{oneOf:[{const:true},{type:'object',additionalProperties:false,
       required:['definition'],properties:{definition:field}},
       {type:'object',additionalProperties:false,required:['label'],properties:{label:field}}]},
@@ -112,16 +112,16 @@ export function graphSchemas() {
     }},
   };
   for (const name of ['match_nodes','match_edges']) {
-    const keyed = structuredClone(legacy[name]);
+    const keyed = structuredClone(base[name]);
     keyed.required.push('definition');
     Object.assign(keyed.properties, {
       definition:field,label:field,
       bindings:{type:'object',additionalProperties:false,properties:Object.fromEntries(
         (name === 'match_nodes' ? ['identity'] : ['identity','source','target']).map(role => [role,field]))},
     });
-    result[name] = {oneOf:[legacy[name],keyed]};
+    result[name] = keyed;
   }
-  const traversal = structuredClone(legacy.traverse);
+  const traversal = structuredClone(base.traverse);
   traversal.required.push('path_mode');
   traversal.properties.path_mode = {enum:['walk','trail','acyclic']};
   traversal.properties.emit = {enum:['nodes','paths']};
@@ -130,7 +130,7 @@ export function graphSchemas() {
   traversal.properties.edge_where = structuredClone(predicate);
   traversal.properties.node_where = structuredClone(predicate);
   traversal.oneOf[0].not.anyOf.push({required:['edge_where']},{required:['node_where']});
-  result.traverse = {oneOf:[legacy.traverse,traversal]};
+  result.traverse = traversal;
   return result;
 }
 
