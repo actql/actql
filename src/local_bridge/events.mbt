@@ -878,6 +878,8 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
   }
   state.pending_graph_field = None
   if state.source is GraphRows(source) {
+    source.selection_label_index = 0
+    source.selection_name_offset = 0
     if source.label_recheck is Some(recheck) {
       @value.cancel_recheck_runtime_value(recheck)
       source.label_recheck = None

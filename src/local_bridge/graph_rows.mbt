@@ -13,6 +13,7 @@ priv struct GraphRowsSource {
   selected_definition : String?
   selected_label : String?
   mut selection_label_index : Int
+  mut selection_name_offset : Int
   edge : Bool
   limits : @execution.ValueLimits
   mut label_builder : @value.ArrayBuilder?
@@ -109,7 +110,7 @@ priv enum GraphRowSelection {
 }
 
 ///|
-/// Each call inspects at most one admitted label and consumes one control work.
+/// Each call inspects one fragment of one admitted selector candidate.
 fn graph_row_selected(
   source : GraphRowsSource,
   record : Int,
@@ -118,37 +119,57 @@ fn graph_row_selected(
     return None
   }
   graph_row_definition(source, record).map(definition => {
-    if source.selected_definition is Some(name) {
-      if @carrier.property_definition_name(definition) == name {
-        SelectedRow
-      } else {
-        SkipRow
-      }
-    } else if source.selected_label is Some(label) {
-      let count = @carrier.property_definition_label_count(definition)
-      if source.selection_label_index >= count {
-        source.selection_label_index = 0
-        SkipRow
-      } else {
-        let (candidate, _) = @carrier.property_definition_label_at(
-          definition,
-          source.selection_label_index,
-        ).unwrap()
-        source.selection_label_index += 1
-        if @carrier.property_name_identity(candidate) == label {
-          source.selection_label_index = 0
-          SelectedRow
-        } else if source.selection_label_index == count {
-          source.selection_label_index = 0
-          SkipRow
-        } else {
-          PendingSelection
-        }
-      }
-    } else {
-      SelectedRow
-    }
+    let (result, index, offset) = graph_definition_selected(
+      definition,
+      source.selected_definition,
+      source.selected_label,
+      source.selection_label_index,
+      source.selection_name_offset,
+    )
+    source.selection_label_index = index
+    source.selection_name_offset = offset
+    result
   })
+}
+
+///|
+fn graph_definition_selected(
+  definition : @carrier.PropertyNodeDefinition,
+  selected_definition : String?,
+  selected_label : String?,
+  index : Int,
+  offset : Int,
+) -> (GraphRowSelection, Int, Int) {
+  let (compared, next, _) = if selected_definition is Some(name) {
+    @canonical.compare_utf16_fragment(
+      @carrier.property_definition_name(definition),
+      name,
+      offset,
+      64,
+    )
+  } else if selected_label is Some(label) {
+    let count = @carrier.property_definition_label_count(definition)
+    if index >= count {
+      return (SkipRow, 0, 0)
+    }
+    let (candidate, _) = @carrier.property_definition_label_at(
+      definition, index,
+    ).unwrap()
+    @carrier.compare_property_name_fragment(candidate, label, offset, 64)
+  } else {
+    return (SelectedRow, 0, 0)
+  }
+  match compared {
+    None => (PendingSelection, index, next)
+    Some(0) => (SelectedRow, 0, 0)
+    Some(_) =>
+      if selected_definition is Some(_) ||
+        index + 1 == @carrier.property_definition_label_count(definition) {
+        (SkipRow, 0, 0)
+      } else {
+        (PendingSelection, index + 1, 0)
+      }
+  }
 }
 
 ///|
@@ -375,10 +396,9 @@ pub fn start_graph_view_to_rows(
     source: ViewedGraph(input),
     definition,
     selected_definition: @lower.carrier_projection_definition(projection),
-    selected_label: @lower.carrier_projection_label(projection).map(
-      @carrier.property_name_identity,
-    ),
+    selected_label: @lower.carrier_projection_label(projection),
     selection_label_index: 0,
+    selection_name_offset: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
@@ -454,10 +474,9 @@ pub fn start_graph_to_rows(
     source: StoredGraph(storage),
     definition: @carrier.graph_property_definition(graph),
     selected_definition: @lower.carrier_projection_definition(projection),
-    selected_label: @lower.carrier_projection_label(projection).map(
-      @carrier.property_name_identity,
-    ),
+    selected_label: @lower.carrier_projection_label(projection),
     selection_label_index: 0,
+    selection_name_offset: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
