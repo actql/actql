@@ -64,7 +64,7 @@ test "Graph profile links retain the construction owner across repeated producer
   assert_eq(operation_profile_links_count(result), 3)
   for i in 0..<3 {
     let entry = operation_profile_links_at(result, i).unwrap()
-    assert_eq(entry.profile, @pipeline.Graph)
+    assert_eq(entry.profile, @pipeline.GraphProfile)
     assert_eq(operation_profile_adopted_law_count(entry), 1)
     assert_eq(
       operation_profile_adopted_law_at(entry, 0),

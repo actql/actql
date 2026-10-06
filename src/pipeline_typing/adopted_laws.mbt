@@ -15,7 +15,7 @@ pub(all) enum AdoptedOperationLaw {
 pub fn operation_profile_adopted_law_count(profile : OperationProfile) -> Int {
   match profile {
     RelA | SGA => 2
-    VecA | Graph => 1
+    VecA | GraphProfile => 1
     TEA | CalendarProfile | TextRankProfile => 0
   }
 }
@@ -39,7 +39,7 @@ pub fn operation_profile_adopted_law_at(
         _ => None
       }
     VecA => if index == 0 { Some(VecaNumeric) } else { None }
-    Graph => if index == 0 { Some(GraphLaw) } else { None }
+    GraphProfile => if index == 0 { Some(GraphLaw) } else { None }
     TEA | CalendarProfile | TextRankProfile => None
   }
 }

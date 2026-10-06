@@ -33,7 +33,7 @@ fn property_pipeline_domain(
 ) -> String {
   guard @pipeline_typing.output_carrier(pipeline)
     is Some(@carrier.GraphValue(graph)) else {
-    abort("Graph required")
+    abort("GraphProfile required")
   }
   @carrier.graph_domain(@carrier.graph_definition(graph))
 }
@@ -83,7 +83,7 @@ test "common constructor issues an independently derived producer definition dom
   assert_eq(@graph.construction_pending_count(checked), 5)
   assert_eq(
     @pipeline_typing.operation_profile_at(step.operation, 0),
-    Some(Graph),
+    Some(GraphProfile),
   )
   assert_eq(
     @graph.construction_pending_at(checked, 4),
@@ -97,7 +97,7 @@ test "common constructor issues an independently derived producer definition dom
     @pipeline_typing.operation_profile_requirement(
       @pipeline_typing.operation_obligations_at(profile_requirement, 4).unwrap(),
     ),
-    Some(Graph),
+    Some(GraphProfile),
   )
   assert_eq(
     @graph.construction_pending_at(checked, 1),

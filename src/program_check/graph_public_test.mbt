@@ -66,7 +66,9 @@ test "public Graph checking derives Result capacity without interpreting the leg
     assert_true(
       @program_check.diagnostic_cause(rejected)
       is Source(
-        Checks(OperationProfiles(UnsupportedProfile(0, 0, 3, @pipeline.Graph)))
+        Checks(
+          OperationProfiles(UnsupportedProfile(0, 0, 3, @pipeline.GraphProfile))
+        )
       ),
     )
     let environment = @program_check.checking_environment(

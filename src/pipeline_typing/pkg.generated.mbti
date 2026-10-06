@@ -765,7 +765,7 @@ pub(all) enum OperationOrderDemand {
 pub(all) enum OperationProfile {
   RelA
   SGA
-  Graph
+  GraphProfile
   TEA
   VecA
   CalendarProfile

@@ -619,7 +619,7 @@ pub fn collect_core_contracts(
               }
               @pipeline.RelA
               | @pipeline.SGA
-              | @pipeline.Graph
+              | @pipeline.GraphProfile
               | @pipeline.TEA
               | @pipeline.VecA => None
             }

@@ -36,10 +36,10 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
     let step = @pipeline.step_at(pipeline, 0).unwrap()
     assert_eq(
       @pipeline.operation_profile_at(step.operation, 0),
-      Some(@pipeline.Graph),
+      Some(@pipeline.GraphProfile),
     )
     assert_eq(
-      @pipeline.operation_profile_adopted_law_at(@pipeline.Graph, 0),
+      @pipeline.operation_profile_adopted_law_at(@pipeline.GraphProfile, 0),
       Some(@pipeline.GraphLaw),
     )
     let body = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()

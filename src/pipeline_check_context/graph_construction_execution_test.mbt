@@ -50,7 +50,7 @@ test "new Graph profile needs an explicit declaration and never borrows legacy S
   }
   assert_true(
     check_operation_profiles(preparation, legacy, 10000000)
-    is Err(UnsupportedProfile(_, _, _, @pipeline.Graph)),
+    is Err(UnsupportedProfile(_, _, _, @pipeline.GraphProfile)),
   )
   assert_true(
     check_operation_profiles(
@@ -73,7 +73,9 @@ test "new Graph profile needs an explicit declaration and never borrows legacy S
       max_requirements=1000,
       max_regex_depth=100,
     )
-    is Err(OperationProfiles(UnsupportedProfile(_, _, _, @pipeline.Graph))),
+    is Err(
+      OperationProfiles(UnsupportedProfile(_, _, _, @pipeline.GraphProfile))
+    ),
   )
   let prepared = prepare_program_checks(
     preparation_sources(preparation),
@@ -90,7 +92,7 @@ test "new Graph profile needs an explicit declaration and never borrows legacy S
   assert_true(operation_profile_links_count(profiles) > 0)
   for i in 0..<operation_profile_links_count(profiles) {
     let resolution = operation_profile_links_at(profiles, i).unwrap()
-    assert_eq(resolution.profile, @pipeline.Graph)
+    assert_eq(resolution.profile, @pipeline.GraphProfile)
     assert_true(operation_profiles_graph(resolution.checks))
     assert_eq(operation_profile_adopted_law_count(resolution), 1)
     assert_eq(

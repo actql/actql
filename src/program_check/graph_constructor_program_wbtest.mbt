@@ -143,7 +143,9 @@ test "legacy SGA declaration alone cannot claim the Graph profile" {
     )
   catch {
     Source(
-      Checks(OperationProfiles(UnsupportedProfile(0, 0, 2, @pipeline.Graph)))
+      Checks(
+        OperationProfiles(UnsupportedProfile(0, 0, 2, @pipeline.GraphProfile))
+      )
     ) => ()
     error => raise error
   } noraise {

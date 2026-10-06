@@ -70,7 +70,7 @@ pub fn check_operation_profiles(
             SGA => declared.sga
             // The new contract needs an explicit checker declaration; the
             // legacy SGA switch cannot silently claim its distinct laws.
-            Graph => graph
+            GraphProfile => graph
             TEA => declared.tea
             VecA => preparation.profiles.profiles.veca
             CalendarProfile => declared.calendar
