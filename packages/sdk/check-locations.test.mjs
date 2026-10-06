@@ -159,3 +159,15 @@ test('resolved check locations return the owned input after validating a matchin
   assert.equal(resolved.input.text, 'é😀');
   assert.equal(Object.isFrozen(resolved.input), true);
 });
+
+
+test('structured locations return the owned submitted value after current-input validation', async t => {
+  const {outcome, location} = await checkedStructuredInput(t);
+  const original = getCheckInput(outcome, 'parameters');
+  const current = {...original};
+  const resolved = resolveCheckLocation(outcome, location, current);
+  assert.equal(resolved.input, original, '[check-mutation:location-owned-input]');
+  current.value = {replacement: true};
+  assert.equal(resolved.input.value, original.value);
+  assert.equal(Object.isFrozen(resolved.input), true);
+});
