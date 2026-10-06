@@ -23,7 +23,7 @@ priv enum CheckFinding {
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   UnusedParameter(String, String?)
-  RequiredValue(String, String)
+  RequiredValue(@parameter_binding.Declaration, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
@@ -252,7 +252,7 @@ fn check_source_findings(
           let declaration = @parameter_binding.missing_at(missing, index).unwrap()
           if declaration.name.length() <= 256 &&
             check_declaration_type(declaration) is Some(expected) {
-            findings.push(RequiredValue(declaration.name, expected))
+            findings.push(RequiredValue(declaration, expected))
           }
         }
       }
@@ -1302,13 +1302,16 @@ fn write_check_report(
     if written_requirements >= requirement_limit {
       continue
     }
-    if finding is RequiredValue(name, expected) {
+    if finding is RequiredValue(declaration, expected) {
+      let name = declaration.name
       written_requirements = written_requirements + 1
       @encode.begin_object(writer)
       @encode.key(writer, "code")
       @encode.string_value(writer, "parameter_value_required")
       @encode.key(writer, "facts")
       @encode.begin_object(writer)
+      @encode.key(writer, "admission")
+      write_check_parameter_admission(writer, declaration.parameter_type)
       @encode.key(writer, "expected_type")
       @encode.string_value(writer, expected)
       @encode.key(writer, "parameter")
