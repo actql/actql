@@ -28,8 +28,8 @@ export function explainRunObservationFailure(error, options) {
   return localizeOperation(runObservationFailures.get(error), 'observation', options);
 }
 
-const rejectedRunObservation = (ref, operation, problem) => {
-  const error = new ClientError('InvalidHostRunState');
+const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
+  const error = new ClientError(code);
   const summaries = {
     unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
     contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
@@ -1106,7 +1106,7 @@ async function connectSelected(selected, port) {
       const response = await runRequest(operation, body, signal);
       let state;
       try { state = await controlValue(response); }
-      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
       const problem = rejectedRunProblem(state);
       try {
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);

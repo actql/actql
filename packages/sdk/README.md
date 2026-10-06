@@ -944,7 +944,9 @@ persistent storage, and promises no timed retention or destruction interval.
 `status`, `wait` and `reconcile` use the existing registered Run state validator
 before and after detaching the received value. A valid observation retains its
 original facts even if a Local transport reuses an object. A rejected state still
-throws `InvalidHostRunState`; `explainRunObservationFailure(error)` distinguishes
+throws `InvalidHostRunState` for a rejected decoded state, or the existing
+`InvalidHostResponse` for decoding/wire-bound failure;
+`explainRunObservationFailure(error)` distinguishes
 an unknown state under the current version (`uninterpretable/unknown_state`),
 a usable mismatched version (`protocol_failure/contract_mismatch`), and malformed
 known facts or unreadable payload (`protocol_failure/malformed_response`).
