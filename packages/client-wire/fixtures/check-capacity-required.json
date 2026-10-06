@@ -1,0 +1,35 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53",
+  "outcome_schema_cid": "sha256:2ceacaa6c399d8020b76c14ebd27a7f2ca5d975137dcdaff6b1907c9b4ef6311",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-capacity-obligation",
+    "scope": {
+      "kind": "bound_input"
+    },
+    "verdict": "undetermined",
+    "inputs": [],
+    "reasons": [],
+    "requirements": [
+      {
+        "code": "host_capacity_policy_required",
+        "facts": {
+          "contract_cid": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164",
+          "schema_cid": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3",
+          "schema_pointer": "/schema",
+          "supplier": "checking_context_owner",
+          "stage": "checking"
+        }
+      }
+    ],
+    "coverage": {
+      "limits": [
+        {
+          "code": "checking_context_missing"
+        }
+      ],
+      "unresolved": []
+    }
+  }
+}

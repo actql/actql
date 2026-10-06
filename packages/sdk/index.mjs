@@ -132,6 +132,12 @@ export function getCheckParameterAdmission(outcome, parameter) {
     reason.facts.parameter === parameter)?.facts.admission;
 }
 
+// Existing caller-owned response custody; this advice grants no configuration write.
+export function getCheckContextRequirements(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  return Object.freeze(outcome.report.requirements.filter(reason => reason.code === 'host_capacity_policy_required'));
+}
+
 export function getCheckRequirementFrontier(outcome) {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);

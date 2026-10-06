@@ -782,3 +782,21 @@ test('located implementation limits bind source revisions and reject malformed m
     assert.equal(validCheckOutcome(corrupt), false);
   }
 });
+
+// Independent literals exercise the closed requirement shape, not emitter output.
+test('capacity context conditions are requirements without caller blame or positions', () => {
+  const outcome = JSON.parse(readFileSync(new URL('./fixtures/check-capacity-required.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(outcome), true);
+  for (const change of [
+    value => {value.report.requirements[0].facts.supplier = 'caller';},
+    value => {value.report.requirements[0].facts.schema_cid = `sha256:${'0'.repeat(64)}`;},
+    value => {value.report.requirements[0].facts.extra = 'private';},
+    value => {value.report.requirements[0].location = {kind: 'json', document_id: 'source', revision: `rev:${'1'.repeat(64)}`, precision: 'exact', pointer: '/schema'};},
+    value => {value.report.verdict = 'invalid'; value.report.reasons = value.report.requirements; value.report.requirements = [];},
+    value => {value.report.verdict = 'verified';},
+    value => {value.reason_schema_cid = 'sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c';},
+  ]) {
+    const changed = structuredClone(outcome); change(changed);
+    assert.equal(validCheckOutcome(changed), false);
+  }
+});
