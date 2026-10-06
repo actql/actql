@@ -325,8 +325,9 @@ names through the existing frame and appends through the existing Value owner
 bound to immutable admitted contract names. The real retained Host harness
 constructs long-prefix members, verifies producer/two-consumer Results and
 delivers post-progress cancellation. Independent work/live/workspace and both
-name-phase cleanup proofs remain required. #681 is now adopted on main;
-#683 combines the Field and Object-name units with final target main. See the
+name-phase cleanup proofs remain required. #681 and #683's Field-only source
+are adopted on main. The Object-name follow-up uses its own main-targeted PR
+on feat/local-object-name-cursor. See the
 [Object-name record](2026-10-07-local-object-name-cursor.md). Initial row-map
 preparation, short-name collision behavior and raw Text child conversion
 remain distinct residuals; no whole-Local completion is asserted.

@@ -1,9 +1,11 @@
 # Retained constructed-Object member names
 
 Adopted main: `40ed08757152ff4c88397e6e01965e2051909343`.
-This extends #683's Field-name unit. #681 is adopted on main; #683's final
-target is now main. No alternate Graph model, evaluator, scheduler or ledger
-is introduced.
+Initial integration extended #683's Field-name unit. #683 was adopted at
+`be30c8fdf2b3133219f7becc74c5667619806c70` while the Object follow-up was still
+local. The Object changes move to feat/local-object-name-cursor and a separate
+main-targeted PR. Both concurrent integration histories are preserved. No
+alternate Graph model, evaluator, scheduler or ledger is introduced.
 
 ## Counterexample and existing owners
 
@@ -96,7 +98,11 @@ Candidate JS batch: 37/37 (`run-FxosaE`, `focused-test-F9U6Fh`), covering the
 new contract builder, Object-name limits/stop, existing construction, Field,
 Property and expression/frame cases. Only Local Node/Run Host Core consumers
 are rebuilt (`run-YxvpGZ`) and checked against source; bundles remain ignored.
-Final fixed-SHA commands and receipts are in the PR.
+Executed-test source is `b1c54bcf5a534dd540ce2c6dc8b867173a66b613` (JS 37/37
+in `run-mWjRBN`/`focused-test-08elCT`, Node 4/4 in
+`run-VNGNOP`/`focused-test-6bydgd`). Both subsequent normal history merges are
+tree-identical to that source; follow-up record changes alter only Markdown.
+Final submitted SHA, code-tree comparison and automatic CI are in the PR.
 
 The generated Value API adds two functions; JS caller compilation and API
 generation are checked. No schema, wire, CID, pins or language meaning changes.
