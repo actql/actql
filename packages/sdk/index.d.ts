@@ -3,7 +3,7 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation} from
+  WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -50,6 +50,9 @@ export type CheckInput = Readonly<{documentId: string; revision: string}> & (
 /** Available only for the exact response of this SDK check call. */
 export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
+export type CheckFix = WireCheckFix;
+/** Only this SDK response offers revision-bound proposals; copied data has no input custody. */
+export declare function getCheckFixes(outcome: CheckOutcome): readonly CheckFix[] | undefined;
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
   CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
@@ -161,6 +164,12 @@ export interface CheckDocumentSession {
   update(text: string, version: number): void;
   /** Explicit check of the buffer captured at invocation; no execution or automatic retries. */
   check(options: Parameters<Client['check']>[1]): Promise<CheckDocumentObservation>;
+  /** Explicitly reviewed one-document edits, committed atomically after rechecking.
+   * Fresh original-request checks reject observed context changes on both sides
+   * of the candidate check; they do not create an authorization lease.
+   * Stale/copied proposals, conflicting edits or failed checks leave the buffer unchanged. */
+  applyFixes(observation: CheckDocumentObservation, fixes: readonly CheckFix[],
+    options: Readonly<{version: number; reviewed: true}>): Promise<CheckDocumentObservation>;
   /** Only the newest issued check of this still-open current version may supply editor coordinates. */
   resolveTextRange(observation: CheckDocumentObservation, location: WireCheckLocation): CheckTextRange | undefined;
   /** Safe display in the negotiated encoding; omit positions for stale, foreign or copied observations. */

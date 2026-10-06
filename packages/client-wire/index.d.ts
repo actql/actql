@@ -43,6 +43,7 @@ export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 /** actql-check-outcome/0.1. */
 export type WireCheckOutcome = WireCheckOutcomeShape;
 export type {WireCheckLocationShape as WireCheckLocation} from './client-host.generated.js';
+export type {WireCheckFixShape as WireCheckFix} from './client-host.generated.js';
 export declare const checkReasonSchemaCid: string;
 export declare const checkOutcomeSchemaCid: string;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |

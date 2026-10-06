@@ -17,6 +17,7 @@ export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
+const checkRequests = new WeakMap();
 const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
@@ -44,6 +45,12 @@ export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
     ? input : undefined;
+}
+
+// Proposals require the original SDK response, not a copied wire value.
+export function getCheckFixes(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  return Object.freeze(outcome.report.reasons.flatMap(reason => reason.fixes ?? []));
 }
 
 // Compare typed public obligations, never translated explanations or severity.
@@ -294,8 +301,75 @@ export function createCheckDocumentSession(client, options) {
       const input = getCheckInput(outcome, 'source');
       const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
       observations.set(observation, {ticket, input: input?.kind === 'text' &&
-        input.text === submitted.text ? input : undefined});
+        input.text === submitted.text ? input : undefined, request: checkRequests.get(outcome)});
       return observation;
+    },
+    async applyFixes(observation, fixes, options) {
+      // Read application accessors before checking the current observation.
+      const version = options?.version, reviewed = options?.reviewed;
+      const selected = Array.isArray(fixes) ? [...fixes] : undefined;
+      const record = currentRecord(observation);
+      if (!record?.request) fail('CheckFixStale');
+      if (reviewed !== true) fail('CheckFixReviewRequired');
+      if (!validDocument(current.text, version) || version <= current.version ||
+          !selected?.length || selected.length > 32) fail('InvalidCheckFixes');
+      const offered = getCheckFixes(observation.outcome);
+      if (selected.some(fix => !offered.includes(fix))) fail('InvalidCheckFixes');
+      const edits = selected.flatMap(fix => {
+        if (fix.target.document_id !== 'source' ||
+            fix.target.revision !== record.input.revision) fail('InvalidCheckFixes');
+        return fix.edits;
+      }).sort((a, b) => a.start_byte - b.start_byte || a.end_byte - b.end_byte);
+      const bytes = utf8.encode(record.input.text);
+      const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
+        (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
+      for (let i = 0; i < edits.length; i++) {
+        const edit = edits[i], previous = edits[i - 1];
+        if (!boundary(edit.start_byte) || !boundary(edit.end_byte) ||
+            edit.end_byte < edit.start_byte || !edit.replacement.isWellFormed() ||
+            (previous && (previous.end_byte > edit.start_byte ||
+              previous.start_byte === edit.start_byte))) fail('InvalidCheckFixes');
+      }
+      const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+      let cursor = 0, text = '';
+      for (const edit of edits) {
+        text += decoder.decode(bytes.subarray(cursor, edit.start_byte)) + edit.replacement;
+        cursor = edit.end_byte;
+      }
+      text += decoder.decode(bytes.subarray(cursor));
+      const checkOptions = {format: record.request.input.format,
+        parameterDeclarations: record.request.input.parameterDeclarations,
+        parameters: record.request.parameters};
+      const originalClient = checker;
+      const assertCurrent = () => {
+        if (currentRecord(observation) !== record) fail('CheckFixStale');
+      };
+      const assertContext = outcome => {
+        if (outcome.outcome !== 'completed' ||
+            outcome.report.context_ref !== observation.outcome.report.context_ref ||
+            getCheckInput(outcome, 'source')?.revision !== record.input.revision ||
+            selected.some(fix => !getCheckFixes(outcome)?.some(candidate =>
+              structuralKey(candidate) === structuralKey(fix)))) fail('CheckFixContextChanged');
+      };
+      // Bracket the candidate check with current-context checks of the original
+      // request. These are observations, not an authorization lease or execution.
+      const before = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(before);
+      const outcome = await originalClient.check(text, checkOptions);
+      assertCurrent();
+      const input = getCheckInput(outcome, 'source');
+      if (outcome.outcome !== 'completed' || input?.kind !== 'text' || input.text !== text) {
+        fail('CheckFixRecheckUnavailable');
+      }
+      const after = await originalClient.check(record.input.text, checkOptions);
+      assertCurrent(); assertContext(after);
+      // Commit the one-document edit and its rechecked observation together,
+      // without yielding. No partial update survives a failed check.
+      current = {text, version};
+      const ticket = ++issued;
+      const updated = Object.freeze({outcome, version, positionEncoding});
+      observations.set(updated, {ticket, input, request: checkRequests.get(outcome)});
+      return updated;
     },
     resolveTextRange(observation, location) {
       const record = currentRecord(observation);
@@ -1376,6 +1450,7 @@ async function connectSelected(selected, port) {
           }
         }
       }
+      checkRequests.set(outcome, body);
       return freezeInput(outcome);
     },
     start: (program, options = {}) => {

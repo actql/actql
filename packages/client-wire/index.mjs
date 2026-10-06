@@ -129,11 +129,19 @@ export function validCheckOutcome(value) {
       report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
   for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
     const location = reason.location;
-    if (!location) continue;
-    const input = documents.get(location.document_id);
-    if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
-    if (location.kind === 'text' && (location.start_byte > location.end_byte ||
-        location.end_byte > input.byte_length)) return false;
+    if (location) {
+      const input = documents.get(location.document_id);
+      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
+      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
+          location.end_byte > input.byte_length)) return false;
+    }
+    for (const fix of reason.fixes ?? []) {
+      const input = documents.get(fix.target.document_id);
+      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
+      // This known proposal inserts only at the original exact EOF.
+      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
+          edit.end_byte !== input.byte_length)) return false;
+    }
   }
   return true;
 }
