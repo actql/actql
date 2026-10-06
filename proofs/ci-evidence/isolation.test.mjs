@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
 import {mutationSourcePaths, stageMutationSource, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
+import {snapshot} from '../bounded-session/evidence.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -12,7 +13,11 @@ const temporary = t => {
 };
 function sources() {
   const bodies = new Map([
-    ['src/unused_kernel/fixture.mbt', 'also read by the restoration snapshot'],
+    ['src/unused_kernel/fixture.mbt', 'must not be staged or read by the child snapshot'],
+    ['src/bounded_execution/moon.pkg', 'import { "actql/actql/transitive" }'],
+    ['src/connectors/local/moon.pkg', ''],
+    ['src/query_integration/moon.pkg', ''],
+    ['src/transitive/moon.pkg', ''], ['src/transitive/value.mbt', 'required imported input'],
     ['src/connectors/local/provider.mbt', 'production'],
     ['proofs/bounded-session/mutations.mjs', 'original mutation action'],
     ['proofs/bounded-session/evidence.mjs', 'original snapshot'],
@@ -28,11 +33,16 @@ test('stage the actual snapshot input set, preserving independently obtained Git
   const {tree, bodies} = sources(), destination = temporary(t);
   tree.entries.get('src/connectors/local/provider.mbt').mode = '100755';
   const paths = mutationSourcePaths(tree);
-  assert(paths.includes('src/unused_kernel/fixture.mbt')); assert(!paths.includes('unrelated/private.txt'));
+  assert(!paths.includes('src/unused_kernel/fixture.mbt')); assert(!paths.includes('unrelated/private.txt'));
+  assert(paths.includes('src/transitive/value.mbt'));
   assert(mutationSnapshotExtras.every(path => paths.includes(path)));
   const staged = stageMutationSource({tree, destination});
   assert.equal(staged.files.length, paths.length);
   for (const path of paths) assert.equal(readFileSync(join(destination, 'source', path), 'utf8'), bodies.get(path));
+  assert.equal(existsSync(join(destination, 'source/src/unused_kernel/fixture.mbt')), false);
+  const actualSnapshot = snapshot(join(destination, 'source'));
+  assert(!Object.hasOwn(actualSnapshot.sources, 'src/unused_kernel/fixture.mbt'));
+  assert(Object.hasOwn(actualSnapshot.sources, 'src/transitive/value.mbt'));
   assert.equal(lstatSync(join(destination, 'source/src/connectors/local/provider.mbt')).mode & 0o777, 0o755);
   assert.throws(() => stageMutationSource({tree, destination}), /EEXIST/u);
 });
@@ -42,10 +52,19 @@ test('missing, symlink, submodule and traversal source entries cannot be copied 
     tree => tree.entries.delete(mutationSnapshotExtras[2]),
     tree => tree.entries.get('src/connectors/local/provider.mbt').mode = '120000',
     tree => tree.entries.get('src/connectors/local/provider.mbt').kind = 'commit',
-    tree => tree.entries.set('src/../outside', {kind: 'blob', mode: '100644'}),
+    tree => tree.entries.set('src/connectors/local/../outside', {kind: 'blob', mode: '100644'}),
   ]) {
     const {tree} = sources(); change(tree); assert.throws(() => mutationSourcePaths(tree));
   }
+});
+
+test('unknown imports expand the physical source set while remaining ineligible for narrowed reuse', t => {
+  const {tree, bodies} = sources(), destination = temporary(t);
+  bodies.set('src/query_integration/moon.pkg', 'import { dynamic_dependency() }');
+  assert(mutationSourcePaths(tree).includes('src/unused_kernel/fixture.mbt'));
+  stageMutationSource({tree, destination});
+  assert.equal(readFileSync(join(destination, 'source/src/unused_kernel/fixture.mbt'), 'utf8'),
+    bodies.get('src/unused_kernel/fixture.mbt'));
 });
 
 test('regular runtime copying binds actual bytes/mode and refuses links or byte overflow', t => {
