@@ -23,7 +23,7 @@ export const characterLengthSuccesses = [
     [{empty: 0, unknown: null}], [column('empty'), column('unknown', true)]),
   success('pipe-parameter', 'SELECT @text AS value |> SELECT character_length(value) AS n',
     [{n: 3}], [column('n', true)], {format: 'aql-text',
-      parameterDeclarations: {text: {type: 'string', nullable: true, max_utf8_bytes: 16}},
+      parameterDeclarations: {text: {type: 'string', nullable: true}},
       parameters: {text: 'e\u0301😀'}}),
   success('empty-result', "SELECT CHAR_LENGTH('é') AS n WHERE FALSE", [], [column('n')]),
   success('nullable-row',
