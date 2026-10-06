@@ -10,6 +10,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
+import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 import {localizeOperation} from './operation-presentation.mjs';
@@ -1752,4 +1753,19 @@ async function connectSelected(selected, port) {
     },
     close() { closed = true; },
   });
+}
+
+
+/** Display retained operation facts without lookup, retry or execution authority. */
+export function formatSubmission(result, options) {
+  return formatOperationExplanation(explainSubmission(result), 'submission', options);
+}
+export function formatCancellation(result, options) {
+  return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
+}
+export function formatReadFailure(result, options) {
+  return formatOperationExplanation(explainReadFailure(result), 'read', options);
+}
+export function formatEffectUncertainty(result, options) {
+  return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
 }

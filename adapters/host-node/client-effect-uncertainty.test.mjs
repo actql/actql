@@ -59,7 +59,7 @@ for (const entrance of ['local', 'https']) {
           const attached = await (await host.as('owner-token')).attach(execution.ref);
           const state = await waitFor(async () => {
             const value = await attached.status();
-            return value.status === 'needs_reconciliation' ? value : undefined;
+            return value.status === 'needs_reconciliation' && value.control?.physical_stop === 'confirmed' ? value : undefined;
           });
           let reconcileError;
           try { await attached.reconcile(); }
@@ -67,7 +67,8 @@ for (const entrance of ['local', 'https']) {
           return {ref: attached.ref, state, reconcileError,
             explanation: sdk.explainEffectUncertainty?.(state),
             japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
-            copiedExplanation: sdk.explainEffectUncertainty?.({...state})};
+            copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
+            formats: ['text', 'html', 'json'].map(format => sdk.formatEffectUncertainty(state, {format}))};
         } finally { await host.close(); }
       };
     }
@@ -89,12 +90,18 @@ for (const entrance of ['local', 'https']) {
       expectedExplanation(first.ref, first.state.control.revision),
       '[check-mutation:effect-explanation]');
     assert.equal(first.copiedExplanation, undefined);
+    assert.equal(first.formats.length, 3);
+    for (const output of first.formats) assert.ok(output);
+    assert.deepEqual(JSON.parse(first.formats[2]).explanation, first.explanation,
+      '[check-mutation:operation-effect-public-format]');
     const queries = setup.queries(), reads = setup.targetReads();
     const again = await observe();
     assert.deepEqual(again.japaneseExplanation, {...expectedExplanation(again.ref, again.state.control.revision),
       summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
     '[check-mutation:operation-effect-public-restart]');
     assert.deepEqual(again.ref, first.ref);
+    assert.deepEqual(JSON.parse(again.formats[2]).explanation, first.explanation,
+      '[check-mutation:operation-effect-public-format-restart]');
     assert.deepEqual(again.explanation, first.explanation,
       '[check-mutation:effect-restart]');
     assert.equal(setup.writes().length, 2, '[check-mutation:effect-no-resend]');

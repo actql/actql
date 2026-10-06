@@ -376,6 +376,12 @@ for (const transport of ['in-process', 'https']) {
       summary: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.', next};
     assert.deepEqual(sdk.explainCancellation(accepted), expected, '[check-mutation:cancel-explanation]');
     const beforeLocale = f.counts();
+    for (const format of ['text', 'html', 'json']) {
+      const output = sdk.formatCancellation(accepted, {format});
+      assert.ok(output);
+      if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, expected,
+        '[check-mutation:operation-cancel-public-format]');
+    }
     assert.deepEqual(sdk.explainCancellation(accepted, {locale: 'ja'}), {...expected,
       summary: 'HostはRunの取消し要求を記録しました。物理停止・Effect・解放はRunの現在状態で確認してください。'},
     '[check-mutation:operation-cancel-public-locale]');
