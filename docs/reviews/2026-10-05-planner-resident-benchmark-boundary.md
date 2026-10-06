@@ -8,6 +8,13 @@ a row-count heuristic. This is the first of two delivery units: selection,
 ownership and measurement connections first; one same-condition latency
 improvement afterward. Instrumentation alone does not complete the task.
 
+Both delivery units are now integrated: #458 supplies the connection, #507 the
+limited matched improvement, #546 policy/dispatch acceptance and #557 the
+registered Native resident default and release/calibrated acceptance. See the
+[completion audit](2026-10-06-planner-native-completion-audit.md) for exact
+source, evidence and scope. The development chronology below remains intact;
+its old six-condition description is not the final ten-setting acceptance.
+
 This branch changes benchmark runners and the Native diagnostic command. Its
 product-facing observations are a read-only getter for the already selected
 Native acquisition choice and an optional installed Node task-start observer.
