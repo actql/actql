@@ -29,7 +29,7 @@ test "ORDER aggregate expression keeps calls private to its SQL Group" {
 ///|
 test "ORDER aggregate expression retains placement and resource boundaries" {
   let global = parse_query(
-    "SELECT ROW_NUMBER() OVER () AS n FROM t ORDER BY COUNT(*)",
+    "SELECT ROW_NUMBER() OVER (ORDER BY id) AS n FROM t ORDER BY COUNT(*)",
     query_limits(),
   ).unwrap()
   assert_true(operation_at(global, 0) is Some(Group(_, _, SqlSelect)))
