@@ -31,14 +31,14 @@ const cases = {
     row: {...baseRow, session_start_ms: 12, session_end_ms: 22,
       session_id: 'session:12:v:1:1:v:1:1'}},
   name_session: {step: {session: {by: ['event_id'], gap: 10}},
-    rows: nameRows, clock: longClock, prefixWork: '124', prefixProgress: '31',
+    rows: nameRows, clock: longClock, prefixWork: 1364, prefixProgress: 31,
     expected: nameRows.map(row => ({...row, session_start_ms: 12, session_end_ms: 22,
       session_id: `session:12:v:${String(row.event_id).length}:${row.event_id}:v:${String(row.event_id).length}:${row.event_id}`}))},
   projection_limit_session: {step: {session: {by: ['event_id'], gap: 10}},
     rows: projectionRows, clock: projectionClock,
     row: {...projectionRows[0], session_start_ms: 12, session_end_ms: 22,
       session_id: 'session:12:v:1:1:v:1:1'},
-    projectionLimit: true},
+    projectionLimit: true, prefixWork: 4819, prefixProgress: 61},
 };
 
 function program(id, kind) {
@@ -68,7 +68,7 @@ function program(id, kind) {
   }};
 }
 
-async function runEventsRecordBoundary(t, kind) {
+async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-public-events-record-'));
   const barrier = Promise.withResolvers();
   const released = Promise.withResolvers();
@@ -80,6 +80,8 @@ async function runEventsRecordBoundary(t, kind) {
   });
   let cancelling = false;
   let prefixComplete = false;
+  let prefixWork = 0;
+  let prefixProgress = 0;
   let dispatches = 0;
   let advances = 0;
   let completions = 0;
@@ -104,9 +106,22 @@ async function runEventsRecordBoundary(t, kind) {
       if (!cancelling) trace.push({...detail});
       if (!cancelling || detail.task !== 1) return;
       trace.push({...detail});
+      if (cancelBridge) {
+        // Poll 256 is inside the unused Array's contract recheck. The
+        // independent bridge fixture pins this before any record is appended.
+        assert.equal(detail.work, '256');
+        assert.equal(detail.progress, '0');
+        barrier.resolve();
+        await released.promise;
+        return;
+      }
       if (!prefixComplete) {
-        assert.equal(detail.work, cases[kind].prefixWork ?? '5');
-        assert.equal(detail.progress, cases[kind].prefixProgress ?? '1');
+        prefixWork += Number(detail.work);
+        prefixProgress += Number(detail.progress);
+        const expectedWork = cases[kind].prefixWork ?? 824;
+        assert.ok(prefixWork <= expectedWork, 'input bridge must not overcharge');
+        if (prefixWork < expectedWork) return;
+        assert.equal(prefixProgress, cases[kind].prefixProgress ?? 1);
         prefixComplete = true;
         return;
       }
@@ -145,10 +160,20 @@ async function runEventsRecordBoundary(t, kind) {
     // The paired core test pins the exact CaptureLimit rather than inferring
     // the limit from this public wrapper's generic execution failure.
     assert.equal(state.status, 'failed', inspect({state, diagnostics, trace}, {depth: 6}));
-    assert.ok(trace.some(detail => detail.task === 1 && detail.work === '244'
-      && detail.progress === '61'), 'the input bridge must finish before rejection');
-    assert.ok(trace.some(detail => detail.task === 1 && detail.progress !== '0'
-      && detail.work !== '244'), 'session must make positive progress before rejection');
+    let bridgeWork = 0;
+    let bridgeProgress = 0;
+    let bridgeEnd = -1;
+    for (const [index, detail] of trace.entries()) {
+      if (detail.task !== 1) continue;
+      bridgeWork += Number(detail.work);
+      bridgeProgress += Number(detail.progress);
+      if (bridgeWork === 4819) { bridgeEnd = index; break; }
+      assert.ok(bridgeWork < 4819, 'input bridge must not overcharge');
+    }
+    assert.notEqual(bridgeEnd, -1, 'input bridge must finish before rejection');
+    assert.equal(bridgeProgress, 61);
+    assert.ok(trace.slice(bridgeEnd + 1).some(detail => detail.task === 1
+      && detail.progress !== '0'), 'session must make positive progress before rejection');
     assert.equal(completions, 0);
     for (const name of names) {
       assert.equal(state.result_availability[name].state, 'unavailable');
@@ -223,3 +248,5 @@ test('public retained session publishes and cancels inside input-name matching',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'name_session'));
 test('public retained session rejects aggregate projection text without publication',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection_limit_session'));
+test('public retained Events bridge stops during unused Array recheck',
+  {timeout: 45_000}, t => runEventsRecordBoundary(t, 'watermark', {cancelBridge: true}));

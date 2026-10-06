@@ -1509,13 +1509,17 @@ test "rows to Events admits exact work and workspace and reclaims partial output
   ).unwrap()
   // Each three-field record costs one identity array plus its value (2),
   // one record array plus three field triples (10), and four copy units.
-  // Each record retains five slots. The second append also overlaps its
-  // three scratch fields with five retained and five newly copied slots.
+  // Construction work stays 32. Each record loads two numbers in three
+  // polls each and Text in four, starts append in one, then uses 28 append
+  // polls: 78 physical polls total, independent of the logical wire work.
+  // Append custody is 16 fixed/name + 3*3 fields + 1 identity + 3*10
+  // depth stacks = 56. Caller scratch is 3+2. At the second commit both
+  // retained five-slot rows overlap the cursor: peak 56+5+5+5 = 71.
   for
     (work, slots, outcome) in [
-      (32, 13, "complete"),
-      (31, 13, "work"),
-      (32, 12, "workspace"),
+      (32, 71, "complete"),
+      (31, 71, "work"),
+      (32, 70, "workspace"),
     ] {
     let limits = {
       ..carrier_events_storage_limits(),
@@ -1535,11 +1539,12 @@ test "rows to Events admits exact work and workspace and reclaims partial output
     let mut polls = 0
     while !terminal {
       polls += 1
-      assert_true(polls < 50)
+      assert_true(polls < 90)
       match @local_bridge.advance_rows_to_events(execution, 1).unwrap() {
         @local_bridge.Continue(..) => ()
-        @local_bridge.Complete(output, ..) => {
+        @local_bridge.Complete(output, work~, ..) => {
           assert_eq(outcome, "complete")
+          assert_eq(work, 78L)
           assert_true(
             @records.completed_storage(output) is Some(storage) &&
             @record_storage.construction_work(storage) == 32 &&
@@ -1584,7 +1589,7 @@ test "rows to Events admits exact work and workspace and reclaims partial output
   let mut polls = 0
   while !first_row {
     polls += 1
-    assert_true(polls < 20)
+    assert_true(polls < 45)
     match @local_bridge.advance_rows_to_events(cancelled, 1).unwrap() {
       @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
       _ => abort("rows-to-Events did not yield after its first row")

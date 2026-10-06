@@ -2,7 +2,9 @@
 priv enum RowsToEventsPhase {
   BeginRow
   ReadCell
+  RecheckCell
   CommitRow
+  AppendRow
   FinishRows
 }
 
@@ -17,6 +19,8 @@ priv struct RowsToEventsState {
   mut row : Int
   mut column : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut recheck : @value.RecheckCursor?
+  mut append : @records.RecordAppend?
 }
 
 ///|
@@ -184,8 +188,14 @@ fn rows_to_events_step(
             return @bounded.Failed(InvalidKernel, progress, used)
           }
           let retained = @records.output_workspace_slots(output)
-          if retained > state.max_workspace_slots ||
-            state.fields.length() >= state.max_workspace_slots - retained {
+          // One borrowed root, the recheck handle, and at most depth+1
+          // traversal frames overlap the pending field snapshot.
+          let depth = state.value_limits.max_depth
+          if depth > 2147483644 ||
+            retained > state.max_workspace_slots ||
+            depth + 3 > state.max_workspace_slots - retained ||
+            state.fields.length() >
+            state.max_workspace_slots - retained - depth - 3 {
             return @bounded.Failed(
               Output(@records.Storage(@storage.WorkspaceLimit)),
               progress,
@@ -193,46 +203,97 @@ fn rows_to_events_step(
             )
           }
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
-            @execution.producer_read_checked_cell(
-              state.input,
-              state.row,
-              state.column,
-              state.value_limits,
-            )
-            is Some(checked) else {
+            @execution.producer_read_cell(state.input, state.row, state.column)
+            is Some(cell) else {
             return @bounded.Failed(InvalidRow(state.row), progress, used)
           }
-          state.fields.push((field.name, checked))
-          state.column += 1
           used += 1
+          // Reuse the exact receiving contract without validating raw Text
+          // before the first caller-controlled yield/stop boundary.
+          let recheck = match cell {
+            @execution.Text(text) =>
+              @value.start_recheck_runtime_text(
+                text,
+                field.contract,
+                state.value_limits,
+              )
+            _ => {
+              let raw = match cell {
+                @execution.Null => Some(@value.null_value())
+                @execution.Number(number) => @value.number_value(number)
+                @execution.Boolean(boolean) =>
+                  Some(@value.boolean_value(boolean))
+                @execution.Captured(value) => Some(value)
+                @execution.Text(_) => None
+              }
+              raw.bind(value => {
+                @value.start_recheck_runtime_value(
+                  value,
+                  field.contract,
+                  state.value_limits,
+                )
+              })
+            }
+          }
+          guard recheck is Some(recheck) else {
+            return @bounded.Failed(InvalidRow(state.row), progress, used)
+          }
+          state.recheck = Some(recheck)
+          state.phase = RecheckCell
         } else {
           state.phase = CommitRow
         }
+      RecheckCell => {
+        guard state.recheck is Some(recheck) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        used += 1
+        match @value.advance_recheck_runtime_value(recheck) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed =>
+            return @bounded.Failed(InvalidRow(state.row), progress, used)
+          @value.RecheckComplete(checked, _, _) => {
+            let field = @schema.field_at(state.schema, state.column).unwrap()
+            state.fields.push((field.name, checked))
+            state.recheck = None
+            state.column += 1
+            state.phase = ReadCell
+          }
+        }
+      }
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
         }
-        let retained = @records.output_workspace_slots(output)
-        let fields = state.fields.length()
-        // append_record copies the scratch fields into retained storage.
-        if retained > state.max_workspace_slots ||
-          fields > state.max_workspace_slots - retained ||
-          fields > state.max_workspace_slots - retained - fields - 2 {
-          return @bounded.Failed(
-            Output(@records.Storage(@storage.WorkspaceLimit)),
-            progress,
-            used,
-          )
+        used += 1
+        match
+          @records.start_record_append(
+            output,
+            state.fields,
+            external_workspace_slots=state.fields.length() + 2,
+          ) {
+          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
+          Ok(append) => {
+            state.append = Some(append)
+            state.phase = AppendRow
+          }
+        }
+      }
+      AppendRow => {
+        guard state.append is Some(append) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
         }
         used += 1
-        match @records.append_record(output, state.fields) {
-          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
-          Ok(_) => {
+        match @records.advance_record_append(append) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.append = None
             state.fields = []
             state.row += 1
             state.phase = BeginRow
             progress += 1
           }
+          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
         }
       }
       FinishRows => {
@@ -252,6 +313,14 @@ fn rows_to_events_step(
 
 ///|
 fn cleanup_rows_to_events_state(state : RowsToEventsState) -> Bool {
+  if state.recheck is Some(recheck) {
+    @value.cancel_recheck_runtime_value(recheck)
+    state.recheck = None
+  }
+  if state.append is Some(append) {
+    @records.cleanup_record_append(append) |> ignore
+    state.append = None
+  }
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
@@ -304,6 +373,8 @@ fn start_rows_to_records(
     row: 0,
     column: 0,
     fields: [],
+    recheck: None,
+    append: None,
   }
   let (session, token) = @bounded.start(
     control, state, rows_to_events_step, cleanup_rows_to_events_state, @records.discard_completed,

@@ -10973,6 +10973,7 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_rows_to_events"
       },
+      "notes": "start_rows_to_records owns the shared stepped value recheck and RecordAppend. Large-value limits and cancellation are paired with independent total polls, so an atomic recheck drain cannot preserve the claimed cancellation coordinates. The ordinary installed Events case exercises this owner with retained Store; it does not establish all Bridge paths or a packed campaign.",
       "boundary_tests": [
         {
           "role": "to_events_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -10980,6 +10981,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "rows to Events admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [
@@ -10989,6 +11004,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "to-events-bridge"
+        },
+        {
+          "role": "bridge_record_value_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained Events bridge stops during unused Array recheck"
         }
       ],
       "path_assurance": {
@@ -11077,6 +11099,7 @@
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_rows_to_vectors"
       },
+      "notes": "The Vectors entry delegates to the same start_rows_to_records, advance_rows_to_events and cleanup_rows_to_events owner. Its own two-component vector fixture fixes logical work 28, physical work 70 and workspace 65. The large Text/Array evidence is reused only for that shared input/append discipline, not as an independent public Vectors large-value acceptance claim.",
       "boundary_tests": [
         {
           "role": "to_vectors_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -11084,6 +11107,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "rows to Vectors admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [

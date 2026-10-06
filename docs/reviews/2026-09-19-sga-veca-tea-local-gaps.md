@@ -5999,3 +5999,26 @@ ID construction, constructor/Bridge append and whole-Run physical accounting
 remain separate.
 This is not full retained-path completion or full-target/packed/CI evidence.
 See the [Events name evidence](2026-10-06-local-events-name-matching.md).
+
+### Relation-to-Events/Vectors value recheck and emission
+
+The shared rows-to-record Bridge now retains the existing typed value
+recheck and RecordAppend cursors across advances. Cell traversal and record
+emission no longer drain a whole nested value in one nominal Bridge poll.
+Exact operation binding, input availability and completion identity remain;
+workspace includes pending fields, continuation handles and retained rows.
+Stop retains those owners until confirmed stop and once-only cleanup.
+
+Independent large Text/Array boundaries fix physical work 824, logical
+construction 149, retained bytes 8520 and workspace 71. Quanta 1, 7 and 256
+preserve results and charges; one-short failures remain typed. The Vectors
+entry uses the same owner and its own vector-specific boundary fixture.
+Ordinary Host evidence publishes three explicit Results through real Store
+and delivers cancellation within the Bridge's unused Array recheck.
+
+This closes that shared input/emission component, not inverse projection
+name lookup/output append, constructor preparation, reference/JSON-key
+leaf scans, Events comparisons/session identity or whole-Run accounting.
+Inventory totals do not increase. Full-target, packed and CI acceptance
+remain unverified for this component. See the
+[Bridge evidence](2026-10-06-local-rows-records-bridge.md).
