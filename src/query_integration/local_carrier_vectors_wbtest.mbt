@@ -6176,6 +6176,7 @@ fn direct_relation_pool_source_owner() -> @lower.BoundPrepared {
 fn direct_relation_pool_owner(
   source : @lower.BoundPrepared,
   prefix? : Bool = false,
+  group_name? : String = "group",
 ) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
@@ -6188,7 +6189,9 @@ fn direct_relation_pool_owner(
           ""
         }) +
         "{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
-        "\"by\":[\"group\"],\"method\":\"sum\"}}]",
+        "\"by\":[\"" +
+        group_name +
+        "\"],\"method\":\"sum\"}}]",
       ),
       [
         (

@@ -11,12 +11,16 @@ import {canonicalJson} from './local-account-config.mjs';
 const prefix = 'g'.repeat(512);
 const fields = ['group', 'embedding', 'member_count'];
 const names = ['published', 'consumed_a', 'consumed_b'];
+const longFieldName = 'g'.repeat(513);
 const expected = ['a', 'b'].map(suffix => ({
   group: prefix + suffix, embedding: [1, 2], member_count: 1,
 }));
 
 function program(id, direct = false, outputScan = false, identityScan = false, memberScan = false,
-  objectNameScan = false) {
+  objectNameScan = false, fieldNameScan = false) {
+  const groupName = fieldNameScan ? longFieldName : 'group';
+  const selectedFields = fieldNameScan ? [groupName, 'embedding', 'member_count'] : fields;
+  const unusedItems = fieldNameScan ? 90 : 129;
   const dimensions = outputScan ? 257 : 2;
   const objectName = 'x'.repeat(513);
   const objectSchema = {type: 'object', nullable: false,
@@ -24,38 +28,38 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
   const schema = {
     id: {type: memberScan ? 'string' : 'number', nullable: false},
     ...(memberScan ? {code: {type: 'number', nullable: false}} : {}),
-    group: {type: outputScan || memberScan || objectNameScan ? 'number' : 'string', nullable: false},
+    [groupName]: {type: outputScan || memberScan || objectNameScan || fieldNameScan ? 'number' : 'string', nullable: false},
     embedding: {type: 'vector', dimensions, nullable: false},
     ...(objectNameScan ? {aa_unused: {type: 'array', nullable: false, max_items: 112,
       items: {type: 'number', nullable: false}}, zz_unused: objectSchema} : {}),
-    ...(direct && !memberScan && !objectNameScan ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
+    ...(direct && !memberScan && !objectNameScan ? {zz_unused: {type: 'array', nullable: false, max_items: unusedItems,
       items: {type: 'number', nullable: false}}} : {}),
   };
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
-      rows: (outputScan || identityScan || memberScan || objectNameScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
+      rows: (outputScan || identityScan || memberScan || objectNameScan || fieldNameScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
       id: memberScan ? 'x'.repeat(5000) : index + 1,
       ...(memberScan ? {code: 1} : {}),
-      group: outputScan || memberScan || objectNameScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
+      [groupName]: outputScan || memberScan || objectNameScan || fieldNameScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(objectNameScan ? {aa_unused: Array.from({length: 112}, () => 1),
         zz_unused: {[objectName]: 2}} : {}),
-      ...(direct && !memberScan && !objectNameScan ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
+      ...(direct && !memberScan && !objectNameScan ? {zz_unused: Array.from({length: unusedItems}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
       {from: 'out', assert_rows: {unique_by: memberScan ? ['id', 'code'] : ['id']}, as: 'keyed'},
     ] : [])], results: {r: {from: direct ? 'keyed' : 'out',
       fields: Object.keys(schema)}}},
     {id: 'bridge', inputs: {rows: {result: {stage: 'values', result: 'r'}}},
       steps: direct ? [
-        {pool_vectors: {vector: 'embedding', by: ['group'], method: 'sum'}, as: 'pooled'},
+        {pool_vectors: {vector: 'embedding', by: [groupName], method: 'sum'}, as: 'pooled'},
         {from: 'pooled', vectors: true, as: 'out'},
       ] : [{to_vectors: {id: 'id', vector: 'embedding'}, as: 'source'},
-        {from: 'source', pool_vectors: {by: ['group'], method: 'sum'}, as: 'pooled'},
+        {from: 'source', pool_vectors: {by: [groupName], method: 'sum'}, as: 'pooled'},
         {from: 'pooled', vectors: true, as: 'out'}],
-      results: {r: {from: 'out', fields}}},
+      results: {r: {from: 'out', fields: selectedFields}}},
     ...['consumer_a', 'consumer_b'].map(name => ({id: name,
       inputs: {rows: {result: {stage: 'bridge', result: 'r'}}},
-      steps: [{select: fields, as: 'out'}], results: {r: {from: 'out', fields}},
+      steps: [{select: selectedFields, as: 'out'}], results: {r: {from: 'out', fields: selectedFields}},
     })),
   ], results: {
     published: {from: {stage: 'bridge', result: 'r'}},
@@ -65,7 +69,7 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
 }
 
 async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
-  identityScan = false, memberScan = false, objectNameScan = false} = {}) {
+  identityScan = false, memberScan = false, objectNameScan = false, fieldNameScan = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -81,9 +85,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
+    const fixtureId = fieldNameScan ? 'public-pool-field-name' : objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
-    const expectedRows = memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
+    const expectedRows = fieldNameScan ? [{[longFieldName]: 1, embedding: [1, 2], member_count: 1}] : memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
       member_count: 1}] : outputScan ? [{group: 1,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
@@ -109,12 +113,12 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
         if (!direct && !prefixComplete) {
-          assert.equal(detail.progress, outputScan || identityScan ? '1' : '2');
-          assert.equal(detail.work, outputScan || identityScan ? '4' : '8');
+          assert.equal(detail.progress, outputScan || identityScan || fieldNameScan ? '1' : '2');
+          assert.equal(detail.work, outputScan || identityScan || fieldNameScan ? '4' : '8');
           prefixComplete = true;
           return;
         }
-        if (outputScan || identityScan || memberScan) {
+        if (outputScan || identityScan || memberScan || fieldNameScan) {
           // One 257-dimensional member needs >1,000 control steps before
           // output, then >257 wire polls. 1280 lies inside the output vector;
           // the kernel fixture independently fixes that shared cursor boundary.
@@ -127,7 +131,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
           // and input recheck adds 79: encoding starts after 5,112 polls.
           // At 5,120 it is inside the existing Text measure cursor, before
           // copying or exposing the member key. No output group exists yet.
-          const boundary = memberScan ? 5120 : identityScan ? 8192 : 1280;
+          // The matching Relation fixture derives 314 polls, with 256 inside
+          // required-name comparison before any record is committed.
+          const boundary = fieldNameScan ? 256 : memberScan ? 5120 : identityScan ? 8192 : 1280;
           if (poolWork < boundary) return;
           assert.equal(poolWork, boundary);
           assert.equal(poolProgress, memberScan ? 0 : 1);
@@ -157,7 +163,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
-      objectNameScan));
+      objectNameScan, fieldNameScan));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
@@ -178,7 +184,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
 
     cancelling = true;
     const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
-      objectNameScan)),
+      objectNameScan, fieldNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await barrier.promise;
     const atBarrier = advances;
@@ -223,3 +229,6 @@ test('public retained Pool publishes and cancels inside composite member encodin
 
 test('public retained Pool publishes and cancels inside typed Object name admission',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, objectNameScan: true}));
+
+test('public retained Pool publishes and cancels inside retained field binding',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, fieldNameScan: true}));

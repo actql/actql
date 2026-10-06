@@ -15,19 +15,19 @@ fn append_step_limits(slots : Int, work : Int, bytes : Int) -> Limits {
 test "record append keeps exact wire accounting across Text chunk yields" {
   // Wire [["value","<130 a>"]] has 144 bytes and four nodes. The old
   // construction discipline adds width+1=2: six units, not poll count.
-  // Cursor 8+2*1+0+3*2=16 and retained row 1+2=3 coexist: 19 slots.
+  // Cursor 16+3*1+0+3*2=25 and retained row 1+2=3 coexist: 28 slots.
   let fields = relation_record(Array::make(130, "a").join(""))
   for
     (slots, work, bytes, expected) in [
-      (19, 6, 144, None),
-      (18, 6, 144, Some(WorkspaceLimit)),
-      (19, 5, 144, Some(WorkLimit)),
-      (19, 1000, 143, Some(ValueLimit)),
+      (28, 6, 144, None),
+      (27, 6, 144, Some(WorkspaceLimit)),
+      (28, 5, 144, Some(WorkLimit)),
+      (28, 1000, 143, Some(ValueLimit)),
     ] {
     let builder = prepare(relation(), append_step_limits(slots, work, bytes)).unwrap()
     let cursor = start_append(builder, fields).unwrap()
     assert_true(builder_append_pending(builder))
-    assert_eq(builder_workspace_slots(builder), 16)
+    assert_eq(builder_workspace_slots(builder), 25)
     assert_true(finish(builder) is Err(Closed))
     assert_true(start_append(builder, fields) is Err(Closed))
     assert_eq(append(builder, fields), Err(Closed))
