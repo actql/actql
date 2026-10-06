@@ -103,15 +103,15 @@ test "current TRAIL evaluates reached edge and nullable node predicates on deman
       assert_eq(
         @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
         "{\"edge_ids\":[" +
-        edge(expected_edge) +
+        property_graph_expected_json_wire(edge(expected_edge)) +
         "],\"end_id\":" +
-        node(expected_end) +
+        property_graph_expected_json_wire(node(expected_end)) +
         ",\"hop_count\":1,\"node_ids\":[" +
-        node(start) +
+        property_graph_expected_json_wire(node(start)) +
         "," +
-        node(expected_end) +
+        property_graph_expected_json_wire(node(expected_end)) +
         "],\"start_id\":" +
-        node(start) +
+        property_graph_expected_json_wire(node(start)) +
         "}",
       )
       assert_true(@local_sga.cleanup_traverse(active).unwrap())

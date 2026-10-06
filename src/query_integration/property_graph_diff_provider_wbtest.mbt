@@ -100,17 +100,18 @@ test "Graph diff provider matches independent kernel row admission and completio
   let decode = 103L
   let json_admission = 355L
   let assemble = 1L
-  let delta_recheck = 35L
+  // Four Text values add seven chunk polls: version 1, three CIDs 2 each.
+  let delta_recheck = 35L + 7L
   let kernel = 2L * (snapshot + body_start + parse + decode + json_admission) +
     assemble +
     delta_recheck
   let row_start = 1L
   // Begin/read=2; Delta recheck=35; name=1; value measurement=31;
   // commit/end-of-input/seal=3. Completion authority is separate from import.
-  let row_admission = 2L + 35L + 1L + 31L + 3L
+  let row_admission = 2L + delta_recheck + 1L + 31L + 3L
   let completion = 1L
   let total = kernel + row_start + row_admission + completion
-  assert_eq((kernel, row_admission, total), (2784L, 72L, 2858L))
+  assert_eq((kernel, row_admission, total), (2791L, 79L, 2872L))
   for selected in [false, true] {
     let generated = task_test_generated(owner)
     let generated = if selected {
@@ -245,13 +246,13 @@ test "Graph diff provider completes one Delta row without reclaiming borrowed Gr
         }
       }
       let output = output.unwrap()
-      let expected = "{\"delta\":" +
+      let expected = "{\"delta\":{\"$json\":" +
         (if removal {
           graph_delta_remove_parallel_edge()
         } else {
           graph_delta_empty_actions()
         }) +
-        "}"
+        "}}"
       let expected = @identity.stringify_value(
         @identity.from_json(@json.parse(expected), 10000, 100, 10000),
         10000,
