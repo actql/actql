@@ -1,3 +1,5 @@
+export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
+  type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireClientProfile,
   WireConnection,
   WireRequestCancellation,

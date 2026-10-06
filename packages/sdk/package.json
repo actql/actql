@@ -11,6 +11,6 @@
       "types": "./host-port.d.ts", "default": "./host-port.mjs"
     }
   },
-  "files": ["index.mjs", "index.d.ts", "checkpoints.mjs", "check-presentation.mjs", "operation-presentation.mjs", "operation-formats.mjs", "json-value-wire.generated.mjs", "host-port.mjs",
+  "files": ["index.mjs", "index.d.ts", "checkpoints.mjs", "check-presentation.mjs", "check-reason-catalog.generated.js", "check-reason-catalog.generated.d.ts", "operation-presentation.mjs", "operation-formats.mjs", "json-value-wire.generated.mjs", "host-port.mjs",
     "host-port.d.ts", "README.md"]
 }

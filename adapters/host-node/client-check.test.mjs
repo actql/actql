@@ -4526,3 +4526,35 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: generated catalog advice keeps authoritative outcomes and original locations`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const cases = [
+      ['SELECT (', {format: 'sql'}, 'query_syntax_invalid', 'invalid', 'input', 'error'],
+      ['SELECT @x AS n', {format: 'sql', parameterDeclarations: {x: {type: 'number'}}, parameters: {}},
+        'parameter_value_required', 'undetermined', 'requirement', 'info'],
+      ['SELECT UNKNOWN_FUNCTION(1) AS n', {format: 'sql'}, 'implementation_limit', 'undetermined', 'limit', 'warning'],
+    ];
+    for (const [text, options, code, verdict, family, severity] of cases) {
+      const outcome = await client.check(text, options);
+      assert.equal(outcome.report.verdict, verdict, '[check-mutation:catalog-verdict]');
+      const original = JSON.stringify(outcome);
+      const reason = [...outcome.report.reasons, ...outcome.report.requirements, ...outcome.report.coverage.limits]
+        .find(value => value.code === code);
+      const entry = sdk.getCheckReasonCatalogEntry(code);
+      assert.deepEqual({family: entry.family, severity: entry.default_severity}, {family, severity});
+      assert.equal(sdk.getCheckReasonCatalogInfo().reasonSchemaCid, outcome.reason_schema_cid,
+        '[check-mutation:catalog-schema-pin]');
+      for (const locale of ['en', 'ja']) {
+        const view = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', locale}));
+        assert.equal(view.observation.report.verdict, verdict, '[check-mutation:catalog-render-verdict]');
+        assert.equal(view.entries.find(value => value.code === code).explanationKind, 'known');
+        assert.equal(Object.hasOwn(view.entries[0], 'next'), false);
+      }
+      assert.throws(() => {entry.default_severity = 'error';}, TypeError);
+      if (reason.location) assert.ok(resolveCheckLocation(outcome, reason.location));
+      assert.equal(JSON.stringify(outcome), original, '[check-mutation:catalog-observation]');
+    }
+  });
+}
