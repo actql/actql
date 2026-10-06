@@ -52,6 +52,12 @@ after physical restoration retains the attached release callback. Losing the
 exclusive slot preserves responsibility and blocks physical cleanup and refunds.
 A temporarily unavailable retained root retries opening only the original
 cleanup handle, preserving its generation and content identity.
+If capacity is initially unavailable, the accounting owner retains one pending
+cleanup responsibility and its original Site/byte-count restoration token.
+After cancellation or Site revocation, verified exclusive custody can consume
+that token once into a real holding under the unchanged capacity ceiling, then
+return it through formal cleanup. Ordinary holding and read admission still
+refuse revoked Sites; no source or executor is reacquired.
 
 The existing real Native fixture can interrupt a producer after its completed
 evidence and file custody are durable, select the same holder from the retained

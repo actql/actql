@@ -153,6 +153,7 @@ priv struct NativeRemoteRuntimeOwner {
   mut restoration_pending : Bool
   restoration_current : (() -> Bool)?
   restoration_cleanup_port : NativeCompletedCleanupRestoration?
+  holding_restoration : @site.SiteHoldingRestoration?
   restoration_observation : @journal.RecoveredSiteDispatch?
   mut restoration_cleanup : (() -> Bool)?
 }
@@ -1701,6 +1702,7 @@ pub fn NativeRemoteRuntime::start_after_acceptance(
     restoration_pending: false,
     restoration_current: None,
     restoration_cleanup_port: None,
+    holding_restoration: None,
     restoration_observation: None,
     restoration_cleanup: None,
   }

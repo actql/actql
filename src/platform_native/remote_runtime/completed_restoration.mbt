@@ -195,6 +195,10 @@ pub fn NativeRemoteRuntime::restore_completed(
       if !current() {
         return CompletedRuntimeRefused(StartAuthorizationRejected)
       }
+      guard @site.prepare_site_holding_restoration(registration.site, bytes)
+        is Some(holding_restoration) else {
+        return CompletedRuntimeRefused(SiteUnavailable)
+      }
       let owner : NativeRemoteRuntimeOwner = {
         request,
         binding,
@@ -214,6 +218,7 @@ pub fn NativeRemoteRuntime::restore_completed(
         restoration_pending: true,
         restoration_current: Some(current),
         restoration_cleanup_port: cleanup,
+        holding_restoration: Some(holding_restoration),
         restoration_observation: Some(recovered),
         restoration_cleanup: None,
       }
@@ -297,11 +302,10 @@ fn NativeRemoteRuntime::advance_completed_restoration(
     return CompletedRuntimePending(CustodyRejected)
   }
   if !@remote.remote_runtime_custody_holding_acquired(owner.custody) {
-    let (_, _, _, bytes) = @remote.remote_managed_output_subject_retention(
-      owner.subject.unwrap(),
-    )
-    guard @site.retain_site_holding(owner.registration.site, bytes)
-      is Some(holding) else {
+    guard owner.holding_restoration is Some(restoration) else {
+      return CompletedRuntimePending(CustodyRejected)
+    }
+    guard restoration.acquire() is Some(holding) else {
       return CompletedRuntimePending(CapacityRejected)
     }
     owner.holding = Some(holding)

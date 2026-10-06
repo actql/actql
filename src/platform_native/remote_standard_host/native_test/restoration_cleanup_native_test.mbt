@@ -388,6 +388,92 @@ test "native restoration revocation after physical callback moves exact output t
 }
 
 ///|
+test "native capacity retry after Site revocation restores only original cleanup accounting" {
+  let bundles = restored_runtime_bundles(name="revoke-before-holding")
+  let bundle_cid = @env.get_env_var(
+    "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+  ).unwrap()
+  let binding = @remote.prepare_remote_input_binding("{}", 16).unwrap()
+  let budget = @remote.prepare_remote_dispatch_budget(128L, 128L).unwrap()
+  let executions = Ref(0)
+  let (journal, request, root, name, generation, site) = restored_output_fixture(
+    "restoration-revoke-before-holding",
+    runtime_bundle_cid=Some(bundle_cid),
+    input_binding_cid=Some(@remote.remote_input_binding_cid(binding)),
+    budget_cid=Some(@remote.remote_dispatch_budget_cid(budget)),
+  )
+  let runtime = restored_runtime(
+    bundles, journal, site, name, budget, executions,
+  )
+  let exclusive = Ref(true)
+  let current = () => @site.site_available(site)
+  let occupied = @site.retain_site_holding(site, 995L).unwrap()
+  assert_true(
+    @standard.restore_native_remote_standard_runtime_output(
+      runtime,
+      request,
+      binding,
+      root,
+      10L,
+      current,
+      cleanup_current=Some(() => exclusive.val),
+    )
+    is @runtime.CompletedRuntimePending(@runtime.CapacityRejected),
+  )
+  assert_eq(@site.site_status(site)[5], 1L)
+  @site.revoke_site(site)
+  assert_true(@site.retain_site_holding(site, 0L) is None)
+  assert_true(@site.release_site_holding(occupied))
+  assert_eq(@site.site_status(site)[10], 0L)
+  exclusive.val = false
+  assert_true(
+    @standard.restore_native_remote_standard_runtime_output(
+      runtime, request, binding, root, 10L, current,
+    )
+    is @runtime.CompletedRuntimePending(@runtime.StartAuthorizationRejected),
+  )
+  assert_eq(@site.site_status(site)[6], 0L)
+  assert_eq(@site.site_status(site)[5], 1L)
+  assert_true(
+    @filesystem.open_root(root)
+    .unwrap()
+    .verify_generation("output-" + name, generation),
+  )
+  exclusive.val = true
+  assert_true(
+    @standard.restore_native_remote_standard_runtime_output(
+      runtime, request, binding, root, 10L, current,
+    )
+    is @runtime.CompletedRuntimePending(
+      @runtime.CleanupPending("restoration-transition")
+    ),
+  )
+  assert_eq(@site.site_status(site)[6], 10L)
+  assert_eq(@site.site_status(site)[5], 0L)
+  assert_eq(@site.site_status(site)[4], 1L)
+  assert_eq(@site.site_status(site)[10], 0L)
+  assert_true(
+    runtime.open_output_reader(request, "original-generation", 10)
+    is Err(@runtime.OutputReaderUnavailable),
+  )
+  assert_true(runtime.cleanup(request) is Ok(true))
+  assert_false(runtime.cleanup(request).unwrap())
+  assert_eq(@site.site_status(site)[6], 0L)
+  assert_eq(@site.site_status(site)[4], 0L)
+  assert_eq(@site.site_status(site)[10], 1L)
+  assert_eq(executions.val, 0)
+  assert_false(
+    bundles
+    .release("dispatch:" + @remote.dispatch_request_identity(request))
+    .unwrap(),
+  )
+  assert_true(runtime.close().unwrap())
+  assert_false(bundles.release("runtime-process:" + name).unwrap())
+  assert_true(journal.close())
+  assert_true(bundles.close().unwrap())
+}
+
+///|
 test "native cleanup survives first use refusal and rechecks custody after physical release" {
   let bundles = restored_runtime_bundles(name="refuse-use-cleanup-fence")
   let bundle_cid = @env.get_env_var(
