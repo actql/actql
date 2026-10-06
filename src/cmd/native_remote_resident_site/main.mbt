@@ -695,6 +695,23 @@ fn holder_arguments(
 }
 
 ///|
+/// Transport routing only. The live holder must still admit the exact checked
+/// consumer/input through existing Owners before saving or acknowledging it.
+/// Run equality is not execution or cleanup authority.
+fn holder_can_receive(
+  producer : @remote.DispatchRequest,
+  incoming : @remote.DispatchRequest,
+) -> Bool {
+  let (run, _) = @remote.dispatch_request_task_scope(producer)
+  let (other_run, _) = @remote.dispatch_request_task_scope(incoming)
+  run == other_run &&
+  @remote.dispatch_request_execution_scope(producer) ==
+  @remote.dispatch_request_execution_scope(incoming) &&
+  @remote.dispatch_request_journal_key(producer)[0] ==
+  @remote.dispatch_request_journal_key(incoming)[0]
+}
+
+///|
 priv struct RunningHolder {
   child : @slot.NativeExecutorSlotChild
   channel : @slot.NativeHolderChannel
@@ -1624,6 +1641,35 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
       Ok(Some(@remote.Dispatch(dispatch))) => {
         backoff_ms = 0
+        let incoming = @remote.remote_poll_dispatch_request(dispatch)
+        if holder is Some(current) &&
+          @remote.dispatch_request_identity(incoming) !=
+          @remote.dispatch_request_identity(current.request) &&
+          holder_can_receive(current.request, incoming) {
+          match @remote.remote_poll_dispatch_run_materials(dispatch) {
+            Some(materials) =>
+              match
+                @remote.remote_poll_dispatch_materials_json(
+                  incoming,
+                  @remote.remote_poll_dispatch_input_binding(dispatch),
+                  materials,
+                ) {
+                Ok(body) =>
+                  report("consumer-relayed", [
+                    ("request_cid", @remote.dispatch_request_identity(incoming)),
+                    (
+                      "sent",
+                      current.channel.send("consumer " + body).to_string(),
+                    ),
+                  ])
+                Err(_) =>
+                  report("consumer-unavailable", [("reason", "envelope")])
+              }
+            None => report("consumer-unavailable", [("reason", "materials")])
+          }
+          ignore(journal.close())
+          continue
+        }
         match
           @resident_host.accept_resident_dispatch(
             journal,
@@ -1675,7 +1721,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                 }
                 let codes = @remote.dispatch_record_state_codes(record)
                 if holder is Some(current) &&
-                  @remote.dispatch_request_identity(current.request) == identity {
+                  holder_can_receive(current.request, request) {
                   if codes[0] == 1 || codes[0] == 2 {
                     // Sending SIGTERM is not stop evidence. The existing slot
                     // and physical cleanup recovery establish that later.
@@ -1688,7 +1734,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                     // the exact retained output through its live owner.
                     report("cancel-release-relayed", [
                       ("request_cid", identity),
-                      ("sent", current.channel.send("release").to_string()),
+                      (
+                        "sent",
+                        current.channel.send("release " + identity).to_string(),
+                      ),
                     ])
                   }
                 }
@@ -1739,8 +1788,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         // A live holder owns this output: it releases it and then ends.
         let identity = @remote.dispatch_request_identity(request)
         if holder is Some(current) &&
-          @remote.dispatch_request_identity(current.request) == identity {
-          if current.channel.send("release") {
+          holder_can_receive(current.request, request) {
+          if current.channel.send("release " + identity) {
             report("release-relayed", [("request_cid", identity)])
           } else {
             report("release-unrelayed", [("request_cid", identity)])
@@ -1835,10 +1884,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           ("output", @remote.remote_poll_output_json(request, intent))
         }
         match (holder, envelope) {
-          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+          (Some(current), Ok(body)) if holder_can_receive(
               current.request,
-            ) ==
-            identity =>
+              request,
+            ) =>
             if current.channel.send(kind + " " + body) {
               report("output-relayed", [
                 ("operation", kind),
@@ -2166,6 +2215,11 @@ fn serve_holder_output(
   executed : @resident_host.ResidentExecuted,
   admission : @resident_host.ResidentRunAdmission,
   current_time : () -> String,
+  execution : @resident_host.ResidentExecution,
+  configuration : @resident_host.ResidentSourceComputeConfiguration?,
+  delegation : @resident.ResidentSiteDelegation,
+  claimant : String,
+  executor_entry : ((String) -> Bool)?,
 ) -> Unit {
   let runtime = executed.runtime
   let request = executed.request
@@ -2191,6 +2245,15 @@ fn serve_holder_output(
   let retained_handoff : Ref[(String, @resident_host.ResidentRetainedTransfer)?] = Ref(
     None,
   )
+  let consumer : Ref[@resident_host.ResidentRetainedConsumer?] = Ref(None)
+  let consumer_executed : Ref[@resident_host.ResidentExecuted?] = Ref(None)
+  // A Runtime owns its component holding exclusively. Before Runtime
+  // construction succeeds, acquisition/cleanup remains with this holder.
+  let consumer_process_hold : Ref[@bundle.NativeActiveRuntimeBinding?] = Ref(
+    None,
+  )
+  let mut consumer_released = false
+  let mut producer_release_requested = false
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -2200,8 +2263,203 @@ fn serve_holder_output(
       }
       InputInvalid => report("holder-input-invalid", [])
       InputLine(line) =>
-        if line == "release" {
-          serving = false
+        if line.has_prefix("release ") {
+          let target = line.unsafe_substring(start=8, end=line.length())
+          if consumer.val is Some(owner) &&
+            target ==
+            @remote.dispatch_request_identity(
+              @resident_host.resident_retained_consumer_request(owner),
+            ) {
+            if consumer_released {
+              continue
+            }
+            let remaining = unsaved_reports.filter(custody => {
+              environment.journal.retain_output_report(custody) is Err(_)
+            })
+            unsaved_reports.clear()
+            unsaved_reports.append(remaining)
+            if !unsaved_reports.is_empty() {
+              report("consumer-release-pending", [("reason", "report-save")])
+              continue
+            }
+            if consumer_executed.val is Some(completed) {
+              settle_holder_cleanup(
+                completed.runtime,
+                completed.request,
+                environment.journal,
+                store,
+                failed_cleanups,
+                payloads,
+                resources.release_failures,
+                holder_checkpoint(resources),
+                close_store=false,
+              )
+              failed_cleanups.clear()
+              payloads.clear()
+            }
+            while !owner.close() {
+              report("consumer-release-pending", [("reason", "borrow-cleanup")])
+              @slot.native_wait_milliseconds(250)
+            }
+            close_untransferred_consumer_binding(
+              execution, consumer_process_hold,
+            )
+            if retained_handoff.val is Some((_, handoff)) {
+              while handoff.reclaim() is Err(_) {
+                report("consumer-release-pending", [
+                  ("reason", "receiver-cleanup"),
+                ])
+                @slot.native_wait_milliseconds(250)
+              }
+            }
+            consumer_released = true
+            ignore(
+              @client.acknowledge_status(
+                environment.journal,
+                control,
+                observation_url,
+                @resident_host.resident_retained_consumer_request(owner),
+              ),
+            )
+            if producer_release_requested {
+              serving = false
+            }
+          } else if target == identity {
+            producer_release_requested = true
+            // Do not destroy an input still needed by the chosen consumer. A
+            // durable producer cancellation prevents any later consumer start.
+            if retained_handoff.val is None ||
+              consumer_released ||
+              (
+                consumer.val is None &&
+                environment.journal.cancellation_requested(request) is Ok(true)
+              ) {
+              serving = false
+            } else {
+              report("producer-release-pending", [
+                ("reason", "consumer-custody"),
+              ])
+            }
+          } else {
+            report("holder-input-invalid", [])
+          }
+        } else if line.has_prefix("consumer ") {
+          let envelope = line.unsafe_substring(start=9, end=line.length())
+          match
+            (
+              @remote.admit_remote_poll_dispatch_json(envelope),
+              retained_handoff.val,
+              configuration,
+            ) {
+            (Ok(dispatch), Some((_, handoff)), Some(configuration)) => {
+              let owner = match
+                @resident_host.prepare_resident_retained_consumer(
+                  handoff,
+                  environment.journal,
+                  admission,
+                  dispatch,
+                  current_time(),
+                  {
+                    max_binding_bytes: 1048576,
+                    max_chunks: 65536,
+                    max_manifest_bytes: 1048576,
+                    max_referenced_bytes: resources.retained_max_bytes,
+                  },
+                ) {
+                Ok(value) => value
+                Err(_) => {
+                  report("consumer-refused", [("reason", "retained-input")])
+                  continue
+                }
+              }
+              consumer.val = Some(owner)
+              match
+                owner.accept(
+                  environment.journal,
+                  control,
+                  observation_url,
+                  delegation,
+                  @site.site_generation(environment.site),
+                  admission,
+                  dispatch,
+                  current_time(),
+                ) {
+                Ok(Accepted(_, _)) => {
+                  let active = match
+                    execution.bundles.acquire_active_component(
+                      @bundle.native_active_runtime_component_cid(
+                        execution.active_runtime,
+                      ),
+                      @bundle.native_active_runtime_target_triple(
+                        execution.active_runtime,
+                      ),
+                      "consumer:" +
+                      @remote.dispatch_request_identity(
+                        @resident_host.resident_retained_consumer_request(owner),
+                      ),
+                    ) {
+                    Ok(value) => value
+                    Err(_) => {
+                      report("consumer-accept-pending", [
+                        ("reason", "bundle-holding"),
+                      ])
+                      continue
+                    }
+                  }
+                  consumer_process_hold.val = Some(active)
+                  match
+                    owner.execute(
+                      environment.journal,
+                      { ..execution, active_runtime: active, },
+                      admission,
+                      configuration,
+                      retained_consumer_input_limits(),
+                      claimant,
+                      current_time,
+                      executor_entry,
+                    ) {
+                    Ok(completed) => {
+                      consumer_process_hold.val = None
+                      consumer_executed.val = Some(completed)
+                      report("consumer-executed", [
+                        (
+                          "request_cid",
+                          completed.completion.dispatch_request_cid,
+                        ),
+                        ("revision", completed.completion.revision.to_string()),
+                      ])
+                    }
+                    Err(failure) => {
+                      if failure.pending_runtime is Some(_) {
+                        consumer_process_hold.val = None
+                      } else {
+                        close_untransferred_consumer_binding(
+                          execution, consumer_process_hold,
+                        )
+                      }
+                      report("consumer-failed", [("reason", "owned-execution")])
+                    }
+                  }
+                  ignore(
+                    @client.acknowledge_status(
+                      environment.journal,
+                      control,
+                      observation_url,
+                      @resident_host.resident_retained_consumer_request(owner),
+                    ),
+                  )
+                }
+                Ok(AlreadyStarted(_)) => report("consumer-already-started", [])
+                Ok(Refused(issue)) =>
+                  report("consumer-refused", [("reason", refusal_code(issue))])
+                Err(issue) =>
+                  report("consumer-accept-pending", [
+                    ("reason", host_code(issue)),
+                  ])
+              }
+            }
+            _ => report("consumer-unavailable", [("reason", "holder-custody")])
+          }
         } else if line.has_prefix("retained-plan ") {
           let envelope = line.unsafe_substring(start=14, end=line.length())
           match
@@ -2421,10 +2679,19 @@ fn serve_holder_output(
         } else if line.has_prefix("plan ") {
           let envelope = line.unsafe_substring(start=5, end=line.length())
           match @remote.admit_remote_poll_output_plan_json(envelope) {
-            Ok(output) =>
+            Ok(output) => {
+              let output_owner = match consumer_executed.val {
+                Some(completed) if @remote.dispatch_request_identity(
+                    completed.request,
+                  ) ==
+                  @remote.dispatch_request_identity(
+                    @remote.remote_poll_output_request(output),
+                  ) => completed
+                _ => executed
+              }
               match
                 @resident_host.plan_resident_output(
-                  executed,
+                  output_owner,
                   environment.journal,
                   coordinator_authority,
                   site_key,
@@ -2437,7 +2704,14 @@ fn serve_holder_output(
                       control, observation_url, plan,
                     ) {
                     Ok(_) =>
-                      report("output-planned", [("request_cid", identity)])
+                      report("output-planned", [
+                        (
+                          "request_cid",
+                          @remote.dispatch_request_identity(
+                            output_owner.request,
+                          ),
+                        ),
+                      ])
                     Err(issue) =>
                       report("output-plan-unreported", [
                         ("reason", client_code(issue)),
@@ -2446,6 +2720,7 @@ fn serve_holder_output(
                 Err(issue) =>
                   report("output-plan-failed", [("reason", output_code(issue))])
               }
+            }
             Err(_) => report("holder-input-invalid", [])
           }
         } else if line.has_prefix("output ") {
@@ -2458,10 +2733,22 @@ fn serve_holder_output(
           failed_cleanups.append(still_pending)
           let envelope = line.unsafe_substring(start=7, end=line.length())
           match @remote.admit_remote_poll_output_json(envelope) {
-            Ok(output) =>
+            Ok(output) => {
+              let output_owner = match consumer_executed.val {
+                Some(completed) if @remote.dispatch_request_identity(
+                    completed.request,
+                  ) ==
+                  @remote.dispatch_request_identity(
+                    @remote.remote_poll_output_request(output),
+                  ) => completed
+                _ => executed
+              }
+              let identity = @remote.dispatch_request_identity(
+                output_owner.request,
+              )
               match
                 @resident_host.deliver_resident_output(
-                  executed,
+                  output_owner,
                   environment.journal,
                   coordinator_authority,
                   site_key,
@@ -2533,6 +2820,7 @@ fn serve_holder_output(
                   }
                 }
               }
+            }
             Err(_) => report("holder-input-invalid", [])
           }
         } else {
@@ -2552,6 +2840,28 @@ fn serve_holder_output(
     }
   }
   holder_checkpoint(resources)("report-handoff")
+  if consumer_executed.val is Some(completed) && !consumer_released {
+    settle_holder_cleanup(
+      completed.runtime,
+      completed.request,
+      environment.journal,
+      store,
+      failed_cleanups,
+      payloads,
+      resources.release_failures,
+      holder_checkpoint(resources),
+      close_store=false,
+    )
+    failed_cleanups.clear()
+    payloads.clear()
+  }
+  if consumer.val is Some(owner) {
+    while !owner.close() {
+      report("consumer-release-pending", [("reason", "borrow-cleanup")])
+      @slot.native_wait_milliseconds(250)
+    }
+  }
+  close_untransferred_consumer_binding(execution, consumer_process_hold)
   if retained_handoff.val is Some((_, handoff)) {
     while handoff.reclaim() is Err(_) {
       report("retained-transfer-cleanup-pending", [("request_cid", identity)])
@@ -2568,9 +2878,43 @@ fn serve_holder_output(
     resources.release_failures,
     holder_checkpoint(resources),
   )
+  if consumer_released {
+    let state = @site.site_status(environment.site)
+    report("retained-holder-settled", [
+      ("active_operations", state[2].to_string()),
+      ("active_transfers", state[3].to_string()),
+      ("holdings", state[4].to_string()),
+      ("cleanup_responsibilities", state[5].to_string()),
+      ("held_bytes", state[6].to_string()),
+      ("reserved_retention_bytes", state[7].to_string()),
+      ("reserved_execution_bytes", state[8].to_string()),
+    ])
+  }
   ignore(transfer_journal.close())
   ignore(transfer.close())
   ignore(control.close())
+}
+
+///|
+/// Retain acquisition responsibility when execution failed before Runtime
+/// custody, or when Runtime already confirmed close. An absent exact holding
+/// is idempotent; persistence failure keeps the same binding for retry.
+fn close_untransferred_consumer_binding(
+  execution : @resident_host.ResidentExecution,
+  holding : Ref[@bundle.NativeActiveRuntimeBinding?],
+) -> Unit {
+  while holding.val is Some(binding) {
+    match
+      execution.bundles.release(
+        @bundle.native_active_runtime_process_hold_id(binding),
+      ) {
+      Ok(_) => holding.val = None
+      Err(_) => {
+        report("consumer-release-pending", [("reason", "bundle-holding")])
+        @slot.native_wait_milliseconds(250)
+      }
+    }
+  }
 }
 
 ///|
@@ -2586,6 +2930,7 @@ fn settle_holder_cleanup(
   payloads : Array[@payload.PublicationPayloadRequest],
   injected_release_failures : Int,
   checkpoint : (String) -> Unit,
+  close_store? : Bool = true,
 ) -> Unit {
   let identity = @remote.dispatch_request_identity(request)
   let mut wait_ms = 50
@@ -2677,7 +3022,7 @@ fn settle_holder_cleanup(
     }
   }
   wait_ms = 50
-  while true {
+  while close_store {
     match store.close() {
       Ok(_) => break
       Err(_) => {
@@ -2698,6 +3043,12 @@ fn run_holder(
   matches : @argparse.Matches,
   holder : @argparse.Matches,
 ) -> Unit raise CommandStop {
+  // Validate the optional retained profile before acquiring Site custody.
+  let retained_delegation = retained_input_delegation(matches)
+  let retained_engine_bytes = match retained_delegation {
+    None => 0L
+    Some(_) => required_int64(matches, "retained-consumer-engine-bytes")
+  }
   // A holder that cannot confirm it holds the named slot must not claim.
   let slot = match
     @slot.inherited_native_executor_slot(required(matches, "executor-slot")) {
@@ -2790,6 +3141,24 @@ fn run_holder(
       },
     },
   }
+  let consumer_configuration = match retained_delegation {
+    None => None
+    Some(_) => {
+      let configured = match execution.source {
+        Some(source) =>
+          retained_consumer_configuration(
+            source, registry_body, values_body, retained_engine_bytes,
+          )
+        None => None
+      }
+      guard configured is Some(profile) else {
+        close_site_environment(environment)
+        ignore(slot.close())
+        stop("retained consumer bounded profile unavailable")
+      }
+      Some(profile)
+    }
+  }
   // Acceptance evidence only: record each executor entry, and optionally
   // hold the slot for a while after it so process tests can act meanwhile.
   let entry_log = optional(matches, "executor-entry-log")
@@ -2861,6 +3230,11 @@ fn run_holder(
         executed,
         run_admission(matches),
         () => start_timestamp(matches),
+        execution,
+        consumer_configuration,
+        delegation(matches, budget(matches)),
+        claimant,
+        observer,
       )
       0
     }
@@ -3061,6 +3435,7 @@ fn command() -> @argparse.Command {
       global("strategy-revision"),
       global("operation-capability-cid"),
       global("retained-input-root"),
+      global("retained-consumer-engine-bytes"),
       global("retained-source-grant-cid"),
       global("retained-destination-grant-cid"),
       global("retained-route-capability-cid"),

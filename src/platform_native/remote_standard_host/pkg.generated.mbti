@@ -50,11 +50,15 @@ pub fn finish_native_remote_standard_transfer_source(NativeRemoteStandardTransfe
 
 pub fn install_native_remote_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (@run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> NativeRemoteRetainedInputCurrent
 
+pub fn install_native_remote_retained_input_owner_current(@run_publication_host.ClientRetainedInputCurrent) -> NativeRemoteRetainedInputCurrent
+
 pub fn install_native_remote_standard_bound_task_executor(String, String, Int, NativeRemoteStandardBoundRunFactory, NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
 
 pub fn install_native_remote_standard_store_task_executor(String, String, Int, NativeRemoteStandardStoreRunFactory, NativeRemoteStandardTaskLimits) -> Result[NativeRemoteStandardTaskExecutor, NativeRemoteStandardHostIssue]
 
 pub fn native_remote_retained_task_input_binding(NativeRemoteRetainedTaskInput) -> @remote_site_protocol.RemoteInputBinding
+
+pub fn native_remote_retained_task_input_destination_use_id(NativeRemoteRetainedTaskInput) -> String
 
 pub fn native_remote_standard_direct_run_admission_authorizes(NativeRemoteStandardPhysicalRunAdmission, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Bool
 
@@ -139,6 +143,8 @@ pub fn reject_native_remote_standard_input(String) -> Result[NativeRemoteStandar
 pub fn resolve_native_remote_standard_physical_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, NativeRemoteStandardTransferInput, NativeRemoteStandardPhysicalSource, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
 
 pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_transfer_journal.Journal, @filesystem.Root, NativeRemoteStandardRowCodec, @execution_query.QuerySequence, @pipeline_check_context.ProgramSourceIdentity, NativeRemoteStandardTransferBindingLimits, NativeRemoteStandardTransferSourceLimits, (@execution_query.CapturedInputSource) -> Result[NativeRemoteStandardComputeOwner, Unit]) -> Result[NativeRemoteStandardBoundRun, NativeRemoteStandardInputFailure]
+
+pub fn restore_native_remote_retained_task_input(@remote_site_protocol.RemoteInputBinding, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, NativeRemoteRetainedInputCurrent, NativeRemoteStandardTransferBindingLimits) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue]
 
 pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardInputFailure) -> Bool
 

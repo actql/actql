@@ -10169,6 +10169,27 @@
           "fixture": "record contract continuation binds the field it actually validated"
         },
         {
+          "role": "pool_member_encoding_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_member_encoding_wbtest.mbt",
+          "fixture": "Relation Pool member encoding has independent work workspace and stop boundaries"
+        },
+        {
+          "role": "pool_member_encoding_shared_text",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/scalar_text_steps_wbtest.mbt",
+          "fixture": "scalar spelling cursor preserves counts bytes and bounded progress"
+        },
+        {
+          "role": "pool_member_encoding_shared_cleanup",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/scalar_text_steps_wbtest.mbt",
+          "fixture": "scalar spelling cancellation releases its borrowed text and recheck"
+        },
+        {
           "role": "pool_output_record_limits",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10295,6 +10316,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside output identity hashing"
+        },
+        {
+          "role": "pool_member_encoding_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside composite member encoding"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",
