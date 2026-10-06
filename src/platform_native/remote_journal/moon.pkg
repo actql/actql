@@ -1,6 +1,12 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/platform_native/filesystem",
+  "actql/actql/physical_manifest" @manifest,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "moonbitlang/core/string",
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload" @payload,
@@ -11,7 +17,6 @@ import {
 
 import {
   "moonbitlang/core/env",
-  "actql/actql/physical_manifest" @manifest,
 } for "wbtest"
 
 options(
@@ -19,6 +24,8 @@ options(
   targets: {
     "inspection_native.mbt": [ "native" ],
     "journal_native.mbt": [ "native" ],
+    "output_file_custody_native.mbt": [ "native" ],
+    "output_file_custody_native_wbtest.mbt": [ "native" ],
     "output_reports_native.mbt": [ "native" ],
     "output_reports_unsupported.mbt": [ "not", "native" ],
     "journal_native_wbtest.mbt": [ "native" ],

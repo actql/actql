@@ -52,6 +52,7 @@ struct RecoveredSiteDispatch {
   subject : @remote.RemoteManagedOutputSubject?
   measurement : @remote.RemoteManagedOutputMeasurement?
   source_observation : @remote.RemoteSourceObservation?
+  file_custody : NativeOutputFileCustody?
 }
 
 ///|
@@ -122,4 +123,11 @@ pub fn recovered_coordinator_dispatch_measurement(
   recovered : RecoveredCoordinatorDispatch,
 ) -> @remote.RemoteManagedOutputMeasurement? {
   recovered.measurement
+}
+
+///|
+pub fn recovered_site_dispatch_file_custody(
+  recovered : RecoveredSiteDispatch,
+) -> NativeOutputFileCustody? {
+  recovered.file_custody
 }

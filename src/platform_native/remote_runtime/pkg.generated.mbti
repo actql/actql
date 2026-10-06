@@ -20,7 +20,7 @@ pub fn open_native_remote_runtime(@remote_journal.Journal, @runtime_bundle.Nativ
 
 pub fn prepare_native_remote_failure(String, Bool, Bool, Bool, () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
 
-pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Result[NativeRemotePhysicalReader, String], () -> Result[NativeRemotePhysicalManifestReader, String], () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
+pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Result[NativeRemotePhysicalReader, String], () -> Result[NativeRemotePhysicalManifestReader, String], () -> Bool, file_custody? : @remote_journal.NativeOutputFileCustody?) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
 
 pub fn prepare_native_remote_physical_manifest_reader((Int) -> Result[Bytes, String], () -> Result[Unit, String], () -> Result[Unit, String]) -> NativeRemotePhysicalManifestReader
 
