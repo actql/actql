@@ -1,0 +1,116 @@
+// Translation data is separate from wire semantics and checking authority.
+// English defaults remain at the semantic call site; a missing or malformed
+// translation uses that same safe default without changing the observation.
+const japanese = Object.freeze(Object.fromEntries(Object.entries({
+  'completed.invalid': ['検査範囲内の入力違反が確認されました。',
+    '開示された理由を確認し、示された提出時のrevisionを修正してください。'],
+  'completed.verified': ['この報告が検証するのは、束縛された検査範囲と文脈だけです。',
+    '実行・取消し・解放の結果は、それぞれのOwnerで確認してください。'],
+  'completed.undetermined': ['検査範囲内では、検証成功も確定した入力違反も判断できません。',
+    '不足する入力と開示された検査限界を確認してください。未充足条件は入力誤りではありません。'],
+  'failed.check_report_unbounded': ['報告用の予算内では、束縛された検査報告全体を作成できませんでした。',
+    '元の検査範囲について、検査文脈の管理者に報告容量の確認を依頼してください。'],
+  'failed.check_internal': ['検査内部の失敗により、束縛された検査報告全体を作成できませんでした。',
+    '検査文脈の管理者に報告失敗の調査を依頼してください。'],
+  'failed.unknown': ['束縛された検査報告全体を作成できませんでした。この問題コードに対応する説明はありません。',
+    '検査文脈の管理者に調査を依頼してください。部分報告は入力の検証成功を示しません。'],
+  unavailable: ['安全な公開報告に必要な検査範囲と文脈を利用できません。',
+    '検査文脈の管理者に公開文脈の確認を依頼してください。この応答は入力誤りを示しません。'],
+  'reason.query_syntax_invalid': ['クエリの構文が不正です。',
+    '位置が示されている場合は、その位置のクエリ構文を修正してください。'],
+  'reason.query_expression_invalid': ['式が参照・引数・数値の契約に違反しています。',
+    '選択されたクエリ契約に従って式を修正してください。'],
+  'reason.query_frame_invalid': ['analytic ROWS frameの境界が有効な区間になっていません。',
+    '両境界がPRECEDINGなら開始距離を終了距離以上に、両境界がFOLLOWINGなら開始距離を終了距離以下にしてください。'],
+  'reason.query_lexical_invalid': ['クエリのトークンが字句構文に違反しています。',
+    '位置が示されている場合は、その位置のトークンを修正してください。'],
+  'reason.parameter_undeclared': ['クエリが未宣言のパラメータを参照しています。',
+    'パラメータを宣言するか参照を修正してください。値を渡すだけでは宣言になりません。'],
+  'reason.parameter_unused': ['宣言されたパラメータがProgram全体で使用されていません。',
+    '未使用の宣言を削除するかProgramで参照し、再検査してください。'],
+  'reason.query_invalid': ['クエリが言語または名前解決の契約に違反しています。',
+    '宣言された名前と公開文脈に従ってクエリを修正してください。'],
+  'reason.parameter_declarations_invalid': ['パラメータ宣言が不正です。', '提出した宣言を修正してください。'],
+  'reason.supplied_parameters_invalid': ['提出したパラメータ入力が不正です。', '提出したパラメータmapを修正してください。'],
+  'reason.supplied_value_invalid': ['渡された値が宣言に違反しています。', '宣言された契約を満たすように値を修正してください。'],
+  'reason.supplied_value_constraint_violation': ['渡された値が宣言された制約を満たしていません。',
+    '宣言された制約の種類に従って値を修正してください。'],
+  'reason.supplied_value_type_mismatch': ['渡された値の型が宣言と一致しません。', '宣言された型の値を渡してください。'],
+  'reason.parameter_value_required': ['宣言されたパラメータの値が不足しています。',
+    '宣言された値を補い、束縛された入力全体を再検査してください。'],
+  'reason.parameter_default_type_mismatch': ['パラメータの既定値が宣言された型と一致しません。',
+    '宣言された型に合わせて既定値を修正し、再検査してください。'],
+  'reason.expression_type_mismatch': ['式が必要な引数型に違反しています。', '必要な型を持つ引数を使用してください。'],
+  'expression_type.number': ['式の引数にはnumber型が必要です。', '拒否された引数にはnumber型の式を使用してください。'],
+  'expression_type.boolean': ['式の引数にはboolean型が必要です。', '拒否された引数にはboolean型の式を使用してください。'],
+  'expression_type.string': ['式の引数にはstring型が必要です。', '拒否された引数にはstring型の式を使用してください。'],
+  'reason.operation_parameter_invalid': ['パラメータが演算のscalar領域に違反しています。',
+    '示された演算領域に従って、渡した値または使用された既定値を修正してください。'],
+  'scalar.positive_safe_integer': ['演算パラメータには正のsafe integerが必要です。',
+    '1以上9007199254740991以下の整数を渡してください。'],
+  'scalar.nonnegative_safe_integer': ['演算パラメータには非負のsafe integerが必要です。',
+    '0以上9007199254740991以下の整数を渡してください。負のゼロは受理されません。'],
+  'scalar.unit_fraction': ['演算パラメータには0以上1以下の有限な割合が必要です。',
+    '両端を含む0以上1以下の数値を渡してください。負のゼロは受理されません。'],
+  'scalar.finite_number': ['演算パラメータには有限な数値が必要です。',
+    '有限な数値を渡してください。負のゼロは受理されません。'],
+  'scalar.duration': ['演算パラメータには受理可能なdurationが必要です。',
+    '正のASCII数字にms・s・m・h・dを続けた、空白のない文字列を渡してください。ミリ秒値はsafe integerの範囲内である必要があります。'],
+  'scalar.positive_milliseconds': ['演算パラメータには正のsafe integerミリ秒または受理可能なdurationが必要です。',
+    '正のsafe integerミリ秒値、またはms・s・m・h・dを使った正のduration文字列を渡してください。'],
+  'scalar.signed_milliseconds': ['演算パラメータには符号付きsafe integerミリ秒または受理可能なdurationが必要です。',
+    '-9007199254740991以上9007199254740991以下で負のゼロを除く整数ミリ秒値、または正のduration文字列を渡してください。'],
+  'scalar.timestamp': ['演算パラメータには受理可能なtimestamp値が必要です。',
+    'timestamp宣言の契約で受理される、nullでないtimestamp値を渡してください。'],
+  'reason.program_invalid': ['入力が検査対象のProgram契約に違反しています。', '選択された契約に従って入力を修正してください。'],
+  'reason.bound_values_missing': ['必要な束縛入力が不足しています。', '宣言された入力を補い、再検査してください。'],
+  'reason.implementation_limit': ['この検査実装では未充足条件を解消できません。',
+    '検査文脈の管理者に、提出した構文の対応状況を確認してください。'],
+  'reason.analysis_budget_exhausted': ['解析用の予算を使い切りました。', '検査文脈の管理者に解析予算の確認を依頼してください。'],
+  'reason.check_unclassified': ['checkerが分類された結論を確定できませんでした。', '検査文脈の管理者に調査を依頼してください。'],
+  'reason.unresolved_protected': ['開示された文脈ではSource解決を確定できません。',
+    'Sourceまたは検査文脈の管理者に公開文脈の確認を依頼してください。'],
+  'reason.unknown': ['この理由に対応する説明はありません。'],
+  'lexical.unexpected_end': ['トークンが完成する前に入力が終わっています。',
+    '示された位置の引用トークンまたはescape sequenceを完成させてください。'],
+  'lexical.unexpected_token': ['この字句文脈ではトークンが不正です。', '示された位置のトークン表記または区切りを修正してください。'],
+  'lexical.invalid_escape': ['escape sequenceが不正です。', '選択された文字列または識別子構文で許可されるescapeを使用してください。'],
+  'lexical.invalid_scalar': ['トークンに字句文脈で許可されないscalarが含まれています。',
+    '選択された字句構文に従ってscalar escapeまたは引用識別子を修正してください。'],
+  'lexical.empty_identifier': ['引用された識別子が空です。', '引用区切りの中に空でない識別子を指定してください。'],
+  'lexical.unterminated_comment': ['block commentが閉じられていません。', 'block commentの終了区切りを追加してください。'],
+  'lexical.invalid_number': ['数値トークンの表記が不正です。', '指数表記を含め、数値トークンを修正してください。'],
+  'lexical.invalid_parameter': ['パラメータ参照に有効な名前がありません。', '@の後に有効なパラメータ名を指定してください。'],
+  'expression.expected_boolean': ['predicateの型はBooleanである必要があります。', 'predicateには比較式などのBoolean条件を使用してください。'],
+  'expression.unknown_reference': ['検査範囲内で式の参照を解決できません。', '開示されたクエリ文脈で宣言された参照を使用してください。'],
+  'expression.invalid_arguments': ['式の引数が選択された演算契約に違反しています。',
+    '選択された演算が必要とする引数の数または形式に修正してください。'],
+  'expression.invalid_number': ['数値式が受理可能な数値領域の外にあります。',
+    '受理可能な精度とsigned-zeroの領域内で有限の数値を使用してください。'],
+  'components.invalid_kind': ['componentsのkindが不正です。', 'componentsのkindにはweakまたはstrongを指定してください。'],
+  'components.invalid_output_rows': ['componentsの出力行数上限が不正です。', 'componentsのmax_output_rowsには正のsafe integerを指定してください。'],
+  'subgraph.invalid_node_selector': ['Subgraphのnode selectorが不正です。',
+    '空でないids、id fieldを持つ名前付きRelation、またはnode where predicateのいずれか一つを指定してください。'],
+  'constraint.numeric': ['渡された値が宣言された制約を満たしていません。',
+    '宣言された整数・最小値・最大値の制約を満たす数値を渡してください。'],
+  'constraint.duration': ['渡された値が宣言された制約を満たしていません。', '受理可能なduration形式の文字列を渡してください。'],
+  'constraint.array_length': ['渡された値が宣言された制約を満たしていません。', '宣言された正確な長さの配列を渡してください。'],
+  'constraint.array_size': ['渡された値が宣言された制約を満たしていません。', '宣言された最大要素数以内の配列を渡してください。'],
+}).map(([key, value]) => [key, Object.freeze(value)])));
+
+export function getCheckPresentationInfo(options) {
+  let locale = 'en';
+  try {
+    const requested = options?.locale;
+    if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
+  } catch { /* Locale lookup cannot hide a validated observation. */ }
+  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.4`});
+}
+
+export function localizeCheck(key, english, options) {
+  const locale = getCheckPresentationInfo(options).locale;
+  const translated = locale === 'ja' && Object.hasOwn(japanese, key) ? japanese[key] : undefined;
+  return Array.isArray(translated) && translated.length === english.length &&
+    translated.every(value => typeof value === 'string' && value.length > 0 && value.length <= 2048)
+    ? translated : english;
+}

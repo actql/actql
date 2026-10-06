@@ -100,7 +100,13 @@ test "definition-selected node MATCH retains repeated typed IDs and projection o
       ",\"fields\":[\"node_id\",\"active\"]}}]",
     ),
     "[{\"id\":\"match_nodes_0\",\"in\":[\"input_0\"],\"op\":\"SGA.match_nodes\",\"params\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"node_id\"},\"fields\":[\"node_id\",\"active\"],\"ids\":" +
-    ids +
+    "[{\"$json\":" +
+    graph_match_identity(2) +
+    "},{\"$json\":" +
+    graph_match_identity(10) +
+    "},{\"$json\":" +
+    graph_match_identity(2) +
+    "}]" +
     "}}]",
   )
 }
@@ -151,13 +157,13 @@ test "current MATCH exposes one checked definition scope and typed kernel view" 
     graph_match_checked_value_wire(
       @lowering_relation.graph_match_id_at(view, 0).unwrap(),
     ),
-    graph_match_identity(2),
+    "{\"$json\":" + graph_match_identity(2) + "}",
   )
   assert_eq(
     graph_match_checked_value_wire(
       @lowering_relation.graph_match_id_at(view, 2).unwrap(),
     ),
-    graph_match_identity(2),
+    "{\"$json\":" + graph_match_identity(2) + "}",
   )
   let schema = @lowering_relation.graph_match_output_schema(view)
   assert_eq(@schema.field_count(schema), 2)

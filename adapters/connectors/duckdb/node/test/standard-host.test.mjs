@@ -381,7 +381,7 @@ async function subgraphHostCancellation() {
 test('fused Subgraph stops after construction and positive selection work through the Local Host driver',
   {timeout:30_000}, () => subgraphHostCancellation());
 
-async function deltaHostCancellation(phase, diff = false) {
+async function deltaHostCancellation(phase, diff = false, union = false, subtraction = false) {
   // Use the installed common Program/Plan/provider, not a test-only Delta
   // provider or pre-decoded replacement. Observe real operations as in the
   // existing Host cancellation corpus; the proxy supplies no result/state.
@@ -389,9 +389,13 @@ async function deltaHostCancellation(phase, diff = false) {
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const fixture = JSON.parse(await readFile(join(root,
     'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
-  const {document} = diff ? deltaDiffScenario(fixture, 'node_rows')
+  const {unionGraphScenario} = await import('../../../../../scripts/fixtures/property-graph-union.mjs');
+  const {subtractionScenario} = await import('../../../../../scripts/fixtures/property-graph-subtraction.mjs');
+  const {document} = subtraction ? subtractionScenario(fixture, 'empty-right')
+    : union ? unionGraphScenario(fixture, 'node_rows', {numeric:true})
+    : diff ? deltaDiffScenario(fixture, 'node_rows')
     : deltaApplicationScenario(fixture, 'node_rows');
-  const targetTask = diff ? 6 : 5;
+  const targetTask = union ? 4 : diff || subtraction ? 6 : 5;
   const environmentBody = JSON.parse(await readFile(join(root,
     'spec/local-check-environment.json'), 'utf8'));
   delete environmentBody.evidence_bundle_cid;
@@ -449,7 +453,8 @@ async function deltaHostCancellation(phase, diff = false) {
           // is returned only after the bounded application has begun; do not
           // relabel cancellation during conversion as kernel cancellation.
           if (!scheduled && !poll.complete && poll.work > 0n &&
-              (phase === 'conversion' || poll.progress > 0n)) {
+              (phase === 'conversion' || poll.progress > 0n ||
+                ((union || subtraction) && deltaPolls.reduce((sum, item) => sum + item.work, 0n) >= 64n))) {
             scheduled = true;
             setTimeout(() => abort.abort(), 0);
           }
@@ -470,7 +475,8 @@ async function deltaHostCancellation(phase, diff = false) {
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
-    if (phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
+    if (union || subtraction) assert(workAtDelivery >= 64n, 'composition advanced before delivered cancellation');
+    if (!union && !subtraction && phase !== 'conversion') assert(deltaPolls.some(poll=>poll.progress > 0n),
       'bounded Delta kernel, not merely conversion, made progress before cancellation');
     assert.equal(execution.status, 'host-tasks-failed');
     assert.equal(execution.failure?.name, 'AbortError');
@@ -508,6 +514,12 @@ test('Delta application stops after positive work through the installed Local Ho
   {timeout:30_000}, () => deltaHostCancellation('conversion'));
 test('Delta application stops after positive work through the installed Local Host during bounded application',
   {timeout:30_000}, () => deltaHostCancellation('application'));
+test('Graph subtraction stops after positive work through the installed Local Host without publishing output',
+  {timeout:30_000}, () => deltaHostCancellation('subtraction', false, false, true));
+
+test('Graph union stops after positive work through the installed Local Host without publishing output',
+  {timeout:30_000}, () => deltaHostCancellation('union', false, true));
+
 test('Graph diff stops after positive work through the installed Local Host without publishing Delta',
   {timeout:30_000}, () => deltaHostCancellation('diff', true));
 

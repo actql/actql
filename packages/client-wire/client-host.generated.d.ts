@@ -356,13 +356,18 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -393,13 +398,18 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   scope: Readonly<{
@@ -407,7 +417,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   verdict: "invalid" | "undetermined" | "verified";
 }>;
-  reason_schema_cid: "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6";
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -456,13 +467,18 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   requirements: readonly Readonly<{
@@ -493,13 +509,18 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
+  parameter: string;
+  domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
+}> | Readonly<{
   operation: "components";
   issue: "invalid_kind" | "invalid_output_rows";
 }> | Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
-  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean";
+  issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
   scope: Readonly<{
@@ -510,7 +531,9 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6";
+  correlation_ref: string;
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -518,7 +541,8 @@ export type WireCheckOutcomeShape = Readonly<{
   problem: Readonly<{
   code: string;
 }>;
-  reason_schema_cid: "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6";
+  outcome_schema_cid: string;
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

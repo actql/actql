@@ -125,7 +125,7 @@ pub(all) struct AnalyticFrame {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AnalyticWindow {
-  partition_by : Array[Array[NamePart]]
+  partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
 }
@@ -168,8 +168,10 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
+  Property(Int, NamePart)
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
@@ -383,6 +385,11 @@ pub(all) struct PropertyNodeDefinition {
 
 type Query
 
+pub(all) enum QueryInteger {
+  Integer(Int64)
+  BoundParameter(String)
+} derive(Eq, @debug.Debug)
+
 pub(all) struct QueryLimits {
   lexical : LexicalLimits
   expression : ExpressionLimits
@@ -408,7 +415,7 @@ pub(all) enum QueryOperation {
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
-  Limit(Int64, Int64)
+  Limit(QueryInteger, QueryInteger)
 }
 
 type QueryScript

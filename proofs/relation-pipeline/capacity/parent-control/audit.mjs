@@ -99,7 +99,8 @@ export function auditParentStartup(report, current, read) {
   const facts = entry.observation.faults.filter(f => f.kind === 'parent control investigation');
   assert.equal(facts.length, 1);
   const core = inspectParentCorePhases(report.case, facts[0],
-    entry.observation.faults.filter(f => f.kind === 'parent core observation'), run.target);
+    entry.observation.faults.filter(f => f.kind === 'parent core observation'), run.target,
+    entry.observation.faults.filter(f => f.kind === 'parent completed identity'));
   assert.deepEqual(report.retainedCore, core, 'Retained-core recipe differs from independent input/source/observations');
   const construction = inspectProviderConstruction(
     entry.observation.faults.filter(f => f.kind === 'provider construction observation'), read, run.target);

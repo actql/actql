@@ -546,6 +546,7 @@ fn main {
     @argparse.OptionArg("local-eligible", default_values=["true"]),
     @argparse.OptionArg("resident-policy", default_values=["false"]),
     @argparse.OptionArg("phase-observer", default_values=["false"]),
+    @argparse.OptionArg("source-read-only", default_values=["true"]),
     @argparse.OptionArg("resident-task-ms", default_values=["-"]),
     @argparse.OptionArg("resident-prepare-ms", default_values=["-"]),
     @argparse.OptionArg("resident-cleanup-ms", default_values=["-"]),
@@ -600,6 +601,20 @@ fn main {
     "false" => false
     _ => abort("invalid phase observer")
   }
+  // Acquisition reads an immutable source. The explicit read-write control
+  // reproduces the previous preparation mode in the bounded paired experiment.
+  let source_read_only = match required(matches, "source-read-only") {
+    "true" => true
+    "false" => false
+    _ => abort("invalid source read-only mode")
+  }
+  println(
+    if source_read_only {
+      "source-open-mode:read-only"
+    } else {
+      "source-open-mode:read-write"
+    },
+  )
   let phase_events : Array[
     (@host.NativeStandardStrategyPhaseEvent, Int64, Int64),
   ] = []
@@ -685,7 +700,7 @@ fn main {
         memory_bytes: execution_cap,
         threads: 1,
         external_access: false,
-        read_only: false,
+        read_only: source_read_only,
       },
       path=database_path,
     )

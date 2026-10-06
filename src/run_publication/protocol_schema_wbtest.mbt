@@ -12,6 +12,39 @@ fn protocol_test_property_node(
 }
 
 ///|
+test "EffectOutcome retains exact result and error data under its closed shape" {
+  for
+    wire in [
+      (
+        #|{"result":{"j":{"$json":{"$json":null,"é":2,"line":"a\r\nb","é":1}}},"state":"applied"}
+      ),
+      (
+        #|{"error":{"code":"FAILED","details":{"é":2,"é":1},"message":"é\r\né"},"state":"failed"}
+      ),
+    ] {
+    let value = parse_effect_outcome_shape(wire, 4096, 128, 16).unwrap()
+    assert_eq(@json.stringify_value(value, 4096, 128, 16), wire)
+  }
+  for
+    wire in [
+      (
+        #|{"state":"applied","result":{"j":{"$json":{"é":2,"é":1}}}}
+      ),
+      (
+        #|{"result":{"j":{"$json":{"é":1,"é":2}}},"state":"applied"}
+      ),
+      (
+        #|{"result":{},"state\r":"applied"}
+      ),
+      (
+        #|{"extra":1,"result":{},"state":"applied"}
+      ),
+    ] {
+    assert_true(parse_effect_outcome_shape(wire, 4096, 128, 16) is Err(_))
+  }
+}
+
+///|
 fn protocol_test_find_property(
   nodes : Array[ProtocolSchemaRule],
   index : Int,

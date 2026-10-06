@@ -303,6 +303,8 @@ pub fn collect_expression_slots(
         | GraphEquality(..)
         | GraphNormalize(_)
         | GraphDelta(..)
+        | GraphUnion(..)
+        | GraphSubtraction(..)
         | GraphComponents(_)
         | PropertyGraphConstruction(..)
         | Vector(_)
