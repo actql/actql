@@ -124,6 +124,40 @@ pub fn restore_native_retained_task_file(
 }
 
 ///|
+/// Reconstruct only cleanup responsibility from the original saved custody.
+/// Missing bytes can need a directory sync after an interrupted unlink; a
+/// replacement must never be adopted. This grants no read or execution use.
+pub fn restore_native_retained_task_file_cleanup(
+  root_path : String,
+  occurrence : String,
+  generation : @filesystem.NativeFileGeneration,
+  cid : String,
+  max_bytes : Int64,
+) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue] {
+  if max_bytes < 0L || generation.size < 0L || generation.size > max_bytes {
+    return Err(InvalidLimit)
+  }
+  if !valid_cid(cid) {
+    return Err(ContentMismatch)
+  }
+  let root = match @filesystem.open_root(root_path) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  Ok({
+    root,
+    writer: None,
+    name: "output-" + occurrence,
+    generation: Some(generation),
+    cid: Some(cid),
+    released: false,
+    usable: Ref(false),
+    readers: Ref(0),
+    opened_readers: [],
+  })
+}
+
+///|
 pub fn NativeRetainedTaskFile::append(
   self : NativeRetainedTaskFile,
   batch : String,

@@ -104,7 +104,8 @@ pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssu
 
 pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
 
-pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
+ pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
+ pub fn confirm_remote_runtime_completed_restoration(DispatchRecord, RemoteRuntimeCustody) -> Bool
 
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 
@@ -691,6 +692,8 @@ pub fn restore_durable_coordinator_output_record(CoordinatorDispatchJournal, Dur
 pub fn restore_durable_dispatch_record(SiteDispatchJournal, DurableDispatchRecord) -> Result[DispatchRecord, DispatchIssue]
 
 pub fn restore_historical_dispatch(SiteDispatchJournal, DispatchRequest) -> Result[DispatchRecord, DispatchIssue]
+
+pub fn restore_remote_runtime_completed_custody(DispatchRecord, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[RemoteRuntimeCustody, DispatchIssue]
 
 pub fn site_dispatch_binding_json(SiteDispatchJournal) -> Result[String, DispatchIssue]
 
