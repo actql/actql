@@ -1,12 +1,12 @@
-export {checkReasonSchemaCid, checkOutcomeSchemaCid} from './client-host.generated.js';
+export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol} from './client-host.generated.js';
 // Structural Client–Host wire admission only. The Host's MoonBit owners decide
 // identities, authorization, state transitions, publication and retry.
 import {validDeliveryAttempt, validDeliveryRecord,
   validHostReleaseReceipt} from './publication.generated.js';
 import {clientHostOperations, clientHostRequestKeys,
   validProfileContract, validAdmissionContract, validCancellationShape, validCheckpointReviewShape,
-  validCheckpointSummaryShape, validConnectionShape, validHeldShape,
-  validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
+  validCheckpointSummaryShape, validConnectionShape, validHeldContract,
+  validRequestLookupContract,
   validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
@@ -129,11 +129,19 @@ export function validCheckOutcome(value) {
       report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
   for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
     const location = reason.location;
-    if (!location) continue;
-    const input = documents.get(location.document_id);
-    if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
-    if (location.kind === 'text' && (location.start_byte > location.end_byte ||
-        location.end_byte > input.byte_length)) return false;
+    if (location) {
+      const input = documents.get(location.document_id);
+      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
+      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
+          location.end_byte > input.byte_length)) return false;
+    }
+    for (const fix of reason.fixes ?? []) {
+      const input = documents.get(fix.target.document_id);
+      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
+      // This known proposal inserts only at the original exact EOF.
+      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
+          edit.end_byte !== input.byte_length)) return false;
+    }
   }
   return true;
 }
@@ -274,31 +282,8 @@ export const validClientAdmission = validAdmissionContract;
 // A request the Host holds before any Run exists: waiting on a
 // `prepare_attempt` Checkpoint, resuming after an approval, or ended without
 // a Run. Once the Run exists the lookup is `found` with its RunRef.
-export function validHeldRequest(value, expectedRequestId) {
-  if (!boundedText(expectedRequestId) || !validHeldShape(value) ||
-      value.requestId !== expectedRequestId) return false;
-  if (value.state === 'waiting_checkpoint') {
-    return value.checkpoint !== undefined &&
-      value.endReason === undefined && value.terminalErrorCode === undefined;
-  }
-  if (value.state === 'resuming') {
-    return value.endReason === undefined &&
-      value.terminalErrorCode === undefined;
-  }
-  return value.endReason !== undefined;
-}
-
-export function validRequestLookup(value, expectedRequestId) {
-  if (!boundedText(expectedRequestId)) return false;
-  if (validLookupNotFoundShape(value) || validLookupUnknownShape(value)) {
-    return true;
-  }
-  if (value?.kind === 'held') {
-    return validHeldRequest(value, expectedRequestId);
-  }
-  return validLookupFoundShape(value) &&
-    value.requestId === expectedRequestId;
-}
+export const validHeldRequest = validHeldContract;
+export const validRequestLookup = validRequestLookupContract;
 
 // A submit reply: the admitted Run, or the held request (no Run yet).
 export function validSubmitReply(value, selected, expectedRequestId) {

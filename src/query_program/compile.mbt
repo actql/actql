@@ -742,6 +742,19 @@ fn pipe_name_exists(
 }
 
 ///|
+fn analytic_output_slot(
+  name : String,
+  outputs : Array[(String, String)],
+) -> String? {
+  for output in outputs {
+    if output.0 == name {
+      return Some(output.1)
+    }
+  }
+  None
+}
+
+///|
 fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
   let mut index = physical.length()
   let mut name = prefix + index.to_string()
@@ -1068,6 +1081,25 @@ fn lower_aggregate_resolved(
       if name != "count" || call.distinct {
         raise Abort(UnsupportedAggregate)
       }
+  }
+  match call.filter {
+    Some(filter) =>
+      entries.push(
+        (
+          "filter",
+          match
+            @expression.append_with_properties(
+              filter,
+              resolve,
+              construction.builder,
+              max_work,
+            ) {
+            Ok(value) => value
+            Err(error) => raise Abort(Expression(error))
+          },
+        ),
+      )
+    None => ()
   }
   if call.distinct {
     entries.push(("distinct", construction.add(Bool(true))))
@@ -1477,6 +1509,8 @@ fn compile_steps(
   let mut sql_group_input_columns : Array[(String, String)] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
   let having_values : Array[(@query.Expression, String)] = []
+  let analytic_outputs : Array[(String, String)] = []
+  let mut analytic_input_fields : Array[String]? = None
   let mut first = true
   let mut input_from = input.name
   let mut terminal_result = false
@@ -1551,6 +1585,57 @@ fn compile_steps(
       first = false
     }
     match operation {
+      UnnestSource(expression, element, offset) => {
+        // No original Source or private Values witness belongs to this scope.
+        if i != 0 || !@query.relation(query).is_empty() {
+          raise Abort(UnsupportedProjection)
+        }
+        if offset is Some(name) && same_name(element, name) {
+          raise Abort(DuplicateOutput)
+        }
+        // Value-table star expansion depends on the admitted element type;
+        // do not reinterpret a STRUCT value table as one object column.
+        if selected_projections(query).any(projection => {
+            projection.star is Some(_)
+          }) {
+          raise Abort(UnsupportedProjection)
+        }
+        let physical = ["aql_source_free_unit", element.value]
+        if offset is Some(name) {
+          physical.push(name.value)
+        }
+        let column = pipe_physical_name(physical, "aql_unnest_array_")
+        physical.push(column)
+        let element_slot = pipe_physical_name(physical, "aql_unnest_element_")
+        physical.push(element_slot)
+        let derived = append_pipe_expression(
+          construction,
+          expression,
+          [],
+          [],
+          max_work,
+        )
+        entries.push(("derive", construction.object([(column, derived)])))
+        step_entries.push(entries.copy())
+        entries.clear()
+        let arguments : Array[(String, @builder.Node)] = [
+          ("column", construction.text(column)),
+          ("as", construction.text(element_slot)),
+        ]
+        pipe_visible = [(element.value, element_slot)]
+        if offset is Some(name) {
+          let index_slot = pipe_physical_name(physical, "aql_unnest_offset_")
+          physical.push(index_slot)
+          arguments.push(("with_index", construction.text(index_slot)))
+          pipe_visible.push((name.value, index_slot))
+        }
+        entries.push(("unnest", construction.object(arguments)))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = true
+        active_fields = [column] + pipe_visible.map(pair => pair.1)
+        output = pipe_visible.map(pair => pair.0)
+      }
       GraphCall(_) => raise Abort(UnsupportedGraph)
       AssertUnique(keys) => {
         let unique : Array[@builder.Node] = []
@@ -1909,6 +1994,7 @@ fn compile_steps(
         if !scoped && keys.is_empty() && projections.length() == 1 {
           match projections[0].aggregate {
             Some(call) if call.function_name == "ARRAY_AGG" &&
+              call.filter is None &&
               call.distinct &&
               call.order_by.length() == 1 =>
               match call.argument {
@@ -2331,14 +2417,40 @@ fn compile_steps(
         }
         let snapshot = active_fields.copy()
         let analytic_visible = pipe_visible.copy()
+        analytic_input_fields = Some(snapshot)
+        analytic_outputs.clear()
+        let physical = snapshot.copy()
+        for projection in projections {
+          if projection.name is Some(name) &&
+            !physical.any(field => ascii_upper(field) == ascii_upper(name.value)) {
+            physical.push(name.value)
+          }
+        }
         let groups : Array[Array[@query.Projection]] = []
         for projection in projections {
           if projection.analytic is None {
             continue
           }
           let name = projection.name.unwrap().value
-          if active_fields.any(field => ascii_upper(field) == ascii_upper(name)) {
+          if analytic_outputs.any(output => {
+              ascii_upper(output.0) == ascii_upper(name)
+            }) {
             raise Abort(DuplicateOutput)
+          }
+          // Analytic results are evaluated slots, not new SELECT input names.
+          // A colliding authored alias is restored only by final projection.
+          let slot = if active_fields.any(field => {
+              ascii_upper(field) == ascii_upper(name)
+            }) {
+            pipe_physical_name(physical, "aql_analytic_output_")
+          } else {
+            name
+          }
+          physical.push(slot)
+          analytic_outputs.push((name, slot))
+          let projection = {
+            ..projection,
+            name: Some({ value: slot, quoted: false, }),
           }
           let mut found = false
           for group in groups {
@@ -2354,10 +2466,7 @@ fn compile_steps(
           if !found {
             groups.push([projection])
           }
-          active_fields.push(name)
-          if pipe_changed || pipe_rebound {
-            pipe_visible.push((name, name))
-          }
+          active_fields.push(slot)
         }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
           if pipe_changed || pipe_rebound {
@@ -2447,18 +2556,19 @@ fn compile_steps(
               }
               if projection.analytic is Some(_) {
                 let name = projection.name.unwrap().value
-                let source = match
-                  pipe_slot(
-                    [{ value: name, quoted: false, }],
-                    pipe_visible,
-                    pipe_ranges,
-                  ) {
-                  Some(slot) => slot
-                  None => raise Abort(UnknownColumn)
+                guard analytic_output_slot(name, analytic_outputs)
+                  is Some(source) else {
+                  raise Abort(UnknownColumn)
                 }
                 names.push(name)
                 bindings.push((name, source))
-                selected.push(construction.text(source))
+                selected.push(
+                  if source == name {
+                    construction.text(source)
+                  } else {
+                    construction.object([(name, construction.text(source))])
+                  },
+                )
                 continue
               }
               let expression = projection.expression.unwrap()
@@ -2615,7 +2725,10 @@ fn compile_steps(
         deferred = true
       }
       Select(projections, distinct) => {
-        selected_input_fields = active_fields.copy()
+        let select_fields = analytic_input_fields.unwrap_or(
+          active_fields.copy(),
+        )
+        selected_input_fields = select_fields.copy()
         let input_scope : JoinChainScope = {
           visible: pipe_visible.copy(),
           ranges: pipe_ranges.copy(),
@@ -2635,7 +2748,7 @@ fn compile_steps(
                   if sql_group_projection {
                     sql_group_input_columns
                   } else {
-                    active_fields.map(field => (field, field))
+                    select_fields.map(field => (field, field))
                   },
                 ) {
                 names.push(name)
@@ -2649,16 +2762,29 @@ fn compile_steps(
                 bindings.push((name, field))
               }
             None => {
-              let name = output_name(projection, query, input, active_fields)
+              let name = output_name(projection, query, input, select_fields)
               names.push(name)
               if projection.aggregate is Some(_) ||
                 projection.analytic is Some(_) {
-                if (projection.aggregate is Some(_) && !grouped) ||
-                  !active_fields.contains(name) {
-                  raise Abort(UnsupportedAggregate)
+                let source = if projection.analytic is Some(_) {
+                  match analytic_output_slot(name, analytic_outputs) {
+                    Some(slot) => slot
+                    None => raise Abort(UnsupportedAnalytic)
+                  }
+                } else {
+                  if !grouped || !active_fields.contains(name) {
+                    raise Abort(UnsupportedAggregate)
+                  }
+                  name
                 }
-                selected.push(construction.text(name))
-                bindings.push((name, name))
+                selected.push(
+                  if source == name {
+                    construction.text(source)
+                  } else {
+                    construction.object([(name, construction.text(source))])
+                  },
+                )
+                bindings.push((name, source))
                 continue
               }
               let expression = projection.expression.unwrap()
@@ -2687,7 +2813,7 @@ fn compile_steps(
                         let scope = sql_group_select_scope.unwrap()
                         pipe_slot(path, scope.visible, scope.ranges)
                       } else {
-                        resolve_column(path, query, input, active_fields)
+                        resolve_column(path, query, input, select_fields)
                       }
                   }
                 _ => None
@@ -2722,7 +2848,7 @@ fn compile_steps(
                       )
                     } else {
                       append_expression(
-                        construction, expression, query, input, active_fields, max_work,
+                        construction, expression, query, input, select_fields, max_work,
                       )
                     },
                   ),
@@ -2781,7 +2907,7 @@ fn compile_steps(
                     term.expression,
                     expressions,
                     bindings,
-                    path => resolve_column(path, query, input, active_fields),
+                    path => resolve_column(path, query, input, select_fields),
                   )
                   is Some(_)
                 let selected_ordinal = order_ordinal_column(
@@ -3033,7 +3159,7 @@ fn compile_steps(
               }
               let direct = match kind {
                 Reference(path) =>
-                  resolve_column(path, query, input, active_fields)
+                  resolve_column(path, query, input, selected_input_fields)
                 _ => None
               }
               match direct {
@@ -3060,7 +3186,7 @@ fn compile_steps(
                             term.expression,
                             query,
                             input,
-                            active_fields,
+                            selected_input_fields,
                             pending_bindings,
                             max_work,
                           ),
@@ -3111,6 +3237,10 @@ fn compile_steps(
     }
     if operation is Select(_, _) && sql_group_projection {
       sql_group_select_scope = None
+    }
+    if operation is Select(_, _) {
+      analytic_input_fields = None
+      analytic_outputs.clear()
     }
     if add_distinct {
       step_entries.push([

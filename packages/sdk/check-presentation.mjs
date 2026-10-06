@@ -2,6 +2,12 @@
 // English defaults remain at the semantic call site; a missing or malformed
 // translation uses that same safe default without changing the observation.
 const japanese = Object.freeze(Object.fromEntries(Object.entries({
+  'protocol.unknown_outcome': ['このSDKでは検査応答のoutcomeを解釈できません。',
+    'HostとSDKの契約対応を確認してください。この観測は検査判定や再試行許可を示しません。'],
+  'protocol.contract_mismatch': ['検査応答がこのSDKの登録済みprotocol identityと一致しません。',
+    'HostとSDKの契約を揃えてください。拒否された応答は検査判定を示しません。'],
+  'protocol.malformed_response': ['検査応答が登録済み応答契約または元入力のbindingに違反しています。',
+    'Hostの管理者にprotocol失敗の調査を依頼してください。入力誤りの診断ではありません。'],
   'completed.invalid': ['検査範囲内の入力違反が確認されました。',
     '開示された理由を確認し、示された提出時のrevisionを修正してください。'],
   'completed.verified': ['この報告が検証するのは、束縛された検査範囲と文脈だけです。',
@@ -104,7 +110,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.4`});
+  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.6`});
 }
 
 export function localizeCheck(key, english, options) {

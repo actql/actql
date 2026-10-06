@@ -35,5 +35,7 @@ export interface InProcessHostPort {
 export declare function connectInProcess(options: EmbeddedLocalOptions,
   port: InProcessHostPort): Promise<Client>;
 
-/** Canonical value encoding: preserves String values, canonicalizes member names. */
-export declare function canonicalJson(value: unknown): string;
+/** Canonical value encoding: preserves String values; opaque data may also
+ * preserve member names. Artifact/identifier member names normalize by default. */
+export declare function canonicalJson(value: unknown,
+  options?: Readonly<{dataKeys?: boolean}>): string;

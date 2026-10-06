@@ -17,7 +17,9 @@ const validSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/u.test(va
 const validPath = value => typeof value === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(value) &&
   !value.startsWith('/') && !value.split('/').some(part => ['', '.', '..'].includes(part));
 export const sharedFiles = ['proofs/ci-evidence/actions.mjs', 'proofs/ci-evidence/inputs.mjs',
+  'proofs/ci-evidence/costs.mjs',
   'proofs/ci-evidence/execution-recipes.mjs',
+  'proofs/events-bridge/evidence.mjs',
   'proofs/bounded-session/evidence.mjs', 'proofs/bounded-session/run.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
@@ -146,12 +148,20 @@ export function actionInputs({tree, revision, action, runtime}) {
     paths.forEach(add);
   }
   sharedFiles.forEach(add);
+  function bridgeInputs() {
+    listing('proofs/events-bridge', true);
+    for (const file of ['Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean',
+      'lean-toolchain', 'check.mjs']) add(`proofs/events-bridge/${file}`);
+  }
   // The descriptor is hashed separately, so adding a registered provider
   // cannot reuse evidence solely by copying an old requested scope.
   if (action.id === 'model') {
     for (const file of ['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs']) add(`proofs/bounded-session/${file}`);
+  } else if (action.id === 'events-model') {
+    bridgeInputs();
   } else {
     listing('proofs/bounded-session', true);
+    if (action.id.startsWith('events-connection-')) bridgeInputs();
     const visited = new Set();
     function visit(directory) {
       if (visited.has(directory)) return;

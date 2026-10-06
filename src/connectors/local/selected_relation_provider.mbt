@@ -358,9 +358,31 @@ fn relation_chain_step_inputs(
 }
 
 ///|
-/// Chain children remain owned until the parent is reclaimed. Their private
-/// scratch and provisional outputs can therefore overlap even though only one
-/// child advances at a time.
+/// These bounded Relation kernels transfer an accepted completion independently
+/// of their execution scratch. Their existing cleanup preserves that output.
+/// Family providers retain their original conservative lifecycle and capacity.
+fn relation_chain_reclaims_completed_scratch(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.JoinStep(_)) => ()
+      Some(@lower.RowStep(kernel)) =>
+        if !selected_binding_rows_supported(kernel) &&
+          !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) {
+          return false
+        }
+      _ => return false
+    }
+  }
+  true
+}
+
+///|
+/// Completed output remains held for every exact downstream edge. An eligible
+/// built-in-only chain confirms child cleanup and drops its execution before
+/// the next child starts, so only one scratch envelope can be live at a time.
 fn bounded_relation_chain_capacity(
   sequence : @execution.GeneratedSequence,
   limits : @execution.SequenceExecutionLimits,
@@ -375,7 +397,9 @@ fn bounded_relation_chain_capacity(
   if count < 2 {
     return Some(base)
   }
-  let mut live_children = 0L
+  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)
+  let mut retained_children = 0L
+  let mut scratch = 0L
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index)
       is Some(step) &&
@@ -386,13 +410,23 @@ fn bounded_relation_chain_capacity(
       managed_provider_capacity(provider, selected) is Some(child) else {
       return None
     }
-    if child.retained_bytes > 9223372036854775807L - child.execution_bytes ||
-      live_children >
-      9223372036854775807L - child.retained_bytes - child.execution_bytes {
+    if retained_children > 9223372036854775807L - child.retained_bytes {
       return None
     }
-    live_children += child.retained_bytes + child.execution_bytes
+    retained_children += child.retained_bytes
+    if reclaims_scratch {
+      scratch = Int64::max(scratch, child.execution_bytes)
+    } else {
+      if scratch > 9223372036854775807L - child.execution_bytes {
+        return None
+      }
+      scratch += child.execution_bytes
+    }
   }
+  if retained_children > 9223372036854775807L - scratch {
+    return None
+  }
+  let live_children = retained_children + scratch
   let handles = count.to_int64() * 256L
   if live_children > 9223372036854775807L - handles {
     return None
@@ -405,7 +439,7 @@ fn bounded_relation_chain_capacity(
 
 ///|
 /// Execute a checked Relation chain inside its original task. Every
-/// intermediate result remains private and supplies only the next exact edge.
+/// intermediate result remains private and supplies its exact later checked edges.
 fn bounded_relation_chain_execution(
   sequence : @execution.GeneratedSequence,
   inputs : Array[ManagedProviderInput],
@@ -415,6 +449,58 @@ fn bounded_relation_chain_execution(
   numeric : @execution.NumericAggregateExecution?,
   family : Array[ManagedProvider],
 ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
+  bounded_relation_chain_execution_state(
+    sequence, inputs, execution, measurement, max_value_bytes, numeric, family,
+  ).map(result => result.0)
+}
+
+///|
+priv struct RelationChainExecutionState {
+  mut children : Array[ManagedProviderExecution]
+  mut current : ManagedProviderExecution?
+  mut completed : Array[@execution.CompletedOutput?]
+  mut position : Int
+  mut pending : Bool
+  mut reclaiming : Bool
+}
+
+///|
+/// Preserve pending cleanup custody until the same child confirms reclamation.
+fn reclaim_relation_chain_child(
+  state : RelationChainExecutionState,
+) -> Result[Bool, @connector.FixedComputeIssue] {
+  if !state.reclaiming {
+    return Ok(true)
+  }
+  guard state.current is Some(active) && managed_provider_stopped(active) else {
+    return Err(@connector.Execution(@execution.InputSet))
+  }
+  match cleanup_managed_provider(active) {
+    Ok(true) => {
+      // Output provenance retains exact identities, not the child execution.
+      // Drop every execution reference, including immutable input captures.
+      state.current = None
+      state.children = []
+      state.reclaiming = false
+      Ok(true)
+    }
+    result => result
+  }
+}
+
+///|
+fn bounded_relation_chain_execution_state(
+  sequence : @execution.GeneratedSequence,
+  inputs : Array[ManagedProviderInput],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  max_value_bytes : Int,
+  numeric : @execution.NumericAggregateExecution?,
+  family : Array[ManagedProvider],
+) -> Result[
+  (ManagedProviderExecution, RelationChainExecutionState),
+  @connector.FixedComputeIssue,
+] {
   let count = @execution.generated_sequence_step_count(sequence)
   guard count > 1 &&
     @execution.generated_sequence_step_index_at(sequence, 0) is Some(first_step) &&
@@ -422,15 +508,20 @@ fn bounded_relation_chain_execution(
     is Some(first) else {
     return Err(@connector.Execution(@execution.InputSet))
   }
-  let completed : Ref[Array[@execution.CompletedOutput?]] = Ref(
-    Array::make(count, None),
-  )
+  let state : RelationChainExecutionState = {
+    children: [],
+    current: None,
+    completed: Array::make(count, None),
+    position: 0,
+    pending: false,
+    reclaiming: false,
+  }
   let first_inputs = match
     relation_chain_step_inputs(
       sequence,
       0,
       inputs,
-      completed.val,
+      state.completed,
       execution.rows.operation_entries,
       max_value_bytes,
     ) {
@@ -451,10 +542,8 @@ fn bounded_relation_chain_execution(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])
-  let current : Ref[ManagedProviderExecution?] = Ref(Some(initial))
-  let position = Ref(0)
-  let pending = Ref(false)
+  state.children = [initial]
+  state.current = Some(initial)
   let used = Ref(0L)
   // Productive admission only. The existing ManagedProviderExecution owner
   // separately sums all reported deltas, including mandatory stop work.
@@ -462,10 +551,11 @@ fn bounded_relation_chain_execution(
   let terminal = Ref(false)
   let reclaimed = Ref(false)
   let cleanup_index = Ref(-1)
+  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)
   let start_next = fn() -> Result[Unit, @connector.FixedComputeIssue] {
-    guard position.val > 0 &&
-      position.val < count &&
-      @execution.generated_sequence_step_index_at(sequence, position.val)
+    guard state.position > 0 &&
+      state.position < count &&
+      @execution.generated_sequence_step_index_at(sequence, state.position)
       is Some(step) &&
       @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) else {
@@ -474,9 +564,9 @@ fn bounded_relation_chain_execution(
     let next_inputs = match
       relation_chain_step_inputs(
         sequence,
-        position.val,
+        state.position,
         inputs,
-        completed.val,
+        state.completed,
         execution.rows.operation_entries,
         max_value_bytes,
       ) {
@@ -501,9 +591,9 @@ fn bounded_relation_chain_execution(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    children.val.push(next)
-    current.val = Some(next)
-    pending.val = false
+    state.children.push(next)
+    state.current = Some(next)
+    state.pending = false
     Ok(())
   }
   Ok(
@@ -512,11 +602,19 @@ fn bounded_relation_chain_execution(
         if quantum <= 0 || terminal.val {
           return Err(@connector.InvalidLimits)
         }
-        if cancelled.val && pending.val {
+        if cancelled.val && state.pending {
           terminal.val = true
           return Ok(managed_provider_stopped_poll(0L, 0L))
         }
-        if pending.val {
+        if state.pending {
+          match reclaim_relation_chain_child(state) {
+            Ok(true) => ()
+            Ok(false) => return Ok(managed_provider_waiting(0L, 0L))
+            Err(issue) => {
+              terminal.val = true
+              return Ok(managed_provider_failed(issue, 0L, 0L))
+            }
+          }
           if used.val >= execution.max_work.to_int64() {
             terminal.val = true
             return Ok(
@@ -536,7 +634,7 @@ fn bounded_relation_chain_execution(
             }
           }
         }
-        guard current.val is Some(active) else {
+        guard state.current is Some(active) else {
           terminal.val = true
           return Ok(
             managed_provider_failed(
@@ -639,16 +737,31 @@ fn bounded_relation_chain_execution(
           Continue(..) => Ok(managed_provider_continue(progress, work))
           Waiting(..) | Settling(_, ..) => Ok(poll)
           Complete(output, ..) => {
-            if position.val == count - 1 {
+            if state.position == count - 1 {
               terminal.val = true
               return Ok(managed_provider_complete(output, progress, work))
             }
-            completed.val[position.val] = Some(output)
-            position.val += 1
-            current.val = None
-            pending.val = true
+            state.completed[state.position] = Some(output)
+            state.position += 1
+            state.pending = true
+            if reclaims_scratch {
+              state.reclaiming = true
+              match reclaim_relation_chain_child(state) {
+                Ok(_) => ()
+                Err(issue) => {
+                  terminal.val = true
+                  return Ok(managed_provider_failed(issue, progress, work))
+                }
+              }
+            } else {
+              state.current = None
+            }
             if work > 0L {
               Ok(managed_provider_continue(progress, work))
+            } else if reclaims_scratch {
+              // These kernels charge completion work. Preserve an explicit
+              // cleanup pause if a future bounded implementation needs it.
+              Ok(managed_provider_waiting(progress, work))
             } else if used.val < execution.max_work.to_int64() {
               used.val += 1L
               match start_next() {
@@ -694,7 +807,7 @@ fn bounded_relation_chain_execution(
           return false
         }
         cancelled.val = true
-        if current.val is Some(active) {
+        if state.current is Some(active) {
           cancel_managed_provider(active) |> ignore
         }
         true
@@ -708,25 +821,26 @@ fn bounded_relation_chain_execution(
           return Ok(false)
         }
         if cleanup_index.val < 0 {
-          cleanup_index.val = children.val.length() - 1
+          cleanup_index.val = state.children.length() - 1
         }
-        // A later step borrows its predecessor's private completion.
-        // Release those readers before asking the producer to reclaim it.
+        // Conservative chains still retain prior execution readers; release
+        // them in reverse order. Eligible chains retain only the current child.
+        // Completed output custody is cleared separately after reclamation.
         while cleanup_index.val >= 0 {
-          match cleanup_managed_provider(children.val[cleanup_index.val]) {
+          match cleanup_managed_provider(state.children[cleanup_index.val]) {
             Ok(true) => cleanup_index.val -= 1
             Ok(false) => return Ok(false)
             Err(issue) => return Err(issue)
           }
         }
-        current.val = None
-        completed.val = []
-        children.val = []
+        state.current = None
+        state.completed = []
+        state.children = []
         reclaimed.val = true
         Ok(true)
       },
       fn() {
-        for child in children.val {
+        for child in state.children {
           if managed_provider_cumulative_work(child) is Err(issue) {
             return Some(issue)
           }
@@ -734,7 +848,7 @@ fn bounded_relation_chain_execution(
         None
       },
     ),
-  )
+  ).map(active => (active, state))
 }
 
 ///|

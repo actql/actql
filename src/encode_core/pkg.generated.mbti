@@ -72,6 +72,8 @@ pub fn ordered_key(Writer, String) -> Unit raise EncodeFailure
 
 pub fn start_ordered_key(Writer, String) -> OrderedKeyEmitCursor raise EncodeFailure
 
+pub fn start_prefixed_string_value(Writer, String, String) -> StringEmitCursor raise EncodeFailure
+
 pub fn start_string_value(Writer, String) -> StringEmitCursor raise EncodeFailure
 
 pub fn string_value(Writer, String) -> Unit raise EncodeFailure

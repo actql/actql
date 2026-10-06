@@ -20,6 +20,7 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
@@ -186,6 +187,7 @@ priv enum ExpressionFrame {
   BetweenLower(Int, Bool, Int, Int)
   BetweenUpper(Int, Int, Bool, Int, Int)
   InItem(Int, Bool, Array[Int], Int, Int)
+  InUnnest(Int, Bool, Int, Int)
   IsDistinct(Int, Bool, Int, Int)
   CaseCondition(Array[(Int, Int)], Int, Int)
   CaseValue(Array[(Int, Int)], Int, Int, Int)
@@ -387,6 +389,32 @@ fn ExpressionParser::path(
 }
 
 ///|
+// A typed literal shares ordinary decoded String chunks. JSON parsing happens
+// after lexical decoding; it does not reinterpret the source's escape syntax.
+fn ExpressionParser::string_chunks(
+  self : ExpressionParser,
+  first : Token,
+) -> (String, Int) raise ExpressionAbort {
+  guard first.value is Text(value) else {
+    raise ExpressionAbort("Expected String literal", first.start)
+  }
+  let chunks = StringBuilder()
+  chunks.write_string(value)
+  let mut end = first.end
+  while self.peek().value is Text(next) {
+    let token = self.peek()
+    if token.start == end {
+      raise ExpressionAbort("Literal chunks require separation", token.start)
+    }
+    self.spend()
+    ignore(self.advance())
+    chunks.write_string(next)
+    end = token.end
+  }
+  (chunks.to_string(), end)
+}
+
+///|
 // Explicit Pratt continuations bound heap work without recursive native calls.
 fn ExpressionParser::expression(
   self : ExpressionParser,
@@ -403,26 +431,14 @@ fn ExpressionParser::expression(
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
         match t.value {
-          Text(value) => {
-            let chunks = StringBuilder()
-            chunks.write_string(value)
-            let mut end = t.end
-            while self.peek().value is Text(next) {
-              let token = self.peek()
-              // GoogleSQL chunks need intervening whitespace or a comment.
-              // Identifiers and Graph annotation tokens never concatenate.
-              if token.start == end {
-                raise ExpressionAbort(
-                  "Literal chunks require separation",
-                  token.start,
-                )
-              }
-              self.spend()
-              ignore(self.advance())
-              chunks.write_string(next)
-              end = token.end
-            }
-            result = self.add(StringLiteral(chunks.to_string()), t.start, end)
+          Text(_) => {
+            let (value, end) = self.string_chunks(t)
+            result = self.add(StringLiteral(value), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "JSON" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            result = self.add(JsonLiteral(value), t.start, end)
           }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
@@ -468,11 +484,10 @@ fn ExpressionParser::expression(
             if t.value is Word(name) &&
               [
                 "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT",
-                "OFFSET", "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION",
-                "INTERSECT", "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL",
-                "CROSS", "ON", "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW",
-                "WHEN", "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN",
-                "LIKE",
+                "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION", "INTERSECT",
+                "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ON",
+                "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW", "WHEN",
+                "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN", "LIKE",
               ].contains(upper_ascii(name)) {
               raise ExpressionAbort(
                 "Reserved query identifier requires quoting",
@@ -547,11 +562,26 @@ fn ExpressionParser::expression(
             frames.push(BetweenLower(left, negated, minimum, depth))
             frames.push(Enter(5, depth + 1))
           } else if keyword(op, "IN") {
+            let array = keyword(self.peek(), "UNNEST")
+            if array {
+              ignore(self.advance())
+            }
             let open = self.advance()
             if open.value != Symbol(40) {
-              raise ExpressionAbort("Expected IN list", open.start)
+              raise ExpressionAbort(
+                if array {
+                  "Expected UNNEST argument"
+                } else {
+                  "Expected IN list"
+                },
+                open.start,
+              )
             }
-            frames.push(InItem(left, negated, [], minimum, depth))
+            if array {
+              frames.push(InUnnest(left, negated, minimum, depth))
+            } else {
+              frames.push(InItem(left, negated, [], minimum, depth))
+            }
             frames.push(Enter(1, depth + 1))
           } else if keyword(op, "LIKE") && negated {
             frames.push(BinaryRight("NOT LIKE", left, minimum, depth))
@@ -662,6 +692,20 @@ fn ExpressionParser::expression(
           )
         }
       }
+      InUnnest(left, negated, minimum, depth) => {
+        let token = self.advance()
+        if token.value != Symbol(41) {
+          raise ExpressionAbort("Expected closing UNNEST argument", token.start)
+        }
+        result = self.add(
+          Predicate(if negated { "NOT IN UNNEST" } else { "IN UNNEST" }, [
+            left, result,
+          ]),
+          self.nodes[left].start,
+          token.end,
+        )
+        frames.push(Tail(result, minimum, depth))
+      }
       IsDistinct(left, negated, minimum, depth) => {
         result = self.add(
           Predicate(
@@ -704,7 +748,7 @@ fn ExpressionParser::expression(
         let target = match name.value {
           Word(word) =>
             match upper_ascii(word) {
-              "BOOL" => CastType::Boolean
+              "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
               "FLOAT64" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp

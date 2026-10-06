@@ -103,6 +103,13 @@ function assertReadExplanation(f, failure, attemptId, rowsYielded, observation =
   };
   const explanation = explainReadFailure(failure);
   assert.deepEqual(explanation, expected, '[check-mutation:read-explanation]');
+  assert.deepEqual(explainReadFailure(failure, {locale: 'ja'}), {...expected,
+    summary: observation === 'cleanup_unknown'
+      ? `${rowsYielded}行を返した後のreader cleanupを確認できません。`
+      : `この読み取りは${rowsYielded}行を返した後で停止しました。`,
+    hint: 'この読み取り参照を保持してください。先頭から新しく読み取るか判断する前に、元の参照で状態を確認してください。'},
+  '[check-mutation:operation-read-public-locale]');
+  assert.equal(explainReadFailure(failure, {get locale() {throw new Error('private-locale');}}), explanation);
   assert.equal(Object.isFrozen(explanation), true);
   assert.equal(Object.isFrozen(explanation.next), true);
   assert.equal(Object.isFrozen(explanation.next.ref), true);

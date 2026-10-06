@@ -1,0 +1,184 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-check-session-presentation-adopted-main-905320c0",
+  "kind": "resolution",
+  "revision": "905320c00e70c04e09bfc33f9ec541eff62d7296",
+  "parents": [
+    "8a89d4f7d9de628c7b3c824c95ab93b704c0fb87",
+    "3cff1efefa3ca254d1d1ef99933877f1632c7bb3"
+  ],
+  "mergeBases": [
+    "5dc9cad224046c527278273017b055b686831742",
+    "a31edfd14410b50074b9fc036c039e7f470c6494",
+    "a86dd709e3674f054a55aada5618b70bec256190"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "8a89d4f7d9de628c7b3c824c95ab93b704c0fb87",
+          "digest": "36b38ef31e5de1bd4a541107572280f97c2c08b59befc8227a8817d1de424bc0",
+          "mode": "100644"
+        },
+        {
+          "revision": "3cff1efefa3ca254d1d1ef99933877f1632c7bb3",
+          "digest": "dadf6e7235d6f79d8102608046aa94d71fb8141cd5bcb963bff4c514ef1915dc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dadf6e7235d6f79d8102608046aa94d71fb8141cd5bcb963bff4c514ef1915dc",
+      "afterMode": "100644",
+      "reason": "Retain current main registrations and bounded-session verification bytes exactly while integrating SDK current-document presentation. The complete maximal-base set require an explicit resolution even where current parent bytes converge; original checkers and declarations remain unchanged."
+    },
+    {
+      "path": "proofs/bounded-session/evidence.test.mjs",
+      "before": [
+        {
+          "revision": "8a89d4f7d9de628c7b3c824c95ab93b704c0fb87",
+          "digest": "1f696960951b2e5b5b6ce8b8947e1c6bd780fa31a2baf6b0ebe895f5432e0232",
+          "mode": "100644"
+        },
+        {
+          "revision": "3cff1efefa3ca254d1d1ef99933877f1632c7bb3",
+          "digest": "1f696960951b2e5b5b6ce8b8947e1c6bd780fa31a2baf6b0ebe895f5432e0232",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1f696960951b2e5b5b6ce8b8947e1c6bd780fa31a2baf6b0ebe895f5432e0232",
+      "afterMode": "100644",
+      "reason": "Retain current main registrations and bounded-session verification bytes exactly while integrating SDK current-document presentation. The complete maximal-base set require an explicit resolution even where current parent bytes converge; original checkers and declarations remain unchanged."
+    },
+    {
+      "path": "proofs/bounded-session/proof-check.test.mjs",
+      "before": [
+        {
+          "revision": "8a89d4f7d9de628c7b3c824c95ab93b704c0fb87",
+          "digest": "7f0a97f6cb74cb39616292c57b735cedd91af571b2e2202206de6c3f388df5a8",
+          "mode": "100644"
+        },
+        {
+          "revision": "3cff1efefa3ca254d1d1ef99933877f1632c7bb3",
+          "digest": "7f0a97f6cb74cb39616292c57b735cedd91af571b2e2202206de6c3f388df5a8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "7f0a97f6cb74cb39616292c57b735cedd91af571b2e2202206de6c3f388df5a8",
+      "afterMode": "100644",
+      "reason": "Retain current main registrations and bounded-session verification bytes exactly while integrating SDK current-document presentation. The complete maximal-base set require an explicit resolution even where current parent bytes converge; original checkers and declarations remain unchanged."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "8a89d4f7d9de628c7b3c824c95ab93b704c0fb87",
+          "digest": "c0513aaa114c4750a1bc8c51d479c145dea3eadb2cecee8178e5d57770e2bd42",
+          "mode": "100644"
+        },
+        {
+          "revision": "3cff1efefa3ca254d1d1ef99933877f1632c7bb3",
+          "digest": "c0513aaa114c4750a1bc8c51d479c145dea3eadb2cecee8178e5d57770e2bd42",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c0513aaa114c4750a1bc8c51d479c145dea3eadb2cecee8178e5d57770e2bd42",
+      "afterMode": "100644",
+      "reason": "Retain current main registrations and bounded-session verification bytes exactly while integrating SDK current-document presentation. The complete maximal-base set require an explicit resolution even where current parent bytes converge; original checkers and declarations remain unchanged."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-model-installed-execution-a0dc67b",
+    "adopt-reviewed-salesforce-row-effect-f08186c2",
+    "adopt-sga-query-contract",
+    "bounded-session-action-input-report",
+    "bounded-session-action-input-timing",
+    "ci-mandatory-preflight",
+    "effect-literal-key-vector-registration-8ab49d85",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "github-issue-read-registration",
+    "github-issue-source-acceptance-registration",
+    "graph-composition-fixture-registration",
+    "incremental-session-comparison",
+    "main-pr233-package-resolution",
+    "model-invocation-checkpoint-registration",
+    "packed-composed-infer-effect-acceptance",
+    "policy-candidates-initial-contract-registration",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "pr463-main-package-resolution",
+    "pr463-main-package-resolution-9fdb20e",
+    "pr463-typed-json-literal-registration",
+    "pr463-typed-json-public-registration",
+    "pr463-typed-json-stage-registration",
+    "pr568-events-execution-admission-2ca0066",
+    "pr568-events-proof-admission-528fcb1",
+    "public-column-published-main-resolution",
+    "public-text-computation-bridge-ci",
+    "read-progress-current-main-resolution",
+    "remove-duplicate-runtime-package-checks",
+    "resident-cancellation-issuer-registration",
+    "resident-cancellation-native-registration",
+    "resident-source-native-registration",
+    "resolve-binding-json-reasons-main-04f67660",
+    "resolve-bounded-wire-reviewed-main-maximal-bases",
+    "resolve-cancellation-foundation-main-5caeccc79",
+    "resolve-check-session-presentation-formatter-main-71ec4624c",
+    "resolve-check-session-presentation-main-9ad7675b7",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-resident-source-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-expression-diagnostics-main-d134-maximal-bases",
+    "resolve-frontend-graph-label-dependency-5fa4bc547",
+    "resolve-frontend-graph-row-input-main-0e1516677",
+    "resolve-frontend-group-ordinals-parent-bf39d807d",
+    "resolve-github-issue-driver-main-5dcef9189",
+    "resolve-github-issue-source-main",
+    "resolve-graph-composition-accepted-effect-main-1edb1560c",
+    "resolve-graph-composition-cancellation-main",
+    "resolve-graph-composition-current-main-d8dd3a918",
+    "resolve-graph-composition-resident-cleanup-main",
+    "resolve-graph-composition-text-main",
+    "resolve-graph-policy-source-approval-main-13c0d39d2",
+    "resolve-graph-retention-policy-main-e3ecb26c9",
+    "resolve-join-property-main-e2e27d-maximal-bases",
+    "resolve-model-checkpoint-main-db141961",
+    "resolve-model-checkpoint-main-e26f7500",
+    "resolve-model-installed-execution-main-90babd81d",
+    "resolve-model-reviewed-main-58e671087",
+    "resolve-resident-cancel-foundation-7b5a8048",
+    "resolve-resident-producer-entry-main-cfd37ff",
+    "resolve-resident-source-latest-main",
+    "resolve-reviewed-comparison-main-34a1de8e",
+    "resolve-reviewed-comparison-main-96ae63b3",
+    "resolve-reviewed-comparison-main-a0773656",
+    "resolve-selector-derive-merged-main",
+    "scoped-session-acquisition-main-resolution",
+    "sdk-cancel-response-loss-registration",
+    "sdk-effect-uncertainty-registration",
+    "sdk-jsonl-row-refusal-main-resolution",
+    "sdk-jsonl-row-refusal-registration",
+    "sdk-read-progress-registration",
+    "sdk-submission-explanation-acceptance-registration",
+    "session-additive-execution-recipes",
+    "source-free-effect-retention-original-regression",
+    "standard-model-approval-call-set-integration",
+    "standard-model-approval-dispatch-regressions",
+    "standard-model-confirmed-cancellation-regressions",
+    "standard-model-current-main-integration",
+    "standard-model-installed-continuation-integration",
+    "standard-model-published-acceptance-integration-f90b4f902"
+  ]
+}

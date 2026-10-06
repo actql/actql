@@ -108,6 +108,7 @@ pub fn usage(Tokens, Resource) -> Int
 pub(all) struct AggregateCall {
   function_name : String
   argument : Expression?
+  filter : Expression?
   distinct : Bool
   order_by : Array[SortTerm]
   delimiter : String?
@@ -168,6 +169,7 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
   Property(Int, NamePart)
@@ -400,6 +402,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)

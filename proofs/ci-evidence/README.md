@@ -1,6 +1,7 @@
 # Incremental bounded Session evidence
 
-The implementation accounts for 26 existing actions in the selected
+The implementation accounts for the original 26 actions and four additive
+Rows / Events proof/connection actions (30 total) in the selected
 `session-evidence` job and authenticates the resulting immutable ZIP in the
 required `check` job. Main executes all actions fresh. A PR may reuse only
 `mutations-js`, after a successful full-main comparison and independent final
@@ -156,7 +157,7 @@ coverage gaps. Every original receipt also binds that file's exact bytes. The
 final consumer reconstructs these summaries from the authenticated ZIP and
 rejects missing/replaced inventories or erased gaps. It does not accept a
 summary solely because its label matches. Keeping the inventory once avoids
-copying the complete distribution list into each of the 26 receipts.
+copying the complete distribution list into every action receipt.
 
 `runtime-measurement.json` records inventory time, entries and bytes separately
 from semantic input equality. Curated execution-configuration hashes are
@@ -311,3 +312,30 @@ are retained. The earlier first/later receipt outage regression remains; final
 availability never promotes an incomplete comparison or invalid origin into
 reuse permission. Optional comparison ZIPs live outside the uploaded receipts;
 only actually adopted originals are retained inside the candidate archive.
+
+## Cost correspondence at final acceptance
+
+The executed certificate binds `collection-costs.json` by
+`collectionCostsDigest`, in addition to the existing acquisition-plan digest.
+The final consumer reconstructs `costObservation` from these fixed bytes,
+original receipts, the current context and the actual isolated execution when
+fresh. Main applicability reconstructs the same record from the source ZIP;
+missing records, changed bindings, invalid durations, wrong owners or relabeled
+fresh/reused observations reject. Old-format cost records are not accepted.
+The consumer's policy bytes participate in action inputs, so earlier originals
+cannot be adopted under a changed consumer contract.
+
+Preparation is already included in the isolated mutation receipt. Its exclusive
+duration subtracts preparation once before the partial producer sum. Comparison
+subphases remain nested inside comparison total, and consumer verification
+encloses its own replay/hashing work. Reused work has null current units/time;
+historical receipt time is never counted as candidate execution. Source archive
+size is checked against actual ZIP bytes and final API metadata.
+
+`knownProducerMilliseconds` is a partial, sequential phase sum, not wall time or
+total runner time. Source/input construction, hashing, writes and precollection
+verification are explicitly unmeasured here. Completed producer/check job spans
+and archive transfers remain necessary for a net comparison.
+`netRunnerSavingsMilliseconds` therefore remains null with mandatory residuals;
+cost correspondence alone neither authorizes reuse nor proves savings.
+See [the cost correspondence review](../../docs/reviews/2026-10-06-session-evidence-cost-correspondence.md).

@@ -36,6 +36,7 @@ struct TypedAdmission {
   mut reference_issuer : ReferenceIssuer?
   mut reference_limits : ReferenceLimits?
   wire : Bool
+  authored_fields : Bool
 }
 
 ///|
@@ -52,8 +53,12 @@ pub fn start_typed_admission(
   root : @decode.Cursor,
   limits : Limits,
   wire? : Bool = false,
+  authored_fields? : Bool = false,
 ) -> Result[TypedAdmission, Issue] {
-  if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
+  if limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    limits.max_text_bytes < 0 ||
+    (wire && authored_fields) {
     return Err(
       ValueIssue(
         InvalidLimits,
@@ -77,6 +82,7 @@ pub fn start_typed_admission(
     reference_issuer: None,
     reference_limits: None,
     wire,
+    authored_fields,
   })
 }
 
@@ -217,7 +223,7 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
                 max_text_bytes: budget.text,
               },
               allow_json_null=admission.wire,
-              data_keys=admission.wire,
+              data_keys=true,
             ) {
             Ok(json) => json
             Err(issue) => raise Abort(issue)
@@ -263,6 +269,19 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
       }
     TypedObjectInput(object, index) =>
       if @decode.field_at(object.source, index) is Some((name, child)) {
+        // Effect source retains literal keys before a target type is known.
+        // Only an explicitly authored Object path performs identifier
+        // admission here. JSON children retain their data keys, and typed
+        // wire never repairs names. The source cursor has already bounded
+        // the raw key; the retained contract name is charged once below.
+        let name = if admission.authored_fields {
+          match @canonical.normalize_nfc_lf(name) {
+            Ok(name) => name
+            Err(_) => fail(child, InvalidUnicode)
+          }
+        } else {
+          name
+        }
         // Contracts already keep fields in canonical name order. Resume a
         // binary lookup instead of copying the entire admitted schema into a
         // second name map before the value's child-node budget is checked.
