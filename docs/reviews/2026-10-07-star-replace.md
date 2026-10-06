@@ -61,7 +61,33 @@ complete document imports and canonical fixtures, without relabeling old Runs.
   refinement and typed empty Result. The usual harness checks full schema/order,
   admission/I/O, one acquisition and same-request/re-read behavior.
 
-Packed Local/HTTPS and submitted-SHA CI remain pending at this checkpoint.
+Final manifest and independent-preimage Node checks passed 7/7 (`run-m2OzHC`).
+Normal five packages built from `639741be35e651b13a1769230b6117a361923866`
+passed all 13 successes and 8 preparation refusals in Embedded Local and HTTPS:
+
+```sh
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-star-replace-20261007-pack node scripts/test-packed-public-query.mjs --star-replace-only
+```
+
+Both transports compare full Result.describe contracts, column order and rows,
+including empty output, NULL/duplicates and changed nullability. Existing checks
+require stream completion, one acquisition session, stable same-request identity,
+reattach/re-read without further acquisition, and zero admission/provider I/O on
+refusal. No case, expectation or ceiling was removed or relaxed. Receipt/command
+logs remain under `worktrees/.codex-scratch/public-query-evidence-uTnXdQ`.
+The producer used normal prepack and manifest/digest verification, without runtime
+overlays. `review-artifacts/` remains untracked evidence, not a changed build input.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `27066b9ab7a1f4a3f15dec782b17ccdff5f04aca45ca2b3bf1496bb6bca329c3` |
+| sdk | `d72e590dca3666fa0d2444492b2ec4559b056008a5b8575d4bc4ebe24159baa9` |
+| run-host-core | `4a95dfc72c5b15917456449da947f3db96d50b975740048fdd0bfc449d2873cf` |
+| local-node | `745620ba5db56cd1de77936536ff1568a9e32e2f1697e7ad1574dcce46b1082e` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+This later report-only change is not another tested distribution. Submitted-SHA
+CI and content review remain pending.
 No whole-Core, full packed, performance, Cloud or Wasm/Native execution campaign
 is claimed. Interface generation is not backend execution evidence.
 
