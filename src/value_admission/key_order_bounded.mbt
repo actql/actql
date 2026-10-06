@@ -10,6 +10,7 @@ struct BoundedKeyComparison {
   kind : BoundedKeyKind
   mut index : Int
   mut terminal : Bool
+  mut null_order : Int?
 }
 
 ///|
@@ -37,9 +38,76 @@ pub fn start_bounded_present_key_comparison(
   right : CheckedValue,
 ) -> Result[BoundedKeyComparison, KeyOrderIssue] {
   match (left.value, right.value) {
-    (Null, Null) => Ok({ kind: FixedOrder(0), index: 0, terminal: false, })
-    (Null, _) => Ok({ kind: FixedOrder(-1), index: 0, terminal: false, })
-    (_, Null) => Ok({ kind: FixedOrder(1), index: 0, terminal: false, })
+    (Null, Null) =>
+      Ok({ kind: FixedOrder(0), index: 0, terminal: false, null_order: None, })
+    (Null, _) =>
+      Ok({ kind: FixedOrder(-1), index: 0, terminal: false, null_order: None, })
+    (_, Null) =>
+      Ok({ kind: FixedOrder(1), index: 0, terminal: false, null_order: None, })
+    _ => start_bounded_nonnull_comparison(left, right)
+  }
+}
+
+///|
+/// Preserve the grouping domain and null-first law while validating the
+/// non-null side incrementally, including live reference identities.
+pub fn start_bounded_group_key_comparison(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[BoundedKeyComparison, KeyOrderIssue] {
+  if !@contract.key_comparable(left.contract, right.contract) {
+    return Err(InvalidKey)
+  }
+  start_bounded_nullable_comparison(left, right, -1)
+}
+
+///|
+/// Author ties use their existing restricted domain and null-last law.
+pub fn start_bounded_author_order_comparison(
+  left : CheckedValue,
+  right : CheckedValue,
+) -> Result[BoundedKeyComparison, KeyOrderIssue] {
+  if !same_author_order_domain(left.contract.shape, right.contract.shape) {
+    return Err(InvalidKey)
+  }
+  start_bounded_nullable_comparison(left, right, 1)
+}
+
+///|
+fn start_bounded_nullable_comparison(
+  left : CheckedValue,
+  right : CheckedValue,
+  null_order : Int,
+) -> Result[BoundedKeyComparison, KeyOrderIssue] {
+  match (left.value, right.value) {
+    (Null, Null) => {
+      if !left.contract.nullable || !right.contract.nullable {
+        return Err(InvalidKey)
+      }
+      Ok({ kind: FixedOrder(0), index: 0, terminal: false, null_order: None, })
+    }
+    (Null, _) => {
+      if !left.contract.nullable {
+        return Err(InvalidKey)
+      }
+      let value = match start_bounded_nonnull_comparison(right, right) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      value.null_order = Some(null_order)
+      Ok(value)
+    }
+    (_, Null) => {
+      if !right.contract.nullable {
+        return Err(InvalidKey)
+      }
+      let value = match start_bounded_nonnull_comparison(left, left) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      value.null_order = Some(-null_order)
+      Ok(value)
+    }
     _ => start_bounded_nonnull_comparison(left, right)
   }
 }
@@ -83,7 +151,7 @@ fn start_bounded_nonnull_comparison(
         Err(issue) => return Err(issue)
       }
   }
-  Ok({ kind, index: 0, terminal: false, })
+  Ok({ kind, index: 0, terminal: false, null_order: None, })
 }
 
 ///|
@@ -93,7 +161,7 @@ fn bounded_key_result(
   work : Int,
 ) -> BoundedKeyComparisonPoll {
   value.terminal = true
-  KeyComparisonComplete(order~, work~)
+  KeyComparisonComplete(order=value.null_order.unwrap_or(order), work~)
 }
 
 ///|

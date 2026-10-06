@@ -82,6 +82,27 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`LIMIT` and `OFFSET` accept an exact integer literal or a whole named
+parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+slots; declarations and values follow existing Program checking, with no
+Frontend evaluation, coercion or default for an invalid/missing binding.
+Omitted OFFSET is the literal zero. The current common `take` contract still
+requires a positive count, a nonnegative offset, safe integers and proven input
+order. GoogleSQL also allows zero count and more general constant expressions;
+these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
+arithmetic operands are rejected by this implemented literal/parameter subset.
+
+`IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
+two-argument `coalesce`. Only a NULL first value selects the fallback; a
+non-NULL first value leaves the fallback unevaluated. Both operands still
+undergo the existing static name, arity and type checks, including skipped
+operands. This adopts [GoogleSQL's IFNULL conditional semantics](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/conditional_expressions#ifnull)
+within the common checker's supported type signatures; it does not add
+GoogleSQL's wider implicit-coercion or type families. Use explicit supported
+casts where required. Result type and nullability come from common `coalesce`
+typing, including on empty input. The Frontend does not expand the first
+operand or install its own conditional evaluator.
+
 In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains

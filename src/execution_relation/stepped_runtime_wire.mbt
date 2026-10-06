@@ -21,7 +21,7 @@ fn start_stepped_runtime_wire(
   writer : @encode.Writer,
   workspace : RowWorkspace,
 ) -> Result[SteppedRuntimeWire, SteppedRuntimeWireIssue] {
-  // Wrapper, admitted cursor, and a possible Text cursor overlap. A raw Text
+  // Wrapper, admitted cursor, and a possible Text/key cursor overlap. A raw Text
   // only needs the wrapper and Text cursor; a scalar only needs the wrapper.
   let handles = match value {
     Captured(_) => 3
