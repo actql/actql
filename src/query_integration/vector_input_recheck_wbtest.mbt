@@ -5,6 +5,7 @@ fn vector_input_recheck_owner(
   object_names? : Bool = false,
   unused_items? : Int = 257,
   group_name? : String = "group",
+  unused_name? : String = "zz_unused",
 ) -> @lower.BoundPrepared {
   let name = String::make(130, 'x')
   let unused_schema = if object_names {
@@ -16,7 +17,9 @@ fn vector_input_recheck_owner(
     "\"items\":{\"type\":\"number\",\"nullable\":false}},\"zz_unused\":" +
     object
   } else {
-    "\"zz_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":" +
+    "\"" +
+    unused_name +
+    "\":{\"type\":\"array\",\"nullable\":false,\"max_items\":" +
     unused_items.to_string() +
     "," +
     "\"items\":{\"type\":\"number\",\"nullable\":false}}"
@@ -28,7 +31,7 @@ fn vector_input_recheck_owner(
     name +
     "\":2}"
   } else {
-    "\"zz_unused\":[" + Array::make(unused_items, "1").join(",") + "]"
+    "\"" + unused_name + "\":[" + Array::make(unused_items, "1").join(",") + "]"
   }
   let group_schema = if pooling {
     "\"" + group_name + "\":{\"type\":\"number\",\"nullable\":false},"
@@ -112,8 +115,8 @@ test "nearest Relation admission yields within unused arrays before stop" {
   // Existing one-record-per-side nearest: 52. Two extra field/match pairs:
   // 4. Each side adds scalar 2, Vector 5 and Array 2*257+3=517 polls.
   // Total 52+4+2*(2+5+517)=1104, independent of a measured execution.
-  // Existing structural 31 plus eight cursor slots and depth-two frames
-  // (2+2) gives 43. Values remain subject to the 258-node Array limit.
+  // Existing structural 32 plus eight cursor slots and depth-two frames
+  // (2+2) gives 44. Values remain subject to the 258-node Array limit.
   assert_true(
     @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
@@ -124,7 +127,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
       @local_veca.nearest_relation_producer(inputs[1]),
       10,
       { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-      42,
+      43,
       1000,
       1000,
       1104,
@@ -142,7 +145,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
         @local_veca.nearest_relation_producer(inputs[1]),
         10,
         { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-        43,
+        44,
         1000,
         1000,
         limit,
@@ -196,7 +199,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
     @local_veca.nearest_relation_producer(inputs[1]),
     10,
     { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-    43,
+    44,
     1000,
     1000,
     1104,
@@ -221,7 +224,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
     @local_veca.nearest_relation_producer(inputs[1]),
     10,
     { max_nodes: 257, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-    43,
+    44,
     1000,
     1000,
     1104,
@@ -292,7 +295,8 @@ test "Relation Pool admission yields within unused arrays before stop" {
   ).unwrap()
   // Original 32 plus one extra field/group/identity scan (3), two scalar
   // rechecks (4), Vector (5), Array (517): 561. Append polls add 31: 592.
-  // Workspace 18+8+3+2=31 plus append custody 16+9+1+3*3=35: 66.
+  // Admission: 18+8+3+2=31 plus append 16+9+1+3*3=35 and name offset: 67.
+  // Completion also retains one three-field output row: 67+(3+2)=72.
   // Depth three also admits the existing stored-record outer array,
   // field tuple and Vector envelope; depth two fails Store encoding.
   assert_true(
@@ -302,7 +306,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
       0,
       read,
       {
-        ..direct_relation_pool_limits(65, 592),
+        ..direct_relation_pool_limits(66, 592),
         max_value_depth: 3,
         max_value_nodes: 258,
       },
@@ -319,7 +323,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
         0,
         read,
         {
-          ..direct_relation_pool_limits(66, limit),
+          ..direct_relation_pool_limits(72, limit),
           max_value_depth: 3,
           max_value_nodes: 258,
         },
@@ -369,7 +373,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(66, 592),
+      ..direct_relation_pool_limits(72, 592),
       max_value_depth: 3,
       max_value_nodes: 258,
     },
@@ -392,7 +396,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(66, 592),
+      ..direct_relation_pool_limits(72, 592),
       max_value_depth: 3,
       max_value_nodes: 257,
     },

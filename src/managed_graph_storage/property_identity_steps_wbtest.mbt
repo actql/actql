@@ -2,12 +2,12 @@
 fn identity_fixture_preparation(
   builder : Builder,
   keys : Array[@value.CheckedValue],
-) -> PropertyIdentityPreparation {
-  let profile = @carrier.graph_property_definition(builder.graph)
-  start_property_identity(
+) -> ElementIdentityPreparation {
+  let profile = @carrier.graph_definition(builder.graph)
+  start_element_identity(
     builder,
     profile,
-    @carrier.property_graph_node_at(profile, 0).unwrap(),
+    @carrier.graph_node_at(profile, 0).unwrap(),
     keys,
     1,
   ).unwrap()
@@ -15,26 +15,25 @@ fn identity_fixture_preparation(
 
 ///|
 fn completed_identity(
-  preparation : PropertyIdentityPreparation,
+  preparation : ElementIdentityPreparation,
   quantum : Int,
 ) -> Result[(@value.CheckedValue?, Int), Issue] raise {
   for _ in 0..<10000 {
-    match advance_property_identity(preparation, quantum) {
-      PropertyIdentityContinue(work~) =>
-        assert_true(work > 0 && work <= quantum)
-      PropertyIdentityComplete(value, construction_work~, work~) => {
+    match advance_element_identity(preparation, quantum) {
+      ElementIdentityContinue(work~) => assert_true(work > 0 && work <= quantum)
+      ElementIdentityComplete(value, construction_work~, work~) => {
         assert_true(work >= 0 && work <= quantum)
-        cleanup_property_identity(preparation)
+        cleanup_element_identity(preparation)
         return Ok((value, construction_work))
       }
-      PropertyIdentityFailed(issue, work~) => {
+      ElementIdentityFailed(issue, work~) => {
         assert_true(work >= 0 && work <= quantum)
-        cleanup_property_identity(preparation)
+        cleanup_element_identity(preparation)
         return Err(issue)
       }
     }
   }
-  cleanup_property_identity(preparation)
+  cleanup_element_identity(preparation)
   abort("identity conversion did not terminate")
 }
 
@@ -121,22 +120,22 @@ test "Graph storage identity invalid quantum is non-mutating and failure is term
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
   let preparation = identity_fixture_preparation(builder, [number(1)])
   assert_true(
-    advance_property_identity(preparation, 0)
-    is PropertyIdentityFailed(InvalidLimits, work=0),
+    advance_element_identity(preparation, 0)
+    is ElementIdentityFailed(InvalidLimits, work=0),
   )
   assert_true(preparation.phase == CheckIdentityKeys)
   assert_true(preparation.keys.is_empty())
   assert_true(completed_identity(preparation, 1) is Ok((Some(_), 33)))
   let rejected = identity_fixture_preparation(builder, [text("1")])
   assert_true(
-    advance_property_identity(rejected, 1)
-    is PropertyIdentityFailed(InvalidIdentity, work=1),
+    advance_element_identity(rejected, 1)
+    is ElementIdentityFailed(InvalidIdentity, work=1),
   )
   assert_true(
-    advance_property_identity(rejected, 1)
-    is PropertyIdentityFailed(Closed, work=0),
+    advance_element_identity(rejected, 1)
+    is ElementIdentityFailed(Closed, work=0),
   )
-  cleanup_property_identity(rejected)
+  cleanup_element_identity(rejected)
   assert_true(builder.open)
   assert_true(cancel(builder))
 }
@@ -157,15 +156,15 @@ test "Graph storage identity conversion cancellation releases every data owner" 
         reached = true
         break
       }
-      guard advance_property_identity(preparation, 1)
-        is PropertyIdentityContinue(work~) else {
+      guard advance_element_identity(preparation, 1)
+        is ElementIdentityContinue(work~) else {
         abort("conversion ended before its cancellation boundary")
       }
       assert_eq(work, 1)
     }
     assert_true(reached)
-    cleanup_property_identity(preparation)
-    cleanup_property_identity(preparation)
+    cleanup_element_identity(preparation)
+    cleanup_element_identity(preparation)
     assert_true(preparation.writer is None)
     assert_true(preparation.parser is None)
     assert_true(preparation.source is None)
@@ -175,8 +174,8 @@ test "Graph storage identity conversion cancellation releases every data owner" 
     assert_true(preparation.input_keys is None)
     assert_true(preparation.keys.is_empty())
     assert_true(
-      advance_property_identity(preparation, 1)
-      is PropertyIdentityFailed(Closed, work=0),
+      advance_element_identity(preparation, 1)
+      is ElementIdentityFailed(Closed, work=0),
     )
     // Cancelling temporary conversion must not clear a caller's key tuple or
     // release the provisional builder owned by the enclosing operation.
@@ -202,7 +201,7 @@ test "Graph storage resumed identity projects reference CID without minting auth
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [contract],
     empty,
@@ -210,7 +209,7 @@ test "Graph storage resumed identity projects reference CID without minting auth
     max_fields=1,
     max_name_bytes=16,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [definition],
     [],

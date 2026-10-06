@@ -29,7 +29,7 @@ fn external_graph_checked_program(
       environment,
       { text_time: false, veca: false, },
       { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-      property_graph=true,
+      graph=true,
     ),
     None,
     [{ stage: "s", sources, uses: [], }],
@@ -99,7 +99,7 @@ fn external_graph_checked_program(
 }
 
 ///|
-test "Property Graph source derives MATCH proof from admitted input enforcement" {
+test "Graph source derives MATCH proof from admitted input enforcement" {
   for imported in [false, true] {
     let program = external_graph_checked_program(imported, false)
     let publication = unit_publication_at(

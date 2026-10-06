@@ -17,18 +17,18 @@ if (!installation || !executable) {
     '<packed-installation> <native-client-executable>');
 }
 const requireInstalled = createRequire(join(installation, 'package.json'));
-const {propertyGraphSourceSuccesses, propertyGraphSourceRefusals} =
-  await import(pathToFileURL(join(installation, 'property-graph-source-input.mjs')));
+const {graphSourceSuccesses, graphSourceRefusals} =
+  await import(pathToFileURL(join(installation, 'graph-source-input.mjs')));
 const {connect} = await import(pathToFileURL(requireInstalled.resolve('@actql/node')));
 const sourceOnly = process.argv.includes('--authored-source-only');
 // Reuse independently authored public sources/expectations, without converting
 // them to machine Programs before submission. Keep the JSON control separate.
-const cases = sourceOnly ? propertyGraphSourceSuccesses
-  : [{name: 'property-graph-parallel', format: 'json',
-    text: await readFile(join(installation, 'fixtures/property-graph-parallel.program.json'), 'utf8'),
+const cases = sourceOnly ? graphSourceSuccesses
+  : [{name: 'graph-parallel', format: 'json',
+    text: await readFile(join(installation, 'fixtures/graph-parallel.program.json'), 'utf8'),
     results: {answer: {rows: [{key: 10}, {key: 11}], columns: [
       {name: 'key', contract: {type: 'number', nullable: false}},
-    ]}}}, ...propertyGraphSourceSuccesses];
+    ]}}}, ...graphSourceSuccesses];
 let providerIo = 0, dispatches = 0;
 const {DuckDBPreparedStatement} = createRequire(
   requireInstalled.resolve('@actql/local-node'))('@duckdb/node-api');
@@ -127,7 +127,7 @@ try {
   }
   const inputCodes = new Set(['ClientProgramInvalidInput', 'ClientParametersInvalid',
     'ClientParametersTooLarge', 'ClientProgramUnsupported', 'ClientProgramNeedsInputs', 'ClientProgramRejected']);
-  for (const {name, text, format} of propertyGraphSourceRefusals) {
+  for (const {name, text, format} of graphSourceRefusals) {
     const sourceFile = `${name}.native-source`;
     await writeFile(join(installation, sourceFile), text);
     const requestId = `sga-native-refuse-${name}-${randomUUID()}`;
@@ -145,7 +145,7 @@ try {
 } finally {
   await writeFile(join(evidenceDirectory, 'native-sga.log'),
     JSON.stringify({binaryCid, cases: cases.map(({name, format}) => ({name, format})),
-      refusals: propertyGraphSourceRefusals.map(({name, format}) => ({name, format})), log}, null, 2));
+      refusals: graphSourceRefusals.map(({name, format}) => ({name, format})), log}, null, 2));
   client?.close();
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));

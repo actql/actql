@@ -1,6 +1,6 @@
 ///|
 pub(all) enum GraphConstructionIssue {
-  InvalidPropertyGraphConstruction
+  InvalidGraphConstruction
 } derive(Eq, Debug)
 
 ///|

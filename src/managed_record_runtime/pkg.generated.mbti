@@ -87,7 +87,7 @@ pub fn producer_read_storage(ProducerRead) -> @managed_record_storage.Storage?
 
 pub fn producer_read_view(ProducerRead) -> Result[@managed_carrier_runtime.ProducerView, Issue]
 
-pub fn start_record_append(OutputBuilder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[RecordAppend, Issue]
+pub fn start_record_append(OutputBuilder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)], external_workspace_slots~ : Int) -> Result[RecordAppend, Issue]
 
 // Errors
 

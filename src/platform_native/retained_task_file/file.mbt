@@ -5,7 +5,7 @@
 /// before its result can be admitted as a new consumer input.
 struct NativeRetainedTaskFile {
   root : @filesystem.Root
-  writer : @filesystem.Writer
+  writer : @filesystem.Writer?
   name : String
   mut generation : @filesystem.NativeFileGeneration?
   mut cid : String?
@@ -71,12 +71,87 @@ pub fn begin_native_retained_task_file(
   }
   Ok({
     root,
-    writer,
+    writer: Some(writer),
     name: "output-" + occurrence,
     generation: None,
     cid: None,
     released: false,
     usable: Ref(true),
+    readers: Ref(0),
+    opened_readers: [],
+  })
+}
+
+///|
+/// Re-adopt one exact sealed file after its previous physical owner stopped.
+/// The trusted caller must retain the saved generation and original content
+/// CID under its existing custody and exclusive holder boundary. This checks
+/// physical identity only; it grants no Run, Source, borrow or start authority.
+/// It creates no writer, replacement file or capacity reservation. Complete
+/// content still needs the existing reader's finish before input admission.
+pub fn restore_native_retained_task_file(
+  root_path : String,
+  occurrence : String,
+  generation : @filesystem.NativeFileGeneration,
+  cid : String,
+  max_bytes : Int64,
+) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue] {
+  if max_bytes < 0L || generation.size < 0L || generation.size > max_bytes {
+    return Err(InvalidLimit)
+  }
+  if !valid_cid(cid) {
+    return Err(ContentMismatch)
+  }
+  let root = match @filesystem.open_root(root_path) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  let name = "output-" + occurrence
+  if !root.verify_generation(name, generation) {
+    return Err(Filesystem(@filesystem.GenerationMismatch))
+  }
+  Ok({
+    root,
+    writer: None,
+    name,
+    generation: Some(generation),
+    cid: Some(cid),
+    released: false,
+    usable: Ref(true),
+    readers: Ref(0),
+    opened_readers: [],
+  })
+}
+
+///|
+/// Reconstruct only cleanup responsibility from the original saved custody.
+/// Missing bytes can need a directory sync after an interrupted unlink; a
+/// replacement must never be adopted. This grants no read or execution use.
+pub fn restore_native_retained_task_file_cleanup(
+  root_path : String,
+  occurrence : String,
+  generation : @filesystem.NativeFileGeneration,
+  cid : String,
+  max_bytes : Int64,
+) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue] {
+  if max_bytes < 0L || generation.size < 0L || generation.size > max_bytes {
+    return Err(InvalidLimit)
+  }
+  if !valid_cid(cid) {
+    return Err(ContentMismatch)
+  }
+  let root = match @filesystem.open_root(root_path) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  Ok({
+    root,
+    writer: None,
+    name: "output-" + occurrence,
+    generation: Some(generation),
+    cid: Some(cid),
+    released: false,
+    usable: Ref(false),
     readers: Ref(0),
     opened_readers: [],
   })
@@ -90,7 +165,8 @@ pub fn NativeRetainedTaskFile::append(
   if self.generation is Some(_) || self.released || !self.usable.val {
     return Err(InvalidState)
   }
-  self.writer.append(@utf8.encode(batch)).map_err(issue => Filesystem(issue))
+  guard self.writer is Some(writer) else { return Err(InvalidState) }
+  writer.append(@utf8.encode(batch)).map_err(issue => Filesystem(issue))
 }
 
 ///|
@@ -104,10 +180,11 @@ pub fn NativeRetainedTaskFile::seal(
   if self.released || self.generation is Some(_) || !self.usable.val {
     return Err(InvalidState)
   }
-  if bytes < 0 || self.writer.written() != bytes.to_int64() || !valid_cid(cid) {
+  guard self.writer is Some(writer) else { return Err(InvalidState) }
+  if bytes < 0 || writer.written() != bytes.to_int64() || !valid_cid(cid) {
     return Err(ContentMismatch)
   }
-  let generation = match self.writer.seal(self.name) {
+  let generation = match writer.seal(self.name) {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
@@ -157,6 +234,35 @@ pub fn NativeRetainedTaskFile::sealed_content(
     return None
   }
   Some((cid, generation.size))
+}
+
+///|
+/// Physical custody needed for restoration, distinct from the content CID.
+/// The caller persists it with the original task responsibility; a filename
+/// alone must never authorize adopting or reclaiming a replacement file.
+pub fn NativeRetainedTaskFile::sealed_generation(
+  self : NativeRetainedTaskFile,
+) -> @filesystem.NativeFileGeneration? {
+  if self.available() {
+    self.generation
+  } else {
+    None
+  }
+}
+
+///|
+/// One availability check for the exact physical snapshot persisted alongside
+/// the original task observation. The caller still owns journal durability.
+pub fn NativeRetainedTaskFile::sealed_custody(
+  self : NativeRetainedTaskFile,
+) -> (String, @filesystem.NativeFileGeneration, String)? {
+  if self.available() &&
+    self.generation is Some(generation) &&
+    self.cid is Some(cid) {
+    Some((self.name[7:].to_owned(), generation, cid))
+  } else {
+    None
+  }
 }
 
 ///|
@@ -292,7 +398,16 @@ pub fn NativeRetainedTaskFile::release(
   if self.readers.val != 0 {
     return Err(InvalidState)
   }
-  match self.writer.cancel() {
+  let cleanup = match self.writer {
+    Some(writer) => writer.cancel()
+    None => {
+      guard self.generation is Some(generation) else {
+        return Err(InvalidState)
+      }
+      self.root.reclaim_generation(self.name, generation)
+    }
+  }
+  match cleanup {
     Ok(_) => ()
     Err(issue) => return Err(Filesystem(issue))
   }

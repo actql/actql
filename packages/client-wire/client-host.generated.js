@@ -2070,6 +2070,79 @@ const schemas = {
                         }
                       ]
                     },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "facts": {
                       "oneOf": [
                         {
@@ -2333,6 +2406,41 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -3064,6 +3172,79 @@ const schemas = {
                         }
                       ]
                     },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "facts": {
                       "oneOf": [
                         {
@@ -3327,6 +3508,41 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -4087,7 +4303,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
+            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4300,6 +4516,79 @@ const schemas = {
                           }
                         }
                       ]
+                    },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     },
                     "facts": {
                       "oneOf": [
@@ -4564,6 +4853,41 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -5295,6 +5619,79 @@ const schemas = {
                         }
                       ]
                     },
+                    "fixes": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "code",
+                          "applicability",
+                          "risk",
+                          "target",
+                          "edits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "code": {
+                            "const": "close_block_comment"
+                          },
+                          "applicability": {
+                            "const": "requires_review"
+                          },
+                          "risk": {
+                            "const": "syntax_structure"
+                          },
+                          "target": {
+                            "type": "object",
+                            "required": [
+                              "document_id",
+                              "revision"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "document_id": {
+                                "const": "source"
+                              },
+                              "revision": {
+                                "type": "string",
+                                "pattern": "^rev:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "edits": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 1,
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "start_byte",
+                                "end_byte",
+                                "replacement"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "start_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "end_byte": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 1048576
+                                },
+                                "replacement": {
+                                  "const": "*/"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     "facts": {
                       "oneOf": [
                         {
@@ -5558,6 +5955,41 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "required": [
+                          "fixes"
+                        ]
+                      },
+                      "then": {
+                        "required": [
+                          "facts",
+                          "location"
+                        ],
+                        "properties": {
+                          "code": {
+                            "const": "query_lexical_invalid"
+                          },
+                          "facts": {
+                            "properties": {
+                              "issue": {
+                                "const": "unterminated_comment"
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "precision": {
+                                "const": "exact"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -6336,7 +6768,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
+            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6382,7 +6814,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
+            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -7422,8 +7854,9 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6";
-export const checkOutcomeSchemaCid = "sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2";
+export const checkReasonSchemaCid = "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
+export const checkOutcomeSchemaCid = "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c";
+export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

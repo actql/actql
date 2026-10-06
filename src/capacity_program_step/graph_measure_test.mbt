@@ -54,7 +54,7 @@ fn keyed_measure_seed(name : String, count : Int) -> String {
 
 ///|
 fn keyed_measure_constructor(nodes : String, edges : String) -> String {
-  "{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
+  "{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
   nodes +
   "\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"" +
   edges +
@@ -85,7 +85,7 @@ fn keyed_repeated_measure_steps() -> String {
   })
   "[" +
   keyed_measure_seed("seed", 1) +
-  ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[" +
+  ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[" +
   node +
   "],\"edges\":[" +
   edges.join(",") +
@@ -134,7 +134,7 @@ test "keyed Graph measures bind distinct units and original inputs through MATCH
           (
             0,
             "nodes",
-            "actql.bound.property-graph-nodes",
+            "actql.bound.graph-construction-nodes",
             n.to_int64(),
             3,
             "actql.bound.match-nodes",
@@ -142,7 +142,7 @@ test "keyed Graph measures bind distinct units and original inputs through MATCH
           (
             1,
             "edges",
-            "actql.bound.property-graph-edges",
+            "actql.bound.graph-construction-edges",
             m.to_int64(),
             4,
             "actql.bound.match-edges",
@@ -321,8 +321,8 @@ test "imported keyed Graph measures retain their owner and exact input work" {
     ).unwrap()
     for
       (law, unit, count) in [
-        ("actql.bound.property-graph-nodes", "nodes", n.to_int64()),
-        ("actql.bound.property-graph-edges", "edges", n.to_int64()),
+        ("actql.bound.graph-construction-nodes", "nodes", n.to_int64()),
+        ("actql.bound.graph-construction-edges", "edges", n.to_int64()),
       ] {
       let app = @capacity_program_step.check_with_inputs(
         p,

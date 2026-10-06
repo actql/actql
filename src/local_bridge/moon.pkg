@@ -4,6 +4,7 @@ import {
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/bounded_tuple_sort" @sort,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/canonical_value" @canonical,
   "actql/actql/carrier_projection" @projection,
   "actql/actql/execution_relation" @execution,
   "actql/actql/lowering_relation" @lower,
@@ -15,9 +16,15 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
+  "actql/actql/value_contract" @contract,
   "actql/actql/bounded_graph_snapshot" @snapshot,
   "actql/actql/decode_core" @decode,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
 }
+
+import {
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+} for "wbtest"

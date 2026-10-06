@@ -3,7 +3,7 @@
 /// materialize or split an execution task.
 pub(all) enum DataExpression {
   RelationQuery(Query)
-  PropertyGraph(PropertyGraphConstructor)
+  Graph(GraphConstructor)
   NamedGraphCall(SgaCall)
 }
 
@@ -93,7 +93,7 @@ pub fn parse_query_script(
       }
       parser.symbol(61)
       let value = if parser.has("PROPERTY") {
-        DataExpression::PropertyGraph(parser.property_graph())
+        DataExpression::Graph(parser.graph())
       } else if sga_call_head(parser.peek()) {
         DataExpression::NamedGraphCall(parser.sga_call())
       } else {

@@ -20,7 +20,7 @@ test "keyed MATCH row laws bind original entity measures without discharging gua
         "[" +
         "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
         Array::makei(n, index => "{\"id\":" + index.to_string() + "}").join(",") +
-        " ]},\"as\":\"n\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"n\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]}}]},\"as\":\"g\"}," +
+        " ]},\"as\":\"n\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"n\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"n\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]}}]},\"as\":\"g\"}," +
         body +
         "]",
       )
@@ -35,7 +35,7 @@ test "keyed MATCH row laws bind original entity measures without discharging gua
         1,
         measure_proof(
           1,
-          "actql.bound.property-graph-" + input_unit,
+          "actql.bound.graph-construction-" + input_unit,
           input_unit,
           count,
           seed,
@@ -91,7 +91,7 @@ test "keyed MATCH row laws bind original entity measures without discharging gua
         1,
         measure_proof(
           1,
-          "actql.bound.property-graph-" + other_unit,
+          "actql.bound.graph-construction-" + other_unit,
           other_unit,
           count,
           seed,

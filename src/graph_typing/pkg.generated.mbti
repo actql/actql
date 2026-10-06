@@ -27,7 +27,11 @@ pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> R
 
 pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
 
+pub fn check_graph_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedGraphConstruction, Issue]
+
 pub fn check_graph_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDelta, Issue]
+
+pub fn check_graph_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedGraphEquality, Issue]
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
@@ -36,10 +40,6 @@ pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOpti
 pub fn check_normalize(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedNormalize, Issue]
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
-
-pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
-
-pub fn check_property_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedPropertyEquality, Issue]
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
@@ -66,6 +66,24 @@ pub fn components_pending_count(CheckedComponents) -> Int
 pub fn components_source(CheckedComponents) -> @decode_core.Cursor
 
 pub fn components_usage(CheckedComponents) -> Usage
+
+pub fn construction_edge_at(CheckedGraphConstruction, Int) -> GraphEdgeConstruction?
+
+pub fn construction_edge_count(CheckedGraphConstruction) -> Int
+
+pub fn construction_node_at(CheckedGraphConstruction, Int) -> GraphElementConstruction?
+
+pub fn construction_node_count(CheckedGraphConstruction) -> Int
+
+pub fn construction_output(CheckedGraphConstruction) -> @carrier_contract.Carrier
+
+pub fn construction_pending_at(CheckedGraphConstruction, Int) -> ConstructionObligation?
+
+pub fn construction_pending_count(CheckedGraphConstruction) -> Int
+
+pub fn construction_source(CheckedGraphConstruction) -> @decode_core.Cursor
+
+pub fn construction_usage(CheckedGraphConstruction) -> Usage
 
 pub fn degree_direction(CheckedDegree) -> Direction
 
@@ -109,6 +127,32 @@ pub fn graph_bounds_thresholds(CheckedGraphBounds) -> (Count?, Count?, Count?)
 
 pub fn graph_bounds_usage(CheckedGraphBounds) -> Usage
 
+pub fn graph_edge_definitions(GraphEdgeConstruction) -> (String, String)
+
+pub fn graph_edge_element(GraphEdgeConstruction) -> GraphElementConstruction
+
+pub fn graph_edge_keys(GraphEdgeConstruction) -> (Array[@relation_schema.FieldName], Array[@relation_schema.FieldName])
+
+pub fn graph_element_definition(GraphElementConstruction) -> @carrier_contract.GraphNodeDefinition
+
+pub fn graph_element_input(GraphElementConstruction) -> String
+
+pub fn graph_element_keys(GraphElementConstruction) -> Array[@relation_schema.FieldName]
+
+pub fn graph_element_properties(GraphElementConstruction) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
+
+pub fn graph_equality_input(CheckedGraphEquality, right~ : Bool) -> @carrier_contract.Carrier
+
+pub fn graph_equality_output(CheckedGraphEquality) -> @carrier_contract.Carrier
+
+pub fn graph_equality_pending_at(CheckedGraphEquality, Int) -> GraphEqualityObligation?
+
+pub fn graph_equality_pending_count(CheckedGraphEquality) -> Int
+
+pub fn graph_equality_source(CheckedGraphEquality) -> @decode_core.Cursor
+
+pub fn graph_equality_usage(CheckedGraphEquality) -> Usage
+
 pub fn hop_direction(TraversalHop) -> Direction
 
 pub fn hop_edge_fields(TraversalHop) -> @carrier_contract.Knowledge
@@ -129,6 +173,8 @@ pub fn hop_type_count(TraversalHop) -> Int?
 
 pub fn hop_types(TraversalHop) -> Array[String]?
 
+pub fn match_definition_index(CheckedMatch) -> Int
+
 pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
 
 pub fn match_entity(CheckedMatch) -> EntityKind
@@ -136,6 +182,12 @@ pub fn match_entity(CheckedMatch) -> EntityKind
 pub fn match_field_at(CheckedMatch, Int) -> @relation_schema.FieldName?
 
 pub fn match_field_count(CheckedMatch) -> Int
+
+pub fn match_graph_binding(CheckedMatch, String) -> @relation_schema.FieldName?
+
+pub fn match_graph_element_definition_name(CheckedMatch) -> String
+
+pub fn match_graph_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge
 
 pub fn match_id_at(CheckedMatch, Int) -> @value_admission.CheckedValue?
 
@@ -155,17 +207,9 @@ pub fn match_pending_count(CheckedMatch) -> Int
 
 pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
-pub fn match_property_binding(CheckedMatch, String) -> @relation_schema.FieldName?
-
-pub fn match_property_definition(CheckedMatch) -> Int
-
-pub fn match_property_definition_name(CheckedMatch) -> String
-
 pub fn match_property_label(CheckedMatch) -> String?
 
 pub fn match_property_schema(CheckedMatch) -> @carrier_contract.Knowledge
-
-pub fn match_property_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge
 
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
 
@@ -220,50 +264,6 @@ pub fn predicate_reference_field(CheckedPredicate, Int) -> @relation_schema.Fiel
 pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
-
-pub fn property_construction_edge_at(CheckedPropertyConstruction, Int) -> PropertyEdge?
-
-pub fn property_construction_edge_count(CheckedPropertyConstruction) -> Int
-
-pub fn property_construction_node_at(CheckedPropertyConstruction, Int) -> PropertyElement?
-
-pub fn property_construction_node_count(CheckedPropertyConstruction) -> Int
-
-pub fn property_construction_output(CheckedPropertyConstruction) -> @carrier_contract.Carrier
-
-pub fn property_construction_pending_at(CheckedPropertyConstruction, Int) -> ConstructionObligation?
-
-pub fn property_construction_pending_count(CheckedPropertyConstruction) -> Int
-
-pub fn property_construction_source(CheckedPropertyConstruction) -> @decode_core.Cursor
-
-pub fn property_construction_usage(CheckedPropertyConstruction) -> Usage
-
-pub fn property_edge_definitions(PropertyEdge) -> (String, String)
-
-pub fn property_edge_element(PropertyEdge) -> PropertyElement
-
-pub fn property_edge_keys(PropertyEdge) -> (Array[@relation_schema.FieldName], Array[@relation_schema.FieldName])
-
-pub fn property_element_definition(PropertyElement) -> @carrier_contract.PropertyNodeDefinition
-
-pub fn property_element_input(PropertyElement) -> String
-
-pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldName]
-
-pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
-
-pub fn property_equality_input(CheckedPropertyEquality, right~ : Bool) -> @carrier_contract.Carrier
-
-pub fn property_equality_output(CheckedPropertyEquality) -> @carrier_contract.Carrier
-
-pub fn property_equality_pending_at(CheckedPropertyEquality, Int) -> PropertyEqualityObligation?
-
-pub fn property_equality_pending_count(CheckedPropertyEquality) -> Int
-
-pub fn property_equality_source(CheckedPropertyEquality) -> @decode_core.Cursor
-
-pub fn property_equality_usage(CheckedPropertyEquality) -> Usage
 
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
@@ -321,6 +321,8 @@ pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
 
+pub fn traverse_graph_path_mode(CheckedTraverse) -> GraphPathMode
+
 pub fn traverse_hop_at(CheckedTraverse, Int) -> TraversalHop?
 
 pub fn traverse_hop_count(CheckedTraverse) -> Int
@@ -338,8 +340,6 @@ pub fn traverse_pending(CheckedTraverse) -> Array[TraverseObligation]
 pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
-
-pub fn traverse_property_path_mode(CheckedTraverse) -> PropertyPathMode
 
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
@@ -384,6 +384,10 @@ type CheckedDelta
 
 type CheckedGraphBounds
 
+type CheckedGraphConstruction
+
+type CheckedGraphEquality
+
 type CheckedMatch
 
 type CheckedMeanOptions
@@ -393,10 +397,6 @@ type CheckedNormalize
 type CheckedPathContract
 
 type CheckedPredicate
-
-type CheckedPropertyConstruction
-
-type CheckedPropertyEquality
 
 type CheckedSelector
 
@@ -427,7 +427,7 @@ pub(all) enum ConstructionObligation {
   RejectDuplicateDefinitionKeys
   ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
-  ResolvePropertyGraphProfile
+  ResolveGraphProfile
 } derive(Eq, @debug.Debug)
 
 pub enum Count {
@@ -465,6 +465,22 @@ pub(all) enum Direction {
 pub(all) enum EntityKind {
   Nodes
   Edges
+} derive(Eq, @debug.Debug)
+
+type GraphEdgeConstruction
+
+type GraphElementConstruction
+
+pub(all) enum GraphEqualityObligation {
+  AdmitBothGraphs
+  CompareCompleteGraphValues
+  ResolveGraphEqualityResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphPathMode {
+  Walk
+  Trail
+  Acyclic
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -547,7 +563,7 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolvePropertyGraphMatchProfile
+  ResolveGraphMatchProfile
 } derive(Eq, @debug.Debug)
 
 pub struct MeanProperty {
@@ -605,22 +621,6 @@ pub(all) struct PredicateUsage {
   tokens : Int
 }
 
-type PropertyEdge
-
-type PropertyElement
-
-pub(all) enum PropertyEqualityObligation {
-  AdmitBothPropertyGraphs
-  CompareCompleteGraphValues
-  ResolvePropertyEqualityResources
-} derive(Eq, @debug.Debug)
-
-pub(all) enum PropertyPathMode {
-  Walk
-  Trail
-  Acyclic
-} derive(Eq, @debug.Debug)
-
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @relation_schema.FieldName)
@@ -660,14 +660,14 @@ pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
   FilterTraversalLabels
-  EnumeratePropertyPaths
+  EnumerateGraphPaths
   DeduplicateExactPaths
   MinimumEligibleNodeDepth
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolvePropertyGraphTraversalProfile
+  ResolveGraphTraversalProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) enum UnionObligation {

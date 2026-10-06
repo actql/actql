@@ -9,7 +9,7 @@ test "DATA script shares original query and constructor source positions" {
   assert_true(nodes.value is RelationQuery(_))
   let graph = data_declaration_at(script, 1).unwrap()
   match graph.value {
-    PropertyGraph(mapping) => {
+    Graph(mapping) => {
       assert_eq(mapping.nodes[0].producer, [nodes.name])
       let span = @origin.span(
         @origin.range(script_document(script), mapping.start, mapping.end).unwrap(),

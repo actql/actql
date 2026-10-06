@@ -22,10 +22,10 @@ The authority for operation meaning is [Graph operations](../spec/language.md#gr
 
 The [standard-profile ledger](frontend-standard-profiles.md) distinguishes these
 ActQL operations from GQL pattern syntax and SQL/PGQ-derived table mapping.
-The adopted Property Graph constructor requires independently keyed edges
+The adopted Graph constructor requires independently keyed edges
 and graph-owned node/edge label sets. The operation inventory below refers to
 the historical simple-Graph contract; that implementation is retired, not a
-fallback for the sole Property Graph model. It is not current consumer
+fallback for the sole Graph model. It is not current consumer
 acceptance evidence. Adapt laws and consumers together, and reject unsupported
 operations instead of collapsing parallel edges.
 
@@ -99,8 +99,8 @@ operation-level evidence. In the historical last column, Host refers
 to [standard-host.test.mjs](../../adapters/connectors/duckdb/node/test/standard-host.test.mjs)
 and integration referred to `local_carrier_graph_wbtest.mbt`, now available
 only in Git history. Current constructor and MATCH/TRAIL resource evidence
-uses [Property Graph construction](../../src/query_integration/property_graph_construction_wbtest.mbt)
-and [TRAIL resources](../../src/query_integration/property_graph_trail_resource_wbtest.mbt).
+uses [Graph construction](../../src/query_integration/graph_construction_wbtest.mbt)
+and [TRAIL resources](../../src/query_integration/graph_trail_resource_wbtest.mbt).
 Historical successes do not establish current execution or packed acceptance
 of the new named source.
 

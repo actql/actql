@@ -63,7 +63,6 @@
     "pool_vectors": "reduce",
     "merge_rankings": "add",
     "graph": "carrier_specific",
-    "property_graph": "carrier_specific",
     "node_rows": "carrier_specific",
     "edge_rows": "carrier_specific",
     "to_events": "preserve",

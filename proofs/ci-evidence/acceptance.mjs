@@ -13,6 +13,7 @@ import {readActionRuntimes} from './isolated-runtime.mjs';
 import {resolveMainBaseline, fullCheckpointJobs, validateMainBaseline, isMainEvidenceEvent} from '../../scripts/ci-main-base.mjs';
 import {gateJobs} from '../../scripts/ci-targets.mjs';
 import {catalogPath, validateCatalog, compareCatalogs} from './actions.mjs';
+import {checkCostObservation} from './costs.mjs';
 
 export const acceptanceVersion = 'actql-verification-family-acceptance/0.1';
 export const acceptanceName = context => `session-applicability-${context.runId}-${context.runAttempt}-${context.candidateRevision}`;
@@ -52,6 +53,8 @@ export async function checkAcceptance({report, catalog, sourceZip, sourceArtifac
   assert.equal(report.version, acceptanceVersion);
   assert(same(report.context, context), 'Wrong acceptance owner/context');
   assert(same(report.sourceArtifact, sourceArtifact), 'Acceptance substituted the source archive');
+  assert.equal(report.result.sourceArtifactBytes, sourceZip.compressedBytes, 'Wrong accepted source archive byte observation');
+  assert(positive(sourceZip.compressedBytes), 'Missing accepted source archive byte observation');
   assert(isMainEvidenceEvent(report.event, report.branch), 'Acceptance is not from protected main integration');
   assert.equal(context.candidateRevision, context.runHeadRevision);
   exact(report.owner, ['runId', 'runAttempt', 'jobId']);
@@ -65,10 +68,11 @@ export async function checkAcceptance({report, catalog, sourceZip, sourceArtifac
   assert.equal(report.result.catalogDigest, certificate.catalogDigest);
   assert.deepEqual(report.result.requiredActions, catalog.actions.map(action => action.id));
   assert.equal(report.result.applications.length, catalog.actions.length, 'Incomplete accepted family');
-  const required = [], applications = [], receiptDigests = [];
+  const required = [], applications = [], receiptDigests = [], receipts = [];
   let mutationInputs;
   for (const [index, action] of catalog.actions.entries()) {
     const receiptBytes = await sourceZip.read(`receipts/${action.id}.json`), receipt = parseReceipt(receiptBytes);
+    receipts.push(receipt);
     assert(same(receipt.action, action), 'Wrong accepted action/target/scope');
     assert.equal(receipt.origin.testedRevision, context.candidateRevision);
     assert.equal(receipt.origin.runId, context.runId); assert.equal(receipt.origin.runAttempt, context.runAttempt);
@@ -95,6 +99,17 @@ export async function checkAcceptance({report, catalog, sourceZip, sourceArtifac
   assert.equal(certificate.comparisonObservationsDigest, hash(observationBytes));
   assert(same(report.observations, JSON.parse(observationBytes)), 'Wrong accepted scientific observations');
   const comparison = JSON.parse(await sourceZip.read('comparison-plan.json'));
+  const acquisitionBytes = await sourceZip.read('acquisition-plan.json'), acquisition = JSON.parse(acquisitionBytes);
+  assert.equal(certificate.acquisitionDigest, hash(acquisitionBytes), 'Wrong accepted acquisition cost binding');
+  const state = JSON.parse(await sourceZip.read('context.json'));
+  assert(same(state.context, context), 'Wrong accepted cost context');
+  assert(same(report.result.acquisition, acquisition), 'Wrong accepted acquisition costs');
+  assert(acquisition.actions.every(entry => entry.acquisition === 'fresh'), 'Main original must execute every cost observation fresh');
+  assert(same(report.result.costObservation, checkCostObservation({
+    collectionBytes: await sourceZip.read('collection-costs.json'), certificate, state, catalog,
+    acquisition, comparison, receipts,
+    isolatedExecution: JSON.parse(await sourceZip.read('isolated-execution.json')),
+  })), 'Wrong accepted cost correspondence');
   assert(same(comparison.context, context) && comparison.reuseAuthorized === false);
   assert(same(report.result.comparison.baseline, comparison.baseline));
   assert(same(report.result.comparison.recordedStatuses, comparison.actions.map(entry => ({actionId: entry.actionId, status: entry.status}))));

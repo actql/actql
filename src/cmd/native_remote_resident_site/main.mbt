@@ -92,6 +92,7 @@ fn source_configuration(
     Err(_) => stop("failed to load configured DuckDB library")
   }
   Some({
+    retained_output_root: optional(matches, "retained-input-root"),
     source_ref: required(matches, "source-ref"),
     source_contract_cid: required(matches, "source-contract-cid"),
     library,
@@ -718,6 +719,7 @@ priv struct RunningHolder {
   attempt : String
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
+  mut reported_revision : Int?
 }
 
 ///|
@@ -1195,6 +1197,67 @@ fn accepted_request(
 }
 
 ///|
+/// Select the original completed producer from the existing saved envelope
+/// and checked retained intent. This only joins the existing waiting queue;
+/// the holder must acquire and recheck the physical slot before restoration.
+/// A status-only receiver query never calls this operation.
+fn queue_completed_retained_holder(
+  journal : @journal.Journal,
+  admission : @resident_host.ResidentRunAdmission,
+  delegation : @resident.ResidentSiteDelegation,
+  generation : Int,
+  queue : @resident.ResidentAcceptedQueue,
+  intent : @remote.RemoteRetainedInputIntent,
+  at : String,
+) -> Bool {
+  let request = @remote.remote_retained_input_intent_request(intent)
+  if @resident.check_resident_dispatch_delegation(
+      delegation, request, generation,
+    )
+    is Err(_) ||
+    !(journal.cancellation_requested(request) is Ok(false)) {
+    return false
+  }
+  // This checks the original Run, checked edge, Source, producer completion
+  // and exact intent against the saved journal, without physical acquisition.
+  if @resident_host.prepare_resident_retained_producer_context(
+      journal, admission, intent, at,
+    )
+    is Err(_) {
+    return false
+  }
+  let saved = match journal.observation(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  guard @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+    @journal.recovered_site_dispatch_measurement(saved) is Some(measurement) &&
+    @journal.recovered_site_dispatch_file_custody(saved) is Some(_) else {
+    return false
+  }
+  if @remote.restore_remote_runtime_completed_custody(
+      @journal.recovered_site_dispatch_record(saved),
+      evidence,
+      subject,
+      measurement,
+    )
+    is Err(_) {
+    return false
+  }
+  let attempt = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  // Do not let another queued start hide unaccounted completed custody. The
+  // existing queue remains the only dispatch selection owner.
+  if queue.length() > 0 && !queue.contains(attempt) {
+    return false
+  }
+  queue.reserve(attempt) is Ok(_)
+}
+
+///|
 fn replay_output_reports(
   environment : ControlEnvironment,
   client : @http.Client,
@@ -1487,7 +1550,48 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               unsettled.push(current)
             }
           }
-          Ok(None) => ()
+          Ok(None) =>
+            if @env.now() >= current.next_report_ms {
+              // A live producer keeps its input until the consumer finishes.
+              // Report its durable progress without treating child exit,
+              // execution settlement, or resource release as equivalent facts.
+              current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+              match fresh_journal(environment) {
+                Some(journal) => {
+                  match journal.require(current.request) {
+                    Ok(record) =>
+                      if current.reported_revision !=
+                        Some(@remote.dispatch_record_revision(record)) {
+                        match
+                          @client.acknowledge_status(
+                            journal,
+                            client,
+                            observation_url,
+                            current.request,
+                          ) {
+                          Ok(Some(observed)) =>
+                            current.reported_revision = Some(
+                              @remote.dispatch_record_revision(observed),
+                            )
+                          Ok(None) => ()
+                          Err(issue) =>
+                            report("observation-pending", [
+                              ("attempt", current.attempt),
+                              ("reason", client_code(issue)),
+                            ])
+                        }
+                      }
+                    Err(_) => ()
+                  }
+                  ignore(journal.close())
+                }
+                None =>
+                  report("observation-pending", [
+                    ("attempt", current.attempt),
+                    ("reason", "journal-open"),
+                  ])
+              }
+            }
           Err(_) => ()
         }
       None => ()
@@ -1593,6 +1697,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                         attempt,
                         request,
                         next_report_ms: 0,
+                        reported_revision: None,
                       })
                       report("holder-started", [
                         ("attempt", attempt),
@@ -1844,7 +1949,21 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             } else {
               report("retained-plan-unavailable", [("request_cid", identity)])
             }
-          _ => report("retained-plan-unavailable", [("request_cid", identity)])
+          _ => {
+            if holder is None &&
+              queue_completed_retained_holder(
+                journal,
+                admission,
+                site_delegation,
+                generation,
+                queue,
+                intent,
+                start_timestamp(matches),
+              ) {
+              report("retained-holder-queued", [("request_cid", identity)])
+            }
+            report("retained-plan-unavailable", [("request_cid", identity)])
+          }
         }
       }
       Ok(Some(@remote.RetainedTransfer(input))) => {
@@ -1867,8 +1986,45 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                 current.channel.send("retained-transfer " + body).to_string(),
               ),
             ])
-          _ =>
+          _ => {
+            if holder is None &&
+              queue_completed_retained_holder(
+                journal,
+                admission,
+                site_delegation,
+                generation,
+                queue,
+                intent,
+                start_timestamp(matches),
+              ) {
+              report("retained-holder-queued", [("request_cid", identity)])
+            }
             report("retained-transfer-unavailable", [("request_cid", identity)])
+          }
+        }
+      }
+      Ok(Some(@remote.RetainedCurrent(query))) => {
+        backoff_ms = 0
+        let request = @remote.remote_retained_input_current_request(query)
+        let identity = @remote.dispatch_request_identity(request)
+        let body = @remote.remote_poll_retained_input_current_json(
+          @remote.remote_retained_input_current_plan(query),
+          @remote.remote_retained_input_current_query_identity(query),
+        )
+        match (holder, body) {
+          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+              current.request,
+            ) ==
+            identity =>
+            report("retained-current-relayed", [
+              ("request_cid", identity),
+              (
+                "sent",
+                current.channel.send("retained-current " + body).to_string(),
+              ),
+            ])
+          _ =>
+            report("retained-current-unavailable", [("request_cid", identity)])
         }
       }
       Ok(Some(@remote.Plan(output))) | Ok(Some(@remote.Output(output))) => {
@@ -2417,6 +2573,11 @@ fn serve_holder_output(
                       claimant,
                       current_time,
                       executor_entry,
+                      borrow_observe=() => {
+                        holder_checkpoint(resources)(
+                          "retained-consumer-borrowed",
+                        )
+                      },
                     ) {
                     Ok(completed) => {
                       consumer_process_hold.val = None
@@ -2537,6 +2698,57 @@ fn serve_holder_output(
               ])
             _ => report("holder-input-invalid", [])
           }
+        } else if line.has_prefix("retained-current ") {
+          let envelope = line.unsafe_substring(start=17, end=line.length())
+          match
+            (
+              @remote.admit_remote_poll_retained_input_current_json(envelope),
+              resources.retained_delegation,
+              retained_handoff.val,
+            ) {
+            (Ok(query), Some(_), Some((saved, owner))) => {
+              if @remote.dispatch_request_identity(
+                  @remote.remote_retained_input_current_request(query),
+                ) !=
+                identity ||
+                @remote.remote_retained_input_plan_identity(
+                  @remote.remote_retained_input_current_plan(query),
+                ) !=
+                saved {
+                report("retained-current-failed", [
+                  ("reason", "foreign-handoff"),
+                ])
+                continue
+              }
+              // Read the existing receiver only. A query never advances a
+              // partial handoff, reserves capacity or starts a consumer.
+              match owner.current_reply(query) {
+                Ok(reply) =>
+                  match
+                    @client.acknowledge_retained_input_current(
+                      control, observation_url, reply,
+                    ) {
+                    Ok(_) =>
+                      report("retained-current-reported", [
+                        ("request_cid", identity),
+                      ])
+                    Err(issue) =>
+                      report("retained-current-unreported", [
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                Err(issue) =>
+                  report("retained-current-pending", [
+                    ("reason", retained_transfer_code(issue)),
+                  ])
+              }
+            }
+            (Ok(_), _, _) =>
+              report("retained-current-pending", [
+                ("reason", "receiver-owner-unavailable"),
+              ])
+            _ => report("holder-input-invalid", [])
+          }
         } else if line.has_prefix("retained-transfer ") {
           let envelope = line.unsafe_substring(start=18, end=line.length())
           match
@@ -2646,6 +2858,9 @@ fn serve_holder_output(
                 }
               }
               if completed {
+                // Durable receiver receipt precedes this interruption point;
+                // neither a result report nor a consumer start is implied.
+                holder_checkpoint(resources)("retained-receiver-committed")
                 match handoff.result() {
                   Ok(result) =>
                     match
@@ -3056,9 +3271,39 @@ fn run_holder(
     Err(_) => stop("executor slot is not held by this holder")
   }
   let claimant = required(holder, "claimant")
+  let attempt = required(holder, "attempt")
+  if slot.verify_current_hold() != Ok(()) {
+    stop("completed holder current slot unavailable")
+  }
+  let inspection = match fresh_journal(open_control_environment(matches)) {
+    Some(value) => value
+    None => stop("holder saved journal unavailable")
+  }
+  let saved_claimant = @resident_host.resident_completed_holder_claimant(
+    inspection,
+    run_admission(matches),
+    delegation(matches, budget(matches)),
+    required_int(matches, "site-generation"),
+    attempt,
+    start_timestamp(matches),
+  )
+  if !inspection.close() {
+    stop("holder saved journal close pending")
+  }
+  let original_claimant = match saved_claimant {
+    Ok(Some(value)) => value
+    Ok(None) => claimant
+    Err(issue) => {
+      report("holder-restoration-refused", [("reason", host_code(issue))])
+      stop("holder saved completion unavailable")
+    }
+  }
   let environment = open_site_environment(
     matches,
-    "runtime-process:resident-holder:" + claimant,
+    // The actual exclusive slot confirms the old process has stopped. The
+    // journal selects its exact holding; retain is idempotent and Runtime
+    // returns this holding only after its physical cleanup completes.
+    "runtime-process:resident-holder:" + original_claimant,
   )
   // The installed runtime must be the one the Site delegates.
   let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
@@ -3196,36 +3441,79 @@ fn run_holder(
   }
   holder_checkpoint(resources)("before-start")
   let start_checks = [0]
-  let result = @resident_host.execute_resident_attempt(
-    environment.journal,
-    execution,
-    run_admission(matches),
-    required(holder, "attempt"),
-    claimant,
-    // Read the holder clock at each authority check, not before rebuilding
-    // materials/claiming. An invalid clock is fail-closed, without throwing
-    // past the runtime's cleanup owner.
-    () => {
-      start_checks[0] += 1
-      if start_checks[0] == 2 {
-        // This point is reached by the runtime's mandatory barrier after
-        // claim/Running persistence, not by the executor evidence observer.
-        holder_checkpoint(resources)("before-physical-start")
+  let saved_completion = match environment.journal.dispatch_envelope(attempt) {
+    Ok(Some(body)) =>
+      match @remote.admit_remote_poll_dispatch_json(body) {
+        Ok(dispatch) =>
+          match
+            environment.journal.require(
+              @remote.remote_poll_dispatch_request(dispatch),
+            ) {
+            Ok(record) => @remote.dispatch_record_state_codes(record)[0] == 3
+            Err(_) => false
+          }
+        Err(_) => false
       }
-      start_timestamp(matches)
-    },
-    observer,
-  )
+    _ => false
+  }
+  let result = if saved_completion {
+    restore_holder_attempt(matches, environment, execution, slot, attempt)
+  } else {
+    @resident_host.execute_resident_attempt(
+      environment.journal,
+      execution,
+      run_admission(matches),
+      attempt,
+      claimant,
+      // Read the holder clock at each authority check, not before rebuilding
+      // materials/claiming. An invalid clock is fail-closed, without throwing
+      // past the runtime's cleanup owner.
+      () => {
+        start_checks[0] += 1
+        if start_checks[0] == 2 {
+          // This point is reached by the runtime's mandatory barrier after
+          // claim/Running persistence, not by the executor evidence observer.
+          holder_checkpoint(resources)("before-physical-start")
+        }
+        start_timestamp(matches)
+      },
+      observer,
+      source_observe=event => {
+        if event is @resident_host.AcquisitionEntered {
+          // A physical acquisition boundary, separate from executor entry
+          // and the later durable successful Source observation.
+          report("source-acquisition-entered", [("attempt", attempt)])
+        }
+        true
+      },
+    )
+  }
   let code = match result {
     Ok(executed) => {
-      report("executed", [
+      report(if saved_completion { "holder-restored" } else { "executed" }, [
         ("request_cid", executed.completion.dispatch_request_cid),
         ("revision", executed.completion.revision.to_string()),
       ])
+      if !saved_completion && executed.result_definition_cid is None {
+        // Deterministic interruption after the original completed producer is
+        // durable. A restored holder never repeats this acquisition boundary.
+        holder_checkpoint(resources)("completed-producer")
+      }
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
       serve_holder_output(
-        resources,
+        // These deterministic interruption points target the original holder.
+        // The reconstructed holder must resume the same custody, not be
+        // repeatedly killed at the same historical boundary.
+        if saved_completion &&
+          (
+            resources.kill_at == "retained-receiver-committed" ||
+            resources.kill_at == "retained-consumer-borrowed"
+          ) {
+          { ..resources, kill_at: "none", pause_at: "none", }
+        } else {
+          resources
+        },
         environment,
         executed,
         run_admission(matches),
@@ -3281,6 +3569,53 @@ fn run_holder(
   ignore(slot.close())
   if code != 0 {
     stop("execute exited with " + code.to_string())
+  }
+}
+
+///|
+/// A recreated holder reuses its saved completion, never the start path.
+/// Keep one Runtime across pending acquisition; only confirmed cleanup can
+/// discharge it. This loop does not release the exclusive slot or admit work.
+fn restore_holder_attempt(
+  matches : @argparse.Matches,
+  environment : SiteEnvironment,
+  execution : @resident_host.ResidentExecution,
+  slot : @slot.NativeExecutorSlot,
+  attempt : String,
+) -> Result[
+  @resident_host.ResidentExecuted,
+  @resident_host.ResidentExecutionFailure,
+] raise CommandStop {
+  let owner = match
+    @resident_host.prepare_resident_completed_attempt(
+      environment.journal,
+      execution,
+      run_admission(matches),
+      delegation(matches, budget(matches)),
+      attempt,
+      () => start_timestamp(matches),
+      () => slot.verify_current_hold() == Ok(()),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut wait_ms = 50
+  while true {
+    match owner.advance() {
+      @resident_host.ResidentCompletedReady(value) => return Ok(value)
+      @resident_host.ResidentCompletedRefused(issue) =>
+        return Err({ issue, pending_runtime: Some(owner.runtime()), })
+      @resident_host.ResidentCompletedPending(issue) => {
+        report("holder-restoration-pending", [("reason", host_code(issue))])
+        if owner.runtime().cleanup_pending() {
+          return Err({ issue, pending_runtime: Some(owner.runtime()), })
+        }
+        @slot.native_wait_milliseconds(wait_ms)
+        wait_ms = if wait_ms * 2 > 5000 { 5000 } else { wait_ms * 2 }
+      }
+    }
+  } nobreak {
+    abort("restoration loop ended without an ownership result")
   }
 }
 

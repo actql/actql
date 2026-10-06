@@ -8,8 +8,8 @@ const number = {type: 'number', nullable: false};
 const labels = {type: 'array', nullable: false, items: {type: 'string', nullable: false}};
 export async function graphDeltaSourceControls(fixtureRoot = new URL('./', import.meta.url)) {
   const {graphDeltaJsonSuccesses} = await import(new URL('graph-delta-json-source.mjs', fixtureRoot));
-  const {deltaApplicationScenario} = await import(new URL('property-graph-delta-application.mjs', fixtureRoot));
-  const presence = JSON.parse(await readFile(new URL('property-graph-presence.program.json', fixtureRoot), 'utf8'));
+  const {deltaApplicationScenario} = await import(new URL('graph-delta-application.mjs', fixtureRoot));
+  const presence = JSON.parse(await readFile(new URL('graph-presence.program.json', fixtureRoot), 'utf8'));
   const controls = ['node_rows', 'edge_rows'].map(projection => {
     const {document, expected, fields} = deltaApplicationScenario(presence, projection);
     const contracts = {id: json, src: json, dst: json, labels,

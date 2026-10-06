@@ -398,7 +398,7 @@
         },
         {
           "as": "aql_data_21",
-          "property_graph": {
+          "graph": {
             "edges": [
               {
                 "from": "aql_data_9",
@@ -457,7 +457,7 @@
                 "name": "N"
               }
             ],
-            "version": "actql-property-graph-constructor/0.1"
+            "version": "actql-graph-constructor/0.1"
           }
         },
         {

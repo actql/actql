@@ -81,9 +81,12 @@ pub fn append_workspace_slots(
 }
 
 ///|
+/// The caller must declare scratch that stays live alongside this cursor.
+/// Zero is appropriate only when no enclosing kernel scratch shares this limit.
 pub fn start_append(
   builder : Builder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
+  external_workspace_slots~ : Int,
 ) -> Result[AppendCursor, Issue] {
   if !builder.open || !builder.owns_private || builder.pending_append is Some(_) {
     return Err(Closed)
@@ -92,16 +95,24 @@ pub fn start_append(
     builder.open = false
     return Err(FieldLimit)
   }
+  if external_workspace_slots < 0 {
+    return Err(InvalidLimits)
+  }
   guard append_workspace_slots(
       fields.length(),
       builder.identities.length(),
       builder.limits.max_value_depth,
     )
-    is Some(workspace) &&
-    workspace <= builder.limits.max_workspace_slots - builder.workspace_slots else {
+    is Some(internal) &&
+    external_workspace_slots <= 2147483647 - internal &&
+    internal + external_workspace_slots <=
+    builder.limits.max_workspace_slots - builder.workspace_slots else {
     builder.open = false
     return Err(WorkspaceLimit)
   }
+  // Keep caller-owned scratch in the same reservation as deeper contract and
+  // identity-comparison continuations. It is not retained output capacity.
+  let workspace = internal + external_workspace_slots
   let cursor : AppendCursor = {
     builder,
     width: fields.length(),

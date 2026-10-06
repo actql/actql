@@ -306,7 +306,7 @@ pub fn collect_expression_slots(
         | GraphUnion(..)
         | GraphSubtraction(..)
         | GraphComponents(_)
-        | PropertyGraphConstruction(..)
+        | GraphConstruction(..)
         | Vector(_)
         | Nearest(..)
         | Pool(_)

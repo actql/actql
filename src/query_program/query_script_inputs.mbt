@@ -82,7 +82,7 @@ fn unshared_script_sources(
   for index in 0..<@query.data_declaration_count(script) {
     match @query.data_declaration_at(script, index).unwrap().value {
       RelationQuery(query) => pending.push(query)
-      PropertyGraph(mapping) =>
+      Graph(mapping) =>
         for
           path in mapping.nodes.map(node => node.producer) +
           mapping.edges.map(edge => edge.producer) {

@@ -221,7 +221,7 @@ pub fn collect_parameter_slots(
         | GraphDelta(..)
         | GraphUnion(..)
         | GraphSubtraction(..)
-        | PropertyGraphConstruction(..)
+        | GraphConstruction(..)
         | Nearest(..)
         | Pool(_)
         | Ranking(_)

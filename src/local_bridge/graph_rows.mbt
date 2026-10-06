@@ -9,13 +9,17 @@ priv enum GraphRowsRead {
 ///|
 priv struct GraphRowsSource {
   source : GraphRowsRead
-  definition : @carrier.PropertyGraphDefinition
+  definition : @carrier.GraphDefinition
   selected_definition : String?
   selected_label : String?
   mut selection_label_index : Int
+  mut selection_name_offset : Int
   edge : Bool
   limits : @execution.ValueLimits
-  mut label_values : Array[@value.Value]
+  mut label_builder : @value.ArrayBuilder?
+  mut label_recheck : @value.RecheckCursor?
+  mut label_workspace : Int
+  mut label_reserved : Int
   mut label_index : Int
   mut label_bytes : Int
   order_keys : Array[Array[String]]
@@ -72,7 +76,7 @@ fn graph_rows_count(source : GraphRowsSource) -> Int? {
 fn graph_row_definition(
   source : GraphRowsSource,
   record : Int,
-) -> @carrier.PropertyNodeDefinition? {
+) -> @carrier.GraphNodeDefinition? {
   let index = match source.source {
     StoredGraph(storage) =>
       if source.edge {
@@ -89,11 +93,11 @@ fn graph_row_definition(
   }
   index.bind(index => {
     if source.edge {
-      @carrier.property_graph_edge_at(source.definition, index).map(
-        @carrier.property_edge_element,
+      @carrier.graph_edge_at(source.definition, index).map(
+        @carrier.graph_edge_element,
       )
     } else {
-      @carrier.property_graph_node_at(source.definition, index)
+      @carrier.graph_node_at(source.definition, index)
     }
   })
 }
@@ -106,7 +110,7 @@ priv enum GraphRowSelection {
 }
 
 ///|
-/// Each call inspects at most one admitted label and consumes one control work.
+/// Each call inspects one fragment of one admitted selector candidate.
 fn graph_row_selected(
   source : GraphRowsSource,
   record : Int,
@@ -115,37 +119,57 @@ fn graph_row_selected(
     return None
   }
   graph_row_definition(source, record).map(definition => {
-    if source.selected_definition is Some(name) {
-      if @carrier.property_definition_name(definition) == name {
-        SelectedRow
-      } else {
-        SkipRow
-      }
-    } else if source.selected_label is Some(label) {
-      let count = @carrier.property_definition_label_count(definition)
-      if source.selection_label_index >= count {
-        source.selection_label_index = 0
-        SkipRow
-      } else {
-        let (candidate, _) = @carrier.property_definition_label_at(
-          definition,
-          source.selection_label_index,
-        ).unwrap()
-        source.selection_label_index += 1
-        if @carrier.property_name_identity(candidate) == label {
-          source.selection_label_index = 0
-          SelectedRow
-        } else if source.selection_label_index == count {
-          source.selection_label_index = 0
-          SkipRow
-        } else {
-          PendingSelection
-        }
-      }
-    } else {
-      SelectedRow
-    }
+    let (result, index, offset) = graph_definition_selected(
+      definition,
+      source.selected_definition,
+      source.selected_label,
+      source.selection_label_index,
+      source.selection_name_offset,
+    )
+    source.selection_label_index = index
+    source.selection_name_offset = offset
+    result
   })
+}
+
+///|
+fn graph_definition_selected(
+  definition : @carrier.GraphNodeDefinition,
+  selected_definition : String?,
+  selected_label : String?,
+  index : Int,
+  offset : Int,
+) -> (GraphRowSelection, Int, Int) {
+  let (compared, next, _) = if selected_definition is Some(name) {
+    @canonical.compare_utf16_fragment(
+      @carrier.graph_element_definition_name(definition),
+      name,
+      offset,
+      64,
+    )
+  } else if selected_label is Some(label) {
+    let count = @carrier.graph_element_definition_label_count(definition)
+    if index >= count {
+      return (SkipRow, 0, 0)
+    }
+    let (candidate, _) = @carrier.graph_element_definition_label_at(
+      definition, index,
+    ).unwrap()
+    @carrier.compare_property_name_fragment(candidate, label, offset, 64)
+  } else {
+    return (SelectedRow, 0, 0)
+  }
+  match compared {
+    None => (PendingSelection, index, next)
+    Some(0) => (SelectedRow, 0, 0)
+    Some(_) =>
+      if selected_definition is Some(_) ||
+        index + 1 == @carrier.graph_element_definition_label_count(definition) {
+        (SkipRow, 0, 0)
+      } else {
+        (PendingSelection, index + 1, 0)
+      }
+  }
 }
 
 ///|
@@ -155,8 +179,10 @@ fn graph_rows_field_count(source : GraphRowsSource, record : Int) -> Int? {
   .bind(record => graph_row_definition(source, record))
   .map(definition => {
     (if source.edge { 4 } else { 2 }) +
-    @carrier.property_definition_key_count(definition) +
-    @carrier.field_count(@carrier.property_definition_properties(definition))
+    @carrier.graph_element_definition_key_count(definition) +
+    @carrier.field_count(
+      @carrier.graph_element_definition_properties(definition),
+    )
   })
 }
 
@@ -199,7 +225,7 @@ fn graph_rows_field(
   } else {
     ["id", "labels"]
   }
-  let key_count = @carrier.property_definition_key_count(definition)
+  let key_count = @carrier.graph_element_definition_key_count(definition)
   let (name, cell) = if field < roles.length() {
     guard roles.get(field) is Some(name) else {
       return Err(InvalidRecord(record))
@@ -224,25 +250,57 @@ fn graph_rows_field(
         )
       })
     } else {
-      let count = @carrier.property_definition_label_count(definition)
+      let count = @carrier.graph_element_definition_label_count(definition)
       if count >= source.limits.max_nodes {
         return Err(InvalidRecord(record))
       }
+      // Reserve the complete provisional array before growing it. Borrowed
+      // Text recheck frames use the existing depth/custody reservation; the
+      // sealed array keeps its reservation until the row is committed. Its
+      // private elements cannot overlap the row cursor's own reservation.
+      if source.label_builder is None {
+        if count > source.label_workspace {
+          return Err(RelationOutput(@execution.CaptureLimit))
+        }
+        source.label_builder = @value.prepare_array_value(count)
+        source.label_reserved = count
+      }
+      guard source.label_builder is Some(builder) else {
+        return Err(InvalidRecord(record))
+      }
       if source.label_index < count {
-        let (label, _) = @carrier.property_definition_label_at(
-          definition,
-          source.label_index,
-        ).unwrap()
-        guard @value.text_value(label, source.label_bytes) is Some(value) else {
+        if source.label_recheck is None {
+          let (label, _) = @carrier.graph_element_definition_label_at(
+            definition,
+            source.label_index,
+          ).unwrap()
+          source.label_recheck = @value.start_recheck_runtime_text(
+            label,
+            @contract.primitive(@contract.StringType, nullable=false),
+            { max_nodes: 1, max_depth: 0, max_text_bytes: source.label_bytes, },
+          )
+        }
+        guard source.label_recheck is Some(recheck) else {
           return Err(InvalidRecord(record))
         }
-        source.label_bytes -= @utf8.encode(label).length()
-        source.label_values.push(value)
-        source.label_index += 1
+        match @value.advance_recheck_runtime_value(recheck) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed => return Err(InvalidRecord(record))
+          @value.RecheckComplete(checked, _, bytes) => {
+            guard @value.append_array_item(builder, checked.value) else {
+              return Err(InvalidRecord(record))
+            }
+            source.label_bytes -= bytes
+            source.label_index += 1
+            source.label_recheck = None
+          }
+        }
         return Ok(PendingField)
       }
-      let labels = @value.array_value(source.label_values)
-      source.label_values = []
+      guard @value.finish_array_value(builder) is Some(labels) else {
+        return Err(InvalidRecord(record))
+      }
+      source.label_builder = None
       source.label_index = 0
       source.label_bytes = source.limits.max_text_bytes
       return Ok(GraphField(@schema.Unqualified(name), labels))
@@ -250,7 +308,7 @@ fn graph_rows_field(
     (name, cell)
   } else if field - roles.length() < key_count {
     let component = field - roles.length()
-    guard @carrier.property_definition_key_column_at(definition, component)
+    guard @carrier.graph_element_definition_key_column_at(definition, component)
       is Some(name) else {
       return Ok(AbsentField)
     }
@@ -272,7 +330,7 @@ fn graph_rows_field(
   } else {
     let index = field - roles.length() - key_count
     guard @carrier.field_at(
-        @carrier.property_definition_properties(definition),
+        @carrier.graph_element_definition_properties(definition),
         index,
       )
       is Some(property) else {
@@ -328,7 +386,7 @@ pub fn start_graph_view_to_rows(
       step,
       0,
     ) &&
-    @lifecycle.producer_view_property_graph_definition(input) is Ok(definition) &&
+    @lifecycle.producer_view_graph_definition(input) is Ok(definition) &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
       @pipeline.Step(step),
@@ -340,14 +398,16 @@ pub fn start_graph_view_to_rows(
     source: ViewedGraph(input),
     definition,
     selected_definition: @lower.carrier_projection_definition(projection),
-    selected_label: @lower.carrier_projection_label(projection).map(
-      @carrier.property_name_identity,
-    ),
+    selected_label: @lower.carrier_projection_label(projection),
     selection_label_index: 0,
+    selection_name_offset: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
-    label_values: [],
+    label_builder: None,
+    label_recheck: None,
+    label_workspace: 0,
+    label_reserved: 0,
     label_index: 0,
     label_bytes: limits.max_text_bytes,
     order_keys: [],
@@ -414,16 +474,18 @@ pub fn start_graph_to_rows(
   }
   let source : GraphRowsSource = {
     source: StoredGraph(storage),
-    definition: @carrier.graph_property_definition(graph),
+    definition: @carrier.graph_definition(graph),
     selected_definition: @lower.carrier_projection_definition(projection),
-    selected_label: @lower.carrier_projection_label(projection).map(
-      @carrier.property_name_identity,
-    ),
+    selected_label: @lower.carrier_projection_label(projection),
     selection_label_index: 0,
+    selection_name_offset: 0,
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
-    label_values: [],
+    label_builder: None,
+    label_recheck: None,
+    label_workspace: 0,
+    label_reserved: 0,
     label_index: 0,
     label_bytes: limits.max_text_bytes,
     order_keys: [],

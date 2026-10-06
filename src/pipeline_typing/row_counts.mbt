@@ -385,8 +385,8 @@ fn derive_row_counts(
         }
         Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
       }
-      PropertyGraphConstruction(inputs~, checked~) => {
-        let node_count = @graph.property_construction_node_count(checked)
+      GraphConstruction(inputs~, checked~) => {
+        let node_count = @graph.construction_node_count(checked)
         let mut nodes = Some(count(0L, true))
         let mut edges = Some(count(0L, true))
         for index, target in inputs {

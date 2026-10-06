@@ -18,7 +18,7 @@ test "Graph kernel output completes once on the existing retention owner" {
   let owner = producer_owner()
   let output = kernel_output(owner, Ref(true))
   let builder = output_storage_builder(output).unwrap()
-  @storage.append_property_node(builder, 0, [number(1.0)], [text("one")]).unwrap()
+  @storage.append_node(builder, 0, [number(1.0)], [text("one")]).unwrap()
   let storage = @storage.finish(builder).unwrap()
   let completed = finish_output_storage(output, storage).unwrap()
   assert_true(physical_equal(completed_storage(completed).unwrap(), storage))
@@ -51,7 +51,7 @@ test "Graph kernel completion rejects foreign Storage without reclaiming its own
   let owner = producer_owner()
   let output = kernel_output(owner, Ref(true))
   let other = kernel_output(owner, Ref(true))
-  append_property_node(other, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(other, 0, [number(1.0)], [text("one")]).unwrap()
   let completed = finish_output(other).unwrap()
   let storage = completed_storage(completed).unwrap()
   assert_true(
@@ -69,7 +69,7 @@ test "Graph kernel completion preserves revocation and cancellation cleanup" {
   let owner = producer_owner()
   let live = Ref(true)
   let output = kernel_output(owner, live)
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
   let storage = @storage.finish(output_storage_builder(output).unwrap()).unwrap()
   live.val = false
   assert_true(
@@ -89,7 +89,7 @@ test "Graph kernel completion preserves revocation and cancellation cleanup" {
 test "Graph kernel completion refuses discarded Storage even from its own builder" {
   let owner = producer_owner()
   let output = kernel_output(owner, Ref(true))
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
   let storage = @storage.finish(output_storage_builder(output).unwrap()).unwrap()
   @storage.discard(storage)
   assert_true(
@@ -102,7 +102,7 @@ test "Graph kernel completion refuses discarded Storage even from its own builde
 ///|
 test "Graph completion availability follows physical Storage reclamation" {
   let output = kernel_output(producer_owner(), Ref(true))
-  append_property_node(output, 0, [number(1.0)], [text("one")]).unwrap()
+  append_node(output, 0, [number(1.0)], [text("one")]).unwrap()
   let storage = @storage.finish(output_storage_builder(output).unwrap()).unwrap()
   let completed = finish_output_storage(output, storage).unwrap()
   assert_true(completed_available(completed))

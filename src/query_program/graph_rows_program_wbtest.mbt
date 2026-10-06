@@ -2,7 +2,7 @@
 test "Graph row module emits the existing Bridge without fabricated type facts" {
   let text = "FROM g |> node_rows() |> SELECT p, node_key"
   let query = @query.parse_query(text, mapping_syntax_limits()).unwrap()
-  let mapping = @query.parse_property_graph(
+  let mapping = @query.parse_graph(
     "PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))",
     mapping_syntax_limits(),
   ).unwrap()

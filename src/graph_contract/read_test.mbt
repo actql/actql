@@ -26,7 +26,7 @@ test "read current graph body retains the independently fixed identity and exact
   let value = @graph_contract.read_cursor(cursor, caps()).unwrap()
   assert_eq(
     @graph_contract.cid(value),
-    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+    "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
   )
   assert_eq(@graph_contract.stringify(value, caps()), property_body())
   let exact : @graph_contract.Limits = {
@@ -56,9 +56,7 @@ test "read graph body rejects wrong laws noncanonical labels and untyped propert
   let wire = property_body()
   for
     (old, replacement) in [
-      (
-        "\"version\":\"actql-property-graph-contract/0.1\"", "\"version\":\"unknown\"",
-      ),
+      ("\"version\":\"actql-graph-contract/0.1\"", "\"version\":\"unknown\""),
       ("\"nullable\":false", "\"nullable\":true"),
       ("\"properties\":{}", "\"properties\":{\"x\":null}"),
       ("\"properties\":{}", "\"properties\":[]"),

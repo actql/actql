@@ -268,6 +268,117 @@ to submit this bounded executor change; use its natural PR CI.
 
 ## Reviewed JS package configuration
 
+### Physical source cohort
+
+The isolated `mutations-js` action stages the three existing mutation packages
+(`src/bounded_execution`, `src/connectors/local`, `src/query_integration`) and
+their literal transitive production/test/white-box imports. Every immediate
+member of a selected package remains bound, including unselected tests,
+generated interfaces and native sources. The existing bounded-session proof
+directory, snapshot audit files and isolated child modules remain present.
+The action key and physical image staging use the same package selection.
+Excluded packages are absent from the image and the child's writable copy;
+their bytes are not merely removed from a label while remaining readable.
+
+Unknown dependency syntax/configuration or nested unmodelled data expands fresh
+execution back to the complete source tree and retains the unresolved reasons.
+It cannot qualify narrowed reuse. Selected package additions, deletions, renames,
+imports, bytes and modes remain inputs. The finite configuration review retains
+its existing JS target and exact toolchain pins.
+
+The finite configuration review was refreshed against main
+`7e337afa9e5a64035c5925aca1d93ba0ef787aaf`. Relative to the previous scoped-source
+revision, `query_integration/moon.pkg` adds only the literal white-box imports
+`client_row_source_host`, `bounded_graph_diff` and `relation_results`. Its native
+linker options and the other thirteen reviewed configuration files are
+byte-identical. The existing closure expands from 165 to 167 packages, adding
+the complete neutral row-host and bounded Graph-diff packages. No import syntax,
+target or toolchain exception is added. The actual-Git regression requires a
+healthy narrowed cohort and every immediate member of both integrated packages,
+including white-box tests and generated interfaces; full-source fallback cannot
+silently satisfy that healthy narrowed-cohort fixture.
+
+The subsequent review against main
+`d093bcedf8b64b5d7b3e8fdecc988310c51bff90` also admits the literal `sha256`
+import added to `platform_native/remote_transfer_journal/moon.pkg`. The retained
+Transfer destination reader uses it to hash its reader identity. The manifest's
+target predicates and native options, the other thirteen reviewed manifests,
+the JS target and toolchain pins are unchanged. SHA-256 was already in the
+transitive cohort, so this remains 167 packages. The actual-Git regression now
+requires that direct import, the exact journal review and every immediate
+journal and SHA-256 member. An independently changed journal manifest still
+forces full-source fallback and unresolved reuse; no parser or fallback rule
+is relaxed.
+
+The child's original restoration snapshot and the independent Git snapshot
+cover the staged cohort. The parent checks selected checkout bytes and modes
+before and after isolation; family collection separately retains full tracked
+checkout clean/HEAD and per-action/final restoration checks. Image directory
+membership, extra files, regular-file modes and bytes are checked independently.
+No host mount or additional inherited environment is introduced.
+
+Changing the extractor/executor bytes invalidates earlier action keys. A
+successful old full-source mutation run does not establish this new execution
+boundary. Actual isolated execution of all thirteen mutations, restoration and
+final consumer verification are still required, followed by compatible fresh
+main comparisons and ordinary PR reuse. CPU identity is retained. Source file
+counts are not measured runner savings; capture, image, transfer and final-check
+costs remain part of the unfinished net-savings acceptance.
+
+#### New-cohort execution acceptance
+
+Git/filesystem correspondence tests do not establish that the selected files
+compile or that the thirteen experiments run in the immutable image. Keep the
+following execution acceptance open until evidence for this source policy is
+available; an old full-source image or a Draft preparation check cannot close it.
+
+The existing `.github/workflows/ci.yml` `session-evidence` job is the execution
+entry. It needs the real Actions repository/run/attempt/job identity, a clean
+checkout at the event revision, the pinned Node/MoonBit/Lean setup, Linux x64,
+`/usr/bin/docker`, and the existing read-only Actions token for authentication.
+Its commands remain, in workflow order:
+
+The workflow selects this job only for the `full` profile. A Draft PR's natural
+`synchronize` run is preparation and does not execute it. Once Actions is
+available, execution requires an authorized ordinary `workflow_dispatch` for
+this branch or an authorized Ready transition and its `ready_for_review` event.
+Neither a Draft push nor a completed preparation run establishes acceptance.
+Do not change the Draft/Ready gate or synthesize an Actions event to bypass it.
+
+1. `node proofs/ci-evidence/collect.mjs init` prepares and independently checks
+   the selected image inputs and records the acquisition plan. For new-policy
+   execution acceptance, `mutations-js` must be `fresh`.
+2. `node proofs/bounded-session/run.mjs all` retains the existing baseline.
+3. `ACTQL_SESSION_COLLECT=true node proofs/ci-evidence/collect.mjs mutations`
+   builds/runs the immutable image and closes its owned container/image. Require
+   all thirteen registered experiment IDs and their intended suite/filter
+   assertions in the raw logs; compile failures, timeouts, absent experiments
+   and zero-test runs are failures, not mutation detections.
+4. Preserve the intervening chain/capacity checks and the workflow's final
+   three-target restoration runs. Then
+   `node proofs/ci-evidence/collect.mjs finish` checks the complete inventory
+   with the actual Lean checker and retains the original receipt bytes.
+5. In the existing final `check` job,
+   `node proofs/ci-evidence/final.mjs` authenticates the producer's uploaded
+   artifact using its actual artifact ID/digest and the same run/attempt. Require
+   the separately uploaded `session-applicability-<run>-<attempt>-<sha>` result.
+
+Inspect `session-actions-<run>-<attempt>-<sha>` for `isolated-inputs.json`,
+`isolated-observation.json`, `isolated-execution.json`, the mutation receipt and
+result, original assertion logs, and the Lean certificate/output. Check actual
+image bytes/modes/membership against Git, physical absence of excluded source,
+read-only runtime and shell startup observations, byte-exact child restoration,
+unchanged parent checkout, and owner-bound closure. The final consumer must
+verify those observations, not just a producer success count.
+
+Local focused Node tests can independently verify source selection, physical
+staging/snapshot correspondence and validator refusal fixtures. They do not
+execute this image or authenticate a live Actions consumer. Do not set synthetic
+Actions variables, remove CI guards or run a host campaign as a substitute.
+When hosted execution is unavailable, retain the fixed revision and this exact
+acceptance gap; successful main comparison, ordinary PR reuse, related-change
+fresh execution and net savings remain subsequent obligations.
+
 The initial mutation input walk encountered fourteen literal package options
 that the general limited parser deliberately leaves unknown. The finite policy
 in `package-configurations.mjs` records independently reviewed package paths,
@@ -312,3 +423,30 @@ are retained. The earlier first/later receipt outage regression remains; final
 availability never promotes an incomplete comparison or invalid origin into
 reuse permission. Optional comparison ZIPs live outside the uploaded receipts;
 only actually adopted originals are retained inside the candidate archive.
+
+## Cost correspondence at final acceptance
+
+The executed certificate binds `collection-costs.json` by
+`collectionCostsDigest`, in addition to the existing acquisition-plan digest.
+The final consumer reconstructs `costObservation` from these fixed bytes,
+original receipts, the current context and the actual isolated execution when
+fresh. Main applicability reconstructs the same record from the source ZIP;
+missing records, changed bindings, invalid durations, wrong owners or relabeled
+fresh/reused observations reject. Old-format cost records are not accepted.
+The consumer's policy bytes participate in action inputs, so earlier originals
+cannot be adopted under a changed consumer contract.
+
+Preparation is already included in the isolated mutation receipt. Its exclusive
+duration subtracts preparation once before the partial producer sum. Comparison
+subphases remain nested inside comparison total, and consumer verification
+encloses its own replay/hashing work. Reused work has null current units/time;
+historical receipt time is never counted as candidate execution. Source archive
+size is checked against actual ZIP bytes and final API metadata.
+
+`knownProducerMilliseconds` is a partial, sequential phase sum, not wall time or
+total runner time. Source/input construction, hashing, writes and precollection
+verification are explicitly unmeasured here. Completed producer/check job spans
+and archive transfers remain necessary for a net comparison.
+`netRunnerSavingsMilliseconds` therefore remains null with mandatory residuals;
+cost correspondence alone neither authorizes reuse nor proves savings.
+See [the cost correspondence review](../../docs/reviews/2026-10-06-session-evidence-cost-correspondence.md).

@@ -74,7 +74,7 @@ fn graph_match_execution_check(
     EvaluateMatchPredicate => EvaluatePredicate
     CanonicalMatchOrder => OrderMatches
     ResolveMatchResources => EnforceMatchResources
-    ResolvePropertyGraphMatchProfile => return Ok(None)
+    ResolveGraphMatchProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.GraphMatch(operation) &&

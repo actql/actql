@@ -5,7 +5,7 @@ fn rule_input_count_valid(rule : Rule, n : Int) -> Bool {
     Preserve | Multiply(_) | GraphMeasure(_, _, _, _) => n == 1
     Clamp(_) => n <= 1
     Sum | Join(_) => n == 2
-    PropertyGraphMeasure(_, _, expected) => n == expected
+    GraphConstructionMeasure(_, _, expected) => n == expected
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
@@ -24,7 +24,7 @@ fn rule_input_descriptor(
   }
   let edge = match rule {
     GraphMeasure(_, _, edge, _) => edge
-    PropertyGraphMeasure(_, start, _) => start + i
+    GraphConstructionMeasure(_, start, _) => start + i
     QueryTopK(_) if n == 1 => 1
     _ => i
   }

@@ -21,6 +21,8 @@ struct Sort {
   mut left : Int
   mut right : Int
   mut output : Int
+  mut comparison_component : Int
+  mut comparison_offset : Int
 }
 
 ///|
@@ -47,20 +49,8 @@ fn checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
-fn compare_tuple(left : Array[String], right : Array[String]) -> Int? {
-  if left.is_empty() || left.length() != right.length() {
-    return None
-  }
-  for index in 0..<left.length() {
-    let compared = @canonical.compare_utf16(left[index], right[index])
-    if compared != 0 {
-      return Some(compared)
-    }
-  }
-  Some(0)
-}
-
-///|
+/// Eagerly validate every key shape before returning. Bounded callers must use
+/// prepare_deferred so validation advances within the supplied work quantum.
 pub fn prepare(
   keys : Array[Array[String]],
   max_workspace_slots : Int,
@@ -119,6 +109,8 @@ fn prepare_sort(
     left: 0,
     right: 0,
     output: 0,
+    comparison_component: 0,
+    comparison_offset: 0,
   })
 }
 
@@ -200,11 +192,36 @@ pub fn advance(value : Sort, quantum : Int) -> Result[Poll, Issue] {
         } else {
           let left = value.source[value.left]
           let right = value.source[value.right]
-          match compare_tuple(value.keys[left], value.keys[right]) {
+          let lhs = value.keys[left]
+          let rhs = value.keys[right]
+          guard !lhs.is_empty() &&
+            lhs.length() == rhs.length() &&
+            lhs.get(value.comparison_component) is Some(a) &&
+            rhs.get(value.comparison_component) is Some(b) else {
+            return Err(InvalidKey)
+          }
+          let (compared, offset, _) = @canonical.compare_utf16_fragment(
+            a,
+            b,
+            value.comparison_offset,
+            64,
+          )
+          value.comparison_offset = offset
+          match compared {
+            None => {
+              work += 1
+              continue
+            }
+            Some(0) if value.comparison_component + 1 < lhs.length() => {
+              value.comparison_component += 1
+              work += 1
+              continue
+            }
             Some(compared) => compared <= 0
-            None => return Err(InvalidKey)
           }
         }
+        value.comparison_component = 0
+        value.comparison_offset = 0
         if choose_left {
           value.target[value.output] = value.source[value.left]
           value.left += 1
@@ -254,5 +271,7 @@ pub fn key_component_at(value : Sort, index : Int, component : Int) -> String? {
 pub fn cleanup(value : Sort) -> Bool {
   value.source.clear()
   value.target.clear()
+  value.comparison_component = 0
+  value.comparison_offset = 0
   true
 }

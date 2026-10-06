@@ -5,7 +5,7 @@ test "Pool retained field binding keeps independent limits across quantum and st
   let owner = pool_owner(producer, group_name=name)
   let prepared = sequence(owner, name_bytes=100000)
   let limits = {
-    ..limits(workspace=71, work=20000),
+    ..limits(workspace=77, work=20000),
     max_value_bytes: 10000,
     max_total_value_bytes: 30000,
     max_retained_value_bytes: 30000,
@@ -27,23 +27,26 @@ test "Pool retained field binding keeps independent limits across quantum and st
   // The scalar fixture takes 61 control units. This name has 127 fragments.
   // Field hash + schema lookup, required hash + exact bucket comparison,
   // and identity hash + exact bucket comparison each add 2*(127-1).
-  // Record name emission adds 127-1. Total: 61+7*126=943.
-  // Logical canonical construction stays 18; workspace is 15+16+9+1+30=71.
+  // Record name emission adds 127-1. Input group and output group matching
+  // each add another 126. Total: 61+9*126=1195. Construction stays 18;
+  // admission is 15+16+9+1+30 append/structure plus one name offset: 72.
+  // Completion retains one three-field record alongside the reservation:
+  // 72+(3+2)=77. The one-short initial admission check remains 71.
   assert_true(
     start_pool_with_control_work_limit(
       @bounded.control(),
       prepared,
       0,
       read,
-      { ..limits, max_workspace_slots: 70, },
+      { ..limits, max_workspace_slots: 71, },
       65536L,
       fn() { true },
-      943,
+      1195,
     )
     is Err(PoolWorkspaceLimit),
   )
   for quantum in [1, 7, 256] {
-    for (work, success) in [(943, true), (942, false)] {
+    for (work, success) in [(1195, true), (1194, false)] {
       let active = start_pool_with_control_work_limit(
         @bounded.control(),
         prepared,
@@ -55,13 +58,13 @@ test "Pool retained field binding keeps independent limits across quantum and st
         work,
       ).unwrap()
       let mut terminal = false
-      for _ in 0..<950 {
+      for _ in 0..<1200 {
         if !terminal {
           match advance_pool(active, quantum).unwrap() {
             PoolContinue(..) => ()
             PoolComplete(output, work~, ..) => {
               assert_true(success)
-              assert_eq(work, 943L)
+              assert_eq(work, 1195L)
               let storage = @records.completed_storage(output).unwrap()
               assert_eq(@storage.construction_work(storage), 18)
               assert_true(
@@ -76,7 +79,7 @@ test "Pool retained field binding keeps independent limits across quantum and st
             }
             PoolFailed(PoolWorkLimit, work~, ..) => {
               assert_false(success)
-              assert_eq(work, 942L)
+              assert_eq(work, 1194L)
               terminal = true
             }
             _ => fail("field binding reached an unrelated terminal outcome")
@@ -98,11 +101,11 @@ test "Pool retained field binding keeps independent limits across quantum and st
     limits,
     65536L,
     fn() { true },
-    943,
+    1195,
   ).unwrap()
-  // Input and the first field bind before the 253-poll long-field admission.
-  // The following required-name hash/comparison spans the 512 boundary;
-  // record writing has not begun. Reduction progress is one, not publication.
+  // Input/output name matching adds 252 polls before retained append. At 512
+  // its long field admission is unfinished; reduction progress is one,
+  // not completion or publication.
   guard advance_pool(active, 256).unwrap() is PoolContinue(work~, progress~) else {
     fail("record admission cannot complete in the first quantum")
   }

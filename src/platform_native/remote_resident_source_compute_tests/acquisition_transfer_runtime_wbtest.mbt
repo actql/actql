@@ -273,6 +273,14 @@ fn acquisition_runtime_transfer_consumer(
   if producer_cleanup_at_handoff {
     if cleanup_after_preparation {
       let transfer = prepared_transfer.unwrap()
+      let current_query = @remote.admit_remote_poll_retained_input_current_json(
+        @remote.remote_poll_retained_input_current_json(
+          restored_plan, "live-receiver-query",
+        ).unwrap(),
+      ).unwrap()
+      assert_true(
+        transfer.current_reply(current_query) is Err(@resident.CleanupPending),
+      )
       cleanup_now.val = true
       assert_true(
         transfer.advance() is Err(@resident.Input(@host.ProducerUnavailable)),
@@ -299,6 +307,14 @@ fn acquisition_runtime_transfer_consumer(
     return
   }
   let transfer = prepared_transfer.unwrap()
+  let current_query = @remote.admit_remote_poll_retained_input_current_json(
+    @remote.remote_poll_retained_input_current_json(
+      restored_plan, "live-receiver-query",
+    ).unwrap(),
+  ).unwrap()
+  assert_true(
+    transfer.current_reply(current_query) is Err(@resident.CleanupPending),
+  )
   assert_true(transfer.result() is Err(@resident.CleanupPending))
   let before = @site.site_status(site)
   if cancel_producer_before_handoff {
@@ -441,7 +457,48 @@ fn acquisition_runtime_transfer_consumer(
     @remote.remote_retained_input_result_json(transfer.result().unwrap()),
     report_wire,
   )
+  assert_true(
+    transfer.current_reply(current_query)
+    is Err(@resident.Input(@host.AuthorizationUnavailable)),
+  )
   authorized.val = true
+  let before_query = @site.site_status(site)
+  let current_reply = transfer.current_reply(current_query).unwrap()
+  let current_reply = @remote.admit_remote_retained_input_current_reply_json(
+    @remote.remote_retained_input_current_reply_json(current_reply),
+    @remote.remote_retained_input_current_reply_identity(current_reply),
+    current_query,
+    8,
+    4096,
+    1024L,
+  ).unwrap()
+  assert_eq(
+    @remote.remote_retained_input_current_reply_transfer_record_json(
+      current_reply,
+    ),
+    @transfer.remote_transfer_record_durable_json(
+      destination_journal.require(request).unwrap(),
+    ).unwrap(),
+  )
+  assert_eq(
+    @transfer.record_revision(destination_journal.require(request).unwrap()),
+    revision,
+  )
+  assert_eq(@site.site_status(site), before_query)
+  let foreign_query = @remote.admit_remote_poll_retained_input_current_json(
+    @remote.remote_poll_retained_input_current_json(
+      @remote.prepare_remote_retained_input_plan(
+        foreign,
+        @host.client_retained_input_producer_subject(producer),
+        @host.client_retained_input_producer_evidence(producer),
+        request,
+      ).unwrap(),
+      "foreign-live-query",
+    ).unwrap(),
+  ).unwrap()
+  assert_true(
+    transfer.current_reply(foreign_query) is Err(@resident.ForeignProducer),
+  )
   let bytes = physical.referenced_bytes
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
@@ -515,11 +572,15 @@ fn acquisition_runtime_transfer_consumer(
       name + ".consumer-holder",
       destination_journal,
       bytes,
+      current_query,
       cancel_before_start=cancel_consumer_before_start,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     assert_true(transfer.reclaim().unwrap())
     assert_false(transfer.reclaim().unwrap())
+    assert_true(
+      transfer.current_reply(current_query) is Err(@resident.CleanupPending),
+    )
     assert_eq(
       destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
       0L,

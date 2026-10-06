@@ -119,7 +119,7 @@ test "same-schema definition selection is stable and not erased from Plan meanin
     max_name_bytes=0,
   ).unwrap()
   let definitions = ["N", "M"].map(name => {
-    @carrier.property_node_definition(
+    @carrier.graph_node_definition(
       name,
       [@contract.primitive(NumberType, nullable=false)],
       properties,
@@ -128,7 +128,7 @@ test "same-schema definition selection is stable and not erased from Plan meanin
       max_name_bytes=100,
     ).unwrap()
   })
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     definitions,
     [],
@@ -191,7 +191,7 @@ test "different same-schema labels remain distinct Plan selections" {
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(NumberType, nullable=false)],
     properties,
@@ -199,7 +199,7 @@ test "different same-schema labels remain distinct Plan selections" {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  let graph = @carrier.property_graph(
+  let graph = @carrier.graph(
     "sha256:" + "0".repeat(64),
     [definition],
     [],

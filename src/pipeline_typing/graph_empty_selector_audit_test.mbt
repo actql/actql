@@ -2,12 +2,12 @@
 // The exact zero bound comes from empty VALUES -> constructor -> MATCH,
 // not from an invented JSON VALUES row or an unsupported zero TAKE.
 fn empty_identity_selector_prefix() -> String {
-  "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"nodes\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"emptyGraph\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"as\":\"empty\"},"
+  "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"nodes\"},{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"emptyGraph\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"as\":\"empty\"},"
 }
 
 ///|
 test "empty typed identity selector Relations retain node and path custody and exact zero bounds" {
-  let graph = query_property_graph()
+  let graph = query_graph()
   for direction in ["in", "out", "both"] {
     for emit in ["nodes", "paths"] {
       let source = cursor(
@@ -103,7 +103,7 @@ test "empty selectors do not enable unsupported shortest-path consumers" {
           selection +
           "\"},\"from\":\"g\"}]",
         ),
-        [("g", query_property_graph())],
+        [("g", query_graph())],
         None,
         None,
         limits(),

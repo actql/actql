@@ -1,0 +1,146 @@
+# Local isolated Session physical acceptance
+
+The scoped source change in #412 needs actual image execution, not only Git and
+filesystem correspondence. This entry point prepares and executes the existing
+13 JS mutations locally without impersonating GitHub Actions. It introduces no
+new mutation campaign and changes no selector, workflow or acceptance policy.
+
+The CI collector still uses the guarded Actions-only entry points. The local
+entry uses a separate `org.actql.local.owner` label and UUID owner. Local image
+records cannot pass the Actions image-owner check. Both entries share source
+staging, distribution/loader observation, the scratch Dockerfile, execution
+restrictions and the actual scientific input/result validators.
+
+## Explicit preparation and execution
+
+Use the candidate's pinned Linux x64 MoonBit/core archives from `toolchain.json`;
+verify their SHA-256 before extraction. Set the executable modes as the existing
+setup script does. Bundle only core JS with the pinned Moon:
+
+```sh
+moon -C "$MOON_HOME/lib/core" bundle --target js --warn-list -a
+```
+
+On a non-Linux host, do that preparation in an explicitly inspected Linux/amd64
+builder. Obtain Node at the candidate workflow's pinned version and record its
+immutable Docker image ID. The local runner rejects another architecture and
+checks the actual Node, Moon and moonc versions during preparation. Supply the
+immutable ID, never the registry tag, to the acceptance command:
+
+```sh
+node proofs/ci-evidence/local-isolated-acceptance.mjs run \
+  --engine /absolute/path/to/docker \
+  --builder-image sha256:<inspected-linux-amd64-builder-id> \
+  --moon-home /absolute/path/to/pinned-linux-x64-moonbit
+```
+
+Preparation uses a read-only candidate mount and read-only toolchain mount. Git
+object identities independently bind every source read. Its only writable host
+mount is its newly allocated output directory. The actual mutation container is
+a separate scratch image with no host mounts, network or inherited credentials,
+a read-only root, fresh tmpfs workspace and user 1000. The four installed core
+build metadata files are absent from its observed physical inputs.
+
+The existing bounded local supervisor serializes this deliberately selected
+physical action and records its 1,200-second outer budget; the unchanged inner
+mutation execution retains its 600-second budget. This is not a full local CI
+campaign. Compilation errors, zero assertion failures, incomplete logs, failed
+restoration, changed runtime inputs or changed host source cannot pass the
+shared consumer.
+
+## Evidence and remaining boundaries
+
+`_build/local-isolated-*/acceptance.json` records the clean full source revision,
+immutable builder/image identities, actual manifest, 13 original mutation logs,
+byte-restoration result, original observation and scoped consumer acceptance.
+The record is exclusively created, carries `authority: local-physical-acceptance`
+and `reuseAuthorized: false`. The outer bounded wrapper retains its own receipt.
+Preparation/inspection/build/execution/cleanup costs are recorded independently.
+
+The local profile explicitly binds `UV_USE_IO_URING=0`, observed in OrbStack's
+amd64 execution. This field is present in the Dockerfile, image config, manifest
+and actual child observation. Missing/changed fields fail locally, and the CI
+input consumer rejects the `localDiagnostic` marker; its original environment
+contract is unchanged. No injected value is erased or treated as irrelevant.
+
+Local kernel/CPU/emulation and builder distributions remain actual observed
+inputs. A local pass does not clear runtime residuals, qualify an authenticated
+main origin, issue a reuse certificate or establish hosted CI/net savings.
+Existing Actions-origin final acceptance remains unchanged. A local physical
+pass can close the image execution boundary in #412 while those distinct
+operational/economic obligations remain open.
+
+Cleanup authenticates exact container/image IDs and local owner labels. It
+never prunes shared resources or removes the supplied builder image. Failed
+preparation retains its directory and CID custody for diagnosis; if the outer
+supervisor itself is killed, inspect that custody and the exact owner before
+manually removing anything. Preserve logs/manifests/receipts before discarding
+reproducible image-context bytes.
+
+## Fixed local result
+
+At clean `fc2962f43431e5c4c86cb47970251aa4c7c7f98c`, the command above passed
+all 13 original mutations, each with one executed assertion failure, restored the
+original source bytes and passed the shared scientific consumer. The bounded
+receipt is `run-pdtqf3`. The immutable image was
+`sha256:77517c7d1d58cb71eedd75358a9da6e8b470eeb49b8e030314b1509d93a6c2a7`.
+All four installed core metadata paths were absent from its actual inventory.
+Owner-authenticated container/image cleanup also completed.
+
+The original unmodified acceptance JSON is retained in
+[evidence/2026-10-06-local-isolated-session-fc2962f43.json.gz](evidence/2026-10-06-local-isolated-session-fc2962f43.json.gz),
+compressed losslessly. Uncompressed SHA-256:
+`e61d9c3c69c012fe4613644e3bc7b084ec402b6506aad4bf569660ab1a429ee4`.
+Compressed SHA-256:
+`cc079452b131981000b43cf96d29d2f2ab1937215975b3ff1ac7bf03b77a519d`.
+It includes actual raw logs, root inventories, image/configuration, command
+arguments, source identities, residuals and observations, rather than only a
+success summary. `local-isolated-replay.test.mjs` reopens these exact bytes using
+the existing real consumer and rejects tampered detection/restoration/residuals.
+It rejects applying either historical manifest after a product input changes;
+each original remains bound to its actual execution revision. Evidence-only
+publication is separately checked against those physical inputs.
+
+Observed local phases were 18,254 ms preparation, 11,132 ms scratch build,
+169,906 ms execution, 2,728 ms inspection and 359 ms cleanup. Outer wall time was
+about 210 seconds, including orchestration. These are one local amd64 execution
+on an arm64 OrbStack host, with external builder/toolchain preparation already
+completed. They are not a calibrated comparison, hosted runner savings or an
+estimate of the full CI matrix.
+
+Earlier attempts remain failures of the local entry before mutation execution:
+one launcher-name mismatch, one unexpected actual environment rejection, and one
+heavy-lock refusal. None counts as a killed mutation or a performance failure.
+
+
+## Acceptance after current main integration
+
+The normal merge of main `5dc9cad224046c527278273017b055b686831742`
+preserves both the scoped package closure from #412 and the four registered
+Rows/Events obligations. Product inputs changed, so the earlier physical result
+was not reported as execution of this candidate. A new image was actually built
+and executed at clean `8bbe08fca045be6c00a64eb5a68889295082c67c`.
+
+The bounded receipt `run-NgCawX` passed with complete output and exit code zero.
+All 13 mutations produced their intended executed assertion failure, source
+bytes were restored, and the shared final scientific consumer accepted. Actual
+image `sha256:3b1d9034aa2c5e491db0357f87d9a3e48bd92ec6ef91d3988182c8b551ce1f18`
+contained 3,831 source files (35,458,625 bytes), with the four core metadata files
+absent. Owner-authenticated container/image cleanup completed.
+
+The exact unmodified JSON is retained losslessly in
+[evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz](evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz).
+Uncompressed: 3,985,281 bytes, SHA-256
+`52d9e7931fe6a3b14d2b00a51094f4f83f4161363440360ab22b207d33afb6aa`.
+Compressed: 795,907 bytes, SHA-256
+`827883c8bd535ae7e1e8f83fb6480c965352ae707b7f3381dd9a0d41933c1826`.
+The replay regression consumes both real originals at their separate revisions;
+it rejects compilation failure, missing logs, zero detection, failed byte
+restoration and removal of the unresolved runtime boundary for both.
+
+Observed phases: preparation 17,477 ms, build 12,504 ms, execution 145,823 ms,
+inspection 821 ms, cleanup 195 ms. Supervisor wall time was about 183 seconds.
+These local observations retain the same limitations as the earlier run. They
+are not a controlled before/after benchmark or proof of hosted runner savings.
+Authenticated main comparison, ordinary PR reuse and net runner savings remain
+open. No Actions environment was impersonated and no CI-only guard was removed.

@@ -48,7 +48,18 @@ const retainedCoordinatorReconstruction =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_COORDINATOR_RECONSTRUCTION === '1';
 const retainedCancelBeforeConsumer =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CANCEL_BEFORE_CONSUMER === '1';
-if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer) && !retainedConsumerMode) {
+const retainedProducerHolderRecreation =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_PRODUCER_HOLDER_RECREATION === '1';
+const retainedHandoffInterruption = process.env.ACTQL_TEST_RESIDENT_RETAINED_HANDOFF_INTERRUPTION;
+if (retainedHandoffInterruption !== undefined &&
+  !['receiver-committed', 'consumer-borrowed'].includes(retainedHandoffInterruption)) {
+  throw new Error('unknown retained handoff interruption');
+}
+if (retainedHandoffInterruption !== undefined && retainedProducerHolderRecreation) {
+  throw new Error('select one holder interruption boundary');
+}
+if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
+  retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined) && !retainedConsumerMode) {
   throw new Error('retained fault selection requires the retained consumer case');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
@@ -185,13 +196,15 @@ try {
         try {
           const hint = JSON.parse(value.body);
           if (retainedConsumerMode &&
-              ['actql-remote-retained-input-plan/0.1', 'actql-remote-retained-input-result/0.1']
+              ['actql-remote-retained-input-plan/0.1', 'actql-remote-retained-input-result/0.1',
+                'actql-remote-retained-input-current-reply/0.1']
                 .includes(hint.version)) {
             // A queued duplicate can arrive after its transport waiter has
             // settled. Confirm the exact admitted report custody and current
             // authenticated Site; never ACK an unadmitted report here.
             const operation = hint.version === 'actql-remote-retained-input-plan/0.1'
-              ? 'retained-plan' : 'retained-transfer';
+              ? 'retained-plan' : hint.version === 'actql-remote-retained-input-result/0.1'
+                ? 'retained-transfer' : 'retained-current';
             const saved = await readFile(join(root,
               `${operation}-${createHash('sha256').update(value.body).digest('hex')}.json`), 'utf8');
             assert.equal(saved, value.body);
@@ -881,8 +894,42 @@ try {
         '--retained-source-grant-cid', sourceGrantCid,
         '--retained-destination-grant-cid', destinationGrantCid,
         '--retained-route-capability-cid', routeCapabilityCid,
-        '--retained-consumer-engine-bytes', '67108864']);
+        '--retained-consumer-engine-bytes', '67108864',
+        ...(retainedProducerHolderRecreation
+          ? ['--holder-kill-at', 'completed-producer'] : []),
+        ...(retainedHandoffInterruption === undefined ? [] : [
+          '--holder-kill-at', `retained-${retainedHandoffInterruption}`,
+          '--holder-pause-at', `retained-${retainedHandoffInterruption}`,
+          '--holder-pause-ms', '2000',
+        ])]);
       currentSite = site;
+      const retainedJournalRows = namespace => {
+        const database = new DatabaseSync(join(root, 'site-transfer.sqlite3'), {readOnly: true});
+        try {
+          database.exec('PRAGMA busy_timeout = 5000');
+          return database.prepare('SELECT record_key, revision, CAST(body AS TEXT) AS body ' +
+            'FROM actql_records WHERE namespace=? ORDER BY record_key').all(namespace)
+            .map(row => ({...row}));
+        } finally { database.close(); }
+      };
+      const waitForHandoffInterruption = async () => {
+        const point = `retained-${retainedHandoffInterruption}`;
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-paused' &&
+          line.point === point), 'durable retained interruption checkpoint');
+        const allocations = retainedJournalRows('remote_transfer_destination_allocation');
+        assert.ok(allocations.length > 0);
+        assert.ok(allocations.every(row => ['sealed', 'reused'].includes(row.body.split('\n')[3])));
+        const readers = retainedJournalRows('remote_transfer_destination_reader');
+        await writeFile(join(root, `retained-${retainedHandoffInterruption}-snapshot.json`),
+          JSON.stringify({allocations, readers}), {mode: 0o600});
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+          line.point === point), 'retained holder physical interruption');
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+          'retained holder physical exit');
+        assert.equal((await entries()).length, 1, 'consumer has not started at the interrupted boundary');
+        return {allocations, readers};
+      };
+      let interruptedReceiver;
       const producerDispatch = dispatchFor('retained-producer', 1);
       await ensureOutputReceiver(producerDispatch);
       let cancellationRequested = false;
@@ -906,6 +953,13 @@ try {
       await within(gateway.dispatch({dispatch: producerDispatch, inputBindingBody: bindingBody,
         dispatchEnvelope: materialsEnvelope(producerDispatch)}), 'retained producer');
       await settledQuery(producerDispatch, 'retained producer');
+      if (retainedProducerHolderRecreation) {
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+          line.point === 'completed-producer'), 'durable producer holder interruption');
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+          'original producer holder physical exit');
+        assert.equal((await entries()).length, 1);
+      }
       assert.equal(inspectProgress().nextTask, 1);
       assert.equal(inspectProgress().executionComplete, false,
         'producer completion is not checked Run completion');
@@ -939,8 +993,27 @@ try {
         intent, current, limits: {maxChunks: limits.maxChunks,
           maxManifestBytes: limits.maxManifestBytes,
           maxReferencedBytes: limits.maxReferencedBytes}}), 'retained input plan');
-      let result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
-        'physical retained input transfer');
+      if (retainedProducerHolderRecreation) {
+        assert.ok(site.lines.some(line => line.kind === 'retained-holder-queued' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+        assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+        assert.equal((await entries()).length, 1, 'holder recreation cannot reacquire Source');
+      }
+      const physicalTransfer = within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+        'physical retained input transfer').catch(error => error);
+      if (retainedHandoffInterruption === 'receiver-committed') {
+        interruptedReceiver = await waitForHandoffInterruption();
+        assert.deepEqual(interruptedReceiver.readers, []);
+      }
+      let result = await physicalTransfer;
+      if (result instanceof Error) throw result;
+      if (retainedHandoffInterruption === 'receiver-committed') {
+        assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
+          interruptedReceiver.allocations, 'committed receiver allocations are not rewritten');
+        assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+      }
       if (retainedCoordinatorReconstruction) {
         assert.equal(gateway.pending(), 0);
         const origin = gateway.origin;
@@ -1007,19 +1080,21 @@ try {
         assert.equal((await entries()).length, 1, 'reconstruction cannot reacquire Source or start Compute');
       }
       const receipt = runHost.retainedInputResultFacts(result).receipt;
-      const transferCid = runHost.retainedInputPlanFacts(plan).transfer.cid;
+      const entriesBeforeQuery = (await entries()).length;
+      const currentReply = await within(gateway.retainedCurrent({dispatch: producerDispatch, plan,
+        queryId: 'receiver-after-reconstruction', limits: {maxChunks: limits.maxChunks,
+          maxManifestBytes: limits.maxManifestBytes, maxReferencedBytes: limits.maxReferencedBytes}}), 'current actual receiver query');
+      const receiverFacts = runHost.retainedInputCurrentReplyFacts(currentReply);
+      assert.deepEqual(receiverFacts.receipt, receipt);
+      assert.equal(JSON.parse(receiverFacts.transferRecordWire).request_cid,
+        runHost.retainedInputPlanFacts(plan).transfer.cid);
+      assert.equal((await entries()).length, entriesBeforeQuery,
+        'current receiver query cannot enter an executor');
+      // This response came from the current authenticated Site Owner. It is
+      // consumed within this preparation boundary, never restored as live
+      // authority from the saved historical result or Coordinator snapshot.
       const input = runHost.prepareRetainedTaskInput(producer, receipt, 'direct-destination', {
-        ...current,
-        readTransfer: () => {
-          const database = new DatabaseSync(join(root, 'site-transfer.sqlite3'), {readOnly: true});
-          try {
-            const rows = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
-              .all('remote_transfer');
-            const row = rows.find(row => JSON.parse(row.body).request_cid === transferCid);
-            assert.ok(row, 'current actual Native receiver record must exist');
-            return row.body;
-          } finally { database.close(); }
-        },
+        ...current, readTransfer: () => receiverFacts.transferRecordWire,
       }, limits);
       const consumerBinding = runHost.retainedTaskInputFacts(input).wire;
       const issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
@@ -1062,8 +1137,33 @@ try {
       } else {
         assert.equal(prepareTaskStart(consumerDispatch, 1), true,
           'checked dependency proof admits only the saved consumer intent');
-        await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
-          dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
+        const consumerDelivery = within(gateway.dispatch({dispatch: consumerDispatch,
+          inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
+        'retained consumer actual holder relay').catch(error => error);
+        if (retainedHandoffInterruption === 'consumer-borrowed') {
+          interruptedReceiver = await waitForHandoffInterruption();
+          assert.equal(interruptedReceiver.readers.length, 1);
+          assert.equal(interruptedReceiver.readers[0].revision, 0);
+          assert.equal(interruptedReceiver.readers[0].body.split('\n')[3], issued.cid);
+          assert.equal(interruptedReceiver.readers[0].body.split('\n')[4], 'active');
+          // The accepted consumer has not entered execution. Stop its old
+          // transport waiter before reconstructing the completed producer;
+          // otherwise FIFO delivery keeps offering it to an absent holder.
+          // Its original intent and active borrow remain in the Site journal.
+          assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
+          const interruptedDelivery = await consumerDelivery;
+          assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
+          const replay = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+            'recreate original holder and committed receiver');
+          assert.deepEqual(runHost.retainedInputResultFacts(replay), runHost.retainedInputResultFacts(result));
+          assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
+            interruptedReceiver.allocations, 'committed handoff is not physically retransferred');
+          await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+            dispatchEnvelope: consumerEnvelope}), 'same accepted consumer with original borrow');
+        } else {
+          const delivered = await consumerDelivery;
+          if (delivered instanceof Error) throw delivered;
+        }
         const terminal = await settledQuery(consumerDispatch, 'retained consumer');
         assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
         const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
@@ -1123,6 +1223,28 @@ try {
       }
       site.child.kill('SIGTERM');
       await within(site.exited, 'retained consumer control shutdown');
+      const acquisitions = site.lines.filter(line => line.kind === 'source-acquisition-entered');
+      assert.equal(acquisitions.length, 1, 'physical Source acquisition Owner entered exactly once');
+      const acceptedProducer = site.lines.find(line => line.kind === 'accepted' &&
+        line.request_cid === siteControl.identity(producerDispatch));
+      assert.ok(acceptedProducer, 'original producer admission was observed');
+      assert.equal(acquisitions[0].attempt, acceptedProducer.attempt);
+      if (retainedHandoffInterruption === 'consumer-borrowed') {
+        const returned = retainedJournalRows('remote_transfer_destination_reader');
+        assert.equal(returned.length, 1, 'no second reader identity is created');
+        assert.equal(returned[0].record_key, interruptedReceiver.readers[0].record_key);
+        assert.equal(returned[0].revision, 1, 'original borrow is returned exactly once');
+        assert.equal(returned[0].body.split('\n')[4], 'released');
+      }
+      const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'),
+        {readOnly: true});
+      try {
+        const catalog = bundles.prepare('SELECT body FROM actql_records WHERE namespace=? AND record_key=?')
+          .get('runtime_bundle', 'catalog');
+        const holds = JSON.parse(Buffer.from(catalog.body).toString('utf8'))
+          .entries.flatMap(entry => entry.holds);
+        assert.deepEqual(holds, [], 'all original and recreated process/dispatch bundle holdings released');
+      } finally { bundles.close(); }
       const database = new DatabaseSync(journalPath, {readOnly: true});
       try {
         const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
@@ -1133,17 +1255,21 @@ try {
       } finally { database.close(); }
       console.log(JSON.stringify({kind: 'native-retained-consumer-verified',
         runDefinitionCid: definition.identity, producerDispatchCid: siteControl.identity(producerDispatch),
-        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: 1,
+        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: acquisitions.length,
         producerEntries: 1, consumerEntries: retainedCancelBeforeConsumer ? 0 : 1,
         rows: retainedCancelBeforeConsumer ? [] : retainedSourceRows,
         typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
         pendingIntents: 0, siteCapacity: capacity,
         coordinatorReconstructed: retainedCoordinatorReconstruction,
+        receiverCurrentQueried: true, receiverDatabaseReadForBinding: false,
         checkedRunProjection: true,
         checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
-        producerHolderRecreated: false,
+        producerHolderRecreated: retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined,
+        retainedHandoffInterruption: retainedHandoffInterruption ?? null,
+        committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined,
+        originalBorrowReturnedOnce: retainedHandoffInterruption === 'consumer-borrowed',
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,
         publicCloudAcceptance: false}));

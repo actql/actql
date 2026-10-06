@@ -8,6 +8,18 @@ priv struct JoinChainScope {
 }
 
 ///|
+// GROUP consumes the complete joined row before SELECT. The projection-only
+// single-JOIN specialization cannot supply that scope or its HAVING values.
+fn join_requires_group_scope(query : @query.Query) -> Bool {
+  for index in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, index) is Some(Group(_, _, _)) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn join_chain_reference(
   path : Array[@query.NamePart],
   scope : JoinChainScope,
@@ -112,7 +124,7 @@ fn compile_join_chain_steps(
   retained : Array[RetainedResult]?,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
-    inputs.length() < 3 ||
+    inputs.length() < 2 ||
     limits.max_join_output_rows < 1L ||
     limits.max_join_output_rows > 9007199254740991L {
     raise Abort(UnsupportedJoin)

@@ -2,12 +2,12 @@
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 script        = { data_declaration }, query ;
 data_declaration = "DATA", identifier, "=",
-                   ( relational_body | property_graph_constructor
+                   ( relational_body | graph_constructor
                    | named_sga_call ), ";" ;
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
 (* The pure constructor wrapper is an ActQL extension. Its table mapping
    follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
-property_graph_constructor = "PROPERTY", "GRAPH", "(",
+graph_constructor = "PROPERTY", "GRAPH", "(",
                    "NODE", "TABLES", "(", node_definition,
                      { ",", node_definition }, ")",
                    [ "EDGE", "TABLES", "(", edge_definition,
@@ -78,8 +78,9 @@ where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
 select_list   = select_item, { ",", select_item } ;
-select_item   = "*" | path, ".", "*"
+select_item   = "*", [ star_except ] | path, ".", "*"
               | expression, [ "AS", identifier ] ;
+star_except   = "EXCEPT", "(", identifier, { ",", identifier }, ")" ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
@@ -139,8 +140,7 @@ pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
-expression    = ? closed query expression grammar in query-text.md, including json_literal ? ;
-json_literal  = "JSON", query_string ;
+expression    = ? closed query expression grammar in query-text.md ? ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
 numeric_token = ? existing query numeric token; exact admission is separate ? ;

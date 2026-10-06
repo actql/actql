@@ -418,6 +418,54 @@ pub fn restore_durable_dispatch_record(
 }
 
 ///|
+/// Refresh only cleanup observations of the same already-completed occurrence.
+/// Execution, evidence, material and authority cannot change through this port.
+/// It admits no start and cannot adopt a terminal or regressed observation.
+pub fn refresh_remote_completed_cleanup_observation(
+  record : DispatchRecord,
+  durable : DurableDispatchRecord,
+) -> Result[Unit, DispatchIssue] {
+  if record.execution != NativeSettled ||
+    !(record.evidence is EvidenceDurable(_, _, _)) ||
+    !record.material_available ||
+    record.quarantined_capacity ||
+    (
+      record.cleanup != CleanupActive &&
+      record.cleanup != CleanupReleasing &&
+      record.cleanup != CleanupUnknown
+    ) {
+    return Err(StateCollision)
+  }
+  if dispatch_record_durable_json(record) == Ok(durable.body) {
+    return Ok(())
+  }
+  if record.request.dispatch_request_cid != durable.request.dispatch_request_cid ||
+    durable.revision <= record.revision ||
+    durable.execution_code != execution_state_code(record.execution) ||
+    durable.evidence_code != evidence_state_code(record.evidence) ||
+    !durable.material_available ||
+    durable.quarantined_capacity ||
+    evidence_state_fields(record.evidence) !=
+    [
+      durable.material_generation,
+      durable.holding_evidence_cid,
+      durable.execution_evidence_cid,
+    ] {
+    return Err(StateCollision)
+  }
+  let cleanup = match cleanup_state_from_code(durable.cleanup_code) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if cleanup != CleanupReleasing && cleanup != CleanupUnknown {
+    return Err(StateCollision)
+  }
+  record.revision = durable.revision
+  record.cleanup = cleanup
+  Ok(())
+}
+
+///|
 pub fn durable_dispatch_record_journal_key(
   durable : DurableDispatchRecord,
 ) -> Array[String] {

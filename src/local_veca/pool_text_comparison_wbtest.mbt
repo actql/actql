@@ -79,7 +79,9 @@ test "pool charges every long key comparison independent of quantum" {
   // two output groups: 20. Each new append has 31 base polls plus
   // three additional 64-unit polls for the 129-unit identity and three for
   // its group value: 37 per group. Total: 1093 + 2 * 37 = 1167.
-  // No successful-run measurement supplies this limit.
+  // No successful-run measurement supplies this limit. Admission reserves
+  // 16 ordering + 5 output + 2 keys + 1 name + 56 append = 80 slots.
+  // Two retained three-field rows add 2*(3+2), so completion requires 90.
   let exact = 1167
   for quantum in [1, 7, 256] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
@@ -88,7 +90,7 @@ test "pool charges every long key comparison independent of quantum" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=90),
       8192L,
       fn() { true },
       exact,
@@ -144,14 +146,16 @@ test "pool long keys enforce exact control and structural workspace limits" {
   // Two sort buffers of two four-slot records, five output slots,
   // and two collected key slots: 16 + 5 + 2 = 23. Pending append adds
   // fixed 16, three slots for each of three fields (9), one identity (1),
-  // and three depth-ten stacks (30): 56. Total workspace: 79.
+  // and three depth-ten stacks (30): 56. One name offset makes admission 80.
+  // Keep that reservation during append; two retained rows add 2*(3+2)=10,
+  // making completion 90. The one-short admission check remains 79.
   assert_true(
     start_pool_with_control_work_limit(
       @bounded.control(),
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=78),
+      limits(work=10000, workspace=79),
       8192L,
       fn() { true },
       1167,
@@ -164,7 +168,7 @@ test "pool long keys enforce exact control and structural workspace limits" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=90),
       8192L,
       fn() { true },
       1166,
@@ -205,7 +209,7 @@ test "pool retains borrowed keys through scan cancellation and cleanup" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=80),
       8192L,
       fn() { true },
       1167,

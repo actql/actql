@@ -1,22 +1,97 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, symlinkSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
-import {hash} from './inputs.mjs';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {hash, gitTree, actionInputs, mutationSourceInputs, packageImports} from './inputs.mjs';
+import {readCatalog} from './actions.mjs';
 import {mutationIds} from './receipts.mjs';
 import {mutationContracts} from './mutation-inventory.mjs';
 import {stageMutationSource, isolatedSourceFiles, mutationSnapshotExtras, isolatedEnvironment, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
-import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
+import {observeImageRoot, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout, runtimeForAction, readActionRuntimes} from './isolated-runtime.mjs';
 import {staticElf} from './isolated-execution.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest, isolatedExperimentPaths} from './isolated-contract.mjs';
+import {snapshot} from '../bounded-session/evidence.mjs';
 
-function fixture(t) {
+test('actual Git sources have the same keyed cohort, staged bytes/modes and original restoration snapshot', t => {
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const tree = gitTree(repository, revision), destination = mkdtempSync(join(tmpdir(), 'actql-actual-source-cohort-'));
+  t.after(() => rmSync(destination, {recursive: true, force: true}));
+  const selected = mutationSourceInputs(tree);
+  assert.deepEqual(selected.unresolved, [], 'Healthy current source must use the reviewed narrowed cohort');
+  const journalManifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
+  assert(packageImports(tree.read(journalManifest).toString('utf8')).imports.includes('actql/actql/sha256'),
+    'Transfer destination reader identity requires the literal SHA-256 dependency');
+  assert(selected.packageConfigurations.some(entry => entry.path === journalManifest &&
+    entry.digest === hash(tree.read(journalManifest))), 'Transfer journal must have an exact configuration review');
+  const allSources = [...tree.entries.keys()].filter(path => path.startsWith('src/'));
+  assert(selected.paths.length < allSources.length, 'Full-source fallback is not narrowed-cohort coverage');
+  for (const directory of ['src/client_row_source_host', 'src/bounded_graph_diff',
+    'src/platform_native/remote_transfer_journal', 'src/sha256']) {
+    const immediateMembers = allSources.filter(path => path.startsWith(`${directory}/`) &&
+      !path.slice(directory.length + 1).includes('/')).sort();
+    assert(immediateMembers.includes(`${directory}/moon.pkg`));
+    assert(immediateMembers.includes(`${directory}/pkg.generated.mbti`));
+    assert(immediateMembers.some(path => path.endsWith('_wbtest.mbt')));
+    assert.deepEqual(selected.directories.find(entry => entry.path === `${directory}/*`)?.members, immediateMembers);
+    for (const path of immediateMembers) assert(selected.paths.includes(path), `Missing integrated package member: ${path}`);
+  }
+  const staged = stageMutationSource({tree, destination});
+  const action = readCatalog().actions.find(value => value.id === 'mutations-js');
+  // This verifies physical source correspondence only, never a runtime claim.
+  const inputs = actionInputs({tree, revision, action,
+    runtime: {profile: 'source-correspondence-only', unresolved: ['runtime not executed']}});
+  const keyedSources = inputs.inputs.files.filter(entry => entry.path.startsWith('src/')).map(entry => entry.path).sort();
+  assert.deepEqual(staged.files.filter(entry => entry.path.startsWith('source/src/'))
+    .map(entry => entry.path.slice('source/'.length)).sort(), keyedSources);
+  const actualFiles = observeImageRoot(destination).entries.filter(entry => entry.kind === 'file');
+  assert.deepEqual(actualFiles.map(entry => entry.path).sort(), staged.files.map(entry => entry.path).sort());
+  const byPath = new Map(actualFiles.map(entry => [entry.path, entry]));
+  for (const entry of staged.files) {
+    const actual = byPath.get(entry.path);
+    assert.deepEqual({mode: actual.mode, bytes: actual.bytes, digest: actual.digest},
+      {mode: entry.mode, bytes: entry.bytes, digest: entry.digest});
+  }
+  const sourceRoot = join(destination, 'source'), expected = snapshotFromGit(tree);
+  assert.deepEqual(snapshot(sourceRoot), expected);
+  assert.deepEqual(checkMutationCheckout({root: sourceRoot, tree}), expected);
+  for (const path of tree.entries.keys()) if (path.startsWith('src/') && !Object.hasOwn(expected.sources, path))
+    assert.equal(existsSync(join(sourceRoot, path)), false);
+  assert(inputs.unresolved.includes('runtime not executed'));
+  t.diagnostic(JSON.stringify({revision, stagedFiles: staged.files.length, sourceFiles: keyedSources.length,
+    stagedBytes: staged.bytes, scope: 'Git/filesystem correspondence; no compiler, image execution or reuse'}));
+});
+
+test('an unreviewed Transfer journal manifest retains full-source fallback and unresolved reuse', () => {
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim();
+  const tree = gitTree(repository, revision);
+  const manifest = 'src/platform_native/remote_transfer_journal/moon.pkg';
+  const changedTree = {...tree, read(path) {
+    const original = tree.read(path);
+    return path === manifest ? Buffer.concat([original, Buffer.from('\n// Unreviewed configuration revision.\n')]) : original;
+  }};
+  const selected = mutationSourceInputs(changedTree);
+  assert(selected.unresolved.includes(`Unreviewed package configuration: ${manifest}`));
+  assert(selected.directories.some(entry => entry.path === 'src/**'));
+  for (const path of tree.entries.keys()) if (path.startsWith('src/')) assert(selected.paths.includes(path));
+});
+
+function fixture(t, scoped = false) {
   const root = mkdtempSync(join(tmpdir(), 'actql-image-correspondence-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const bodies = new Map([...isolatedSourceFiles, ...mutationSnapshotExtras, ...isolatedExperimentPaths,
     'proofs/bounded-session/mutations.mjs', 'proofs/bounded-session/evidence.mjs', 'src/example/moon.pkg', 'src/example/source.mbt']
     .map(path => [path, Buffer.from(path)]));
+  if (scoped) {
+    for (const path of ['src/bounded_execution', 'src/connectors/local', 'src/query_integration'])
+      bodies.set(`${path}/moon.pkg`, Buffer.from('import { "actql/actql/example" }'));
+    bodies.set('src/example/moon.pkg', Buffer.from(''));
+    bodies.set('src/unrelated/value.mbt', Buffer.from('outside physical scope'));
+  }
   const tree = {entries: new Map([...bodies.keys()].map(path => [path, {mode: '100644', kind: 'blob'}])), read: path => bodies.get(path)};
   stageMutationSource({tree, destination: root});
   const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
@@ -47,8 +122,30 @@ function fixture(t) {
   const files = {'isolated-inputs.json': manifest, 'isolated-observation.json': payload, 'isolated-execution.json': execution,
     'receipts/mutations-js.json': {origin: state.origin, inputs: {inputs: {runtime}}, execution: {milliseconds: 15}},
     'results/mutations-js.json': {...report, sourceRestored: true, revision: state.context.candidateRevision}};
-  return {tree, manifest, runtime, before, payload, state, execution, files, zip: {json: async path => files[path]}};
+  return {root, tree, manifest, runtime, before, payload, state, execution, files, zip: {json: async path => files[path]}};
 }
+
+test('the child snapshot and independent Git snapshot bind the same physically narrowed cohort', t => {
+  const f = fixture(t, true);
+  assert.equal(existsSync(join(f.root, 'source/src/unrelated/value.mbt')), false);
+  assert.deepEqual(snapshot(join(f.root, 'source')), f.before);
+  assert.deepEqual(checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), f.before);
+  assert(checkIsolatedInputs(f)); assert(checkIsolatedResult(f));
+  mkdirSync(join(f.root, 'source/src/unrelated')); writeFileSync(join(f.root, 'source/src/unrelated/value.mbt'), 'unexpected image input');
+  const manifest = {...f.manifest, root: observeImageRoot(f.root)};
+  assert.throws(() => checkIsolatedInputs({runtime: imageRuntime(manifest), manifest, tree: f.tree}), /source directory|source inputs/u);
+  const input = join(f.root, 'source/src/example/source.mbt');
+  writeFileSync(input, 'unrestored selected source');
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /bytes differ/u);
+});
+
+test('selected host source modes and links cannot substitute for actual Git inputs', t => {
+  const f = fixture(t, true), input = join(f.root, 'source/src/example/source.mbt');
+  chmodSync(input, 0o755);
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /mode differs/u);
+  rmSync(input); symlinkSync('moon.pkg', input);
+  assert.throws(() => checkMutationCheckout({root: join(f.root, 'source'), tree: f.tree}), /Nonregular/u);
+});
 
 test('actual staged bytes, internal link targets, Git source and original assertion logs correspond', async t => {
   const f = fixture(t);

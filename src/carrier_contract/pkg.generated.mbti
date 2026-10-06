@@ -10,6 +10,8 @@ import {
 // Values
 pub fn all_fields_required(Knowledge) -> Bool
 
+pub fn compare_property_name_fragment(String, String, Int, Int) -> (Int?, Int, Int)
+
 pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
 
 pub fn event_clock_encoding(Events) -> ClockEncoding
@@ -30,73 +32,73 @@ pub fn field_set(Knowledge) -> FieldSet
 
 pub fn fields(Knowledge) -> Array[Field]
 
+pub fn graph(String, Array[GraphNodeDefinition], Array[GraphEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[Carrier, GraphIssue]
+
 pub fn graph_carrier(Graph) -> Carrier
+
+pub fn graph_definition(Graph) -> GraphDefinition
+
+pub fn graph_domain(GraphDefinition) -> String
+
+pub fn graph_edge_at(GraphDefinition, Int) -> GraphEdgeDefinition?
+
+pub fn graph_edge_count(GraphDefinition) -> Int
+
+pub fn graph_edge_definition(GraphNodeDefinition, String, String) -> Result[GraphEdgeDefinition, GraphIssue]
+
+pub fn graph_edge_definitions(GraphDefinition) -> Array[GraphEdgeDefinition]
+
+pub fn graph_edge_element(GraphEdgeDefinition) -> GraphNodeDefinition
+
+pub fn graph_edge_endpoints(GraphEdgeDefinition) -> (String, String)
+
+pub fn graph_edge_named(GraphDefinition, String) -> GraphEdgeDefinition?
+
+pub fn graph_element_definition_has_label(GraphNodeDefinition, String) -> Bool
+
+pub fn graph_element_definition_key_at(GraphNodeDefinition, Int) -> @value_contract.Contract?
+
+pub fn graph_element_definition_key_column_at(GraphNodeDefinition, Int) -> String?
+
+pub fn graph_element_definition_key_count(GraphNodeDefinition) -> Int
+
+pub fn graph_element_definition_keys(GraphNodeDefinition) -> Array[@value_contract.Contract]
+
+pub fn graph_element_definition_label_at(GraphNodeDefinition, Int) -> (String, Knowledge)?
+
+pub fn graph_element_definition_label_count(GraphNodeDefinition) -> Int
+
+pub fn graph_element_definition_label_properties(GraphNodeDefinition) -> Array[(String, Knowledge)]
+
+pub fn graph_element_definition_labels(GraphNodeDefinition) -> Array[String]
+
+pub fn graph_element_definition_name(GraphNodeDefinition) -> String
+
+pub fn graph_element_definition_properties(GraphNodeDefinition) -> Knowledge
 
 pub fn graph_identity(Graph) -> @value_contract.Contract
 
-pub fn graph_property_definition(Graph) -> PropertyGraphDefinition
+pub fn graph_key_descriptor(@value_contract.Contract) -> GraphKeyDescriptor?
+
+pub fn graph_name_identity(String) -> String
+
+pub fn graph_node_at(GraphDefinition, Int) -> GraphNodeDefinition?
+
+pub fn graph_node_count(GraphDefinition) -> Int
+
+pub fn graph_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[GraphNodeDefinition, GraphIssue]
+
+pub fn graph_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[(GraphNodeDefinition, Int), GraphIssue]
+
+pub fn graph_node_definitions(GraphDefinition) -> Array[GraphNodeDefinition]
+
+pub fn graph_node_named(GraphDefinition, String) -> GraphNodeDefinition?
+
+pub fn graph_usage(String, Array[GraphNodeDefinition], Array[GraphEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), GraphIssue]
 
 pub fn kind(Carrier) -> Kind
 
 pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
-
-pub fn property_definition_has_label(PropertyNodeDefinition, String) -> Bool
-
-pub fn property_definition_key_at(PropertyNodeDefinition, Int) -> @value_contract.Contract?
-
-pub fn property_definition_key_column_at(PropertyNodeDefinition, Int) -> String?
-
-pub fn property_definition_key_count(PropertyNodeDefinition) -> Int
-
-pub fn property_definition_keys(PropertyNodeDefinition) -> Array[@value_contract.Contract]
-
-pub fn property_definition_label_at(PropertyNodeDefinition, Int) -> (String, Knowledge)?
-
-pub fn property_definition_label_count(PropertyNodeDefinition) -> Int
-
-pub fn property_definition_label_properties(PropertyNodeDefinition) -> Array[(String, Knowledge)]
-
-pub fn property_definition_labels(PropertyNodeDefinition) -> Array[String]
-
-pub fn property_definition_name(PropertyNodeDefinition) -> String
-
-pub fn property_definition_properties(PropertyNodeDefinition) -> Knowledge
-
-pub fn property_edge_definition(PropertyNodeDefinition, String, String) -> Result[PropertyEdgeDefinition, PropertyGraphIssue]
-
-pub fn property_edge_element(PropertyEdgeDefinition) -> PropertyNodeDefinition
-
-pub fn property_edge_endpoints(PropertyEdgeDefinition) -> (String, String)
-
-pub fn property_graph(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[Carrier, PropertyGraphIssue]
-
-pub fn property_graph_domain(PropertyGraphDefinition) -> String
-
-pub fn property_graph_edge_at(PropertyGraphDefinition, Int) -> PropertyEdgeDefinition?
-
-pub fn property_graph_edge_count(PropertyGraphDefinition) -> Int
-
-pub fn property_graph_edge_definitions(PropertyGraphDefinition) -> Array[PropertyEdgeDefinition]
-
-pub fn property_graph_edge_named(PropertyGraphDefinition, String) -> PropertyEdgeDefinition?
-
-pub fn property_graph_node_at(PropertyGraphDefinition, Int) -> PropertyNodeDefinition?
-
-pub fn property_graph_node_count(PropertyGraphDefinition) -> Int
-
-pub fn property_graph_node_definitions(PropertyGraphDefinition) -> Array[PropertyNodeDefinition]
-
-pub fn property_graph_node_named(PropertyGraphDefinition, String) -> PropertyNodeDefinition?
-
-pub fn property_graph_usage(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), PropertyGraphIssue]
-
-pub fn property_key_descriptor(@value_contract.Contract) -> PropertyKeyDescriptor?
-
-pub fn property_name_identity(String) -> String
-
-pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[PropertyNodeDefinition, PropertyGraphIssue]
-
-pub fn property_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[(PropertyNodeDefinition, Int), PropertyGraphIssue]
 
 pub fn relation(Knowledge) -> Carrier
 
@@ -160,6 +162,38 @@ pub(all) enum FieldSet {
 
 type Graph
 
+type GraphDefinition
+
+type GraphEdgeDefinition
+
+pub(all) enum GraphIssue {
+  InvalidLimits
+  InvalidName
+  InvalidKey
+  IncompleteProperties
+  InvalidLabel
+  DuplicateLabel
+  DuplicateDefinition
+  UnknownEndpointDefinition
+  LabelPropertyConflict
+  PropertyTypeConflict
+  LimitExceeded
+  InvalidDomain
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphKeyDescriptor {
+  NumberKey
+  TextKey
+  BooleanKey
+  DateKey
+  TimestampKey
+  DecimalKey(precision~ : Int, scale~ : Int)
+  ResourceKey(resource_kind~ : String)
+  ArtifactKey(media_type~ : String?)
+} derive(Eq, @debug.Debug)
+
+type GraphNodeDefinition
+
 pub(all) enum Issue {
   InvalidLimits
   LimitExceeded
@@ -187,38 +221,6 @@ pub enum Lookup {
   Absent
   Present(Field)
 }
-
-type PropertyEdgeDefinition
-
-type PropertyGraphDefinition
-
-pub(all) enum PropertyGraphIssue {
-  InvalidLimits
-  InvalidName
-  InvalidKey
-  IncompleteProperties
-  InvalidLabel
-  DuplicateLabel
-  DuplicateDefinition
-  UnknownEndpointDefinition
-  LabelPropertyConflict
-  PropertyTypeConflict
-  LimitExceeded
-  InvalidDomain
-} derive(Eq, @debug.Debug)
-
-pub(all) enum PropertyKeyDescriptor {
-  NumberKey
-  TextKey
-  BooleanKey
-  DateKey
-  TimestampKey
-  DecimalKey(precision~ : Int, scale~ : Int)
-  ResourceKey(resource_kind~ : String)
-  ArtifactKey(media_type~ : String?)
-} derive(Eq, @debug.Debug)
-
-type PropertyNodeDefinition
 
 type Vectors
 

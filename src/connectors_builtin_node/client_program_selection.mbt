@@ -8,7 +8,7 @@ fn selected_sga_supported() -> Bool {
 ///|
 /// The same installed Graph provider implements the initial keyed constructor,
 /// MATCH and bounded path subset; this is not a claim of all SGA support.
-fn selected_property_graph_supported() -> Bool {
+fn selected_graph_supported() -> Bool {
   true
 }
 

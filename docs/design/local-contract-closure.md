@@ -317,15 +317,14 @@ step validation is not erased because the multiplier is one. Concrete bound
 values and their admission dependencies are not inserted into the contract set.
 This body has no external contract-reference fields.
 
-Graph construction, structural combination, normalization/bounds, subgraph,
-matching, node/edge projection, components/degree and traversal/shortest
-occurrences select `spec/contracts/actql-bound-graph-laws.json`, pointer `""`,
-pinned as `sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48`.
-This body fixes quantity-specific conditional transfers and selector extents;
-it does not treat path enumeration as node emission or make arbitrary Graph
-operations nonexpanding. Roots retain their owning operation; the body has no
-external contract-reference fields. Graph input enforcement and concrete
-observations are separate from these transfer rules.
+The sole Graph constructor selects
+`spec/contracts/actql-bound-graph-construction-laws.json` for definition-occurrence
+sums. The same current Graph contract governs its selected quantity and law
+roots; general entity-to-row and selector arithmetic is described by
+`spec/contracts/actql-bound-graph-laws.json`. Neither body admits endpoint-derived
+construction or another Graph representation. Roots retain their owning
+operation and typed input occurrences. Graph input enforcement and concrete
+observations remain separate from transfer bounds.
 
 Nearest, text-rank and ranking-merge occurrences select
 `spec/contracts/actql-bound-ranking-laws.json` at pointer `""`, CID

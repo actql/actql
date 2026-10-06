@@ -201,8 +201,14 @@ fn Journal::restore_observation(
         Ok(value) => value
         Err(issue) => return Err(Protocol(issue))
       }
+      let file_custody = match
+        self.restore_output_file(record, key, Some(restored.1)) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       Ok({
         record,
+        file_custody,
         evidence: Some(restored.0),
         subject: Some(restored.1),
         measurement: Some(restored.2),
@@ -213,8 +219,14 @@ fn Journal::restore_observation(
       if @remote.dispatch_record_requires_managed_observation(record) {
         Err(StateCollision)
       } else {
+        match self.restore_output_file(record, key, None) {
+          Ok(None) => ()
+          Ok(Some(_)) => return Err(StateCollision)
+          Err(issue) => return Err(issue)
+        }
         Ok({
           record,
+          file_custody: None,
           evidence: None,
           subject: None,
           measurement: None,
@@ -529,6 +541,47 @@ pub fn Journal::observation(
     Err(issue) => return Err(Protocol(issue))
   }
   self.restore_observation(record, key)
+}
+
+///|
+/// Read the current cleanup observation of an already-owned completion after
+/// physical I/O. Normal require/reconstruction remains strict; this port cannot
+/// refresh execution, material identity, force loss or terminal cleanup.
+pub fn Journal::require_completed_cleanup(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let value = match self.database.read("site_dispatch", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(MissingDispatch)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match @remote.admit_durable_dispatch_record(value.body) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if value.revision !=
+    @remote.durable_dispatch_record_revision(durable).to_int64() ||
+    @remote.durable_dispatch_record_request_identity(durable) !=
+    @remote.dispatch_request_identity(request) {
+    return Err(StateCollision)
+  }
+  let cached = match
+    @remote.restore_historical_dispatch(self.control, request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match @remote.refresh_remote_completed_cleanup_observation(cached, durable) {
+    Ok(_) => Ok(cached)
+    Err(issue) => Err(Protocol(issue))
+  }
 }
 
 ///|
@@ -1251,6 +1304,7 @@ pub fn Journal::commit_evidence_transition(
   subject : @remote.RemoteManagedOutputSubject,
   measurement : @remote.RemoteManagedOutputMeasurement,
   source_observation? : @remote.RemoteSourceObservation? = None,
+  file_custody? : NativeOutputFileCustody? = None,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
@@ -1278,6 +1332,24 @@ pub fn Journal::commit_evidence_transition(
     ) {
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
+  }
+  let file_body = match file_custody {
+    None => None
+    Some(custody) => {
+      if custody.request_cid !=
+        @remote.dispatch_transition_request_identity(transition) ||
+        !output_file_matches_subject(custody, subject) {
+        return Err(StateCollision)
+      }
+      let body = match output_file_custody_json(custody) {
+        Ok(value) => @utf8.encode(value)
+        Err(issue) => return Err(issue)
+      }
+      if body.length().to_int64() > self.max_record_bytes {
+        return Err(Physical(@sqlite.CapacityExceeded))
+      }
+      Some(body)
+    }
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -1309,6 +1381,12 @@ pub fn Journal::commit_evidence_transition(
         }
       Err(@sqlite.NotFound) => failure = Some(StateCollision)
       Err(issue) => failure = Some(Physical(issue))
+    }
+  }
+  if failure is None {
+    match self.commit_output_file_snapshot(key, file_body, already_committed) {
+      Ok(_) => ()
+      Err(issue) => failure = Some(issue)
     }
   }
   if failure is None && !already_committed {

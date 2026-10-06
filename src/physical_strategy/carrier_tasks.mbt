@@ -417,19 +417,6 @@ fn carrier_segment_prefix_end(
     } else if @lower.node_input_count(node) == 2 {
       found_binary = true
     }
-    if stage != 0 &&
-      @lower.operation(node) == "BRIDGE.rows.to_graph" &&
-      @lower.node_input_count(node) > 1 {
-      guard @lower.node_input_target(node, 0) is Some(first) else {
-        return None
-      }
-      for input in 1..<@lower.node_input_count(node) {
-        carrier_work(work)
-        if @lower.node_input_target(node, input) != Some(first) {
-          return None
-        }
-      }
-    }
     for input in 0..<@lower.node_input_count(node) {
       carrier_work(work)
       match @lower.node_input_target(node, input) {

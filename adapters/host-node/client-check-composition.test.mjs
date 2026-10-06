@@ -186,17 +186,17 @@ test('composition: missing read tuples and failed read owners preserve checking'
 // Fixed HMAC vectors derived independently with Python's JSON serialization
 // and hmac/sha256, the fixture's 32 bytes of 0x07, and literal context fields.
 // No product canonicalizer or returned context is used to build expectations.
-// The preimages include the registered actql-check-reason/0.1 schema CID.
+// The preimages include both registered reason and outcome schema CIDs.
 test('composition: exact Unicode source and received-input fallback have fixed references',
   async () => {
     const texts = ["SELECT 'caf\u00e9' AS label", "SELECT 'cafe\u0301' AS label"];
     const vectors = [{parameterDeclarations: undefined, refs: [
-      'ctx:cf67c0b932c321f1156e8e7c1e422f2ae302770e69450abcf4b795c28a5f7256',
-      'ctx:9b1165fc92cda50d0ccf3790df50caf9e946e02038bee034ccb94a27af231003',
+      'ctx:8c7e38ec2ed1485c0a26f3ece08b338e72f446fcd23804abfffde432d3e2c21a',
+      'ctx:133adf27f7d4174ac8d384f0ebb927bff71981a79365e08eb8e23b00cdf4649e',
     ]}, {parameterDeclarations: {'\u00e9': {type: 'string'}, 'e\u0301': {type: 'string'}},
       refs: [
-        'ctx:209748c66a8cb52839b4d4d61bf8e3334889de6648b0d71d4cd825bde281e0f0',
-        'ctx:04de0a0aea43ef7bff2365fb2c611867d595d4f3a0df0165843ca6370d79ddc8',
+        'ctx:d8f41fa5331744268b4f27dfdacc78570950bba806f98fa92e213b8a4e9ba438',
+        'ctx:bc72b51f3d8b17f28c0a1a4e4e2bf93e50c1eadf63e24246185923986cc38c26',
       ]}];
     const f = fixture([], []);
     for (const {parameterDeclarations, refs} of vectors) {
@@ -205,7 +205,7 @@ test('composition: exact Unicode source and received-input fallback have fixed r
           ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
         const call = {principalId: 'owner', input, parameters: null};
         const outcome = await f.check(call);
-        assert.equal(outcome.report.context_ref, refs[index]);
+        assert.equal(outcome.report.context_ref, refs[index], '[check-mutation:context-schema-vector]');
         assert.deepEqual(await f.check(call), outcome);
         assert.equal(f.checked.at(-1)[0], text, 'checker receives the authored spelling');
       }

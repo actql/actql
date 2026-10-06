@@ -203,7 +203,7 @@ export function valuesContractCids(old = false) {
       return 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a';
     }
     if (!old && path === 'spec/dependencies/aoa-sga-identity-laws.json') {
-      path = 'spec/dependencies/actql-property-graph-laws.json';
+      path = 'spec/dependencies/actql-graph-laws.json';
     }
     const root = JSON.parse(readFileSync(new URL('../../' + path, import.meta.url), 'utf8'));
     return independentCid(keys.reduce((v, key) => v[key], root));

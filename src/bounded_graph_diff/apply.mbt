@@ -47,7 +47,7 @@ struct ApplyPreparation {
   mut base_decoded : @decode.Cursor?
   mut body_admission : BodyAdmission?
   mut before_admission : BeforeAdmission?
-  mut record_append : @storage.PropertySnapshotAppend?
+  mut record_append : @storage.GraphSnapshotAppend?
   mut pending_output : @decode.Cursor?
   mut pending_edge : Bool
   chunks : Array[String]
@@ -462,7 +462,7 @@ pub fn advance_apply(
           poll is @snapshot.Complete(snapshot, ..) {
           value.base_snapshot = Some(snapshot)
         }
-        let chunk = match @snapshot.take_property_output(preparation) {
+        let chunk = match @snapshot.take_output(preparation) {
           Ok(chunk) => chunk
           Err(issue) => {
             if value.phase == TargetSnapshot &&
@@ -612,7 +612,7 @@ pub fn advance_apply(
           continue
         }
         let base_key = if edge {
-          @snapshot.property_edge_key_at(snapshot, value.base_cursor)
+          @snapshot.edge_key_at(snapshot, value.base_cursor)
         } else {
           @snapshot.node_key_at(snapshot, value.base_cursor)
         }
@@ -694,13 +694,13 @@ pub fn advance_apply(
       AppendRecord =>
         if value.record_append is Some(append) {
           match
-            @storage.advance_property_snapshot_append(
+            @storage.advance_graph_snapshot_append(
               append,
               quantum - used.to_int(),
             ) {
-            @storage.PropertySnapshotAppendContinue(work~) =>
+            @storage.GraphSnapshotAppendContinue(work~) =>
               used += work.to_int64()
-            @storage.PropertySnapshotAppendFailed(issue, work~) =>
+            @storage.GraphSnapshotAppendFailed(issue, work~) =>
               return Ok(
                 apply_failure(
                   value,
@@ -709,9 +709,9 @@ pub fn advance_apply(
                   progress,
                 ),
               )
-            @storage.PropertySnapshotAppendComplete(work~) => {
+            @storage.GraphSnapshotAppendComplete(work~) => {
               used += work.to_int64()
-              @storage.cleanup_property_snapshot_append(append)
+              @storage.cleanup_graph_snapshot_append(append)
               value.record_append = None
               value.pending_output = None
               value.phase = if value.pending_edge {
@@ -725,7 +725,7 @@ pub fn advance_apply(
         } else if value.pending_output is Some(cursor) {
           used += 1
           match
-            @storage.start_property_snapshot_append(
+            @storage.start_graph_snapshot_append(
               value.builder.unwrap(),
               cursor,
               edge=value.pending_edge,
@@ -758,7 +758,7 @@ pub fn cleanup_apply(value : ApplyPreparation) -> Bool {
   value.node_admission = None
   value.edge_admission = None
   if value.record_append is Some(append) {
-    @storage.cleanup_property_snapshot_append(append)
+    @storage.cleanup_graph_snapshot_append(append)
     value.record_append = None
   }
   if value.snapshot_preparation is Some(preparation) {

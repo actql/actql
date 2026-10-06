@@ -922,7 +922,7 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
-        property_graph=local_carrier_graph_chain,
+        graph=local_carrier_graph_chain,
         numeric_profile=if numeric_materializing_group ||
           (
             local_values_group_chain &&

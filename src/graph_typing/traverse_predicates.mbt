@@ -8,17 +8,17 @@ fn traversal_hop_candidates(
   types : Array[String]?,
   b : Budget,
 ) -> (Array[Int], Array[Int]) raise Stop {
-  let profile = @carrier.graph_property_definition(graph)
+  let profile = @carrier.graph_definition(graph)
   let edges = []
-  for edge in 0..<@carrier.property_graph_edge_count(profile) {
+  for edge in 0..<@carrier.graph_edge_count(profile) {
     spend(b, at, 1)
-    let definition = @carrier.property_graph_edge_at(profile, edge).unwrap()
-    let element = @carrier.property_edge_element(definition)
+    let definition = @carrier.graph_edge_at(profile, edge).unwrap()
+    let element = @carrier.graph_edge_element(definition)
     let mut selected = types is None
     if types is Some(types) {
       spend(b, at, types.length())
       for label in types {
-        if @carrier.property_definition_has_label(element, label) {
+        if @carrier.graph_element_definition_has_label(element, label) {
           selected = true
         }
       }
@@ -28,15 +28,15 @@ fn traversal_hop_candidates(
     }
   }
   let nodes = []
-  for node in 0..<@carrier.property_graph_node_count(profile) {
+  for node in 0..<@carrier.graph_node_count(profile) {
     spend(b, at, 1)
-    let definition = @carrier.property_graph_node_at(profile, node).unwrap()
-    let name = @carrier.property_definition_name(definition).to_lower()
+    let definition = @carrier.graph_node_at(profile, node).unwrap()
+    let name = @carrier.graph_element_definition_name(definition).to_lower()
     let mut selected = false
     for edge in edges {
       spend(b, at, 1)
-      let definition = @carrier.property_graph_edge_at(profile, edge).unwrap()
-      let (source, target) = @carrier.property_edge_endpoints(definition)
+      let definition = @carrier.graph_edge_at(profile, edge).unwrap()
+      let (source, target) = @carrier.graph_edge_endpoints(definition)
       if (direction != Incoming && target.to_lower() == name) ||
         (direction != Outgoing && source.to_lower() == name) {
         selected = true
@@ -51,32 +51,32 @@ fn traversal_hop_candidates(
 
 ///|
 fn traversal_definition_properties(
-  profile : @carrier.PropertyGraphDefinition,
+  profile : @carrier.GraphDefinition,
   entity : EntityKind,
   definition : Int,
 ) -> @carrier.Knowledge {
   let element = if entity == Edges {
-    @carrier.property_edge_element(
-      @carrier.property_graph_edge_at(profile, definition).unwrap(),
+    @carrier.graph_edge_element(
+      @carrier.graph_edge_at(profile, definition).unwrap(),
     )
   } else {
-    @carrier.property_graph_node_at(profile, definition).unwrap()
+    @carrier.graph_node_at(profile, definition).unwrap()
   }
-  @carrier.property_definition_properties(element)
+  @carrier.graph_element_definition_properties(element)
 }
 
 ///|
 fn traversal_common_scope(
-  profile : @carrier.PropertyGraphDefinition,
+  profile : @carrier.GraphDefinition,
   entity : EntityKind,
   candidates : Array[Int],
   at : @decode.Cursor,
   b : Budget,
 ) -> (@carrier.Knowledge, Array[Array[Int]]) raise Stop {
   let total = if entity == Edges {
-    @carrier.property_graph_edge_count(profile)
+    @carrier.graph_edge_count(profile)
   } else {
-    @carrier.property_graph_node_count(profile)
+    @carrier.graph_node_count(profile)
   }
   spend(b, at, total)
   let positions : Array[Array[Int]] = []
@@ -159,7 +159,7 @@ fn check_traversal_hop_predicates(
   b : Budget,
 ) -> Result[(TraversalHop, Int), MatchIssue] {
   try {
-    let profile = @carrier.graph_property_definition(graph)
+    let profile = @carrier.graph_definition(graph)
     let empty = @carrier.rows(
       [],
       field_set=Closed,

@@ -66,7 +66,7 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | WindowRequirement(_)
     | MatchRequirement(_)
     | DiagnosticRequirement(_)
-    | PropertyEqualityRequirement(_)
+    | GraphEqualityRequirement(_)
     | NormalizeRequirement(_)
     | DeltaRequirement(_)
     | UnionRequirement(_)

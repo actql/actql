@@ -60,15 +60,17 @@ test "Relation Pool member encoding has independent work workspace and stop boun
   // A 129-unit Text identity adds 128 comparison polls and three input
   // recheck polls. Encoding adds four measure polls, three copy polls and
   // five final recheck polls: 72+12+128+3+4+3+5 = 227.
-  // 21 structural + 20 recheck + 56 append slots = 97; the scalar
+  // 21 structural + 20 recheck + 56 append + one name offset = 98; the scalar
   // cursor reuses input recheck custody after all fields have been bound.
+  // Admission stays 98. Completion retains one three-field row alongside
+  // the conservative caller/append reservation: 98+(3+2)=103.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       prepared_sequence(owner),
       0,
       read,
-      direct_relation_pool_limits(96, 227),
+      direct_relation_pool_limits(97, 227),
       4096L,
       fn() { true },
     )
@@ -81,7 +83,7 @@ test "Relation Pool member encoding has independent work workspace and stop boun
         prepared_sequence(owner),
         0,
         read,
-        direct_relation_pool_limits(97, work),
+        direct_relation_pool_limits(103, work),
         4096L,
         fn() { true },
       ).unwrap()
@@ -151,7 +153,7 @@ test "Relation Pool member encoding has independent work workspace and stop boun
     prepared_sequence(owner),
     0,
     read,
-    direct_relation_pool_limits(97, 227),
+    direct_relation_pool_limits(103, 227),
     4096L,
     fn() { true },
   ).unwrap()
@@ -184,7 +186,7 @@ test "Relation Pool member encoding has independent work workspace and stop boun
       prepared_sequence(owner),
       0,
       read,
-      { ..direct_relation_pool_limits(97, 227), max_value_bytes: bytes, },
+      { ..direct_relation_pool_limits(103, 227), max_value_bytes: bytes, },
       4096L,
       fn() { true },
     ).unwrap()

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "canonical-graph-wire-migration",
+  "kind": "change",
+  "revision": "c05beaef687e4e12fb665a6304decbe46d53d80f",
+  "parents": [
+    "9b91aef6aaafecc92059f65e007de77c086bbb4b"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "9b91aef6aaafecc92059f65e007de77c086bbb4b",
+          "digest": "5700f4439cc2d602f76571d3a2aba4aa638992ad2e7fe70777f68f4d5a6fcbeb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "608aa8b5d858a1c604127a9a1ae08e297f1360fb33c50faeb60c8b10620f3391",
+      "afterMode": "100644",
+      "reason": "Rename the packed Graph runner and source fixtures to the canonical Graph paths, retaining all existing acceptance invocations and production gates. The Graph wire and identity migration is declared separately from frozen historical evidence."
+    }
+  ]
+}

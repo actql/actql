@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn contract_step_record(
   name : String,
@@ -37,7 +40,7 @@ test "record append resumes contract names with unchanged construction limits" {
       ..append_step_limits(31, work, 148),
       max_value_depth: 3,
     }).unwrap()
-    let cursor = start_append(builder, fields).unwrap()
+    let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
     assert_eq(advance_append(cursor), Ok(false))
     assert_true(cursor.phase is FieldContract)
     assert_eq(cursor.index, 0)
@@ -121,7 +124,11 @@ test "record contract stack reserves exact extra custody before allocation" {
       ..append_step_limits(slots, 10, 100),
       max_contract_work: 11,
     }).unwrap()
-    let cursor = start_append(builder, [(@schema.Unqualified("value"), checked)]).unwrap()
+    let cursor = start_append(
+      builder,
+      [(@schema.Unqualified("value"), checked)],
+      external_workspace_slots=0,
+    ).unwrap()
     let (result, _) = identity_step_result(cursor, 100)
     assert_eq(result, expected)
     if expected == Ok(true) {
@@ -143,7 +150,11 @@ test "record contract stack reserves exact extra custody before allocation" {
     ..append_step_limits(34, 10, 100),
     max_contract_work: 10,
   }).unwrap()
-  let cursor = start_append(builder, [(@schema.Unqualified("value"), checked)]).unwrap()
+  let cursor = start_append(
+    builder,
+    [(@schema.Unqualified("value"), checked)],
+    external_workspace_slots=0,
+  ).unwrap()
   assert_eq(identity_step_result(cursor, 100).0, Err(InvalidRecord))
   assert_eq(builder_record_count(builder), 0)
   assert_true(cancel(builder))
@@ -159,7 +170,7 @@ test "record contract cancellation retains prior rows until owner cleanup" {
   }).unwrap()
   append(builder, fields).unwrap()
   let bytes = builder_retained_value_bytes(builder)
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   assert_eq(advance_append(cursor), Ok(false))
   assert_eq(advance_append(cursor), Ok(false))
   assert_true(cursor.phase is FieldContract)
@@ -186,7 +197,7 @@ test "record contract mismatch fails before wire commit with typed custody" {
     ..append_step_limits(31, 100, 1000),
     max_value_depth: 3,
   }).unwrap()
-  let cursor = start_append(builder, foreign).unwrap()
+  let cursor = start_append(builder, foreign, external_workspace_slots=0).unwrap()
   for _ in 0..<3 {
     assert_eq(advance_append(cursor), Ok(false))
     assert_true(cursor.phase is FieldContract)
@@ -214,7 +225,7 @@ test "record contract continuation binds the field it actually validated" {
     ..append_step_limits(31, 100, 1000),
     max_value_depth: 3,
   }).unwrap()
-  let cursor = start_append(builder, fields).unwrap()
+  let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
   assert_eq(advance_append(cursor), Ok(false))
   assert_true(cursor.phase is FieldContract)
   // Caller mutation cannot substitute a different value after its contract

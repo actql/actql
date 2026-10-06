@@ -150,9 +150,9 @@ distribution[3] = distribution[3].replace(
 );
 distribution[3] = distribution[3].replace(
   'scripts/infer-owner-checker.test.mjs ',
-  'scripts/infer-owner-checker.test.mjs scripts/property-graph-surface-checker.test.mjs scripts/property-graph-public-host.test.mjs ',
+  'scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs ',
 );
-distribution.splice(5, 0, 'node scripts/test-packed-property-graph.mjs');
+distribution.splice(5, 0, 'node scripts/test-packed-graph.mjs');
 
 // Source computation handoff regression uses the same already-prepared
 // runtime and existing distribution job; it adds no package build or job.

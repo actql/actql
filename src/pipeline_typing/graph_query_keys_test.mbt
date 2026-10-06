@@ -1,12 +1,12 @@
 ///|
-fn query_property_graph() -> @carrier.Carrier {
+fn query_graph() -> @carrier.Carrier {
   let empty = @carrier.rows(
     [],
     field_set=Closed,
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [@contract.primitive(NumberType, nullable=false)],
     empty,
@@ -14,8 +14,8 @@ fn query_property_graph() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [@contract.primitive(NumberType, nullable=false)],
       empty,
@@ -26,7 +26,7 @@ fn query_property_graph() -> @carrier.Carrier {
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],
@@ -65,7 +65,7 @@ test "current Graph matching requires the independent element identity not endpo
     ] {
     let p = @pipeline_typing.check_carriers(
       cursor("[" + query_match_body(edges, fields) + "]"),
-      [("g", query_property_graph())],
+      [("g", query_graph())],
       None,
       None,
       limits(),
@@ -89,7 +89,7 @@ test "current Graph matching requires the independent element identity not endpo
 ///|
 test "current Graph query aliases retain actual checked producer and exact transfer budgets" {
   for edges in [false, true] {
-    let graph = query_property_graph()
+    let graph = query_graph()
     let source = cursor(
       "[" +
       query_match_body(edges, "[\"element\"]") +
@@ -163,7 +163,7 @@ test "current Graph query aliases retain actual checked producer and exact trans
 
 ///|
 test "current identity projection loss and TRAIL enumeration do not fabricate Relation keys" {
-  let graph = query_property_graph()
+  let graph = query_graph()
   let p = @pipeline_typing.check_carriers(
     cursor(
       "[" +

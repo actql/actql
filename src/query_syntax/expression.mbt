@@ -187,6 +187,7 @@ priv enum ExpressionFrame {
   BetweenLower(Int, Bool, Int, Int)
   BetweenUpper(Int, Int, Bool, Int, Int)
   InItem(Int, Bool, Array[Int], Int, Int)
+  InUnnest(Int, Bool, Int, Int)
   IsDistinct(Int, Bool, Int, Int)
   CaseCondition(Array[(Int, Int)], Int, Int)
   CaseValue(Array[(Int, Int)], Int, Int, Int)
@@ -197,6 +198,7 @@ priv enum ExpressionFrame {
 ///|
 priv suberror ExpressionAbort {
   ExpressionAbort(String, Int)
+  ExpressionDiagnostic(Diagnostic)
 }
 
 ///|
@@ -207,6 +209,11 @@ priv struct ExpressionParser {
   depths : Array[Int]
   mut offset : Int
   mut work : Int
+  mut embedded_nodes : Int
+  primary : ((Int, ExpressionLimits) -> Result[
+    (NamePart, Int, Int, Int)?,
+    Diagnostic,
+  ])?
 }
 
 ///|
@@ -255,7 +262,7 @@ fn ExpressionParser::add(
   start : Int,
   end : Int,
 ) -> Int raise ExpressionAbort {
-  if self.nodes.length() >= self.limits.max_nodes {
+  if self.nodes.length() + self.embedded_nodes >= self.limits.max_nodes {
     raise ExpressionAbort("Expression node limit", start)
   }
   // Postfix chains do not enter a recursive Pratt continuation. Measure their
@@ -427,6 +434,36 @@ fn ExpressionParser::expression(
         if depth > self.limits.max_depth {
           raise ExpressionAbort("Expression depth limit", self.peek().start)
         }
+        // Clause-owned calls retain token spans and use the same admitted
+        // token stream. Ordinary scalar expression parsing has no resolver.
+        if self.primary is Some(primary) {
+          let remaining = {
+            ..self.limits,
+            max_nodes: self.limits.max_nodes -
+            self.nodes.length() -
+            self.embedded_nodes -
+            1,
+            max_depth: self.limits.max_depth - depth,
+            max_work: self.limits.max_work - self.work,
+          }
+          match primary(self.offset, remaining) {
+            Err(error) => raise ExpressionDiagnostic(error)
+            Ok(Some((name, next, work, nodes))) => {
+              self.work += work
+              self.embedded_nodes += nodes
+              let start = self.peek().start
+              self.offset = next
+              result = self.add(
+                Reference([name]),
+                start,
+                self.source.tokens[next - 1].end,
+              )
+              frames.push(Tail(-1, minimum, depth))
+              continue
+            }
+            Ok(None) => ()
+          }
+        }
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
         match t.value {
@@ -483,11 +520,10 @@ fn ExpressionParser::expression(
             if t.value is Word(name) &&
               [
                 "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT",
-                "OFFSET", "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION",
-                "INTERSECT", "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL",
-                "CROSS", "ON", "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW",
-                "WHEN", "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN",
-                "LIKE",
+                "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION", "INTERSECT",
+                "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ON",
+                "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW", "WHEN",
+                "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN", "LIKE",
               ].contains(upper_ascii(name)) {
               raise ExpressionAbort(
                 "Reserved query identifier requires quoting",
@@ -562,11 +598,26 @@ fn ExpressionParser::expression(
             frames.push(BetweenLower(left, negated, minimum, depth))
             frames.push(Enter(5, depth + 1))
           } else if keyword(op, "IN") {
+            let array = keyword(self.peek(), "UNNEST")
+            if array {
+              ignore(self.advance())
+            }
             let open = self.advance()
             if open.value != Symbol(40) {
-              raise ExpressionAbort("Expected IN list", open.start)
+              raise ExpressionAbort(
+                if array {
+                  "Expected UNNEST argument"
+                } else {
+                  "Expected IN list"
+                },
+                open.start,
+              )
             }
-            frames.push(InItem(left, negated, [], minimum, depth))
+            if array {
+              frames.push(InUnnest(left, negated, minimum, depth))
+            } else {
+              frames.push(InItem(left, negated, [], minimum, depth))
+            }
             frames.push(Enter(1, depth + 1))
           } else if keyword(op, "LIKE") && negated {
             frames.push(BinaryRight("NOT LIKE", left, minimum, depth))
@@ -676,6 +727,20 @@ fn ExpressionParser::expression(
             token.start,
           )
         }
+      }
+      InUnnest(left, negated, minimum, depth) => {
+        let token = self.advance()
+        if token.value != Symbol(41) {
+          raise ExpressionAbort("Expected closing UNNEST argument", token.start)
+        }
+        result = self.add(
+          Predicate(if negated { "NOT IN UNNEST" } else { "IN UNNEST" }, [
+            left, result,
+          ]),
+          self.nodes[left].start,
+          token.end,
+        )
+        frames.push(Tail(result, minimum, depth))
       }
       IsDistinct(left, negated, minimum, depth) => {
         result = self.add(
@@ -833,6 +898,22 @@ fn parse_fragment(
   offset : Int,
   limits : ExpressionLimits,
 ) -> Result[(Expression, Int), Diagnostic] {
+  match parse_fragment_resolved(source, offset, limits, None) {
+    Ok((expression, next, _)) => Ok((expression, next))
+    Err(error) => Err(error)
+  }
+}
+
+///|
+fn parse_fragment_resolved(
+  source : Tokens,
+  offset : Int,
+  limits : ExpressionLimits,
+  primary : ((Int, ExpressionLimits) -> Result[
+    (NamePart, Int, Int, Int)?,
+    Diagnostic,
+  ])?,
+) -> Result[(Expression, Int, Int), Diagnostic] {
   let parser : ExpressionParser = {
     source,
     limits,
@@ -840,13 +921,20 @@ fn parse_fragment(
     depths: [],
     offset,
     work: 0,
+    embedded_nodes: 0,
+    primary,
   }
   try {
     let root = parser.expression()
     Ok(
-      ({ source, nodes: parser.nodes, root, work: parser.work, }, parser.offset),
+      (
+        { source, nodes: parser.nodes, root, work: parser.work, },
+        parser.offset,
+        parser.embedded_nodes,
+      ),
     )
   } catch {
+    ExpressionDiagnostic(error) => Err(error)
     ExpressionAbort(message, at) =>
       Err({
         issue: Syntax(message),

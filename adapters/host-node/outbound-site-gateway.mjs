@@ -202,7 +202,9 @@ export async function startHttpsOutboundSiteGateway({
       ? retainedInput.retainedInputPlanEnvelope(retained.intent)
       : operation === 'retained-transfer'
         ? retainedInput.retainedInputTransferEnvelope(retained.plan)
-        : undefined;
+        : operation === 'retained-current'
+          ? retainedInput.retainedInputCurrentEnvelope(retained.query)
+          : undefined;
     let entry = pending.get(key);
     if (entry !== undefined) {
       if (retainedEnvelope !== undefined && entry.envelope !== retainedEnvelope) {
@@ -394,7 +396,7 @@ export async function startHttpsOutboundSiteGateway({
       let statusReply = false;
       for (const entry of pending.values()) {
         if (entry.binding !== binding ||
-            !['retained-plan', 'retained-transfer'].includes(entry.operation)) {
+            !['retained-plan', 'retained-transfer', 'retained-current'].includes(entry.operation)) {
           continue;
         }
         const saved = Object.freeze({wire: body,
@@ -403,7 +405,10 @@ export async function startHttpsOutboundSiteGateway({
           admitted = entry.operation === 'retained-plan'
             ? retainedInput.admitRetainedInputPlan(entry.retained.intent,
               saved, entry.retained.current, entry.retained.limits)
-            : retainedInput.admitRetainedInputResult(entry.retained.plan, saved);
+            : entry.operation === 'retained-transfer'
+              ? retainedInput.admitRetainedInputResult(entry.retained.plan, saved)
+              : retainedInput.admitRetainedInputCurrentReply(entry.retained.query, saved,
+                entry.retained.limits);
         } catch { continue; }
         // The common owner admits the exact report. The Host must confirm its
         // custody before we ACK or discard this transport delivery obligation.
@@ -737,6 +742,21 @@ export async function startHttpsOutboundSiteGateway({
       }
       return waitFor(dispatch, signal, 'retained-transfer', undefined, undefined,
         undefined, undefined, undefined, undefined, {plan});
+    },
+    retainedCurrent({dispatch, plan, queryId, limits, signal} = {}) {
+      if (retainedInput === undefined || dispatch === undefined || plan === undefined ||
+          limits === undefined || !text(queryId) ||
+          ['prepareRetainedInputCurrentQuery', 'retainedInputCurrentEnvelope',
+            'admitRetainedInputCurrentReply'].some(name => typeof retainedInput[name] !== 'function')) {
+        fail('InvalidOutboundRetainedInputCurrent');
+      }
+      const facts = retainedInput.retainedInputPlanFacts(plan);
+      if (JSON.parse(facts.wire).dispatch_request_cid !== control.identity(dispatch)) {
+        fail('OutboundRetainedInputDispatchMismatch');
+      }
+      const query = retainedInput.prepareRetainedInputCurrentQuery(plan, queryId);
+      return waitFor(dispatch, signal, 'retained-current', undefined, undefined,
+        undefined, undefined, undefined, undefined, {query, limits});
     },
     release({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');

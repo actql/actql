@@ -81,9 +81,9 @@ pub fn check_subgraph(
     let edges = match @decode.lookup(root, "edges") {
       None => None
       Some(at) => {
-        let profile = @carrier.graph_property_definition(value)
+        let profile = @carrier.graph_definition(value)
         let candidates = []
-        for index in 0..<@carrier.property_graph_edge_count(profile) {
+        for index in 0..<@carrier.graph_edge_count(profile) {
           spend(b, at, 1)
           candidates.push(index)
         }

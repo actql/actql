@@ -10,7 +10,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-artifacts",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -43,7 +43,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-artifacts",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -263,7 +263,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -296,7 +296,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -307,7 +307,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -329,7 +329,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "lookup-acquisition-identities",
-        "kind": "prose"
+        "kind": "table"
       }
     },
     {
@@ -417,7 +417,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "result-delivery",
-        "kind": "grammar"
+        "kind": "prose"
       }
     },
     {
@@ -637,7 +637,7 @@
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
-        "kind": "law"
+        "kind": "prose"
       }
     }
   ]

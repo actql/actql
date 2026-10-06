@@ -308,7 +308,7 @@ pub fn local_managed_sequence_supported(
       @lower.GraphDeltaStep(_) => false
       @lower.GraphUnionStep(_) => false
       @lower.GraphSubtractionStep(_) => false
-      @lower.PropertyGraphConstructionStep(_) => false
+      @lower.GraphConstructionStep(_) => false
       @lower.VectorStep(_) => false
       @lower.EventStep(_) => false
       @lower.CarrierProjectionStep(_) => false

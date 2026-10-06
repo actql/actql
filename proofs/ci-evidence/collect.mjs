@@ -199,6 +199,7 @@ export function finish() {
   write(join(directory, 'checked.json'), {version: 'actql-verification-family-certificate/0.1',
     mode: 'scoped-execution', context: state.context, catalogDigest: hash(encode(catalog)), receiptDigests,
     acquisitionDigest: hash(readFileSync(join(directory, 'acquisition-plan.json'))),
+    collectionCostsDigest: hash(readFileSync(join(directory, 'collection-costs.json'))),
     comparisonDigest: hash(readFileSync(join(directory, 'comparison-plan.json'))),
     comparisonObservationsDigest: hash(readFileSync(join(directory, 'comparison-observations.json'))),
     lean, milliseconds: Math.round(performance.now() - start)});

@@ -40,13 +40,13 @@ fn script_graph_row_columns(
   let definitions = match selection {
     None => definitions
     Some((kind, name)) => {
-      let identity = @carrier.property_name_identity(name)
+      let identity = @carrier.graph_name_identity(name)
       let selected = definitions.filter(definition => {
         if kind == "definition" {
-          @carrier.property_name_identity(definition.0) == identity
+          @carrier.graph_name_identity(definition.0) == identity
         } else {
           definition.3.any(label => {
-            @carrier.property_name_identity(label.name.value) == identity
+            @carrier.graph_name_identity(label.name.value) == identity
           })
         }
       })
@@ -63,7 +63,7 @@ fn script_graph_row_columns(
   }
   let seen : Map[String, Bool] = Map([])
   for field in fields {
-    seen[@carrier.property_name_identity(field)] = true
+    seen[@carrier.graph_name_identity(field)] = true
   }
   for (_, producer, keys, labels) in definitions {
     let input = property_mapping_input(producer, graph.inputs)
@@ -87,7 +87,7 @@ fn script_graph_row_columns(
       names.append(properties)
     }
     for name in names {
-      let folded = @carrier.property_name_identity(name)
+      let folded = @carrier.graph_name_identity(name)
       if !seen.contains(folded) {
         seen[folded] = true
         fields.push(name)
@@ -145,6 +145,12 @@ fn lower_script_graph_rows(
     }
     if row_input is Some(_) {
       raise Abort(UnsupportedGraph)
+    }
+    if call.operation == "union_graphs" || call.operation == "subtract_graphs" {
+      current = lower_script_graph_composition(
+        construction, query, call, current, graphs, known, limits, steps, reserved,
+      )
+      continue
     }
     if call.operation == "subgraph" {
       current = lower_script_subgraph(

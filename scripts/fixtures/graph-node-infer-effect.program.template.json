@@ -81,8 +81,8 @@
           "as": "edges"
         },
         {
-          "property_graph": {
-            "version": "actql-property-graph-constructor/0.1",
+          "graph": {
+            "version": "actql-graph-constructor/0.1",
             "nodes": [
               {
                 "name": "N",

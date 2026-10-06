@@ -17,10 +17,12 @@ const expected = ['a', 'b'].map(suffix => ({
 }));
 
 function program(id, direct = false, outputScan = false, identityScan = false, memberScan = false,
-  objectNameScan = false, fieldNameScan = false) {
-  const groupName = fieldNameScan ? longFieldName : 'group';
-  const selectedFields = fieldNameScan ? [groupName, 'embedding', 'member_count'] : fields;
-  const unusedItems = fieldNameScan ? 90 : 129;
+  objectNameScan = false, fieldNameScan = false, inputNameScan = false) {
+  const named = fieldNameScan || inputNameScan;
+  const groupName = named ? longFieldName : 'group';
+  const selectedFields = named ? [groupName, 'embedding', 'member_count'] : fields;
+  const unusedItems = inputNameScan ? 116 : fieldNameScan ? 90 : 129;
+  const unusedName = inputNameScan ? 'aa_unused' : 'zz_unused';
   const dimensions = outputScan ? 257 : 2;
   const objectName = 'x'.repeat(513);
   const objectSchema = {type: 'object', nullable: false,
@@ -28,23 +30,23 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
   const schema = {
     id: {type: memberScan ? 'string' : 'number', nullable: false},
     ...(memberScan ? {code: {type: 'number', nullable: false}} : {}),
-    [groupName]: {type: outputScan || memberScan || objectNameScan || fieldNameScan ? 'number' : 'string', nullable: false},
+    [groupName]: {type: outputScan || memberScan || objectNameScan || named ? 'number' : 'string', nullable: false},
     embedding: {type: 'vector', dimensions, nullable: false},
     ...(objectNameScan ? {aa_unused: {type: 'array', nullable: false, max_items: 112,
       items: {type: 'number', nullable: false}}, zz_unused: objectSchema} : {}),
-    ...(direct && !memberScan && !objectNameScan ? {zz_unused: {type: 'array', nullable: false, max_items: unusedItems,
+    ...(direct && !memberScan && !objectNameScan ? {[unusedName]: {type: 'array', nullable: false, max_items: unusedItems,
       items: {type: 'number', nullable: false}}} : {}),
   };
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
-      rows: (outputScan || identityScan || memberScan || objectNameScan || fieldNameScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
+      rows: (outputScan || identityScan || memberScan || objectNameScan || named ? ['a'] : ['b', 'a']).map((suffix, index) => ({
       id: memberScan ? 'x'.repeat(5000) : index + 1,
       ...(memberScan ? {code: 1} : {}),
-      [groupName]: outputScan || memberScan || objectNameScan || fieldNameScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
+      [groupName]: outputScan || memberScan || objectNameScan || named ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(objectNameScan ? {aa_unused: Array.from({length: 112}, () => 1),
         zz_unused: {[objectName]: 2}} : {}),
-      ...(direct && !memberScan && !objectNameScan ? {zz_unused: Array.from({length: unusedItems}, () => 1)} : {}),
+      ...(direct && !memberScan && !objectNameScan ? {[unusedName]: Array.from({length: unusedItems}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
       {from: 'out', assert_rows: {unique_by: memberScan ? ['id', 'code'] : ['id']}, as: 'keyed'},
     ] : [])], results: {r: {from: direct ? 'keyed' : 'out',
@@ -69,7 +71,8 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
 }
 
 async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
-  identityScan = false, memberScan = false, objectNameScan = false, fieldNameScan = false} = {}) {
+  identityScan = false, memberScan = false, objectNameScan = false, fieldNameScan = false,
+  inputNameScan = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -85,13 +88,15 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = fieldNameScan ? 'public-pool-field-name' : objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
+    const fixtureId = inputNameScan ? 'public-pool-input-name' : fieldNameScan ? 'public-pool-field-name' : objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
-    const expectedRows = fieldNameScan ? [{[longFieldName]: 1, embedding: [1, 2], member_count: 1}] : memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
+    const expectedRows = fieldNameScan || inputNameScan ? [{[longFieldName]: 1, embedding: [1, 2], member_count: 1}] : memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
       member_count: 1}] : outputScan ? [{group: 1,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
     let prefixComplete = false;
+    let prefixWork = 0;
+    let prefixProgress = 0;
     let poolWork = 0;
     let poolProgress = 0;
     const keys = generateKeyPairSync('ed25519');
@@ -113,9 +118,18 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
         if (!direct && !prefixComplete) {
-          assert.equal(detail.progress, outputScan || identityScan || fieldNameScan ? '1' : '2');
-          assert.equal(detail.work, outputScan || identityScan || fieldNameScan ? '4' : '8');
-          prefixComplete = true;
+          // The bridge charges cell admission and every shared-append poll.
+          // A long-group row: loads 3+6+12, start 1, append 25+1+4+10 = 62.
+          // Two rows give 124. Vector-257: 3+3+261+1+25+1+1+259 = 554.
+          // Text-8096: 3+6+130+1+25+1+4+128 = 298. Only the final
+          // bridge callback completes its row(s); its tail is not Pool work.
+          const expectedWork = outputScan ? 554 : identityScan ? 298 : 124;
+          const expectedRows = outputScan || identityScan ? 1 : 2;
+          assert.equal(Number(detail.work), Math.min(256, expectedWork - prefixWork));
+          prefixWork += Number(detail.work);
+          prefixProgress += Number(detail.progress);
+          assert.equal(prefixProgress, prefixWork === expectedWork ? expectedRows : 0);
+          prefixComplete = prefixWork === expectedWork;
           return;
         }
         if (outputScan || identityScan || memberScan || fieldNameScan) {
@@ -131,8 +145,8 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
           // and input recheck adds 79: encoding starts after 5,112 polls.
           // At 5,120 it is inside the existing Text measure cursor, before
           // copying or exposing the member key. No output group exists yet.
-          // The matching Relation fixture derives 314 polls, with 256 inside
-          // required-name comparison before any record is committed.
+          // The matching Relation fixture derives 330 polls, with 256 inside
+          // retained field admission before any record is committed.
           const boundary = fieldNameScan ? 256 : memberScan ? 5120 : identityScan ? 8192 : 1280;
           if (poolWork < boundary) return;
           assert.equal(poolWork, boundary);
@@ -148,6 +162,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
         // A 112-item Array needs 227 recheck polls. With earlier fields,
         // the Object name starts at 255; nine name fragments end at 263.
         // Poll 256 is inside that name, before its child or a Pool record.
+        // For inputNameScan, Array-116 precedes the long group name. The
+        // independently derived setup is 3+238+8+3=252 polls; matching starts
+        // at 253. Poll 256 has compared 256 of 513 group-name code units.
         assert.equal(detail.work, '256');
         assert.equal(detail.progress, '0');
         barrier.resolve();
@@ -163,7 +180,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
-      objectNameScan, fieldNameScan));
+      objectNameScan, fieldNameScan, inputNameScan));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
@@ -184,9 +201,12 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
 
     cancelling = true;
     const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
-      objectNameScan, fieldNameScan)),
+      objectNameScan, fieldNameScan, inputNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
-    await barrier.promise;
+    await Promise.race([barrier.promise,
+      cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
+        throw new Error(`Pool missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
+      })]);
     const atBarrier = advances;
     const retainedAtBarrier = await readdir(join(directory, 'carrier-snapshots'));
     try {
@@ -232,3 +252,6 @@ test('public retained Pool publishes and cancels inside typed Object name admiss
 
 test('public retained Pool publishes and cancels inside retained field binding',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, fieldNameScan: true}));
+
+test('public retained Pool publishes and cancels inside input group name matching',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, inputNameScan: true}));

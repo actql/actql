@@ -3,14 +3,14 @@
 /// constants were computed by Node crypto, not by graph_diff or snapshot output.
 fn delta_fixture_schema() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"}
   )
 }
 
 ///|
 fn delta_fixture_expected() -> String {
   (
-    #|{"base_graph_cid":"sha256:c50c44bfeaa72f109a02dd512b22c031c9cd7d9e503fa474a7320e863300e4a8","edges":{"add":[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[12],"key_types":[{"kind":"number"}]},"key":[12],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}],"remove":[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[11],"key_types":[{"kind":"number"}]},"key":[11],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}],"update":[{"after":{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}},"before":{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}}]},"graph_contract_cid":"sha256:a8248c5cd6d92997c058bdb9794747453581acd6336746b92b1779290e544443","nodes":{"add":[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"key":[3],"props":{"score":9}}],"remove":[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"key":[2],"props":{"score":null}}],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":null}},"before":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":7}}}]},"target_graph_cid":"sha256:84a3ee72261465a8864d987b0215329de2222270827c7f0436a449ec55ac1e3f","version":"actql-graph-delta/0.1"}
+    #|{"base_graph_cid":"sha256:e1f53c8849fd0a06d570f5db5b406bb44bff849c76354e389ea468fa23a43fd1","edges":{"add":[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[12],"key_types":[{"kind":"number"}]},"key":[12],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}],"remove":[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[11],"key_types":[{"kind":"number"}]},"key":[11],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}],"update":[{"after":{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}},"before":{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}}]},"graph_contract_cid":"sha256:4580e3be875e9489b9d3d53c9ab83d6853ebd018cc45ab4bd48e480e30d7c959","nodes":{"add":[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"key":[3],"props":{"score":9}}],"remove":[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[2],"key_types":[{"kind":"number"}]},"key":[2],"props":{"score":null}}],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":null}},"before":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":7}}}]},"target_graph_cid":"sha256:f054e156e39406687150b99b9a43b31cf62f922e472ab27e32fd00e730375fae","version":"actql-graph-delta/0.1"}
   )
 }
 
@@ -39,7 +39,7 @@ fn delta_fixture_contract() -> @graph_contract.CheckedContract raise {
   ).unwrap()
   assert_eq(
     @graph_contract.cid(checked),
-    "sha256:a8248c5cd6d92997c058bdb9794747453581acd6336746b92b1779290e544443",
+    "sha256:4580e3be875e9489b9d3d53c9ab83d6853ebd018cc45ab4bd48e480e30d7c959",
   )
   checked
 }
@@ -75,16 +75,16 @@ fn delta_fixture_storage(target : Bool) -> @storage.Storage raise {
   ).unwrap()
   // Noncanonical input order must not become Delta action order.
   let other = if target { 3.0 } else { 2.0 }
-  @storage.append_property_node(builder, 1, [delta_number(other)], [
+  @storage.append_node(builder, 1, [delta_number(other)], [
     delta_score(if target { Some(9.0) } else { None }),
   ]).unwrap()
-  @storage.append_property_node(builder, 0, [delta_number(1.0)], []).unwrap()
-  @storage.append_property_node(builder, 1, [delta_number(1.0)], [
+  @storage.append_node(builder, 0, [delta_number(1.0)], []).unwrap()
+  @storage.append_node(builder, 1, [delta_number(1.0)], [
     delta_score(if target { None } else { Some(7.0) }),
   ]).unwrap()
   // Same endpoints, independent edge keys; update 10's endpoints, not its ID.
   for key in (if target { [12.0, 10.0] } else { [11.0, 10.0] }) {
-    @storage.append_property_edge(
+    @storage.append_edge(
       builder,
       0,
       [delta_number(key)],
@@ -150,11 +150,11 @@ test "property delta preserves independent parallel keys, definitions, NULL and 
   let result = complete_diff(preparation, 1)
   assert_eq(
     base_cid(result),
-    "sha256:c50c44bfeaa72f109a02dd512b22c031c9cd7d9e503fa474a7320e863300e4a8",
+    "sha256:e1f53c8849fd0a06d570f5db5b406bb44bff849c76354e389ea468fa23a43fd1",
   )
   assert_eq(
     target_cid(result),
-    "sha256:84a3ee72261465a8864d987b0215329de2222270827c7f0436a449ec55ac1e3f",
+    "sha256:f054e156e39406687150b99b9a43b31cf62f922e472ab27e32fd00e730375fae",
   )
   assert_eq(delta_wire(value(result)), delta_fixture_expected())
   assert_eq(@storage.node_count(base), 3)
@@ -190,7 +190,7 @@ test "property delta quantum and self diff retain exact snapshot identity" {
   let same = prepare_diff(base, base)
   let result = complete_diff(same, 1)
   assert_eq(base_cid(result), target_cid(result))
-  let expected = "{\"base_graph_cid\":\"sha256:c50c44bfeaa72f109a02dd512b22c031c9cd7d9e503fa474a7320e863300e4a8\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:a8248c5cd6d92997c058bdb9794747453581acd6336746b92b1779290e544443\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[]},\"target_graph_cid\":\"sha256:c50c44bfeaa72f109a02dd512b22c031c9cd7d9e503fa474a7320e863300e4a8\",\"version\":\"actql-graph-delta/0.1\"}"
+  let expected = "{\"base_graph_cid\":\"sha256:e1f53c8849fd0a06d570f5db5b406bb44bff849c76354e389ea468fa23a43fd1\",\"edges\":{\"add\":[],\"remove\":[],\"update\":[]},\"graph_contract_cid\":\"sha256:4580e3be875e9489b9d3d53c9ab83d6853ebd018cc45ab4bd48e480e30d7c959\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[]},\"target_graph_cid\":\"sha256:e1f53c8849fd0a06d570f5db5b406bb44bff849c76354e389ea468fa23a43fd1\",\"version\":\"actql-graph-delta/0.1\"}"
   assert_eq(delta_wire(value(result)), expected)
   assert_true(cleanup(same))
 }

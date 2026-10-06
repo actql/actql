@@ -48,11 +48,11 @@ embedded Local providers. The mTLS fixture in
 `scripts/test-native-client.mjs` uses a mock Host. The mock verifies request
 shape and response handling; it does not prove Host frontend admission or a
 native end-to-end Program Run. `scripts/test-native-sga-public-source.mjs`
-separately exercises authored DATA / PROPERTY GRAPH queries through an installed
+separately exercises authored DATA / GRAPH queries through an installed
 public HTTPS Host and Named Results. Its machine-Program control remains distinct
 from source execution. Run the focused installed acceptance with
-`node scripts/test-packed-public-query.mjs --property-graph-native-only`; see the
-[fixed-source acceptance record](../../../docs/reviews/2026-10-03-native-property-graph-source-acceptance.md)
+`node scripts/test-packed-public-query.mjs --graph-native-only`; see the
+[fixed-source acceptance record](../../../docs/reviews/2026-10-03-native-graph-source-acceptance.md)
 for independent rows, descriptions, refusal counters and its coverage limits.
 
 A held submission prints the validated request control reply as JSON. It has

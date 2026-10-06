@@ -58,6 +58,7 @@ pub fn advance_native_outbound_operation(
     Some(@remote.Output(output)) => Ok(OutputRequested(output))
     Some(@remote.RetainedPlan(_))
     | Some(@remote.RetainedTransfer(_))
+    | Some(@remote.RetainedCurrent(_))
     | Some(@remote.Cancel(_)) =>
       Err(Client(@client.Protocol(@remote.InvalidDispatch)))
     Some(@remote.Query(request)) =>

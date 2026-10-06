@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn cursor(text : String) -> @decode.Cursor {
   @decode.admit(
@@ -257,11 +260,12 @@ test "record output cursor excludes premature finish and releases custody once" 
     (@schema.Unqualified("id"), number(7.0)),
     (@schema.Unqualified("embedding"), vector("[1,2]")),
   ]
-  let cursor = start_record_append(output, fields).unwrap()
+  let cursor = start_record_append(output, fields, external_workspace_slots=0).unwrap()
   assert_true(finish_output(output) is Err(Storage(@storage.Closed)))
   assert_eq(append_record(output, fields), Err(Storage(@storage.Closed)))
   assert_true(
-    start_record_append(output, fields) is Err(Storage(@storage.Closed)),
+    start_record_append(output, fields, external_workspace_slots=0)
+    is Err(Storage(@storage.Closed)),
   )
   let mut done = false
   for _ in 0..<40 {
@@ -283,7 +287,7 @@ test "record output cursor excludes premature finish and releases custody once" 
   let output = prepare_output(owner, @pipeline.Step(0), limits(), 2048L, fn() {
     true
   }).unwrap()
-  let cursor = start_record_append(output, fields).unwrap()
+  let cursor = start_record_append(output, fields, external_workspace_slots=0).unwrap()
   assert_eq(advance_record_append(cursor), Ok(false))
   let held = output_workspace_slots(output)
   assert_true(held > 0)

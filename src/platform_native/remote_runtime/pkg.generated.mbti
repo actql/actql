@@ -20,7 +20,7 @@ pub fn open_native_remote_runtime(@remote_journal.Journal, @runtime_bundle.Nativ
 
 pub fn prepare_native_remote_failure(String, Bool, Bool, Bool, () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
 
-pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Result[NativeRemotePhysicalReader, String], () -> Result[NativeRemotePhysicalManifestReader, String], () -> Bool) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
+pub fn prepare_native_remote_output(NativeRemoteOutputFacts, () -> Result[NativeRemotePhysicalReader, String], () -> Result[NativeRemotePhysicalManifestReader, String], () -> Bool, file_custody? : @remote_journal.NativeOutputFileCustody?) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue]
 
 pub fn prepare_native_remote_physical_manifest_reader((Int) -> Result[Bytes, String], () -> Result[Unit, String], () -> Result[Unit, String]) -> NativeRemotePhysicalManifestReader
 
@@ -29,6 +29,22 @@ pub fn prepare_native_remote_physical_reader((Int) -> Result[NativeRemoteOutputC
 // Errors
 
 // Types and methods
+pub(all) struct NativeCompletedCleanupRestoration {
+  current : () -> Bool
+  restore : (@remote_journal.RecoveredSiteDispatch) -> () -> Bool
+}
+
+pub(all) enum NativeCompletedOutputRestoration {
+  RestoredCompletedOutput(NativeRemoteOutput)
+  CompletedOutputUnavailable(String, () -> Bool)
+}
+
+pub(all) enum NativeCompletedRuntimeRestoration {
+  CompletedRuntimeReady(NativeRemoteRuntimeCompletion)
+  CompletedRuntimePending(NativeRemoteRuntimeIssue)
+  CompletedRuntimeRefused(NativeRemoteRuntimeIssue)
+}
+
 type NativeRemoteOutput
 
 pub(all) struct NativeRemoteOutputChunk {
@@ -90,6 +106,7 @@ pub fn NativeRemoteRuntime::observed_completion(Self, @remote_site_protocol.Disp
 pub fn NativeRemoteRuntime::open_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputManifestReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::release(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::restore_completed(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, () -> Bool, (@remote_journal.RecoveredSiteDispatch) -> NativeCompletedOutputRestoration, cleanup? : NativeCompletedCleanupRestoration?) -> NativeCompletedRuntimeRestoration
 pub fn NativeRemoteRuntime::retains_dispatch_resources(Self) -> Bool
 pub fn NativeRemoteRuntime::start(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::start_after_acceptance(Self, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, (@remote_site_protocol.DispatchRecord) -> Bool) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
@@ -129,6 +146,8 @@ pub(all) enum NativeRemoteRuntimeIssue {
   StartClaimLost(String)
   StartCancelled
   CleanupPending(String)
+  CompletedRestorationPending
+  CompletedMaterialUnavailable(String)
   Protocol(@remote_site_protocol.DispatchIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)
   Bundle(@runtime_bundle.NativeRuntimeBundleStoreIssue)

@@ -279,6 +279,7 @@ pub fn ResidentRetainedConsumer::execute(
   claimant : String,
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
+  borrow_observe? : () -> Unit,
 ) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
   if self.closing {
     return Err(retained_consumer_failure(Input(@output.ProducerUnavailable)))
@@ -316,6 +317,9 @@ pub fn ResidentRetainedConsumer::execute(
           )
       },
     )
+  }
+  if borrow_observe is Some(observe) {
+    observe()
   }
   let attempt = match @remote.dispatch_request_attempt_identity(self.request) {
     Ok(value) => value

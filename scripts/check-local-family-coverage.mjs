@@ -87,7 +87,8 @@ const expectedFamilies = new Map([
   ["SGA", 17],
   ["TEA", 8],
   ["VecA", 5],
-  ["Bridge", 8],
+  // One canonical constructor replaces the retired separate Bridge entry.
+  ["Bridge", 7],
   ["VecAExpression", 2],
 ]);
 const normative = new Map();
@@ -192,8 +193,8 @@ const complete = entries.filter((entry) => entry.status === "complete");
 // turn a current typed refusal or a limited keyed implementation into closure.
 const graphProfile = manifest.current_graph_profile;
 const graphEntries = entries.filter(entry => entry.family === "SGA" ||
-  ["property_graph", "graph", "node_rows", "edge_rows"].includes(entry.operation));
-if (graphProfile?.contract !== "actql-property-graph-contract/0.1" ||
+  ["graph", "node_rows", "edge_rows"].includes(entry.operation));
+if (graphProfile?.contract !== "actql-graph-contract/0.1" ||
     !/^[a-f0-9]{40}$/u.test(graphProfile?.source_sha ?? "") ||
     !graphProfile?.historical_inventory?.endsWith(".txt") ||
     !fs.existsSync(path.join(root, graphProfile?.historical_inventory ?? ""))) {

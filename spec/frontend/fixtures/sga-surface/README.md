@@ -1,7 +1,7 @@
 > These `.aql` files and independent `*.expected-program.json` files preserve
 > historical/internal tuple-Graph fixtures, not current executable inputs.
 > Current admission refuses the retired constructor even with the keyed
-> Property Graph profile installed. Historical rows do not prove current execution.
+> Graph profile installed. Historical rows do not prove current execution.
 > See [migration mapping](../../../../docs/design/frontend-language-migration.md).
 
 # SGA surface baseline fixtures
@@ -98,7 +98,7 @@ Result order declaration.
 ## Historical public text execution evidence
 
 These observations apply to the recorded earlier SHAs. Current packed tests
-use the independently authored keyed Property Graph Program and reject the
+use the independently authored keyed Graph Program and reject the
 retired inputs. They do not demonstrate replacement text migration.
 
 At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, the standard clean packed
@@ -123,12 +123,12 @@ passed to a Graph-only operation and a bounds call without a threshold.
 Source authorization and independent positive, rejection and boundary
 fixtures for other Graph operations remain separate work.
 
-The current sole Property Graph implementation no longer executes these tuple
+The current sole Graph implementation no longer executes these tuple
 Programs. That test now checks typed refusal of the retired constructor with
 the current profile installed. Current Plan and Host custody/resource tests
-use `scripts/property-graph-surface-checker.test.mjs`; current unsupported
+use `scripts/graph-surface-checker.test.mjs`; current unsupported
 consumer refusal is derived from the existing family inventory by
-`scripts/property-graph-public-host.test.mjs`. These historical rows and CIDs
+`scripts/graph-public-host.test.mjs`. These historical rows and CIDs
 must not be reported as current execution acceptance.
 
 At `5835d644410e702223c0b77250a9a154abfcabea`, all fourteen fixtures,

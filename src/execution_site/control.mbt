@@ -56,6 +56,14 @@ struct SiteCleanup {
 }
 
 ///|
+/// One historical holding awaiting accounting reconstruction. Its pending
+/// cleanup responsibility prevents teardown from reporting the Site clean.
+struct SiteHoldingRestoration {
+  cleanup : SiteCleanup
+  bytes : Int64
+}
+
+///|
 pub fn create_site(
   key : String,
   generation : Int,
@@ -331,6 +339,42 @@ pub fn retain_site_holding(site : ExecutionSite, bytes : Int64) -> SiteHolding? 
     site.peak_retained_bytes = site.held_bytes
   }
   Some({ site, bytes, live: true, })
+}
+
+///|
+/// Capture accounting for an already-verified historical holding while the
+/// Site is current. This reserves no bytes and grants no execution/read use.
+/// The caller must keep the same token and exclusive physical cleanup custody.
+pub fn prepare_site_holding_restoration(
+  site : ExecutionSite,
+  bytes : Int64,
+) -> SiteHoldingRestoration? {
+  if !site_available(site) || bytes < 0L || bytes > site.max_retained_bytes {
+    return None
+  }
+  Some({ cleanup: retain_site_cleanup(site), bytes, })
+}
+
+///|
+/// Transfer the original pending cleanup obligation into one real holding.
+/// Revocation blocks new use, not accounting for already-owned physical debt.
+/// Capacity refusal preserves the token; a successful acquisition consumes it.
+pub fn SiteHoldingRestoration::acquire(
+  self : SiteHoldingRestoration,
+) -> SiteHolding? {
+  let site = self.cleanup.site
+  if !self.cleanup.live ||
+    self.bytes >
+    site.max_retained_bytes - site.held_bytes - site.reserved_retention_bytes {
+    return None
+  }
+  site.held_bytes += self.bytes
+  site.holdings += 1
+  if site.held_bytes > site.peak_retained_bytes {
+    site.peak_retained_bytes = site.held_bytes
+  }
+  ignore(release_site_cleanup(self.cleanup))
+  Some({ site, bytes: self.bytes, live: true, })
 }
 
 ///|

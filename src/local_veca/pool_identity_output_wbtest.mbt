@@ -2,8 +2,9 @@
 test "Pool output identity hashing keeps independent control and stop boundaries" {
   let producer = pool_producer_owner(text_group=true)
   let limits = {
-    // Fifteen structural slots plus 16+9+1+30 append slots.
-    ..limits(workspace=71, work=20000),
+    // Admission: 15 structural + name offset + 16+9+1+30 append = 72.
+    // Completion also retains the three-field output record: 72+(3+2)=77.
+    ..limits(workspace=77, work=20000),
     max_value_bytes: 40000,
     max_total_value_bytes: 40000,
     max_retained_value_bytes: 40000,

@@ -261,9 +261,9 @@ pub fn index_program_operation_resolutions(
         // Keyed constructors check every ordered definition input. Charge the
         // actual visit count before that scan, including repeated producers.
         if site.requirement is @pipeline.ConstructionRequirement(pending) &&
-          pending != @graph.ResolvePropertyGraphProfile &&
+          pending != @graph.ResolveGraphProfile &&
           @pipeline.step_at(site.pipeline, site.step)
-          is Some({ operation: @pipeline.PropertyGraphConstruction(..), .. }) {
+          is Some({ operation: @pipeline.GraphConstruction(..), .. }) {
           let cost = @pipeline.input_occurrence_count(
             @pipeline.step_at(site.pipeline, site.step).unwrap(),
           )

@@ -25,7 +25,7 @@ priv struct SubgraphState {
   source : GraphReadSource
   selector_input : @execution.ProducerRead?
   graph : @carrier.Graph
-  profile : @carrier.PropertyGraphDefinition
+  profile : @carrier.GraphDefinition
   prepared : @lower.PreparedGraphSubgraph
   owner : @lower.BoundPrepared
   step : Int
@@ -94,18 +94,18 @@ pub(all) enum SubgraphIssue {
 ///|
 fn subgraph_node_definition(
   state : SubgraphState,
-) -> @carrier.PropertyNodeDefinition? {
+) -> @carrier.GraphNodeDefinition? {
   graph_read_node_definition(state.source, state.node).bind(index => {
-    @carrier.property_graph_node_at(state.profile, index)
+    @carrier.graph_node_at(state.profile, index)
   })
 }
 
 ///|
 fn subgraph_edge_definition(
   state : SubgraphState,
-) -> @carrier.PropertyEdgeDefinition? {
+) -> @carrier.GraphEdgeDefinition? {
   graph_read_edge_definition(state.source, state.edge).bind(index => {
-    @carrier.property_graph_edge_at(state.profile, index)
+    @carrier.graph_edge_at(state.profile, index)
   })
 }
 
@@ -158,14 +158,14 @@ fn subgraph_step(
     match state.phase {
       ProfileNodes => {
         used += 1
-        if state.definition < @carrier.property_graph_node_count(state.profile) {
-          guard @carrier.property_graph_node_at(state.profile, state.definition)
+        if state.definition < @carrier.graph_node_count(state.profile) {
+          guard @carrier.graph_node_at(state.profile, state.definition)
             is Some(definition) else {
             return @bounded.Failed(InvalidSubgraphKernel, progress, used)
           }
-          let keys = @carrier.property_definition_key_count(definition)
+          let keys = @carrier.graph_element_definition_key_count(definition)
           let properties = @carrier.field_count(
-            @carrier.property_definition_properties(definition),
+            @carrier.graph_element_definition_properties(definition),
           )
           if properties > state.limits.max_workspace_slots ||
             keys > state.limits.max_workspace_slots - properties {
@@ -181,15 +181,15 @@ fn subgraph_step(
       }
       ProfileEdges => {
         used += 1
-        if state.definition < @carrier.property_graph_edge_count(state.profile) {
-          guard @carrier.property_graph_edge_at(state.profile, state.definition)
+        if state.definition < @carrier.graph_edge_count(state.profile) {
+          guard @carrier.graph_edge_at(state.profile, state.definition)
             is Some(edge) else {
             return @bounded.Failed(InvalidSubgraphKernel, progress, used)
           }
-          let definition = @carrier.property_edge_element(edge)
-          let keys = @carrier.property_definition_key_count(definition)
+          let definition = @carrier.graph_edge_element(edge)
+          let keys = @carrier.graph_element_definition_key_count(definition)
           let properties = @carrier.field_count(
-            @carrier.property_definition_properties(definition),
+            @carrier.graph_element_definition_properties(definition),
           )
           if state.widest_node_key > state.limits.max_workspace_slots / 2 {
             return @bounded.Failed(SubgraphWorkspaceLimit, progress, used)
@@ -314,10 +314,10 @@ fn subgraph_step(
           return @bounded.Failed(SubgraphInputUnavailable, progress, used)
         }
         let count = if state.phase is ReadNodeKeys {
-          @carrier.property_definition_key_count(definition)
+          @carrier.graph_element_definition_key_count(definition)
         } else {
           @carrier.field_count(
-            @carrier.property_definition_properties(definition),
+            @carrier.graph_element_definition_properties(definition),
           )
         }
         if state.column < count {
@@ -357,12 +357,7 @@ fn subgraph_step(
           return @bounded.Failed(SubgraphInputUnavailable, progress, used)
         }
         match
-          @graph.append_property_node(
-            output,
-            definition,
-            state.keys,
-            state.properties,
-          ) {
+          @graph.append_node(output, definition, state.keys, state.properties) {
           Ok(_) => ()
           Err(issue) =>
             return @bounded.Failed(SubgraphOutput(issue), progress, used)
@@ -475,23 +470,25 @@ fn subgraph_step(
           is Some(source_definition) &&
           graph_read_node_definition(state.source, state.target_node)
           is Some(target_definition) &&
-          @carrier.property_graph_node_at(state.profile, source_definition)
+          @carrier.graph_node_at(state.profile, source_definition)
           is Some(source_node) &&
-          @carrier.property_graph_node_at(state.profile, target_definition)
+          @carrier.graph_node_at(state.profile, target_definition)
           is Some(target_node) else {
           return @bounded.Failed(SubgraphInputUnavailable, progress, used)
         }
         let count = match state.phase {
           ReadEdgeKeys =>
-            @carrier.property_definition_key_count(
-              @carrier.property_edge_element(edge),
+            @carrier.graph_element_definition_key_count(
+              @carrier.graph_edge_element(edge),
             )
-          ReadSourceKeys => @carrier.property_definition_key_count(source_node)
-          ReadTargetKeys => @carrier.property_definition_key_count(target_node)
+          ReadSourceKeys =>
+            @carrier.graph_element_definition_key_count(source_node)
+          ReadTargetKeys =>
+            @carrier.graph_element_definition_key_count(target_node)
           _ =>
             @carrier.field_count(
-              @carrier.property_definition_properties(
-                @carrier.property_edge_element(edge),
+              @carrier.graph_element_definition_properties(
+                @carrier.graph_edge_element(edge),
               ),
             )
         }
@@ -547,7 +544,7 @@ fn subgraph_step(
           return @bounded.Failed(SubgraphInputUnavailable, progress, used)
         }
         match
-          @graph.append_property_edge(
+          @graph.append_edge(
             output,
             definition,
             state.keys,
@@ -682,7 +679,7 @@ fn start_subgraph_core(
     source,
     selector_input,
     graph,
-    profile: @carrier.graph_property_definition(graph),
+    profile: @carrier.graph_definition(graph),
     prepared,
     owner,
     step,

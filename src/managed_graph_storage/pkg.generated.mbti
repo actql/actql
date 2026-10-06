@@ -9,15 +9,15 @@ import {
 }
 
 // Values
-pub fn advance_property_snapshot_append(PropertySnapshotAppend, Int) -> PropertySnapshotAppendPoll
+pub fn advance_graph_snapshot_append(GraphSnapshotAppend, Int) -> GraphSnapshotAppendPoll
 
-pub fn append_property_edge(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_edge(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
-pub fn append_property_node(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_node(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
-pub fn append_property_snapshot_edge(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+pub fn append_snapshot_edge(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
-pub fn append_property_snapshot_node(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+pub fn append_snapshot_node(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
 pub fn available(Storage) -> Bool
 
@@ -43,7 +43,7 @@ pub fn cancel(Builder) -> Bool
 
 pub fn carrier(Storage) -> @carrier_contract.Carrier
 
-pub fn cleanup_property_snapshot_append(PropertySnapshotAppend) -> Unit
+pub fn cleanup_graph_snapshot_append(GraphSnapshotAppend) -> Unit
 
 pub fn construction_work(Storage) -> Int
 
@@ -69,6 +69,8 @@ pub fn edge_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn finish(Builder) -> Result[Storage, Issue]
 
+pub fn graph_snapshot_append_workspace_slots(@carrier_contract.Graph, Limits) -> Int?
+
 pub fn input_row_count(Storage) -> Int
 
 pub fn measured_input_value_bytes(Storage) -> Int
@@ -93,20 +95,26 @@ pub fn node_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
 
-pub fn property_snapshot_append_workspace_slots(@carrier_contract.Graph, Limits) -> Int?
-
 pub fn retained_value_bytes(Storage) -> Int
 
 pub fn retained_workspace_slots(Storage) -> Int
 
-pub fn start_property_record_append(Builder, Int, @value_admission.CheckedValue, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], edge~ : Bool, source? : @value_admission.CheckedValue?, target? : @value_admission.CheckedValue?) -> Result[PropertySnapshotAppend, Issue]
+pub fn start_graph_snapshot_append(Builder, @decode_core.Cursor, edge~ : Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[GraphSnapshotAppend, Issue]
 
-pub fn start_property_snapshot_append(Builder, @decode_core.Cursor, edge~ : Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[PropertySnapshotAppend, Issue]
+pub fn start_record_append(Builder, Int, @value_admission.CheckedValue, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], edge~ : Bool, source? : @value_admission.CheckedValue?, target? : @value_admission.CheckedValue?) -> Result[GraphSnapshotAppend, Issue]
 
 // Errors
 
 // Types and methods
 type Builder
+
+type GraphSnapshotAppend
+
+pub enum GraphSnapshotAppendPoll {
+  GraphSnapshotAppendContinue(work~ : Int)
+  GraphSnapshotAppendComplete(work~ : Int)
+  GraphSnapshotAppendFailed(Issue, work~ : Int)
+}
 
 pub(all) enum Issue {
   InvalidLimits
@@ -143,14 +151,6 @@ pub(all) struct Limits {
 pub(all) enum Mode {
   DeclaredNodes
 } derive(Eq, @debug.Debug)
-
-type PropertySnapshotAppend
-
-pub enum PropertySnapshotAppendPoll {
-  PropertySnapshotAppendContinue(work~ : Int)
-  PropertySnapshotAppendComplete(work~ : Int)
-  PropertySnapshotAppendFailed(Issue, work~ : Int)
-}
 
 type Storage
 
