@@ -26,8 +26,8 @@ pub(all) enum ResidentHostIssue {
 ///|
 /// The outcome of offering one polled dispatch to the resident Site.
 pub(all) enum ResidentAcceptance {
-  /// Durable, acknowledged to the Coordinator, and queued for the executor
-  /// slot under this attempt identity.
+  /// Durable and acknowledged to the Coordinator. The ordinary caller queues
+  /// the attempt; a retained consumer stays in its existing producer holder.
   Accepted(String, @remote.DispatchRequest)
   /// Refused before acceptance: nothing was written and nothing starts.
   Refused(@resident.ResidentDispatchRefusal)
@@ -148,34 +148,56 @@ pub fn accept_resident_dispatch(
     Err(refusal) => return Ok(Refused(refusal))
   }
   let release = () => if reserved { ignore(queue.remove(attempt)) }
+  let result = retain_and_acknowledge_resident_dispatch(
+    journal,
+    client,
+    observation_url,
+    request,
+    binding,
+    materials,
+    () => ignore(queue.remove(attempt)),
+  )
+  match result {
+    Ok(Accepted(_, _)) => ()
+    Ok(AlreadyStarted(_)) => ignore(queue.remove(attempt))
+    _ => release()
+  }
+  result
+}
+
+///|
+/// Both queue and retained-holder admission use this existing Site journal
+/// boundary. An unconfirmed save/ACK never permits execution. No caller may
+/// substitute a synthetic Accepted record for this result.
+fn retain_and_acknowledge_resident_dispatch(
+  journal : @journal.Journal,
+  client : @http.Client,
+  observation_url : String,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  materials : String,
+  nonstartable : () -> Unit,
+) -> Result[ResidentAcceptance, ResidentHostIssue] {
+  let attempt = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
   let envelope = match
     @remote.remote_poll_dispatch_materials_json(request, binding, materials) {
     Ok(value) => value
-    Err(issue) => {
-      release()
-      return Err(Protocol(issue))
-    }
+    Err(issue) => return Err(Protocol(issue))
   }
   match journal.retain_dispatch_envelope(request, envelope) {
     Ok(_) => ()
-    Err(issue) => {
-      release()
-      return Err(Journal(issue))
-    }
+    Err(issue) => return Err(Journal(issue))
   }
   let accepted = match journal.accept(request) {
     Ok((_, record)) => record
-    Err(issue) => {
-      release()
-      return Err(Journal(issue))
-    }
+    Err(issue) => return Err(Journal(issue))
   }
   if !@remote.remote_runtime_record_startable(accepted) {
-    ignore(queue.remove(attempt))
-    // The redelivery is answered with the attempt's current durable record;
-    // nothing starts again. Until the common redelivery rules (O5) fix which
-    // form a Coordinator admits for an already acknowledged attempt, the
-    // dispatch response is tried first and the status form after a 404.
+    nonstartable()
+    // Exact redelivery reports the same durable attempt, never a new start.
     return match
       @client.acknowledge_acceptance(journal, client, observation_url, request) {
       Ok(_) => Ok(AlreadyStarted(attempt))
@@ -188,21 +210,15 @@ pub fn accept_resident_dispatch(
       Err(issue) => Err(Client(issue))
     }
   }
-  // The durable Accepted record stays when the acknowledgement is lost; an
-  // exact redelivery acknowledges it again. Unconfirmed work is not queued.
   match
     @client.acknowledge_acceptance(journal, client, observation_url, request) {
     Ok(record) =>
       if @remote.dispatch_record_matches_request(record, request) {
         Ok(Accepted(attempt, request))
       } else {
-        release()
         Err(Protocol(@remote.DispatchIdentityMismatch))
       }
-    Err(issue) => {
-      release()
-      Err(Client(issue))
-    }
+    Err(issue) => Err(Client(issue))
   }
 }
 

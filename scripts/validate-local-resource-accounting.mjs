@@ -1388,7 +1388,7 @@ export function validateResourceAccounting({
         'pool_record_contract_pair_limits', 'pool_record_contract_binding',
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
         'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
-        'pool_object_name_shared_limits', 'pool_json_name_canonical_refusal',
+        'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
         'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
         'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -1475,6 +1475,14 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('ranking_input_public_store')) {
         fail(`${label}: ranking input public Store fixture is missing`);
+      }
+      for (const role of ['ranking_name_match_common',
+        'ranking_name_match_limits_stop', 'ranking_name_match_wide_overlap',
+        'ranking_name_match_public_barrier']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_name_match_public_store')) {
+        fail(`${label}: ranking name matching public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};
@@ -2220,6 +2228,11 @@ export function validateResourceAccounting({
       }[route.operation];
       if (structuralRole && !boundaryRoles.has(structuralRole)) {
         fail(`${label}: structural Graph cumulative-work evidence is missing`);
+      }
+      if (route.operation === 'union_graphs' &&
+        (!boundaryRoles.has('union_positive_work_cancel_cleanup') ||
+          !boundaryRoles.has('union_host_cleanup_failure_retry_custody'))) {
+        fail(`${label}: union positive-work cancellation and cleanup evidence is missing`);
       }
     }
     if (route.family === 'VecAExpression') {

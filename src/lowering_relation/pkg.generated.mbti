@@ -395,6 +395,8 @@ pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
 
+pub fn graph_union_checked(PreparedGraphUnion) -> @graph_typing.CheckedUnion
+
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
 pub fn group_aggregate_at(PreparedGroup, Int) -> PreparedAggregate?
@@ -1178,6 +1180,7 @@ pub(all) enum ExpressionIssueKind {
   PendingValidation(@expression_typing.ObligationKind)
   ExpressionNotImplemented(String)
   LiteralAdmission(@value_admission.Issue)
+  JsonLiteralAdmission(@value_admission.JsonLiteralIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ExpressionLimits {
@@ -1285,6 +1288,10 @@ pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseParameter(String)
   GraphTraverseExpression(ExpressionIssue)
 }
+
+pub(all) enum GraphUnionIssue {
+  InvalidGraphUnionWiring
+} derive(Eq, @debug.Debug)
 
 pub(all) enum GroupIssue {
   GroupNotFound
@@ -1473,6 +1480,8 @@ pub enum Payload {
   GraphEqualityRows(@graph_typing.CheckedPropertyEquality)
   GraphNormalizeValue(@graph_typing.CheckedNormalize)
   GraphDeltaValue(@graph_typing.CheckedDelta)
+  GraphUnionValue(@graph_typing.CheckedUnion)
+  GraphSubtractionValue(@graph_typing.CheckedSubtraction)
   GraphComponentsRows(@graph_typing.CheckedComponents)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
@@ -1558,6 +1567,8 @@ type PreparedGraphSubgraph
 
 type PreparedGraphTraverse
 
+type PreparedGraphUnion
+
 type PreparedGroup
 
 type PreparedInferInputs
@@ -1633,6 +1644,8 @@ pub enum PreparedStep {
   GraphEqualityStep(PreparedGraphEquality)
   GraphNormalizeStep(Int)
   GraphDeltaStep(PreparedGraphDelta)
+  GraphUnionStep(PreparedGraphUnion)
+  GraphSubtractionStep(PreparedGraphUnion)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -1727,6 +1740,7 @@ pub(all) enum SequenceIssue {
   GraphEqualityFailure(Int, GraphEqualityIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphDeltaFailure(Int, GraphDeltaIssue)
+  GraphUnionFailure(Int, GraphUnionIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

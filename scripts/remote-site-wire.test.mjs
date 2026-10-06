@@ -49,3 +49,67 @@ test('Remote Site schema pins retain full current fields without aliases', () =>
     }
   }
 });
+
+test('Retained input intent fixed preimages preserve original dispatch identity', () => {
+  const fixed = read('spec/fixtures/remote-retained-input-wire-vectors.json').vectors;
+  for (const vector of fixed) {
+    assert.equal(canonical(vector.body), vector.canonical);
+    assert.equal(hash(vector.canonical), vector.cid);
+  }
+  const [intent, poll] = fixed;
+  assert.equal(hash(poll.body.intent_json), intent.cid);
+  assert.equal(hash(poll.body.request_json), intent.body.dispatch_request_cid);
+  assert.equal(poll.body.dispatch_request_cid, intent.body.dispatch_request_cid);
+  assert(!('result_definition_cid' in intent.body));
+  assert(!('publication_attempt_cid' in intent.body));
+  const [planIntent, plan] = fixed.slice(2);
+  assert.equal(hash(plan.body.evidence_json), planIntent.body.producer_evidence_cid);
+  assert.equal(hash(plan.body.subject_json), planIntent.body.producer_subject_cid);
+  assert.equal(hash(plan.body.physical_manifest_json), plan.body.physical_manifest_cid);
+  assert.equal(hash(plan.body.transfer_request_json), plan.body.transfer_request_cid);
+  assert.equal(plan.body.intent_cid, planIntent.cid);
+});
+
+test('Retained input wire pins enforce exact fields and separate value identity', () => {
+  const wire = read('spec/contracts/actql-remote-retained-input-wire.json');
+  const fixed = read('spec/fixtures/remote-retained-input-wire-vectors.json').vectors;
+  for (const [name, schema] of Object.entries(wire.schemas)) {
+    assert.equal(hash(canonical(schema)), wire.schema_cids[name]);
+  }
+  for (const vector of fixed) {
+    const shape = project(wire.schemas[vector.name === 'plan_intent' ? 'intent' : vector.name]);
+    assert(validate(vector.body, shape));
+    assert(!validate({...vector.body, unexpected: true}, shape));
+    for (const key of Object.keys(vector.body)) {
+      const missing = {...vector.body};
+      delete missing[key];
+      assert(!validate(missing, shape), `${vector.name}: missing ${key}`);
+    }
+  }
+  const intent = fixed[0].body;
+  assert.notEqual(hash(canonical({...intent, transfer_attempt: 'e\u0301\r\n'})),
+    hash(canonical({...intent, transfer_attempt: 'é\n'})));
+});
+
+
+test('Retained handoff preserves the saved plan and exact committed receipt', () => {
+  const fixed = read('spec/fixtures/remote-retained-input-wire-vectors.json').vectors;
+  const byName = Object.fromEntries(fixed.map(vector => [vector.name, vector]));
+  const poll = byName.poll_transfer.body;
+  const result = byName.result.body;
+  assert.equal(poll.plan_json, byName.plan.canonical);
+  assert.equal(poll.plan_cid, byName.plan.cid);
+  assert.equal(poll.intent_json, byName.plan_intent.canonical);
+  assert.equal(hash(poll.request_json), poll.dispatch_request_cid);
+  assert.equal(result.plan_cid, poll.plan_cid);
+  assert.equal(result.intent_cid, poll.intent_cid);
+  assert.equal(result.dispatch_request_cid, poll.dispatch_request_cid);
+  const receipt = JSON.parse(result.destination_receipt_json);
+  assert.equal(hash(result.destination_receipt_json), result.destination_receipt_cid);
+  assert.equal(receipt.request_cid, result.transfer_request_cid);
+  assert.equal(receipt.physical_manifest_cid, byName.plan.body.physical_manifest_cid);
+  const reply = JSON.parse(result.transfer_reply_json);
+  assert.equal(reply.requestCid, result.transfer_request_cid);
+  // DirectStream has no Store object use; that release bit is true at admission.
+  assert.deepEqual(reply.state, [3, 2, 0, 1, 0, 1, 1, 1, 1]);
+});

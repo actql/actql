@@ -8,6 +8,7 @@ The publication/evidence commit adds the ordinary Host boundary and strengthens
 the independent Text-key work assertion. Its final submitted SHA and executed
 checks are recorded in the PR; this document does not claim full CI success.
 This branch depends on #585, not on its separate Ranking child #591.
+Both parent and sibling are now adopted on main; this follow-up targets main.
 
 Score and Normalize previously called synchronous `append_record()` after
 their bounded numerical computation. Vector wire emission and unused nested

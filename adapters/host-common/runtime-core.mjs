@@ -523,6 +523,10 @@ function remoteSiteControl(moon) {
       ),
     ),
     responseProjection: moon.strategyRemoteDispatchResponseProjection,
+    responseCanRetireCancellationDelivery:
+      moon.strategyRemoteDispatchResponseCanRetireCancellationDelivery,
+    coordinatorCanRetireCancellationDelivery:
+      moon.strategyRemoteCoordinatorCanRetireCancellationDelivery,
     responseEvidence: moon.strategyRemoteDispatchResponseEvidence,
     responseSubject: moon.strategyRemoteDispatchResponseSubject,
     responseMeasurement: moon.strategyRemoteDispatchResponseMeasurement,

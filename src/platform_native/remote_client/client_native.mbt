@@ -151,7 +151,9 @@ pub fn poll(
     Ok(None) => Ok(None)
     Ok(Some(@remote.Dispatch(dispatch))) =>
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
-    Ok(Some(@remote.Plan(_)))
+    Ok(Some(@remote.RetainedPlan(_)))
+    | Ok(Some(@remote.RetainedTransfer(_)))
+    | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
     | Ok(Some(@remote.Cancel(_)))
@@ -340,6 +342,44 @@ pub fn acknowledge_output_plan(
     Err(issue) => return Err(Protocol(issue))
   }
   match client.post_json(url, body) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// Report the exact internal-producer plan, never a public Output plan. This
+/// transport acknowledgement is not a receiver commit or execution claim.
+pub fn acknowledge_retained_input_plan(
+  client : @http.Client,
+  url : String,
+  plan : @remote.RemoteRetainedInputPlan,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_retained_input_plan_json(plan)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// Transport acknowledgment only. It does not release receiver custody or
+/// authorize consumer execution; retry posts the exact same result bytes.
+pub fn acknowledge_retained_input_result(
+  client : @http.Client,
+  url : String,
+  result : @remote.RemoteRetainedInputResult,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_retained_input_result_json(result)),
+    ) {
     Ok(value) if value.status == 200 => Ok(())
     Ok(value) => Err(HttpStatus(value.status))
     Err(issue) => Err(Http(issue))

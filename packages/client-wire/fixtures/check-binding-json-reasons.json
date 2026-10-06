@@ -1,0 +1,24 @@
+{
+  "version": "independent-check-binding-json-reasons/0.1",
+  "issues": [
+    "invalid_unicode",
+    "unexpected_end",
+    "unexpected_token",
+    "invalid_string",
+    "invalid_escape",
+    "invalid_number",
+    "number_out_of_range",
+    "negative_zero",
+    "expected_colon",
+    "expected_array_separator",
+    "expected_object_separator",
+    "duplicate_key",
+    "trailing_content"
+  ],
+  "documents": [
+    "parameters",
+    "parameter_declarations"
+  ],
+  "reason_schema_cid": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6",
+  "outcome_schema_cid": "sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2"
+}
