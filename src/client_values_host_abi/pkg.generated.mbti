@@ -189,6 +189,8 @@ pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientReq
 
 pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
+pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
+
 pub fn client_values_host_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_prepare_result_material_holds_step(@run_publication.ResultMaterialHolds, String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
