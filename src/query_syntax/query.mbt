@@ -938,23 +938,9 @@ fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
     self.keyword("PARTITION")
     self.keyword("BY")
     while true {
-      let start = self.peek().start
-      self.node()
-      let path = self.path()
-      // Keep the existing path grammar, but retain its original expression
-      // owner and span so ordinary prefix/property lowering can consume it.
-      partition_by.push({
-        source: self.source,
-        nodes: [
-          {
-            kind: Reference(path),
-            start,
-            end: self.source.tokens[self.index - 1].end,
-          },
-        ],
-        root: 0,
-        work: 1,
-      })
+      // Keep the ordinary expression owner, work budget and source span.
+      // Input scope and partition-key typing are checked during lowering.
+      partition_by.push(self.expression())
       if self.peek().value != Symbol(44) {
         break
       }

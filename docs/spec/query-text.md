@@ -173,6 +173,28 @@ casts where required. Result type and nullability come from common `coalesce`
 typing, including on empty input. The Frontend does not expand the first
 operand or install its own conditional evaluator.
 
+In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
+row-dependent expressions, including comparisons, CASE and supported scalar
+calls. The ordinary expression parser retains each key's source origin and
+budget. Each key is evaluated over the SELECT input snapshot into a private
+slot, then passed to common `analytic.partition_by`. Repeated expressions
+within that immutable scope share the evaluated slot with OVER ordering and
+other windows; the authored partition-key list retains its order and repeats.
+Private keys are removed before Named Result publication.
+
+Literal/parameter-only partition expressions are rejected; numeric literals do
+not denote SELECT positions here. This follows the selected [GoogleSQL window
+specification](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls),
+which permits partition expressions but excludes constants and sibling SELECT
+aliases. Member access, operand and equality-key types remain common-checker
+obligations. NULL computed keys share their existing common NULL partition;
+CASE/IF/COALESCE retain ordinary demand semantics and expression failures do not
+publish a partial Result. This connection retains ActQL's existing finite
+number and recursive type contracts; it does not claim Google's complete type
+profile, including its floating-point partition exclusion. Named windows,
+optional ordering, default frames and nested window calls remain outside this
+implemented inline profile.
+
 In the implemented inline `OVER` profile, numeric `ROWS BETWEEN` boundaries
 accept an integer literal or a whole named parameter, for example
 `ROWS BETWEEN @before PRECEDING AND @after FOLLOWING`. Direction remains

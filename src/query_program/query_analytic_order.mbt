@@ -57,3 +57,29 @@ fn analytic_order_field(
   evaluated.push((expression, field))
   field
 }
+
+///|
+// Partition expressions must depend on an input row. Unlike OVER ordering,
+// a literal/parameter-only expression is neither a key ordinal nor a partition.
+// No constant folding or new equality/type law is introduced here.
+fn analytic_partition_field(
+  construction : Construction,
+  expression : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  reserved : Array[String],
+  evaluated : Array[(@query.Expression, String)],
+  derives : Array[(String, @builder.Node)],
+  max_work : Int,
+) -> String raise Abort {
+  let mut has_input = false
+  for index in 0..<@query.expression_node_count(expression) {
+    if @query.expression_node(expression, index).unwrap().kind is Reference(_) {
+      has_input = true
+      break
+    }
+  }
+  guard has_input else { raise Abort(UnsupportedAnalytic) }
+  analytic_order_field(
+    construction, expression, resolve, reserved, evaluated, derives, max_work,
+  )
+}
