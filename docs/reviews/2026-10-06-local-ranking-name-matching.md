@@ -3,8 +3,9 @@
 ## Scope and ownership
 
 This component starts at #585,
-`feb175d059b17b0176106564f05f9157009a4db2`. The parent remains
-unmerged; the final destination is main. It closes algorithmic input role
+`feb175d059b17b0176106564f05f9157009a4db2`. The parent was adopted
+on main as `857659743a0c436b7434d0d2efc0b9a37e32e221`; this follow-up
+now targets main. It closes algorithmic input role
 binding and output field matching for `merge_rankings`, not all retained
 Local execution boundaries.
 
