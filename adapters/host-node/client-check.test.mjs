@@ -1521,7 +1521,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.5'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.6'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -3987,5 +3987,61 @@ for (const entrance of ['local', 'http']) {
     assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
     assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
     reopened.close();
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check protocol failures retain original input without verdict or retry authority`, async t => {
+    let alter = value => value;
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => alter(value)});
+    const text = '/*e\u0301😀*/\r\nSELECT \'\\q\' AS label';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-submitted-protocol-value'};
+    for (const [mutation, kind, problem] of [
+      [value => ({...value, outcome: 'private-future-outcome'}), 'uninterpretable', 'unknown_outcome'],
+      [value => ({...value, report: {...value.report,
+        reasons: [{code: 'query_lexical_invalid', facts: {issue: 42}}]}}),
+      'protocol_failure', 'malformed_response'],
+      [value => ({...value, outcome_schema_cid: `sha256:${'0'.repeat(64)}`}),
+        'protocol_failure', 'contract_mismatch'],
+      [value => ({...value, reason_schema_cid: undefined}), 'protocol_failure', 'malformed_response'],
+      [value => ({...value, report: {...value.report, inputs: value.report.inputs.map(input =>
+        input.document_id === 'source' ? {...input, byte_length: input.byte_length + 1} : input)}}),
+      'protocol_failure', 'malformed_response'],
+    ]) {
+      alter = mutation;
+      const before = observations.analysis;
+      let failure;
+      try { await client.check(text, {format: 'sql', parameterDeclarations, parameters}); }
+      catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome', '[check-mutation:protocol-failure-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual(view && {kind: view.kind, problem: view.problem}, {kind, problem},
+        '[check-mutation:protocol-failure-public]');
+      assert.deepEqual(sdk.getCheckFailureInput(failure), {text, format: 'sql', parameterDeclarations, parameters},
+        '[check-mutation:protocol-failure-public-input]');
+      assert.equal(observations.analysis, before + 1);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'correlationRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(resolveCheckLocation(failure, observations.wireOutcomes.at(-1).report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      assert.equal(sdk.explainCheckFailure(new Error('InvalidHostCheckOutcome')), undefined);
+      assert.equal(JSON.stringify({failure, view}).includes('private-future-outcome'), false);
+      assert.equal(JSON.stringify({failure, view}).includes('private-submitted-protocol-value'), false);
+      assert.equal(sdk.explainCheckFailure(failure, {locale: 'ja'}).kind, kind);
+    }
+    // A valid unknown reason remains a rejected-source observation with a safe
+    // unknown explanation, distinct from malformed known reason facts.
+    alter = value => ({...value, report: {...value.report, reasons: [{code: 'future_reason'}]}});
+    const outcome = await client.check(text, {format: 'sql', parameterDeclarations, parameters});
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'unknown');
+    assert.equal(sdk.explainCheckFailure(outcome), undefined);
+    assert.equal(observations.analysis, 6);
   });
 }

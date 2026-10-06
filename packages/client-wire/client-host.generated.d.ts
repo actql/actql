@@ -1,4 +1,5 @@
 // Generated from the registered Client–Host machine contract.
+export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";

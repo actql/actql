@@ -7424,6 +7424,7 @@ const operationKeys = {
 
 export const checkReasonSchemaCid = "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6";
 export const checkOutcomeSchemaCid = "sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2";
+export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;

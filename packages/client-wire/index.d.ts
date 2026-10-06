@@ -9,6 +9,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireResultDescriptionShape, WireValueContractShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
+export {checkOutcomeProtocol} from './client-host.generated.js';
 
 export declare const clientHostOperations: readonly ClientHostOperation[];
 /** Explicit submit refusal contracts, not generic public error codes. */
