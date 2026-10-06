@@ -110,3 +110,22 @@ authenticated archives, retain their job spans and the complete attempt total,
 and use the Session cost record only to explain subphases. Equal obligations and
 inputs plus comparable execution conditions remain required independently of
 timing. No economic result is inferred from controlled examples or failed runs.
+
+## Connecting original costs to completed attempt observations
+
+The existing offline `--artifacts` consumer now reads Session source ZIPs through
+`scripts/ci-session-costs.mjs`, using the existing cost checker and independent
+30-action catalog. This closes the missing measurement connection: certificate
+and receipt costs are bound to the actual producer ID, then joined to the
+observed same-attempt producer/check jobs and complete runner total. Transfer,
+setup and final verification inside those intervals are included once. Parallel
+wall time remains separate; no historical or nested phase is added to the jobs.
+
+The existing cost fixture and stored-ZIP fixture are shared with the new consumer
+regressions. The real CLI executes against original stored ZIP bytes, with both
+complete timing and unavailable timing. Wrong owner, attempt, catalog, receipt,
+cost binding, current reused execution, duplicate final owner, zero-step job and
+incomplete execution are covered. No network call or heavy campaign is added.
+The read-only projection neither authenticates offline provenance declarations
+nor qualifies any new origin. Net savings still requires actual comparable
+production fresh/reused samples and remains null here.

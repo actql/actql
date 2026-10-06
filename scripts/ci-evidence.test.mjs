@@ -1,6 +1,7 @@
 // Keep offline artifact fixtures in the existing CI evidence tooling gate.
 import './ci-artifact-reader.test.mjs';
 import './ci-artifacts.test.mjs';
+import './ci-session-costs.test.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
