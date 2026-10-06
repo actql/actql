@@ -231,3 +231,56 @@ test('the same original text remains unchanged in the existing Model envelope', 
   const saved = JSON.parse(originalModelRunWire(compiled, {wire: originalText}));
   assert.deepEqual(Object.values(saved), Array(5).fill(originalText));
 });
+
+
+const exactKeys = () => ({'é': 'composed', 'e\u0301': 'decomposed',
+  '\r': 'CR', '\n': 'LF', '\r\n': 'CRLF'});
+
+test('target custody preserves raw JSON keys in submission and opaque bindings', async () => {
+  const f = fixture();
+  f.options.submission.input = {literal: exactKeys()};
+  f.options.inventory = exactInventory();
+  f.options.inventory[0].physicalBinding.json = exactKeys();
+  const owner = await effectTargetReadContinuation(f.options);
+  await owner.prepare();
+  const captured = owner.captureBinding();
+  assert.deepEqual(captured.submission, f.options.submission);
+  assert.deepEqual(captured.targets[0].physicalBindings,
+    [f.options.inventory[0].physicalBinding]);
+  assert.deepEqual(f.records[0].continuation.submission, f.options.submission);
+  owner.close(); f.approve(0);
+  const resumed = await effectTargetReadContinuation({...f.options, resume: f.resume(0)});
+  assert.deepEqual(await resumed.prepare(), {status: 'ready'});
+  assert.deepEqual(resumed.captureBinding(), captured);
+  resumed.close();
+});
+
+for (const member of ['submission', 'binding']) {
+  test(`legacy normalized JSON ${member} refuses resume before entering computation`, async () => {
+    const f = fixture();
+    const payload = {'e\u0301\r\n': 'value'};
+    f.options.submission.input = {literal: payload};
+    f.options.inventory = exactInventory();
+    f.options.inventory[0].physicalBinding.json = payload;
+    const first = await effectTargetReadContinuation(f.options);
+    await first.prepare(); first.close(); f.approve(0);
+    const resume = f.resume(0);
+    if (member === 'submission') resume.continuation.submission.input.literal = {'é\n': 'value'};
+    else resume.continuation.targets[0].physicalBindings[0].json = {'é\n': 'value'};
+    await assert.rejects(effectTargetReadContinuation({...f.options, resume}),
+      {code: 'EffectTargetBindingChanged'});
+    assert.equal(f.entered(), 0);
+  });
+}
+
+test('opaque binding identity distinguishes exact keys and ignores insertion order', () => {
+  const first = exactInventory(); first[0].physicalBinding.json = exactKeys();
+  const reversed = structuredClone(first);
+  reversed[0].physicalBinding.json = Object.fromEntries(Object.entries(exactKeys()).reverse());
+  assert.equal(effectTargetReadInventory(first).inventoryCid,
+    effectTargetReadInventory(reversed).inventoryCid);
+  const changed = exactInventory(); changed[0].physicalBinding.json = {'é': 'decomposed'};
+  const original = exactInventory(); original[0].physicalBinding.json = {'e\u0301': 'decomposed'};
+  assert.notEqual(effectTargetReadInventory(changed).inventoryCid,
+    effectTargetReadInventory(original).inventoryCid);
+});

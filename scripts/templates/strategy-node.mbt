@@ -8920,3 +8920,11 @@ pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(
 ) -> Bool {
   @remote.remote_dispatch_response_can_retire_cancellation_delivery(response)
 }
+
+///|
+#export_name("strategyRemoteCoordinatorCanRetireCancellationDelivery")
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
+}

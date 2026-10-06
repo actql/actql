@@ -21,6 +21,12 @@ pub fn client_values_host_admit_request_identity(String, String, String, String,
 
 pub fn client_values_host_admit_result_material_holds(String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
 
+pub fn client_values_host_admit_retained_input_intent(@run_publication_host.ClientRetainedInputProducer, String, String) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_admit_retained_input_plan(@run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, String, String, (String, String, String) -> Bool, () -> String, () -> Int64, (String, String) -> Bool, Int, Int, Int64) -> Result[ClientValuesHostRetainedInputPlan, @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_admit_retained_input_result(ClientValuesHostRetainedInputPlan, String, String) -> Result[@remote_site_protocol.RemoteRetainedInputResult, @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_admit_retained_task_input(ClientValuesHostRetainedTaskInput, String, String) -> Result[ClientValuesHostRetainedTaskInput, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_admit_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String) -> Result[@run_publication.RunPublicationAdmission, ClientValuesHostRunAdmissionIssue]
@@ -94,6 +100,8 @@ pub fn client_values_host_finish_durable_result_row_frames(@run_publication.Dura
 pub fn client_values_host_finish_result_delivery(@run_publication.ResultDeliverySerializer) -> String raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_inspect_canonical_result_rows(String, Array[String], Int, Int, Int) -> Result[Array[String], @run_publication.CapturedRunIssuanceIssue]
+
+pub fn client_values_host_inspect_task_progress(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[String]) -> Result[@run_publication_host.ClientRemoteTaskProgress, Unit]
 
 pub fn client_values_host_issue_allowed_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, String, String, String) -> Result[ClientValuesHostAllowedRun, ClientValuesHostRunAdmissionIssue]
 
@@ -181,9 +189,13 @@ pub fn client_values_host_prepare_physical_start(@run_publication_host.ClientReq
 
 pub fn client_values_host_prepare_pre_start_failure(@run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, @run_publication_host.ClientRunStartIssue]
 
+pub fn client_values_host_prepare_remote_task_physical_start(@run_publication_host.ClientRemoteTaskProgress, String, String, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, Unit]
+
 pub fn client_values_host_prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> @run_publication.ResultDeliverySerializer raise ClientValuesHostDeliveryIssue
 
 pub fn client_values_host_prepare_result_material_holds_step(@run_publication.ResultMaterialHolds, String, String) -> @run_publication.ResultMaterialHolds raise ClientValuesHostDeliveryIssue
+
+pub fn client_values_host_prepare_retained_input_intent(@run_publication_host.ClientRetainedInputProducer, String, String, String, String, Int64, Int64) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_prepare_retained_task_dispatch(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication_host.ClientRequestIdentity, Int, Int, String, String, Int, String, String, String, String, String, String, String, String, ClientValuesHostRetainedTaskInput) -> Result[@remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedTaskDispatchIssue]
 
@@ -196,6 +208,8 @@ pub fn client_values_host_prepare_task_dispatch(@run_publication_host.PreparedCl
 pub fn client_values_host_project_committed_result_read_wire(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract]) -> String?
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
+
+pub fn client_values_host_project_remote_task_run(@run_publication_host.ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[@run_publication_host.ClientRemoteTaskRunProjection, Unit]
 
 pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
 
@@ -220,6 +234,10 @@ pub fn client_values_host_record_result_access_read_admission(@run_publication.R
 pub fn client_values_host_record_result_access_request_authorization(@run_publication.ResultAccessProgress, Bool) -> Bool
 
 pub fn client_values_host_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_remote_task_run_fields(@run_publication_host.ClientRemoteTaskRunProjection) -> Array[String]
+
+pub fn client_values_host_remote_task_run_work(@run_publication_host.ClientRemoteTaskRunProjection) -> Array[String]
 
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 
@@ -281,11 +299,21 @@ pub fn client_values_host_retained_input_edge(@run_publication_host.PreparedClie
 
 pub fn client_values_host_retained_input_edge_facts(@run_publication_host.ClientRetainedInputEdge) -> Array[String]
 
+pub fn client_values_host_retained_input_intent_facts(@remote_site_protocol.RemoteRetainedInputIntent) -> Array[String]
+
+pub fn client_values_host_retained_input_plan_envelope(@run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[String, @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_retained_input_plan_facts(ClientValuesHostRetainedInputPlan) -> Result[Array[String], @run_publication_host.ClientRetainedTaskInputIssue]
+
 pub fn client_values_host_retained_input_producer(@run_publication_host.ClientRetainedInputEdge, () -> Array[String]) -> Result[@run_publication_host.ClientRetainedInputProducer, @run_publication_host.ClientRetainedInputIssue]
 
 pub fn client_values_host_retained_input_producer_available(@run_publication_host.ClientRetainedInputProducer) -> Bool
 
 pub fn client_values_host_retained_input_producer_facts(@run_publication_host.ClientRetainedInputProducer) -> Result[Array[String], @remote_site_protocol.DispatchIssue]
+
+pub fn client_values_host_retained_input_result_facts(@remote_site_protocol.RemoteRetainedInputResult) -> Result[Array[String], @run_publication_host.ClientRetainedTaskInputIssue]
+
+pub fn client_values_host_retained_input_transfer_envelope(ClientValuesHostRetainedInputPlan) -> Result[String, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_retained_task_input_facts(ClientValuesHostRetainedTaskInput) -> Array[String]
 
@@ -317,6 +345,18 @@ pub fn client_values_host_task_keys(@run_publication_host.PreparedClientProgram)
 
 pub fn client_values_host_task_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
+pub fn client_values_host_task_progress_cleanup_complete(@run_publication_host.ClientRemoteTaskProgress) -> Bool
+
+pub fn client_values_host_task_progress_execution_complete(@run_publication_host.ClientRemoteTaskProgress) -> Bool
+
+pub fn client_values_host_task_progress_fields(@run_publication_host.ClientRemoteTaskProgress) -> Array[Array[String]]
+
+pub fn client_values_host_task_progress_next(@run_publication_host.ClientRemoteTaskProgress) -> Int
+
+pub fn client_values_host_task_progress_result_tasks(@run_publication_host.ClientRemoteTaskProgress) -> Array[Int]
+
+pub fn client_values_host_task_progress_scopes(@run_publication_host.ClientRemoteTaskProgress) -> Array[Array[String]]
+
 pub fn client_values_host_task_result_definitions(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation) -> Result[Array[String], @run_publication.PublicationInventoryIssue]
 
 pub fn client_values_host_task_result_names(@run_publication_host.ClientTaskCompilation) -> Array[String]
@@ -334,6 +374,8 @@ pub fn client_values_host_validate_effect_free_publication_commit(@run_publicati
 pub fn client_values_host_validate_publication_chain(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunPublicationChainIssue]
 
 pub fn client_values_host_validate_publication_record_transition(@run_publication.PublicationContract?, @run_publication.PublicationContract, Bool) -> Result[Unit, @run_publication.PublicationTransitionIssue]
+
+pub fn client_values_host_validate_retained_input_plan(ClientValuesHostRetainedInputPlan) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
 
 pub fn client_values_host_validate_retained_task_input(ClientValuesHostRetainedTaskInput) -> Result[Unit, @run_publication_host.ClientRetainedTaskInputIssue]
 
@@ -377,6 +419,13 @@ pub(all) enum ClientValuesHostPreparationIssue {
 pub(all) enum ClientValuesHostPublicationSnapshotIssue {
   InvalidObservation
   Projection(@run_publication.PublicationSnapshotIssue)
+}
+
+pub struct ClientValuesHostRetainedInputPlan {
+  producer : @run_publication_host.ClientRetainedInputProducer
+  intent : @remote_site_protocol.RemoteRetainedInputIntent
+  plan : @remote_site_protocol.RemoteRetainedInputPlan
+  current : @run_publication_host.ClientRetainedInputCurrent
 }
 
 pub struct ClientValuesHostRetainedTaskInput {

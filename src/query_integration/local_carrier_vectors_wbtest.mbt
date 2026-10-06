@@ -2565,13 +2565,16 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     1000,
   ).unwrap()
   // Each row costs two identity nodes, nine record nodes, and three copy
-  // units. Four slots per retained record overlap two scratch fields and
-  // four new slots during the second append.
+  // units: logical work remains 28. Each row loads its number in three
+  // polls and two-component vector in six, starts append in one and uses
+  // 25 append polls: physical work is 2*35 = 70.
+  // Append custody is 16+3*2+1+3*10 = 53. Caller scratch is 2+2;
+  // both four-slot records overlap at second commit: peak 53+4+4+4 = 65.
   for
     (work, slots, outcome) in [
-      (28, 10, "complete"),
-      (27, 10, "work"),
-      (28, 9, "workspace"),
+      (28, 65, "complete"),
+      (27, 65, "work"),
+      (28, 64, "workspace"),
     ] {
     let execution = @local_bridge.start_rows_to_vectors(
       @bounded.control(),
@@ -2590,11 +2593,12 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     let mut polls = 0
     while !terminal {
       polls += 1
-      assert_true(polls < 40)
+      assert_true(polls < 80)
       match @local_bridge.advance_rows_to_vectors(execution, 1).unwrap() {
         @local_bridge.Continue(..) => ()
-        @local_bridge.Complete(output, ..) => {
+        @local_bridge.Complete(output, work~, ..) => {
           assert_eq(outcome, "complete")
+          assert_eq(work, 70L)
           assert_true(
             @records.completed_storage(output) is Some(storage) &&
             @record_storage.construction_work(storage) == 28 &&
@@ -2639,7 +2643,7 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
   let mut polls = 0
   while !first_row {
     polls += 1
-    assert_true(polls < 20)
+    assert_true(polls < 40)
     match @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap() {
       @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
       _ => abort("rows-to-Vectors did not yield after its first row")
@@ -2678,7 +2682,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     fn() { true },
   ).unwrap()
   let mut vectors = None
-  for _ in 0..<40 {
+  for _ in 0..<80 {
     if vectors is Some(_) {
       break
     }
@@ -2699,20 +2703,23 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(10),
+    control_work_limit=Some(50),
   ).unwrap()
   let mut exact_done = false
-  for _ in 0..<20 {
+  // Two init/source/verify polls, three binary name probes, one cursor
+  // start and fifteen row polls: 2*(2+2+3+2+1+15) = 50. Workspace is
+  // two matched slots, thirteen recheck custody slots and three row slots.
+  for _ in 0..<60 {
     if exact_done {
       break
     }
     match @local_bridge.advance_vectors_to_rows(exact, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(output, work~, ..) => {
-        assert_eq(work, 10L)
+        assert_eq(work, 50L)
         assert_eq(@execution.completed_row_count(output), 2)
         assert_true(
           @execution.completed_output_matches_inputs(output, [external]),
@@ -2732,20 +2739,20 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(9),
+    control_work_limit=Some(49),
   ).unwrap()
   let mut work_failed = false
-  for _ in 0..<20 {
+  for _ in 0..<60 {
     if work_failed {
       break
     }
     match @local_bridge.advance_vectors_to_rows(one_short_work, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
-        assert_eq(work, 9L)
+        assert_eq(work, 49L)
         work_failed = true
       }
       _ => abort("one-short Vectors projection did not reject work")
@@ -2768,34 +2775,36 @@ test "Vectors projection production entrypoint enforces value and width limits" 
   assert_true(
     one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
   )
-  let one_short_value = @local_bridge.start_vectors_to_rows(
-    @bounded.control(),
-    task_test_completion(owner),
-    sequence,
-    1,
-    projection_input,
-    2,
-    { max_nodes: 9, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
-    1000,
-    [external],
-  ).unwrap()
-  let mut value_failed = false
-  for _ in 0..<20 {
-    if value_failed {
-      break
+  for (nodes, workspace) in [(9, 18), (10, 17)] {
+    let one_short_value = @local_bridge.start_vectors_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      projection_input,
+      2,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      workspace,
+      1000,
+      [external],
+    ).unwrap()
+    let mut value_failed = false
+    for _ in 0..<60 {
+      if value_failed {
+        break
+      }
+      match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Failed(
+          @local_bridge.RelationOutput(@execution.CaptureLimit),
+          ..
+        ) => value_failed = true
+        _ => abort("one-short Vectors projection did not reject output")
+      }
     }
-    match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
-      @local_bridge.Continue(..) => ()
-      @local_bridge.Failed(
-        @local_bridge.RelationOutput(@execution.CaptureLimit),
-        ..
-      ) => value_failed = true
-      _ => abort("one-short Vectors projection did not reject output")
-    }
+    assert_true(value_failed)
+    assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   }
-  assert_true(value_failed)
-  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   let control = @bounded.control()
   let cancelled = @local_bridge.start_vectors_to_rows(
     control,
@@ -2805,7 +2814,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
   ).unwrap()
@@ -4889,15 +4898,15 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
   // recheck 2*257+3=517, then group/candidate/policy/store 4: 532.
   // Three scratch entries + duplicate/rank checks 4 + fusion 4 +
   // fused scratch 1 + output/finish 30 = 42. Total control work: 574.
-  // One record: 17 slots. Input ports 6, fixed width 45, row scope 6,
-  // depth-two recheck scope 4: 78. Unused array nodes remain validated.
+  // One record: 17 slots. Input ports 6, fixed width 49, row scope 6,
+  // depth-two recheck scope 4: 82. Unused array nodes remain validated.
   for
     (work, slots, nodes, quantum, succeeds) in [
-      (574, 78, 258, 1, true),
-      (574, 78, 258, 7, true),
-      (574, 78, 258, 256, true),
-      (573, 78, 258, 1, false),
-      (574, 78, 257, 1, false),
+      (574, 82, 258, 1, true),
+      (574, 82, 258, 7, true),
+      (574, 82, 258, 256, true),
+      (573, 82, 258, 1, false),
+      (574, 82, 257, 1, false),
     ] {
     let execution = @local_veca.start_ranking(
       @bounded.control(),
@@ -4974,7 +4983,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
       inputs,
       10,
       { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-      77,
+      81,
       1000,
       10000,
     )
@@ -4989,7 +4998,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
     inputs,
     10,
     { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-    78,
+    82,
     1000,
     10000,
     control_work_limit=Some(574),
@@ -5071,7 +5080,7 @@ test "ranking yields within long group and tie comparisons" {
     // Independently count four 1066-unit input rows, record sorts 1048+2590,
     // duplicate checks 1033, candidate folds 3600, output sort 1032, and
     // two emitted rows plus finalization 626. Total control work is 14193.
-    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+44) + 7 + 12 = 156.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+48) + 7 + 12 = 160.
     for
       (quantum, control_limit) in [
         (1, 14193),
@@ -5087,7 +5096,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        156,
+        160,
         1000,
         10000,
         control_work_limit=Some(control_limit),
@@ -5157,7 +5166,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        155,
+        159,
         1000,
         10000,
       )
@@ -5172,7 +5181,7 @@ test "ranking yields within long group and tie comparisons" {
       inputs,
       10,
       limits,
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5270,7 +5279,7 @@ test "ranking output rows keep independent logical value limits" {
         max_depth: 10,
         max_work: logical_work,
       },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5366,7 +5375,7 @@ test "ranking output recheck and charge retain custody until stopped" {
       inputs,
       10,
       { max_nodes: 12, max_text_bytes: 1064, max_depth: 10, max_work: 1076, },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5452,7 +5461,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(236),
@@ -5484,7 +5493,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(235),
@@ -5516,7 +5525,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      136,
+      140,
       1000,
       10000,
     )
@@ -5563,15 +5572,15 @@ test "registered ranking provider enforces exact work and workspace" {
   // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
   // four two-input folds cost 16;
   // four output visits, two four-field rows, and finalization cost 61.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+44) + 6 + 12 = 137 slots.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+48) + 6 + 12 = 141 slots.
   // Fixed state, row scope and depth-bounded recheck frames remain reserved.
   for
     (work, slots, outcome, quantum) in [
-      (236, 137, "complete", 1),
-      (236, 137, "complete", 7),
-      (236, 137, "complete", 256),
-      (235, 137, "work", 1),
-      (236, 136, "workspace", 1),
+      (236, 141, "complete", 1),
+      (236, 141, "complete", 7),
+      (236, 141, "complete", 256),
+      (235, 141, "work", 1),
+      (236, 140, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
@@ -5901,7 +5910,7 @@ test "nearest charges incremental initialization and cumulative work" {
   // uses two identity picks, row start, twelve scalar read/recheck units,
   // charge start, four name/value pairs and commit.
   // Workspace: two three-slot records, four score slots, three record-sort
-  // slots, two identity slots, and sixteen fixed slots = 31.
+  // slots, two identity slots, and seventeen fixed slots = 32.
   let short_candidate_view = @carrier_runtime.material_prepare_view(
     candidate_material, owner, 0, candidates,
   ).unwrap()
@@ -5918,7 +5927,7 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(short_query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      30,
+      31,
       1000,
       1000,
       52,
@@ -5941,7 +5950,7 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      32,
       1000,
       1000,
       ceiling,
@@ -6007,7 +6016,7 @@ test "nearest stops during incremental identity initialization" {
     @local_veca.nearest_carrier_producer(query_view),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    31,
+    32,
     1000,
     1000,
     52,
@@ -6063,7 +6072,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       1000,
     ).unwrap()
     // Two three-slot records, four score slots, three ordering slots,
-    // two identity slots, sixteen fixed slots, and twenty cursor slots: 51.
+    // two identity slots, seventeen fixed slots, and twenty cursor slots: 52.
     let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
       @execution.generated_completion_preparation(generated),
@@ -6073,7 +6082,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       ceiling,
@@ -6133,7 +6142,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      50,
+      51,
       1000,
       1000,
       66,
@@ -6176,6 +6185,7 @@ fn direct_relation_pool_source_owner() -> @lower.BoundPrepared {
 fn direct_relation_pool_owner(
   source : @lower.BoundPrepared,
   prefix? : Bool = false,
+  group_name? : String = "group",
 ) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
@@ -6188,7 +6198,9 @@ fn direct_relation_pool_owner(
           ""
         }) +
         "{\"from\":\"rows\",\"pool_vectors\":{\"vector\":\"embedding\"," +
-        "\"by\":[\"group\"],\"method\":\"sum\"}}]",
+        "\"by\":[\"" +
+        group_name +
+        "\"],\"method\":\"sum\"}}]",
       ),
       [
         (
@@ -6266,7 +6278,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(83, 72),
+      direct_relation_pool_limits(95, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6335,13 +6347,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 72 work units and 83 workspace slots,
+  // The same Relation kernel requires 72 work units and 95 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (71, 83, false),
-      (72, 82, false),
-      (72, 83, true),
+      (71, 95, false),
+      (72, 94, false),
+      (72, 95, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -6389,7 +6401,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 82 {
+      if workspace == 94 {
         0L
       } else if stopping {
         1L
@@ -6408,7 +6420,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(83, 72),
+    direct_relation_pool_limits(95, 72),
     4096L,
     capacity,
   )
@@ -6445,15 +6457,18 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
-  // The Relation recheck adds twenty slots, append snapshot/map and depth
-  // stacks add 8+6+1+30=45: 18+20+45=83.
+  // The Relation recheck adds twenty slots. Current retained append reserves
+  // fixed/name custody 16, three fields' snapshot/bucket/link slots 9,
+  // one identity slot and depth-ten stacks 30: 56, not the former 45.
+  // This fixture's stale pre-name-binding premise omitted those eleven slots.
+  // Pool name matching adds one position slot: 18+20+56+1=95 before reads.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(82, 1000),
+      direct_relation_pool_limits(94, 1000),
       4096L,
       fn() { true },
     )
@@ -6466,7 +6481,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(83, 1000),
+    direct_relation_pool_limits(95, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -6494,7 +6509,7 @@ test "relation pool enforces exact work and workspace boundaries" {
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(83, ceiling),
+      direct_relation_pool_limits(95, ceiling),
       4096L,
       fn() { true },
     ).unwrap()
@@ -6549,7 +6564,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
   // Same common Relation rechecks and shared cursor as direct nearest:
-  // existing 52 plus fourteen input polls, existing 31 plus twenty slots.
+  // existing 52 plus fourteen input polls, existing 32 plus twenty slots.
   for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
@@ -6573,7 +6588,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      51,
+      52,
       1000,
       1000,
       [candidate_read, query_read],
@@ -6634,7 +6649,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      50,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -6654,7 +6669,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    51,
+    52,
     1000,
     1000,
     [candidate_read, query_read],

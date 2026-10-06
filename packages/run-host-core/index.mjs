@@ -2,6 +2,9 @@ import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
 const retainedInputProducers = new WeakMap();
+const retainedInputIntents = new WeakMap();
+const retainedInputPlans = new WeakMap();
+const retainedInputResults = new WeakMap();
 const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
@@ -1023,6 +1026,153 @@ export function retainedInputProducerFacts(producer) {
     subject: Object.freeze({cid: subjectCid, wire: subjectWire})});
 }
 
+const retainedPlanPolicyKeys = ['destinationGrantCid', 'routeCapabilityCid',
+  'sourceGrantCid', 'transferAttempt', 'transferExpiresUnixMs', 'transferMaxBytes'];
+const retainedPlanCurrentKeys = ['siteBindingCurrent', 'authority', 'nowUnixMs', 'authorized'];
+const retainedPlanLimitKeys = ['maxChunks', 'maxManifestBytes', 'maxReferencedBytes'];
+const retainedInt64Maximum = 9223372036854775807n;
+const exactRetainedFields = (value, keys) => value !== null &&
+  typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const retainedWire = value => exactRetainedFields(value, ['cid', 'wire']) &&
+  typeof value.cid === 'string' && typeof value.wire === 'string';
+
+/** The checked producer supplies every edge and completion field. */
+export function prepareRetainedInputIntent(producer, policy) {
+  const owned = requireHandle(retainedInputProducers, producer);
+  if (!exactRetainedFields(policy, retainedPlanPolicyKeys) ||
+      retainedPlanPolicyKeys.slice(0, 4).some(key => typeof policy[key] !== 'string') ||
+      ['transferExpiresUnixMs', 'transferMaxBytes'].some(key =>
+        typeof policy[key] !== 'bigint' || policy[key] < 1n ||
+        policy[key] > retainedInt64Maximum)) {
+    throw new TypeError('InvalidRunHostRetainedInputPolicy');
+  }
+  const value = checked(owner.clientValuesHostPrepareRetainedInputIntent(owned,
+    policy.destinationGrantCid, policy.routeCapabilityCid, policy.sourceGrantCid,
+    policy.transferAttempt, policy.transferExpiresUnixMs, policy.transferMaxBytes),
+  'RunHostRetainedInputIntentRejected');
+  return handle(retainedInputIntents, {producer: owned, value}, 'retained-input-intent');
+}
+
+/** Restore original saved bytes, not another intent or refreshed lifetime. */
+export function admitRetainedInputIntent(producer, saved) {
+  const owned = requireHandle(retainedInputProducers, producer);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputIntentWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputIntent(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputIntentRejected');
+  return handle(retainedInputIntents, {producer: owned, value}, 'retained-input-intent');
+}
+
+/** Historical projection only; it is not current delivery permission. */
+export function retainedInputIntentFacts(intent) {
+  const values = owner.clientValuesHostRetainedInputIntentFacts(
+    requireHandle(retainedInputIntents, intent).value);
+  if (!Array.isArray(values) || values.length !== 2 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputIntentProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1]});
+}
+
+/** Checked original poll envelope, before the Native physical manifest exists. */
+export function retainedInputPlanEnvelope(intent) {
+  const owned = requireHandle(retainedInputIntents, intent);
+  return checked(owner.clientValuesHostRetainedInputPlanEnvelope(
+    owned.producer, owned.value), 'RunHostRetainedInputIntentRejected');
+}
+
+/** Current trusted scope is required even when restoring a saved Native plan. */
+export function admitRetainedInputPlan(intent, saved, current, limits) {
+  const owned = requireHandle(retainedInputIntents, intent);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputPlanWire');
+  if (!exactRetainedFields(current, retainedPlanCurrentKeys) ||
+      retainedPlanCurrentKeys.some(key => typeof current[key] !== 'function')) {
+    throw new TypeError('InvalidRunHostRetainedPlanCurrent');
+  }
+  if (!exactRetainedFields(limits, retainedPlanLimitKeys) ||
+      ['maxChunks', 'maxManifestBytes'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
+      typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
+      limits.maxReferencedBytes > retainedInt64Maximum) {
+    throw new TypeError('InvalidRunHostRetainedPlanLimits');
+  }
+  // Capture ports, not their first successful answers. Every validation reads
+  // current trusted state; changing an object's properties cannot swap ports.
+  const {siteBindingCurrent, authority, nowUnixMs, authorized} = current;
+  const booleanResult = (value, code) => {
+    if (typeof value !== 'boolean') throw new TypeError(code);
+    return value;
+  };
+  const value = checked(owner.clientValuesHostAdmitRetainedInputPlan(
+    owned.producer, owned.value, saved.wire, saved.cid,
+    (key, generation, bundle) => booleanResult(
+      siteBindingCurrent(key, Number(generation), bundle), 'InvalidRunHostRetainedSiteCurrent'),
+    () => {
+      const value = authority();
+      if (typeof value !== 'string') throw new TypeError('InvalidRunHostRetainedAuthority');
+      return value;
+    },
+    () => {
+      const value = nowUnixMs();
+      if (typeof value !== 'bigint' || value < 0n || value > retainedInt64Maximum) {
+        throw new TypeError('InvalidRunHostRetainedClock');
+      }
+      return value;
+    },
+    (dispatchCid, requestWire) => booleanResult(authorized(dispatchCid, requestWire),
+      'InvalidRunHostRetainedAuthorization'),
+    limits.maxChunks, limits.maxManifestBytes, limits.maxReferencedBytes),
+  'RunHostRetainedInputPlanRejected');
+  return handle(retainedInputPlans, value, 'retained-input-plan');
+}
+
+/** Revalidate after persistence and immediately before delivery. */
+export function validateRetainedInputPlan(plan) {
+  checked(owner.clientValuesHostValidateRetainedInputPlan(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Immutable originals only; no reservation, borrow, payload or start claim. */
+export function retainedInputPlanFacts(plan) {
+  const values = checked(owner.clientValuesHostRetainedInputPlanFacts(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+  if (!Array.isArray(values) || values.length !== 6 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputPlanProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1],
+    transfer: Object.freeze({cid: values[2], wire: values[3]}),
+    manifest: Object.freeze({cid: values[4], wire: values[5]})});
+}
+
+/** Revalidate the original checked plan against live Owners before delivery. */
+export function retainedInputTransferEnvelope(plan) {
+  return checked(owner.clientValuesHostRetainedInputTransferEnvelope(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Historical committed receipt, never current custody or consumer authority. */
+export function admitRetainedInputResult(plan, saved) {
+  const owned = requireHandle(retainedInputPlans, plan);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputResultWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputResult(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputResultRejected');
+  return handle(retainedInputResults, value, 'retained-input-result');
+}
+
+/** These immutable facts must be persisted and joined to current trusted Owners. */
+export function retainedInputResultFacts(result) {
+  const values = checked(owner.clientValuesHostRetainedInputResultFacts(
+    requireHandle(retainedInputResults, result)), 'RunHostRetainedInputResultRejected');
+  if (!Array.isArray(values) || values.length !== 7 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputResultProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1], planCid: values[2],
+    transferReply: Object.freeze({requestCid: values[3], wire: values[4]}),
+    receipt: Object.freeze({cid: values[5], wire: values[6]})});
+}
+
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',
   'nowUnixMs', 'authorized'];
 
@@ -1906,6 +2056,92 @@ export function openResultDeliveryControl() {
       return deliveryResult('clientValuesHostFinishResultDelivery',
         requireHandle(deliverySerializers, serializer));
     },
+  });
+}
+
+function admittedTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  checkRunBinding(prepared, admission, definition);
+  return checked(owner.clientValuesHostInspectTaskProgress(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostTaskProgressRejected');
+}
+
+function taskProgressSnapshot(value) {
+  const scopes = owner.clientValuesHostTaskProgressScopes(value);
+  const next = owner.clientValuesHostTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    executionComplete: owner.clientValuesHostTaskProgressExecutionComplete(value),
+    cleanupComplete: owner.clientValuesHostTaskProgressCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
+/** Inspect checked task readiness. A snapshot grants no start or input custody. */
+export function inspectTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  return taskProgressSnapshot(admittedTaskProgress(prepared, compilation,
+    admission, definition, authority, durableWires));
+}
+
+/** Prepare a checked task claim. The Host must commit it before any send. */
+export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
+  authority, durableWires, requested, retained, claim) {
+  const keys = ['taskKey', 'dispatchCid', 'definitionCid', 'reserved',
+    'unstarted', 'authorized', 'cancelled', 'failed'];
+  if (claim === null || typeof claim !== 'object' || Array.isArray(claim) ||
+      Object.keys(claim).sort().join('\0') !== keys.sort().join('\0') ||
+      [claim.taskKey, claim.dispatchCid, claim.definitionCid].some(value => typeof value !== 'string') ||
+      [claim.reserved, claim.unstarted, claim.authorized, claim.cancelled, claim.failed]
+        .some(value => typeof value !== 'boolean')) {
+    throw new TypeError('InvalidRunHostTaskStart');
+  }
+  const progress = admittedTaskProgress(prepared, compilation, admission, definition,
+    authority, durableWires);
+  return checked(owner.clientValuesHostPrepareRemoteTaskPhysicalStart(
+    progress, claim.taskKey, claim.dispatchCid, requireHandle(requests, requested),
+    requireHandle(requests, retained), claim.definitionCid, claim.reserved,
+    claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
+  'RunHostTaskStartRejected');
+}
+
+/** Project the unpublished whole Run without committing, starting or releasing it. */
+export function projectTaskSiteRun(prepared, compilation, admission, definition,
+  authority, durableWires, observedAt, cancellationRequested = false,
+  claimedTaskKeys = []) {
+  if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean' ||
+      !Array.isArray(claimedTaskKeys) ||
+      claimedTaskKeys.some(key => typeof key !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskRunProjection');
+  }
+  const value = admittedTaskProgress(prepared, compilation, admission,
+    definition, authority, durableWires);
+  const projected = checked(owner.clientValuesHostProjectRemoteTaskRun(
+    value, observedAt, cancellationRequested, claimedTaskKeys),
+  'RunHostTaskRunProjectionRejected');
+  const fields = owner.clientValuesHostRemoteTaskRunFields(projected);
+  const work = owner.clientValuesHostRemoteTaskRunWork(projected);
+  const progress = taskProgressSnapshot(value);
+  const next = Number(fields[2]);
+  return Object.freeze({...progress, stateWire: fields[0], execution: fields[1],
+    nextTask: next < 0 ? undefined : next, publicationReady: fields[3] === '1',
+    tasks: Object.freeze(progress.tasks.map((task, index) =>
+      Object.freeze({...task, nextWork: work[index]}))),
   });
 }
 

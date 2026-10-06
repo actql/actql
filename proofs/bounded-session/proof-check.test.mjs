@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+// Keep the concrete Carrier instance beside the existing common-mechanism
+// proof admission. This does not add a reusable action or change its evidence kind.
+import '../events-bridge/proof-check.test.mjs';
 
 test('Lean rejects an existing theorem name with a weakened proposition', () => {
   const model = readFileSync(new URL('Session.lean', import.meta.url), 'utf8');

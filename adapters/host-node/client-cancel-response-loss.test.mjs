@@ -375,6 +375,12 @@ for (const transport of ['in-process', 'https']) {
     const expected = {observation: 'accepted', revision: f.before[0].revision + 1,
       summary: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.', next};
     assert.deepEqual(sdk.explainCancellation(accepted), expected, '[check-mutation:cancel-explanation]');
+    const beforeLocale = f.counts();
+    assert.deepEqual(sdk.explainCancellation(accepted, {locale: 'ja'}), {...expected,
+      summary: 'HostはRunの取消し要求を記録しました。物理停止・Effect・解放はRunの現在状態で確認してください。'},
+    '[check-mutation:operation-cancel-public-locale]');
+    assert.deepEqual(f.counts(), beforeLocale, '[check-mutation:operation-cancel-public-passive]');
+
     assert.equal(f.stored()[0].physical_close_confirmed, 0);
     const state = await f.execution.status();
     assert.equal(state.status, 'running');
@@ -406,6 +412,8 @@ for (const transport of ['in-process', 'https']) {
       summary: 'The Host reports the Run is already terminal for cancellation. Refresh Run state for Effect and release details.',
       next: {operation: 'status', ref: {...terminal.execution.ref}},
     }, '[check-mutation:cancel-explanation]');
+    assert.equal(sdk.explainCancellation(reply, {locale: 'ja'}).summary,
+      'Hostは取消しについてRunが既に終端状態にあると報告しました。Effect・解放の詳細はRunの現在状態で確認してください。');
     assert.equal(terminal.stored()[0].cancellation_requested, 0);
   });
 
@@ -432,6 +440,10 @@ for (const transport of ['in-process', 'https']) {
         summary: 'The Run cancellation outcome is unknown. The request may have been recorded.',
         next: {operation: 'status', ref: {...f.execution.ref}}};
       assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
+      assert.deepEqual(sdk.explainCancellation(error, {locale: 'ja'}), {...expected,
+        summary: 'Run取消しの結果を確認できません。要求は記録されている可能性があります。'},
+      '[check-mutation:operation-cancel-unknown-public-locale]');
+
       error.code = 'Accepted'; error.message = 'stopped';
       assert.deepEqual(sdk.explainCancellation(error), expected, '[check-mutation:cancel-unknown-explanation]');
       assert.equal(sdk.explainCancellation(Object.assign(new Error(error.message), error)), undefined);

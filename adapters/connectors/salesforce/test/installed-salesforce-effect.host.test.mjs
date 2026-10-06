@@ -2,6 +2,8 @@
 // public Client: submit, Preview, approval of the whole Set, Host restart,
 // current checks, writes and the Named Result. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
+// The public update acceptance runs with the installed Effect's Host tests.
+import './update-effect.acceptance.test.mjs';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -25,6 +27,9 @@ import {effectProgram, installedEffect, moon, salesforceMoon} from
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 import {recordCheckpointApproval} from '../../../host-common/checkpoint-approval.mjs';
+import {releaseCompletedRunPreparedPayloads} from
+  '../../../host-common/completed-run-publication.mjs';
+import {completeInterruptedEffectRun} from '../../../host-node/effect-run-completion.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-effect-host');
@@ -32,7 +37,7 @@ await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
 execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
-  '-subj', '/CN=localhost',
+  '-subj', '/CN=salesforce-effect-host-fixture',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
 {cwd: tlsRoot, stdio: 'ignore'});
 const tlsKey = await readFile(join(tlsRoot, 'host.key'));
@@ -91,7 +96,14 @@ async function remoteHost(t, installation, directory, {configuration,
     ...(instrument?.hooks?.(hooks) ?? hooks),
     privateEvidenceKey: Buffer.alloc(32, 7)});
   const effectInstallation = {...site,
-    execute: facts => site.execute(instrument?.facts?.(facts, 'execute') ?? facts),
+    async execute(facts) {
+      try {
+        const result = await site.execute(instrument?.facts?.(facts, 'execute') ?? facts);
+        instrument?.observeResult?.(result);
+        return result;
+      }
+      catch (error) { instrument?.observeFailure?.(error); throw error; }
+    },
     async resume(facts) {
     try { return await site.resume(instrument?.facts?.(facts, 'resume') ?? facts); }
     catch (error) {
@@ -154,12 +166,12 @@ const writesOf = org => org.seen.filter(item => item.method === 'PATCH' ||
 const ids = ['a00000000000001', 'a00000000000002'];
 
 // `targets`: the Resources the Program updates, one Effect member each.
-async function setup(t, {targets = ['Test_Record__c'], ...options} = {}) {
+async function setup(t, {targets = ['Test_Record__c'], org = {}, ...options} = {}) {
   const configuration = hostConfiguration(options);
   const installation = await installedEffect(t, {
     writes: targets.map(resource => ({resource, kind: 'update',
       fields: ['Name']})),
-    org: {writableObjects: ['Other_Record__c']},
+    org: {writableObjects: ['Other_Record__c'], ...org},
     // The explicit installation publication precedes the operation under
     // test. Its metadata permission is not retained as a target-read grant.
     principalId: owner, accountConfigurationWire: hostConfiguration({...options, read: 'allow'})});
@@ -625,7 +637,8 @@ for (const targetRead of ['allow', 'delegate']) {
   });
 }
 
-test('target and commit approvals retain original data through public Host restarts', async t => {
+for (const entrance of ['source', 'program']) {
+test(`target and commit approvals retain original data through public Host restarts: ${entrance}`, async t => {
   const x = await setup(t, {read: 'delegate'});
   const text = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
   const program = JSON.parse(x.program);
@@ -637,8 +650,11 @@ test('target and commit approvals retain original data through public Host resta
   const before = x.installation.org.seen.length;
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
-  let run = await (await host.as('owner-token')).aql(x.program,
-    {format: 'json', requestId: 'exact-target-and-commit'});
+  const client = await host.as('owner-token');
+  let run = entrance === 'program'
+    ? await client.start(program, {requestId: 'exact-target-and-commit'})
+    : await client.aql(x.program,
+      {format: 'json', requestId: 'exact-target-and-commit'});
   const ref = run.ref;
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
   const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
@@ -671,6 +687,7 @@ test('target and commit approvals retain original data through public Host resta
   assert.equal(x.installation.org.seen.length, calls);
   await host.close();
 });
+}
 
 // These are consuming combinations over one public Run, rather than sums of
 // isolated gate tests. Every wrapped method delegates to the original owner.
@@ -1026,3 +1043,254 @@ test(`integrated Run shares one ${capacity} decision slot at target and commit a
     deniedContenders: 2, ...options.decisionOptions}));
 });
 }
+
+
+// Fail only after the real Host has acquired a complete durable capture. The
+// public Result's composite prepared handle can be instrumented without
+// replacing the Store's physical holding owner or the ledger connection.
+for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
+  for (const blockedCleanup of [false, true]) {
+    test(`captured Run keeps ${boundary} payload custody${blockedCleanup ? ' through cleanup retry' : ''}`,
+      {timeout: 20_000}, async t => {
+      const x = await setup(t, {commit: 'allow'});
+      const abort = new AbortController();
+      const primary = new Error(`Injected captured ${boundary}`);
+      const cleanupFailure = new Error('Injected prepared payload release');
+      const state = {blocked: blockedCleanup, prepared: [], releases: 0,
+        inputs: 0, disposals: 0, captures: 0, refusals: 0, refreshes: 0};
+      t.after(() => { state.blocked = false; });
+      const instrument = {
+        observeFailure(error) { state.failure = error; },
+        observeResult(result) { state.result = result; },
+        hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+          const stage = await hooks.prepareCaptured(facts);
+          state.captures++;
+          state.stage = stage;
+          assert.ok(state.prepared.length > 0);
+          assert.ok(state.prepared.some(owner => owner.status().pending));
+          state.store = facts.store;
+          if (boundary === 'pre-send-abort') abort.abort(primary);
+          return {...stage,
+            apply: {...stage.apply, async refreshPreflight(...args) {
+              state.refreshes++;
+              if (boundary === 'refresh-io') throw primary;
+              return stage.apply.refreshPreflight(...args);
+            }},
+            releaseInputs() { state.inputs++; return stage.releaseInputs(); },
+            dispose() { state.disposals++; return stage.dispose(); }};
+        }}),
+        facts: facts => ({...facts, signal: abort.signal,
+          ...(boundary !== 'published' ? {} : {store: {...facts.store,
+            async commitEffectfulIndex(...args) {
+              await facts.store.commitEffectfulIndex(...args);
+              // The second real Store call observes the committed index.
+              const result = await facts.store.commitEffectfulIndex(...args);
+              assert.equal(result.idempotent, true);
+              state.terminalRelease = true;
+              return result;
+            }}}),
+          retainExecution(owner) { state.custody = owner; facts.retainExecution(owner); },
+          observePreEffectFailure() { state.refusals++; facts.observePreEffectFailure?.(); },
+          async openComputation(options) {
+            const opened = await facts.openComputation(options);
+            const original = opened.execution;
+            return {...opened, cleanupOwner: opened.cleanupOwner ?? original,
+              execution: {...original, async storePublicationResult(...args) {
+                const stored = await original.storePublicationResult(...args);
+                const prepared = stored.prepared;
+                state.prepared.push(prepared);
+                const release = async () => {
+                  state.releases++;
+                  if (state.blocked) throw cleanupFailure;
+                  return prepared.release();
+                };
+                return {...stored, prepared: {status() {
+                  // After Store transfer, a failed status observation still
+                  // leaves the completed owner responsible for its release.
+                  if (state.blocked && state.terminalRelease) throw cleanupFailure;
+                  return prepared.status();
+                }, release,
+                  async retry() { await release(); return prepared.status(); }}};
+              }}};
+          }}),
+      };
+      const host = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration, instrument,
+          decisionOptions: {maxInFlightDecisions: 1, maxRetainedDecisions: 32}});
+      const run = await (await host.as('owner-token')).aql(x.program,
+        {format: 'json', requestId: `captured-${boundary}-${blockedCleanup}`});
+      if (boundary === 'published') {
+        if (blockedCleanup) {
+          await waitFor(() => state.failure !== undefined);
+          assert.ok(state.failure.cleanupErrors.includes(cleanupFailure));
+        }
+        if (!blockedCleanup) await waitFor(() => state.result?.status === 'published');
+        await waitFor(async () => (await run.status()).status === 'succeeded');
+      } else {
+        await waitFor(() => state.failure !== undefined);
+        assert.equal(state.failure, primary, 'the original generic exception stays primary');
+      }
+      assert.equal(state.refusals, 0, 'generic failures are not definitive pre-send refusals');
+      assert.equal(state.captures, 1);
+      assert.equal(state.refreshes, boundary === 'pre-send-abort' ? 0 : 1);
+      assert.equal(writesOf(x.installation.org).length, boundary === 'published' ? 2 : 0);
+      const io = x.installation.org.seen.length;
+      const capacity = state.store.status();
+      if (blockedCleanup) {
+        let failure;
+        await assert.rejects(host.close(), error => {
+          failure = error;
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+          return true;
+        });
+        assert.ok(state.releases > 0, 'captured payload cleanup was attempted');
+        assert.equal(state.custody.cleanupPending(), true);
+        assert.equal(state.disposals, 0, 'ledger stays owned until payload cleanup finishes');
+        await assert.rejects(failure.cleanupHandle.retry());
+        const releases = state.releases;
+        state.blocked = false;
+        try { await failure.cleanupHandle.retry(); }
+        catch (error) {
+          t.diagnostic(JSON.stringify({code: error.code,
+            cleanup: error.failures?.map(item => item.cleanup?.code)}));
+          throw error;
+        }
+        assert.deepEqual(failure.cleanupHandle.status().pending, []);
+        if (boundary !== 'published') assert.ok(state.releases > releases);
+        const completed = state.releases;
+        await failure.cleanupHandle.retry();
+        assert.equal(state.releases, completed, 'completed payloads are not released twice');
+      }
+      let remaining;
+      try { remaining = await host.close(); }
+      catch (error) {
+        t.diagnostic(JSON.stringify({boundary, blockedCleanup,
+          code: error.code, pending: error.cleanupHandle?.status(),
+          failures: error.cleanupErrors?.map(item => ({owner: item.owner,
+            code: item.error?.code, message: item.error?.message,
+            stack: item.error?.stack}))}));
+        throw error;
+      }
+      if (remaining !== undefined) {
+        assert.equal(remaining.storeCleanupPending, false);
+        assert.deepEqual(remaining.pendingRetention, []);
+      }
+      assert.ok(state.prepared.every(owner => owner.status().pending === false),
+        'no process-local prepared Result owner survives Host cleanup');
+      assert.equal(state.custody.cleanupPending(), false);
+      assert.equal(state.inputs, 1, 'consumer pins are released once');
+      assert.equal(state.disposals, 1, 'the ledger connection is disposed once');
+      assert.equal(x.installation.org.seen.length, io, 'cleanup performs no provider I/O');
+      const kept = await retained(x);
+      if (boundary === 'published') {
+        assert.ok(kept.holdings.length > 0 && kept.objects.length > 0,
+          'terminal payload release cannot retire published Store custody');
+      } else {
+        assert.deepEqual(kept, {holdings: [], objects: []},
+          'the existing Host owner retires an unheld capture after physical stop');
+      }
+      assert.ok(state.store.status().storedBytes <= capacity.storedBytes,
+        'cleanup never duplicates Store capacity');
+      assert.ok(state.store.status().objectCount <= capacity.objectCount);
+      const restarted = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration});
+      const attached = await (await restarted.as('owner-token')).attach(run.ref);
+      if (boundary === 'published') {
+        assert.equal((await attached.status()).status, 'succeeded');
+        assert.deepEqual(await attached.result('answer').all(), ids.map(id => ({id})));
+      } else {
+        assert.ok(!['succeeded', 'cancelled'].includes((await attached.status()).status));
+      }
+      await restarted.close();
+      assert.equal(x.installation.org.seen.length, io, 'restart cannot duplicate the original Run');
+      assert.equal(writesOf(x.installation.org).length, boundary === 'published' ? 2 : 0);
+    });
+  }
+}
+
+
+test('a captured Checkpoint cannot switch an already retained payload owner to retirement',
+  async t => {
+  const x = await setup(t);
+  let captured;
+  const instrument = {hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+    captured = {stage: await hooks.prepareCaptured(facts), control: facts.control};
+    return captured.stage;
+  }})};
+  const host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration, instrument});
+  const run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'captured-release-mode-conflict'});
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  assert.throws(() => releaseCompletedRunPreparedPayloads(
+    captured.stage.storedResults, captured.control),
+  {code: 'CompletedRunResultSetReleaseModeConflict'});
+  await host.close();
+  const kept = await retained(x);
+  assert.ok(kept.holdings.length > 0 && kept.objects.length > 0);
+  assert.equal(writesOf(x.installation.org).length, 0);
+});
+
+
+test('an interrupted captured Run keeps transferred custody after repeated receipt I/O failures',
+  async t => {
+  const x = await setup(t, {commit: 'allow', org: {loseWriteReplyOnce: true}});
+  const primary = new Error('Injected receipt evidence I/O');
+  const state = {blocked: true, reads: 0, refusals: 0};
+  t.after(() => { state.blocked = false; });
+  const instrument = {
+    observeFailure(error) { state.failure = error; },
+    facts: facts => ({...facts,
+      retainExecution(owner) { state.custody = owner; facts.retainExecution(owner); },
+      observePreEffectFailure() { state.refusals++; facts.observePreEffectFailure?.(); },
+      async openComputation(options) {
+        const opened = await facts.openComputation(options);
+        const owner = opened.cleanupOwner ?? opened.execution;
+        return {...opened, cleanupOwner: {...owner,
+          cleanup: () => state.blocked ? false : owner.cleanup()}};
+      }}),
+    hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+      const stage = await hooks.prepareCaptured(facts);
+      state.prepared = stage.storedResults.results.map(result => result.prepared);
+      state.stage = {...stage,
+        releaseInputs() {
+          if (state.blocked) throw new Error('Injected input pin release');
+          return stage.releaseInputs();
+        },
+        receipt: {...stage.receipt,
+          async authorizeEvidenceRead() { state.reads++; throw primary; }}};
+      return state.stage;
+    }}),
+  };
+  const host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration, instrument});
+  const run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'captured-interrupted-receipt'});
+  await waitFor(() => state.failure !== undefined);
+  assert.equal(state.failure, primary);
+  assert.equal(state.refusals, 0);
+  assert.equal(state.reads, 1);
+  assert.equal(state.custody.cleanupPending(), true);
+  const {apply, receipt, publication} = state.stage;
+  await assert.rejects(completeInterruptedEffectRun({apply, receipt, publication}, false),
+    error => error === primary);
+  assert.equal(state.reads, 2);
+  assert.equal(writesOf(x.installation.org).length, 1);
+  const io = x.installation.org.seen.length;
+  state.blocked = false;
+  await host.close();
+  assert.ok(state.prepared.every(owner => owner.status().pending === false));
+  assert.equal(state.custody.cleanupPending(), false);
+  const kept = await retained(x);
+  assert.ok(kept.holdings.length > 0 && kept.objects.length > 0,
+    'physical dispatch has transferred durable capture custody');
+  const restarted = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  const attached = await (await restarted.as('owner-token')).attach(run.ref);
+  assert.ok(!['succeeded', 'cancelled'].includes((await attached.status()).status));
+  await restarted.close();
+  assert.equal(x.installation.org.seen.length, io);
+  assert.equal(writesOf(x.installation.org).length, 1,
+    'neither interrupted completion nor cleanup can send the uncertain row again');
+});

@@ -320,6 +320,14 @@ fn append_resolved(
           literal = Some(raw)
           lowering.form("literal", raw)
         }
+        JsonLiteral(text) =>
+          lowering.form(
+            "typed_literal",
+            lowering.object([
+              ("type", lowering.add(String("json"))),
+              ("value", lowering.add(String(text))),
+            ]),
+          )
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>
@@ -441,7 +449,18 @@ fn append_resolved(
             }
           }
         Predicate(op, args) =>
-          if op == "IN" || op == "NOT IN" {
+          if op == "IN UNNEST" || op == "NOT IN UNNEST" {
+            // The existing membership operator consumes the array expression
+            // itself. It is not a scalar item wrapped in a literal list.
+            lowering.arguments(
+              if op == "IN UNNEST" {
+                "in"
+              } else {
+                "not_in"
+              },
+              args.map(i => nodes[i]),
+            )
+          } else if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []
             for j in 1..<args.length() {
               match literals[args[j]] {

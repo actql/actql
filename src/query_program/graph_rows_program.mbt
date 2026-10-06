@@ -158,6 +158,12 @@ fn lower_script_graph_rows(
       )
       continue
     }
+    if call.operation == "apply_graph_delta" {
+      current = lower_script_graph_delta(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
+    }
     if call.operation == "match_nodes" || call.operation == "match_edges" {
       row_input = Some(
         lower_script_graph_match_rows(
