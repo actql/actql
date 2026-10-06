@@ -81,10 +81,12 @@ pub fn append_workspace_slots(
 }
 
 ///|
+/// The caller must declare scratch that stays live alongside this cursor.
+/// Zero is appropriate only when no enclosing kernel scratch shares this limit.
 pub fn start_append(
   builder : Builder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
-  external_workspace_slots? : Int = 0,
+  external_workspace_slots~ : Int,
 ) -> Result[AppendCursor, Issue] {
   if !builder.open || !builder.owns_private || builder.pending_append is Some(_) {
     return Err(Closed)
