@@ -16,6 +16,7 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
   verdict: C extends 'partial' ? 'invalid' | 'undetermined' : 'invalid' | 'undetermined' | 'verified';
   scope: CheckReportScope;
   contextRef: string;
+  omissions?: Readonly<{requirements: true}>;
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |

@@ -1897,6 +1897,18 @@ const schemas = {
                 "minLength": 1,
                 "maxLength": 128
               },
+              "omissions": {
+                "type": "object",
+                "required": [
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "requirements": {
+                    "const": true
+                  }
+                }
+              },
               "inputs": {
                 "type": "array",
                 "minItems": 1,
@@ -4241,6 +4253,11 @@ const schemas = {
                         }
                       }
                     }
+                  },
+                  "not": {
+                    "required": [
+                      "omissions"
+                    ]
                   }
                 }
               },
@@ -4343,6 +4360,18 @@ const schemas = {
                 "pattern": "^[A-Za-z0-9:_-]+$",
                 "minLength": 1,
                 "maxLength": 128
+              },
+              "omissions": {
+                "type": "object",
+                "required": [
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "requirements": {
+                    "const": true
+                  }
+                }
               },
               "inputs": {
                 "type": "array",
@@ -6687,6 +6716,11 @@ const schemas = {
                         }
                       }
                     }
+                  },
+                  "not": {
+                    "required": [
+                      "omissions"
+                    ]
                   }
                 }
               },
@@ -7855,7 +7889,7 @@ const operationKeys = {
 };
 
 export const checkReasonSchemaCid = "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
-export const checkOutcomeSchemaCid = "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c";
+export const checkOutcomeSchemaCid = "sha256:7181dffdbd45b7a5692d5f4f34a353625fe9805f31e495b57a0498b26b0e8376";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
