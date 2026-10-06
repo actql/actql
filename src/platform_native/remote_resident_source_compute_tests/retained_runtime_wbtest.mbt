@@ -30,10 +30,7 @@ fn retained_compute_through_runtime(
   retained_site_usage? : Array[Int64] = Array::make(9, 0L),
   through_resident? : Bool = false,
   expire_at_start? : Bool = false,
-  restore_input? : (
-    @host.ClientRunMaterials,
-    @remote.RemoteInputBinding,
-  ) -> Result[
+  restore_input? : (@host.ClientRunMaterials, @remote.RemoteInputBinding) -> Result[
     @output.NativeRemoteRetainedTaskInput,
     @output.NativeRemoteRetainedTaskInputIssue,
   ],
@@ -60,7 +57,10 @@ fn retained_compute_through_runtime(
     ).unwrap()
     let wire = @host.issue_client_task_run_materials(
       materials.prepared,
-      match materials.compilation { @host.Tasks(value) => value; _ => abort("expected Tasks") },
+      match materials.compilation {
+        @host.Tasks(value) => value
+        _ => abort("expected Tasks")
+      },
       materials.admission,
       materials.run_definition,
       environment,
@@ -69,38 +69,70 @@ fn retained_compute_through_runtime(
       None,
     ).unwrap()
     for request in [dispatch, another_attempt] {
-      journal.retain_dispatch_envelope(
-        request, @remote.remote_poll_dispatch_materials_json(request, binding, wire).unwrap(),
-      ).unwrap()
+      journal
+      .retain_dispatch_envelope(
+        request,
+        @remote.remote_poll_dispatch_materials_json(request, binding, wire).unwrap(),
+      )
+      .unwrap()
       journal.accept(request).unwrap() |> ignore
     }
     let admission : @resident.ResidentRunAdmission = {
-      source: Some((configuration.source.source_ref, configuration.source.source_contract_cid)),
+      source: Some(
+        (
+          configuration.source.source_ref,
+          configuration.source.source_contract_cid,
+        ),
+      ),
       expressions: { text_time: false, veca: false, },
-      operations: { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      operations: {
+        rela: true,
+        sga: false,
+        tea: false,
+        calendar: false,
+        text_rank: false,
+      },
       manifests: @host.admit_client_compilation_manifests(
         @environment.compiler_grammar_manifest_wire(),
-        @environment.compiler_barrier_contract_manifest_wire(), 10000, 1000, 20,
+        @environment.compiler_barrier_contract_manifest_wire(),
+        10000,
+        1000,
+        20,
       ).unwrap(),
       limits: {
         preparation: @host.client_standard_program_preparation_limits(),
         sequence: @host.client_standard_values_sequence_limits(),
-        max_sequence_steps: 1000, max_sequence_work: 1000,
-        max_evidence_bytes: 1000000, max_evidence_nodes: 100000, max_evidence_depth: 100,
+        max_sequence_steps: 1000,
+        max_sequence_work: 1000,
+        max_evidence_bytes: 1000000,
+        max_evidence_nodes: 100000,
+        max_evidence_depth: 100,
       },
     }
     let scope = @remote.dispatch_request_execution_scope(dispatch)
     let execution : @resident.ResidentExecution = {
-      site, active_runtime: active, bundles,
-      operation_capability_cid: scope[6], issuer_capability_cid: scope[7],
-      budgets: [@remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap()],
-      registry_body: configuration.registry_body, values_body: configuration.values_body,
-      fixed_ms: 1L, per_row_ms: 0L, per_wire_byte_ms: 0L, per_pair_ms: 0L,
+      site,
+      active_runtime: active,
+      bundles,
+      operation_capability_cid: scope[6],
+      issuer_capability_cid: scope[7],
+      budgets: [
+        @remote.prepare_remote_dispatch_budget(1048576L, 1048576L).unwrap(),
+      ],
+      registry_body: configuration.registry_body,
+      values_body: configuration.values_body,
+      fixed_ms: 1L,
+      per_row_ms: 0L,
+      per_wire_byte_ms: 0L,
+      per_pair_ms: 0L,
       source: Some(configuration.source),
       limits: {
-        finalization_quantum: 256, max_finalization_rounds: 100,
+        finalization_quantum: 256,
+        max_finalization_rounds: 100,
         row_decode: retained_compute_input_limits().wire,
-        bridge_max_entries: 100, bridge_max_name_bytes: 10000, output: limits,
+        bridge_max_entries: 100,
+        bridge_max_name_bytes: 10000,
+        output: limits,
       },
     }
     let observe = Some(identity => {
@@ -111,51 +143,103 @@ fn retained_compute_through_runtime(
       true
     })
     let foreign = @resident.execute_resident_retained_attempt(
-      journal, execution, admission, configuration, restore, material, codec,
-      retained_compute_input_limits(), current,
+      journal,
+      execution,
+      admission,
+      configuration,
+      restore,
+      material,
+      codec,
+      retained_compute_input_limits(),
+      current,
       @remote.dispatch_request_attempt_identity(another_attempt).unwrap(),
-      "retained-consumer-holder", () => "2026-10-05T00:00:00.000Z", observe,
+      "retained-consumer-holder",
+      () => "2026-10-05T00:00:00.000Z",
+      observe,
     )
-    assert_true(match foreign {
-      Err(failure) => failure.issue is @resident.Input(@output.ForeignTransfer) && failure.pending_runtime is None
-      Ok(_) => false
-    })
-    assert_true(@remote.remote_runtime_record_startable(journal.require(another_attempt).unwrap()))
+    assert_true(
+      match foreign {
+        Err(failure) =>
+          failure.issue is @resident.Input(@output.ForeignTransfer) &&
+          failure.pending_runtime is None
+        Ok(_) => false
+      },
+    )
+    assert_true(
+      @remote.remote_runtime_record_startable(
+        journal.require(another_attempt).unwrap(),
+      ),
+    )
     assert_eq(entries.val, 0)
     assert_true(@transfer_client.destination_material_use_available(material))
     let denied = @output.install_native_remote_retained_input_current(
-      () => site, () => retained_compute_cid("c"), () => 1791158400000L, (_, _) => false,
+      () => site,
+      () => retained_compute_cid("c"),
+      () => 1791158400000L,
+      (_, _) => false,
     )
     let refusal = @resident.execute_resident_retained_attempt(
-      journal, execution, admission, configuration, restore, material, codec,
-      retained_compute_input_limits(), denied,
+      journal,
+      execution,
+      admission,
+      configuration,
+      restore,
+      material,
+      codec,
+      retained_compute_input_limits(),
+      denied,
       @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
-      "retained-consumer-holder", () => "2026-10-05T00:00:00.000Z", observe,
+      "retained-consumer-holder",
+      () => "2026-10-05T00:00:00.000Z",
+      observe,
     )
-    assert_true(match refusal {
-      Err(failure) => failure.issue is @resident.Input(@output.AuthorizationUnavailable) && failure.pending_runtime is None
-      Ok(_) => false
-    })
+    assert_true(
+      match refusal {
+        Err(failure) =>
+          failure.issue is @resident.Input(@output.AuthorizationUnavailable) &&
+          failure.pending_runtime is None
+        Ok(_) => false
+      },
+    )
     assert_eq(entries.val, 0)
-    assert_true(@remote.remote_runtime_record_startable(journal.require(dispatch).unwrap()))
+    assert_true(
+      @remote.remote_runtime_record_startable(
+        journal.require(dispatch).unwrap(),
+      ),
+    )
     assert_true(@transfer_client.destination_material_use_available(material))
     if expire_at_start {
       let checks = Ref(0)
       let expired = @resident.execute_resident_retained_attempt(
-        journal, execution, admission, configuration, restore, material, codec,
-        retained_compute_input_limits(), current,
+        journal,
+        execution,
+        admission,
+        configuration,
+        restore,
+        material,
+        codec,
+        retained_compute_input_limits(),
+        current,
         @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
         "retained-consumer-holder",
         () => {
           checks.val += 1
-          if checks.val == 1 { "2026-10-05T00:00:00.000Z" } else { "2100-01-01T00:00:00.000Z" }
+          if checks.val == 1 {
+            "2026-10-05T00:00:00.000Z"
+          } else {
+            "2100-01-01T00:00:00.000Z"
+          }
         },
         observe,
       )
-      assert_true(match expired {
-        Err(failure) => failure.issue is @resident.Host(Refused(NotCurrent)) && failure.pending_runtime is None
-        Ok(_) => false
-      })
+      assert_true(
+        match expired {
+          Err(failure) =>
+            failure.issue is @resident.Host(Refused(NotCurrent)) &&
+            failure.pending_runtime is None
+          Ok(_) => false
+        },
+      )
       assert_eq(checks.val, 2)
       assert_eq(entries.val, 0)
       let record = journal.require(dispatch).unwrap()
@@ -165,11 +249,22 @@ fn retained_compute_through_runtime(
       // The factory never acquired this borrow. Runtime cleanup does not
       // silently return the caller's independent receiver responsibility.
       assert_true(@transfer_client.destination_material_use_available(material))
-      assert_eq(destination_journal.destination_capacity_usage().unwrap().reserved_bytes, destination_bytes)
-      @transfer_client.release_destination_material_use(material).unwrap() |> ignore
-      assert_true(@transfer_client.reclaim_durable_destination_material(cleanup_owner).unwrap())
-      assert_false(@transfer_client.reclaim_durable_destination_material(cleanup_owner).unwrap())
-      assert_eq(destination_journal.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+      assert_eq(
+        destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+        destination_bytes,
+      )
+      @transfer_client.release_destination_material_use(material).unwrap()
+      |> ignore
+      assert_true(
+        @transfer_client.reclaim_durable_destination_material(cleanup_owner).unwrap(),
+      )
+      assert_false(
+        @transfer_client.reclaim_durable_destination_material(cleanup_owner).unwrap(),
+      )
+      assert_eq(
+        destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+        0L,
+      )
       let usage = @site.site_status(site)
       for index in [2, 4, 6, 7, 8] {
         assert_eq(usage[index], retained_site_usage[index])
@@ -178,23 +273,43 @@ fn retained_compute_through_runtime(
       assert_true(bundles.close().unwrap())
       return
     }
-    let executed = match @resident.execute_resident_retained_attempt(
-      journal, execution, admission, configuration, restore, material, codec,
-      retained_compute_input_limits(), current,
-      @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
-      "retained-consumer-holder", () => "2026-10-05T00:00:00.000Z", observe,
-    ) {
+    let executed = match
+      @resident.execute_resident_retained_attempt(
+        journal,
+        execution,
+        admission,
+        configuration,
+        restore,
+        material,
+        codec,
+        retained_compute_input_limits(),
+        current,
+        @remote.dispatch_request_attempt_identity(dispatch).unwrap(),
+        "retained-consumer-holder",
+        () => "2026-10-05T00:00:00.000Z",
+        observe,
+      ) {
       Ok(value) => value
-      Err(failure) => match failure.issue {
-        Host(Runtime(Physical(code))) => abort("resident consumer physical failure: " + code)
-        Input(_) => abort("resident consumer input refused")
-        Compute(RetainedInput(ForeignConsumer)) => abort("resident consumer retained input belongs to another consumer")
-        Compute(RetainedInput(ForeignCapture)) => abort("resident consumer retained capture differs from rebuilt materials")
-        Compute(RetainedInput(Input(_))) => abort("resident consumer current retained input refused")
-        Compute(Source(ForeignInput)) => abort("resident consumer configured Source differs")
-        Compute(_) => abort("resident consumer executor refused")
-        _ => abort("resident consumer failed before completion")
-      }
+      Err(failure) =>
+        match failure.issue {
+          Host(Runtime(Physical(code))) =>
+            abort("resident consumer physical failure: " + code)
+          Input(_) => abort("resident consumer input refused")
+          Compute(RetainedInput(ForeignConsumer)) =>
+            abort(
+              "resident consumer retained input belongs to another consumer",
+            )
+          Compute(RetainedInput(ForeignCapture)) =>
+            abort(
+              "resident consumer retained capture differs from rebuilt materials",
+            )
+          Compute(RetainedInput(Input(_))) =>
+            abort("resident consumer current retained input refused")
+          Compute(Source(ForeignInput)) =>
+            abort("resident consumer configured Source differs")
+          Compute(_) => abort("resident consumer executor refused")
+          _ => abort("resident consumer failed before completion")
+        }
     }
     assert_true(executed.result_definition_cid is Some(_))
     (executed.runtime, executed.completion)

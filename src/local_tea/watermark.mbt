@@ -19,7 +19,7 @@ priv struct WatermarkState {
   source : WatermarkSource
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
-  time_name : String
+  time_name : @schema.FieldName
   timestamp : Bool
   watermark : Double
   drops_late : Bool
@@ -29,6 +29,7 @@ priv struct WatermarkState {
   mut phase : WatermarkPhase
   mut record : Int
   mut field : Int
+  mut name_offset : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut time : @value.CheckedValue?
   mut append : @records.RecordAppend?
@@ -133,12 +134,13 @@ fn begin_record(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
     Some(output) => @records.output_workspace_slots(output)
     None => return Err(InvalidKernel)
   }
-  if field_count > 2147483643 ||
+  if field_count > 2147483642 ||
     current > state.limits.max_workspace_slots ||
-    field_count + 3 > state.limits.max_workspace_slots - current {
+    field_count + 4 > state.limits.max_workspace_slots - current {
     return Err(WorkspaceLimit)
   }
   state.field = 0
+  state.name_offset = 0
   state.fields = []
   state.time = None
   state.phase = ReadFields
@@ -147,17 +149,23 @@ fn begin_record(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
 
 ///|
 fn read_field(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
-  guard watermark_source_field(state.source, state.record, state.field)
-    is Some((name, checked)) else {
-    return Err(InvalidRecord(state.record))
+  if state.fields.length() == state.field {
+    guard watermark_source_field(state.source, state.record, state.field)
+      is Some(value) else {
+      return Err(InvalidRecord(state.record))
+    }
+    state.fields.push(value)
   }
-  if @schema.reference_name(name) == state.time_name {
+  let (name, checked) = state.fields[state.field]
+  let (equal, next) = event_name_equal(name, state.time_name, state.name_offset)
+  state.name_offset = next
+  guard equal is Some(equal) else { return Ok(()) }
+  if equal {
     if state.time is Some(_) {
       return Err(InvalidRecord(state.record))
     }
     state.time = Some(checked)
   }
-  state.fields.push((name, checked))
   state.field += 1
   Ok(())
 }
@@ -184,7 +192,7 @@ fn classify_record(state : WatermarkState) -> Result[Bool, WatermarkIssue] {
       state.fields.length() + 3,
       1,
       state.limits.max_value_depth,
-      state.fields.length() + 4,
+      state.fields.length() + 5,
     )
     is Some(needed) &&
     current <= state.limits.max_workspace_slots &&
@@ -219,7 +227,7 @@ fn commit_record(state : WatermarkState) -> Result[Unit, WatermarkIssue] {
     @records.start_record_append(
       output,
       state.fields,
-      external_workspace_slots=state.fields.length() + 1,
+      external_workspace_slots=state.fields.length() + 2,
     ) {
     Ok(append) => {
       state.append = Some(append)
@@ -333,6 +341,7 @@ fn cleanup_state(state : WatermarkState) -> Bool {
   }
   state.fields = []
   state.time = None
+  state.name_offset = 0
   true
 }
 
@@ -355,7 +364,7 @@ fn start_watermark_source(
   guard input_carrier is @carrier.EventValue(events) else {
     return Err(InputUnavailable)
   }
-  if limits.max_value_nodes < 1 || limits.max_workspace_slots < 3 {
+  if limits.max_value_nodes < 1 || limits.max_workspace_slots < 4 {
     return Err(InvalidLimits)
   }
   if control_work_limit < 0 {
@@ -386,7 +395,7 @@ fn start_watermark_source(
     source,
     output: Some(output),
     limits,
-    time_name: @schema.reference_name(@carrier.event_time(events).name),
+    time_name: @carrier.event_time(events).name,
     timestamp: @carrier.event_clock_encoding(events) == @carrier.UtcTimestamp,
     watermark,
     drops_late,
@@ -396,6 +405,7 @@ fn start_watermark_source(
     phase: BeginRecord,
     record: 0,
     field: 0,
+    name_offset: 0,
     fields: [],
     time: None,
     append: None,

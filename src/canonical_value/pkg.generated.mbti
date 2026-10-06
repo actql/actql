@@ -8,6 +8,8 @@ import {
 // Values
 pub fn compare_utf16(String, String) -> Int
 
+pub fn compare_utf16_fragment(String, String, Int, Int) -> (Int?, Int, Int)
+
 pub fn normalize_nfc(String) -> Result[String, TextNormalizationError]
 
 pub fn normalize_nfc_lf(String) -> Result[String, TextNormalizationError]

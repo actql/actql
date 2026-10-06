@@ -8360,6 +8360,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
           "targets": [
@@ -8470,6 +8492,28 @@
         "symbol": "start_watermark"
       },
       "boundary_tests": [
+        {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
         {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
@@ -8611,6 +8655,28 @@
       },
       "boundary_tests": [
         {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
+        {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
           "targets": [
@@ -8719,6 +8785,13 @@
           ],
           "path": "adapters/host-node/public-events-record-retention.test.mjs",
           "fixture": "public retained session publishes and cancels inside record emission"
+        },
+        {
+          "role": "events_input_name_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained session publishes and cancels inside input-name matching"
         },
         {
           "role": "session_host_timer",
@@ -9135,6 +9208,28 @@
         "symbol": "start_dedupe"
       },
       "boundary_tests": [
+        {
+          "role": "events_input_name_limits",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input names use independent fragment work and workspace limits"
+        },
+        {
+          "role": "events_input_name_stop_cleanup",
+          "suite": "moon:local_tea",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/local_tea/name_matching_wbtest.mbt",
+          "fixture": "Events input-name cancellation retains pending fields until cleanup"
+        },
         {
           "role": "events_record_emission_limits",
           "suite": "moon:local_tea",
@@ -11088,6 +11183,41 @@
           ],
           "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
           "fixture": "node rows admit exact work and workspace and reclaim every private phase"
+        },
+        {
+          "role": "graph_projection_fragment_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_row_steps_wbtest.mbt",
+          "fixture": "Graph presence projection fragments long names and nested values under one row owner"
+        },
+        {
+          "role": "graph_projection_label_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_selection_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_order_comparison",
+          "suite": "moon:bounded_tuple_sort",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/bounded_tuple_sort/comparison_steps_wbtest.mbt",
+          "fixture": "tuple comparison yields within long prefixes and many equal components"
+        },
+        {
+          "role": "graph_projection_presence_charge",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_presence_output_steps_wbtest.mbt",
+          "fixture": "presence row cursor yields inside nested cells and charges immutable sharing"
         }
       ],
       "environment_tests": [
@@ -11099,6 +11229,13 @@
           ],
           "path": "scripts/property-graph-surface-checker.test.mjs",
           "fixture": "node_rows Host in-flight cancellation reclaims private Relation without publishing"
+        },
+        {
+          "role": "graph_projection_public_store",
+          "suite": "node:property_graph_public_host",
+          "targets": ["node"],
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "fixture": "presence selection sort and take survives Relation Store and public Named Results through local"
         }
       ],
       "path_assurance": {
@@ -11121,7 +11258,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
+      "notes": "Stored and viewed Graph wrappers share stepped row matching, admission, charging and reserved label output. Definition/label selection retains each candidate and UTF-16 offset; the common tuple sorter retains component and character offsets. Production ordering-key getters reuse retained tokens rather than re-encoding identity. Independent label-selection and tuple-comparison fixtures cover exact work, workspace, quantum invariance and unfinished cleanup; public Local/real Store evidence remains separate from private-frame cancellation. Presence remains distinct from NULL. JSON object-name admission and other algorithms outside this owner remain residual work. See docs/reviews/2026-10-06-local-graph-selection-order.md."
     },
     {
       "inventory": "families",
@@ -11151,6 +11288,41 @@
           ],
           "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
           "fixture": "edge rows admit exact work and workspace and reclaim every private phase"
+        },
+        {
+          "role": "graph_projection_fragment_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_row_steps_wbtest.mbt",
+          "fixture": "Graph presence projection fragments long names and nested values under one row owner"
+        },
+        {
+          "role": "graph_projection_label_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_selection_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_order_comparison",
+          "suite": "moon:bounded_tuple_sort",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/bounded_tuple_sort/comparison_steps_wbtest.mbt",
+          "fixture": "tuple comparison yields within long prefixes and many equal components"
+        },
+        {
+          "role": "graph_projection_presence_charge",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_presence_output_steps_wbtest.mbt",
+          "fixture": "presence row cursor yields inside nested cells and charges immutable sharing"
         }
       ],
       "environment_tests": [
@@ -11162,6 +11334,13 @@
           ],
           "path": "scripts/property-graph-surface-checker.test.mjs",
           "fixture": "edge_rows Host in-flight cancellation reclaims private Relation without publishing"
+        },
+        {
+          "role": "graph_projection_public_store",
+          "suite": "node:property_graph_public_host",
+          "targets": ["node"],
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "fixture": "presence selection sort and take survives Relation Store and public Named Results through local"
         }
       ],
       "path_assurance": {
@@ -11184,7 +11363,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
+      "notes": "Stored and viewed Graph wrappers share stepped row matching, admission, charging and reserved label output. Definition/label selection retains each candidate and UTF-16 offset; the common tuple sorter retains component and character offsets. Production ordering-key getters reuse retained tokens rather than re-encoding identity. Independent label-selection and tuple-comparison fixtures cover exact work, workspace, quantum invariance and unfinished cleanup; public Local/real Store evidence remains separate from private-frame cancellation. Presence remains distinct from NULL. JSON object-name admission and other algorithms outside this owner remain residual work. See docs/reviews/2026-10-06-local-graph-selection-order.md."
     },
     {
       "inventory": "families",
@@ -11199,6 +11378,7 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_rows_to_events"
       },
+      "notes": "start_rows_to_records owns the shared stepped value recheck and RecordAppend. Large-value limits and cancellation are paired with independent total polls, so an atomic recheck drain cannot preserve the claimed cancellation coordinates. The ordinary installed Events case exercises this owner with retained Store; it does not establish all Bridge paths or a packed campaign.",
       "boundary_tests": [
         {
           "role": "to_events_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -11206,6 +11386,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "rows to Events admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [
@@ -11215,6 +11409,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "to-events-bridge"
+        },
+        {
+          "role": "bridge_record_value_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained Events bridge stops during unused Array recheck"
         }
       ],
       "path_assurance": {
@@ -11251,7 +11452,29 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_events_to_rows"
       },
+      "notes": "Required Events record rows use fragmented reference matching and the shared AdmittedOutputRow cursor. Large Text/Array and long-name fixtures independently fix cumulative control, logical output and workspace limits. Conditional Graph rows now use the same row owner with explicit presence, not a separate atomic append. Graph label construction and selector scans remain distinct residual boundaries.",
       "boundary_tests": [
+        {
+          "role": "record_projection_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection preserves logical limits across stepped values"
+        },
+        {
+          "role": "record_projection_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection keeps input through stopped recheck and measurement"
+        },
+        {
+          "role": "record_projection_name_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection fragments name matching without hashing pending fields"
+        },
         {
           "role": "events_projection_value_width_and_kernel_cancel_cleanup",
           "suite": "moon:query_integration",
@@ -11261,6 +11484,13 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "record_projection_public_store",
+          "suite": "node:embedded_events_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-events-record-retention.test.mjs",
+          "fixture": "public retained Events projection stops inside unused Array admission"
+        },
         {
           "role": "events_projection_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
@@ -11303,6 +11533,7 @@
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_rows_to_vectors"
       },
+      "notes": "The Vectors entry delegates to the same start_rows_to_records, advance_rows_to_events and cleanup_rows_to_events owner. Its own two-component vector fixture fixes logical work 28, physical work 70 and workspace 65. The large Text/Array evidence is reused only for that shared input/append discipline, not as an independent public Vectors large-value acceptance claim.",
       "boundary_tests": [
         {
           "role": "to_vectors_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
@@ -11310,6 +11541,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
           "fixture": "rows to Vectors admits exact work and workspace and reclaims partial output"
+        },
+        {
+          "role": "bridge_record_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events keeps logical limits while yielding inside large values"
+        },
+        {
+          "role": "bridge_record_value_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/rows_events_bridge_steps_wbtest.mbt",
+          "fixture": "rows to Events retains input through stopped recheck and append"
         }
       ],
       "environment_tests": [
@@ -11355,7 +11600,29 @@
         "path": "src/local_bridge/vectors.mbt",
         "symbol": "start_vectors_to_rows"
       },
+      "notes": "Vectors projection delegates to start_records_to_rows and the same EventsToRowsExecution advance/cleanup owner. Shared large Text/Array and name fixtures cover this input/row discipline; the Vectors-specific two-component fixture retains its own result and logical limits. This is not independent public large-value Vectors acceptance.",
       "boundary_tests": [
+        {
+          "role": "record_projection_value_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection preserves logical limits across stepped values"
+        },
+        {
+          "role": "record_projection_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection keeps input through stopped recheck and measurement"
+        },
+        {
+          "role": "record_projection_name_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/records_rows_bridge_steps_wbtest.mbt",
+          "fixture": "record projection fragments name matching without hashing pending fields"
+        },
         {
           "role": "vectors_projection_value_width_and_kernel_cancel_cleanup",
           "suite": "moon:query_integration",

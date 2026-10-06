@@ -63,6 +63,7 @@ priv struct SessionState {
   mut record : Int
   mut field : Int
   mut term : Int
+  mut name_offset : Int
   mut current : (@schema.FieldName, @value.CheckedValue)?
   mut cells : Array[@value.CheckedValue?]
   mut times : Array[Int64]
@@ -349,6 +350,7 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
       }
       state.current = Some(value)
       state.term = 0
+      state.name_offset = 0
       state.phase = LoadTerm
       Ok(())
     }
@@ -357,7 +359,10 @@ fn session_load_step(state : SessionState) -> Result[Unit, SessionIssue] {
         session_term_name(state, state.term) is Some(expected) else {
         return Err(InvalidSessionRecord(state.record))
       }
-      if @schema.reference_name(name) == @schema.reference_name(expected) {
+      let (equal, next) = event_name_equal(name, expected, state.name_offset)
+      state.name_offset = next
+      guard equal is Some(equal) else { return Ok(()) }
+      if equal {
         state.cells[state.record * state.terms + state.term] = Some(value)
       }
       state.term += 1
@@ -932,6 +937,7 @@ fn cleanup_session_state(state : SessionState) -> Bool {
     state.output = None
   }
   state.current = None
+  state.name_offset = 0
   state.cells = []
   state.times = []
   state.source_order = []
@@ -988,7 +994,8 @@ fn start_session_with_source(
   }
   guard records <= limits.max_input_records &&
     records <= limits.max_records &&
-    session_scratch(records, terms) is Some(scratch) &&
+    session_scratch(records, terms) is Some(base_scratch) &&
+    session_checked_add(base_scratch, 1) is Some(scratch) &&
     scratch <= limits.max_workspace_slots else {
     return Err(SessionWorkspaceLimit)
   }
@@ -1046,6 +1053,7 @@ fn start_session_with_source(
     record: 0,
     field: 0,
     term: 0,
+    name_offset: 0,
     current: None,
     cells: [],
     times: [],

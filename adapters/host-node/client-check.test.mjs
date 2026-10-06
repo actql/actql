@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash, createHmac, generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -1521,7 +1521,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.5'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.6'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2291,7 +2291,7 @@ for (const entrance of ['local', 'http']) {
       ["SELECT '\\q' AS x", 'invalid_escape', 9, {line: 0, character: 9}],
       ["SELECT '\\uD800' AS x", 'invalid_scalar', 10, {line: 0, character: 10}],
       ['SELECT `` AS x', 'empty_identifier', 7, {line: 0, character: 7}],
-      ['SELECT 1 /* comment', 'unterminated_comment', 9, {line: 0, character: 9}],
+      ['SELECT 1 /* comment', 'unterminated_comment', 9, {line: 0, character: 9}, 19],
       ['SELECT 1e+', 'invalid_number', 7, {line: 0, character: 7}],
       ['SELECT @', 'invalid_parameter', 7, {line: 0, character: 7}],
       ["/*😀é*/\r\nSELECT '\\q' AS x", 'invalid_escape', 21, {line: 1, character: 9}],
@@ -2299,7 +2299,7 @@ for (const entrance of ['local', 'http']) {
       ["\ufeffSELECT '\\q' AS x", 'invalid_escape', 12, {line: 0, character: 10}],
     ];
     for (const format of ['sql', 'aql-text']) {
-      for (const [text, issue, byte, position] of cases) {
+      for (const [text, issue, byte, position, fixAt] of cases) {
         let originalOutcome;
         for (const client of clients) {
           const outcome = await client.check(text, {format});
@@ -2311,7 +2311,11 @@ for (const entrance of ['local', 'http']) {
           assert.equal(input.text, text);
           assert.deepEqual(outcome.report.reasons, [{code: 'query_lexical_invalid',
             facts: {issue}, location: {document_id: 'source', revision: input.revision,
-              kind: 'text', start_byte: byte, end_byte: byte, precision: 'exact'}}],
+              kind: 'text', start_byte: byte, end_byte: byte, precision: 'exact'},
+            ...(fixAt === undefined ? {} : {fixes: [{code: 'close_block_comment',
+              applicability: 'requires_review', risk: 'syntax_structure',
+              target: {document_id: 'source', revision: input.revision},
+              edits: [{start_byte: fixAt, end_byte: fixAt, replacement: '*/'}]}]})}],
           '[check-mutation:lexical-reason]');
           const reason = outcome.report.reasons[0];
           const range = resolveCheckTextRange(outcome, reason.location);
@@ -3988,6 +3992,198 @@ for (const entrance of ['local', 'http']) {
     assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
     reopened.close();
   });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check protocol failures retain original input without verdict or retry authority`, async t => {
+    let alter = value => value;
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => alter(value)});
+    const text = '/*e\u0301😀*/\r\nSELECT \'\\q\' AS label';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-submitted-protocol-value'};
+    for (const [mutation, kind, problem] of [
+      [value => ({...value, outcome: 'private-future-outcome'}), 'uninterpretable', 'unknown_outcome'],
+      [value => ({...value, report: {...value.report,
+        reasons: [{code: 'query_lexical_invalid', facts: {issue: 42}}]}}),
+      'protocol_failure', 'malformed_response'],
+      [value => ({...value, outcome_schema_cid: `sha256:${'0'.repeat(64)}`}),
+        'protocol_failure', 'contract_mismatch'],
+      [value => ({...value, reason_schema_cid: undefined}), 'protocol_failure', 'malformed_response'],
+      [value => ({...value, report: {...value.report, inputs: value.report.inputs.map(input =>
+        input.document_id === 'source' ? {...input, byte_length: input.byte_length + 1} : input)}}),
+      'protocol_failure', 'malformed_response'],
+    ]) {
+      alter = mutation;
+      const before = observations.analysis;
+      let failure;
+      try { await client.check(text, {format: 'sql', parameterDeclarations, parameters}); }
+      catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome', '[check-mutation:protocol-failure-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual(view && {kind: view.kind, problem: view.problem}, {kind, problem},
+        '[check-mutation:protocol-failure-public]');
+      assert.deepEqual(sdk.getCheckFailureInput(failure), {text, format: 'sql', parameterDeclarations, parameters},
+        '[check-mutation:protocol-failure-public-input]');
+      assert.equal(observations.analysis, before + 1);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'correlationRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(resolveCheckLocation(failure, observations.wireOutcomes.at(-1).report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      assert.equal(sdk.explainCheckFailure(new Error('InvalidHostCheckOutcome')), undefined);
+      assert.equal(JSON.stringify({failure, view}).includes('private-future-outcome'), false);
+      assert.equal(JSON.stringify({failure, view}).includes('private-submitted-protocol-value'), false);
+      assert.equal(sdk.explainCheckFailure(failure, {locale: 'ja'}).kind, kind);
+    }
+    // A valid unknown reason remains a rejected-source observation with a safe
+    // unknown explanation, distinct from malformed known reason facts.
+    alter = value => ({...value, report: {...value.report, reasons: [{code: 'future_reason'}]}});
+    const outcome = await client.check(text, {format: 'sql', parameterDeclarations, parameters});
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'unknown');
+    assert.equal(sdk.explainCheckFailure(outcome), undefined);
+    assert.equal(observations.analysis, 6);
+  });
+}
+
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: lexical fixes retain original EOF edits and require review`, async t => {
+    const client = await open(t, configurations.absent);
+    // Original byte intervals and edited texts are independently authored.
+    for (const [text, at, comment, changed] of [
+      ['SELECT 1 AS n /*', 16, 14, 'SELECT 1 AS n /**/'],
+      ['/*😀*/\r\nSELECT 1 AS n /*', 26, 24, '/*😀*/\r\nSELECT 1 AS n /**/'],
+      ['\ufeffSELECT 1 AS n /*', 19, 17, '\ufeffSELECT 1 AS n /**/'],
+      ['SELECT 1 AS n /* e\u0301😀\r\n', 26, 14, 'SELECT 1 AS n /* e\u0301😀\r\n*/'],
+    ]) {
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      const observation = await session.check({format: 'sql'});
+      const outcome = observation.outcome;
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const input = sdk.getCheckInput(outcome, 'source');
+      assert.equal(input.text, text);
+      const reason = outcome.report.reasons[0];
+      assert.deepEqual(reason, {code: 'query_lexical_invalid',
+        facts: {issue: 'unterminated_comment'},
+        location: {kind: 'text', document_id: 'source', revision: input.revision,
+          start_byte: comment, end_byte: comment, precision: 'exact'},
+        fixes: [{code: 'close_block_comment', applicability: 'requires_review',
+          risk: 'syntax_structure', target: {document_id: 'source', revision: input.revision},
+          edits: [{start_byte: at, end_byte: at, replacement: '*/'}]}]},
+      '[check-mutation:lexical-fix-original]');
+      assert.equal(new TextEncoder().encode(text).length, at);
+      assert.equal(sdk.getCheckFixes(structuredClone(outcome)), undefined,
+        '[check-mutation:fix-copy]');
+      let refusal;
+      try { await session.applyFixes(observation, sdk.getCheckFixes(outcome),
+        {version: 2, reviewed: false}); } catch (error) { refusal = error.code; }
+      assert.equal(refusal, 'CheckFixReviewRequired', '[check-mutation:fix-review]');
+      const applied = await session.applyFixes(observation, sdk.getCheckFixes(outcome),
+        {version: 2, reviewed: true});
+      const corrected = applied.outcome;
+      assert.equal(sdk.getCheckInput(corrected, 'source').text, changed,
+        '[check-mutation:fix-atomic-text]');
+      assert.equal(sdk.getCheckInput(outcome, 'source').text, text);
+      assert.equal(session.resolveTextRange(observation, reason.location), undefined);
+      assert.equal(corrected.outcome, 'completed');
+      assert.equal(corrected.report.verdict, 'verified');
+      assert.deepEqual(corrected.report.reasons, []);
+      session.close();
+    }
+    client.assertNoExecution();
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  for (const lostAt of ['before', 'after_candidate']) {
+    test(`${entrance}: lexical fixes reject connection permission loss ${lostAt}`, async t => {
+      let allowed = true, checks = 0;
+      const client = await contextClient(t, entrance, absentEnvironment, {
+        connectionAllowed: () => allowed,
+        mutateCheckReply: outcome => {
+          if (++checks === 3 && lostAt === 'after_candidate') allowed = false;
+          return outcome;
+        },
+      });
+      const session = sdk.createCheckDocumentSession(client, {text: 'SELECT 1 AS n /*', version: 1});
+      const observation = await session.check({format: 'sql'});
+      if (lostAt === 'before') allowed = false;
+      let refusal;
+      try {await session.applyFixes(observation, sdk.getCheckFixes(observation.outcome),
+        {version: 2, reviewed: true});} catch (error) {refusal = error.code;}
+      assert.equal(refusal, 'CheckFixContextChanged', '[check-mutation:fix-public-permission]');
+      assert.ok(session.resolveTextRange(observation, observation.outcome.report.reasons[0].location));
+      allowed = true;
+      const unchanged = await session.check({format: 'sql'});
+      assert.equal(sdk.getCheckInput(unchanged.outcome, 'source').text, 'SELECT 1 AS n /*');
+      assert.equal(unchanged.version, 1);
+      session.close();
+    });
+  }
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: lexical fix replies reject preceding pins and malformed proposals`, async t => {
+    for (const mutate of [
+      outcome => {
+        outcome.reason_schema_cid = 'sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6';
+        outcome.outcome_schema_cid = 'sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2';
+      },
+      outcome => {outcome.report.reasons[0].fixes[0].edits[0].start_byte = 15;},
+      outcome => {outcome.report.reasons[0].fixes[0].target.revision = 'rev:' + '0'.repeat(64);},
+      outcome => {outcome.report.reasons[0].location.precision = 'approximate';},
+    ]) {
+      const client = await contextClient(t, entrance, absentEnvironment, {
+        mutateCheckTransportReply: outcome => {mutate(outcome); return outcome;},
+      });
+      let refusal;
+      try {await client.check('SELECT 1 AS n /*', {format: 'sql'});} catch (error) {refusal = error.code;}
+      assert.equal(refusal, 'InvalidHostCheckOutcome', '[check-mutation:fix-reply-validation]');
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  for (const [property, transition] of [
+    ['document_id', 'close'], ['kind', 'edit'], ['start_byte', 'edit'],
+    ['end_byte', 'edit'], ['document_id', 'newer-check'],
+  ]) {
+    test(`${entrance}: session range rejects ${transition} from a ${property} accessor`, async t => {
+      const client = await contextClient(t, entrance, absentEnvironment);
+      const text = '\ufeff/*😀*/SELECT (';
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      t.after(() => session.close());
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: 15}, end: {line: 0, character: 15}});
+      let changed = false, newer;
+      const changingLocation = {...location};
+      Object.defineProperty(changingLocation, property, {enumerable: true, get() {
+        if (!changed) {
+          changed = true;
+          if (transition === 'edit') session.update('SELECT 1 AS n', 2);
+          else if (transition === 'close') session.close();
+          else newer = session.check({format: 'sql'});
+        }
+        return location[property];
+      }});
+      const resolved = session.resolveTextRange(observation, changingLocation);
+      if (newer) await newer;
+      assert.equal(changed, true);
+      assert.equal(session.resolveTextRange(observation, location), undefined);
+      assert.equal(getCheckInput(observation.outcome, 'source').text, text);
+      assert.equal(observation.outcome.report.verdict, 'invalid');
+      assert.equal(resolved, undefined, '[check-mutation:document-public-range-callback]');
+    });
+  }
 }
 
 // Independent context oracle: literal public fixture selections and registered

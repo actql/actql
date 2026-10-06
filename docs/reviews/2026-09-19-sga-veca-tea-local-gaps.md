@@ -5974,6 +5974,131 @@ Local execution. Aggregate intermediate bytes, whole-Run physical accounting
 and unexecuted full-target/packed/CI campaigns remain distinct. See the
 [Events emission evidence](2026-10-06-local-events-record-emission.md).
 
+### Events input-name matching
+
+The four Events operators now borrow FieldNames and resolve them with the
+existing 64-unit reference comparator. Positions survive yields, fields
+and terms do not advance early, and one cursor slot remains reserved in
+caller scratch during emission. Short-name control work is unchanged;
+the preceding emission workspace totals each increase by one slot.
+
+Independent 513-unit clock fixtures fix control/workspace 101/81, 101/80,
+107/71 and 138/91 with exact and typed one-short checks across quanta.
+The ordinary retained Host session case publishes 31 expected rows for
+three named Results and two consumers, reuses requests without dispatch,
+and delivers cancellation inside record seven's clock comparison before
+any emission. The resource gate rejects missing per-operation evidence.
+
+The larger 61-row/513-unit public shape is now pinned as aggregate
+Relation output-text refusal: its independently derived 36155 bytes
+exceed the installed 10000-byte allowance. Common-owner exact/one-short
+tests assert CaptureLimit; the public refusal has no Results, reclaims
+snapshots and reuses its request without Compute or dispatch. The prior
+failed receipts remain; no capacity limit was increased. This is refusal
+evidence, not successful execution coverage. Key/Text comparisons, session
+ID construction, constructor/Bridge append and whole-Run physical accounting
+remain separate.
+This is not full retained-path completion or full-target/packed/CI evidence.
+See the [Events name evidence](2026-10-06-local-events-name-matching.md).
+
+### Relation-to-Events/Vectors value recheck and emission
+
+The shared rows-to-record Bridge now retains the existing typed value
+recheck and RecordAppend cursors across advances. Cell traversal and record
+emission no longer drain a whole nested value in one nominal Bridge poll.
+Exact operation binding, input availability and completion identity remain;
+workspace includes pending fields, continuation handles and retained rows.
+Stop retains those owners until confirmed stop and once-only cleanup.
+
+Independent large Text/Array boundaries fix physical work 824, logical
+construction 149, retained bytes 8520 and workspace 71. Quanta 1, 7 and 256
+preserve results and charges; one-short failures remain typed. The Vectors
+entry uses the same owner and its own vector-specific boundary fixture.
+Ordinary Host evidence publishes three explicit Results through real Store
+and delivers cancellation within the Bridge's unused Array recheck.
+
+This closes that shared input/emission component, not inverse projection
+name lookup/output append, constructor preparation, reference/JSON-key
+leaf scans, Events comparisons/session identity or whole-Run accounting.
+Inventory totals do not increase. Full-target, packed and CI acceptance
+remain unverified for this component. See the
+[Bridge evidence](2026-10-06-local-rows-records-bridge.md).
+
+### Events/Vectors-to-Relation required-record projection
+
+The inverse record Bridge initializes pending cells and matches borrowed
+FieldNames in charged fragments, then uses the existing AdmittedOutputRow
+cursor for value recheck and logical output measurement. Its input and
+unfinished output remain under existing owners until stop and once-only
+cleanup. Vectors delegates to the same record projection owner.
+
+Independent large Text/Array limits fix control 820, logical work 8362 and
+workspace 24; long-name limits fix 60, 544 and 23. Quanta preserve results
+and charges. Ordinary public Host evidence reads three explicit Named Results,
+reuses requests without Compute and delivers cancellation inside the unused
+Array recheck of the normally selected projection task, using real Store.
+The gate requires value/name/stop evidence and actual shared cursor connections.
+
+Graph presence caller work-boundary failures also reproduce on unchanged
+parent production code and remain known failures, not passing evidence.
+Graph case-fold matching and conditional/required Graph output append are
+not changed here. Common value leaves, constructor preparation, Events
+comparison/session identity, intermediate aggregate bytes and whole-Run
+accounting remain separate. Full-target, packed and CI completion are not
+claimed. See the [projection evidence](2026-10-06-local-records-row-projection.md).
+
+The four parent Graph projection work failures above are now explained by
+four previously uncounted JSON data-Text polls per full typed identity.
+Independent identity evidence fixes recheck work 24, nodes eight and Text
+bytes 110; old projection control boundaries are 44/43 for nodes and
+105/104 for edges. Exact/one-short and every-phase cancellation passed in
+the focused eight-case candidate selection. This is a work-premise repair,
+not stepped Graph materialization or final integration evidence. See the
+[Graph projection record](2026-10-06-local-graph-projection-steps.md).
+
+Graph projection now shares the stepped AdmittedOutputRow owner for both
+required and conditional output. Indexed cell initialization, fragmented
+ASCII-folded name matching, value recheck and logical output measurement
+yield independently. Presence remains distinct from NULL in retained bytes
+and reread. Independent small/large exact and one-short limits, every private
+phase stop, and focused public Host/real Store evidence are recorded in the
+same [Graph projection record](2026-10-06-local-graph-projection-steps.md).
+This supersedes the atomic Graph append residual above, not the synchronous
+label construction, selector, ordering-key or JSON object-name boundaries.
+The route checker requires the new evidence and shared cursor connections;
+removing them or restoring atomic output fails its mutation checks.
+
+Graph label output now also uses the existing Text recheck and private
+ArrayBuilder. Each label yields during Unicode/byte validation; finalization
+transfers the array without copying it. Provisional label slots remain
+reserved until row commit, including overlap with shared row admission and
+measurement. Exact/one-short limits, long/wide labels, quantum invariance and
+stop/cleanup pass for node and edge projection. Existing viewed wrappers and
+public Host/real Store cases remain covered. The resource gate requires these
+connections and operation-bound evidence.
+
+This supersedes label construction/measurement and final label-array copy
+as residuals, not selectors, identity ordering keys, JSON object-name scans,
+constructor preparation, Events comparisons or whole-Run accounting. No full
+Local completion or pristine packed campaign is claimed. See the
+[label-output record](2026-10-06-local-graph-label-output.md).
+
+Graph row selection now keeps each definition/label candidate and character
+offset across charged fragments, preserving raw definition equality and
+ASCII-folded label identity. Shared tuple sorting also retains component and
+character offsets, so long prefixes and wide equal keys no longer hide a full
+comparison inside one merge poll. Snapshot sort preparation uses the existing
+deferred shape-admission path. Real sorter consumers and Graph selection
+boundaries pass focused JS checks, and public Local/real Store cases remain
+covered; see the [selection/order record](2026-10-06-local-graph-selection-order.md).
+
+Earlier ordering-key acquisition residual wording is corrected: current
+production Storage and its managed view reuse indexed retained tokens rather
+than re-encoding identity. The unbounded part was tuple comparison, now split.
+This does not certify arbitrary custom view callbacks. Runtime JSON object-name
+admission, constructor preparation, Events comparison, intermediate aggregate
+bytes and whole-Run accounting remain. Full Local closure is not asserted.
+
 ### Nearest input role-name matching
 
 Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16

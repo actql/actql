@@ -481,6 +481,7 @@ export function validateResourceAccounting({
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
         'moon:relation_schema': 'relation_schema',
+        'moon:bounded_tuple_sort': 'bounded_tuple_sort',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
@@ -899,10 +900,14 @@ export function validateResourceAccounting({
         .includes(route.operation);
     if (steppedEventRecord) {
       for (const role of ['events_record_emission_limits',
-        'events_record_emission_stop_cleanup']) {
+        'events_record_emission_stop_cleanup', 'events_input_name_limits',
+        'events_input_name_stop_cleanup']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       const kernel = fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8');
+      if (!kernel.includes('event_name_equal(') || !kernel.includes('name_offset')) {
+        fail(`${label}: stepped input-name custody is missing`);
+      }
       for (const marker of ['@records.start_record_append(',
         '@records.advance_record_append(', '@records.cleanup_record_append(',
         'external_workspace_slots=']) {
@@ -928,6 +933,8 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
         'node:property_graph_surface_checker':
           'scripts/property-graph-surface-checker.test.mjs',
+        'node:property_graph_public_host':
+          'scripts/property-graph-public-host.test.mjs',
         'node:embedded_distinct_values':
           'adapters/host-node/public-distinct-value-retention.test.mjs',
         'node:embedded_expression_comparison':
@@ -951,6 +958,11 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:property_graph_public_host' &&
+        !fs.readFileSync(path.join(root, 'package.json'), 'utf8')
+          .includes('scripts/property-graph-public-host.test.mjs')) {
+        fail(`${label}: Graph projection public fixture is not suite-connected`);
+      }
       if (item.suite === 'node:embedded_vector_records' &&
           !fs.readFileSync(path.join(root,
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
@@ -1006,6 +1018,10 @@ export function validateResourceAccounting({
     if (steppedEventRecord &&
         !environmentRoles.has('events_record_emission_public_store')) {
       fail(`${label}: Events record public Store fixture is missing`);
+    }
+    if (route.family === 'TEA' && route.operation === 'session' &&
+        !environmentRoles.has('events_input_name_public_store')) {
+      fail(`${label}: Events input-name public Store fixture is missing`);
     }
     if (route.family === 'RelA' && route.operation === 'join') {
       for (const role of [
@@ -2309,9 +2325,154 @@ export function validateResourceAccounting({
         fail(`${label}: delivered Bridge cancellation assurance is missing`);
       }
     }
+    if (route.family === 'Bridge' &&
+      ['to_events', 'to_vectors'].includes(route.operation)) {
+      for (const role of ['bridge_record_value_limits',
+        'bridge_record_value_stop_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root,
+        'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn rows_to_events_step(');
+      const cleanupStart = bridge.indexOf('fn cleanup_rows_to_events_state(');
+      const ownerStart = bridge.indexOf('fn start_rows_to_records(');
+      const bridgeStep = stepStart >= 0 && cleanupStart > stepStart
+        ? bridge.slice(stepStart, cleanupStart) : '';
+      const bridgeCleanup = ownerStart > cleanupStart && cleanupStart >= 0
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      for (const marker of ['@value.start_recheck_runtime_text(',
+        '@value.start_recheck_runtime_value(', '@value.advance_recheck_runtime_value(',
+        '@records.start_record_append(', '@records.advance_record_append(',
+        'external_workspace_slots=']) {
+        if (!bridgeStep.includes(marker)) fail(`${label}: stepped Bridge custody is missing`);
+      }
+      for (const marker of ['@value.cancel_recheck_runtime_value(',
+        '@records.cleanup_record_append(']) {
+        if (!bridgeCleanup.includes(marker)) fail(`${label}: stepped Bridge custody is missing`);
+      }
+      if (bridgeStep.includes('@records.append_record(') ||
+        bridgeStep.includes('@execution.producer_read_checked_cell(')) {
+        fail(`${label}: Bridge value processing computes synchronously`);
+      }
+      if (route.operation === 'to_vectors' &&
+        !fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8')
+          .includes('start_rows_to_records(')) {
+        fail(`${label}: shared Bridge execution connection is missing`);
+      }
+      if (route.operation === 'to_events' &&
+        !environmentRoles.has('bridge_record_value_public_store')) {
+        fail(`${label}: Bridge value public Store fixture is missing`);
+      }
+    }
     if (route.family === 'Bridge' && route.operation === 'events' &&
       !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
       fail(`${label}: Events projection boundary fixture is missing`);
+    }
+    if (route.family === 'Bridge' &&
+      ['events', 'vectors'].includes(route.operation)) {
+      for (const role of ['record_projection_value_limits',
+        'record_projection_stop_cleanup', 'record_projection_name_limits']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root,
+        'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn events_to_rows_step(');
+      const issueStart = bridge.indexOf('fn relation_row_issue(');
+      const cleanupStart = bridge.indexOf('fn cleanup_events_to_rows_state(');
+      const ownerStart = bridge.indexOf('fn start_storage_to_rows(');
+      const projection = stepStart >= 0 && issueStart > stepStart
+        ? bridge.slice(stepStart, issueStart) : '';
+      const cleanup = cleanupStart >= 0 && ownerStart > cleanupStart
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      for (const marker of ['InitializeRecordCells =>', 'MatchRecordName =>',
+        '@schema.compare_reference_fragment(', 'state.record_cells[column]',
+        '@execution.start_admitted_output_row(',
+        '@execution.advance_admitted_output_row(']) {
+        if (!projection.includes(marker)) fail(`${label}: stepped record projection is missing`);
+      }
+      if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
+        !cleanup.includes('state.record_cells = []')) {
+        fail(`${label}: record projection cleanup custody is missing`);
+      }
+      if (route.operation === 'vectors' &&
+        !fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8')
+          .includes('start_records_to_rows(')) {
+        fail(`${label}: shared record projection connection is missing`);
+      }
+      if (route.operation === 'events' &&
+        !environmentRoles.has('record_projection_public_store')) {
+        fail(`${label}: record projection public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'Bridge' && ['node_rows', 'edge_rows'].includes(route.operation)) {
+      for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+        'graph_projection_label_limits', 'graph_projection_selection_limits',
+        'graph_projection_order_comparison']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('graph_projection_public_store')) {
+        fail(`${label}: Graph projection public Store fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root, 'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn events_to_rows_step(');
+      const issueStart = bridge.indexOf('fn relation_row_issue(');
+      const projection = stepStart >= 0 && issueStart > stepStart
+        ? bridge.slice(stepStart, issueStart) : '';
+      for (const marker of ['InitializeRecordCells =>',
+        '@carrier.compare_property_name_fragment(',
+        'state.record_cells[state.graph_column]',
+        '@execution.start_admitted_presence_output_row(',
+        '@execution.advance_admitted_output_row(']) {
+        if (!projection.includes(marker)) fail(`${label}: stepped Graph projection is missing`);
+      }
+      if (projection.includes('@execution.append_admitted_output_cells(') ||
+        projection.includes('@execution.admit_relation_row(') ||
+        projection.includes('@execution.append_admitted_output_presence(')) {
+        fail(`${label}: Graph projection output computes synchronously`);
+      }
+      const cleanupStart = bridge.indexOf('fn cleanup_events_to_rows_state(');
+      const ownerStart = bridge.indexOf('fn start_storage_to_rows(');
+      const cleanup = cleanupStart >= 0 && ownerStart > cleanupStart
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
+        !cleanup.includes('state.record_cells = []')) {
+        fail(`${label}: Graph projection cleanup custody is missing`);
+      }
+      const graph = fs.readFileSync(path.join(root, 'src/local_bridge/graph_rows.mbt'), 'utf8');
+      for (const marker of ['fn graph_definition_selected(',
+        'source.selection_name_offset = offset',
+        '@canonical.compare_utf16_fragment(', '@carrier.compare_property_name_fragment(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph selection is missing`);
+      }
+      if (graph.includes('@carrier.property_name_identity(')) {
+        fail(`${label}: Graph selection computes synchronously`);
+      }
+      const sorter = fs.readFileSync(path.join(root, 'src/bounded_tuple_sort/sort.mbt'), 'utf8');
+      if (!sorter.includes('@canonical.compare_utf16_fragment(') ||
+        !sorter.includes('value.comparison_component += 1') ||
+        !sorter.includes('value.comparison_offset = offset')) {
+        fail(`${label}: stepped Graph order comparison is missing`);
+      }
+      if (sorter.includes('compare_tuple(') || sorter.includes('@canonical.compare_utf16(')) {
+        fail(`${label}: Graph order comparison computes synchronously`);
+      }
+      for (const marker of ['count > source.label_workspace', 'source.label_reserved = count',
+        '@value.prepare_array_value(', '@value.start_recheck_runtime_text(',
+        '@value.advance_recheck_runtime_value(', '@value.append_array_item(',
+        '@value.finish_array_value(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph labels are missing`);
+      }
+      if (graph.includes('@value.text_value(') || graph.includes('@utf8.encode(') ||
+        graph.includes('@value.array_value(')) {
+        fail(`${label}: Graph labels compute synchronously`);
+      }
+      if (!projection.includes('source.label_reserved') ||
+        !projection.includes('source.label_reserved = 0') ||
+        !cleanup.includes('source.label_reserved = 0') ||
+        !cleanup.includes('@value.cancel_recheck_runtime_value(recheck)') ||
+        !cleanup.includes('@value.cancel_array_value(builder)')) {
+        fail(`${label}: Graph label cleanup custody is missing`);
+      }
     }
     if (route.family === 'Bridge' && route.operation === 'graph' &&
       (!boundaryRoles.has('graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup') ||

@@ -48,6 +48,186 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('record projections require value, name, stop and public Store evidence', () => {
+  for (const operation of ['events', 'vectors']) {
+    for (const role of ['record_projection_value_limits',
+      'record_projection_stop_cleanup', 'record_projection_name_limits']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'record_projection_public_store');
+  }), /Bridge events: record projection public Store fixture is missing/u);
+});
+
+test('Graph projections require fragment, presence and public Store evidence', () => {
+  for (const operation of ['node_rows', 'edge_rows']) {
+    for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+      'graph_projection_label_limits', 'graph_projection_selection_limits',
+      'graph_projection_order_comparison']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item => item.role !== 'graph_projection_public_store');
+    }), new RegExp(`Bridge ${operation}: Graph projection public Store fixture is missing`, 'u'));
+  }
+});
+
+test('Graph labels require staged Text, reserved arrays and cleanup connections', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'count > source.label_workspace', 'false', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', 'source.label_reserved = count', 'source.label_reserved = 0', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.start_recheck_runtime_text(', 'missing_text(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.advance_recheck_runtime_value(', 'missing_advance(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.finish_array_value(', '@value.array_value(', 'Graph labels compute synchronously'],
+    ['src/local_bridge/events.mbt', '@value.cancel_array_value(builder)', 'missing_cleanup(builder)', 'Graph label cleanup custody is missing'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('Graph selection and ordering require retained comparison fragments', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'source.selection_name_offset = offset', 'source.selection_name_offset = 0', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@canonical.compare_utf16_fragment(', 'missing_raw_compare(', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@carrier.compare_property_name_fragment(', '@carrier.property_name_identity(', 'Graph selection computes synchronously'],
+    ['src/bounded_tuple_sort/sort.mbt', 'value.comparison_offset = offset', 'value.comparison_offset = 0', 'stepped Graph order comparison is missing'],
+    ['src/bounded_tuple_sort/sort.mbt', '@canonical.compare_utf16_fragment(', '@canonical.compare_utf16(', 'Graph order comparison computes synchronously'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('Graph projections reject missing cursor connections and atomic output', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, replacement, message] of [
+    ['@carrier.compare_property_name_fragment(', 'missing_fragment(', 'stepped Graph projection is missing'],
+    ['@execution.start_admitted_presence_output_row(', 'missing_presence(', 'stepped Graph projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'missing_advance(', 'stepped Graph projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'missing_cleanup(', 'Graph projection cleanup custody is missing'],
+    ['@execution.start_admitted_presence_output_row(', '@execution.append_admitted_output_presence(', 'Graph projection output computes synchronously'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('record projections reject missing production cursor and cleanup connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, message] of [
+    ['@schema.compare_reference_fragment(', 'stepped record projection is missing'],
+    ['@execution.start_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'record projection cleanup custody is missing'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replaceAll(marker, 'missing_cursor_connection(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['events', 'vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('record Bridges require in-value limits, stop and public Store evidence', () => {
+  for (const operation of ['to_events', 'to_vectors']) {
+    for (const role of ['bridge_record_value_limits', 'bridge_record_value_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'to_events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'bridge_record_value_public_store');
+  }), /Bridge to_events: Bridge value public Store fixture is missing/u);
+});
+
+test('record Bridges reject missing shared recheck and append connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [before, after] of [
+    ['@value.advance_recheck_runtime_value(', '@execution.producer_read_checked_cell('],
+    ['@records.start_record_append(', '@records.append_record('],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace(before, after)}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['to_events', 'to_vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: stepped Bridge custody is missing`));
+      assert.ok(result.errors.includes(
+        `Bridge ${operation}: Bridge value processing computes synchronously`));
+    }
+  }
+});
+
+test('Events input-name matching requires limits, stop and public Store evidence', () => {
+  for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
+    for (const role of ['events_input_name_limits', 'events_input_name_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'TEA' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'TEA' && r.operation === 'session');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'events_input_name_public_store');
+  }), /TEA session: Events input-name public Store fixture is missing/u);
+});
+
+test('Events input-name matching rejects a missing production cursor connection', () => {
+  for (const name of ['watermark', 'window', 'dedupe', 'session']) {
+    const file = join(root, `src/local_tea/${name}.mbt`);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace('event_name_equal(', 'atomic_name_equal(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.some(message =>
+      message.includes('stepped input-name custody is missing')));
+  }
+});
+
 test('Events record emission requires limits, stop and public Store evidence', () => {
   for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
     for (const role of ['events_record_emission_limits', 'events_record_emission_stop_cleanup']) {

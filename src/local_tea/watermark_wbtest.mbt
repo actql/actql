@@ -513,8 +513,8 @@ test "watermark admits exact control work across resumes" {
 ///|
 test "watermark admits exact retained workspace" {
   // Cursor 16+3*6+1+3*10=65, caller row/handle=7, next row=8.
-  // Prior rows add 16 for mark, 8 for drop: peaks 96 and 88.
-  for (policy, workspace, retained) in [("mark", 96, 3), ("drop", 88, 2)] {
+  // Prior rows add 16 for mark, 8 for drop; name position adds one.
+  for (policy, workspace, retained) in [("mark", 97, 3), ("drop", 89, 2)] {
     for timestamp_clock in [false, true] {
       let producer = producer_owner(timestamp_clock)
       let source = source_events(producer, Ref(true), timestamp_clock)

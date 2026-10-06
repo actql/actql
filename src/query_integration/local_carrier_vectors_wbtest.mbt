@@ -2565,13 +2565,16 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     1000,
   ).unwrap()
   // Each row costs two identity nodes, nine record nodes, and three copy
-  // units. Four slots per retained record overlap two scratch fields and
-  // four new slots during the second append.
+  // units: logical work remains 28. Each row loads its number in three
+  // polls and two-component vector in six, starts append in one and uses
+  // 25 append polls: physical work is 2*35 = 70.
+  // Append custody is 16+3*2+1+3*10 = 53. Caller scratch is 2+2;
+  // both four-slot records overlap at second commit: peak 53+4+4+4 = 65.
   for
     (work, slots, outcome) in [
-      (28, 10, "complete"),
-      (27, 10, "work"),
-      (28, 9, "workspace"),
+      (28, 65, "complete"),
+      (27, 65, "work"),
+      (28, 64, "workspace"),
     ] {
     let execution = @local_bridge.start_rows_to_vectors(
       @bounded.control(),
@@ -2590,11 +2593,12 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     let mut polls = 0
     while !terminal {
       polls += 1
-      assert_true(polls < 40)
+      assert_true(polls < 80)
       match @local_bridge.advance_rows_to_vectors(execution, 1).unwrap() {
         @local_bridge.Continue(..) => ()
-        @local_bridge.Complete(output, ..) => {
+        @local_bridge.Complete(output, work~, ..) => {
           assert_eq(outcome, "complete")
+          assert_eq(work, 70L)
           assert_true(
             @records.completed_storage(output) is Some(storage) &&
             @record_storage.construction_work(storage) == 28 &&
@@ -2639,7 +2643,7 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
   let mut polls = 0
   while !first_row {
     polls += 1
-    assert_true(polls < 20)
+    assert_true(polls < 40)
     match @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap() {
       @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
       _ => abort("rows-to-Vectors did not yield after its first row")
@@ -2678,7 +2682,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     fn() { true },
   ).unwrap()
   let mut vectors = None
-  for _ in 0..<40 {
+  for _ in 0..<80 {
     if vectors is Some(_) {
       break
     }
@@ -2699,20 +2703,23 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(10),
+    control_work_limit=Some(50),
   ).unwrap()
   let mut exact_done = false
-  for _ in 0..<20 {
+  // Two init/source/verify polls, three binary name probes, one cursor
+  // start and fifteen row polls: 2*(2+2+3+2+1+15) = 50. Workspace is
+  // two matched slots, thirteen recheck custody slots and three row slots.
+  for _ in 0..<60 {
     if exact_done {
       break
     }
     match @local_bridge.advance_vectors_to_rows(exact, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(output, work~, ..) => {
-        assert_eq(work, 10L)
+        assert_eq(work, 50L)
         assert_eq(@execution.completed_row_count(output), 2)
         assert_true(
           @execution.completed_output_matches_inputs(output, [external]),
@@ -2732,20 +2739,20 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(9),
+    control_work_limit=Some(49),
   ).unwrap()
   let mut work_failed = false
-  for _ in 0..<20 {
+  for _ in 0..<60 {
     if work_failed {
       break
     }
     match @local_bridge.advance_vectors_to_rows(one_short_work, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
-        assert_eq(work, 9L)
+        assert_eq(work, 49L)
         work_failed = true
       }
       _ => abort("one-short Vectors projection did not reject work")
@@ -2768,34 +2775,36 @@ test "Vectors projection production entrypoint enforces value and width limits" 
   assert_true(
     one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
   )
-  let one_short_value = @local_bridge.start_vectors_to_rows(
-    @bounded.control(),
-    task_test_completion(owner),
-    sequence,
-    1,
-    projection_input,
-    2,
-    { max_nodes: 9, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
-    1000,
-    [external],
-  ).unwrap()
-  let mut value_failed = false
-  for _ in 0..<20 {
-    if value_failed {
-      break
+  for (nodes, workspace) in [(9, 18), (10, 17)] {
+    let one_short_value = @local_bridge.start_vectors_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      projection_input,
+      2,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      workspace,
+      1000,
+      [external],
+    ).unwrap()
+    let mut value_failed = false
+    for _ in 0..<60 {
+      if value_failed {
+        break
+      }
+      match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Failed(
+          @local_bridge.RelationOutput(@execution.CaptureLimit),
+          ..
+        ) => value_failed = true
+        _ => abort("one-short Vectors projection did not reject output")
+      }
     }
-    match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
-      @local_bridge.Continue(..) => ()
-      @local_bridge.Failed(
-        @local_bridge.RelationOutput(@execution.CaptureLimit),
-        ..
-      ) => value_failed = true
-      _ => abort("one-short Vectors projection did not reject output")
-    }
+    assert_true(value_failed)
+    assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   }
-  assert_true(value_failed)
-  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   let control = @bounded.control()
   let cancelled = @local_bridge.start_vectors_to_rows(
     control,
@@ -2805,7 +2814,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
   ).unwrap()

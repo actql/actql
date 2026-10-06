@@ -305,8 +305,8 @@ test "event window views retain exact boundaries and source custody" {
   let material = @records.completed_material(source).unwrap()
   for
     (body, exact_work, exact_workspace, starts) in [
-      ("{\"kind\":\"fixed\",\"size\":10}", 53, 79, [0.0]),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 104, 87, [0.0, 5.0]),
+      ("{\"kind\":\"fixed\",\"size\":10}", 53, 80, [0.0]),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 104, 88, [0.0, 5.0]),
     ] {
     let owner = event_window_owner(producer, body)
     for
@@ -649,7 +649,7 @@ test "event windows admit capacity before allocation and clean cancellation" {
       sequence,
       0,
       workspace_read,
-      event_window_limits(max_records=4, workspace=27),
+      event_window_limits(max_records=4, workspace=28),
       4096L,
       fn() { true },
     )
@@ -662,7 +662,7 @@ test "event windows admit capacity before allocation and clean cancellation" {
     sequence,
     0,
     read,
-    event_window_limits(max_records=4, workspace=28),
+    event_window_limits(max_records=4, workspace=29),
     4096L,
     fn() { true },
   ).unwrap()
@@ -767,21 +767,21 @@ test "event windows admit exact control work across resumes" {
 ///|
 test "event windows admit exact fixed and sliding workspace" {
   // Five-field cursor 62 fixed/63 sliding, source+emission+handles ten,
-  // next row seven, and prior row seven: peaks 79 fixed/87 sliding.
+  // next row seven, prior row seven, name position one: 80 fixed/88 sliding.
   // Wide input adds 3 cursor + 2 scratch + 1 retained slot; sliding has
-  // another prior retained slot, giving 85 fixed/94 sliding.
+  // another prior retained slot, giving 86 fixed/95 sliding.
   for
     (body, time, workspace, rows, timestamp_clock, wide) in [
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 79, 1, false, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 80, 1, false, false),
       (
-        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 87, 2, false, false,
+        "{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 88, 2, false, false,
       ),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 79, 1, true, false),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 87, 2, true, false),
-      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 85, 1, false, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 94, 2, false, true),
-      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 85, 1, true, true),
-      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 94, 2, true, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 80, 1, true, false),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 88, 2, true, false),
+      ("{\"kind\":\"fixed\",\"size\":10}", 4.0, 86, 1, false, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 95, 2, false, true),
+      ("{\"kind\":\"fixed\",\"size\":10}", 9.0, 86, 1, true, true),
+      ("{\"kind\":\"sliding\",\"size\":10,\"step\":5}", 9.0, 95, 2, true, true),
     ] {
     let producer = event_window_producer(timestamp=timestamp_clock, wide~)
     let owner = event_window_owner(producer, body)
