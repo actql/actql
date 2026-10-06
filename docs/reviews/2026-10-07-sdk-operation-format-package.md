@@ -11,7 +11,10 @@ SDK tarball digest:
 `d9c1b34df5eb6e2de012f135c79a6df14b960878b2f32b1ae6097299aa5a4d9e`.
 The unchanged packed public-query runner failed before Host execution with
 `Could not resolve "./operation-formats.mjs"`. Evidence:
-`worktrees/.codex-scratch/public-query-evidence-WxksIZ/004.stderr.log` and summary.
+`worktrees/.codex-scratch/public-query-evidence-WxksIZ/summary.json` retains
+failed status and exact tarball evidence; the module audit's exception occurred
+outside a captured child command. The executable regression below retains the
+concrete missing-module diagnostic in its focused-test output.
 
 [B's ownership handoff](https://github.com/actql/actql/pull/679#issuecomment-6025518165)
 limits this repair to the package files list and distribution regression. E
