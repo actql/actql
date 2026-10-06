@@ -1,7 +1,7 @@
 ///|
-// Preserve every peer occurrence in the adopted union fold. A reference is a
+// Preserve the adopted structural operation and each peer occurrence. A reference is a
 // previously bound Graph producer; strings never become producer names.
-fn script_graph_union_peer(
+fn script_graph_composition_peer(
   construction : Construction,
   argument : @query.SgaArgument,
   graphs : Array[ScriptGraph],
@@ -15,8 +15,9 @@ fn script_graph_union_peer(
 
 ///|
 // Compatibility, identity, property strategies, fold arithmetic and capacity
-// belong to the existing common union owner. Only names and syntax are lowered.
-fn lower_script_graph_union(
+// belong to the existing common composition owner. Only names and syntax are
+// lowered. Subtraction is binary; only union admits a nonempty peer list.
+fn lower_script_graph_composition(
   construction : Construction,
   query : @query.Query,
   call : @query.SgaCall,
@@ -27,7 +28,9 @@ fn lower_script_graph_union(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> String raise Abort {
-  guard call.operation == "union_graphs" &&
+  guard (
+      call.operation == "union_graphs" || call.operation == "subtract_graphs"
+    ) &&
     call.arguments.filter(argument => argument.0 == "with").length() == 1 &&
     call.arguments.all(argument => argument.0 == "with" || argument.0 == "merge") else {
     raise Abort(UnsupportedGraph)
@@ -43,14 +46,16 @@ fn lower_script_graph_union(
       let value = if argument.0 == "with" {
         match argument.1 {
           ListValue(items) => {
-            guard !items.is_empty() else { raise Abort(UnsupportedGraph) }
+            guard call.operation == "union_graphs" && !items.is_empty() else {
+              raise Abort(UnsupportedGraph)
+            }
             construction.array(
               items.map(item => {
-                script_graph_union_peer(construction, item, graphs)
+                script_graph_composition_peer(construction, item, graphs)
               }),
             )
           }
-          peer => script_graph_union_peer(construction, peer, graphs)
+          peer => script_graph_composition_peer(construction, peer, graphs)
         }
       } else {
         script_traversal_argument(construction, argument.1, known, limits)
@@ -63,7 +68,7 @@ fn lower_script_graph_union(
   steps.push(
     construction.object([
       ("from", construction.text(left)),
-      ("union_graphs", body),
+      (call.operation, body),
       ("as", construction.text(output)),
     ]),
   )

@@ -646,7 +646,14 @@ test('baseline preimages and changed normative pins independently determine the 
     'sha256:6b74c71135148ba3f6eff9ee0cc6e6ec786658242c1dc9cf874dc5cb66f3bd3f');
   // Preserve the preceding main Run with its own normative grammar.
   assert.equal(vector('sha256:f22e790ab1d2de10a0076de625968ec2e67372bacd26490f053f45ab44e578cf', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:ece7fab74dc234941183508fd3a3d2e9dcd78424b02497d600645eac7bb38dd2');
-  assert.equal(current.run.run_definition_cid, 'sha256:2c13b6251fa9d7e123b70ae858ac0faf9676300b705dcfbfae355246d1a6c7a5');
+  // Subtraction author Run retains its pre-typed-JSON foundational laws.
+  assert.equal(vector('sha256:f6691d7e84028f06cef976870509421ba61d6f6310f7f32171f8ad5cf6ad422e',
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    'sha256:9ae3da3e9ce0fbc9dc678c2d5a0d00ba7321f47693249f8c51b67fefe0018af7');
+  // Preserve the preceding main Run with its own normative grammar.
+  assert.equal(vector('sha256:2a83ec6f4b2619eae49940bc0dc18c9107b6cb8190dde58f4e264afaa3406b86', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:2c13b6251fa9d7e123b70ae858ac0faf9676300b705dcfbfae355246d1a6c7a5');
+  assert.equal(current.run.run_definition_cid, 'sha256:33528e93904b6ace4c27b4be1123cb40834c9fbd28265c4c328bd08ef0bd57e0');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
