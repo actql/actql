@@ -45,7 +45,7 @@ pub fn cleanup_rows_to_vectors(RowsToVectorsExecution) -> Result[Bool, EventsBri
 
 pub fn cleanup_vectors_to_rows(VectorsToRowsExecution) -> Result[Bool, EventsBridgeIssue]
 
-pub fn completed_graph_snapshot_material(@bounded_execution.Control, @lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_runtime.Completed, @managed_graph_storage.Limits, @bounded_graph_snapshot.Limits, @decode_core.Limits, Int, Int, Int64, () -> Bool) -> Result[@managed_carrier_runtime.Material, GraphBridgeIssue]
+pub fn completed_graph_snapshot_material(@bounded_execution.Control, @lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_runtime.Completed, @managed_graph_storage.Limits, @bounded_graph_snapshot.Limits, @decode_core.Limits, Int, Int, Int64, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[@managed_carrier_runtime.Material, GraphBridgeIssue]
 
 pub fn events_to_rows_cleanup_pending(EventsToRowsExecution) -> Bool
 
