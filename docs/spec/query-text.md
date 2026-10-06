@@ -552,6 +552,23 @@ does not derive total-order evidence for this output and rejects that path with
 `UnresolvedOrder` before Run admission. This is a common implementation gap,
 not a language restriction or permission to discard the authored order.
 
+`graph_diff(with: target)` uses the same earlier DATA Graph producer resolution
+and transitions to an ordinary Relation with the single non-NULL JSON column
+`delta`. The left input is the current Graph; `target` is an explicit producer
+reference, not a STRING value. Only `delta` enters the new output scope. DATA
+reuse does not reconstruct either Graph, and ordinary Relation projection and
+filtering keep their existing meaning. The common Delta checker requires the
+same complete Graph contract for both operands; the Frontend does not infer
+compatible identity domains or implement a difference algorithm.
+
+The checked `graph_diff` operation completes exactly one Delta row. The common
+order owner derives logical order from that producer contract and preserves
+it through admitted projection, filtering and take operations. A row-count
+ceiling alone does not establish order for an arbitrary JSON Relation.
+Graph Delta application produces a Graph and establishes no Relation order.
+The Frontend does not synthesize a sort, key, scalar encoding or fallback to
+publish the JSON value.
+
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run
 admission. Calls following a MATCH Relation are also explicitly unsupported

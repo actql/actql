@@ -9,6 +9,8 @@ import {canonicalText} from './check-canonical-json.mjs';
 import {propertyGraphPresenceOracle, deltaApplicationScenario as deltaScenario,
   deltaRelationCompositionScenario, deltaDiffScenario} from
   './fixtures/property-graph-delta-application.mjs';
+import {unionGraphScenario,unionEndpointConflictScenario} from './fixtures/property-graph-union.mjs';
+import {subtractionScenario} from './fixtures/property-graph-subtraction.mjs';
 
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
@@ -453,9 +455,13 @@ function deltaApplicationScenario(projection, failure) {
   return deltaScenario(presenceFixture, projection, failure);
 }
 
-for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff']) {
+for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff','graph-union','graph-subtraction']) {
   const name = profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
+    : profile === 'graph-union'
+      ? `Property Graph union preserves occurrences and sparse rows through Store reload and public ${mode}`
+    : profile === 'graph-subtraction'
+      ? `Property Graph subtraction preserves typed records through Store reload and public ${mode}`
     : profile === 'delta-diff'
       ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
     : profile === 'delta-relation-composition'
@@ -537,6 +543,108 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    if (profile === 'graph-subtraction') {
+      // Small authored cases cover both projections without multiplying every
+      // property strategy by every transport/failure. Conditional p crosses the
+      // real Relation Store before the guaranteed final projection.
+      for (const [kind,projection] of [
+        ['empty-right','node_rows'], ['empty-right','edge_rows'],
+        ['self-remove','node_rows'], ['explicit-equality-keeps-nodes','node_rows'],
+        ['remove-one-node-endpoint-closure','node_rows'],
+        ['keep-nodes-remove-one-parallel-edge','edge_rows'],
+        ['numeric-strategy-is-addition','node_rows'], ['numeric-strategy-is-addition','edge_rows'],
+      ]) {
+        const {document,rightSnapshot,expectedSnapshot,expectedRows,expected,fields} =
+          subtractionScenario(presenceFixture,kind,projection);
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),
+          [[3,presenceSnapshot],[5,rightSnapshot],[6,expectedSnapshot]].map(([task,bytes])=>({
+            task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+            bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+            sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+          })));
+        const bytes = canonicalText(expectedRows);
+        const rowsStore = relationSnapshots.get(run.ref.runDefinitionCid).find(entry=>entry.task === 7);
+        assert.deepEqual(rowsStore,{
+          task:7,cid:cid(expectedRows),bytes:Buffer.byteLength(bytes),
+          verifiedReadBytes:Buffer.byteLength(bytes),rows:expectedRows.length,
+          sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+        },`subtraction retained ${kind}/${projection}`);
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const kind of ['shared-payload-conflict','shared-null-numeric-rejected','endpoint-conflict-before-induced-closure']) {
+        const {document} = subtractionScenario(presenceFixture,kind);
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'failed',JSON.stringify(state));
+        assert.equal(state.control.physical_stop,'confirmed');
+        await assert.rejects(run.result('answer').all());
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      for (const invalid of [{with:['right']},{with:'right',extra:true}]) {
+        const {document} = subtractionScenario(presenceFixture,'empty-right');
+        document.stages[0].steps[6].subtract_graphs = invalid;
+        const requestId = `subtraction-invalid-${mode}-${cid(invalid)}`;
+        const before = physicalSteps.length;
+        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+        assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+        assert.deepEqual(physicalSteps.slice(before),[]);
+      }
+      return;
+    }
+    if (profile === 'graph-union') {
+      for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
+        const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
+          unionGraphScenario(presenceFixture,projection,{numeric,empty});
+        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const state = await run.wait();
+        assert.equal(state.status,'succeeded',JSON.stringify(state));
+        // Preserve the independently specified canonical Graph row order on
+        // both initial read and reattach; sorting actual results hides damage.
+        assert.deepEqual(await run.result('answer').all(),expected);
+        assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),expected);
+        assert.deepEqual((await run.result('answer').describe()).columns.map(column=>column.name),fields);
+        assert.deepEqual(snapshots.get(run.ref.runDefinitionCid),graphSnapshots.map(([task,bytes])=>({
+          task,cid:'sha256:'+createHash('sha256').update(bytes).digest('hex'),
+          bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),
+          sourceReleased:true,restored:true,temporaryBodyReclaimed:true,
+        })));
+        const observed = relationSnapshots.get(run.ref.runDefinitionCid);
+        for (const [task,rows] of expectedStores) {
+          const bytes = canonicalText(rows);
+          assert.deepEqual(observed.find(entry=>entry.task === task),{
+            task,cid:cid(rows),bytes:Buffer.byteLength(bytes),verifiedReadBytes:Buffer.byteLength(bytes),rows:rows.length,
+            sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true,
+          },`union retained task ${task}`);
+        }
+        assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      }
+      const conflict = unionEndpointConflictScenario(presenceFixture);
+      const rejected = await client.aql(canonicalText(conflict.document),{
+        format:'json',requestId:`${conflict.document.id}-${mode}`,
+      });
+      const failure = await rejected.wait();
+      assert.equal(failure.status,'failed',JSON.stringify(failure));
+      assert.equal(failure.control.physical_stop,'confirmed');
+      await assert.rejects(rejected.result('answer').all());
+      await assert.rejects((await client.attach(rejected.ref)).result('answer').all());
+      assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
+      const {document} = unionGraphScenario(presenceFixture,'node_rows');
+      document.stages[0].steps[6].union_graphs.extra = true;
+      const before = physicalSteps.length;
+      const requestId = `union-extra-field-${mode}`;
+      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
+      assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before),[]);
+      return;
+    }
     if (profile === 'delta-diff') {
       for (const projection of ['node_rows','edge_rows']) for (const unchanged of [false,true]) {
         const {document,delta,target,retained,expected,fields} =

@@ -75,6 +75,200 @@ fn complete_snapshot_append(
 }
 
 ///|
+test "typed record append shares snapshot identity, endpoint and accounting checks" {
+  let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  append_property_node(input, 0, [number(1)], []).unwrap()
+  append_property_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
+  let input = finish(input).unwrap()
+  let node = node_identity(input, 0).unwrap()
+  let edge = edge_identity(input, 0).unwrap()
+  for quantum in [1, 7, 64] {
+    let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+    let append = start_property_record_append(
+      builder,
+      0,
+      node,
+      [number(1)],
+      [],
+      edge=false,
+    ).unwrap()
+    complete_snapshot_append(append, quantum).unwrap() |> ignore
+    // The same construction components as snapshot append, minus the one
+    // definition-name lookup: identity 8+9, key 1, projection 33+9,
+    // empty payload 1 and commit 1.
+    assert_eq(builder.work, 62)
+    cleanup_property_snapshot_append(append)
+    let append = start_property_record_append(
+      builder,
+      0,
+      edge,
+      [number(10)],
+      [],
+      edge=true,
+      source=Some(node),
+      target=Some(node),
+    ).unwrap()
+    complete_snapshot_append(append, quantum).unwrap() |> ignore
+    assert_eq(builder.work, 242)
+    cleanup_property_snapshot_append(append)
+    let output = finish(builder).unwrap()
+    assert_eq(
+      node_identity_order_key(output, 0),
+      node_identity_order_key(input, 0),
+    )
+    assert_eq(
+      edge_identity_order_key(output, 0),
+      edge_identity_order_key(input, 0),
+    )
+    assert_true(available(input))
+    assert_eq(output.edges[0].source, 0)
+    assert_eq(output.edges[0].target, 0)
+  }
+  let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  let append = start_property_record_append(
+    builder,
+    0,
+    node,
+    [number(2)],
+    [],
+    edge=false,
+  ).unwrap()
+  assert_eq(complete_snapshot_append(append, 1), Err(InvalidIdentity))
+  assert_eq(builder.nodes.length(), 0)
+  cleanup_property_snapshot_append(append)
+  assert_true(cancel(builder))
+  assert_true(available(input))
+}
+
+///|
+test "typed record append has independent construction work and an exact one short boundary" {
+  let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  append_property_node(input, 0, [number(1)], []).unwrap()
+  let input = finish(input).unwrap()
+  // Received typed identity has eight value nodes and nine encoded nodes.
+  // The number key costs one node; identity projection retains four passes
+  // over eight nodes plus one key, then nine encoded nodes. Empty payload and
+  // atomic commit cost one each. These are Store construction units, not the
+  // parser/cursor's separate resumed poll units or approval to bill.
+  let received_identity = 8 + 9
+  let key = 1
+  let projected_identity = 4 * 8 + 1 + 9
+  let payload = 1
+  let commit = 1
+  let total = received_identity + key + projected_identity + payload + commit
+  assert_eq(total, 62)
+  for quantum in [1, 7, 64] {
+    for ceiling in [total - 1, total] {
+      let builder = prepare(property_fixture(), DeclaredNodes, {
+        ..property_limits(),
+        max_work: ceiling,
+      }).unwrap()
+      let append = start_property_record_append(
+        builder,
+        0,
+        node_identity(input, 0).unwrap(),
+        [number(1)],
+        [],
+        edge=false,
+      ).unwrap()
+      let result = complete_snapshot_append(append, quantum)
+      if ceiling == total {
+        assert_true(result is Ok(_))
+        assert_eq(builder.work, total)
+        assert_eq(builder.input_rows, 1)
+        assert_eq(builder.nodes.length(), 1)
+      } else {
+        assert_eq(result, Err(WorkLimit))
+        assert_eq(builder.nodes.length(), 0)
+        assert_eq(builder.input_rows, 0)
+      }
+      cleanup_property_snapshot_append(append)
+      assert_true(builder.owns_private && available(input))
+      assert_true(cancel(builder))
+    }
+  }
+  discard(input)
+}
+
+///|
+test "typed record append rejects endpoint presence mismatch before staging transfer" {
+  let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  append_property_node(input, 0, [number(1)], []).unwrap()
+  append_property_edge(input, 0, [number(10)], [number(1)], [number(1)], []).unwrap()
+  let input = finish(input).unwrap()
+  let node = node_identity(input, 0).unwrap()
+  let edge_identity = edge_identity(input, 0).unwrap()
+  for
+    (edge, source, target) in [
+      (false, Some(node), None),
+      (false, None, Some(node)),
+      (false, Some(node), Some(node)),
+      (true, None, None),
+      (true, Some(node), None),
+      (true, None, Some(node)),
+    ] {
+    let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+    let keys = [number(if edge { 10 } else { 1 })]
+    let properties = []
+    assert_true(
+      start_property_record_append(
+        builder,
+        0,
+        if edge {
+          edge_identity
+        } else {
+          node
+        },
+        keys,
+        properties,
+        edge~,
+        source~,
+        target~,
+      )
+      is Err(InvalidProperties),
+    )
+    assert_eq(keys.length(), 1)
+    assert_eq(builder.nodes.length(), 0)
+    assert_eq(builder.edges.length(), 0)
+    assert_eq(builder.work, 0)
+    assert_eq(builder.retained_value_bytes, 0)
+    assert_true(builder.open && builder.owns_private && available(input))
+    assert_true(cancel(builder))
+  }
+  discard(input)
+}
+
+///|
+test "typed record append stop clears staging but keeps previously retained nodes" {
+  let input = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  append_property_node(input, 0, [number(1)], []).unwrap()
+  let input = finish(input).unwrap()
+  let node = node_identity(input, 0).unwrap()
+  let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
+  let append = start_property_record_append(
+    builder,
+    0,
+    node,
+    [number(1)],
+    [],
+    edge=false,
+  ).unwrap()
+  assert_true(
+    advance_property_snapshot_append(append, 1)
+    is PropertySnapshotAppendContinue(work=1),
+  )
+  cleanup_property_snapshot_append(append)
+  cleanup_property_snapshot_append(append)
+  assert_true(
+    append.runtime_keys.is_empty() && append.runtime_properties.is_empty(),
+  )
+  assert_true(append.runtime_identity is None && append.runtime_recheck is None)
+  assert_eq(builder.nodes.length(), 0)
+  assert_true(available(input))
+  assert_true(cancel(builder))
+}
+
+///|
 test "snapshot append resumes independent identities and retains constructor accounting" {
   let mut expected_steps = None
   for quantum in [1, 7, 64] {

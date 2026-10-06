@@ -639,3 +639,28 @@ test('independent operation parameter reasons retain closed domains and input lo
     {outcome_schema_cid: 'sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6'},
   ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
 });
+
+test('independent expression type reasons reject values and foreign fact families', () => {
+  const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-expression-types.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  for (const reason of reasons) {
+    assert.equal(validCheckOutcome(outcome(reason)), true);
+    for (const facts of [undefined, {}, {expected_type: 'private_field'},
+      {expected_type: 'array'}, {...reason.facts, parameter: 'private_parameter'},
+      {...reason.facts, actual_value: 'private-value'}, {...reason.facts, actual_type: 'string'}]) {
+      assert.equal(validCheckOutcome(outcome({...reason, facts})), false);
+    }
+    assert.equal(validCheckOutcome(outcome({code: 'parameter_value_required', facts: reason.facts})), false);
+    assert.equal(validCheckOutcome(outcome({code: 'future_expression_type', facts: reason.facts})), false);
+    assert.equal(validCheckOutcome(outcome({...reason, location: {kind: 'structured', document_id: 'source',
+      revision: original.report.inputs[0].revision, pointer: '/stages/0/steps/0'}})), false);
+    assert.equal(validCheckOutcome(outcome({...reason, location: {kind: 'text', document_id: 'parameters',
+      revision: original.report.inputs[0].revision, start_byte: 0, end_byte: 1, precision: 'exact'}})), false);
+  }
+  assert.equal(validCheckOutcome(outcome({code: 'future_expression_type'})), true);
+  for (const prior of [
+    {reason_schema_cid: 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'},
+    {outcome_schema_cid: 'sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c'},
+  ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});
