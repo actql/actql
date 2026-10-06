@@ -534,7 +534,72 @@ const schemas = {
         "minLength": 1,
         "maxLength": 256
       }
-    }
+    },
+    "allOf": [
+      {
+        "oneOf": [
+          {
+            "required": [
+              "checkpoint"
+            ],
+            "properties": {
+              "state": {
+                "const": "waiting_checkpoint"
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "endReason"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "terminalErrorCode"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "properties": {
+              "state": {
+                "const": "resuming"
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "endReason"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "terminalErrorCode"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "required": [
+              "endReason"
+            ],
+            "properties": {
+              "state": {
+                "const": "ended"
+              }
+            }
+          }
+        ]
+      }
+    ]
   },
   "checkpoint_summary": {
     "oneOf": [
@@ -7436,3 +7501,12 @@ export const validProfileContract = (value, selected) =>
 export const validAdmissionContract = (value, selected) =>
   validConnectionShape(selected) && validAdmissionShape(value) &&
   !(selected.durability === "durable" && value.durability !== "durable");
+export const validHeldContract = (value, expected) =>
+  valid(expected, schemas.held.properties.requestId) &&
+  ((valid(value, schemas.held) && value.requestId === expected));
+export const validRequestLookupContract = (value, expected) =>
+  valid(expected, schemas.lookup_found.properties.requestId) &&
+  ((valid(value, schemas.lookup_found) && value.requestId === expected) ||
+   valid(value, schemas.lookup_not_found) ||
+   valid(value, schemas.lookup_unknown) ||
+   (valid(value, schemas.held) && value.requestId === expected));

@@ -5,8 +5,8 @@ import {validDeliveryAttempt, validDeliveryRecord,
   validHostReleaseReceipt} from './publication.generated.js';
 import {clientHostOperations, clientHostRequestKeys,
   validProfileContract, validAdmissionContract, validCancellationShape, validCheckpointReviewShape,
-  validCheckpointSummaryShape, validConnectionShape, validHeldShape,
-  validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
+  validCheckpointSummaryShape, validConnectionShape, validHeldContract,
+  validRequestLookupContract,
   validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
@@ -274,31 +274,8 @@ export const validClientAdmission = validAdmissionContract;
 // A request the Host holds before any Run exists: waiting on a
 // `prepare_attempt` Checkpoint, resuming after an approval, or ended without
 // a Run. Once the Run exists the lookup is `found` with its RunRef.
-export function validHeldRequest(value, expectedRequestId) {
-  if (!boundedText(expectedRequestId) || !validHeldShape(value) ||
-      value.requestId !== expectedRequestId) return false;
-  if (value.state === 'waiting_checkpoint') {
-    return value.checkpoint !== undefined &&
-      value.endReason === undefined && value.terminalErrorCode === undefined;
-  }
-  if (value.state === 'resuming') {
-    return value.endReason === undefined &&
-      value.terminalErrorCode === undefined;
-  }
-  return value.endReason !== undefined;
-}
-
-export function validRequestLookup(value, expectedRequestId) {
-  if (!boundedText(expectedRequestId)) return false;
-  if (validLookupNotFoundShape(value) || validLookupUnknownShape(value)) {
-    return true;
-  }
-  if (value?.kind === 'held') {
-    return validHeldRequest(value, expectedRequestId);
-  }
-  return validLookupFoundShape(value) &&
-    value.requestId === expectedRequestId;
-}
+export const validHeldRequest = validHeldContract;
+export const validRequestLookup = validRequestLookupContract;
 
 // A submit reply: the admitted Run, or the held request (no Run yet).
 export function validSubmitReply(value, selected, expectedRequestId) {

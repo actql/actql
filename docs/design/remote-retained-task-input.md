@@ -278,7 +278,54 @@ revision fence before delivering a handoff. Failed or uncertain persistence
 must send nothing. Retrying uses the same saved originals and occurrence, never
 refreshed expiry, regenerated materials or another attempt.
 
-Native callers without an installed checked producer planning port reject this
-operation explicitly and retain the producer responsibility. Wire recognition
-and a Native planning/handoff caller do not establish ordinary resident holder
-routing, durable Cloud delivery, Result publication or both-task Run release.
+The Run Host distribution exposes checked intent issuance and restoration as
+opaque in-process handles. The issuer obtains edge and completion fields from
+the original producer; a caller supplies only the separate Transfer policy.
+Restoration re-admits the exact saved body against a freshly checked producer.
+The poll-envelope entry rechecks that producer, so historical intent bytes do
+not authorize delivery after producer custody becomes unavailable.
+
+A reported Native plan is admitted against that intent and the original
+producer's actual subject and evidence. Its current ports inspect the existing
+Site generation/bundle, authority, lifetime and movement grants. There is no
+receiver record at the planning stage; admission does not invent a committed
+Transfer. Producer availability is checked again after trusted authorization,
+so a cleanup or replacement observed during that callback refuses the plan.
+Installed ports retain their functions, not their first successful answers.
+
+Canonical plan/Transfer/manifest projections are historical evidence only.
+The caller persists original intent and plan under its existing durable Owner,
+rechecks its revision across awaits and revalidates the plan immediately before
+handoff. Failure or uncertain persistence sends nothing. Reconstructed callers
+restore the same saved originals and install fresh current-owner ports; they
+do not refresh the transfer occurrence or original Run lifetime. JSON admission
+and a successful plan check issue no physical holding, borrow, start claim,
+consumer completion or cleanup evidence.
+
+The resident control process relays an internal planning envelope only to the
+live holder of that exact original producer dispatch. The holder rebuilds the
+original admitted Run from its saved Site-journal envelope and selects the
+checked producer using the durable completion evidence and managed subject.
+This reconstruction creates no reader, reservation or borrow. Missing envelope,
+foreign checked edge or absent completion evidence is a refusal, not permission
+to reacquire the Source.
+
+Local internal movement requires three explicit delegated identities:
+`--retained-source-grant-cid`, `--retained-destination-grant-cid` and
+`--retained-route-capability-cid`. All three must be configured together. The
+execution grant and evidence issuer are not substitutes for these roles. The
+holder rechecks the configured dispatch authority and live Site generation,
+Run lifetime, original intent and fresh producer journal before handoff.
+A durable cancellation request withholds movement; it is neither a cancellation
+terminal nor proof of physical stop or cleanup. A failed journal read withholds
+movement while retaining existing resource responsibilities.
+
+The plan is reported as its exact canonical body through the existing
+authenticated observation transport. Its HTTP acknowledgement is neither a
+receiver commit nor a consumer execution claim. Coordinator persistence and
+current authorization remain required before physical handoff; the local
+delegation cannot replace the Cloud grant Owner or its revision fence. A
+reported plan alone does not publish a Result or release either task.
+
+Native callers without this installed checked producer planning port reject
+the operation explicitly and retain the producer responsibility.
