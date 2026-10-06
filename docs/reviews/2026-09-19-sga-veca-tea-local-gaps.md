@@ -5952,6 +5952,128 @@ full-target/packed campaigns remain residuals. See the
 [name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
 boundaries, the atomic-drain negative and actual versus unverified checks.
 
+### Events kernel record emission
+
+Watermark, fixed/sliding window, dedupe and Events/Relation session retain
+the shared RecordAppend cursor across charged advances. Window also copies
+one membership field per poll. The same append reservation includes caller
+scratch, dynamic contract/identity continuations and the next retained row;
+control is cumulative and progress follows commit. Cancellation retains
+input and provisional output until Session stop and once-only cleanup.
+
+Independent long-Text boundaries fix control/workspace 62/80, 62/79, 68/70
+and 99/90, each with typed one-short rejection across quanta 1, 7 and 256.
+Ordinary installed Host evidence uses actual retained Store, three explicit
+Named Results, two consumers, request reuse and an awaited cancellation
+barrier inside unused record values. Existing semantic/window arithmetic
+fixtures remain intact; scheduling and scratch premises are explicit.
+
+This closes record emission, not operator name matching, key/Text comparison,
+session ID construction, constructor/Bridge append paths or all retained
+Local execution. Aggregate intermediate bytes, whole-Run physical accounting
+and unexecuted full-target/packed/CI campaigns remain distinct. See the
+[Events emission evidence](2026-10-06-local-events-record-emission.md).
+
+### Events input-name matching
+
+The four Events operators now borrow FieldNames and resolve them with the
+existing 64-unit reference comparator. Positions survive yields, fields
+and terms do not advance early, and one cursor slot remains reserved in
+caller scratch during emission. Short-name control work is unchanged;
+the preceding emission workspace totals each increase by one slot.
+
+Independent 513-unit clock fixtures fix control/workspace 101/81, 101/80,
+107/71 and 138/91 with exact and typed one-short checks across quanta.
+The ordinary retained Host session case publishes 31 expected rows for
+three named Results and two consumers, reuses requests without dispatch,
+and delivers cancellation inside record seven's clock comparison before
+any emission. The resource gate rejects missing per-operation evidence.
+
+The larger 61-row/513-unit public shape is now pinned as aggregate
+Relation output-text refusal: its independently derived 36155 bytes
+exceed the installed 10000-byte allowance. Common-owner exact/one-short
+tests assert CaptureLimit; the public refusal has no Results, reclaims
+snapshots and reuses its request without Compute or dispatch. The prior
+failed receipts remain; no capacity limit was increased. This is refusal
+evidence, not successful execution coverage. Key/Text comparisons, session
+ID construction, constructor/Bridge append and whole-Run physical accounting
+remain separate.
+This is not full retained-path completion or full-target/packed/CI evidence.
+See the [Events name evidence](2026-10-06-local-events-name-matching.md).
+
+### Relation-to-Events/Vectors value recheck and emission
+
+The shared rows-to-record Bridge now retains the existing typed value
+recheck and RecordAppend cursors across advances. Cell traversal and record
+emission no longer drain a whole nested value in one nominal Bridge poll.
+Exact operation binding, input availability and completion identity remain;
+workspace includes pending fields, continuation handles and retained rows.
+Stop retains those owners until confirmed stop and once-only cleanup.
+
+Independent large Text/Array boundaries fix physical work 824, logical
+construction 149, retained bytes 8520 and workspace 71. Quanta 1, 7 and 256
+preserve results and charges; one-short failures remain typed. The Vectors
+entry uses the same owner and its own vector-specific boundary fixture.
+Ordinary Host evidence publishes three explicit Results through real Store
+and delivers cancellation within the Bridge's unused Array recheck.
+
+This closes that shared input/emission component, not inverse projection
+name lookup/output append, constructor preparation, reference/JSON-key
+leaf scans, Events comparisons/session identity or whole-Run accounting.
+Inventory totals do not increase. Full-target, packed and CI acceptance
+remain unverified for this component. See the
+[Bridge evidence](2026-10-06-local-rows-records-bridge.md).
+
+### Events/Vectors-to-Relation required-record projection
+
+The inverse record Bridge initializes pending cells and matches borrowed
+FieldNames in charged fragments, then uses the existing AdmittedOutputRow
+cursor for value recheck and logical output measurement. Its input and
+unfinished output remain under existing owners until stop and once-only
+cleanup. Vectors delegates to the same record projection owner.
+
+Independent large Text/Array limits fix control 820, logical work 8362 and
+workspace 24; long-name limits fix 60, 544 and 23. Quanta preserve results
+and charges. Ordinary public Host evidence reads three explicit Named Results,
+reuses requests without Compute and delivers cancellation inside the unused
+Array recheck of the normally selected projection task, using real Store.
+The gate requires value/name/stop evidence and actual shared cursor connections.
+
+Graph presence caller work-boundary failures also reproduce on unchanged
+parent production code and remain known failures, not passing evidence.
+Graph case-fold matching and conditional/required Graph output append are
+not changed here. Common value leaves, constructor preparation, Events
+comparison/session identity, intermediate aggregate bytes and whole-Run
+accounting remain separate. Full-target, packed and CI completion are not
+claimed. See the [projection evidence](2026-10-06-local-records-row-projection.md).
+
+### Nearest input role-name matching
+
+Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16
+pairs per poll. Typed identity qualification remains distinct from reference
+spelling. Existing key comparison and admitted output-row owners are reused;
+no alternate execution lane is added. The extra cursor position is reserved
+before reads, and pending fields remain owned until confirmed stop and cleanup.
+
+Current short-name boundaries are Carrier control 52/51 with workspace 32/31,
+and depth-ten Relation control 66/65 with workspace 52/51. Long 513-unit names
+add 32 control polls across two ports: Carrier 84/83, Relation 98/97 with
+depth-two workspace 44/43. The long Text identity fixture remains 1517/1516
+control, now 45/44 workspace; unused 257-item Relation Array admission remains
+1104/1103 control, now 44/43 workspace. Earlier figures above describe their
+original revisions, not current limits. The typed Relation caller's old
+Carrier-only premise is corrected to include its existing input rechecks.
+
+Ordinary retained Host evidence reads exactly three expected Named Results,
+checks request reuse without another dispatch, and delivers cancellation at
+component name offset 192. Inputs stay retained before stop confirmation;
+partial Results are unavailable and snapshots are reclaimed afterward.
+Qualification, independent budgets and both name-phase cancellation boundaries
+are registered in the production-route gate. This is not a whole-Local or
+whole-Run completion claim. See the
+[Nearest evidence](2026-10-06-local-nearest-name-matching.md) for commands,
+verified source SHA, payload digests, preserved failures and residuals.
+
 ### Ranking algorithmic reference-name matching
 
 Ranking input binding now retains its borrowed current field, role probe and

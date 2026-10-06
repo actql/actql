@@ -87,7 +87,7 @@ fn nearest_text_start(
   candidate_material : @carrier_runtime.Material,
   query_material : @carrier_runtime.Material,
   work? : Int = 1517,
-  workspace? : Int = 44,
+  workspace? : Int = 45,
 ) -> Result[@local_veca.NearestExecution, @local_veca.NearestIssue] {
   let candidate_view = @carrier_runtime.material_prepare_view(
     candidate_material, owner, 0, candidates,
@@ -178,7 +178,7 @@ test "nearest long identities preserve independent control limits and order" {
   // charge start + four names + two five-unit Text charges + two scalars +
   // commit = 39. The last Text chunk completes measurement in that poll.
   // Workspace: 12 input record slots + 8 score slots + 6 record scratch
-  // slots + 2 identity slots + 16 fixed slots = 44.
+  // slots + 2 identity slots + 17 fixed slots = 45.
   for quantum in [1, 7, 256] {
     let candidate_view = @carrier_runtime.material_prepare_view(
       candidate_material, owner, 0, candidates,
@@ -197,7 +197,7 @@ test "nearest long identities preserve independent control limits and order" {
       // Four rows: five nodes each; names use 29 bytes and the two
       // identities use 258 bytes. Logical work is 20 + 4 * 287 = 1168.
       { max_nodes: 20, max_text_bytes: 1148, max_depth: 2, max_work: 1168, },
-      44,
+      45,
       1000,
       1000,
       1517,
@@ -324,7 +324,7 @@ test "nearest long identities reject one-short control and workspace" {
       queries,
       candidate_material,
       query_material,
-      workspace=43,
+      workspace=44,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )

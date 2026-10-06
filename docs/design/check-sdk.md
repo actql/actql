@@ -655,7 +655,8 @@ Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
 revision over that role's exact bytes. These revisions are not public content
 hashes, authorization grants or retrieval references. `context_ref` additionally
-binds audience, disclosure policy, compiler, requested scope, admitted public
+binds audience, disclosure policy, compiler, both reason and outcome schema
+identities, requested scope, admitted public
 Host policy and checker profile selections, installed ModelTask contract CIDs,
 visible Source contracts and bindings. The full private Environment CID still
 binds internal publication ownership and Source authorization, but is excluded
@@ -663,6 +664,14 @@ from the public reference preimage. Adding or changing a hidden Source cannot
 distinguish its presence through this reference. Changing authority, visible
 Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
+
+The outcome schema CID participates even when the reason schema and the
+`actql-check-outcome/0.1` identifier are unchanged. Both the ordinary and
+received-input fallback preimages bind these identities. A projection change
+therefore invalidates reuse of an earlier context reference. This private keyed
+preimage change adds no response field, public input hash, retrieval API or
+retention. Document revisions continue to bind only the original document bytes
+and role; a context reference confers no execution or retry authority.
 
 Public Local and HTTPS ingress authenticate and authorize each check before
 invoking its installed checker. A Source read-decision owner only controls its
