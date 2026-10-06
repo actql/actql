@@ -128,6 +128,7 @@ pub(all) struct AnalyticFrame {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct AnalyticWindow {
+  reference : (NamePart, Int)?
   partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
@@ -418,6 +419,7 @@ pub(all) enum QueryOperation {
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression, Array[(NamePart, AggregateCall)])
+  Qualify(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
