@@ -2,6 +2,7 @@
 // services with HTTP ingress while keeping control and Result rows in process.
 import {ClientError} from '../../packages/sdk/index.mjs';
 import {performClientSubmit} from './client-submit.mjs';
+import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validCheckpointPage, validCheckpointReview, validClientAdmission,
@@ -88,7 +89,10 @@ export function createNodeInProcessClientHost({
           'authorize_connection', cause);
         authorized = false;
       }
-      if (authorized !== true) fail('ClientConnectionDenied');
+      if (authorized !== true) {
+        if (operation === 'check') return await projectClientCheckUnavailable(check);
+        fail('ClientConnectionDenied');
+      }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
         return handler(Object.freeze({principalId, connection,
