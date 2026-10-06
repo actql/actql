@@ -5,6 +5,10 @@ const encoding: CheckPositionEncoding = 'utf-8';
 const session = createCheckDocumentSession(client, {text: 'SELECT (', version: -1, positionEncoding: encoding});
 session.update('SELECT (', 0);
 const observation = await session.check({format: 'sql'});
+const rendered: string | undefined = session.format(observation, {format: 'json', locale: 'ja'});
+// @ts-expect-error The document session uses its negotiated position encoding.
+session.format(observation, {positionEncoding: 'utf-32'});
+void rendered;
 if (observation.outcome.outcome === 'completed') {
   const location = observation.outcome.report.reasons[0]?.location;
   if (location) {

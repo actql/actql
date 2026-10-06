@@ -273,6 +273,11 @@ export function createCheckDocumentSession(client, options) {
       !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
   let current = {text, version}, checker = client, issued = 0n;
   const observations = new WeakMap();
+  const currentRecord = observation => {
+    const record = observations.get(observation);
+    return current && record?.input && record.ticket === issued &&
+      observation.version === current.version && record.input.text === current.text ? record : undefined;
+  };
   return Object.freeze({
     update(text, version) {
       if (!current) fail('CheckDocumentClosed');
@@ -291,12 +296,28 @@ export function createCheckDocumentSession(client, options) {
       return observation;
     },
     resolveTextRange(observation, location) {
-      const record = observations.get(observation);
-      if (!current || !record?.input || record.ticket !== issued ||
-          observation.version !== current.version || record.input.text !== current.text ||
+      const record = currentRecord(observation);
+      if (!record ||
           location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
       return resolveCheckTextRangeEncoding(observation.outcome, location,
         positionEncoding, record.input);
+    },
+    format(observation, options) {
+      let outcome, selected;
+      try {
+        outcome = observation?.outcome;
+        selected = {format: options?.format, maxBytes: options?.maxBytes,
+          currentInputs: options?.currentInputs, positionEncoding};
+      } catch { return undefined; }
+      try { selected.locale = options?.locale; } catch { selected.locale = 'en'; }
+      // Read application options before deciding whether editor positions are current.
+      const record = currentRecord(observation);
+      if (!record) selected.currentInputs = [];
+      else if (selected.currentInputs === undefined) selected.currentInputs = [...checkInputs.get(outcome).values()];
+      const rendered = formatCheckOutcome(outcome, selected);
+      // Input accessors can edit, close or issue a newer check while rendering.
+      return record && currentRecord(observation) !== record
+        ? formatCheckOutcome(outcome, {...selected, currentInputs: []}) : rendered;
     },
     close() {
       current = undefined;
@@ -373,14 +394,15 @@ export function formatCheckOutcome(outcome, options) {
     snapshot = JSON.parse(JSON.stringify(outcome));
     if (!validCheckOutcome(snapshot)) return undefined;
   } catch { return undefined; }
-  let format, maxBytes, currentInputs, locale;
+  let format, maxBytes, currentInputs, locale, positionEncoding;
   try {
     format = options?.format ?? 'text';
     maxBytes = options?.maxBytes ?? 65536;
     currentInputs = options?.currentInputs;
+    positionEncoding = options?.positionEncoding ?? 'utf-16';
   } catch { return undefined; }
   try { locale = options?.locale; } catch { locale = 'en'; }
-  if (!['text', 'html', 'json'].includes(format) || !Number.isSafeInteger(maxBytes) ||
+  if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
   const presentation = getCheckPresentationInfo({locale});
   const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
@@ -434,7 +456,7 @@ export function formatCheckOutcome(outcome, options) {
         entry.location = {kind: resolved.kind, documentId: resolved.document_id, revision: resolved.revision,
           ...(resolved.kind === 'structured' ? {pointer: resolved.pointer} :
             {startByte: resolved.start_byte, endByte: resolved.end_byte, precision: resolved.precision})};
-        const range = resolved.kind === 'text' && resolveCheckTextRange(outcome, location, current);
+        const range = resolved.kind === 'text' && resolveCheckTextRangeEncoding(outcome, location, positionEncoding, current);
         if (range) Object.assign(entry.location, {positionEncoding: range.positionEncoding, range: range.range});
       }
     } catch { /* Missing or malformed editor input cannot hide safe explanations. */ }
