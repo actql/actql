@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
+import {snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
   validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
@@ -663,4 +663,20 @@ test('independent expression type reasons reject values and foreign fact familie
     {reason_schema_cid: 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'},
     {outcome_schema_cid: 'sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c'},
   ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});
+
+test('check request snapshots refuse lossy numbers and detach without normalization', () => {
+  for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
+    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0}]) {
+    assert.throws(() => snapshotCheckRequest({parameters: {x: {nested: [value]}}}), TypeError);
+  }
+  const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
+    parameters: {'e\u0301/~': [0, null, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]}};
+  const copy = snapshotCheckRequest(input);
+  assert.deepEqual(copy, input);
+  input.parameters['e\u0301/~'][0] = 9;
+  assert.equal(copy.parameters['e\u0301/~'][0], 0);
+  let nested = 'leaf';
+  for (let i = 0; i < 70; i++) nested = [nested];
+  assert.deepEqual(snapshotCheckRequest({parameters: {x: nested}}), {parameters: {x: nested}});
 });

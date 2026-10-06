@@ -11,7 +11,7 @@ import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
-  validCheckOutcome} from
+  validCheckOutcome, snapshotCheckRequest} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -176,7 +176,12 @@ export function createClientHttpHandler({
       if (typeof principal !== 'string' || principal.length === 0) {
         invalid('ClientAuthenticationDenied');
       }
-      const body = await boundedJson(request, maxRequestBytes);
+      let body = await boundedJson(request, maxRequestBytes);
+      if (operation === 'check') {
+        // JSON.parse retains -0 and can overflow a numeric token to infinity.
+        try { body = snapshotCheckRequest(body); }
+        catch { invalid('InvalidClientRequest'); }
+      }
       if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
       const connection = Object.freeze({...body.connection,
         consentRefs: Object.freeze([...body.connection.consentRefs]),

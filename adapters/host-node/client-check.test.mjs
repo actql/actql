@@ -1205,6 +1205,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   closed = false, connectionAllowed = true,
   sdkConnect = connect,
   sdkConnectInProcess = connectInProcess,
+  localAuthenticate = () => owner,
   maxRequestBytes = 65536,
   mutateCheckReply,
   mutateCheckTransportReply,
@@ -1228,7 +1229,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
       maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
-  const configuration = {authenticate: () => owner,
+  const configuration = {authenticate: localAuthenticate,
     authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
     negotiate: () => profile,
     check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
@@ -3311,3 +3312,93 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: raw check ingress refuses lossy source numbers`, async t => {
+    let post, checked = 0;
+    const body = options => ({connection: {mode: entrance === 'local' ? 'local' : 'remote',
+      owner: entrance === 'local' ? 'local' : 'remote', consentRefs: [], runners: []},
+    input: {text: 'SELECT @x AS n', format: 'sql',
+      parameterDeclarations: options.parameterDeclarations}, parameters: options.parameters ?? null});
+    await contextClient(t, entrance, sourceEnvironment, {
+      mutateCheckReply: outcome => {checked++; return outcome;},
+      sdkConnectInProcess: async (options, port) => {
+        post = async (options) => port.perform('check', body(options))
+          .then(value => ({value}), error => ({value: {code: error.code}}));
+        return connectInProcess(options, port);
+      },
+      sdkConnect: async options => {
+        post = async (bindings, token) => {
+          const wire = JSON.stringify(body(bindings)).replace('"numeric-token"', token ?? 'null');
+          const response = await fetch(new URL('actql/client/0.1/check', options.endpoint), {
+            method: 'POST', headers: {'content-type': 'application/json',
+              authorization: 'Bearer owner-token'}, body: wire,
+            signal: AbortSignal.timeout(5000)});
+          return {status: response.status, value: await response.json()};
+        };
+        return connect(options);
+      },
+    });
+    const fixtures = value => [
+      {parameterDeclarations: {x: {type: 'number', nullable: true}}, parameters: {x: value}},
+      {parameterDeclarations: {x: {type: 'object', fields: {nested: {type: 'array', items: {type: 'number'}}}}},
+        parameters: {x: {nested: [value]}}},
+      {parameterDeclarations: {x: {type: 'number', default: value}}},
+      {parameterDeclarations: {x: {type: 'object', fields: {nested: {type: 'array', items: {type: 'number'}}},
+        default: {nested: [value]}}}},
+    ];
+    const invalid = entrance === 'local'
+      ? [NaN, Infinity, -Infinity, -0, new Number(NaN), new Number(-0),
+        {toJSON: () => Infinity}, {toJSON: () => -0}]
+      : ['-0', '1e309', '-1e309'];
+    for (const value of invalid) {
+      for (const fixture of fixtures(entrance === 'local' ? value : 'numeric-token')) {
+        const response = await post(fixture, value);
+        assert.equal(response.value.code, 'InvalidClientRequest', '[check-mutation:host-numeric-refusal]');
+        assert.deepEqual(response.value, {code: 'InvalidClientRequest'});
+        if (entrance === 'http') assert.equal(response.status, 400);
+        assert.equal(checked, 0);
+      }
+    }
+    for (const value of [null, 0, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]) {
+      const response = await post({parameterDeclarations: {x: {type: 'number', nullable: true}},
+        parameters: {x: entrance === 'local' ? value : 'numeric-token'}}, JSON.stringify(value));
+      assert.equal(response.value.report?.verdict, 'verified');
+      if (entrance === 'http') assert.equal(response.status, 200);
+    }
+    // Detachment does not turn the checker's depth budget into request refusal.
+    let nested = 'leaf';
+    for (let i = 0; i < 70; i++) nested = [nested];
+    const limited = await post({parameterDeclarations: {x: {type: 'number'}}, parameters: {x: nested}});
+    assert.equal(limited.value.outcome, 'completed');
+    assert.equal(limited.value.report.verdict, 'undetermined');
+    assert.deepEqual(limited.value.report.reasons, []);
+    assert.deepEqual(limited.value.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+  });
+}
+
+test('local: raw check input custody precedes asynchronous authentication', async t => {
+  let raw, waiting = false, release;
+  const pendingAuthentication = new Promise(resolve => {release = resolve;});
+  await contextClient(t, 'local', sourceEnvironment, {
+    localAuthenticate: async () => {if (waiting) await pendingAuthentication; return owner;},
+    sdkConnectInProcess: async (options, port) => {
+      raw = body => port.perform('check', body);
+      return connectInProcess(options, port);
+    },
+  });
+  waiting = true;
+  const body = {connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+    input: {text: 'SELECT @x AS n', format: 'sql', parameterDeclarations: {x: {type: 'number'}}},
+    parameters: {x: 7}};
+  const pending = raw(body);
+  body.input.text = 'SELECT (';
+  body.input.parameterDeclarations.x.type = 'string';
+  body.parameters.x = 'changed-after-admission';
+  release();
+  const result = await pending;
+  assert.equal(result.report.verdict, 'verified', '[check-mutation:host-check-input-custody]');
+  assert.deepEqual(result.report.inputs.map(({document_id, byte_length}) => ({document_id, byte_length})),
+    [{document_id: 'source', byte_length: 14}, {document_id: 'parameter_declarations', byte_length: 23},
+      {document_id: 'parameters', byte_length: 7}]);
+});

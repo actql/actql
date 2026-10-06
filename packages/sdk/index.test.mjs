@@ -1437,7 +1437,8 @@ test('check refuses lossy numeric serialization before credentials or exchange',
     return 'scoped-token';
   }});
   credentials = 0;
-  for (const value of [NaN, Infinity, -Infinity, -0]) {
+  for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
+    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0}]) {
     await assert.rejects(client.check('SELECT @x AS n', {format: 'sql',
       parameterDeclarations: {x: {type: 'json'}}, parameters: {x: {nested: [value]}}}),
     {code: 'InvalidCheckRequest'});

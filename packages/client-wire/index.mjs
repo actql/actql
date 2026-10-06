@@ -144,6 +144,24 @@ export function validSubmitPreparationError(value) {
 
 export const validClientConnection = validConnectionShape;
 
+// A check observes the JSON value actually submitted at this boundary.
+// Preserve ordinary JSON serialization, but never replace source numbers.
+export function snapshotCheckRequest(value) {
+  return JSON.parse(JSON.stringify(value, (_key, item) => {
+    let number = item;
+    if (item !== null && typeof item === 'object') {
+      // JSON also unwraps boxed Numbers, including across realms.
+      try { number = Number.prototype.valueOf.call(item); }
+      catch { /* Ordinary objects retain their JSON serialization. */ }
+    }
+    if (typeof number === 'number' &&
+        (!Number.isFinite(number) || Object.is(number, -0))) {
+      throw new TypeError('UnrepresentableCheckNumber');
+    }
+    return item;
+  }));
+}
+
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
   if (bodyKeys === undefined || !exact(body, bodyKeys) ||
