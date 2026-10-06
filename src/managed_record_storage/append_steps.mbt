@@ -1,6 +1,7 @@
 ///|
 priv enum AppendPhase {
   Fields
+  FieldContract
   Required
   Identities
   BeginKey
@@ -30,6 +31,9 @@ struct AppendCursor {
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   identities : Array[@value.CheckedValue]
   mut supplied : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut contract_check : @contract.TypeEquality?
+  mut contract_field : (@schema.FieldName, @value.CheckedValue)?
+  mut contract_slots : Int
   mut phase : AppendPhase
   mut index : Int
   mut writer : @encode.Writer?
@@ -102,6 +106,9 @@ pub fn start_append(
     fields: [],
     identities: [],
     supplied: fields,
+    contract_check: None,
+    contract_field: None,
+    contract_slots: 0,
     phase: Fields,
     index: 0,
     writer: None,
@@ -130,6 +137,50 @@ fn fail_append(cursor : AppendCursor, issue : Issue) -> Result[Bool, Issue] {
   cursor.builder.open = false
   // Do not release provisional custody before the caller observes stop.
   Err(issue)
+}
+
+///|
+/// The root/handle fits fixed cursor custody. Contract continuations reuse the
+/// inactive wire stacks; reserve any deeper contract before pushing a frame.
+fn advance_append_contract(cursor : AppendCursor) -> Result[Bool, Issue] {
+  guard cursor.contract_check is Some(check) else { return Err(InvalidRecord) }
+  let frames = @contract.type_equality_next_frames(check)
+  let covered = cursor.builder.limits.max_value_depth
+  let extra = (frames - 1 - covered).max(0)
+  if extra > 2147483647 / 3 {
+    return Err(WorkspaceLimit)
+  }
+  let required = extra * 3
+  let additional = (required - cursor.contract_slots).max(0)
+  if additional >
+    cursor.builder.limits.max_workspace_slots -
+    cursor.builder.workspace_slots -
+    cursor.workspace {
+    return Err(WorkspaceLimit)
+  }
+  cursor.contract_slots += additional
+  cursor.workspace += additional
+  let result = @contract.advance_type_equality(check) catch {
+    _ => return Err(InvalidRecord)
+  }
+  match result {
+    None => Ok(false)
+    Some(false) => Err(InvalidRecord)
+    Some(true) => {
+      cursor.contract_check = None
+      cursor.workspace -= cursor.contract_slots
+      cursor.contract_slots = 0
+      guard cursor.contract_field is Some((name, value)) else {
+        return Err(InvalidRecord)
+      }
+      cursor.contract_field = None
+      cursor.actual[@schema.reference_name(name)] = value
+      cursor.fields.push((name, value))
+      cursor.index += 1
+      cursor.phase = Fields
+      Ok(true)
+    }
+  }
 }
 
 ///|
@@ -189,23 +240,43 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
           }
           match @carrier.lookup(builder.records, name) {
             @carrier.Present(expected) => {
-              guard expected.contract is Some(contract) &&
-                contract_equal(builder, contract, value.contract) else {
+              guard expected.contract is Some(contract) else {
                 return fail_append(cursor, InvalidRecord)
+              }
+              cursor.contract_check = Some(
+                @contract.start_type_equality(
+                  contract,
+                  value.contract,
+                  builder.limits.max_contract_work,
+                ),
+              )
+              cursor.contract_field = Some((name, value))
+              cursor.phase = FieldContract
+              // Fixed scalar equality still finishes in the original field
+              // poll. Recursive/name scans retain this same child cursor.
+              match advance_append_contract(cursor) {
+                Ok(_) => ()
+                Err(issue) => return fail_append(cursor, issue)
               }
             }
             @carrier.Absent => return fail_append(cursor, InvalidRecord)
-            @carrier.Unknown => ()
+            @carrier.Unknown => {
+              cursor.actual[spelling] = value
+              cursor.fields.push((name, value))
+              cursor.index += 1
+            }
           }
-          cursor.actual[spelling] = value
-          cursor.fields.push((name, value))
-          cursor.index += 1
         } else {
           cursor.supplied = []
           cursor.index = 0
           cursor.phase = Required
         }
       }
+      FieldContract =>
+        match advance_append_contract(cursor) {
+          Ok(_) => ()
+          Err(issue) => return fail_append(cursor, issue)
+        }
       Required =>
         if @carrier.field_at(builder.records, cursor.index) is Some(expected) {
           if !cursor.actual.contains(@schema.reference_name(expected.name)) {
@@ -448,6 +519,12 @@ pub fn cleanup_append(cursor : AppendCursor) -> Bool {
   if cursor.cleaned {
     return false
   }
+  if cursor.contract_check is Some(check) {
+    @contract.cancel_type_equality(check)
+    cursor.contract_check = None
+  }
+  cursor.contract_slots = 0
+  cursor.contract_field = None
   if cursor.wire is Some(wire) {
     @value.cancel_wire_emit(wire)
     cursor.wire = None

@@ -213,7 +213,9 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_output_record_limits', 'pool_output_record_cleanup',
     'pool_output_owner_exclusion', 'pool_identity_hash_limits',
     'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
-    'pool_identity_output_control_stop']) {
+    'pool_identity_output_control_stop', 'pool_record_contract_names',
+    'pool_record_contract_workspace', 'pool_record_contract_cleanup',
+    'pool_record_contract_pair_limits', 'pool_record_contract_binding']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');

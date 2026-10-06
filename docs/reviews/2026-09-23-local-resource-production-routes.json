@@ -9953,6 +9953,41 @@
           "fixture": "Pool output identity hashing keeps independent control and stop boundaries"
         },
         {
+          "role": "pool_record_contract_names",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record append resumes contract names with unchanged construction limits"
+        },
+        {
+          "role": "pool_record_contract_workspace",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract stack reserves exact extra custody before allocation"
+        },
+        {
+          "role": "pool_record_contract_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract cancellation retains prior rows until owner cleanup"
+        },
+        {
+          "role": "pool_record_contract_pair_limits",
+          "suite": "moon:value_contract",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_contract/equality_steps_wbtest.mbt",
+          "fixture": "type equality yields across wide objects without changing pair limits"
+        },
+        {
+          "role": "pool_record_contract_binding",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/contract_steps_wbtest.mbt",
+          "fixture": "record contract continuation binds the field it actually validated"
+        },
+        {
           "role": "pool_output_record_limits",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
