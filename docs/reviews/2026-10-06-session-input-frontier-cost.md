@@ -25,10 +25,14 @@ receipt can silently adopt a new extractor source.
 ## Actual-source equivalence and regression evidence
 
 The regression compares all thirty actual Git action manifests, including their
-keys and unresolved boundaries, against the exact preceding extractor from
-`92fb7a94b1c9776ce13eb516723dd3471f6152f3`. Only its two relative imports are
-relocated to the same unchanged candidate dependencies. This reference is used
-only by tests and the measurement script; production has one implementation.
+keys and unresolved boundaries, against the exact preceding package traversal from
+`92fb7a94b1c9776ce13eb516723dd3471f6152f3`. The surrounding registration,
+shared-input inventory, parser and decoder context is held equal, so a later
+legitimate added obligation does not falsely fail against a historical catalog.
+Only two relative imports are relocated to the same candidate dependencies.
+This reference is used only by tests and the measurement script; production has
+one implementation. This checks the changed traversal under that shared
+context, not every historical extractor behavior under arbitrary later changes.
 
 Independent fixtures fix reachable diamond/cycle membership and external
 imports, refuse missing/dynamic/nested inputs, observe new members/import changes
@@ -40,8 +44,13 @@ refusal regressions remain.
 
 The original [nine pairs](2026-10-06-session-input-frontier-pairs.json) are
 unchanged, recorded at clean implementation
-`9ad58b9cda6d00f44b3a11690d28369c33e01d3f` by
-`scripts/profile-session-input-frontiers.mjs`. Each invocation reconstructs a
+`9ad58b9cda6d00f44b3a11690d28369c33e01d3f` by that revision's
+`scripts/profile-session-input-frontiers.mjs`. That measurement loaded the full
+preceding module; at that revision, its surrounding input-extraction context
+was unchanged, with the package traversal being the only product-code diff.
+The later reference loader isolates that prior traversal to keep future
+registrations comparable; it does not rewrite the measured original.
+Each invocation reconstructs a
 fresh Git tree and extracts all thirty actions. OS/filesystem caches are warm;
 there are two warmup pairs and nine alternating-order measured pairs. Separate
 untimed instrumentation counts actual Git invocations without changing their

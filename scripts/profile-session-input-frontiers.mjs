@@ -12,7 +12,19 @@ export const referenceRevision = '92fb7a94b1c9776ce13eb516723dd3471f6152f3';
 const sourcePath = 'proofs/ci-evidence/inputs.mjs';
 export async function loadReference(root) {
   const bytes = execFileSync('git', ['show', `${referenceRevision}:${sourcePath}`], {cwd: root});
-  let code = bytes.toString('utf8');
+  // Compare only the changed traversal. Keep registry/shared-input/parser
+  // context equal so later legitimate obligations do not invalidate this
+  // regression merely because the historical module's catalog was smaller.
+  const candidate = readFileSync(join(root, sourcePath), 'utf8');
+  const span = code => {
+    const start = code.indexOf('export function packageSourceInputs(');
+    const end = code.indexOf('export const mutationPackages', start);
+    assert(start >= 0 && end > start && code.indexOf('export function packageSourceInputs(', start + 1) < 0,
+      'Unexpected extractor boundary');
+    return {start, end};
+  };
+  const previous = bytes.toString('utf8'), old = span(previous), current = span(candidate);
+  let code = candidate.slice(0, current.start) + previous.slice(old.start, old.end) + candidate.slice(current.end);
   for (const [relative, path] of [['../bounded-session/action-inputs.mjs', 'proofs/bounded-session/action-inputs.mjs'],
     ['./package-configurations.mjs', 'proofs/ci-evidence/package-configurations.mjs']]) {
     const from = `from '${relative}'`;
@@ -65,7 +77,7 @@ async function profile(root, output) {
     referenceRevision, referenceDigest: before.referenceDigest, candidateExtractorDigest: hash(readFileSync(join(root, sourcePath))),
     conditions: {actions: catalog.actions.length, tree: 'fresh per invocation; immutable candidate Git blobs',
       warmupPairs: 2, measuredPairs: 9, caches: 'OS/filesystem warm; no closure cache across invocations',
-      referenceImports: 'only two relative imports relocated to the same candidate dependencies',
+      referenceImports: 'preceding package traversal in equal candidate context; two relative imports relocated',
       target: 'source extraction only; no Moon/Lean/compiler/Actions execution'}, counts, pairs,
     netRunnerSavingsMilliseconds: null};
   writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});
