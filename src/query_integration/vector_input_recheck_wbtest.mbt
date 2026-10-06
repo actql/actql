@@ -115,8 +115,8 @@ test "nearest Relation admission yields within unused arrays before stop" {
   // Existing one-record-per-side nearest: 52. Two extra field/match pairs:
   // 4. Each side adds scalar 2, Vector 5 and Array 2*257+3=517 polls.
   // Total 52+4+2*(2+5+517)=1104, independent of a measured execution.
-  // Existing structural 31 plus eight cursor slots and depth-two frames
-  // (2+2) gives 43. Values remain subject to the 258-node Array limit.
+  // Existing structural 32 plus eight cursor slots and depth-two frames
+  // (2+2) gives 44. Values remain subject to the 258-node Array limit.
   assert_true(
     @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
@@ -127,7 +127,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
       @local_veca.nearest_relation_producer(inputs[1]),
       10,
       { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-      42,
+      43,
       1000,
       1000,
       1104,
@@ -145,7 +145,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
         @local_veca.nearest_relation_producer(inputs[1]),
         10,
         { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-        43,
+        44,
         1000,
         1000,
         limit,
@@ -199,7 +199,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
     @local_veca.nearest_relation_producer(inputs[1]),
     10,
     { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-    43,
+    44,
     1000,
     1000,
     1104,
@@ -224,7 +224,7 @@ test "nearest Relation admission yields within unused arrays before stop" {
     @local_veca.nearest_relation_producer(inputs[1]),
     10,
     { max_nodes: 257, max_text_bytes: 1000, max_depth: 2, max_work: 1000, },
-    43,
+    44,
     1000,
     1000,
     1104,

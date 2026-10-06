@@ -9907,6 +9907,27 @@
           "fixture": "runtime vector recheck yields between components with exact node usage"
         },
         {
+          "role": "nearest_name_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest borrowed names keep independent Carrier and Relation limits"
+        },
+        {
+          "role": "nearest_name_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/nearest_name_matching_wbtest.mbt",
+          "fixture": "nearest public name barrier retains Relation inputs until confirmed stop"
+        },
+        {
+          "role": "nearest_name_qualification",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/nearest_name_roles_wbtest.mbt",
+          "fixture": "nearest identity matching keeps qualification separate from spelling"
+        },
+        {
           "role": "nearest_direct_relation_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -10012,6 +10033,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
           "fixture": "public retained nearest admits Relation inputs and cancels inside unused array"
+        },
+        {
+          "role": "nearest_name_public_store",
+          "suite": "node:embedded_nearest_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-nearest-key-retention.test.mjs",
+          "fixture": "public retained nearest borrows long role names and cancels inside component lookup"
         },
         {
           "role": "nearest_relation_host_in_flight_cancel",

@@ -15,17 +15,23 @@ const expectedRows = prefix => ['a', 'b'].flatMap(query => ['a', 'b'].map((candi
   rank: index + 1, score: 5,
 })));
 
-function program(id, prefix, direct = false) {
+function program(id, prefix, direct = false, longNames = false) {
+  const identity = longNames ? 'm'.repeat(511) + '😀' : 'id';
+  const component = longNames ? 'z'.repeat(511) + '😀' : 'embedding';
   const schema = {
-    id: {type: 'string', nullable: false},
-    embedding: {type: 'vector', dimensions: 2, nullable: false},
+    ...(longNames ? {aa_unused: {type: 'array', nullable: false, max_items: 115,
+      items: {type: 'number', nullable: false}}} : {}),
+    [identity]: {type: longNames ? 'number' : 'string', nullable: false},
+    [component]: {type: 'vector', dimensions: 2, nullable: false},
     ...(direct ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
       items: {type: 'number', nullable: false}}} : {}),
   };
   return {version: 'actql/0.1', id, stages: [
     ...['candidates', 'queries'].map(name => ({id: name, inputs: {},
       steps: [{values: {schema, rows: ['b', 'a'].map(suffix => ({
-        id: prefix + suffix, embedding: [1, 2],
+        [identity]: longNames ? (suffix === 'a' ? 1 : 2) : prefix + suffix,
+        [component]: [1, 2],
+        ...(longNames ? {aa_unused: Array.from({length: 115}, () => 1)} : {}),
         ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
       }))}, as: 'out'}], results: {r: {from: 'out', fields: Object.keys(schema)}},
     })),
@@ -34,8 +40,8 @@ function program(id, prefix, direct = false) {
       candidates: {result: {stage: 'candidates', result: 'r'}},
     }, steps: direct ? [
       {from: 'candidates', nearest: {queries: 'queries', metric: 'dot', k: 2,
-        candidate_id: 'id', candidate_vector: 'embedding',
-        query_id: 'id', query_vector: 'embedding'}, as: 'out'},
+        candidate_id: identity, candidate_vector: component,
+        query_id: identity, query_vector: component}, as: 'out'},
     ] : [
       {from: 'candidates', to_vectors: {id: 'id', vector: 'embedding'}, as: 'cv'},
       {from: 'queries', to_vectors: {id: 'id', vector: 'embedding'}, as: 'qv'},
@@ -53,10 +59,12 @@ function program(id, prefix, direct = false) {
 }
 
 async function runPublicNearestBarrier(t, {
-  prefixLength, barrierWork, barrierProgress, direct = false,
+  prefixLength, barrierWork, barrierProgress, direct = false, longNames = false,
 }) {
     const prefix = 'x'.repeat(prefixLength);
-    const expected = expectedRows(prefix);
+    const expected = longNames ? [1, 2].flatMap(query => [1, 2].map((candidate, index) => ({
+      candidate_id: candidate, query_id: query, rank: index + 1, score: 5,
+    }))) : expectedRows(prefix);
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-nearest-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -73,7 +81,8 @@ async function runPublicNearestBarrier(t, {
     let bridges = 0;
     let nearestWork = 0;
     let representations;
-    const fixtureId = direct ? 'public-nearest-input' : 'public-nearest-key';
+    const fixtureId = longNames ? 'public-nearest-names' :
+      direct ? 'public-nearest-input' : 'public-nearest-key';
     const trace = [];
     const keys = generateKeyPairSync('ed25519');
     const authorization = {
@@ -101,7 +110,10 @@ async function runPublicNearestBarrier(t, {
           return;
         }
         // The existing Carrier cases retain both bridges in the fused task.
-        // Direct Relation input: two field rechecks finish before zz_unused;
+        // The long-name fixture's independently checked first-record prelude
+        // reaches component offset192 at poll256: Array233 plus setup/lookup,
+        // scalar2, nine identity-name fragments, and Vector5. The ordinary
+        // direct Relation fixture finishes two fields before zz_unused;
         // fewer than 256 polls remain for its 261-poll array walk, so this
         // boundary cannot finish the first input. No sleep selects the phase.
         assert.equal(detail.work, '256');
@@ -124,11 +136,12 @@ async function runPublicNearestBarrier(t, {
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program(fixtureId, prefix, direct));
+    const source = JSON.stringify(program(fixtureId, prefix, direct, longNames));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
+    assert.deepEqual(Object.keys(state.result_availability).sort(), names.toSorted());
     for (const name of names) assert.deepEqual(await execution.result(name).all(), expected);
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
@@ -141,7 +154,7 @@ async function runPublicNearestBarrier(t, {
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, direct)),
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, direct, longNames)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
@@ -185,4 +198,9 @@ test('public retained nearest cancels output after its first committed row',
 test('public retained nearest admits Relation inputs and cancels inside unused array',
   {timeout: 45_000}, t => runPublicNearestBarrier(t, {
     prefixLength: 1, barrierWork: 256, barrierProgress: 0, direct: true,
+  }));
+
+test('public retained nearest borrows long role names and cancels inside component lookup',
+  {timeout: 45_000}, t => runPublicNearestBarrier(t, {
+    prefixLength: 0, barrierWork: 256, barrierProgress: 0, direct: true, longNames: true,
   }));

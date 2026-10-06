@@ -1433,6 +1433,19 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'VecA' && route.operation === 'nearest') {
+      for (const role of ['nearest_name_limits_stop_cleanup',
+        'nearest_name_public_barrier', 'nearest_name_qualification']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('nearest_name_public_store')) {
+        fail(`${label}: nearest name public Store fixture is missing`);
+      }
+      const names = fs.readFileSync(path.join(root, 'src/local_veca/nearest.mbt'), 'utf8');
+      if (!names.includes('compare_reference_fragment(') ||
+          !names.includes('nearest_same_name_role(') ||
+          names.includes('@schema.reference_name(')) {
+        fail(`${label}: nearest borrowed-name production boundary is missing`);
+      }
       for (const role of ['nearest_relation_input_limits_stop_cleanup',
         'nearest_relation_input_shared_vector']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);

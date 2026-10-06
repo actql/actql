@@ -42,6 +42,8 @@ pub fn nearest_max_noninterruptible_value_bytes(NearestExecution) -> Int
 
 pub fn nearest_max_noninterruptible_value_nodes(NearestExecution) -> Int
 
+pub fn nearest_name_offset(NearestExecution) -> Int
+
 pub fn nearest_record_producer(@managed_record_runtime.ProducerRead) -> NearestProducerInput?
 
 pub fn nearest_relation_producer(@execution_relation.ProducerRead) -> NearestProducerInput

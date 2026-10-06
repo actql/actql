@@ -5952,6 +5952,33 @@ full-target/packed campaigns remain residuals. See the
 [name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
 boundaries, the atomic-drain negative and actual versus unverified checks.
 
+### Nearest input role-name matching
+
+Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16
+pairs per poll. Typed identity qualification remains distinct from reference
+spelling. Existing key comparison and admitted output-row owners are reused;
+no alternate execution lane is added. The extra cursor position is reserved
+before reads, and pending fields remain owned until confirmed stop and cleanup.
+
+Current short-name boundaries are Carrier control 52/51 with workspace 32/31,
+and depth-ten Relation control 66/65 with workspace 52/51. Long 513-unit names
+add 32 control polls across two ports: Carrier 84/83, Relation 98/97 with
+depth-two workspace 44/43. The long Text identity fixture remains 1517/1516
+control, now 45/44 workspace; unused 257-item Relation Array admission remains
+1104/1103 control, now 44/43 workspace. Earlier figures above describe their
+original revisions, not current limits. The typed Relation caller's old
+Carrier-only premise is corrected to include its existing input rechecks.
+
+Ordinary retained Host evidence reads exactly three expected Named Results,
+checks request reuse without another dispatch, and delivers cancellation at
+component name offset 192. Inputs stay retained before stop confirmation;
+partial Results are unavailable and snapshots are reclaimed afterward.
+Qualification, independent budgets and both name-phase cancellation boundaries
+are registered in the production-route gate. This is not a whole-Local or
+whole-Run completion claim. See the
+[Nearest evidence](2026-10-06-local-nearest-name-matching.md) for commands,
+verified source SHA, payload digests, preserved failures and residuals.
+
 ### Ranking algorithmic reference-name matching
 
 Ranking input binding now retains its borrowed current field, role probe and
