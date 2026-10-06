@@ -13,6 +13,7 @@ import {checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isola
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const originals = [
+  ['b34f6e544', 'b34f6e5445b731584729a1f8c09ec8c2404ccde6', '9a2e83e9be1396bedc7410fa11b48a8e8942c39f80098f7baa4b238969454c04'],
   ['fc2962f43', 'fc2962f43431e5c4c86cb47970251aa4c7c7f98c', 'e61d9c3c69c012fe4613644e3bc7b084ec402b6506aad4bf569660ab1a429ee4'],
   ['8bbe08fca', '8bbe08fca045be6c00a64eb5a68889295082c67c', '52d9e7931fe6a3b14d2b00a51094f4f83f4161363440360ab22b207d33afb6aa'],
 ];

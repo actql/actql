@@ -56,8 +56,47 @@ another host image/kernel and changed CPU observations. The historical physical
 originals remain accepted only at their actual Git source; later product inputs
 cannot borrow them. Local evidence is not an authenticated protected-main origin.
 
-An execution of the new source/policy image is required separately; the older
-image does not establish current physical acceptance. Successful main comparison,
-ordinary-PR acquisition and net runner savings remain unverified. No workflow,
-selector, scope expansion, guard removal or Actions dispatch is part of this
-change.
+## Current-source local physical acceptance
+
+At clean source `b34f6e5445b731584729a1f8c09ec8c2404ccde6`, the existing legitimate
+local entrance built immutable scratch image
+`sha256:2fe53665521475b06b49132da38a88296767dc2d682c3633f941be2ce627de73`.
+Its 3,837 staged source files include 3,806 selected product-source paths.
+All thirteen registered experiments produced their intended running assertion
+failure (`failureCount: 1`); the original source bytes were restored and the real
+scientific consumer accepted the result. The independent image inventory and
+consumer confirm that all four installed core build metadata files remain
+absent. The existing owner closed its container and image successfully.
+
+The complete original, including input manifest, immutable image definition,
+arguments, thirteen raw assertion logs and restoration observation, is retained
+unchanged at `evidence/2026-10-06-local-isolated-session-b34f6e544.json.gz`.
+Uncompressed SHA-256:
+`9a2e83e9be1396bedc7410fa11b48a8e8942c39f80098f7baa4b238969454c04`;
+gzip SHA-256: `e957c96702376edfc1c6e5b7e8fcb4878b0ddc70bf964d0a3f5dc56693501bcc`.
+The replay regression checks its actual revision and bytes through the real
+consumer and refuses changed source, missing logs, compile-only failure and
+failed restoration. Publishing the evidence does not rewrite its source SHA.
+
+Executed command (Linux Moon installation is the retained pinned local input):
+
+```sh
+node proofs/ci-evidence/local-isolated-acceptance.mjs run \
+  --engine /usr/local/bin/docker \
+  --builder-image sha256:e894118949319b479bfc3e16e545cb2f85b7a2194aa86ea9cd4e29538f2b13c3 \
+  --moon-home /Users/t14i/workspace/20260822/worktrees/actql-local-isolated-session-acceptance/_build/local-isolated-toolchain/moonbit
+```
+
+Bounded receipt `run-M878DS` completed with exit 0 and released its locks.
+Preparation/build/execution/inspection/close took respectively
+23,889/19,018/160,721/1,305/730 ms; overall guarded elapsed time was 214,947 ms.
+These are local observations, not a controlled before/after savings comparison.
+The preceding `run-ZCNbNO` failed at image build with Docker EOF, before any
+experiment. Its custody, input manifest and supervisor log remain retained;
+473 MB of owned regenerable staging was reclaimed. After normal OrbStack start,
+the missing failed image was confirmed and the same command succeeded.
+
+This local physical evidence retains `reuseAuthorized: false` and its lack of
+Actions provenance. Successful authenticated main comparison, ordinary-PR
+acquisition and net runner savings remain unverified. No workflow, selector,
+scope expansion, guard removal or Actions dispatch is part of this change.
