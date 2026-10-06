@@ -153,18 +153,19 @@ fn advance_logical_measure_impl(
   if cursor.stack.pop() is Some(frame) {
     match frame {
       Read(v, depth) => {
-        if depth > cursor.max_depth || cursor.nodes == cursor.max_nodes {
-          return Err(HostMeasureLimit)
-        }
-        cursor.nodes += 1
-        if !logical_measure_charge(cursor, 1L) {
-          return Err(LogicalWorkLimit)
+        // JsonData is a domain marker; logical work counts its payload once.
+        // The separate wire cursor still charges the physical envelope.
+        if !(v is @admitted.JsonData(_)) {
+          if depth > cursor.max_depth || cursor.nodes == cursor.max_nodes {
+            return Err(HostMeasureLimit)
+          }
+          cursor.nodes += 1
+          if !logical_measure_charge(cursor, 1L) {
+            return Err(LogicalWorkLimit)
+          }
         }
         match v {
-          @admitted.JsonData(payload) => {
-            cursor.nodes -= 1
-            cursor.stack.push(Read(payload, depth))
-          }
+          @admitted.JsonData(payload) => cursor.stack.push(Read(payload, depth))
           @admitted.Null | @admitted.Number(_) | @admitted.Boolean(_) => ()
           @admitted.Text(s) | @admitted.Date(s) | @admitted.Timestamp(s) =>
             if !logical_measure_text(cursor, s) {
