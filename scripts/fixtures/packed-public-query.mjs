@@ -1,3 +1,5 @@
+import {aggregateFilterSuccesses, aggregateFilterRefusals, aggregateFilterExecutionFailures}
+  from './aggregate-filter-source-input.mjs';
 import {graphDeltaSourceControls, graphDeltaSourceRefusals, graphDeltaSourceExecutionFailures}
   from './graph-delta-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
@@ -105,6 +107,7 @@ const havingObjectPropertyOnly = process.env.ACTQL_TEST_HAVING_OBJECT_PROPERTY_O
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
 const limitParameterOnly = process.env.ACTQL_TEST_LIMIT_PARAMETER_ONLY === '1';
+const aggregateFilterOnly = process.env.ACTQL_TEST_AGGREGATE_FILTER_ONLY === '1';
 const ifnullOnly = process.env.ACTQL_TEST_IFNULL_ONLY === '1';
 const analyticCountifOnly = process.env.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY === '1';
 const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
@@ -147,7 +150,7 @@ const analyticPartitionPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PARTITION_
 const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
 const analyticFrameParameterOnly = process.env.ACTQL_TEST_ANALYTIC_FRAME_PARAMETER_ONLY === '1';
-const scopeOnly = graphDifferenceOnly || graphDeltaOnly || jsonSourceOnly || limitParameterOnly || typedJsonOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
+const scopeOnly = aggregateFilterOnly || graphDifferenceOnly || graphDeltaOnly || jsonSourceOnly || limitParameterOnly || typedJsonOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -182,6 +185,7 @@ const scopeInputs = limitParameterOnly ? {successes: limitParameterSuccesses, re
   refusals: [...analyticOrderRefusals, ...analyticPropertyRefusals, ...analyticOffsetRefusals],
   executionFailures: analyticOrderExecutionFailures}
   : analyticOrderOnly ? {successes: analyticOrderInputs, refusals: analyticOrderRefusals, executionFailures: analyticOrderExecutionFailures}
+  : aggregateFilterOnly ? {successes: aggregateFilterSuccesses, refusals: aggregateFilterRefusals, executionFailures: aggregateFilterExecutionFailures}
   : ifnullOnly ? {successes: ifnullSuccesses, refusals: ifnullRefusals, executionFailures: ifnullExecutionFailures}
   : analyticOffsetOnly ? {successes: analyticOffsetSuccesses, refusals: analyticOffsetRefusals}
   : joinPropertyOnly ? {successes: joinPropertySuccesses, refusals: joinPropertyRefusals}
@@ -240,6 +244,9 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...typedJsonLiteralRefusals);
   scopeInputs.successes.push(...limitParameterSuccesses);
   scopeInputs.refusals.push(...limitParameterRefusals);
+  scopeInputs.successes.push(...aggregateFilterSuccesses);
+  scopeInputs.refusals.push(...aggregateFilterRefusals);
+  scopeInputs.executionFailures.push(...aggregateFilterExecutionFailures);
   scopeInputs.successes.push(...ifnullSuccesses);
   scopeInputs.refusals.push(...ifnullRefusals);
   scopeInputs.executionFailures.push(...ifnullExecutionFailures);

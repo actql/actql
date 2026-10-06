@@ -1065,6 +1065,25 @@ fn lower_aggregate_resolved(
         raise Abort(UnsupportedAggregate)
       }
   }
+  match call.filter {
+    Some(filter) =>
+      entries.push(
+        (
+          "filter",
+          match
+            @expression.append_with_properties(
+              filter,
+              resolve,
+              construction.builder,
+              max_work,
+            ) {
+            Ok(value) => value
+            Err(error) => raise Abort(Expression(error))
+          },
+        ),
+      )
+    None => ()
+  }
   if call.distinct {
     entries.push(("distinct", construction.add(Bool(true))))
   }
@@ -1904,6 +1923,7 @@ fn compile_steps(
         if !scoped && keys.is_empty() && projections.length() == 1 {
           match projections[0].aggregate {
             Some(call) if call.function_name == "ARRAY_AGG" &&
+              call.filter is None &&
               call.distinct &&
               call.order_by.length() == 1 =>
               match call.argument {

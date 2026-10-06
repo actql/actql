@@ -92,6 +92,23 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+An aggregate-local `WHERE` follows its argument and any supported NULL modifier,
+for example `COUNT(* WHERE amount > 0)` or
+`SUM(DISTINCT amount WHERE amount > 0)`. The selected GoogleSQL language reference
+at `d82db99a923a46571f543a13899dc791a7b6f743` defines this clause
+([aggregate calls](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/aggregate-function-calls.md));
+this is not a claim that every Google service deploys that language feature.
+It lowers to the existing aggregate's `filter`, separately from query WHERE.
+Only TRUE admits a contributor; FALSE and NULL exclude it. The common owner
+evaluates each filter before its argument, then applies NULL exclusion,
+DISTINCT and the existing fold. Arguments and filters resolve against input
+columns and current retained range bindings, not sibling SELECT aliases.
+The same lowering serves frame aggregates in the existing inline OVER profile.
+Existing key, ordered-collection, type, capacity and failure contracts remain
+in force. A filtered ARRAY_AGG does not discard fields needed by its filter
+through the unfiltered DISTINCT-key projection optimization. The Frontend does
+not hoist arguments across their filter or provide an aggregate evaluator.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
