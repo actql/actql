@@ -75,7 +75,59 @@ manifest checks passed 7/7 (`run-j4nxdZ`) after their metadata update.
 Workers and Node fixture generators passed their read-only freshness checks;
 they required no fixture source change for this parser/lowerer update.
 
-Normal five-package Local/HTTPS acceptance and submitted-SHA CI are pending at
-this checkpoint. Syntax/checker success is not counted as executed acceptance.
+The initial ten-success/seven-refusal corpus passed both transports from
+`1d63df05c4ad939265cdb2fcfb2726dac15ae6cf` (`public-query-evidence-JYmN1c`).
+The final ambiguity caller checks passed 5/5 (`run-OrskVU`). Its duplicate-alias
+case is refused by the existing shared JOIN scope as `AmbiguousRelation` before
+star expansion. Source-fixture Node checks passed 2/2 (`run-kFMg2t`).
+
+Normal five-package acceptance from
+`e8fa67edbd983eddcae17466168d900f2363dbe1` passed all ten successes and eight
+preparation refusals in Embedded Local and HTTPS. Every authored case remains
+in the ordinary corpus. The command was:
+
+```sh
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-qualified-star-final-20261007-pack node scripts/test-packed-public-query.mjs --qualified-star-only
+```
+
+The private installation used the existing B download cache in offline mode.
+It was removed automatically after preserving evidence under
+`worktrees/.codex-scratch/public-query-evidence-74Vu88`. The producer manifest
+and normal tarballs remain at the command's package path. The producer's clean
+build-input and digest checks were not bypassed; the evidence recorder's
+`dirty: true` reflects unrelated, preserved untracked `review-artifacts/`.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `27066b9ab7a1f4a3f15dec782b17ccdff5f04aca45ca2b3bf1496bb6bca329c3` |
+| sdk | `d72e590dca3666fa0d2444492b2ec4559b056008a5b8575d4bc4ebe24159baa9` |
+| run-host-core | `9fed7518e01544413254588b486f417e16692c98fb3db8b731d3230927da0948` |
+| local-node | `1d6c37c23bfd6423ae748d32ea2f31c862d9f722e00f86ce6fe0d65a69e1a279` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+This report is a later documentation change, not another tested distribution.
+Submitted-SHA CI and content review remain unverified.
 Full Core, all targets, complete packed/Planner, performance and Cloud suites
 are not part of the local checkpoint.
+
+## Separate retained Planner fixture mismatch
+
+The previous acceptance's unrelated Planner rejection was narrowed using
+`review-artifacts/b-planner-requirement-20261007/probe.mjs` on source
+`8d33048e9355c8564571d62f81cc466cc6e8283e` with the retained standard runtime
+(package source `58c3db8aeabe77c60c479e5dee2d3c34cb012a94`). The original JSON
+Program passes ordinary preparation. Its current normal requirement CID is
+`sha256:184df559555d7c498749f497da6837ad5d30035784eb670181e7ad0a81490fe9`,
+versus the fixture's `sha256:1eaca4154c1d97c24db2bbff2fd875ee9ebdcc929d7e103ad818129ebc050d48`.
+The unsupported-native-predicate variant also differs:
+`sha256:d4f6556b7c50ae0042cd7c47485600a16c1a6a02684a85b08e8f01cfcbf511e5`
+versus `sha256:84feddd46622948d1375d8f3f0ac80e511aa83fa6f29914ca1878f95740b3fa9`.
+
+The installed acquisition selector explicitly treats a foreign requirement CID
+as missing estimate evidence before provider I/O. This establishes stale fixture
+conditions consistent with the earlier public 422; it does not establish the
+sole cause by a repaired public Planner run. No estimate, expectation, threshold
+or Planner implementation was changed here. A separately owned fixture repair
+must derive and pin the current requirement preimages, keep the foreign-evidence
+negative case, and rerun the original 22 public cases. This is not a frontend
+lowering refusal and does not block the independently verified star corpus.
