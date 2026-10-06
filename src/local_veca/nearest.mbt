@@ -4,7 +4,7 @@ priv struct NearestInputView {
   vectors : @carrier.Vectors
   records : Int
   identity_count : Int
-  component_name : String
+  component_name : @schema.FieldName
   dimensions : Int
 }
 
@@ -70,6 +70,7 @@ priv enum NearestPhase {
   InitializeIdentitySlots
   ReadInputField
   RecheckInputField
+  MatchInputComponent
   MatchInputIdentity
   FinishInputRecord
   ValidateInputComponent
@@ -117,6 +118,7 @@ priv struct NearestState {
   mut field : Int
   mut identity_probe : Int
   mut current_field : (@schema.FieldName, @value.CheckedValue)?
+  mut name_offset : Int
   mut identity_values : Array[@value.CheckedValue?]
   mut validated_identities : Array[@value.CheckedValue]
   mut key_comparison : @value.BoundedKeyComparison?
@@ -152,7 +154,10 @@ priv struct NearestState {
 }
 
 ///|
+/// Private observation only; Session retains execution and cleanup authority.
+#warnings("-unused_field")
 struct NearestExecution {
+  state : NearestState
   session : @bounded.Session[
     NearestState,
     @execution.CompletedOutput,
@@ -234,7 +239,8 @@ fn nearest_workspace(
     nearest_checked_add(first, scores) is Some(second) &&
     nearest_checked_add(second, record_scratch) is Some(third) &&
     nearest_checked_add(candidate_ids, query_ids) is Some(identity_slots) &&
-    nearest_checked_add(identity_slots, 16) is Some(fixed_slots) &&
+    // One additional reserved position for the borrowed input-name scan.
+    nearest_checked_add(identity_slots, 17) is Some(fixed_slots) &&
     nearest_checked_add(third, fixed_slots) is Some(fourth) &&
     nearest_checked_add(fourth, recheck_slots) is Some(total) else {
     return None
@@ -308,6 +314,7 @@ fn begin_nearest_record(state : NearestState) -> Unit {
   state.field = 0
   state.identity_probe = 0
   state.current_field = None
+  state.name_offset = 0
   state.identity_values = []
   state.validated_identities = []
   state.source_vector = None
@@ -344,17 +351,46 @@ fn bind_nearest_field(
   name : @schema.FieldName,
   value : @value.CheckedValue,
 ) -> Result[Unit, NearestIssue] {
-  let input = current_input(state)
-  if @schema.reference_name(name) == input.component_name {
+  state.current_field = Some((name, value))
+  state.identity_probe = 0
+  state.name_offset = 0
+  state.phase = MatchInputComponent
+  match_nearest_component(state)
+}
+
+///|
+fn match_nearest_component(state : NearestState) -> Result[Unit, NearestIssue] {
+  guard state.current_field is Some((name, value)) else {
+    return Err(InvalidNearestRecord(state.reading_queries, state.record))
+  }
+  let (order, offset, _) = @schema.compare_reference_fragment(
+    name,
+    current_input(state).component_name,
+    state.name_offset,
+    64,
+  )
+  state.name_offset = offset
+  guard order is Some(comparison) else { return Ok(()) }
+  if comparison == 0 {
     if state.source_vector is Some(_) {
       return Err(InvalidNearestRecord(state.reading_queries, state.record))
     }
     state.source_vector = Some(value)
   }
-  state.current_field = Some((name, value))
-  state.identity_probe = 0
   state.phase = MatchInputIdentity
   Ok(())
+}
+
+///|
+fn nearest_same_name_role(
+  left : @schema.FieldName,
+  right : @schema.FieldName,
+) -> Bool {
+  match (left, right) {
+    (@schema.Unqualified(_), @schema.Unqualified(_)) => true
+    (@schema.Qualified(a, _), @schema.Qualified(b, _)) => a == b
+    _ => false
+  }
 }
 
 ///|
@@ -365,7 +401,21 @@ fn match_nearest_identity(state : NearestState) -> Result[Unit, NearestIssue] {
     is Some(identity) else {
     return Err(InvalidNearestRecord(state.reading_queries, state.record))
   }
-  if name == identity.name {
+  let comparison = if nearest_same_name_role(name, identity.name) {
+    let (order, offset, _) = @schema.compare_reference_fragment(
+      name,
+      identity.name,
+      state.name_offset,
+      64,
+    )
+    state.name_offset = offset
+    guard order is Some(comparison) else { return Ok(()) }
+    comparison
+  } else {
+    state.name_offset = 0
+    -1
+  }
+  if comparison == 0 {
     if state.identity_values[state.identity_probe] is Some(_) {
       return Err(InvalidNearestRecord(state.reading_queries, state.record))
     }
@@ -801,15 +851,15 @@ fn nearest_output_cell(state : NearestState, column : Int) -> @value.Value? {
   guard @schema.field_at(state.output_schema, column) is Some(field) else {
     return None
   }
-  match @schema.reference_name(field.name) {
-    "query_id" => state.query_output_identity
-    "candidate_id" => state.candidate_output_identity
-    "score" =>
+  match field.name {
+    @schema.Unqualified("query_id") => state.query_output_identity
+    @schema.Unqualified("candidate_id") => state.candidate_output_identity
+    @schema.Unqualified("score") =>
       @value.checked_number_value(
         state.scores[state.emit_index].score,
         field.contract,
       ).map(value => value.value)
-    "rank" =>
+    @schema.Unqualified("rank") =>
       @value.checked_number_value(
         (state.emit_index + 1).to_double(),
         field.contract,
@@ -923,6 +973,13 @@ fn nearest_step(
       MatchInputIdentity => {
         used += 1
         match match_nearest_identity(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      MatchInputComponent => {
+        used += 1
+        match match_nearest_component(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
@@ -1190,6 +1247,7 @@ fn cleanup_nearest_state(state : NearestState) -> Bool {
     state.input_recheck = None
   }
   state.current_field = None
+  state.name_offset = 0
   if state.output_row is Some(row) {
     @execution.cleanup_admitted_output_row(row) |> ignore
     state.output_row = None
@@ -1268,9 +1326,7 @@ fn nearest_producer_view(
     vectors,
     records,
     identity_count: @carrier.vector_identity_count(vectors),
-    component_name: @schema.reference_name(
-      @carrier.vector_components(vectors).name,
-    ),
+    component_name: @carrier.vector_components(vectors).name,
     dimensions: dimensions.to_int(),
   })
 }
@@ -1435,6 +1491,7 @@ fn start_nearest_producers(
     field: 0,
     identity_probe: 0,
     current_field: None,
+    name_offset: 0,
     identity_values: [],
     validated_identities: [],
     key_comparison: None,
@@ -1479,12 +1536,19 @@ fn start_nearest_producers(
     },
   )
   Ok({
+    state,
     session,
     token: Some(token),
     accepted,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
+}
+
+///|
+/// Fixture observation only; does not grant dispatch or completion authority.
+pub fn nearest_name_offset(value : NearestExecution) -> Int {
+  value.state.name_offset
 }
 
 ///|

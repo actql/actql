@@ -97,7 +97,7 @@ test "values wire application recomputes the fixed proof under its exact owner" 
   assert_eq((applied.bytes, applied.nodes, applied.depth), (25, 7, 2))
   assert_eq(
     values_wire_bound_contract(applied),
-    "sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750",
+    "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f",
   )
   let changed = wire_bound_cells(supplied=Some(cursor("{\"n\":100}")))
   assert_true(

@@ -328,3 +328,6 @@ export const commitTransition = transition =>
 export const recordStateCodes = owner.coordinatorRecordStateCodes;
 export const exactRetransmissionEligible =
   owner.coordinatorExactRetransmissionEligible;
+
+export const canRetireCancellationDelivery =
+  owner.coordinatorCanRetireCancellationDelivery;

@@ -4,7 +4,8 @@ import {join, resolve} from 'node:path';
 import {project, structuralValidatorSource, typeOf} from
   './generate-client-publication-wire.mjs';
 
-import {nativeClientWire, responseRules, jsResponseRules} from './generate-native-client-wire.mjs';
+import {nativeClientWire, responseRules, jsResponseRules,
+  requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
@@ -69,7 +70,8 @@ export function buildClientHostWire(registry, protocol) {
     `valid(value, schemas.run_state);\n` +
     `export const validCheckOutcomeShape = value => ` +
     `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
-  const native = nativeClientWire(schemas, rules);
+  const requestRules = requestResponseRules(registry, schemas);
+  const native = nativeClientWire(schemas, rules, requestRules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
@@ -80,7 +82,8 @@ export function buildClientHostWire(registry, protocol) {
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n`;
-  return {module: module + jsResponseRules(rules), types, native};
+  return {module: module + jsResponseRules(rules) +
+    jsRequestResponseRules(schemas, requestRules), types, native};
 }
 
 async function main() {

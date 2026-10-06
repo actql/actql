@@ -172,3 +172,95 @@ test "Command input literals retain typed values and reject foreign types" {
     IncompatibleLiteral("value"),
   )
 }
+
+///|
+fn command_input_literal_wire(
+  inputs : EffectCommandInputs,
+  index : Int,
+) -> String raise {
+  let input = effect_command_input_at(inputs, index).unwrap()
+  assert_eq(effect_command_input_field_count(input), 1)
+  let field = effect_command_input_field_at(input, 0).unwrap()
+  assert_eq(effect_command_input_field_name(field), "value")
+  guard effect_command_input_field_value(field) is Literal(checked) else {
+    abort("expected an admitted Command literal")
+  }
+  let writer = @encode.writer(10000, 1000, 20)
+  @value.emit_checked_wire_value(checked, writer)
+  @encode.finish(writer)
+}
+
+///|
+test "Command JSON literals retain exact source keys and aggregate bounds" {
+  let source =
+    #|{"value":{"literal":{"é":1,"é":2,"\r":3,"\n":4,"\r\n":5,"nested":[{"$json":{"é":"é\r\n"}},null]}}}
+  let fields =
+    #|{"value":{"nullable":false,"type":"json"}}
+  let expected =
+    #|{"$json":{"\n":4,"\r":3,"\r\n":5,"é":2,"nested":[{"$json":{"é":"é\r\n"}},null],"é":1}}
+  // This fixture parses an actual Program and binds both Stage commands to
+  // their Catalog-owned input contract before literal admission.
+  let targets = command_input_targets(source, fields)
+  let limits = command_input_limits(work=1000, nodes=200, text=1000)
+  let admitted = bind_effect_command_inputs(targets, limits).unwrap()
+  assert_eq(effect_command_input_count(admitted), 2)
+  for index in 0..<effect_command_input_count(admitted) {
+    assert_eq(command_input_literal_wire(admitted, index), expected)
+  }
+  let (work, nodes, text) = effect_command_inputs_usage(admitted)
+  let exact = command_input_limits(work~, nodes~, text~)
+  assert_true(bind_effect_command_inputs(targets, exact) is Ok(_))
+  for
+    reduced in [
+      { ..exact, max_work: work - 1, },
+      { ..exact, max_nodes: nodes - 1, },
+      { ..exact, max_text_bytes: text - 1, },
+    ] {
+    assert_eq(
+      effect_command_input_issue_kind(
+        bind_effect_command_inputs(targets, reduced).unwrap_err(),
+      ),
+      WorkLimit,
+    )
+  }
+}
+
+///|
+test "Command Object literal normalizes fields without normalizing nested JSON" {
+  let source =
+    #|{"value":{"literal":{"é":"v","nested":[{"é":2,"é":1,"\r\n":"data"}]}}}
+  let fields =
+    #|{"value":{"additional_properties":false,"fields":{"nested":{"items":{"nullable":false,"type":"json"},"nullable":false,"type":"array"},"é":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"}}
+  let expected =
+    #|{"nested":[{"$json":{"\r\n":"data","é":1,"é":2}}],"é":"v"}
+  let targets = command_input_targets(source, fields)
+  let admitted = bind_effect_command_inputs(
+    targets,
+    command_input_limits(work=1000, nodes=200, text=1000),
+  ).unwrap()
+  assert_eq(effect_command_input_count(admitted), 2)
+  for index in 0..<effect_command_input_count(admitted) {
+    assert_eq(command_input_literal_wire(admitted, index), expected)
+  }
+}
+
+///|
+test "Command Object literal rejects normalized field collision after source admission" {
+  let source =
+    #|{"value":{"literal":{"é":"first","é":"second","nested":[{"é":1,"é":2}]}}}
+  let fields =
+    #|{"value":{"additional_properties":false,"fields":{"nested":{"items":{"nullable":false,"type":"json"},"nullable":false,"type":"array"},"é":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"}}
+  // Source parsing admits both exact spellings inside the quoted subtree;
+  // the checked Object contract is what makes these two fields collide.
+  let targets = command_input_targets(source, fields)
+  let issue = bind_effect_command_inputs(
+    targets,
+    command_input_limits(work=1000, nodes=200, text=1000),
+  ).unwrap_err()
+  assert_eq(
+    effect_command_input_issue_kind(issue),
+    IncompatibleLiteral("value"),
+  )
+  assert_eq(effect_command_input_issue_stage(issue), 0)
+  assert_eq(effect_command_input_issue_effect(issue), "command")
+}

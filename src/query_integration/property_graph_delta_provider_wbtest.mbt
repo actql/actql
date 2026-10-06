@@ -227,7 +227,7 @@ test "Delta provider applies exact mixed inputs then saves invalidates and reloa
       let output = output.unwrap()
       assert_eq(@execution.completed_row_count(output), 1)
       let expected = "{\"id\":" +
-        snapshot_fixture_identity("N", 1) +
+        property_graph_expected_json_wire(snapshot_fixture_identity("N", 1)) +
         ",\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}"
       assert_eq(
         @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),

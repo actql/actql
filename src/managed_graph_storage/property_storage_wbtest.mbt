@@ -216,7 +216,7 @@ test "keyed graph preserves independent parallel edges and scoped composite keys
   @value.emit_checked_wire_value(edge_identity(storage, 0).unwrap(), out)
   assert_eq(
     @encode.finish(out),
-    "{\"definition\":\"E\",\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":[10,\"edge\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}",
+    "{\"$json\":{\"definition\":\"E\",\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":[10,\"edge\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}}",
   )
 }
 

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr463-typed-json-stage-registration",
+  "kind": "change",
+  "revision": "5257fbd599bf0e7a00780bba96b446b86934455f",
+  "parents": [
+    "e96e9b965cd1202b04c13a4404012bbeedc7b3eb"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "e96e9b965cd1202b04c13a4404012bbeedc7b3eb",
+          "digest": "8d5f0039c32e337752bc9be120c0e7c1250ac33cc207054ff81804b04da284ca",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bf9fc411951dfbb0d7db3674046add5eb448079c035ee276d0e0935f37e5ee2a",
+      "afterMode": "100644",
+      "reason": "Register typed JSON source-preparation regressions in the distribution-client gate and typed JSON stage vectors in the canonical gate while retaining the existing checks."
+    }
+  ]
+}
