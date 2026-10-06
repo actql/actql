@@ -9,6 +9,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireResultDescriptionShape, WireValueContractShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
+export {checkOutcomeProtocol} from './client-host.generated.js';
 
 export declare const clientHostOperations: readonly ClientHostOperation[];
 /** Explicit submit refusal contracts, not generic public error codes. */
@@ -43,6 +44,7 @@ export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 /** actql-check-outcome/0.1. */
 export type WireCheckOutcome = WireCheckOutcomeShape;
 export type {WireCheckLocationShape as WireCheckLocation} from './client-host.generated.js';
+export type {WireCheckFixShape as WireCheckFix} from './client-host.generated.js';
 export declare const checkReasonSchemaCid: string;
 export declare const checkOutcomeSchemaCid: string;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |

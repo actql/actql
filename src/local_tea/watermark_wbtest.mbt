@@ -446,9 +446,11 @@ test "watermark retains completed output custody until stop cleanup" {
 
 ///|
 test "watermark admits exact control work across resumes" {
-  // Each retained record takes begin, three reads, classify, and commit.
-  // A dropped record omits commit. Final completion costs one step.
-  for (policy, exact, retained) in [("mark", 19, 3), ("drop", 18, 2)] {
+  // Each retained record keeps six outer polls plus an append cursor:
+  // 6*6 fields + 2*1 identity + 8 phase boundaries = 46 append polls.
+  // A dropped record omits commit/append. Finish costs one poll.
+  // Mark: 19+3*46=157; drop: 18+2*46=110, independent of quantum.
+  for (policy, exact, retained) in [("mark", 157, 3), ("drop", 110, 2)] {
     for timestamp_clock in [false, true] {
       let producer = producer_owner(timestamp_clock)
       let source = source_events(producer, Ref(true), timestamp_clock)
@@ -467,7 +469,7 @@ test "watermark admits exact control work across resumes" {
         ).unwrap()
         let mut terminal = false
         let mut charged = 0L
-        for _ in 0..<24 {
+        for _ in 0..<(exact + 1) {
           if !terminal {
             match advance_watermark(execution, 1).unwrap() {
               Continue(work~, ..) => {
@@ -510,9 +512,9 @@ test "watermark admits exact control work across resumes" {
 
 ///|
 test "watermark admits exact retained workspace" {
-  // Each retained six-field record costs eight storage slots, including
-  // structural overhead. Dropping the first leaves two retained records.
-  for (policy, workspace, retained) in [("mark", 24, 3), ("drop", 16, 2)] {
+  // Cursor 16+3*6+1+3*10=65, caller row/handle=7, next row=8.
+  // Prior rows add 16 for mark, 8 for drop; name position adds one.
+  for (policy, workspace, retained) in [("mark", 97, 3), ("drop", 89, 2)] {
     for timestamp_clock in [false, true] {
       let producer = producer_owner(timestamp_clock)
       let source = source_events(producer, Ref(true), timestamp_clock)
@@ -529,7 +531,7 @@ test "watermark admits exact retained workspace" {
           fn() { true },
         ).unwrap()
         let mut terminal = false
-        for _ in 0..<24 {
+        for _ in 0..<160 {
           if !terminal {
             match advance_watermark(execution, 1).unwrap() {
               Continue(..) => ()
@@ -544,7 +546,7 @@ test "watermark admits exact retained workspace" {
                 assert_true(@records.discard_completed(output))
                 terminal = true
               }
-              Failed(Output(@records.Storage(@storage.WorkspaceLimit)), ..) => {
+              Failed(WorkspaceLimit, ..) => {
                 assert_false(accepted)
                 assert_true(watermark_cleanup_pending(execution))
                 terminal = true

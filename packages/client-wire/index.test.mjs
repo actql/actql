@@ -686,3 +686,34 @@ test('check request snapshots refuse lossy numbers and detach without normalizat
   for (let i = 0; i < 70; i++) nested = [nested];
   assert.deepEqual(snapshotCheckRequest({parameters: {x: nested}}), {parameters: {x: nested}});
 });
+
+test('independent binding JSON reasons require owned documents and closed parser facts', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-binding-json-reasons.json', import.meta.url), 'utf8'));
+  const source = {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 8};
+  const revision = 'rev:' + '2'.repeat(64);
+  const outcome = (document, reason) => ({version: 'actql-check-outcome/0.1',
+    reason_schema_cid: fixture.reason_schema_cid, outcome_schema_cid: fixture.outcome_schema_cid,
+    outcome: 'completed', report: {context_ref: 'ctx:independent-json-reasons',
+      scope: {kind: 'bound_input'}, verdict: 'invalid',
+      inputs: [source, ...fixture.documents.map(document_id =>
+        ({document_id, kind: 'structured', revision, byte_length: 2}))],
+      reasons: [reason], requirements: [], coverage: {limits: [], unresolved: []}}});
+  for (const document of fixture.documents) {
+    for (const issue of fixture.issues) {
+      const reason = {code: 'binding_json_invalid', facts: {document, issue},
+        location: {kind: 'structured', document_id: document, revision, pointer: ''}};
+      assert.equal(validCheckOutcome(outcome(document, reason)), true);
+      for (const invalid of [
+        {code: reason.code}, {...reason, facts: {issue}}, {...reason, facts: {document}},
+        {...reason, facts: {document: 'source', issue}},
+        {...reason, facts: {document, issue: 'depth_limit'}},
+        {...reason, facts: {document, issue, key: 'private-key'}},
+        {...reason, facts: {document, issue: 'future_json_issue'}},
+        {...reason, location: {...reason.location, document_id: document === 'parameters' ? 'parameter_declarations' : 'parameters'}},
+        {code: 'future_json_reason', facts: reason.facts},
+      ]) assert.equal(validCheckOutcome(outcome(document, invalid)), false,
+        '[check-mutation:json-facts-schema]');
+      assert.equal(validCheckOutcome(outcome(document, {code: 'future_json_reason'})), true);
+    }
+  }
+});

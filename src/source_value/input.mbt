@@ -23,8 +23,15 @@ fn parse_admitted(
   limits : ParseLimits,
   yaml : Bool,
   normalize_text? : Bool = true,
+  effect_literal_keys? : Bool = false,
 ) -> Result[ParsedSource, ParseError] {
-  let parser = Parser::make(source, source_path, limits, normalize_text~)
+  let parser = Parser::make(
+    source,
+    source_path,
+    limits,
+    normalize_text~,
+    effect_literal_keys~,
+  )
   let node = try {
     if yaml {
       parser.yaml_document()
@@ -51,6 +58,7 @@ fn parse_text_input(
   limits : ParseLimits,
   source_path : String,
   yaml : Bool,
+  effect_literal_keys? : Bool = false,
 ) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
@@ -61,7 +69,7 @@ fn parse_text_input(
     Err(_) => return Err(input_error(InputLimit, source_path, Unavailable))
     Ok(_) => ()
   }
-  parse_admitted(source, source_path, limits, yaml)
+  parse_admitted(source, source_path, limits, yaml, effect_literal_keys~)
 }
 
 ///|
@@ -73,6 +81,7 @@ fn parse_bytes_input(
   source_path : String,
   yaml : Bool,
   normalize_text? : Bool = true,
+  effect_literal_keys? : Bool = false,
 ) -> Result[ParsedSource, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
@@ -90,7 +99,14 @@ fn parse_bytes_input(
         ),
       )
   }
-  parse_admitted(text, source_path, limits, yaml, normalize_text~)
+  parse_admitted(
+    text,
+    source_path,
+    limits,
+    yaml,
+    normalize_text~,
+    effect_literal_keys~,
+  )
 }
 
 ///|
@@ -185,4 +201,52 @@ pub fn parse_yaml_bytes_measured(
   source_path? : String = "<memory>",
 ) -> Result[ParsedSource, ParseError] {
   parse_bytes_input(source, limits, source_path, true)
+}
+
+///|
+/// Program source profile: retain exact keys only inside update/upsert set
+/// and command input Effect literal payloads. Structural keys still normalize;
+/// the Program and checked target contracts remain the consumers' obligation.
+pub fn parse_program_json_measured(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_text_input(source, limits, source_path, false, effect_literal_keys=true)
+}
+
+///|
+/// The same Program key profile after restricted YAML scalar decoding.
+pub fn parse_program_yaml_measured(
+  source : String,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_text_input(source, limits, source_path, true, effect_literal_keys=true)
+}
+
+///|
+/// Strict UTF-8 input through the same bounded Program JSON profile.
+pub fn parse_program_json_bytes_measured(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_bytes_input(
+    source,
+    limits,
+    source_path,
+    false,
+    effect_literal_keys=true,
+  )
+}
+
+///|
+/// Strict UTF-8 input through the same bounded Program YAML profile.
+pub fn parse_program_yaml_bytes_measured(
+  source : Bytes,
+  limits : ParseLimits,
+  source_path? : String = "<memory>",
+) -> Result[ParsedSource, ParseError] {
+  parse_bytes_input(source, limits, source_path, true, effect_literal_keys=true)
 }
