@@ -389,8 +389,7 @@ pub fn append(
       // Legacy draining remains synchronous, but its new collision comparison
       // must still admit both emitter stacks before allocating private state.
       guard builder.limits.max_value_depth <= 2147483647 / 2 &&
-        append_workspace_slots(
-          0,
+        identity_comparison_workspace_slots(
           identities.length(),
           builder.limits.max_value_depth * 2,
         )

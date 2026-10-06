@@ -347,7 +347,11 @@ function continuationFixture() {
   const binding = {version: 'actql-effect-target-read-binding/0.1',
     submission: {input: {format: 'json', text: original}, parameters: {text: original}},
     inventory_cid: cid('c'), targets: [{physicalBindings: [{text: original}]}]};
-  const provider = {wire: original};
+  const data = {'é': 'composed', 'e\u0301': 'decomposed',
+    '\r\n': 'CRLF', '\n': 'LF'};
+  binding.submission.input.data = {$json: data};
+  binding.targets[0].physicalBindings[0].data = data;
+  const provider = {wire: original, data};
   const stop = new Error('StopBeforeEffectDispatch');
   const moon = {clientProgramEffectCompilationUnitId: () => 'effect',
     clientProgramEffectCompilationResultNames: () => ['answer']};

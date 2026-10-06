@@ -37,13 +37,13 @@ relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
                  { "|>", cte_pipe_item } ;
 sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
-cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
+cte_pipe      = "FROM", ( source | unnest_source ), { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call ;
-select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
+select_core   = "SELECT", [ "ALL" | "DISTINCT" ], select_list, [ "FROM", ( source, { join } | unnest_source ) ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
-relation_pipe = "FROM", source, { "|>", pipe_item } ;
+relation_pipe = "FROM", ( source | unnest_source ), { "|>", pipe_item } ;
 graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
                 { "|>", named_sga_call }, "|>", graph_match,
                 { "|>", pipe_item } ;
@@ -67,6 +67,9 @@ source        = path, [ source_alias ]
               | "(", relational_body, ")",
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
+(* Standalone explicit array expansion; correlated JOIN UNNEST is not yet connected. *)
+unnest_source = "UNNEST", "(", expression, ")", source_alias,
+                [ "WITH", "OFFSET", [ source_alias ] ] ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
                 "JOIN", source, ( "ON", expression
@@ -79,7 +82,7 @@ group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = "*" | path, ".", "*"
-              | expression, [ "AS", identifier ] ;
+              | expression, [ [ "AS" ], identifier ] ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
@@ -111,7 +114,7 @@ assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
-relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" ], select_list
+relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "ALL" | "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }
@@ -139,7 +142,7 @@ pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
-expression    = ? closed query expression grammar in query-text.md, including json_literal ? ;
+expression    = ? closed query expression grammar in query-text.md, including json_literal, search_value [NOT] IN UNNEST(array_expression), and the aggregate-local WHERE clause ? ;
 json_literal  = "JSON", query_string ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;

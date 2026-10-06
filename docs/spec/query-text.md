@@ -82,6 +82,19 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`search_value [NOT] IN UNNEST(array_expression)` follows the selected
+[GoogleSQL IN syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator).
+The array expression lowers directly to the existing `in`/`not_in` second
+operand; it is not wrapped as one scalar list item or expanded into OR/equality
+comparisons. Declared ARRAY parameters (including grouping) use ordinary checking and
+binding. The current common Expression admission only accepts literal lists
+or whole parameters at this operand: visible ARRAY columns and other
+ARRAY-valued expressions remain an explicit coverage gap and are rejected
+before Run admission. They are not invalid GoogleSQL. Common membership rules retain NULL-array/empty-set behavior, nullable item equality, demand of
+both operands, and bounded per-item work. No row expansion, acquisition or new
+UNNEST execution owner is introduced. This predicate form does not add FROM
+UNNEST, subquery membership, STRUCT comparison or ARRAY constructor syntax.
+
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no
@@ -91,6 +104,63 @@ requires a positive count, a nonnegative offset, safe integers and proven input
 order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
+
+An aggregate-local `WHERE` follows its argument and any supported NULL modifier,
+for example `COUNT(* WHERE amount > 0)` or
+`SUM(DISTINCT amount WHERE amount > 0)`. The selected GoogleSQL language reference
+at `d82db99a923a46571f543a13899dc791a7b6f743` defines this clause
+([aggregate calls](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/aggregate-function-calls.md));
+this is not a claim that every Google service deploys that language feature.
+It lowers to the existing aggregate's `filter`, separately from query WHERE.
+Only TRUE admits a contributor; FALSE and NULL exclude it. The common owner
+evaluates each filter before its argument, then applies NULL exclusion,
+DISTINCT and the existing fold. Arguments and filters resolve against input
+columns and current retained range bindings, not sibling SELECT aliases.
+The same lowering serves frame aggregates in the existing inline OVER profile.
+Existing key, ordered-collection, type, capacity and failure contracts remain
+in force. A filtered ARRAY_AGG does not discard fields needed by its filter
+through the unfiltered DISTINCT-key projection optimization. The Frontend does
+not hoist arguments across their filter or provide an aggregate evaluator.
+Explicit standalone `FROM UNNEST(array_expression) [AS] element` accepts an
+existing array-producing expression, including a typed array parameter. SQL
+and FROM-headed Pipe use the same common `unnest` operation. `WITH OFFSET`
+optionally exposes the zero-based element position; `[AS] name` changes its
+name and omission uses `offset`. OFFSET is not a reserved identifier in this
+selected GoogleSQL rule. Explicit ORDER BY is needed to request element order.
+NULL and empty arrays produce zero rows; NULL elements and duplicates remain
+rows. Array bounds, element types and nullable contracts are checked by the
+existing checker, without a Frontend expansion evaluator or an inferred key.
+The element and optional position are the visible columns; the source-free
+witness and temporary array/element slots are not authored names or Result
+fields. Later Pipe projection and AS use the ordinary current-column scope.
+
+This first connection requires an explicit element alias. Direct value-table
+star expansion, array constructor literals, implicit array paths and correlated
+JOIN UNNEST remain unimplemented coverage, not restrictions of GoogleSQL.
+Direct star is refused rather than treating a STRUCT element as an ordinary
+single object column. Explicit selection uses the existing nullable-object
+property contracts where applicable. The selected reference is [GoogleSQL
+UNNEST](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest_operator);
+this connection does not establish complete ARRAY/STRUCT or value-table support.
+`CAST(value AS BOOLEAN)` uses the same existing boolean target as
+`CAST(value AS BOOL)`, following the [GoogleSQL BOOL/BOOLEAN alias](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#boolean_type).
+Type names are ASCII case-insensitive. This is a source spelling for the same
+checked cast; it does not widen the common conversion domains, make failing
+casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
+NULL remains a typed nullable boolean, including on empty Relations.
+
+An explicit output alias may omit `AS`, for example `SELECT id + 1 next_id`,
+`SELECT COUNT(*) n FROM records`, or `FROM records |> EXTEND id + 1 next_id`.
+This adopts the [pinned GoogleSQL SELECT alias spelling](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#explicit_alias_syntax)
+and the same projection spelling in Pipe SELECT, EXTEND and AGGREGATE.
+The omitted keyword does not change name resolution, sibling visibility,
+aggregate/window demand, output column order or type. Quoted aliases use
+backticks, including reserved words; an unquoted alias without AS cannot be a
+[reserved GoogleSQL keyword](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#reserved_keywords).
+Clause starters therefore remain syntax, including currently unsupported clauses.
+Unnamed function/computed columns remain an explicit unsupported coverage gap;
+this connection still requires names for aggregate and analytic outputs and does
+not manufacture a public name or change the ordinary Result contract.
 
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
@@ -128,6 +198,22 @@ the first duplicate decoded key and exact strings/keys, rejects precision
 loss, and applies complete-input size/node/depth ceilings. Unsupported wide
 numbers are refused rather than rounded. The JSON parser and runtime are not
 duplicated in the Frontend. JSON literals are not limited to Graph Delta.
+
+## SELECT row quantifier
+
+SQL SELECT and the Pipe SELECT operator accept one optional `ALL` or
+`DISTINCT` quantifier. `SELECT ALL` explicitly selects the existing ordinary,
+duplicate-preserving projection; it has the same meaning as omitting the
+quantifier. It does not add DISTINCT, change NULL values, infer a key, or
+change the declared column order, WHERE, ORDER BY or LIMIT/OFFSET. Repeated or
+combined quantifiers are syntax errors. Quoted identifiers such as ``ALL``
+remain identifiers. Aggregate-call modifiers are a separate grammar.
+
+This connection follows [GoogleSQL SELECT ALL](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_all).
+The pinned GoogleSQL parser (`d82db99a923a46571f543a13899dc791a7b6f743`,
+`googlesql/parser/googlesql.tm`) shares `select_clause` and
+`opt_all_or_distinct` between ordinary SELECT and `pipe_select`; this is
+selected language-reference support, not a claim about every deployed service.
 
 ## Scope and lowering
 

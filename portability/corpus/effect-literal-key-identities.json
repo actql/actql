@@ -1,0 +1,1089 @@
+{
+  "version": "actql-effect-literal-key-identities/0.1",
+  "description": "Independently authored raw Effect literal key preimages for the installed-json-update Program. Source identity preserves exact literal data keys independently of target Mapping resolution, even when a target typed Object later normalizes an admitted value.",
+  "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+  "source_contracts": [
+    "src/program_references/stage_semantics.mbt",
+    "src/stage_source/source.mbt",
+    "src/pipeline_source/source.mbt",
+    "src/program_references/program_semantics.mbt",
+    "src/program_references/program_definition.mbt"
+  ],
+  "fixture_source": "adapters/host-node/installed-row-json.test.mjs#programFor",
+  "cases": [
+    {
+      "name": "ascii-key",
+      "payload": {
+        "key": 1
+      },
+      "payload_preimage": "{\"key\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "key": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"key\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:6c2ac95673cddb023f35a2dba5c747a940e02c755b652493f1aadeb4687335a9",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:6c2ac95673cddb023f35a2dba5c747a940e02c755b652493f1aadeb4687335a9"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:6c2ac95673cddb023f35a2dba5c747a940e02c755b652493f1aadeb4687335a9\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:a0e87009f3816cc6437e2b0ce4e80f0ce0e88283c42695a21c5ed24774b31050",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:a0e87009f3816cc6437e2b0ce4e80f0ce0e88283c42695a21c5ed24774b31050"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:a0e87009f3816cc6437e2b0ce4e80f0ce0e88283c42695a21c5ed24774b31050\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:e4480e2392f980aa5a53544f692a87717e8a491d2f44e2d54b1dae49c2d0ea2b"
+    },
+    {
+      "name": "nfc-key",
+      "payload": {
+        "é": 1
+      },
+      "payload_preimage": "{\"é\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "é": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"é\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:11b624cb74b3a92e225a8145ba1c1c6e6f798ddf92851d37560657e0b0d6592d",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:11b624cb74b3a92e225a8145ba1c1c6e6f798ddf92851d37560657e0b0d6592d"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:11b624cb74b3a92e225a8145ba1c1c6e6f798ddf92851d37560657e0b0d6592d\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:b8b41a47df1d51378f8d378db29d8019809167ea3cec76b59ccdbbc5c82d1b4e",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:b8b41a47df1d51378f8d378db29d8019809167ea3cec76b59ccdbbc5c82d1b4e"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:b8b41a47df1d51378f8d378db29d8019809167ea3cec76b59ccdbbc5c82d1b4e\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:c79ef1680a10ca95a69eb8ebee7e3deb01bd0e03ee82cb5ae082d2ada3fb717b"
+    },
+    {
+      "name": "nfd-key",
+      "payload": {
+        "é": 1
+      },
+      "payload_preimage": "{\"é\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "é": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"é\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:77c809e7b909706dc2ab31f1683c2c9141dd4b04d37cc03a3442bf13627a70f5",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:77c809e7b909706dc2ab31f1683c2c9141dd4b04d37cc03a3442bf13627a70f5"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:77c809e7b909706dc2ab31f1683c2c9141dd4b04d37cc03a3442bf13627a70f5\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:70e230fe23d46667fa3a36e101f0be6be4911dbd93fc4d1c9aa5f79497c2c3e7",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:70e230fe23d46667fa3a36e101f0be6be4911dbd93fc4d1c9aa5f79497c2c3e7"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:70e230fe23d46667fa3a36e101f0be6be4911dbd93fc4d1c9aa5f79497c2c3e7\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:d616e688a9bf0bbe8789dd16879203f050c6b25178b16693e5d041162aa27873"
+    },
+    {
+      "name": "lf-key",
+      "payload": {
+        "line\nkey": 1
+      },
+      "payload_preimage": "{\"line\\nkey\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "line\nkey": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"line\\nkey\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:7c52c39fec0ef541b44b437d258b5408d60e97d348460b4189b0bd66e5a12f63",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:7c52c39fec0ef541b44b437d258b5408d60e97d348460b4189b0bd66e5a12f63"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:7c52c39fec0ef541b44b437d258b5408d60e97d348460b4189b0bd66e5a12f63\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:84b67496f682430df51277bcce5d2989af4653fa307999cf06eb68439ff423f6",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:84b67496f682430df51277bcce5d2989af4653fa307999cf06eb68439ff423f6"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:84b67496f682430df51277bcce5d2989af4653fa307999cf06eb68439ff423f6\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:4a9f7210acf7e22d92b9077d2ee5176060cc1db20628c1df067f482bf49d3bc3"
+    },
+    {
+      "name": "cr-key",
+      "payload": {
+        "line\rkey": 1
+      },
+      "payload_preimage": "{\"line\\rkey\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "line\rkey": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"line\\rkey\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:110347210099aa378a3c9c397aac02adce57a4f201e8d2d2496f00a979ac16ff",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:110347210099aa378a3c9c397aac02adce57a4f201e8d2d2496f00a979ac16ff"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:110347210099aa378a3c9c397aac02adce57a4f201e8d2d2496f00a979ac16ff\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:930fbd403b16eb43a1b7e1670ef108e1f059c5e65bf80b8e74d8bf9b71b80505",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:930fbd403b16eb43a1b7e1670ef108e1f059c5e65bf80b8e74d8bf9b71b80505"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:930fbd403b16eb43a1b7e1670ef108e1f059c5e65bf80b8e74d8bf9b71b80505\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:5adab9a107e51806d2dba8f0760fbe8823b9703f99d410cc2d201806386bad88"
+    },
+    {
+      "name": "crlf-key",
+      "payload": {
+        "line\r\nkey": 1
+      },
+      "payload_preimage": "{\"line\\r\\nkey\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "line\r\nkey": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"line\\r\\nkey\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:a7b017d66611ba72ca6b2b095842349b1860ba7daa0f65f91f6d4f26a6804365",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:a7b017d66611ba72ca6b2b095842349b1860ba7daa0f65f91f6d4f26a6804365"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:a7b017d66611ba72ca6b2b095842349b1860ba7daa0f65f91f6d4f26a6804365\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:8c97309220fa56ce227cdecc146e0fd1db473bfcdef1e29635a216be608ae7b0",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:8c97309220fa56ce227cdecc146e0fd1db473bfcdef1e29635a216be608ae7b0"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:8c97309220fa56ce227cdecc146e0fd1db473bfcdef1e29635a216be608ae7b0\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:870db0bef9a6b7b1d6535f06d4f2d45cbda85b0290eb8885e69b4ad295b955b7"
+    },
+    {
+      "name": "paired-keys",
+      "payload": {
+        "é": 1,
+        "é": 2,
+        "line\nkey": 3,
+        "line\rkey": 4,
+        "line\r\nkey": 5
+      },
+      "payload_preimage": "{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "é": 1,
+                      "é": 2,
+                      "line\nkey": 3,
+                      "line\rkey": 4,
+                      "line\r\nkey": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:e448cc14b3cf0fdf768b0c496fc4bbe20bd5efd672a99213aada957424ee8057"
+    },
+    {
+      "name": "paired-keys-reordered",
+      "payload": {
+        "line\r\nkey": 5,
+        "line\rkey": 4,
+        "line\nkey": 3,
+        "é": 2,
+        "é": 1
+      },
+      "payload_preimage": "{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "line\r\nkey": 5,
+                      "line\rkey": 4,
+                      "line\nkey": 3,
+                      "é": 2,
+                      "é": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:5c5316e0445dba63c6b995c10804e99d47e025b20ae8e415991945336df7ce5b\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:4f1bf8151d6a6924acc872955191d79b962a1359216053db11529964d21cea08\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:e448cc14b3cf0fdf768b0c496fc4bbe20bd5efd672a99213aada957424ee8057"
+    },
+    {
+      "name": "nested-array-json",
+      "payload": {
+        "nested": [
+          {
+            "$json": {
+              "é": 1,
+              "é": 2,
+              "line\nkey": 3,
+              "line\rkey": 4,
+              "line\r\nkey": 5
+            }
+          },
+          {
+            "": [
+              "unchanged",
+              {
+                "__proto__": {
+                  "constructor": "data"
+                }
+              }
+            ]
+          },
+          {
+            "10": "ten",
+            "2": "two",
+            "😀": 1,
+            "": 2
+          }
+        ]
+      },
+      "payload_preimage": "{\"nested\":[{\"$json\":{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}},{\"\":[\"unchanged\",{\"__proto__\":{\"constructor\":\"data\"}}]},{\"10\":\"ten\",\"2\":\"two\",\"😀\":1,\"\":2}]}",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": {
+                      "nested": [
+                        {
+                          "$json": {
+                            "é": 1,
+                            "é": 2,
+                            "line\nkey": 3,
+                            "line\rkey": 4,
+                            "line\r\nkey": 5
+                          }
+                        },
+                        {
+                          "": [
+                            "unchanged",
+                            {
+                              "__proto__": {
+                                "constructor": "data"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "10": "ten",
+                          "2": "two",
+                          "😀": 1,
+                          "": 2
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":{\"nested\":[{\"$json\":{\"é\":2,\"line\\nkey\":3,\"line\\r\\nkey\":5,\"line\\rkey\":4,\"é\":1}},{\"\":[\"unchanged\",{\"__proto__\":{\"constructor\":\"data\"}}]},{\"10\":\"ten\",\"2\":\"two\",\"😀\":1,\"\":2}]}}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:ee67bc852ff1b598bfb51a62590cb8b6717bbd7e8d5552a053130366dba5b938",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:ee67bc852ff1b598bfb51a62590cb8b6717bbd7e8d5552a053130366dba5b938"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:ee67bc852ff1b598bfb51a62590cb8b6717bbd7e8d5552a053130366dba5b938\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:2cf2443fca89429158878a2b424f4804c44c103304c59763ab85fd96c1dcc075",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:2cf2443fca89429158878a2b424f4804c44c103304c59763ab85fd96c1dcc075"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:2cf2443fca89429158878a2b424f4804c44c103304c59763ab85fd96c1dcc075\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:de77201a8d9f3ef613154aed01f51785a591d15c52c4b677ca3feb1b524a6414"
+    },
+    {
+      "name": "null",
+      "payload": null,
+      "payload_preimage": "null",
+      "stage_envelope": {
+        "version": "actql-stage-semantics/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "local_body": {
+          "inputs": {},
+          "steps": [
+            {
+              "values": {
+                "schema": {
+                  "id": {
+                    "type": "string",
+                    "nullable": false
+                  }
+                },
+                "rows": [
+                  {
+                    "id": "record-1"
+                  }
+                ]
+              },
+              "as": "selected"
+            }
+          ],
+          "results": {
+            "rows": {
+              "from": "selected",
+              "fields": [
+                "id"
+              ]
+            }
+          },
+          "effects": {
+            "save": {
+              "update": {
+                "target": "connector://fixture/records",
+                "mapping": "mapping:fixture.records.json.v1",
+                "from": {
+                  "result": "rows"
+                },
+                "id": "id",
+                "set": {
+                  "payload": {
+                    "literal": null
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "stage_preimage": "{\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"local_body\":{\"effects\":{\"save\":{\"update\":{\"from\":{\"result\":\"rows\"},\"id\":\"id\",\"mapping\":\"mapping:fixture.records.json.v1\",\"set\":{\"payload\":{\"literal\":null}},\"target\":\"connector://fixture/records\"}}},\"inputs\":{},\"results\":{\"rows\":{\"fields\":[\"id\"],\"from\":\"selected\"}},\"steps\":[{\"as\":\"selected\",\"values\":{\"rows\":[{\"id\":\"record-1\"}],\"schema\":{\"id\":{\"nullable\":false,\"type\":\"string\"}}}}]},\"parameter_references\":[],\"parameters\":{},\"version\":\"actql-stage-semantics/0.1\"}",
+      "expected_stage_cid": "sha256:9df8d679abc52de4ca14f852bd337fcbbe89f624a98c2bd4f39b6762f83c9102",
+      "program_envelope": {
+        "version": "actql-program-semantics/0.1",
+        "actql_version": "actql/0.1",
+        "expression_contract_cid": "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
+        "parameters": {},
+        "parameter_references": [],
+        "bindings": {},
+        "binding_references": [],
+        "program_template": {
+          "stages": [
+            {
+              "id": "source",
+              "after": "initial",
+              "imports": {},
+              "stage_semantics_cid": "sha256:9df8d679abc52de4ca14f852bd337fcbbe89f624a98c2bd4f39b6762f83c9102"
+            }
+          ],
+          "exports": {
+            "answer": {
+              "from": {
+                "stage": "source",
+                "result": "rows"
+              }
+            }
+          }
+        }
+      },
+      "program_preimage": "{\"actql_version\":\"actql/0.1\",\"binding_references\":[],\"bindings\":{},\"expression_contract_cid\":\"sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67\",\"parameter_references\":[],\"parameters\":{},\"program_template\":{\"exports\":{\"answer\":{\"from\":{\"result\":\"rows\",\"stage\":\"source\"}}},\"stages\":[{\"after\":\"initial\",\"id\":\"source\",\"imports\":{},\"stage_semantics_cid\":\"sha256:9df8d679abc52de4ca14f852bd337fcbbe89f624a98c2bd4f39b6762f83c9102\"}]},\"version\":\"actql-program-semantics/0.1\"}",
+      "expected_program_cid": "sha256:13fd37060d4ad9acc850a33016bb745029432a419dfb3e931f75ee0c7f679ff7",
+      "definition_envelope": {
+        "version": "actql-program-definition/0.1",
+        "id": "installed-json-update",
+        "program_semantics_cid": "sha256:13fd37060d4ad9acc850a33016bb745029432a419dfb3e931f75ee0c7f679ff7"
+      },
+      "definition_preimage": "{\"id\":\"installed-json-update\",\"program_semantics_cid\":\"sha256:13fd37060d4ad9acc850a33016bb745029432a419dfb3e931f75ee0c7f679ff7\",\"version\":\"actql-program-definition/0.1\"}",
+      "expected_definition_cid": "sha256:0d17dd93372fa608868d92a9cb136e275b5dac83d43f825943eb3bd60f5ca95d"
+    }
+  ]
+}

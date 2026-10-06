@@ -7,7 +7,8 @@ import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadInventory} from
   './effect-target-read-inventory.mjs';
 
-const same = (left, right) => canonicalValueJson(left) === canonicalValueJson(right);
+const same = (left, right) => canonicalValueJson(left, {dataKeys: true}) ===
+  canonicalValueJson(right, {dataKeys: true});
 const refusals = new WeakSet();
 export const isEffectTargetReadRefusal = error => error !== null &&
   typeof error === 'object' && refusals.has(error);
@@ -35,7 +36,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   principalId, resume, signal, journalPort,
   allowDefer = true, assertCurrent = () => {}}) {
   if (checkpoints === undefined) fail('EffectTargetCheckpointUnavailable');
-  submission = JSON.parse(canonicalValueJson(submission));
+  submission = JSON.parse(canonicalValueJson(submission, {dataKeys: true}));
   const bound = effectTargetReadInventory(inventory);
   const states = bound.targets.map(target => ({target}));
   const savedRecords = await checkpoints.inspectEffectTargetApprovals(runId, runDefinitionCid);
@@ -89,7 +90,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   const continuation = () => canonicalValueJson({version: EFFECT_TARGET_CONTINUATION,
     run_definition_cid: runDefinitionCid, unit_id: unitId,
     submission, inventory_cid: bound.inventoryCid, targets: bound.targets,
-    pending_target: pendingTarget});
+    pending_target: pendingTarget}, {dataKeys: true});
   const validate = saved => {
     if (saved?.version !== EFFECT_TARGET_CONTINUATION ||
         saved.run_definition_cid !== runDefinitionCid || saved.unit_id !== unitId ||
@@ -177,7 +178,7 @@ export async function effectTargetReadContinuation({checkpoints, runId,
     inventoryCid: bound.inventoryCid,
     captureBinding: () => JSON.parse(canonicalValueJson({
       version: 'actql-effect-target-read-binding/0.1', submission,
-      inventory_cid: bound.inventoryCid, targets: bound.targets})),
+      inventory_cid: bound.inventoryCid, targets: bound.targets}, {dataKeys: true})),
     enterComputation() {
       current();
       if (!ready) fail('EffectTargetReadNotPrepared');

@@ -1,6 +1,7 @@
 ///|
 priv enum AppendPhase {
   Fields
+  FieldBinding
   FieldContract
   Required
   Identities
@@ -27,7 +28,9 @@ struct AppendCursor {
   builder : Builder
   width : Int
   mut workspace : Int
-  actual : Map[String, @value.CheckedValue]
+  actual : Map[UInt, Int]
+  name_links : Array[Int]
+  mut binding : RecordNameBinding?
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   identities : Array[@value.CheckedValue]
   mut supplied : Array[(@schema.FieldName, @value.CheckedValue)]
@@ -54,7 +57,8 @@ struct AppendCursor {
 }
 
 ///|
-/// Fixed cursor/phase custody (eight), field snapshot and lookup entries,
+/// Fixed append custody (eight), borrowed-name cursor custody (eight), field
+/// snapshot, fingerprint buckets and collision links,
 /// identity values, and three depth-bounded stacks (writer, value continuation,
 /// child continuation). Logical construction work is accounted separately.
 pub fn append_workspace_slots(
@@ -62,10 +66,10 @@ pub fn append_workspace_slots(
   identities : Int,
   depth : Int,
 ) -> Int? {
-  if fields < 0 || identities < 0 || depth < 0 || fields > (2147483647 - 8) / 2 {
+  if fields < 0 || identities < 0 || depth < 0 || fields > (2147483647 - 16) / 3 {
     return None
   }
-  let first = 8 + fields * 2
+  let first = 8 + (if fields == 0 { 0 } else { 8 }) + fields * 3
   if identities > 2147483647 - first {
     return None
   }
@@ -80,6 +84,7 @@ pub fn append_workspace_slots(
 pub fn start_append(
   builder : Builder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
+  external_workspace_slots? : Int = 0,
 ) -> Result[AppendCursor, Issue] {
   if !builder.open || !builder.owns_private || builder.pending_append is Some(_) {
     return Err(Closed)
@@ -88,21 +93,31 @@ pub fn start_append(
     builder.open = false
     return Err(FieldLimit)
   }
+  if external_workspace_slots < 0 {
+    return Err(InvalidLimits)
+  }
   guard append_workspace_slots(
       fields.length(),
       builder.identities.length(),
       builder.limits.max_value_depth,
     )
-    is Some(workspace) &&
-    workspace <= builder.limits.max_workspace_slots - builder.workspace_slots else {
+    is Some(internal) &&
+    external_workspace_slots <= 2147483647 - internal &&
+    internal + external_workspace_slots <=
+    builder.limits.max_workspace_slots - builder.workspace_slots else {
     builder.open = false
     return Err(WorkspaceLimit)
   }
+  // Keep caller-owned scratch in the same reservation as deeper contract and
+  // identity-comparison continuations. It is not retained output capacity.
+  let workspace = internal + external_workspace_slots
   let cursor : AppendCursor = {
     builder,
     width: fields.length(),
     workspace,
     actual: Map([]),
+    name_links: [],
+    binding: None,
     fields: [],
     identities: [],
     supplied: fields,
@@ -174,10 +189,7 @@ fn advance_append_contract(cursor : AppendCursor) -> Result[Bool, Issue] {
         return Err(InvalidRecord)
       }
       cursor.contract_field = None
-      cursor.actual[@schema.reference_name(name)] = value
-      cursor.fields.push((name, value))
-      cursor.index += 1
-      cursor.phase = Fields
+      retain_append_field(cursor, name, value)
       Ok(true)
     }
   }
@@ -233,38 +245,14 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
           return fail_append(cursor, InvalidRecord)
         }
         if cursor.index < cursor.width {
-          let (name, value) = cursor.supplied[cursor.index]
-          let spelling = @schema.reference_name(name)
-          if cursor.actual.contains(spelling) {
-            return fail_append(cursor, InvalidRecord)
-          }
-          match @carrier.lookup(builder.records, name) {
-            @carrier.Present(expected) => {
-              guard expected.contract is Some(contract) else {
-                return fail_append(cursor, InvalidRecord)
-              }
-              cursor.contract_check = Some(
-                @contract.start_type_equality(
-                  contract,
-                  value.contract,
-                  builder.limits.max_contract_work,
-                ),
-              )
-              cursor.contract_field = Some((name, value))
-              cursor.phase = FieldContract
-              // Fixed scalar equality still finishes in the original field
-              // poll. Recursive/name scans retain this same child cursor.
-              match advance_append_contract(cursor) {
-                Ok(_) => ()
-                Err(issue) => return fail_append(cursor, issue)
-              }
-            }
-            @carrier.Absent => return fail_append(cursor, InvalidRecord)
-            @carrier.Unknown => {
-              cursor.actual[spelling] = value
-              cursor.fields.push((name, value))
-              cursor.index += 1
-            }
+          cursor.binding = Some(
+            start_record_name(record_name(cursor.supplied[cursor.index].0)),
+          )
+          cursor.contract_field = Some(cursor.supplied[cursor.index])
+          cursor.phase = FieldBinding
+          match advance_append_field(cursor) {
+            Ok(_) => ()
+            Err(issue) => return fail_append(cursor, issue)
           }
         } else {
           cursor.supplied = []
@@ -272,6 +260,11 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
           cursor.phase = Required
         }
       }
+      FieldBinding =>
+        match advance_append_field(cursor) {
+          Ok(_) => ()
+          Err(issue) => return fail_append(cursor, issue)
+        }
       FieldContract =>
         match advance_append_contract(cursor) {
           Ok(_) => ()
@@ -279,10 +272,22 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
         }
       Required =>
         if @carrier.field_at(builder.records, cursor.index) is Some(expected) {
-          if !cursor.actual.contains(@schema.reference_name(expected.name)) {
+          if cursor.width == 0 {
             return fail_append(cursor, InvalidRecord)
           }
-          cursor.index += 1
+          if cursor.binding is None {
+            cursor.binding = Some(start_record_name(record_name(expected.name)))
+          }
+          match advance_actual_name(cursor, cursor.binding.unwrap()) {
+            None => ()
+            Some(index) => {
+              if index < 0 {
+                return fail_append(cursor, InvalidRecord)
+              }
+              cursor.binding = None
+              cursor.index += 1
+            }
+          }
         } else {
           if @carrier.field_set(builder.records) == @carrier.Closed &&
             cursor.width != @carrier.field_count(builder.records) {
@@ -293,11 +298,25 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
         }
       Identities =>
         if builder.identities.get(cursor.index) is Some(name) {
-          guard cursor.actual.get(name) is Some(value) else {
+          if cursor.width == 0 {
             return fail_append(cursor, InvalidIdentity)
           }
-          cursor.identities.push(value)
-          cursor.index += 1
+          if cursor.binding is None {
+            cursor.binding = Some(
+              start_record_name({ prefix: "", text: name, }),
+            )
+          }
+          match advance_actual_name(cursor, cursor.binding.unwrap()) {
+            None => ()
+            Some(index) => {
+              if index < 0 {
+                return fail_append(cursor, InvalidIdentity)
+              }
+              cursor.identities.push(cursor.fields[index].1)
+              cursor.binding = None
+              cursor.index += 1
+            }
+          }
         } else {
           cursor.index = 0
           cursor.phase = if cursor.identities.is_empty() {
@@ -342,8 +361,7 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
           // The original cursor covers one emitter's three stacks. Reserve
           // the second emitter, prior identity references and fixed comparison
           // custody before allocation. No retained wire fragments are needed.
-          guard append_workspace_slots(
-              0,
+          guard identity_comparison_workspace_slots(
               cursor.identities.length(),
               builder.limits.max_value_depth,
             )
@@ -377,11 +395,28 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
           guard record.fields.get(cursor.prior_field) is Some((field, value)) else {
             return fail_append(cursor, InvalidIdentity)
           }
-          cursor.prior_field += 1
-          if @schema.reference_name(field) == builder.identities[cursor.index] {
-            cursor.prior_identities.unwrap().push(value)
-            cursor.prior_field = 0
-            cursor.index += 1
+          if cursor.binding is None {
+            cursor.binding = Some(
+              start_record_name({
+                prefix: "",
+                text: builder.identities[cursor.index],
+              }),
+            )
+          }
+          let (order, _) = compare_record_name(
+            cursor.binding.unwrap(),
+            record_name(field),
+            64,
+          )
+          if order is Some(order) {
+            cursor.binding = None
+            if order == 0 {
+              cursor.prior_identities.unwrap().push(value)
+              cursor.prior_field = 0
+              cursor.index += 1
+            } else {
+              cursor.prior_field += 1
+            }
           }
         }
       CompareKey =>
@@ -414,10 +449,12 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
       BeginField => {
         let writer = cursor.writer.unwrap()
         @encode.begin_array(writer)
+        let spelling = record_name(cursor.fields[cursor.index].0)
         cursor.name = Some(
-          @encode.start_string_value(
+          @encode.start_prefixed_string_value(
             writer,
-            @schema.reference_name(cursor.fields[cursor.index].0),
+            spelling.prefix,
+            spelling.text,
           ),
         )
         cursor.phase = FieldName
@@ -513,6 +550,13 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
 }
 
 ///|
+/// Collision comparison reuses the already reserved name cursor's custody.
+/// Its second wire emitter still needs the original fixed and stack reserve.
+fn identity_comparison_workspace_slots(identities : Int, depth : Int) -> Int? {
+  append_workspace_slots(0, identities, depth)
+}
+
+///|
 /// Stop must be confirmed by the execution owner before cancellation cleanup.
 /// A cancelled or failed provisional record closes writing, not prior custody.
 pub fn cleanup_append(cursor : AppendCursor) -> Bool {
@@ -547,6 +591,8 @@ pub fn cleanup_append(cursor : AppendCursor) -> Bool {
   }
   cursor.fields = []
   cursor.actual.clear()
+  cursor.name_links.clear()
+  cursor.binding = None
   cursor.identities.clear()
   if cursor.prior_identities is Some(values) {
     values.clear()

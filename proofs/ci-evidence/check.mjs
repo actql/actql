@@ -40,7 +40,15 @@ export function leanInput(required, applications) {
   return `${model}\n${claims}\n${audit}\n` +
     `def submittedRequirements : List IncrementalEvidence.Requirement := [${required.map(value => record(value, requirementFields)).join(',')}]\n` +
     `def submittedApplications : List IncrementalEvidence.Application := [${applications.map(value => record(value, applicationFields)).join(',')}]\n` +
-    'example : IncrementalEvidence.check submittedRequirements submittedApplications = true := by decide\n';
+    'example : IncrementalEvidence.check submittedRequirements submittedApplications = true := by\n' +
+    '  apply IncrementalEvidence.checker_complete\n' +
+    '  simp only [submittedRequirements, submittedApplications, IncrementalEvidence.ValidPlan]\n' +
+    `  refine ${required.reduce(tail => `⟨?_, ${tail}⟩`, 'True.intro')}\n` +
+    '  all_goals\n' +
+    '    unfold IncrementalEvidence.ValidApplication\n' +
+    '    refine ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ?_, ?_⟩\n' +
+    '    · decide\n' +
+    '    · first | exact ⟨rfl, rfl⟩ | exact rfl\n';
 }
 
 export function checkPlan(required, applications, {lean = 'lean', timeout = 30000, onOutput = () => {}} = {}) {

@@ -33,10 +33,16 @@ export function workspaceIdentity(root, role, expectedSource = null) {
         else buildRoot = currentBuild;
       } else assert(!buildRoot, 'Execution build workspace was removed');
       const source = snapshot(path);
+      // Deduplicate shared ancestors only inside this check. Every subsequent
+      // check still reads all source bytes and inspects each inventoried prefix.
+      const checkedPrefixes = new Set();
       for (const input of Object.keys(source.sources)) {
         const components = input.split('/');
         for (let end = 1; end <= components.length; end++) {
-          assert(!lstatSync(join(path, ...components.slice(0, end))).isSymbolicLink(), 'Linked inventoried source input');
+          const prefix = join(path, ...components.slice(0, end));
+          if (checkedPrefixes.has(prefix)) continue;
+          assert(!lstatSync(prefix).isSymbolicLink(), 'Linked inventoried source input');
+          checkedPrefixes.add(prefix);
         }
       }
       if (expectedSource) assert.deepEqual(source, expectedSource, 'Pristine execution source changed');

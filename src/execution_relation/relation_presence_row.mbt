@@ -6,6 +6,16 @@ pub enum RelationCell {
 }
 
 ///|
+/// Describe physical presence only. This grants no schema, admission or output
+/// authority; the consuming row owner still checks requiredness and the value.
+pub fn relation_cell(value : @admitted.Value?) -> RelationCell {
+  match value {
+    None => Absent
+    Some(value) => Present(value)
+  }
+}
+
+///|
 pub(all) enum RelationPresenceIssue {
   InvalidLayout
   Unavailable

@@ -604,7 +604,31 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('0f55021c0394bc5cd6b6fa37fa3f30ebad510678911822e8c7b3da6fd557e659'));
-  assert.equal(current.run.run_definition_cid, 'sha256:6cedd73015905be0a71b4df2db8ab5f95d1d0003b3b5abce9ed334a70edf5a68');
+  // Retain the preceding main Run with its original grammar and dependencies.
+  assert.equal(vector('sha256:e31537c1b3104a915c951fa8bd3d98ee4d9ea4542d24275bf3c54b7341be62ad', cid(aoaContract), currentDependencies,
+    barrierCid, currentIdentity).run.run_definition_cid, 'sha256:6cedd73015905be0a71b4df2db8ab5f95d1d0003b3b5abce9ed334a70edf5a68');
+  // Preserve the SELECT ALL branch with its original pre-typed closure.
+  assert.equal(vector(pin('83dada5a89e2b221799c9b5c8aadc712aac474c5bb7ce70f2516c17b628d25c6'),
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    pin('8fd97e9490289353f6048215faf2a9b50226b69caff3a217b572c10d32cdb8ec'));
+  assert.equal(vector(pin('5ac68c0bb19d569209191ad0131672abca12b8d520a800c7bc523fb0ab957c20'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('5d0c79e01623a60b1ab0f1f9e46f4ed395dae07ace32f9e8e6f46f8dcce1385b'));
+  // Retain optional-alias and SELECT ALL parent Runs with their own pins.
+  assert.equal(vector('sha256:7a5c14d8f251a791a5d7bdf87b7d861a661ce9d5911568cc64148d1706bdad6d', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:c5b782e7a52b65b45bca1d6b7d78dea24bb0c008182a40d93afa5197cd349ba5');
+  assert.equal(vector('sha256:1c3aaf05a32d93786cccab80b36e627ea43cc1b62a26479f3a9e1e8266fe9194', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:877787622f2fb8fa22d37b593fdbd8bf0ba485674ad06a878a96e1d9747e46f5');
+  // Keep each independently calculated parent Run bound to its own grammar.
+  assert.equal(vector('sha256:fa861e86e6e0859bd5a77f5c070b79a1dfe3c7211477bba7a7bba1da8c283530', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:b11522eb94f1e774a9deaf27c104e3b34ab17081491fe8d218c6a02cecb4e3e2');
+  assert.equal(vector('sha256:0d2511e37b6a90115493a17569622104a2834b4c0959f17f10930cd291038c0e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:19ff185221b8829f0a11b917131897c92134a6b19468b2e140303d4d75a49263');
+  // Preserve the aggregate-filter parent Run under its original grammar.
+  assert.equal(vector('sha256:8ccb3fc5856a12a6f195f60959e446ff0c46bd67cee78c5065b344cc5d2f5446', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:d60f040f1285fd7f1e792c0b70da904e0c906d6549fcd53caa305f6cfda82c08');
+  // Preserve the standalone UNNEST main Run under its original grammar.
+  assert.equal(vector('sha256:dee0db72375546136e83760f9f72991315716410bb0c9b6cb66451f944bd13b7', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:bb55c1bd750ef5d854aa6ad64256b3385cf7d489b9ad94a8b9dd1508b9a406cc');
+  // Preserve both parent Runs under their own normative grammars.
+  assert.equal(vector('sha256:c167311c84628c57bdf5e63eb6da51645ea491243dfa3adb8158eb3cc11523ad', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:41ab991390341493877830470d3fcbaeeb4963f92a2a5c22ad3d748d4444f2b4');
+  assert.equal(vector('sha256:d3504b9552c1a015ec86398455e57433604ad7833aee7854bc2297c14a0e0c7e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:5a40a8a95b995d744805ca5e33d98c035a47dafca9ba82c348132068ee3a9615');
+  assert.equal(current.run.run_definition_cid, 'sha256:901e7a8071ad802be11cb882398a56ba6ed5fde6eb23bf2b7d0dea00a5a5fd0a');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

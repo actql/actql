@@ -680,11 +680,23 @@ test "generic JSON validates every descendant without treating business tags as 
   }
   let fields : Array[@source.Field] = [
     { key: "e\u0301", key_span: span, value: { value: @source.Null, span, }, },
+    { key: "é", key_span: span, value: { value: @source.Bool(true), span, }, },
   ]
-  assert_eq(
-    outcome(@value_admission.admit(c, raw(@source.Object(fields)), limits())),
-    "NonCanonicalText",
-  )
+  let admitted = @value_admission.admit(
+    c,
+    raw(@source.Object(fields)),
+    limits(),
+  ).unwrap()
+  guard admitted.value
+    is @value_admission.JsonData(@value_admission.Object(entries)) else {
+    fail("expected an exact JSON payload")
+  }
+  let exact = @value_admission.elements(entries)
+  assert_eq(exact.length(), 2)
+  assert_eq(exact[0].0, "e\u0301")
+  assert_true(exact[0].1 is @value_admission.Null)
+  assert_eq(exact[1].0, "é")
+  assert_true(exact[1].1 is @value_admission.Boolean(true))
 }
 
 ///|
