@@ -82,6 +82,16 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`LIMIT` and `OFFSET` accept an exact integer literal or a whole named
+parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
+slots; declarations and values follow existing Program checking, with no
+Frontend evaluation, coercion or default for an invalid/missing binding.
+Omitted OFFSET is the literal zero. The current common `take` contract still
+requires a positive count, a nonnegative offset, safe integers and proven input
+order. GoogleSQL also allows zero count and more general constant expressions;
+these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
+arithmetic operands are rejected by this implemented literal/parameter subset.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
@@ -527,6 +537,23 @@ Authored ORDER/LIMIT is lowered unchanged, but the current common order owner
 does not derive total-order evidence for this output and rejects that path with
 `UnresolvedOrder` before Run admission. This is a common implementation gap,
 not a language restriction or permission to discard the authored order.
+
+`graph_diff(with: target)` uses the same earlier DATA Graph producer resolution
+and transitions to an ordinary Relation with the single non-NULL JSON column
+`delta`. The left input is the current Graph; `target` is an explicit producer
+reference, not a STRING value. Only `delta` enters the new output scope. DATA
+reuse does not reconstruct either Graph, and ordinary Relation projection and
+filtering keep their existing meaning. The common Delta checker requires the
+same complete Graph contract for both operands; the Frontend does not infer
+compatible identity domains or implement a difference algorithm.
+
+The checked `graph_diff` operation completes exactly one Delta row. The common
+order owner derives logical order from that producer contract and preserves
+it through admitted projection, filtering and take operations. A row-count
+ceiling alone does not establish order for an arbitrary JSON Relation.
+Graph Delta application produces a Graph and establishes no Relation order.
+The Frontend does not synthesize a sort, key, scalar encoding or fallback to
+publish the JSON value.
 
 Other named calls parse but their output Carrier/schema is not yet connected
 to subsequent source operations; they return UnsupportedGraph before Run

@@ -1,9 +1,9 @@
 ///|
-#borrow(parent, children, previous, current, position, pending, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family)
+#borrow(parent, children, completed, current, position, pending, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family)
 extern "C" fn parent_control_probe(
   parent : ManagedProviderExecution,
   children : Ref[Array[ManagedProviderExecution]],
-  previous : Ref[@execution.CompletedOutput?],
+  completed : Ref[Array[@execution.CompletedOutput?]],
   current : Ref[ManagedProviderExecution?],
   position : Ref[Int],
   pending : Ref[Bool],

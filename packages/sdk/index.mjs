@@ -326,6 +326,7 @@ export function explainCheckReason(reason, options) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
       'Correct the default to match the declared type, then check again.'],
+    expression_type_mismatch: ['An expression violates its required argument type.', 'Use an argument with the required type.'],
     operation_parameter_invalid: ['A parameter violates an operation scalar domain.', 'Correct the supplied value or selected default under the reported operation domain.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
@@ -335,6 +336,17 @@ export function explainCheckReason(reason, options) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const expressionTypes = {
+    number: ['An expression argument must have number type.', 'Use an expression with number type for the rejected argument.'],
+    boolean: ['An expression argument must have boolean type.', 'Use an expression with boolean type for the rejected argument.'],
+    string: ['An expression argument must have string type.', 'Use an expression with string type for the rejected argument.'],
+  };
+  const expectedType = reason?.facts?.expected_type;
+  if (reason?.code === 'expression_type_mismatch' && typeof expectedType === 'string' &&
+      Object.hasOwn(expressionTypes, expectedType)) {
+    const [summary, hint] = localizeCheck(`expression_type.${expectedType}`, expressionTypes[expectedType], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const scalarExplanations = {
     positive_safe_integer: ['An operation parameter must be a positive safe integer.',
       'Supply an integer from 1 through 9007199254740991.'],
