@@ -126,3 +126,19 @@ Common reference/JSON-key leaves, constructor/schema preparation, Events
 comparison/session identity, aggregate intermediate byte admission and
 whole-Run physical accounting also remain open. This is a component closure,
 not full Local retained completion or a merge-ready declaration.
+
+## Clean implementation evidence
+
+At 77993a54a7be4820c0a7151a407cd0747cc7ed35, the focused Events/Vectors
+JS selection passed 97/97 (run-0GHQt8, focused-test-dpkWxw), including
+operation-specific continuation workspace 26/25 and 18/17. The public
+projection and targeted gate selection passed 3/3 (run-j35Jii,
+focused-test-3TsIcu). The resource scan and read-only Node Host/Workers
+fixture freshness passed. Formatting, Node syntax and diff checks passed.
+
+The Local runtime digest above was generated from unchanged production
+inputs before these checks. The temporary parent comparison was restored
+before that generation. Unchanged run-host-core client_values_host_abi is
+afd59ea3984645a1e8112c0470133b80846bd10cb7d6a417e5abf88aabd2ad22.
+This follow-up record changes documentation only; earlier failed receipts
+remain historical observations, and the parent Graph failures stay open.
