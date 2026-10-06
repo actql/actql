@@ -7,10 +7,10 @@ import {graphUnionProgram, graphUnionSourceSuccesses, graphUnionSourceRefusals,
 test('union fixtures distinguish occurrences and nonassociative fold order', () => {
   const byName = new Map(graphUnionSourceSuccesses.map(x => [x.name, x]));
   assert.deepEqual(graphUnionProgram.stages[0].steps[3].union_graphs.with, ['g', 'g']);
-  assert.deepEqual(byName.get('graph-union-repeated-peer-list').results.edges.rows,
+  assert.deepEqual(byName.get('graph-union-repeated-peer-list-edges').results.edges.rows,
     [{w: 6, part: 7, edge_key: 10, labels: ['R']}, {w: 15, part: 7, edge_key: 11, labels: ['R']}]);
-  assert.equal(byName.get('graph-union-forward-fold-order').results.nodes.rows[0].p, 8.75);
-  assert.equal(byName.get('graph-union-reverse-fold-order').results.nodes.rows[0].p, 10.5);
+  assert.equal(byName.get('graph-union-forward-fold-order-nodes').results.nodes.rows[0].p, 8.75);
+  assert.equal(byName.get('graph-union-reverse-fold-order-nodes').results.nodes.rows[0].p, 10.5);
   assert.deepEqual(JSON.parse(byName.get('graph-union-independent-json').text), graphUnionProgram);
   assert.ok(graphUnionSourceSuccesses.every(x => x.sourceReadCount === 0));
   const cases = [...graphUnionSourceSuccesses, ...graphUnionSourceRefusals, ...graphUnionSourceExecutionFailures];

@@ -44,13 +44,15 @@ computed:
 - A direct union-to-edge_rows chain retains its definition selection,
   predicate, SELECT column order, ORDER BY and LIMIT: edge 11 with weight 15.
 
-The existing packed public-query corpus includes all seven normal cases,
-nine preparation refusals and one execution conflict. The narrow
+The existing packed public-query corpus includes twelve normal cases,
+nine preparation refusals and two execution conflicts. The narrow
 `--graph-union-only` flag selects the same cases, driver, default capacity and
 installed Host. Rows and Result.describe check exact columns/types/labels;
 same-request resubmission, attach/reread and provider-I/O counts are retained.
 Preparation refusals require no Run admission/provider I/O. An unspecified
-merge policy with conflicting values fails without publishing either Result.
+merge policy with conflicting values fails without publishing the requested
+node or edge Result. The two projections use separate terminal source queries;
+the independent JSON control exercises both Results sharing one Graph.
 
 ## Local evidence and identities
 
@@ -61,6 +63,17 @@ merge policy with conflicting values fails without publishing either Result.
   the affected caller passed 1/1 (`run-aIZg2w`). The earlier failure is retained.
 - Independent Node vectors, manifests and corpus registration: 11/11
   (`run-aIZg2w`). Tests use the pinned toolchain and bounded/nonzero wrappers.
+- The first ordinary pack at `1cb99d65b21ace22341255b8407e08e587e2b501`
+  passed its package audit, README Local/HTTPS check and independent union JSON
+  control. The first union text was refused as `source_invalid_input`, with
+  `Expected end of one query`: the newly authored fixture incorrectly contained
+  two terminal queries. Receipt `public-query-evidence-GZ3CxV` preserves that
+  failure. Current grammar admits one terminal query, so both unchanged
+  projection expectations now have separate complete source submissions. No
+  product grammar restriction or execution expectation was changed to pass.
+- The corrected full public source, lowering/caller checks passed 7/7 JS and
+  the affected Node selection passed 11/11 (`run-IA0zRP`). This adds ordinary
+  checker coverage for the complete composite-key edge source before repacking.
 
 Only the normative query-text rules change the grammar manifest from
 `cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d`
