@@ -127,7 +127,7 @@ export function validCheckOutcome(value) {
   const documents = new Map(report.inputs.map(input => [input.document_id, input]));
   if (documents.size !== report.inputs.length || documents.get('source')?.kind !== 'text' ||
       report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
-  for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+  for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
     const location = reason.location;
     if (location) {
       const input = documents.get(location.document_id);

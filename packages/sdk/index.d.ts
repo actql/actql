@@ -69,7 +69,7 @@ export declare function getCheckFixes(outcome: CheckOutcome): readonly CheckFix[
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
   CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
-  'parameter' | 'expected_type'>>;
+  'parameter' | 'expected_type'> & {admission?: CheckParameterAdmission}>;
 /** The known public parameter Requirements, not a complete future obligation list. */
 export type CheckRequirementFrontier = Readonly<{
   contextRef: string;
