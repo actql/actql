@@ -4,6 +4,7 @@ const retainedInputEdges = new WeakMap();
 const retainedInputProducers = new WeakMap();
 const retainedInputIntents = new WeakMap();
 const retainedInputPlans = new WeakMap();
+const retainedInputResults = new WeakMap();
 const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
@@ -1142,6 +1143,34 @@ export function retainedInputPlanFacts(plan) {
   return Object.freeze({cid: values[0], wire: values[1],
     transfer: Object.freeze({cid: values[2], wire: values[3]}),
     manifest: Object.freeze({cid: values[4], wire: values[5]})});
+}
+
+/** Revalidate the original checked plan against live Owners before delivery. */
+export function retainedInputTransferEnvelope(plan) {
+  return checked(owner.clientValuesHostRetainedInputTransferEnvelope(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Historical committed receipt, never current custody or consumer authority. */
+export function admitRetainedInputResult(plan, saved) {
+  const owned = requireHandle(retainedInputPlans, plan);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputResultWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputResult(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputResultRejected');
+  return handle(retainedInputResults, value, 'retained-input-result');
+}
+
+/** These immutable facts must be persisted and joined to current trusted Owners. */
+export function retainedInputResultFacts(result) {
+  const values = checked(owner.clientValuesHostRetainedInputResultFacts(
+    requireHandle(retainedInputResults, result)), 'RunHostRetainedInputResultRejected');
+  if (!Array.isArray(values) || values.length !== 7 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputResultProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1], planCid: values[2],
+    transferReply: Object.freeze({requestCid: values[3], wire: values[4]}),
+    receipt: Object.freeze({cid: values[5], wire: values[6]})});
 }
 
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',

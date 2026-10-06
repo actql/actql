@@ -170,3 +170,65 @@ pub fn client_values_host_retained_input_plan_facts(
     manifest,
   ])
 }
+
+///|
+/// Recheck trusted live ports immediately before issuing the saved handoff.
+#export_name("clientValuesHostRetainedInputTransferEnvelope")
+pub fn client_values_host_retained_input_transfer_envelope(
+  value : ClientValuesHostRetainedInputPlan,
+) -> Result[String, @host.ClientRetainedTaskInputIssue] {
+  match client_values_host_validate_retained_input_plan(value) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match @remote.remote_poll_retained_input_transfer_json(value.plan) {
+    Ok(body) => Ok(body)
+    Err(_) => Err(@host.Encoding)
+  }
+}
+
+///|
+/// Historical exact receiver evidence can be admitted after revocation. It
+/// supplies no current availability, destination use, binding or start claim.
+#export_name("clientValuesHostAdmitRetainedInputResult")
+pub fn client_values_host_admit_retained_input_result(
+  value : ClientValuesHostRetainedInputPlan,
+  body : String,
+  cid : String,
+) -> Result[
+  @remote.RemoteRetainedInputResult,
+  @host.ClientRetainedTaskInputIssue,
+] {
+  match @remote.admit_remote_retained_input_result_json(body, cid, value.plan) {
+    Ok(result) => Ok(result)
+    Err(_) => Err(@host.ForeignTransfer)
+  }
+}
+
+///|
+#export_name("clientValuesHostRetainedInputResultFacts")
+pub fn client_values_host_retained_input_result_facts(
+  value : @remote.RemoteRetainedInputResult,
+) -> Result[Array[String], @host.ClientRetainedTaskInputIssue] {
+  let record = @remote.remote_retained_input_result_record(value)
+  let receipt = @remote.remote_retained_input_result_receipt(value)
+  let transfer_reply = match @transfer.remote_transfer_reply_json(record) {
+    Ok(body) => body
+    Err(_) => return Err(@host.Encoding)
+  }
+  let receipt_json = match @transfer.destination_receipt_json(receipt) {
+    Ok(body) => body
+    Err(_) => return Err(@host.Encoding)
+  }
+  Ok([
+    @remote.remote_retained_input_result_identity(value),
+    @remote.remote_retained_input_result_json(value),
+    @remote.remote_retained_input_plan_identity(
+      @remote.remote_retained_input_result_plan(value),
+    ),
+    @transfer.record_request_identity(record),
+    transfer_reply,
+    @transfer.destination_receipt_cid(receipt),
+    receipt_json,
+  ])
+}

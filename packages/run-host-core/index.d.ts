@@ -15,6 +15,7 @@ declare const retainedInputEdgeBrand: unique symbol;
 declare const retainedInputProducerBrand: unique symbol;
 declare const retainedInputIntentBrand: unique symbol;
 declare const retainedInputPlanBrand: unique symbol;
+declare const retainedInputResultBrand: unique symbol;
 declare const retainedTaskInputBrand: unique symbol;
 
 export interface ResultMaterialHolds {
@@ -640,6 +641,19 @@ export function retainedInputPlanFacts(plan: RetainedInputPlan): Readonly<{
   cid: string; wire: string;
   transfer: Readonly<{cid: string; wire: string}>;
   manifest: Readonly<{cid: string; wire: string}>;
+}>;
+/** The saved handoff is issued only after current Owner validation. */
+export function retainedInputTransferEnvelope(plan: RetainedInputPlan): string;
+/** Historical protocol evidence; no reservation, borrow or execution authority. */
+export interface RetainedInputResult {
+  readonly [retainedInputResultBrand]: true;
+}
+export function admitRetainedInputResult(plan: RetainedInputPlan,
+  saved: Readonly<{cid: string; wire: string}>): RetainedInputResult;
+export function retainedInputResultFacts(result: RetainedInputResult): Readonly<{
+  cid: string; wire: string; planCid: string;
+  transferReply: Readonly<{requestCid: string; wire: string}>;
+  receipt: Readonly<{cid: string; wire: string}>;
 }>;
 export interface RetainedInputLimits {
   readonly maxChunks: number;

@@ -184,6 +184,7 @@ pub struct ResidentRetainedTransfer {
   mut pending : @remote_runtime.NativeRemoteOutputManifestChunk?
   mut source_finished : Bool
   mut receipt_cid : String?
+  mut result : @remote_site_protocol.RemoteRetainedInputResult?
   mut cleanup_material : @remote_transfer_client.NativeRemoteDestinationMaterialUse?
   mut cleanup_started : Bool
   mut reclaimed : Bool
@@ -191,6 +192,7 @@ pub struct ResidentRetainedTransfer {
 pub fn ResidentRetainedTransfer::advance(Self) -> Result[Bool, ResidentRetainedTransferIssue]
 pub fn ResidentRetainedTransfer::reclaim(Self) -> Result[Bool, ResidentRetainedTransferIssue]
 pub fn ResidentRetainedTransfer::reopen_completed_destination(Self, @remote_transfer_journal.Journal) -> Result[Unit, ResidentRetainedTransferIssue]
+pub fn ResidentRetainedTransfer::result(Self) -> Result[@remote_site_protocol.RemoteRetainedInputResult, ResidentRetainedTransferIssue]
 
 pub(all) enum ResidentRetainedTransferIssue {
   Input(@run_publication_host.ClientRetainedTaskInputIssue)
