@@ -1437,7 +1437,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       declaredResults = Object.freeze([...declaredResults]);
       const common = {accountConfig, accountConfiguration,
-        principal: ownerPrincipal, decide,
+        principal: ownerPrincipal, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities === undefined
           ? authorities.map(item => item.reviewerId)
           : [...answeringAuthorities]};
