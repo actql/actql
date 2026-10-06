@@ -287,6 +287,7 @@ pub(all) struct ResidentSourceConfiguration {
   source_ref : String
   source_contract_cid : String
   library : @native.Library
+  retained_output_root : String?
   database_path : String
   memory_bytes : Int64
   database_schema : String

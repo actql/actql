@@ -45,6 +45,7 @@ struct NativeRemoteStandardRunOwner {
   mut run_finished : Bool
   mut output_finished : Bool
   mut input_finished : Bool
+  output_storage : (() -> Result[@retained_file.NativeRetainedTaskFile, String])?
   source_observation : ((@remote.DispatchRequest) -> Result[
     @remote.RemoteSourceObservation,
     @remote.DispatchIssue,
@@ -195,6 +196,7 @@ pub fn prepare_native_remote_standard_captured_run_owner(
     output_finished: false,
     input_finished: false,
     source_observation: None,
+    output_storage: None,
   }
 }
 
@@ -207,6 +209,7 @@ pub fn prepare_native_remote_standard_acquired_run_owner(
   run : @strategy.CapturedDAG,
   result : Int,
   finish_input_owner : () -> Bool,
+  output_storage? : (() -> Result[@retained_file.NativeRetainedTaskFile, String])? = None,
   source_observation? : ((@remote.DispatchRequest) -> Result[
     @remote.RemoteSourceObservation,
     @remote.DispatchIssue,
@@ -225,6 +228,7 @@ pub fn prepare_native_remote_standard_acquired_run_owner(
     output_finished: false,
     input_finished: false,
     source_observation,
+    output_storage,
   })
 }
 
@@ -237,6 +241,7 @@ pub fn prepare_native_remote_standard_acquired_task_owner(
   task : Int,
   source : @query.CapturedInputSource,
   finish_input_owner : () -> Bool,
+  output_storage? : (() -> Result[@retained_file.NativeRetainedTaskFile, String])? = None,
   source_observation? : ((@remote.DispatchRequest) -> Result[
     @remote.RemoteSourceObservation,
     @remote.DispatchIssue,
@@ -253,6 +258,7 @@ pub fn prepare_native_remote_standard_acquired_task_owner(
     output_finished: false,
     input_finished: false,
     source_observation,
+    output_storage,
   })
 }
 
@@ -395,6 +401,8 @@ fn NativeRemoteStandardBoundRun::release(
 priv struct NativeRemoteStandardOutputOwner {
   output_export : @publication_host.PublicationOutputExport
   release_run : () -> Bool
+  retained_file : @retained_file.NativeRetainedTaskFile?
+  chunk_byte_lengths : Array[Int64]
   mut export_cancelled : Bool
   mut released : Bool
 }
@@ -556,6 +564,9 @@ fn NativeRemoteStandardOutputOwner::open_reader(
   if self.released || self.export_cancelled {
     return Err("output-released")
   }
+  if self.retained_file is Some(file) {
+    return open_retained_standard_reader(file)
+  }
   let replay = match self.output_export.replay() {
     Ok(value) => value
     Err(_) => return Err("output-replay-open")
@@ -644,6 +655,9 @@ fn NativeRemoteStandardOutputOwner::open_manifest_reader(
 ) -> Result[@runtime.NativeRemotePhysicalManifestReader, String] {
   if self.released || self.export_cancelled {
     return Err("output-released")
+  }
+  if self.retained_file is Some(file) {
+    return open_retained_standard_manifest_reader(file, self.chunk_byte_lengths)
   }
   let replay = match self.output_export.replay() {
     Ok(value) => value
@@ -768,6 +782,17 @@ fn execute_native_remote_standard_task(
         }
       }
   }
+  let retained_file = match bound.owner.output_storage {
+    None => None
+    Some(open) =>
+      match open() {
+        Ok(file) => Some(file)
+        Err(code) => {
+          output_export.cancel()
+          return remote_standard_failure(bound, code)
+        }
+      }
+  }
   let physical = prepare_native_remote_standard_output_from_export(
     request,
     expected_task,
@@ -775,6 +800,7 @@ fn execute_native_remote_standard_task(
     () => bound.release(),
     limits,
     budget,
+    retained_file~,
   )
   match observation {
     Some(value) =>
@@ -799,7 +825,11 @@ pub fn prepare_native_remote_standard_output_from_export(
   release_run : () -> Bool,
   limits : NativeRemoteStandardTaskLimits,
   budget : @remote.RemoteDispatchBudget,
+  retained_file? : @retained_file.NativeRetainedTaskFile? = None,
 ) -> @runtime.NativeRemotePhysicalExecution {
+  // The same cleanup callback is retained on every failure, including append
+  // and seal failures. Run cleanup cannot hide unconfirmed physical custody.
+  let release_run = retain_standard_output_cleanup(retained_file, release_run)
   if expected_task < 0 ||
     limits.max_manifest_bytes < 1 ||
     limits.max_retained_bytes < 0L ||
@@ -815,6 +845,12 @@ pub fn prepare_native_remote_standard_output_from_export(
   while true {
     match output_export.next() {
       Ok(Some(text)) => {
+        if retained_file is Some(file) && file.append(text) is Err(_) {
+          output_export.cancel()
+          return remote_standard_release_failure(
+            release_run, "output-retained-append",
+          )
+        }
         match pending_chunk {
           Some(previous) => {
             let bytes = @utf8.encode(previous)
@@ -844,6 +880,10 @@ pub fn prepare_native_remote_standard_output_from_export(
         release_run, "output-export-finish",
       )
     }
+  }
+  if retained_file is Some(file) && file.append(tail) is Err(_) {
+    output_export.cancel()
+    return remote_standard_release_failure(release_run, "output-retained-tail")
   }
   let final_chunk = match pending_chunk {
     Some(previous) => (previous + tail, 1)
@@ -882,6 +922,11 @@ pub fn prepare_native_remote_standard_output_from_export(
   if physical_bytes != content_bytes.to_int64() {
     output_export.cancel()
     return remote_standard_release_failure(release_run, "output-manifest-size")
+  }
+  if retained_file is Some(file) &&
+    file.seal(content_cid, content_bytes) is Err(_) {
+    output_export.cancel()
+    return remote_standard_release_failure(release_run, "output-retained-seal")
   }
   let row_count = match output_export.row_count() {
     Ok(value) => value
@@ -983,6 +1028,8 @@ pub fn prepare_native_remote_standard_output_from_export(
   let owner : NativeRemoteStandardOutputOwner = {
     output_export,
     release_run,
+    retained_file,
+    chunk_byte_lengths,
     export_cancelled: false,
     released: false,
   }

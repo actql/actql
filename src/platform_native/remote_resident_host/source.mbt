@@ -5,6 +5,7 @@ pub(all) struct ResidentSourceConfiguration {
   source_ref : String
   source_contract_cid : String
   library : @duckdb.Library
+  retained_output_root : String?
   database_path : String
   memory_bytes : Int64
   database_schema : String
@@ -233,6 +234,20 @@ pub fn install_resident_acquisition_task_executor(
     is Err(_) {
     return Err(UnsupportedSource)
   }
+  // A dependent consumer must not rely on a process-local capture surviving
+  // holder recreation. This is trusted Site configuration, not Run materials.
+  if count == 2 && source.retained_output_root is None {
+    return Err(UnsupportedSource)
+  }
+  let output_storage = source.retained_output_root.map(root => {
+    () => {
+      @retained_file.begin_native_retained_task_file(
+        root,
+        @remote.dispatch_request_identity(request)[7:].to_owned(),
+        execution.limits.output.max_retained_bytes,
+      ).map_err(_ => "source-output-storage")
+    }
+  })
   let expected = match @host.prepare_client_task_input_binding(prepared, 0) {
     Ok(value) => value
     Err(issue) => return Err(Task(issue))
@@ -401,6 +416,7 @@ pub fn install_resident_acquisition_task_executor(
             0,
             close,
             source_observation=observation,
+            output_storage~,
           )
         } else {
           @output.prepare_native_remote_standard_acquired_task_owner(
@@ -409,6 +425,7 @@ pub fn install_resident_acquisition_task_executor(
             captured_source,
             close,
             source_observation=observation,
+            output_storage~,
           )
         }
         match owned {
