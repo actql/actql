@@ -88,10 +88,52 @@ CapturedRunPublicationFailed; temporary local diagnostics identified
 the underlying typed `Execution(InputSet)` before strategy completion.
 A trailing filter did not resolve it. Those failing receipts remain
 `run-i8jDsU`, `run-Uyvj1j`, `run-AJAIq3` and `run-1f7jcH`. No product
-limit or expected success was weakened. The larger shape remains an
-unresolved diagnostic, not proven equivalent to an installed capacity
-refusal or a name-cursor defect. It is not covered by the successful
-31-row public fixture. Temporary diagnostics were removed.
+limit was increased. Follow-up diagnostic `run-OlTS74` identified
+`RelationOutput(CaptureLimit)` at the Events-to-Relation projection, after
+session emission. This is an aggregate output-text refusal, not an input
+name-cursor defect. Temporary diagnostics were removed and local-node was
+rebuilt from the unchanged production sources before the final check.
+
+Relation output accounts names at every row occurrence. The six names
+cost `513+8+7+16+14+10=568` UTF-8 bytes per row. Payload costs one byte;
+the independent session identities cost 22 bytes for IDs 1..9 and 24 for
+IDs 10..61. Thus 61 rows need `9*591+52*593=36155` text bytes and
+`7*61=427` nodes, or 36582 logical work. The installed output text
+allowance is 10000 bytes; sixteen rows use 9470 and the seventeenth would
+require 10063. Per-record capacity and aggregate Relation capacity are
+different limits. Neither a small payload nor fewer than 100 rows makes
+this projection fit.
+
+The common output-owner regression imports this independent row corpus
+using the same `append_admitted_output_cells` API as the bridge. It checks
+36155 exactly, one-short 36154, and the installed 10000 text limit. The
+two failures must be typed CaptureLimit, close the buffer and clear its
+retained rows. The public 61-row case separately confirms input bridge
+completion and positive session progress, failed status, no published
+Results, final snapshot cleanup and request reuse without dispatch or
+Compute re-entry. The public wrapper does not expose the lower typed
+CaptureLimit; its generic failed status is not a substitute for the
+common-owner cause assertion. The successful 31-row case is preserved,
+not presented as evidence that the larger case succeeds.
+
+On the candidate based on `63c464e6deb387919e60ad78eeed7ae0337dddf4`,
+the focused common-owner JS regression passed 1/1 (`run-SY99Dh`,
+`focused-test-iex4AE`) and the public success/cancellation plus aggregate
+refusal selection passed 2/2 (`run-3JbqGf`, `focused-test-JmOmRS`).
+Only tests and this diagnostic record change; production inputs and both
+runtime digests below are unchanged. The earlier standalone test omitted
+the mandatory Values alias; its rejected fixture receipt is `run-GiofwU`,
+not a product failure. No full or all-target campaign was added.
+
+Additional selected commands:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js \
+  src/execution_relation/events_projection_text_wbtest.mbt
+node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
+  --test-name-pattern 'public retained session.*(input-name|aggregate projection)' \
+  adapters/host-node/public-events-record-retention.test.mjs
+```
 
 The first one-record fixture incorrectly expected session time twelve
 despite input time zero; the independent expectation was corrected to

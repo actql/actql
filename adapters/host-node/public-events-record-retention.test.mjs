@@ -17,6 +17,9 @@ const baseRow = {event_id: 1, occurred_at: 12, payload, zz_unused: unused};
 const longClock = 'a'.repeat(65);
 const nameRows = Array.from({length: 31}, (_, index) =>
   ({[longClock]: 12, event_id: index + 1, payload: 'a'}));
+const projectionClock = 'a'.repeat(513);
+const projectionRows = Array.from({length: 61}, (_, index) =>
+  ({[projectionClock]: 12, event_id: index + 1, payload: 'a'}));
 const cases = {
   watermark: {step: {watermark_events: {watermark_ms: 10, policy: 'mark'}},
     row: {...baseRow, watermark_ms: 10, late: false, watermark_decision: 'keep'}},
@@ -31,6 +34,11 @@ const cases = {
     rows: nameRows, clock: longClock, prefixWork: '124', prefixProgress: '31',
     expected: nameRows.map(row => ({...row, session_start_ms: 12, session_end_ms: 22,
       session_id: `session:12:v:${String(row.event_id).length}:${row.event_id}:v:${String(row.event_id).length}:${row.event_id}`}))},
+  projection_limit_session: {step: {session: {by: ['event_id'], gap: 10}},
+    rows: projectionRows, clock: projectionClock,
+    row: {...projectionRows[0], session_start_ms: 12, session_end_ms: 22,
+      session_id: 'session:12:v:1:1:v:1:1'},
+    projectionLimit: true},
 };
 
 function program(id, kind) {
@@ -130,6 +138,31 @@ async function runEventsRecordBoundary(t, kind) {
     assert.fail(inspect(cause, {depth: 8}));
   });
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
+  if (cases[kind].projectionLimit) {
+    // Logical row text includes field names on every occurrence, not just
+    // schema metadata. Nine rows cost 591 bytes and fifty-two cost 593:
+    // 36,155 exceeds the installed aggregate 10,000-byte Relation allowance.
+    // The paired core test pins the exact CaptureLimit rather than inferring
+    // the limit from this public wrapper's generic execution failure.
+    assert.equal(state.status, 'failed', inspect({state, diagnostics, trace}, {depth: 6}));
+    assert.ok(trace.some(detail => detail.task === 1 && detail.work === '244'
+      && detail.progress === '61'), 'the input bridge must finish before rejection');
+    assert.ok(trace.some(detail => detail.task === 1 && detail.progress !== '0'
+      && detail.work !== '244'), 'session must make positive progress before rejection');
+    assert.equal(completions, 0);
+    for (const name of names) {
+      assert.equal(state.result_availability[name].state, 'unavailable');
+      await assert.rejects(execution.result(name).all());
+    }
+    const failedAdvances = advances;
+    const repeated = await client.aql(source, options);
+    assert.deepEqual(repeated.ref, execution.ref);
+    assert.equal((await repeated.wait()).status, 'failed');
+    assert.equal(advances, failedAdvances);
+    assert.equal(dispatches, 1);
+    assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
+    return;
+  }
   assert.equal(state.status, 'succeeded', inspect({state, diagnostics, trace}, {depth: 6}));
   trace.length = 0;
   assert.deepEqual(Object.keys(state.result_availability).sort(), [...names].sort());
@@ -188,3 +221,5 @@ test('public retained session publishes and cancels inside record emission',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'session'));
 test('public retained session publishes and cancels inside input-name matching',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'name_session'));
+test('public retained session rejects aggregate projection text without publication',
+  {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection_limit_session'));

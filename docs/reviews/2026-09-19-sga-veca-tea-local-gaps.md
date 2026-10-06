@@ -5988,9 +5988,14 @@ three named Results and two consumers, reuses requests without dispatch,
 and delivers cancellation inside record seven's clock comparison before
 any emission. The resource gate rejects missing per-operation evidence.
 
-The larger 61-row/513-unit public shape still fails with typed InputSet
-before strategy completion; its cause remains unresolved and its failed
-receipts are retained. Key/Text comparisons, session ID construction,
-constructor/Bridge append and whole-Run physical accounting remain separate.
+The larger 61-row/513-unit public shape is now pinned as aggregate
+Relation output-text refusal: its independently derived 36155 bytes
+exceed the installed 10000-byte allowance. Common-owner exact/one-short
+tests assert CaptureLimit; the public refusal has no Results, reclaims
+snapshots and reuses its request without Compute or dispatch. The prior
+failed receipts remain; no capacity limit was increased. This is refusal
+evidence, not successful execution coverage. Key/Text comparisons, session
+ID construction, constructor/Bridge append and whole-Run physical accounting
+remain separate.
 This is not full retained-path completion or full-target/packed/CI evidence.
 See the [Events name evidence](2026-10-06-local-events-name-matching.md).
