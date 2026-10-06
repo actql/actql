@@ -37,6 +37,8 @@ pub fn prepare_fragment_pipeline(
     | GraphEqualityStep(_)
     | GraphNormalizeStep(_)
     | GraphDeltaStep(_)
+    | GraphUnionStep(_)
+    | GraphSubtractionStep(_)
     | GraphTraverseStep(_)
     | PropertyGraphConstructionStep(_)
     | VectorStep(_)

@@ -262,6 +262,7 @@ fn exact_delivery_row(
       serializer.max_wire_bytes,
       serializer.max_nodes,
       serializer.max_depth,
+      data_keys=true,
     ) {
     Ok(value) => value
     Err(_) => return Err(DeliverySerializationInvalidRow)

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
+import {snapshotCheckRequest, checkpointLimits, clientHostOperations, clientSourceFormats, isClientSubmitRejection,
   validCheckpointPage, validCheckOutcome,
   validCheckpointReview, validClientAdmission, validClientBody,
   validClientConnection, validClientProfile, validDeliveryAttemptLookup,
@@ -663,4 +663,57 @@ test('independent expression type reasons reject values and foreign fact familie
     {reason_schema_cid: 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'},
     {outcome_schema_cid: 'sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c'},
   ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});
+
+test('check request snapshots refuse lossy numbers and detach without normalization', () => {
+  for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
+    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
+    Object.assign(new Number(1), {valueOf: () => NaN}),
+    Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
+    assert.throws(() => snapshotCheckRequest({parameters: {x: {nested: [value]}}}), TypeError);
+  }
+  let coerced = 0;
+  const number = Object.assign(new Number(1), {valueOf: () => {coerced++; return 3.5;}});
+  assert.deepEqual(snapshotCheckRequest({parameters: {x: number}}), {parameters: {x: 3.5}});
+  assert.equal(coerced, 1);
+  const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
+    parameters: {'e\u0301/~': [0, null, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]}};
+  const copy = snapshotCheckRequest(input);
+  assert.deepEqual(copy, input);
+  input.parameters['e\u0301/~'][0] = 9;
+  assert.equal(copy.parameters['e\u0301/~'][0], 0);
+  let nested = 'leaf';
+  for (let i = 0; i < 70; i++) nested = [nested];
+  assert.deepEqual(snapshotCheckRequest({parameters: {x: nested}}), {parameters: {x: nested}});
+});
+
+test('independent binding JSON reasons require owned documents and closed parser facts', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-binding-json-reasons.json', import.meta.url), 'utf8'));
+  const source = {document_id: 'source', kind: 'text', revision: 'rev:' + '1'.repeat(64), byte_length: 8};
+  const revision = 'rev:' + '2'.repeat(64);
+  const outcome = (document, reason) => ({version: 'actql-check-outcome/0.1',
+    reason_schema_cid: fixture.reason_schema_cid, outcome_schema_cid: fixture.outcome_schema_cid,
+    outcome: 'completed', report: {context_ref: 'ctx:independent-json-reasons',
+      scope: {kind: 'bound_input'}, verdict: 'invalid',
+      inputs: [source, ...fixture.documents.map(document_id =>
+        ({document_id, kind: 'structured', revision, byte_length: 2}))],
+      reasons: [reason], requirements: [], coverage: {limits: [], unresolved: []}}});
+  for (const document of fixture.documents) {
+    for (const issue of fixture.issues) {
+      const reason = {code: 'binding_json_invalid', facts: {document, issue},
+        location: {kind: 'structured', document_id: document, revision, pointer: ''}};
+      assert.equal(validCheckOutcome(outcome(document, reason)), true);
+      for (const invalid of [
+        {code: reason.code}, {...reason, facts: {issue}}, {...reason, facts: {document}},
+        {...reason, facts: {document: 'source', issue}},
+        {...reason, facts: {document, issue: 'depth_limit'}},
+        {...reason, facts: {document, issue, key: 'private-key'}},
+        {...reason, facts: {document, issue: 'future_json_issue'}},
+        {...reason, location: {...reason.location, document_id: document === 'parameters' ? 'parameter_declarations' : 'parameters'}},
+        {code: 'future_json_reason', facts: reason.facts},
+      ]) assert.equal(validCheckOutcome(outcome(document, invalid)), false,
+        '[check-mutation:json-facts-schema]');
+      assert.equal(validCheckOutcome(outcome(document, {code: 'future_json_reason'})), true);
+    }
+  }
 });

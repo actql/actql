@@ -45,7 +45,7 @@ test "resumable JSON admission canonicalizes objects without losing NULL or wire
   emit_checked_wire_value(checked, writer)
   assert_eq(
     @encode.finish(writer),
-    "{\"a\":{\"definition\":\"N\",\"key\":[1]},\"z\":[null,2]}",
+    "{\"$json\":{\"a\":{\"definition\":\"N\",\"key\":[1]},\"z\":[null,2]}}",
   )
   assert_eq(
     (nodes, text),
@@ -64,7 +64,7 @@ test "resumable JSON admission canonicalizes objects without losing NULL or wire
   emit_checked_wire_value(checked, writer)
   assert_eq(
     @encode.finish(writer),
-    "{\"a\":{\"definition\":\"N\",\"key\":[1]},\"z\":[null,2]}",
+    "{\"$json\":{\"a\":{\"definition\":\"N\",\"key\":[1]},\"z\":[null,2]}}",
   )
 }
 

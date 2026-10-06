@@ -7,6 +7,7 @@ import {createHash, createPrivateKey, createPublicKey} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {canonicalJson as canonicalValueJson} from '../../../../packages/sdk/host-port.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {openSqliteCredentialJournal} from
@@ -377,7 +378,8 @@ export async function loadInstalledSalesforceSite(path, {commonMoon,
           installedSalesforceSiteBinding(siteFacts, 'salesforce').bindingCid ||
         physicalBinding.resource !== decision.tuple.resource ||
         !Array.isArray(facts.physicalBindings) ||
-        !facts.physicalBindings.some(binding => canonicalJson(binding) === canonicalJson(physicalBinding)) ||
+        !facts.physicalBindings.some(binding =>
+          canonicalValueJson(binding) === canonicalValueJson(physicalBinding)) ||
         typeof facts.assertCurrent !== 'function' || typeof facts.enter !== 'function') {
       fail('SalesforceEffectTargetReadApprovalNotAdmitted');
     }

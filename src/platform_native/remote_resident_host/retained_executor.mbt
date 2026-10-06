@@ -14,6 +14,7 @@ pub fn install_resident_retained_compute_executor(
   input_limits : @output.NativeRemoteStandardTransferSourceLimits,
   current : @output.NativeRemoteRetainedInputCurrent,
   output_limits : @output.NativeRemoteStandardTaskLimits,
+  observe_failure? : (ResidentSourceComputeIssue) -> Unit,
 ) -> Result[
   @output.NativeRemoteStandardTaskExecutor,
   ResidentSourceComputeIssue,
@@ -71,7 +72,13 @@ pub fn install_resident_retained_compute_executor(
             current,
           ) {
           Ok(value) => value
-          Err((_, cleanup)) => return Err(cleanup)
+          Err((issue, cleanup)) => {
+            match observe_failure {
+              Some(observer) => observer(issue)
+              None => ()
+            }
+            return Err(cleanup)
+          }
         }
         // The synchronous Compute stops before its output is handed to Runtime.
         // Keep input custody with that output until Runtime authorizes release;

@@ -101,7 +101,15 @@ fn emit_frames(
             @encode.string_value(output, name)
           }
           Literal(value) => {
-            pending.push(Op("literal"))
+            pending.push(
+              Op(
+                if value.value is @value.JsonData(_) {
+                  "typed_literal"
+                } else {
+                  "literal"
+                },
+              ),
+            )
             pending.push(Value(value.value))
           }
           TypedNull => {
@@ -270,6 +278,12 @@ fn emit_frames(
             pending.push(Vectors(items, 0))
           }
           @value.Reference(_) => abort("opaque reference literal")
+          @value.JsonData(payload) => {
+            @encode.begin_object(output)
+            @encode.key(output, "$json")
+            pending.push(EndObject)
+            pending.push(Value(payload))
+          }
         }
       Values(items, index) =>
         if @value.element_at(items, index) is Some(value) {

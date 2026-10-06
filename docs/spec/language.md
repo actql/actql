@@ -316,12 +316,24 @@ Source decoding interprets the selected source syntax's escapes and, for YAML,
 its scalar folding/chomping. The resulting well-formed Unicode string values are
 preserved exactly, including CR, LF, CRLF and composed/decomposed sequences.
 Builder-provided JSON-model strings already are values and receive no second
-escape interpretation. Object member names use the separate identifier rule:
-Unicode 16.0 NFC, then CRLF and lone CR to LF; colliding names are rejected.
+escape interpretation. Object member names use the separate identifier rule,
+except inside the quoted Effect literal payloads specified below: Unicode 16.0
+NFC, then CRLF and lone CR to LF; colliding names are rejected.
 Identifier-valued members are admitted by their grammar-owned identifier rules,
 not by normalization of every String. Admission of a purportedly canonical
 machine artifact rejects noncanonical identifiers or bytes rather than repairing
 signed or hashed material. A data string need not be NFC or LF-normalized.
+
+At a grammar-owned `EffectValue` position, the explicit `{literal: value}`
+wrapper quotes the complete value subtree. Member names inside that subtree
+retain their exact decoded Unicode scalar sequences and CR/LF for source and
+Program identity, including when a later checked target contract is an Object.
+Exact decoded duplicate keys remain source errors; distinct keys that would
+collide only after identifier normalization remain distinct source keys there.
+Program syntax, the `literal` wrapper, Effect names and target-field names retain
+their existing identifier rules. This exception does not select the payload's
+type or change any other source position. Contract-directed admission of the
+payload follows [Effect declarations](#effects).
 
 <a id="document-structure"></a>
 
@@ -2349,6 +2361,30 @@ callback interface. `actql/0.1` uses this contract for all general computation
 positions; there is no source revision selector or compatibility mode. The
 Program semantics envelope pins `expression_contract_cid`.
 
+<!-- requirement-block: common-expression-contract.typed-json-literal -->
+A structured `typed_literal` with exactly `type: "json"` and `value` containing
+decoded JSON text MUST use the common typed JSON literal law in the expression
+contract. The output is non-null `json`, including for JSON null and scalars;
+SQL NULL and ordinary scalar literals retain their existing meanings.
+JSON data keys and strings preserve Unicode scalar sequences and CR/LF;
+duplicate keys retain the first decoded value. Exact numeric parsing rejects
+precision loss under the selected binary64 subset, including unsupported
+negative zero; this is not the full GoogleSQL JSON integer domain. The complete
+input is bounded, including discarded duplicates, with depth at most 500 and
+the caller's tighter value/expression ceilings.
+
+<!-- requirement-block: common-expression-contract.typed-json-wire -->
+Non-SQL-NULL JSON values MUST retain their common JSON domain in canonical
+typed-cell wire as the closed `{"$json":payload}` envelope. SQL NULL remains
+`null` under a nullable contract. Typed-wire admission decodes this envelope
+only under a checked JSON contract; raw authored JSON does not select a type
+by its keys. Canonical data-key spelling does not apply identifier normalization.
+Literal IR, retention, capture/replay and Result delivery use this same contract;
+wire bounds include the envelope. Graph identity and Delta semantic-body codecs
+obtain the checked JSON payload explicitly rather than changing their body
+format to the typed-cell envelope. Changed contracts and dependent pins reject
+old untagged typed-cell data rather than silently reinterpreting it.
+
 <!-- requirement-block: common-expression-contract.canonical-nodes -->
 | Source | Decoded canonical node |
 | --- | --- |
@@ -2366,6 +2402,7 @@ Program semantics envelope pins `expression_contract_cid`.
 | qualified `{field: "left.a.b"}` (likewise `right`) | `{property: {value: {join_field: {side: "left", name: "a"}}, name: "b"}}`; each subsequent segment adds property access in order, as in expression text |
 | `[a,b,...]`, `[]` | `{array: [a,b,...]}`, `{array: []}` |
 | explicit typed empty array | `{empty_array: {items: AuthorValueContract}}` (structured only) |
+| explicit typed JSON literal | `{typed_literal: {type: "json", value: JSONText}}` (common structured expression; GoogleSQL surface lowering is specified separately) |
 | `a \|\| b`, `concat_strict(a,b)` | `{concat_strict: [a,b]}` |
 | `concat(a,b)` | `{concat: [a,b]}` |
 
@@ -6070,9 +6107,31 @@ field sets respectively, with compatible recursive value domains. The common
 type rules join nullability and extents; missing properties are not filled with
 null. A present record must contain every declared property even when nullable.
 Empty graphs retain those contracts and do not bypass compatibility checking.
+
+<!-- requirement-block: structural-graphs.union-identity-compatible-definitions -->
+The initial Property Graph union realization MUST accept only a single identity
+domain and the same named node and edge definition sets. Definition and property
+declaration order may differ; align them by the existing name rules. The exact
+definition spelling embedded in identity and each ordered key type descriptor
+must nevertheless match: `N` and `n`, decimal precision/scale changes, and
+different ArtifactRef media types are not implicit identity conversions.
+Check rejects those mismatches with typed identity reasons. Key-component order
+and original key-column correspondence, label sets and label-visible property
+sets, and source/target definition mappings must agree. Property value contracts
+may join nullability and extents under the existing rules; key contract joins
+must preserve their identity descriptor. Output contracts must also represent
+the selected strategy's results (for example, array union cannot retain an
+insufficient input array-length bound). This limited compatibility does not
+change constructor identity or authorize relabeling, rekeying or migration.
 An entity present only on one side is distinct from a missing property in a
 present entity: union keeps its complete record without applying a binary
 property strategy, while subtraction keeps only left-only entities.
+
+<!-- requirement-block: structural-graphs.union-shared-edge-endpoint-integrity -->
+For a shared edge identity, union MUST require exact typed source and target
+identity equality separately. A conflicting endpoint fails the whole operation
+without publishing a partial accumulator or modifying either input. Property
+strategies do not overwrite endpoints or allocate a replacement edge identity.
 
 On a shared identity, an explicitly named strategy applies even when its two
 values are equal. `exact_equal` requires typed value equality and returns that
@@ -7959,6 +8018,15 @@ set:
   Reason: {field: risk_reason}
 ```
 
+The complete payload of an Effect `{literal: value}` retains its source keys as
+specified in [Source representation](#source-representation). After the target
+contract is checked, a JSON payload preserves those exact data keys; a typed
+Object applies its existing field-name normalization, collision rejection and
+closed-contract matching. Neither interpretation changes the already-bound
+source identity. Member names within the payload do not select a type, and an
+object containing `$json` remains authored data. This rule adds no
+`typed_literal` alternative to `EffectValue` and does not expand Values types.
+
 <!-- requirement-block: effects.bare-values-are-rejected-with-a-deterministic-explicit-replacement-and effects.a-bare-effect-value-must-be-rejected-before-lowering effects.its-diagnostic-must-expose-only-explicit-literal-and-schema-valid effects.check-must-not-guess-between-those-meanings effects.check-must-reject-unknown-result-fields effects.preview-must-reject-missing-row-values-target-fields-not-declared effects.it-must-compute-separate-strength-appropriate-state-evidence-and-a-target -->
 All literal values use the explicit `{literal: value}` form. Bare values are
 rejected with a deterministic explicit replacement and MUST NOT be interpreted
@@ -9247,8 +9315,14 @@ in [Result delivery](protocols/artifacts.md#result-delivery).
 
 ActQL semantic identities use that pinned AoA Kernel canonical JSON contract: Unicode
 string values are preserved and object member names are normalized at the
-boundaries specified in [Source representation](#source-representation). Object
-keys are ordered by canonical code units, finite numbers use the AoA normalized
+boundaries specified in [Source representation](#source-representation), with
+the quoted Effect literal source-key exception defined there. Exact decoded
+keys in those payloads participate in Stage and Program semantic preimages
+before external target contracts are resolved. Composed and decomposed keys,
+or keys differing in CR/LF, therefore give different source identities even
+when later typed Object admission yields the same field. This does not make
+Program identity depend on a Mapping contract. Object keys are ordered by
+canonical code units, finite numbers use the AoA normalized
 number spelling, and negative zero is invalid. The ActQL CID is SHA-256 over the
 UTF-8 canonical serialization of its semantic envelope. Formatting, source key
 order, and comments do not affect this identity. A source-text
@@ -9953,7 +10027,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397
+../../spec/contracts/actql-aoa.json# sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
@@ -9962,13 +10036,13 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f
-../../spec/contracts/actql-expressions.json#/schemas/expression sha256:8196cef99c66248917d44d322cb21f69f9873cac768bc5bbda2e3757e8e9d66f
-../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:eea37ee96bf6be954e46db196f7ec8101506ed4a28ecc647e8f929a512194b94
+../../spec/contracts/actql-expressions.json# sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67
+../../spec/contracts/actql-expressions.json#/schemas/expression sha256:312652bb513b214f7006df0cf1d4e28155c86ad631f24a54689b037362d0c2f1
+../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:040d42d5ef4d01dce7a46e7cbc05817e1d4261dfe220a8e86d3885a7e4908d4e
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:629342d58af8fa879da391532a838788338ddc42b5f17db814d0bdf7236c195b
-../../spec/contracts/actql-expressions.json#/laws sha256:9a6a765f568befcb18f975cf9aed489a4714618a41309c94de1885759867935b
-../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:4d42600c1b3d42d660f2eb14a84342988c17646110f8995f80bf4dc4344ce3d4
-../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:36320fcc16612a4bd0a64274fcf07526845ae91ad802afce601f4e391f5ba1de
+../../spec/contracts/actql-expressions.json#/laws sha256:f4e1af7d2c2b80ea7f446c26ee96774b14d6cae192628b8477f48b2ff4c7b763
+../../spec/contracts/actql-expressions.json#/schemas/fragment sha256:736ddd89183ed162dd755e68858e1c4f7347c6d6ee03fec46c843f072c5e19d1
+../../spec/contracts/actql-expressions.json#/schemas/predicate_consumer sha256:1333afc6c7356231eab40ede1e99933a70b55f8dac48b32488fc236ddb7c3176
 ```
 
 <!-- stage-contract-pins:start -->
