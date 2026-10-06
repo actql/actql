@@ -174,3 +174,45 @@ rows to its existing Source installer, just as for normal cases, and removes
 default. A focused boundary test retains same-request replay, one acquisition,
 failed Result denial, and client closure. Node checks passed 10/10 (`run-URw2Tq`,
 `focused-test-5TT0gY`). Expected values and expressions were not changed.
+
+
+## Integrated package identity and selected public evidence
+
+Normal five-package packing at `f0167c3c77134e3693ecc227282adc0fded29591`
+passed (`run-RuZp8x`). The pristine narrow consumer receipt is
+`public-query-evidence-WJ6wDH`: it passed the Local JSON control and SQL case,
+then failed the unchanged Pipe LIMIT/OFFSET case. That consumer did not reach
+HTTPS and is not a whole-corpus pass.
+
+The verified external installation was subsequently reused for a selected
+Local/HTTPS diagnostic (`run-9SAAiV`) with two explicit test-only overlays:
+exclude the still-open Pipe capacity case; use the corrected authored failure-row
+installer from `0d0fe5d00ebcc4ed1c595aaeeb2fee609eb334e5`. No package/runtime file,
+submitted query, generated Program, expected result, schema or ceiling was changed.
+This is retained-runtime boundary evidence, not pristine final-HEAD packed proof.
+
+Both transports passed six normal cases, three preparation refusals and one
+execution failure. Normal cases compared Named Result rows and ordered full
+contracts, including typed empty output, NULL and duplicate handling, no hidden
+columns, one acquired Source session, same-request reuse, attach and reread without
+additional acquisition. Refusals checked zero Run admission/provider I/O. The
+correctly installed failing expression published no Result and did not re-execute
+on same-request replay. The remaining seventh normal case stays incomplete.
+
+Tarball SHA-256 values from the immutable producer manifest:
+
+| Package | Digest |
+|---|---|
+| `client-wire` | `04dff256ba4d6810f27dbb184b1bd3b0297ef8c988cae72e5fd2cb884e33792c` |
+| `sdk` | `a4d00c42047342fcad8d4a74f470bae38ae303e4c0a532d6099c9056fc560174` |
+| `run-host-core` | `b5c8b5a9f697379f87c813cbf9974bfe6cde9ff43bd9c42bbd566d2c002de00e` |
+| `local-node` | `04aa4e44ce50182d74d04884921de66ebd1d11fd57553ba2389f75c64ed69f41` |
+| `node` | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Evidence is retained under local `review-artifacts/b-distinct-join-order-2026-10-06/`
+and the named guarded run/consumer receipts. Original failure Stores and journals
+remain in the owned retained installation. Full Core, Wasm/Native, all packed,
+proofs/performance, pristine final-HEAD full corpus and required hosted CI remain
+unverified. Draft remains appropriate until the common capacity boundary and
+original unfiltered public corpus are closed. No common capacity implementation
+is changed by this frontend PR.
