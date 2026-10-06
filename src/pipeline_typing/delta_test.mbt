@@ -102,7 +102,7 @@ test "Delta application rejects an incompatible retained Graph expectation" {
     cursor(
       "[{\"from\":\"base\",\"apply_graph_delta\":{\"with\":\"changes\",\"field\":\"delta\"}}]",
     ),
-    [("base", graph_property_scope_input()), ("changes", delta_rows())],
+    [("base", graph_graph_scope_input()), ("changes", delta_rows())],
     None,
     None,
     limits(),

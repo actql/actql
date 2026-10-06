@@ -50,7 +50,7 @@ priv enum SnapshotProjectionRole {
 /// A resumable operation of the existing private Builder. The caller retains
 /// exclusive access to that builder until completion or cleanup. Only one
 /// complete, validated record is appended; no partial record is published.
-struct PropertySnapshotAppend {
+struct GraphSnapshotAppend {
   builder : Builder
   profile : @carrier.GraphDefinition
   edge : Bool
@@ -85,7 +85,7 @@ struct PropertySnapshotAppend {
   mut encoding_role : SnapshotEncodingRole
   mut encoding : ValueEncoding?
   mut projection_role : SnapshotProjectionRole
-  mut projection : PropertyIdentityPreparation?
+  mut projection : ElementIdentityPreparation?
   mut construction_work : Int
   mut bytes : Int
   mut key_bytes : Int
@@ -94,10 +94,10 @@ struct PropertySnapshotAppend {
 }
 
 ///|
-pub enum PropertySnapshotAppendPoll {
-  PropertySnapshotAppendContinue(work~ : Int)
-  PropertySnapshotAppendComplete(work~ : Int)
-  PropertySnapshotAppendFailed(Issue, work~ : Int)
+pub enum GraphSnapshotAppendPoll {
+  GraphSnapshotAppendContinue(work~ : Int)
+  GraphSnapshotAppendComplete(work~ : Int)
+  GraphSnapshotAppendFailed(Issue, work~ : Int)
 }
 
 ///|
@@ -107,7 +107,7 @@ pub enum PropertySnapshotAppendPoll {
 /// identities, sort/decode/emission state, and retained staged columns are
 /// bounded by the existing per-value and declaration limits. This is not a
 /// total Graph capacity or physical-byte proof.
-pub fn property_snapshot_append_workspace_slots(
+pub fn graph_snapshot_append_workspace_slots(
   graph : @carrier.Graph,
   limits : Limits,
 ) -> Int? {
@@ -162,12 +162,12 @@ pub fn property_snapshot_append_workspace_slots(
 }
 
 ///|
-pub fn start_property_snapshot_append(
+pub fn start_graph_snapshot_append(
   builder : Builder,
   input : @decode.Cursor,
   edge~ : Bool,
   reference_issuer? : @value.ReferenceIssuer? = None,
-) -> Result[PropertySnapshotAppend, Issue] {
+) -> Result[GraphSnapshotAppend, Issue] {
   new_property_append(builder, Some(input), edge~, reference_issuer~)
 }
 
@@ -183,7 +183,7 @@ fn new_property_append(
   runtime_identity? : @value.CheckedValue? = None,
   runtime_source? : @value.CheckedValue? = None,
   runtime_target? : @value.CheckedValue? = None,
-) -> Result[PropertySnapshotAppend, Issue] {
+) -> Result[GraphSnapshotAppend, Issue] {
   if !builder.open || !builder.owns_private {
     return Err(Closed)
   }
@@ -236,7 +236,7 @@ fn new_property_append(
 /// snapshot reload. This is not an unchecked append: every value is rechecked,
 /// identities are projected from typed keys, and endpoint tokens are checked
 /// against the already retained nodes. No reference evidence is reconstructed.
-pub fn start_property_record_append(
+pub fn start_record_append(
   builder : Builder,
   definition_index : Int,
   identity : @value.CheckedValue,
@@ -245,7 +245,7 @@ pub fn start_property_record_append(
   edge~ : Bool,
   source? : @value.CheckedValue? = None,
   target? : @value.CheckedValue? = None,
-) -> Result[PropertySnapshotAppend, Issue] {
+) -> Result[GraphSnapshotAppend, Issue] {
   let profile = @carrier.graph_definition(builder.graph)
   let definition = if edge {
     @carrier.graph_edge_at(profile, definition_index).map(
@@ -290,7 +290,7 @@ pub fn start_property_record_append(
 
 ///|
 fn start_runtime_record_value(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   role : SnapshotValueRole,
   contract : @contract.Contract,
   value : @value.CheckedValue,
@@ -317,7 +317,7 @@ fn start_runtime_record_value(
 
 ///|
 fn start_snapshot_value(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   role : SnapshotValueRole,
   contract : @contract.Contract,
   input : @decode.Cursor,
@@ -368,7 +368,7 @@ fn start_snapshot_value(
 
 ///|
 fn start_snapshot_encoding(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   role : SnapshotEncodingRole,
   values : Array[@value.CheckedValue],
   bytes : Int,
@@ -389,7 +389,7 @@ fn start_snapshot_encoding(
 
 ///|
 fn start_snapshot_projection(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   role : SnapshotProjectionRole,
 ) -> Issue? {
   let (definition, keys) = match role {
@@ -415,7 +415,7 @@ fn start_snapshot_projection(
     }
   }
   match
-    start_property_identity(
+    start_element_identity(
       state.builder,
       state.profile,
       definition,
@@ -434,29 +434,29 @@ fn start_snapshot_projection(
 
 ///|
 fn snapshot_append_failed(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   issue : Issue,
   work : Int,
-) -> PropertySnapshotAppendPoll {
+) -> GraphSnapshotAppendPoll {
   state.builder.open = false
   state.phase = SnapshotAppendFinished
   // Private construction and child custody remain with the original owners
   // until explicit cleanup, including failures after successful value reads.
-  PropertySnapshotAppendFailed(issue, work~)
+  GraphSnapshotAppendFailed(issue, work~)
 }
 
 ///|
-pub fn advance_property_snapshot_append(
-  state : PropertySnapshotAppend,
+pub fn advance_graph_snapshot_append(
+  state : GraphSnapshotAppend,
   quantum : Int,
-) -> PropertySnapshotAppendPoll {
+) -> GraphSnapshotAppendPoll {
   if quantum < 1 {
-    return PropertySnapshotAppendFailed(InvalidLimits, work=0)
+    return GraphSnapshotAppendFailed(InvalidLimits, work=0)
   }
   if state.phase == SnapshotAppendFinished ||
     !state.builder.open ||
     !state.builder.owns_private {
-    return PropertySnapshotAppendFailed(Closed, work=0)
+    return GraphSnapshotAppendFailed(Closed, work=0)
   }
   let builder = state.builder
   let mut used = 0
@@ -470,7 +470,7 @@ pub fn advance_property_snapshot_append(
           ["id", "key", "props"]
         }
         let record = snapshot_object(state.input.unwrap(), names) catch {
-          PropertySnapshotStop(issue) =>
+          GraphSnapshotStop(issue) =>
             return snapshot_append_failed(state, issue, used)
         }
         let identity = @decode.lookup(record, "id").unwrap()
@@ -501,7 +501,7 @@ pub fn advance_property_snapshot_append(
           return snapshot_append_failed(state, InvalidIdentity, used)
         }
         snapshot_charge(builder, 1) catch {
-          PropertySnapshotStop(issue) =>
+          GraphSnapshotStop(issue) =>
             return snapshot_append_failed(state, issue, used)
         }
         if @carrier.graph_element_definition_name(definition) ==
@@ -615,7 +615,7 @@ pub fn advance_property_snapshot_append(
             )
           @value.RecheckComplete(value, nodes, _) => {
             snapshot_charge(builder, nodes) catch {
-              PropertySnapshotStop(issue) =>
+              GraphSnapshotStop(issue) =>
                 return snapshot_append_failed(state, issue, used)
             }
             state.runtime_recheck = None
@@ -710,7 +710,7 @@ pub fn advance_property_snapshot_append(
           @value.TypedAdmissionContinue => ()
           @value.TypedAdmissionComplete(value, nodes, _) => {
             snapshot_charge(builder, nodes) catch {
-              PropertySnapshotStop(issue) =>
+              GraphSnapshotStop(issue) =>
                 return snapshot_append_failed(state, issue, used)
             }
             @value.cancel_typed_admission(admission)
@@ -752,13 +752,13 @@ pub fn advance_property_snapshot_append(
       }
       ProjectSnapshotIdentity => {
         let projection = state.projection.unwrap()
-        match advance_property_identity(projection, quantum - used) {
-          PropertyIdentityContinue(work~) => used += work
-          PropertyIdentityFailed(issue, work~) =>
+        match advance_element_identity(projection, quantum - used) {
+          ElementIdentityContinue(work~) => used += work
+          ElementIdentityFailed(issue, work~) =>
             return snapshot_append_failed(state, issue, used + work)
-          PropertyIdentityComplete(identity, construction_work~, work~) => {
+          ElementIdentityComplete(identity, construction_work~, work~) => {
             used += work
-            cleanup_property_identity(projection)
+            cleanup_element_identity(projection)
             state.projection = None
             guard identity is Some(identity) else {
               return snapshot_append_failed(state, InvalidIdentity, used)
@@ -809,7 +809,7 @@ pub fn advance_property_snapshot_append(
             match state.encoding_role {
               ReceivedIdentityToken => {
                 snapshot_charge(builder, nodes) catch {
-                  PropertySnapshotStop(issue) =>
+                  GraphSnapshotStop(issue) =>
                     return snapshot_append_failed(state, issue, used)
                 }
                 let previous = if state.edge {
@@ -830,7 +830,7 @@ pub fn advance_property_snapshot_append(
               }
               ReceivedSourceToken | ReceivedTargetToken => {
                 snapshot_charge(builder, nodes) catch {
-                  PropertySnapshotStop(issue) =>
+                  GraphSnapshotStop(issue) =>
                     return snapshot_append_failed(state, issue, used)
                 }
                 guard builder.node_keys.get(text) is Some(index) else {
@@ -956,7 +956,7 @@ pub fn advance_property_snapshot_append(
           builder.edge_keys[state.token] = builder.edges.length()
           builder.edge_payloads[state.token] = state.payload
           builder.edges.push({
-            property_definition: state.definition_index,
+            definition_index: state.definition_index,
             identity_order_key: state.token,
             identity: state.identity.unwrap(),
             typed_key: keys,
@@ -968,7 +968,7 @@ pub fn advance_property_snapshot_append(
           builder.node_keys[state.token] = builder.nodes.length()
           builder.node_payloads[state.token] = state.payload
           builder.nodes.push({
-            property_definition: state.definition_index,
+            definition_index: state.definition_index,
             identity_order_key: state.token,
             identity: state.identity.unwrap(),
             typed_key: keys,
@@ -981,19 +981,19 @@ pub fn advance_property_snapshot_append(
         builder.work += state.construction_work
         builder.workspace_slots += slots
         state.phase = SnapshotAppendFinished
-        return PropertySnapshotAppendComplete(work=used)
+        return GraphSnapshotAppendComplete(work=used)
       }
       SnapshotAppendFinished =>
-        return PropertySnapshotAppendFailed(Closed, work=used)
+        return GraphSnapshotAppendFailed(Closed, work=used)
     }
   }
-  PropertySnapshotAppendContinue(work=used)
+  GraphSnapshotAppendContinue(work=used)
 }
 
 ///|
 /// Drop only temporary record preparation. The caller still owns Builder
 /// cleanup, whether this operation failed, was cancelled or committed a record.
-pub fn cleanup_property_snapshot_append(state : PropertySnapshotAppend) -> Unit {
+pub fn cleanup_graph_snapshot_append(state : GraphSnapshotAppend) -> Unit {
   if state.runtime_recheck is Some(cursor) {
     @value.cancel_recheck_runtime_value(cursor)
     state.runtime_recheck = None
@@ -1005,7 +1005,7 @@ pub fn cleanup_property_snapshot_append(state : PropertySnapshotAppend) -> Unit 
     cleanup_value_encoding(encoding)
   }
   if state.projection is Some(projection) {
-    cleanup_property_identity(projection)
+    cleanup_element_identity(projection)
   }
   state.admission = None
   state.encoding = None

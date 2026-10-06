@@ -148,7 +148,7 @@ pub fn operation_scalar_demand(
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | FilterTraversalLabels
-        | EnumeratePropertyPaths
+        | EnumerateGraphPaths
         | DeduplicateExactPaths
         | MinimumEligibleNodeDepth
         | CanonicalTraversalOrder
@@ -181,7 +181,7 @@ pub fn operation_scalar_demand(
     | ValuesRequirement(_)
     | MatchRequirement(_)
     | SubgraphRequirement(_)
-    | PropertyEqualityRequirement(_)
+    | GraphEqualityRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)

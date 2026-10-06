@@ -18,7 +18,7 @@ fn properties(
 }
 
 ///|
-fn emit_property_definition(
+fn emit_definition(
   definition : @carrier.GraphNodeDefinition,
   endpoints : (String, String)?,
   out : @encode.Writer,
@@ -97,7 +97,7 @@ fn emit_graph(
   @encode.key(out, "edge_definitions")
   @encode.begin_array(out)
   for edge in edges {
-    emit_property_definition(
+    emit_definition(
       @carrier.graph_edge_element(edge),
       Some(@carrier.graph_edge_endpoints(edge)),
       out,
@@ -109,7 +109,7 @@ fn emit_graph(
   @encode.key(out, "node_definitions")
   @encode.begin_array(out)
   for node in nodes {
-    emit_property_definition(node, None, out)
+    emit_definition(node, None, out)
   }
   @encode.end_array(out)
   @encode.key(out, "value_law_cid")
@@ -183,7 +183,7 @@ fn read_property_text(
 }
 
 ///|
-fn read_property_definition(
+fn read_definition(
   cursor : @decode.Cursor,
   edge : Bool,
   budget : ReadBudget,
@@ -399,7 +399,7 @@ pub fn read_cursor_usage(
         stop(BudgetExceeded)
       }
       for index in 0..<count {
-        let (definition, endpoints) = read_property_definition(
+        let (definition, endpoints) = read_definition(
           @decode.element_at(at, index).unwrap(),
           edge,
           budget,

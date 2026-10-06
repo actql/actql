@@ -1,7 +1,7 @@
 ///|
 // A definition-scoped match preserves heterogeneous schema knowledge. Bindings
 // are normalized field aliases selected by the caller, not reserved properties.
-priv struct PropertyMatchScope {
+priv struct GraphMatchScope {
   definition : Int
   name : String
   properties : @carrier.Knowledge
@@ -17,7 +17,7 @@ fn check_property_match_scope(
   root : @decode.ObjectView,
   graph : @carrier.Graph,
   b : Budget,
-) -> PropertyMatchScope raise Stop {
+) -> GraphMatchScope raise Stop {
   let profile = @carrier.graph_definition(graph)
   let name_source = decoded(@decode.required(root, "definition"))
   let name = decoded(@decode.text(name_source))
@@ -125,28 +125,28 @@ fn check_property_match_scope(
 }
 
 ///|
-pub fn match_property_definition(c : CheckedMatch) -> Int {
-  c.property_scope.definition
+pub fn match_definition_index(c : CheckedMatch) -> Int {
+  c.graph_scope.definition
 }
 
 ///|
 pub fn match_graph_element_definition_name(c : CheckedMatch) -> String {
-  c.property_scope.name
+  c.graph_scope.name
 }
 
 ///|
 pub fn match_property_label(c : CheckedMatch) -> String? {
-  c.property_scope.label
+  c.graph_scope.label
 }
 
 ///|
 pub fn match_property_schema(c : CheckedMatch) -> @carrier.Knowledge {
-  c.property_scope.properties
+  c.graph_scope.properties
 }
 
 ///|
 pub fn match_graph_binding(c : CheckedMatch, role : String) -> @row.FieldName? {
-  for (candidate, name) in c.property_scope.bindings {
+  for (candidate, name) in c.graph_scope.bindings {
     if candidate == role {
       return Some(name)
     }
@@ -155,6 +155,6 @@ pub fn match_graph_binding(c : CheckedMatch, role : String) -> @row.FieldName? {
 }
 
 ///|
-pub fn match_property_scope_fields(c : CheckedMatch) -> @carrier.Knowledge {
-  c.property_scope.scope.fields
+pub fn match_graph_scope_fields(c : CheckedMatch) -> @carrier.Knowledge {
+  c.graph_scope.scope.fields
 }

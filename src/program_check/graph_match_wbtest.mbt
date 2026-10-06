@@ -71,7 +71,7 @@ test "formal Graph matches retain definition labels selectors and resources thro
         assert_true(physical_equal(check.site.pipeline, producer))
         assert_eq(check.site.step, 3)
         assert_eq(check.input, @pipeline.Step(2))
-        assert_eq(@graph.match_property_definition(check.operation), 0)
+        assert_eq(@graph.match_definition_index(check.operation), 0)
         assert_eq(
           @graph.match_graph_element_definition_name(check.operation),
           if node {

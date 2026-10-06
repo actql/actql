@@ -138,7 +138,7 @@ fn QueryParser::property_labels(
 }
 
 ///|
-fn QueryParser::property_element_name(
+fn QueryParser::graph_element_name(
   self : QueryParser,
 ) -> (Array[NamePart], NamePart) raise QueryAbort {
   self.node()
@@ -183,7 +183,7 @@ fn QueryParser::graph(self : QueryParser) -> GraphConstructor raise QueryAbort {
   self.symbol(40)
   let nodes : Array[GraphNodeDefinition] = []
   while true {
-    let (producer, name) = self.property_element_name()
+    let (producer, name) = self.graph_element_name()
     // A Relation producer does not carry an automatically designated DB
     // primary key. The selected initial profile requires an explicit KEY.
     self.keyword("KEY")
@@ -202,7 +202,7 @@ fn QueryParser::graph(self : QueryParser) -> GraphConstructor raise QueryAbort {
     self.keyword("TABLES")
     self.symbol(40)
     while true {
-      let (producer, name) = self.property_element_name()
+      let (producer, name) = self.graph_element_name()
       self.keyword("KEY")
       let key = self.property_columns()
       let source = self.property_endpoint("SOURCE")

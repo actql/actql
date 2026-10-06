@@ -70,7 +70,7 @@ fn graph_binding_columns(
 }
 
 ///|
-fn property_element_binding(
+fn graph_element_binding(
   pipeline : @pipeline.CheckedPipeline,
   node : PreparedNode,
   input : Int,
@@ -87,7 +87,7 @@ fn property_element_binding(
     raise InvalidGraphBinding
   }
   let name = @carrier.graph_element_definition_name(
-    @graph.property_element_definition(element),
+    @graph.graph_element_definition(element),
   )
   let bytes = @utf8.encode(name).length()
   if bytes > budget.names {
@@ -96,12 +96,12 @@ fn property_element_binding(
   budget.names -= bytes
   let keys = graph_binding_columns(
     schema,
-    @graph.property_element_keys(element),
+    @graph.graph_element_keys(element),
     budget,
   )
   let properties = graph_binding_columns(
     schema,
-    @graph.property_element_properties(element).map(pair => pair.0),
+    @graph.graph_element_properties(element).map(pair => pair.0),
     budget,
   )
   { input, name, keys, properties, }
@@ -139,7 +139,7 @@ fn prepare_graph_construction_node(
     let edges = []
     for index in 0..<n {
       nodes.push(
-        property_element_binding(
+        graph_element_binding(
           owner.prepared.owner,
           node,
           index,
@@ -151,7 +151,7 @@ fn prepare_graph_construction_node(
     for index in 0..<e {
       let edge = @graph.construction_edge_at(checked, index).unwrap()
       let input = n + index
-      let element = property_element_binding(
+      let element = graph_element_binding(
         owner.prepared.owner,
         node,
         input,
@@ -162,7 +162,7 @@ fn prepare_graph_construction_node(
         owner.prepared.owner,
         node.input_targets[input],
       ).unwrap()
-      let (source, target) = @graph.property_edge_keys(edge)
+      let (source, target) = @graph.graph_edge_keys(edge)
       edges.push({
         element,
         source: graph_binding_columns(schema, source, budget),
@@ -247,14 +247,14 @@ pub fn graph_binding_properties(value : GraphElementBinding) -> Array[Int] {
 }
 
 ///|
-pub fn property_edge_binding_element(
+pub fn graph_edge_binding_element(
   value : GraphEdgeBinding,
 ) -> GraphElementBinding {
   value.element
 }
 
 ///|
-pub fn property_edge_binding_keys(
+pub fn graph_edge_binding_keys(
   value : GraphEdgeBinding,
 ) -> (Array[Int], Array[Int]) {
   (value.source.copy(), value.target.copy())

@@ -1,7 +1,7 @@
 ///|
 /// Checked framing only. Records still require the existing value/key/storage
 /// admission, and the completed material must match the expected snapshot CID.
-struct PropertyHeader {
+struct SnapshotHeader {
   nodes : @decode.Cursor
   edges : @decode.Cursor
   node_count : Int
@@ -9,11 +9,11 @@ struct PropertyHeader {
 }
 
 ///|
-pub fn read_property_header(
+pub fn read_header(
   input : @decode.Cursor,
   expected : @carrier.Graph,
   limits : Limits,
-) -> Result[PropertyHeader, Issue] {
+) -> Result[SnapshotHeader, Issue] {
   if !valid_snapshot_limits(limits) {
     return Err(InvalidLimits)
   }
@@ -54,27 +54,21 @@ pub fn read_property_header(
 }
 
 ///|
-pub fn property_header_node_count(value : PropertyHeader) -> Int {
+pub fn header_node_count(value : SnapshotHeader) -> Int {
   value.node_count
 }
 
 ///|
-pub fn property_header_edge_count(value : PropertyHeader) -> Int {
+pub fn header_edge_count(value : SnapshotHeader) -> Int {
   value.edge_count
 }
 
 ///|
-pub fn property_header_node_at(
-  value : PropertyHeader,
-  index : Int,
-) -> @decode.Cursor? {
+pub fn header_node_at(value : SnapshotHeader, index : Int) -> @decode.Cursor? {
   @decode.element_at(value.nodes, index)
 }
 
 ///|
-pub fn property_header_edge_at(
-  value : PropertyHeader,
-  index : Int,
-) -> @decode.Cursor? {
+pub fn header_edge_at(value : SnapshotHeader, index : Int) -> @decode.Cursor? {
   @decode.element_at(value.edges, index)
 }

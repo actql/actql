@@ -35,7 +35,7 @@ fn property_fixture_domain() -> String {
 fn checked_property_fixture(
   text : String,
 ) -> Result[@graph_typing.CheckedGraphConstruction, @graph_typing.Issue] {
-  @graph_typing.check_property_construction(
+  @graph_typing.check_graph_construction(
     cursor(text),
     [("nodes", property_fixture_rows()), ("edges", property_fixture_rows())],
     property_fixture_domain(),
@@ -46,7 +46,7 @@ fn checked_property_fixture(
 ///|
 test "keyed constructor preserves independent keys endpoint order label subsets and source provenance" {
   let at = cursor(property_fixture_constructor())
-  let checked = @graph_typing.check_property_construction(
+  let checked = @graph_typing.check_graph_construction(
     at,
     [("nodes", property_fixture_rows()), ("edges", property_fixture_rows())],
     property_fixture_domain(),
@@ -59,16 +59,16 @@ test "keyed constructor preserves independent keys endpoint order label subsets 
     Some(0),
   )
   let node = @graph_typing.construction_node_at(checked, 0).unwrap()
-  assert_eq(@graph_typing.property_element_input(node), "nodes")
-  assert_eq(@graph_typing.property_element_keys(node), [
+  assert_eq(@graph_typing.graph_element_input(node), "nodes")
+  assert_eq(@graph_typing.graph_element_keys(node), [
     Unqualified("tenant"),
     Unqualified("id"),
   ])
-  assert_eq(@graph_typing.property_element_properties(node), [
+  assert_eq(@graph_typing.graph_element_properties(node), [
     (Unqualified("name"), Unqualified("display")),
     (Unqualified("id"), Unqualified("id")),
   ])
-  let definition = @graph_typing.property_element_definition(node)
+  let definition = @graph_typing.graph_element_definition(node)
   assert_eq(@carrier.graph_element_definition_labels(definition), [
     "Identified", "Person",
   ])
@@ -80,21 +80,21 @@ test "keyed constructor preserves independent keys endpoint order label subsets 
   )
   let edge = @graph_typing.construction_edge_at(checked, 0).unwrap()
   assert_eq(
-    @graph_typing.property_element_keys(@graph_typing.graph_edge_element(edge)),
+    @graph_typing.graph_element_keys(@graph_typing.graph_edge_element(edge)),
     [Unqualified("tenant"), Unqualified("edge_id")],
   )
   assert_eq(@graph_typing.graph_edge_definitions(edge), ("N", "N"))
   assert_eq(
-    @graph_typing.property_edge_keys(edge),
+    @graph_typing.graph_edge_keys(edge),
     (
       [Unqualified("tenant"), Unqualified("src")],
       [Unqualified("tenant"), Unqualified("dst")],
     ),
   )
   // Detached mappings cannot change the checked definition.
-  let keys = @graph_typing.property_element_keys(node)
+  let keys = @graph_typing.graph_element_keys(node)
   keys[0] = Unqualified("name")
-  assert_eq(@graph_typing.property_element_keys(node)[0], Unqualified("tenant"))
+  assert_eq(@graph_typing.graph_element_keys(node)[0], Unqualified("tenant"))
 }
 
 ///|
@@ -102,7 +102,7 @@ test "omitted labels and properties retain typed schema even before any input ro
   let body =
     #|{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"]}],"edges":[]}
   let checked = checked_property_fixture(body).unwrap()
-  let definition = @graph_typing.property_element_definition(
+  let definition = @graph_typing.graph_element_definition(
     @graph_typing.construction_node_at(checked, 0).unwrap(),
   )
   assert_eq(@carrier.graph_element_definition_labels(definition), ["N"])
@@ -176,7 +176,7 @@ test "label property aliases cannot silently replace another source column" {
     #|{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"A","properties":{"mode":"all_columns_except","except":["tenant","id","edge_id","src","dst"]}}]}],"edges":[]}
   let checked = checked_property_fixture(body).unwrap()
   let element = @graph_typing.construction_node_at(checked, 0).unwrap()
-  assert_eq(@graph_typing.property_element_properties(element), [
+  assert_eq(@graph_typing.graph_element_properties(element), [
     (Unqualified("name"), Unqualified("name")),
   ])
 }
@@ -188,7 +188,7 @@ test "shared constructor budget includes definition validation and is exact at i
     ("nodes", property_fixture_rows()),
     ("edges", property_fixture_rows()),
   ]
-  let checked = @graph_typing.check_property_construction(
+  let checked = @graph_typing.check_graph_construction(
     at,
     inputs,
     property_fixture_domain(),
@@ -202,7 +202,7 @@ test "shared constructor budget includes definition validation and is exact at i
     max_text_bytes: used.text_bytes,
   }
   assert_true(
-    @graph_typing.check_property_construction(
+    @graph_typing.check_graph_construction(
       at,
       inputs,
       property_fixture_domain(),
@@ -217,7 +217,7 @@ test "shared constructor budget includes definition validation and is exact at i
       { ..exact, max_text_bytes: used.text_bytes - 1, },
     ] {
     assert_true(
-      @graph_typing.check_property_construction(
+      @graph_typing.check_graph_construction(
         at,
         inputs,
         property_fixture_domain(),

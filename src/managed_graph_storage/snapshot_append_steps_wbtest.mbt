@@ -52,23 +52,23 @@ fn snapshot_test_edge(
 
 ///|
 fn complete_snapshot_append(
-  state : PropertySnapshotAppend,
+  state : GraphSnapshotAppend,
   quantum : Int,
 ) -> Result[Int, Issue] raise {
   let mut total = 0
   for _ in 0..<10000 {
-    let poll = advance_property_snapshot_append(state, quantum)
+    let poll = advance_graph_snapshot_append(state, quantum)
     let work = match poll {
-      PropertySnapshotAppendContinue(work~)
-      | PropertySnapshotAppendComplete(work~)
-      | PropertySnapshotAppendFailed(_, work~) => work
+      GraphSnapshotAppendContinue(work~)
+      | GraphSnapshotAppendComplete(work~)
+      | GraphSnapshotAppendFailed(_, work~) => work
     }
     assert_true(work > 0 && work <= quantum)
     total += work
     match poll {
-      PropertySnapshotAppendContinue(..) => ()
-      PropertySnapshotAppendComplete(..) => return Ok(total)
-      PropertySnapshotAppendFailed(issue, ..) => return Err(issue)
+      GraphSnapshotAppendContinue(..) => ()
+      GraphSnapshotAppendComplete(..) => return Ok(total)
+      GraphSnapshotAppendFailed(issue, ..) => return Err(issue)
     }
   }
   abort("snapshot append did not terminate")
@@ -84,7 +84,7 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
   let edge = edge_identity(input, 0).unwrap()
   for quantum in [1, 7, 64] {
     let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-    let append = start_property_record_append(
+    let append = start_record_append(
       builder,
       0,
       node,
@@ -97,8 +97,8 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
     // definition-name lookup: identity 8+9, key 1, projection 33+9,
     // empty payload 1 and commit 1.
     assert_eq(builder.work, 62)
-    cleanup_property_snapshot_append(append)
-    let append = start_property_record_append(
+    cleanup_graph_snapshot_append(append)
+    let append = start_record_append(
       builder,
       0,
       edge,
@@ -110,7 +110,7 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
     ).unwrap()
     complete_snapshot_append(append, quantum).unwrap() |> ignore
     assert_eq(builder.work, 242)
-    cleanup_property_snapshot_append(append)
+    cleanup_graph_snapshot_append(append)
     let output = finish(builder).unwrap()
     assert_eq(
       node_identity_order_key(output, 0),
@@ -125,7 +125,7 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
     assert_eq(output.edges[0].target, 0)
   }
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  let append = start_property_record_append(
+  let append = start_record_append(
     builder,
     0,
     node,
@@ -135,7 +135,7 @@ test "typed record append shares snapshot identity, endpoint and accounting chec
   ).unwrap()
   assert_eq(complete_snapshot_append(append, 1), Err(InvalidIdentity))
   assert_eq(builder.nodes.length(), 0)
-  cleanup_property_snapshot_append(append)
+  cleanup_graph_snapshot_append(append)
   assert_true(cancel(builder))
   assert_true(available(input))
 }
@@ -163,7 +163,7 @@ test "typed record append has independent construction work and an exact one sho
         ..property_limits(),
         max_work: ceiling,
       }).unwrap()
-      let append = start_property_record_append(
+      let append = start_record_append(
         builder,
         0,
         node_identity(input, 0).unwrap(),
@@ -182,7 +182,7 @@ test "typed record append has independent construction work and an exact one sho
         assert_eq(builder.nodes.length(), 0)
         assert_eq(builder.input_rows, 0)
       }
-      cleanup_property_snapshot_append(append)
+      cleanup_graph_snapshot_append(append)
       assert_true(builder.owns_private && available(input))
       assert_true(cancel(builder))
     }
@@ -211,7 +211,7 @@ test "typed record append rejects endpoint presence mismatch before staging tran
     let keys = [number(if edge { 10 } else { 1 })]
     let properties = []
     assert_true(
-      start_property_record_append(
+      start_record_append(
         builder,
         0,
         if edge {
@@ -245,7 +245,7 @@ test "typed record append stop clears staging but keeps previously retained node
   let input = finish(input).unwrap()
   let node = node_identity(input, 0).unwrap()
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  let append = start_property_record_append(
+  let append = start_record_append(
     builder,
     0,
     node,
@@ -254,11 +254,11 @@ test "typed record append stop clears staging but keeps previously retained node
     edge=false,
   ).unwrap()
   assert_true(
-    advance_property_snapshot_append(append, 1)
-    is PropertySnapshotAppendContinue(work=1),
+    advance_graph_snapshot_append(append, 1)
+    is GraphSnapshotAppendContinue(work=1),
   )
-  cleanup_property_snapshot_append(append)
-  cleanup_property_snapshot_append(append)
+  cleanup_graph_snapshot_append(append)
+  cleanup_graph_snapshot_append(append)
   assert_true(
     append.runtime_keys.is_empty() && append.runtime_properties.is_empty(),
   )
@@ -273,7 +273,7 @@ test "snapshot append resumes independent identities and retains constructor acc
   let mut expected_steps = None
   for quantum in [1, 7, 64] {
     let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-    let state = start_property_snapshot_append(
+    let state = start_graph_snapshot_append(
       builder,
       snapshot_test_node("1"),
       edge=false,
@@ -294,17 +294,17 @@ test "snapshot append resumes independent identities and retains constructor acc
       builder.nodes[0].identity_order_key,
       "[" + snapshot_test_identity("N", "1") + "]",
     )
-    cleanup_property_snapshot_append(state)
-    cleanup_property_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
     assert_eq(builder.nodes[0].typed_key.length(), 1)
-    let edge = start_property_snapshot_append(
+    let edge = start_graph_snapshot_append(
       builder,
       snapshot_test_edge("10", "1", "1"),
       edge=true,
     ).unwrap()
     complete_snapshot_append(edge, quantum).unwrap() |> ignore
     assert_eq(builder.work, 244)
-    cleanup_property_snapshot_append(edge)
+    cleanup_graph_snapshot_append(edge)
     let storage = finish(builder).unwrap()
     assert_eq(node_count(storage), 1)
     assert_eq(edge_count(storage), 1)
@@ -312,8 +312,8 @@ test "snapshot append resumes independent identities and retains constructor acc
     assert_eq(storage.edges[0].target, 0)
     assert_eq(storage.edges[0].typed_key.length(), 1)
     assert_true(
-      advance_property_snapshot_append(edge, 1)
-      is PropertySnapshotAppendFailed(Closed, work=0),
+      advance_graph_snapshot_append(edge, 1)
+      is GraphSnapshotAppendFailed(Closed, work=0),
     )
   }
   let builder = prepare(
@@ -321,13 +321,13 @@ test "snapshot append resumes independent identities and retains constructor acc
     DeclaredNodes,
     property_limits(),
   ).unwrap()
-  let state = start_property_snapshot_append(
+  let state = start_graph_snapshot_append(
     builder,
     snapshot_test_node("1", composite=true),
     edge=false,
   ).unwrap()
   complete_snapshot_append(state, 1).unwrap() |> ignore
-  cleanup_property_snapshot_append(state)
+  cleanup_graph_snapshot_append(state)
   let storage = finish(builder).unwrap()
   assert_eq(storage.nodes[0].typed_key.length(), 2)
   assert_true(storage.nodes[0].typed_key[0].value is @value.Number(1))
@@ -345,22 +345,22 @@ test "snapshot append refuses inconsistent records without committing a partial 
       (snapshot_test_node("null"), InvalidIdentity),
     ] {
     let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-    let state = start_property_snapshot_append(builder, input, edge=false).unwrap()
+    let state = start_graph_snapshot_append(builder, input, edge=false).unwrap()
     assert_eq(complete_snapshot_append(state, 1), Err(expected))
     assert_eq(builder.nodes.length(), 0)
     assert_eq(builder.node_keys.length(), 0)
     assert_eq(builder.retained_value_bytes, 0)
     assert_true(!builder.open && builder.owns_private)
     assert_true(
-      advance_property_snapshot_append(state, 1)
-      is PropertySnapshotAppendFailed(Closed, work=0),
+      advance_graph_snapshot_append(state, 1)
+      is GraphSnapshotAppendFailed(Closed, work=0),
     )
-    cleanup_property_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
     assert_true(cancel(builder))
   }
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
   append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
-  let state = start_property_snapshot_append(
+  let state = start_graph_snapshot_append(
     builder,
     snapshot_test_edge("10", "1", "2"),
     edge=true,
@@ -368,7 +368,7 @@ test "snapshot append refuses inconsistent records without committing a partial 
   assert_eq(complete_snapshot_append(state, 1), Err(MissingEndpoint))
   assert_eq(builder.edges.length(), 0)
   assert_eq(builder.edge_keys.length(), 0)
-  cleanup_property_snapshot_append(state)
+  cleanup_graph_snapshot_append(state)
   assert_eq(builder.nodes.length(), 1)
   assert_true(cancel(builder))
 }
@@ -395,14 +395,14 @@ test "snapshot append cancellation keeps retained endpoints and clears staged ch
     append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
     let retained = builder.retained_value_bytes
     let slots = builder.workspace_slots
-    let state = start_property_snapshot_append(
+    let state = start_graph_snapshot_append(
       builder,
       snapshot_test_edge("10", "1", "1"),
       edge=true,
     ).unwrap()
     assert_true(
-      advance_property_snapshot_append(state, 0)
-      is PropertySnapshotAppendFailed(InvalidLimits, work=0),
+      advance_graph_snapshot_append(state, 0)
+      is GraphSnapshotAppendFailed(InvalidLimits, work=0),
     )
     assert_true(state.phase == OpenSnapshotRecord)
     for _ in 0..<10000 {
@@ -410,14 +410,14 @@ test "snapshot append cancellation keeps retained endpoints and clears staged ch
         break
       }
       assert_true(
-        advance_property_snapshot_append(state, 1)
-        is PropertySnapshotAppendContinue(work=1),
+        advance_graph_snapshot_append(state, 1)
+        is GraphSnapshotAppendContinue(work=1),
       )
     }
     assert_true(state.phase == phase)
     assert_eq(builder.edges.length(), 0)
-    cleanup_property_snapshot_append(state)
-    cleanup_property_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
     assert_true(
       state.admission is None &&
       state.encoding is None &&
@@ -441,7 +441,7 @@ test "snapshot append keeps exact construction ceilings and bounds its transient
       ..property_limits(),
       max_work: limit,
     }).unwrap()
-    let state = start_property_snapshot_append(
+    let state = start_graph_snapshot_append(
       builder,
       snapshot_test_node("1"),
       edge=false,
@@ -454,7 +454,7 @@ test "snapshot append keeps exact construction ceilings and bounds its transient
       }
     }
     assert_eq(builder.nodes.length(), if expected { 1 } else { 0 })
-    cleanup_property_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
     assert_true(cancel(builder))
   }
   let builder = prepare(
@@ -463,7 +463,7 @@ test "snapshot append keeps exact construction ceilings and bounds its transient
     property_limits(),
   ).unwrap()
   assert_eq(
-    property_snapshot_append_workspace_slots(builder.graph, {
+    graph_snapshot_append_workspace_slots(builder.graph, {
       ..property_limits(),
       max_value_nodes: 2,
       max_value_depth: 3,
@@ -471,14 +471,14 @@ test "snapshot append keeps exact construction ceilings and bounds its transient
     Some(268),
   )
   assert_eq(
-    property_snapshot_append_workspace_slots(builder.graph, {
+    graph_snapshot_append_workspace_slots(builder.graph, {
       ..property_limits(),
       max_value_nodes: 2147483647,
     }),
     None,
   )
   assert_eq(
-    property_snapshot_append_workspace_slots(builder.graph, {
+    graph_snapshot_append_workspace_slots(builder.graph, {
       ..property_limits(),
       max_value_depth: -1,
     }),
@@ -501,7 +501,7 @@ test "snapshot append reserves each existing resource before its atomic transfer
       ({ ..property_limits(), max_value_bytes: 1, }, InvalidIdentity),
     ] {
     let builder = prepare(property_fixture(), DeclaredNodes, limits).unwrap()
-    let state = start_property_snapshot_append(
+    let state = start_graph_snapshot_append(
       builder,
       snapshot_test_node("1"),
       edge=false,
@@ -514,7 +514,7 @@ test "snapshot append reserves each existing resource before its atomic transfer
     assert_eq(builder.retained_value_bytes, 0)
     assert_eq(builder.workspace_slots, 0)
     assert_true(!builder.open && builder.owns_private)
-    cleanup_property_snapshot_append(state)
+    cleanup_graph_snapshot_append(state)
     assert_true(cancel(builder))
   }
   let builder = prepare(property_fixture(), DeclaredNodes, {
@@ -523,7 +523,7 @@ test "snapshot append reserves each existing resource before its atomic transfer
   }).unwrap()
   append_snapshot_node(builder, snapshot_test_node("1")).unwrap()
   let held = builder.retained_value_bytes
-  let state = start_property_snapshot_append(
+  let state = start_graph_snapshot_append(
     builder,
     snapshot_test_edge("10", "1", "1"),
     edge=true,
@@ -532,7 +532,7 @@ test "snapshot append reserves each existing resource before its atomic transfer
   assert_eq(builder.edges.length(), 0)
   assert_eq(builder.edge_keys.length(), 0)
   assert_eq(builder.retained_value_bytes, held)
-  cleanup_property_snapshot_append(state)
+  cleanup_graph_snapshot_append(state)
   assert_true(cancel(builder))
 }
 
@@ -601,14 +601,14 @@ test "snapshot append retains reference key authority and nested properties acro
   let authorized = Ref(true)
   let issuer = @value.bind_reference_issuer((_, _) => true, _ => authorized.val)
   let builder = prepare(graph, DeclaredNodes, property_limits()).unwrap()
-  let state = start_property_snapshot_append(
+  let state = start_graph_snapshot_append(
     builder,
     cursor(record),
     edge=false,
     reference_issuer=Some(issuer),
   ).unwrap()
   complete_snapshot_append(state, 1).unwrap() |> ignore
-  cleanup_property_snapshot_append(state)
+  cleanup_graph_snapshot_append(state)
   let storage = finish(builder).unwrap()
   assert_eq(storage.nodes[0].identity_order_key, "[" + identity + "]")
   let out = @encode.writer(1000, 100, 10)
@@ -621,17 +621,17 @@ test "snapshot append retains reference key authority and nested properties acro
   authorized.val = false
   assert_true(!@value.reference_available(reference))
   let no_authority = prepare(graph, DeclaredNodes, property_limits()).unwrap()
-  let rejected = start_property_snapshot_append(
+  let rejected = start_graph_snapshot_append(
     no_authority,
     cursor(record),
     edge=false,
   ).unwrap()
   assert_eq(complete_snapshot_append(rejected, 1), Err(InvalidIdentity))
-  cleanup_property_snapshot_append(rejected)
+  cleanup_graph_snapshot_append(rejected)
   assert_true(cancel(no_authority))
   authorized.val = true
   let revoked = prepare(graph, DeclaredNodes, property_limits()).unwrap()
-  let state = start_property_snapshot_append(
+  let state = start_graph_snapshot_append(
     revoked,
     cursor(record),
     edge=false,
@@ -642,14 +642,14 @@ test "snapshot append retains reference key authority and nested properties acro
       break
     }
     assert_true(
-      advance_property_snapshot_append(state, 1)
-      is PropertySnapshotAppendContinue(work=1),
+      advance_graph_snapshot_append(state, 1)
+      is GraphSnapshotAppendContinue(work=1),
     )
   }
   assert_true(state.phase == ProjectSnapshotIdentity)
   authorized.val = false
   assert_eq(complete_snapshot_append(state, 1), Err(InvalidIdentity))
   assert_eq(revoked.nodes.length(), 0)
-  cleanup_property_snapshot_append(state)
+  cleanup_graph_snapshot_append(state)
   assert_true(cancel(revoked))
 }

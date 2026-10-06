@@ -1029,11 +1029,11 @@ test('current Graph diagnostics require their own bounded and Host stop fixtures
 
 test('current Graph equality requires its selected value, resource, and Host evidence', () => {
   for (const role of [
-    'property_equality_work_exact_one_short',
-    'property_equality_workspace_exact_one_short',
-    'property_equality_cancel_cleanup',
-    'property_equality_nested_value_work_ceiling',
-    'property_equality_long_text_quantum_cancel_cleanup',
+    'graph_equality_work_exact_one_short',
+    'graph_equality_workspace_exact_one_short',
+    'graph_equality_cancel_cleanup',
+    'graph_equality_nested_value_work_ceiling',
+    'graph_equality_long_text_quantum_cancel_cleanup',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&
@@ -1043,8 +1043,8 @@ test('current Graph equality requires its selected value, resource, and Host evi
     /SGA graphs_equal: Graph equality control-work evidence is missing/u);
   }
   for (const role of [
-    'property_equality_retained_named_results',
-    'property_equality_host_in_flight_cancel',
+    'graph_equality_retained_named_results',
+    'graph_equality_host_in_flight_cancel',
   ]) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'SGA' &&

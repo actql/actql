@@ -12,8 +12,8 @@ pub fn graph_match_nodes(value : PreparedGraphMatch) -> Bool {
 }
 
 ///|
-pub fn graph_match_property_definition(value : PreparedGraphMatch) -> Int {
-  @graph.match_property_definition(value.checked)
+pub fn graph_match_definition_index(value : PreparedGraphMatch) -> Int {
+  @graph.match_definition_index(value.checked)
 }
 
 ///|
@@ -24,10 +24,10 @@ pub fn graph_match_property_schema(
 }
 
 ///|
-pub fn graph_match_property_scope_fields(
+pub fn graph_match_graph_scope_fields(
   value : PreparedGraphMatch,
 ) -> @carrier.Knowledge {
-  @graph.match_property_scope_fields(value.checked)
+  @graph.match_graph_scope_fields(value.checked)
 }
 
 ///|

@@ -10,7 +10,7 @@ pub struct GraphEqualityCheck {
   step : @pipeline.CheckedStep
   left : @pipeline.Target
   right : @pipeline.Target
-  operation : @graph.CheckedPropertyEquality
+  operation : @graph.CheckedGraphEquality
   rule : GraphEqualityRule
   policy : @policy.Policy
 }
@@ -21,25 +21,25 @@ fn graph_equality_execution_check(
   policy : @policy.Policy,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   let rule = match site.requirement {
-    @pipeline.PropertyEqualityRequirement(CompareCompleteGraphValues) =>
+    @pipeline.GraphEqualityRequirement(CompareCompleteGraphValues) =>
       CompareGraphValues
-    @pipeline.PropertyEqualityRequirement(ResolvePropertyEqualityResources) =>
+    @pipeline.GraphEqualityRequirement(ResolveGraphEqualityResources) =>
       RequireEqualityResources
     _ => return Ok(None)
   }
   let pending = match rule {
     CompareGraphValues => @graph.CompareCompleteGraphValues
-    RequireEqualityResources => @graph.ResolvePropertyEqualityResources
+    RequireEqualityResources => @graph.ResolveGraphEqualityResources
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.GraphEquality(right~, checked=operation) &&
     step.input is Some(left) &&
     site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
-    @pipeline.operation_obligations_property_equality(site.obligations)
+    @pipeline.operation_obligations_graph_equality(site.obligations)
     is Some(owner) &&
     physical_equal(owner, operation) &&
-    @graph.property_equality_pending_at(operation, site.index) == Some(pending) &&
+    @graph.graph_equality_pending_at(operation, site.index) == Some(pending) &&
     @pipeline.input_occurrence_count(step) == 2 else {
     return Err(ForeignOccurrence(site.step))
   }

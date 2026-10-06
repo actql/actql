@@ -63,7 +63,7 @@ priv struct UnionFoldPreparation {
   mut keys : Array[@value.CheckedValue]
   mut properties : Array[@value.CheckedValue]
   mut property : UnionProperty?
-  mut append : @storage.PropertySnapshotAppend?
+  mut append : @storage.GraphSnapshotAppend?
 }
 
 ///|
@@ -642,7 +642,7 @@ fn advance_union_fold(
           return union_fold_failed(value, InvalidUnionFold, work)
         }
         value.append = match
-          @storage.start_property_record_append(
+          @storage.start_record_append(
             value.builder,
             value.definition_index,
             identity,
@@ -664,17 +664,17 @@ fn advance_union_fold(
         guard value.append is Some(append) else {
           return union_fold_failed(value, InvalidUnionFold, work)
         }
-        match @storage.advance_property_snapshot_append(append, budget) {
-          @storage.PropertySnapshotAppendContinue(work=used) => work += used
-          @storage.PropertySnapshotAppendFailed(issue, work=used) =>
+        match @storage.advance_graph_snapshot_append(append, budget) {
+          @storage.GraphSnapshotAppendContinue(work=used) => work += used
+          @storage.GraphSnapshotAppendFailed(issue, work=used) =>
             return union_fold_failed(
               value,
               UnionFoldStorage(issue),
               work + used,
             )
-          @storage.PropertySnapshotAppendComplete(work=used) => {
+          @storage.GraphSnapshotAppendComplete(work=used) => {
             work += used
-            @storage.cleanup_property_snapshot_append(append)
+            @storage.cleanup_graph_snapshot_append(append)
             value.append = None
             value.previous = value.selected
             union_fold_reset_scan(value)
@@ -704,7 +704,7 @@ fn cleanup_union_fold(value : UnionFoldPreparation) -> Unit {
     value.property = None
   }
   if value.append is Some(append) {
-    @storage.cleanup_property_snapshot_append(append)
+    @storage.cleanup_graph_snapshot_append(append)
     value.append = None
   }
   @storage.cancel(value.builder) |> ignore

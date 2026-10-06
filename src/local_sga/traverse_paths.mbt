@@ -817,7 +817,7 @@ fn traverse_paths_step(
         guard state.frontier.get(state.path_index) is Some(path) else {
           return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
         }
-        let mode = @lower.graph_traverse_property_path_mode(state.prepared)
+        let mode = @lower.graph_traverse_graph_path_mode(state.prepared)
         let members = if mode == @graph_type.Trail {
           path.edges.length()
         } else {

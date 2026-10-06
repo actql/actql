@@ -28,7 +28,7 @@ test "Graph Delta retains exact nested JSON keys through snapshot diff and apply
   }).unwrap()
   assert_eq(
     @graph_contract.cid(contract),
-    "sha256:926e2c9036cd0d0ce59d69f1b1d97c3420ebaab3af956357c7498f7c68f2aeca",
+    "sha256:5bdd4b9e031d7dc5852e2afc1381d1d68a4b0834b58359c28da29d95a29c03ce",
   )
   let graph = @graph_contract.graph(contract)
   let input = (payload : String) => {
@@ -55,7 +55,7 @@ test "Graph Delta retains exact nested JSON keys through snapshot diff and apply
     ),
   )
   let expected =
-    #|{"base_graph_cid":"sha256:1a56f71421d48ca180e3f7479c22d61687333e6131d284ca26cb93f9a0ed0af9","edges":{"add":[],"remove":[],"update":[]},"graph_contract_cid":"sha256:926e2c9036cd0d0ce59d69f1b1d97c3420ebaab3af956357c7498f7c68f2aeca","nodes":{"add":[],"remove":[],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":3,"line":"a\r\nb","nil":null,"é":1}}}},"before":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":2,"line":"a\r\nb","nil":null,"é":1}}}}}]},"target_graph_cid":"sha256:e83bf8ee0e12c3cf90b586cea7b66a57c32281ebb57b7443e0ac01544f689a3f","version":"actql-graph-delta/0.1"}
+    #|{"base_graph_cid":"sha256:75bc8803e85fb2c261a3a12bb99e873741900b679a0e3cfd745d8c8439f67535","edges":{"add":[],"remove":[],"update":[]},"graph_contract_cid":"sha256:5bdd4b9e031d7dc5852e2afc1381d1d68a4b0834b58359c28da29d95a29c03ce","nodes":{"add":[],"remove":[],"update":[{"after":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":3,"line":"a\r\nb","nil":null,"é":1}}}},"before":{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":2,"line":"a\r\nb","nil":null,"é":1}}}}}]},"target_graph_cid":"sha256:7389cc1cdbcf147a6d85bfe8c88148fd226d188c1d52faa476053bcefacc375d","version":"actql-graph-delta/0.1"}
   for quantum in [1, 64] {
     let preparation = prepare(
       base,
@@ -67,11 +67,11 @@ test "Graph Delta retains exact nested JSON keys through snapshot diff and apply
     let diff = complete_diff(preparation, quantum)
     assert_eq(
       base_cid(diff),
-      "sha256:1a56f71421d48ca180e3f7479c22d61687333e6131d284ca26cb93f9a0ed0af9",
+      "sha256:75bc8803e85fb2c261a3a12bb99e873741900b679a0e3cfd745d8c8439f67535",
     )
     assert_eq(
       target_cid(diff),
-      "sha256:e83bf8ee0e12c3cf90b586cea7b66a57c32281ebb57b7443e0ac01544f689a3f",
+      "sha256:7389cc1cdbcf147a6d85bfe8c88148fd226d188c1d52faa476053bcefacc375d",
     )
     assert_eq(delta_wire(value(diff)), expected)
     let applying = prepare_apply(
@@ -84,7 +84,7 @@ test "Graph Delta retains exact nested JSON keys through snapshot diff and apply
     assert_eq(
       delta_snapshot_wire(applied),
       (
-        #|["actql-graph-snapshot/0.1","sha256:926e2c9036cd0d0ce59d69f1b1d97c3420ebaab3af956357c7498f7c68f2aeca",{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":false,"type":"json"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"},[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":3,"line":"a\r\nb","nil":null,"é":1}}}}],[]]
+        #|["actql-graph-snapshot/0.1","sha256:5bdd4b9e031d7dc5852e2afc1381d1d68a4b0834b58359c28da29d95a29c03ce",{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":false,"type":"json"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"},[{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":{"$json":{"é":3,"line":"a\r\nb","nil":null,"é":1}}}}],[]]
       ),
     )
     assert_true(cleanup_apply(applying))

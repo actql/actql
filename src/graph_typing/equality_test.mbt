@@ -2,14 +2,14 @@
 test "current Graph equality binds two admitted definition domains and one Boolean row" {
   let source = cursor("{\"with\":\"peer\"}")
   let graph = keyed_profile()
-  let checked = @graph_typing.check_property_equality(
+  let checked = @graph_typing.check_graph_equality(
     source,
     graph,
     graph,
     limits(),
   ).unwrap()
   for side in [false, true] {
-    guard @graph_typing.property_equality_input(checked, right=side)
+    guard @graph_typing.graph_equality_input(checked, right=side)
       is @carrier.GraphValue(value) else {
       fail("expected a current Graph input")
     }
@@ -19,13 +19,13 @@ test "current Graph equality binds two admitted definition domains and one Boole
     )
   }
   let rows = @carrier.complete_schema(
-    @carrier.relation_rows(@graph_typing.property_equality_output(checked)).unwrap(),
+    @carrier.relation_rows(@graph_typing.graph_equality_output(checked)).unwrap(),
   ).unwrap()
   assert_true(
     @row.lookup(rows, Unqualified("equal"))
     is Some({ shape: Boolean, nullable: false, }),
   )
-  let usage = @graph_typing.property_equality_usage(checked)
+  let usage = @graph_typing.graph_equality_usage(checked)
   let exact = {
     ..limits(),
     max_work: usage.work,
@@ -33,7 +33,7 @@ test "current Graph equality binds two admitted definition domains and one Boole
     max_text_bytes: usage.text_bytes,
   }
   assert_true(
-    @graph_typing.check_property_equality(source, graph, graph, exact) is Ok(_),
+    @graph_typing.check_graph_equality(source, graph, graph, exact) is Ok(_),
   )
   for
     short in [
@@ -42,8 +42,7 @@ test "current Graph equality binds two admitted definition domains and one Boole
       { ..exact, max_text_bytes: usage.text_bytes - 1, },
     ] {
     assert_true(
-      @graph_typing.check_property_equality(source, graph, graph, short)
-      is Err(_),
+      @graph_typing.check_graph_equality(source, graph, graph, short) is Err(_),
     )
   }
 }
@@ -63,7 +62,7 @@ test "current Graph equality admits compatible definitions with distinct provena
     max_contract_work=10000,
   ).unwrap()
   assert_true(
-    @graph_typing.check_property_equality(
+    @graph_typing.check_graph_equality(
       cursor("{\"with\":\"peer\"}"),
       original,
       other,
@@ -96,7 +95,7 @@ test "current Graph equality refuses incompatible closed definitions" {
     max_definitions=1,
     max_contract_work=100,
   ).unwrap()
-  let issue = @graph_typing.check_property_equality(
+  let issue = @graph_typing.check_graph_equality(
     cursor("{\"with\":\"peer\"}"),
     keyed_profile(),
     foreign,
@@ -104,7 +103,7 @@ test "current Graph equality refuses incompatible closed definitions" {
   ).unwrap_err()
   assert_eq(issue.kind, @graph_typing.IncompatibleGraphDomains)
   assert_true(
-    @graph_typing.check_property_equality(
+    @graph_typing.check_graph_equality(
       cursor("{\"with\":\"peer\"}"),
       keyed_profile(),
       @carrier.unknown_carrier(GraphKind),

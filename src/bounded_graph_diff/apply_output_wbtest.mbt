@@ -85,9 +85,10 @@ test "Delta failure retains the shared target for cleanup and cannot complete a 
   ).unwrap()
   let builder = @graph_runtime.output_storage_builder(output).unwrap()
   let bad = delta_fixture_expected().replace_all(
-    old="sha256:84a3ee72261465a8864d987b0215329de2222270827c7f0436a449ec55ac1e3f",
+    old="sha256:f054e156e39406687150b99b9a43b31cf62f922e472ab27e32fd00e730375fae",
     new="sha256:" + "f".repeat(64),
   )
+  assert_true(bad != delta_fixture_expected())
   let apply = prepare_apply_view(
     view,
     graph,

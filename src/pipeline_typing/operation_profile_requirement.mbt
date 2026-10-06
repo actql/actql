@@ -22,10 +22,10 @@ pub fn operation_profile_requirement(
         | EnforceDiagnosticRelationRows
         | BindDiagnosticThreshold(_) => None
       }
-    PropertyEqualityRequirement(o) =>
+    GraphEqualityRequirement(o) =>
       match o {
         AdmitBothGraphs => Some(GraphProfile)
-        CompareCompleteGraphValues | ResolvePropertyEqualityResources => None
+        CompareCompleteGraphValues | ResolveGraphEqualityResources => None
       }
     NormalizeRequirement(o) =>
       match o {
@@ -85,7 +85,7 @@ pub fn operation_profile_requirement(
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | FilterTraversalLabels
-        | EnumeratePropertyPaths
+        | EnumerateGraphPaths
         | DeduplicateExactPaths
         | MinimumEligibleNodeDepth
         | CanonicalTraversalOrder

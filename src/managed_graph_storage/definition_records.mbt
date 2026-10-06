@@ -82,7 +82,7 @@ fn emit_property_key(
 ///|
 /// None means a validated NULL key, which is excluded from the graph.
 /// The existing encoder/parser/admitter bound every identity conversion.
-fn property_identity(
+fn element_identity(
   builder : Builder,
   profile : @carrier.GraphDefinition,
   definition : @carrier.GraphNodeDefinition,
@@ -90,21 +90,21 @@ fn property_identity(
   pending_work : Int,
 ) -> Result[(@value.CheckedValue?, Int), Issue] {
   let preparation = match
-    start_property_identity(builder, profile, definition, keys, pending_work) {
+    start_element_identity(builder, profile, definition, keys, pending_work) {
     Ok(preparation) => preparation
     Err(issue) => return Err(issue)
   }
   while true {
-    match advance_property_identity(preparation, 64) {
-      PropertyIdentityContinue(work~) => ignore(work)
-      PropertyIdentityComplete(value, construction_work~, work~) => {
+    match advance_element_identity(preparation, 64) {
+      ElementIdentityContinue(work~) => ignore(work)
+      ElementIdentityComplete(value, construction_work~, work~) => {
         ignore(work)
-        cleanup_property_identity(preparation)
+        cleanup_element_identity(preparation)
         return Ok((value, construction_work))
       }
-      PropertyIdentityFailed(issue, work~) => {
+      ElementIdentityFailed(issue, work~) => {
         ignore(work)
-        cleanup_property_identity(preparation)
+        cleanup_element_identity(preparation)
         return Err(issue)
       }
     }
@@ -157,7 +157,7 @@ pub fn append_node(
     return fail(builder, InvalidProperties)
   }
   let (identity, work) = match
-    property_identity(builder, profile, definition, keys, 1) {
+    element_identity(builder, profile, definition, keys, 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -195,7 +195,7 @@ pub fn append_edge(
     return fail(builder, InvalidProperties)
   }
   let (identity, initial_work) = match
-    property_identity(builder, profile, definition, keys, 1) {
+    element_identity(builder, profile, definition, keys, 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -221,25 +221,13 @@ pub fn append_edge(
   let source_definition = @carrier.graph_node_named(profile, source_name).unwrap()
   let target_definition = @carrier.graph_node_named(profile, target_name).unwrap()
   let (source, source_work) = match
-    property_identity(
-      builder,
-      profile,
-      source_definition,
-      source_keys,
-      work + 1,
-    ) {
+    element_identity(builder, profile, source_definition, source_keys, work + 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   work += source_work
   let (target, target_work) = match
-    property_identity(
-      builder,
-      profile,
-      target_definition,
-      target_keys,
-      work + 1,
-    ) {
+    element_identity(builder, profile, target_definition, target_keys, work + 1) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -285,7 +273,7 @@ pub fn append_edge(
       builder.edge_keys[key] = builder.edges.length()
       builder.edge_payloads[key] = payload
       builder.edges.push({
-        property_definition: definition_index,
+        definition_index,
         identity_order_key: key,
         identity,
         typed_key: keys.copy(),
@@ -316,7 +304,7 @@ pub fn append_edge(
 
 ///|
 pub fn node_definition_index(value : Storage, index : Int) -> Int? {
-  value.nodes.get(index).map(node => node.property_definition)
+  value.nodes.get(index).map(node => node.definition_index)
 }
 
 ///|
@@ -340,7 +328,7 @@ pub fn node_typed_key_at(
 
 ///|
 pub fn edge_definition_index(value : Storage, index : Int) -> Int? {
-  value.edges.get(index).map(edge => edge.property_definition)
+  value.edges.get(index).map(edge => edge.definition_index)
 }
 
 ///|

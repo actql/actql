@@ -843,7 +843,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     WindowCountRules =>
       "sha256:2ad08f2130caa35968ac9cdf660708693c5e14f021f7878d9965a5e1fff5ff78"
     GraphCountRules =>
-      "sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48"
+      "sha256:2d71fa65e17dab552994446422b7e1d93a13e96b1376d060d21b1fc7a19ce50e"
     GraphConstructionCountRules => graph_construction_count_rules_cid()
     RankingCountRules =>
       "sha256:655fa88f2d24a15794a12abdbdc967f51517f5f92aa1316f74f6df1617fcf0c7"

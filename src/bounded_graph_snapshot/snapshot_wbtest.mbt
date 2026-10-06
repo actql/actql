@@ -48,12 +48,12 @@ fn text(value : String) -> @value.CheckedValue {
 test "snapshot shared preparation uses the sole current contract" {
   for quantum in [1, 7] {
     let prepared = prepare(
-      property_snapshot_storage(),
+      graph_snapshot_storage(),
       "sha256:df3a17807922ac2f939372e0cd59b31ecc7e6c860bc22c985aa8acf05971f166",
       snapshot_limits(100),
     ).unwrap()
-    let (snapshot, bytes) = finish_property_snapshot(prepared, quantum)
-    assert_eq(bytes, expected_property_snapshot())
+    let (snapshot, bytes) = finish_graph_snapshot(prepared, quantum)
+    assert_eq(bytes, expected_graph_snapshot())
     assert_eq(
       cid(snapshot),
       "sha256:336f66f7bbf93eda36dc081c1922457e3939b7d9f79577964ad06c28f8b80f0c",
@@ -61,7 +61,7 @@ test "snapshot shared preparation uses the sole current contract" {
     assert_eq(node_at(snapshot, 0), Some(0))
     assert_eq(edge_at(snapshot, 0), Some(1))
     assert_eq(edge_at(snapshot, 1), Some(0))
-    assert_true(property_edge_key_at(snapshot, 0) is Some(_))
+    assert_true(edge_key_at(snapshot, 0) is Some(_))
     assert_true(cleanup(snapshot))
   }
 }
@@ -69,22 +69,19 @@ test "snapshot shared preparation uses the sole current contract" {
 ///|
 test "snapshot rejects workspace before incremental allocation" {
   assert_true(
-    prepare_property(property_snapshot_storage(), snapshot_limits(18))
+    prepare(graph_snapshot_storage(), "", snapshot_limits(18))
     is Err(WorkspaceLimit),
   )
 }
 
 ///|
 test "snapshot cancellation releases provisional bytes without publishing" {
-  let prepared = prepare_property(
-    property_snapshot_storage(),
-    snapshot_limits(19),
-  ).unwrap()
+  let prepared = prepare(graph_snapshot_storage(), "", snapshot_limits(19)).unwrap()
   assert_true(advance(prepared, 1) is Ok(Continue(..)))
-  assert_true(take_property_output(prepared) is Ok(_))
+  assert_true(take_output(prepared) is Ok(_))
   assert_true(cancel(prepared))
   assert_true(advance(prepared, 1) is Err(Terminal))
-  assert_true(take_property_output(prepared) is Err(Terminal))
+  assert_true(take_output(prepared) is Err(Terminal))
   assert_true(cancel(prepared))
 }
 
@@ -100,7 +97,7 @@ test "incomplete Graph knowledge cannot create storage and contract mismatch can
   )
   assert_true(
     prepare(
-      property_snapshot_storage(),
+      graph_snapshot_storage(),
       "sha256:" + "0".repeat(64),
       snapshot_limits(100),
     )

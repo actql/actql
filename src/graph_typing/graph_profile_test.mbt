@@ -51,9 +51,9 @@ test "keyed traversal has explicit modes full edge identities and separate profi
       None,
       predicate_limits(),
     ).unwrap()
-    assert_eq(@graph_typing.traverse_property_path_mode(checked), mode)
+    assert_eq(@graph_typing.traverse_graph_path_mode(checked), mode)
     let pending = @graph_typing.traverse_pending(checked)
-    assert_true(pending.contains(@graph_typing.EnumeratePropertyPaths))
+    assert_true(pending.contains(@graph_typing.EnumerateGraphPaths))
     assert_true(pending.contains(@graph_typing.ResolveGraphTraversalProfile))
     assert_eq(pending, [
       @graph_typing.AdmitTraversalGraph,
@@ -62,7 +62,7 @@ test "keyed traversal has explicit modes full edge identities and separate profi
       @graph_typing.CanonicalTraversalOrder,
       @graph_typing.ResolveTraversalResources,
       @graph_typing.ResolveGraphTraversalProfile,
-      @graph_typing.EnumeratePropertyPaths,
+      @graph_typing.EnumerateGraphPaths,
       @graph_typing.DeduplicateExactPaths,
     ])
     assert_eq(@graph_typing.traverse_pending_count(checked), pending.length())

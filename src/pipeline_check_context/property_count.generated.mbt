@@ -2,5 +2,5 @@
 
 ///|
 fn graph_construction_count_rules_cid() -> String {
-  "sha256:6187c667d201ea1d8a1a3339e9f72b26ac2c9a844189b49c336e526f2cd75565"
+  "sha256:4ce27912b3cf5638294b674614fcec2ee460e67846899a00585063e039167fb7"
 }

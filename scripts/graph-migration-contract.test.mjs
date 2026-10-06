@@ -14,6 +14,32 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const at = (value, pointer) => pointer.split('/').slice(1).reduce(
   (body, key) => body[key.replaceAll('~1', '/').replaceAll('~0', '~')], value);
 
+test('canonical Graph interfaces expose one snapshot, equality and path API', () => {
+  for (const [path, current, retired] of [
+    ['src/bounded_graph_snapshot/pkg.generated.mbti',
+      /pub fn prepare\(/, /prepare_property|PropertyHeader|take_property_output/],
+    ['src/graph_snapshot_identity/pkg.generated.mbti',
+      /pub fn prepare\(/, /prepare_property|finish_property|begin_property_node/],
+    ['src/graph_typing/pkg.generated.mbti',
+      /CheckedGraphEquality/, /CheckedPropertyEquality|PropertyPathMode/],
+    ['src/local_bridge/pkg.generated.mbti',
+      /GraphSnapshotHandoff/, /PropertySnapshot/],
+  ]) {
+    const source = readFileSync(path, 'utf8');
+    assert.match(source, current, path);
+    assert.doesNotMatch(source, retired, path);
+  }
+});
+
+test('retired endpoint arithmetic remains immutable historical evidence', () => {
+  const path = 'portability/corpus/bound-graph.json';
+  const previous = execFileSync('git',
+    ['show', `f503f2afa804a05e58ea430af1782319c007bfc9:${path}`]);
+  assert.deepEqual(readFileSync(
+    'portability/historical/bound-graph-endpoint-construction.json.txt'), previous);
+  assert.ok(!read(path).cases.some(value => value.rule === 'endpoints'));
+});
+
 for (const path of ['scripts/fixtures/pre-typed-json-values-contracts.json',
   'scripts/fixtures/pre-typed-json-membership-values-contracts.json']) {
   test(`Graph migration leaves ${path} bound to its original revision`, () => {

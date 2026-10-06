@@ -90,7 +90,7 @@ test('ranking and series semantic bodies and independent counts are pinned', () 
 test('Graph count body fixes quantity transfers and independent selector arithmetic', () => {
   const path = 'spec/contracts/actql-bound-graph-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48';
+  const cid = 'sha256:2d71fa65e17dab552994446422b7e1d93a13e96b1376d060d21b1fc7a19ce50e';
   assert.equal(machineCid(body), cid);
   for (const law of body.law_ids) assert.ok(loadRegistry().body.law_ids.includes(law));
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
@@ -103,7 +103,6 @@ test('Graph count body fixes quantity transfers and independent selector arithme
     const [a,b] = v.inputs.map(BigInt);
     let n;
     switch (v.rule) {
-      case 'endpoints': n = 2n*a; break;
       case 'preserve': case 'nearest_per_source': n = a; break;
       case 'sum': n = v.inputs.reduce((n,x) => n+BigInt(x),0n); break;
       case 'traverse': n = (a < b ? a : b)*b; break;
@@ -116,10 +115,10 @@ test('Graph count body fixes quantity transfers and independent selector arithme
   }
 });
 
-test('Graph construction has separately pinned definition-occurrence sums without changing legacy Graph laws', () => {
+test('Graph construction selects one definition-occurrence count body', () => {
   const path = 'spec/contracts/actql-bound-graph-construction-laws.json';
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:6187c667d201ea1d8a1a3339e9f72b26ac2c9a844189b49c336e526f2cd75565';
+  const cid = 'sha256:4ce27912b3cf5638294b674614fcec2ee460e67846899a00585063e039167fb7';
   assert.equal(machineCid(body), cid);
   assert.equal(body.version, 'actql-bound-graph-construction-laws/0.1');
   assert.deepEqual(body.law_ids, ['actql.bound.graph-construction-nodes', 'actql.bound.graph-construction-edges']);
@@ -129,8 +128,9 @@ test('Graph construction has separately pinned definition-occurrence sums withou
     r.path === path && r.pointer === '' && r.cid === cid && r.version === body.version));
   const generated = readFileSync(new URL('../src/pipeline_check_context/property_count.generated.mbt', import.meta.url), 'utf8');
   assert.ok(generated.includes(JSON.stringify(cid)));
-  const legacy = JSON.parse(readFileSync(new URL('../spec/contracts/actql-bound-graph-laws.json', import.meta.url), 'utf8'));
-  assert.equal(machineCid(legacy), 'sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48');
+  const quantities = JSON.parse(readFileSync(new URL('../spec/contracts/actql-bound-graph-laws.json', import.meta.url), 'utf8'));
+  assert.ok(!/two endpoint nodes|legacy Graph constructor/.test(quantities.construction));
+  assert.ok(!body.conditionality.includes('legacy Graph constructor'));
 });
 
 test('window count semantics and independent membership bounds are pinned', () => {
@@ -291,10 +291,8 @@ test('compiler selects the registered bound transfer classification body', () =>
   const body = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
   const cid = 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
   assert.equal(machineCid(body), cid);
-  const prior = structuredClone(body);
-  assert.equal(prior.operations.graph, 'carrier_specific');
-  delete prior.operations.graph;
-  assert.equal(machineCid(prior), 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911');
+  assert.equal(body.operations.graph, 'carrier_specific');
+  assert.ok(!Object.hasOwn(body.operations, 'property_graph'));
   assert.deepEqual(Object.keys(body).sort(), ['operations', 'version']);
   const family = JSON.parse(readFileSync(new URL('../spec/spec-family.json', import.meta.url), 'utf8'));
   const references = family.documents.flatMap(document => document.machine_contracts ?? []).filter(ref => ref.path === path);
@@ -403,7 +401,7 @@ test('independent values count vectors count row occurrences, not cell contents'
 
 test('registry fixes its identity, rejects missing Host entries and malformed names', () => {
   const { body, policy } = loadRegistry();
-  assert.equal(validateRegistry(body, policy), 'sha256:d55578f3dd0ee1b0838224494a369490d289c442af6f0025b764b494fdf25735');
+  assert.equal(validateRegistry(body, policy), 'sha256:f8a41d10bb02ce9e3d52e17da0dd4e3f42ed047c7f93dd5007de2f92dba01e9c');
   assert.ok(body.law_ids.includes('actql.bound.text-rank'));
   for (const name of ['values', 'time-series', 'calendar-series']) {
     assert.ok(body.law_ids.includes(`actql.bound.${name}`));

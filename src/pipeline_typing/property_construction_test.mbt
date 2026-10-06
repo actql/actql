@@ -33,7 +33,7 @@ fn property_pipeline_domain(
 ) -> String {
   guard @pipeline_typing.output_carrier(pipeline)
     is Some(@carrier.GraphValue(graph)) else {
-    abort("GraphProfile required")
+    abort("Graph required")
   }
   @carrier.graph_domain(@carrier.graph_definition(graph))
 }

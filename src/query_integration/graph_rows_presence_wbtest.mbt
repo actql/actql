@@ -291,7 +291,7 @@ fn property_rows_restore(
   let (cid, body) = snapshot_capture(
     @graphs.completed_storage(original).unwrap(),
   )
-  let reload = @local_bridge.start_property_snapshot_reload(
+  let reload = @local_bridge.start_graph_snapshot_reload(
     @bounded.control(),
     owner,
     @pipeline.Step(0),

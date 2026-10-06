@@ -64,7 +64,7 @@ pub enum Payload {
   GraphMatchRows(@graph.CheckedMatch)
   GraphBoundsRows(@graph.CheckedGraphBounds)
   GraphDegreeRows(@graph.CheckedDegree)
-  GraphEqualityRows(@graph.CheckedPropertyEquality)
+  GraphEqualityRows(@graph.CheckedGraphEquality)
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphDeltaValue(@graph.CheckedDelta)
   GraphUnionValue(@graph.CheckedUnion)

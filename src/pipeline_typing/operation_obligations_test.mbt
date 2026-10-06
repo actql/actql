@@ -186,7 +186,7 @@ test "current subgraph obligations retain typed selector and edge predicate owne
   )
   let pipeline = @pipeline_typing.check_carriers(
     source,
-    [("g", graph_property_scope_input())],
+    [("g", graph_graph_scope_input())],
     None,
     None,
     limits(),

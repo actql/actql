@@ -33,7 +33,7 @@ test('sole Graph contract implementation pins the owned Graph law without a lega
   assert.match(implementation, /pub fn law_cid\(\) -> String \{\s*property_law_cid\(\)/);
   assert.match(implementation, /admit_graph\(input, limits\)/);
   assert.ok(!implementation.includes(contract.sga_identity_law_manifest_cid));
-  const propertyImplementation = readFileSync(new URL('../src/graph_contract/property_contract.mbt', import.meta.url), 'utf8');
+  const propertyImplementation = readFileSync(new URL('../src/graph_contract/definition_contract.mbt', import.meta.url), 'utf8');
   assert.ok(propertyImplementation.includes('"' + contract.graph_law_manifest_cid + '"'));
   assert.ok(!propertyImplementation.includes(contract.sga_identity_law_manifest_cid));
   assert.notEqual(contract.graph_law_manifest_cid, contract.sga_identity_law_manifest_cid);

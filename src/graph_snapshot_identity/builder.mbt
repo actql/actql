@@ -3,7 +3,7 @@
 /// The schema retains definition-scoped labels and key/property contracts;
 /// records retain original typed key evidence as well as projected identity.
 /// Output drains are provisional bytes, never permission to publish.
-pub fn prepare_property(
+pub fn prepare(
   contract : @graph.CheckedContract,
   limits : Limits,
 ) -> Result[Builder, Issue] {
@@ -85,7 +85,7 @@ fn write_property_keys(
 }
 
 ///|
-pub fn begin_property_node(
+pub fn begin_node(
   builder : Builder,
   identity : @value.CheckedValue,
   keys : Array[@value.CheckedValue],
@@ -122,7 +122,7 @@ pub fn begin_property_node(
 }
 
 ///|
-pub fn begin_property_edge(
+pub fn begin_edge(
   builder : Builder,
   identity : @value.CheckedValue,
   keys : Array[@value.CheckedValue],
@@ -166,7 +166,7 @@ pub fn begin_property_edge(
 }
 
 ///|
-pub fn end_property_edge(builder : Builder) -> Result[Unit, Issue] {
+pub fn end_edge(builder : Builder) -> Result[Unit, Issue] {
   if builder.phase != EdgeProperties || builder.edge_source is None {
     return Err(InvalidPhase)
   }
@@ -184,7 +184,7 @@ pub fn end_property_edge(builder : Builder) -> Result[Unit, Issue] {
 }
 
 ///|
-pub fn drain_property_output(builder : Builder) -> Result[String, Issue] {
+pub fn drain_output(builder : Builder) -> Result[String, Issue] {
   if builder.phase == Finished {
     return Err(InvalidPhase)
   }
@@ -196,7 +196,7 @@ pub fn drain_property_output(builder : Builder) -> Result[String, Issue] {
 ///|
 /// Return the digest and final provisional suffix only after complete emission.
 /// The consumer must finish its existing storage/publication owner separately.
-pub fn finish_property(builder : Builder) -> Result[(String, String), Issue] {
+pub fn finish(builder : Builder) -> Result[(String, String), Issue] {
   if builder.phase != Edges {
     return Err(InvalidPhase)
   }

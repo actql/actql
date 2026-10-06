@@ -19,11 +19,11 @@ test "current Graph equality retains two ordered input occurrences and checked o
   guard step.operation is GraphEquality(checked=equal, ..) else {
     fail("expected one typed Graph equality occurrence")
   }
-  assert_eq(@graph.property_equality_pending_count(equal), 3)
+  assert_eq(@graph.graph_equality_pending_count(equal), 3)
   let obligations = operation_obligation_group_at(step.operation, 0).unwrap()
   assert_eq(operation_obligations_count(obligations), 3)
   assert_true(
     operation_obligations_at(obligations, 0)
-    is Some(PropertyEqualityRequirement(@graph.AdmitBothGraphs)),
+    is Some(GraphEqualityRequirement(@graph.AdmitBothGraphs)),
   )
 }

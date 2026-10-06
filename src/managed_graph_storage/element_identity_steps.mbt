@@ -1,5 +1,5 @@
 ///|
-priv enum PropertyIdentityPhase {
+priv enum ElementIdentityPhase {
   CheckIdentityKeys
   PrepareIdentityWriter
   IdentityHeader
@@ -19,14 +19,14 @@ priv enum PropertyIdentityPhase {
 /// projection. It owns only temporary conversion state, never a second Graph
 /// builder or reference authority. Synchronous constructors drain this same
 /// implementation; managed snapshot admission can resume it between stages.
-priv struct PropertyIdentityPreparation {
+priv struct ElementIdentityPreparation {
   builder : Builder
   profile : @carrier.GraphDefinition
   definition : @carrier.GraphNodeDefinition
   mut input_keys : Array[@value.CheckedValue]?
   keys : Array[@value.CheckedValue]
   pending_work : Int
-  mut phase : PropertyIdentityPhase
+  mut phase : ElementIdentityPhase
   mut index : Int
   mut absent : Bool
   mut cap : Int
@@ -41,24 +41,24 @@ priv struct PropertyIdentityPreparation {
 }
 
 ///|
-priv enum PropertyIdentityPoll {
-  PropertyIdentityContinue(work~ : Int)
-  PropertyIdentityComplete(
+priv enum ElementIdentityPoll {
+  ElementIdentityContinue(work~ : Int)
+  ElementIdentityComplete(
     @value.CheckedValue?,
     construction_work~ : Int,
     work~ : Int
   )
-  PropertyIdentityFailed(Issue, work~ : Int)
+  ElementIdentityFailed(Issue, work~ : Int)
 }
 
 ///|
-fn start_property_identity(
+fn start_element_identity(
   builder : Builder,
   profile : @carrier.GraphDefinition,
   definition : @carrier.GraphNodeDefinition,
   keys : Array[@value.CheckedValue],
   pending_work : Int,
-) -> Result[PropertyIdentityPreparation, Issue] {
+) -> Result[ElementIdentityPreparation, Issue] {
   if @carrier.graph_element_definition_key_count(definition) != keys.length() {
     return Err(InvalidIdentity)
   }
@@ -85,7 +85,7 @@ fn start_property_identity(
 }
 
 ///|
-fn identity_encoding_issue(value : PropertyIdentityPreparation) -> Issue {
+fn identity_encoding_issue(value : ElementIdentityPreparation) -> Issue {
   if value.node_limit < value.builder.limits.max_value_nodes {
     WorkLimit
   } else {
@@ -94,18 +94,18 @@ fn identity_encoding_issue(value : PropertyIdentityPreparation) -> Issue {
 }
 
 ///|
-fn advance_property_identity(
-  value : PropertyIdentityPreparation,
+fn advance_element_identity(
+  value : ElementIdentityPreparation,
   quantum : Int,
-) -> PropertyIdentityPoll {
+) -> ElementIdentityPoll {
   if quantum < 1 {
-    return PropertyIdentityFailed(InvalidLimits, work=0)
+    return ElementIdentityFailed(InvalidLimits, work=0)
   }
   if value.phase == IdentityFinished {
-    return PropertyIdentityFailed(Closed, work=0)
+    return ElementIdentityFailed(Closed, work=0)
   }
-  let poll = advance_property_identity_steps(value, quantum)
-  if poll is PropertyIdentityFailed(_, ..) {
+  let poll = advance_element_identity_steps(value, quantum)
+  if poll is ElementIdentityFailed(_, ..) {
     // Failure is terminal, but temporary custody remains with this handle
     // until the existing operation owner explicitly cleans it up.
     value.phase = IdentityFinished
@@ -114,10 +114,10 @@ fn advance_property_identity(
 }
 
 ///|
-fn advance_property_identity_steps(
-  value : PropertyIdentityPreparation,
+fn advance_element_identity_steps(
+  value : ElementIdentityPreparation,
   quantum : Int,
-) -> PropertyIdentityPoll {
+) -> ElementIdentityPoll {
   let mut used = 0
   while used < quantum {
     let limits = value.builder.limits
@@ -125,7 +125,7 @@ fn advance_property_identity_steps(
       CheckIdentityKeys => {
         used += 1
         guard value.input_keys is Some(input_keys) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         if value.index < input_keys.length() {
           let key = input_keys[value.index]
@@ -138,13 +138,13 @@ fn advance_property_identity_steps(
               contract,
               @contract.with_nullability(key.contract, false),
             ) {
-            return PropertyIdentityFailed(InvalidIdentity, work=used)
+            return ElementIdentityFailed(InvalidIdentity, work=used)
           }
           match key.value {
             @value.Null => value.absent = true
             @value.Reference(reference) =>
               if !@value.reference_available(reference) {
-                return PropertyIdentityFailed(InvalidIdentity, work=used)
+                return ElementIdentityFailed(InvalidIdentity, work=used)
               }
             _ => ()
           }
@@ -160,17 +160,17 @@ fn advance_property_identity_steps(
         used += 1
         if value.pending_work < 0 ||
           value.pending_work > limits.max_work - value.builder.work {
-          return PropertyIdentityFailed(WorkLimit, work=used)
+          return ElementIdentityFailed(WorkLimit, work=used)
         }
         let remaining = limits.max_work -
           value.builder.work -
           value.pending_work
         if value.keys.length() > remaining {
-          return PropertyIdentityFailed(WorkLimit, work=used)
+          return ElementIdentityFailed(WorkLimit, work=used)
         }
         if value.absent {
           value.phase = IdentityFinished
-          return PropertyIdentityComplete(
+          return ElementIdentityComplete(
             None,
             construction_work=value.keys.length(),
             work=used,
@@ -188,7 +188,7 @@ fn advance_property_identity_steps(
           @encode.writer(value.cap, value.node_limit, limits.max_value_depth),
         ) catch {
           _ =>
-            return PropertyIdentityFailed(
+            return ElementIdentityFailed(
               identity_encoding_issue(value),
               work=used,
             )
@@ -198,7 +198,7 @@ fn advance_property_identity_steps(
       IdentityHeader => {
         used += 1
         guard value.writer is Some(out) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         try {
           // A fixed header, independent of tuple or property cardinality.
@@ -214,7 +214,7 @@ fn advance_property_identity_steps(
           @encode.begin_array(out)
         } catch {
           _ =>
-            return PropertyIdentityFailed(
+            return ElementIdentityFailed(
               identity_encoding_issue(value),
               work=used,
             )
@@ -224,7 +224,7 @@ fn advance_property_identity_steps(
       IdentityKeys => {
         used += 1
         guard value.writer is Some(out) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         try {
           if value.keys.get(value.index) is Some(key) {
@@ -241,7 +241,7 @@ fn advance_property_identity_steps(
           }
         } catch {
           _ =>
-            return PropertyIdentityFailed(
+            return ElementIdentityFailed(
               identity_encoding_issue(value),
               work=used,
             )
@@ -250,7 +250,7 @@ fn advance_property_identity_steps(
       IdentityTypes => {
         used += 1
         guard value.writer is Some(out) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         try {
           match
@@ -270,7 +270,7 @@ fn advance_property_identity_steps(
           }
         } catch {
           _ =>
-            return PropertyIdentityFailed(
+            return ElementIdentityFailed(
               identity_encoding_issue(value),
               work=used,
             )
@@ -279,7 +279,7 @@ fn advance_property_identity_steps(
       FinishIdentityWriter => {
         used += 1
         guard value.writer is Some(out) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         let text = try {
           let (text, _, nodes, _) = @encode.finish_text_usage(out)
@@ -287,7 +287,7 @@ fn advance_property_identity_steps(
           text
         } catch {
           _ =>
-            return PropertyIdentityFailed(
+            return ElementIdentityFailed(
               identity_encoding_issue(value),
               work=used,
             )
@@ -299,7 +299,7 @@ fn advance_property_identity_steps(
         // Retain the original constructor's four-pass construction ceiling.
         // Resumed poll work is reported separately, where it actually occurs.
         if value.nodes > (remaining - value.keys.length()) / 4 {
-          return PropertyIdentityFailed(WorkLimit, work=used)
+          return ElementIdentityFailed(WorkLimit, work=used)
         }
         value.parser = match
           @source.start_json_parse(text, {
@@ -308,13 +308,13 @@ fn advance_property_identity_steps(
             max_depth: limits.max_value_depth,
           }) {
           Ok(parser) => Some(parser)
-          Err(_) => return PropertyIdentityFailed(ValueLimit, work=used)
+          Err(_) => return ElementIdentityFailed(ValueLimit, work=used)
         }
         value.phase = ParseIdentity
       }
       ParseIdentity => {
         guard value.parser is Some(parser) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         match @source.advance_json_parse(parser, quantum - used) {
           Ok(@source.JsonParseContinue(work~)) => used += work
@@ -325,14 +325,14 @@ fn advance_property_identity_steps(
             value.phase = StartIdentityDecode
           }
           Ok(@source.JsonParseFailed(_, work~)) =>
-            return PropertyIdentityFailed(ValueLimit, work=used + work)
-          Err(_) => return PropertyIdentityFailed(Closed, work=used)
+            return ElementIdentityFailed(ValueLimit, work=used + work)
+          Err(_) => return ElementIdentityFailed(Closed, work=used)
         }
       }
       StartIdentityDecode => {
         used += 1
         guard value.source is Some(source) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         value.decoder = match
           @decode.start_admission(source, {
@@ -342,14 +342,14 @@ fn advance_property_identity_steps(
             max_total_string_bytes: value.cap,
           }) {
           Ok(decoder) => Some(decoder)
-          Err(_) => return PropertyIdentityFailed(ValueLimit, work=used)
+          Err(_) => return ElementIdentityFailed(ValueLimit, work=used)
         }
         value.source = None
         value.phase = DecodeIdentity
       }
       DecodeIdentity => {
         guard value.decoder is Some(decoder) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         match @decode.advance_admission(decoder, quantum - used) {
           Ok(@decode.AdmissionContinue(work~)) => used += work
@@ -360,14 +360,14 @@ fn advance_property_identity_steps(
             value.phase = StartIdentityValue
           }
           Ok(@decode.AdmissionFailed(_, work~)) =>
-            return PropertyIdentityFailed(ValueLimit, work=used + work)
-          Err(_) => return PropertyIdentityFailed(Closed, work=used)
+            return ElementIdentityFailed(ValueLimit, work=used + work)
+          Err(_) => return ElementIdentityFailed(Closed, work=used)
         }
       }
       StartIdentityValue => {
         used += 1
         guard value.decoded is Some(cursor) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         value.admission = match
           @value.start_json_admission(cursor, {
@@ -376,7 +376,7 @@ fn advance_property_identity_steps(
             max_text_bytes: value.cap,
           }) {
           Ok(admission) => Some(admission)
-          Err(_) => return PropertyIdentityFailed(ValueLimit, work=used)
+          Err(_) => return ElementIdentityFailed(ValueLimit, work=used)
         }
         value.decoded = None
         value.phase = AdmitIdentity
@@ -384,33 +384,33 @@ fn advance_property_identity_steps(
       AdmitIdentity => {
         used += 1
         guard value.admission is Some(admission) else {
-          return PropertyIdentityFailed(Closed, work=used)
+          return ElementIdentityFailed(Closed, work=used)
         }
         match @value.advance_json_admission(admission) {
           @value.JsonAdmissionContinue => ()
           @value.JsonAdmissionComplete(checked, _, _) => {
             value.admission = None
             value.phase = IdentityFinished
-            return PropertyIdentityComplete(
+            return ElementIdentityComplete(
               Some(checked),
               construction_work=value.nodes * 4 + value.keys.length(),
               work=used,
             )
           }
           @value.JsonAdmissionFailed(_) =>
-            return PropertyIdentityFailed(ValueLimit, work=used)
+            return ElementIdentityFailed(ValueLimit, work=used)
           @value.JsonAdmissionTerminal =>
-            return PropertyIdentityFailed(Closed, work=used)
+            return ElementIdentityFailed(Closed, work=used)
         }
       }
-      IdentityFinished => return PropertyIdentityFailed(Closed, work=used)
+      IdentityFinished => return ElementIdentityFailed(Closed, work=used)
     }
   }
-  PropertyIdentityContinue(work=used)
+  ElementIdentityContinue(work=used)
 }
 
 ///|
-fn cleanup_property_identity(value : PropertyIdentityPreparation) -> Unit {
+fn cleanup_element_identity(value : ElementIdentityPreparation) -> Unit {
   if value.writer is Some(writer) {
     @encode.cancel_writer(writer)
   }

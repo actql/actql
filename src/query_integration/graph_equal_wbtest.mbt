@@ -1,5 +1,5 @@
 ///|
-fn property_equality_receiver(
+fn graph_equality_receiver(
   graph_owner : @lower.BoundPrepared,
   other_owner : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -61,13 +61,13 @@ test "current Graph equality compares retained values with bounded steps" {
   guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
     fail("property Graph construction failed")
   }
-  let receiver = property_equality_receiver(graph_owner, graph_owner)
+  let receiver = graph_equality_receiver(graph_owner, graph_owner)
   let left = @graphs.prepare_producer_read(receiver, 0, graph_owner, graph).unwrap()
   let right = @graphs.prepare_producer_read(receiver, 1, graph_owner, graph).unwrap()
   let first = @graphs.producer_read_view(left).unwrap()
   let second = @graphs.producer_read_view(right).unwrap()
   let control = @bounded.control()
-  let active = @local_sga.start_property_equality_views(
+  let active = @local_sga.start_graph_equality_views(
     control,
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -88,9 +88,9 @@ test "current Graph equality compares retained values with bounded steps" {
   ).unwrap()
   let mut result = None
   for _ in 0..<10000 {
-    match @local_sga.advance_property_equality(active, 1).unwrap() {
-      @local_sga.PropertyEqualityContinue(..) => ()
-      @local_sga.PropertyEqualityComplete(output, ..) => {
+    match @local_sga.advance_graph_equality(active, 1).unwrap() {
+      @local_sga.GraphEqualityContinue(..) => ()
+      @local_sga.GraphEqualityComplete(output, ..) => {
         result = Some(output)
         break
       }
@@ -102,14 +102,14 @@ test "current Graph equality compares retained values with bounded steps" {
     @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
     "{\"equal\":true}",
   )
-  assert_true(@local_sga.cleanup_property_equality(active).unwrap())
+  assert_true(@local_sga.cleanup_graph_equality(active).unwrap())
   assert_true(@graphs.producer_read_available(left))
   assert_true(@graphs.producer_read_available(right))
   assert_true(@graphs.discard_completed(graph))
 }
 
 ///|
-fn property_equality_wire(
+fn graph_equality_wire(
   first_rows : String,
   second_rows : String,
 ) -> String raise {
@@ -146,14 +146,14 @@ fn property_equality_wire(
     is @local_bridge.Complete(second_graph, ..) else {
     fail("second Graph construction failed")
   }
-  let receiver = property_equality_receiver(first_owner, second_owner)
+  let receiver = graph_equality_receiver(first_owner, second_owner)
   let left = @graphs.prepare_producer_read(
     receiver, 0, first_owner, first_graph,
   ).unwrap()
   let right = @graphs.prepare_producer_read(
     receiver, 1, second_owner, second_graph,
   ).unwrap()
-  let active = @local_sga.start_property_equality_views(
+  let active = @local_sga.start_graph_equality_views(
     @bounded.control(),
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -174,9 +174,9 @@ fn property_equality_wire(
   ).unwrap()
   let mut result = None
   for _ in 0..<10000 {
-    match @local_sga.advance_property_equality(active, 1).unwrap() {
-      @local_sga.PropertyEqualityContinue(..) => ()
-      @local_sga.PropertyEqualityComplete(output, ..) => {
+    match @local_sga.advance_graph_equality(active, 1).unwrap() {
+      @local_sga.GraphEqualityContinue(..) => ()
+      @local_sga.GraphEqualityComplete(output, ..) => {
         result = Some(output)
         break
       }
@@ -190,7 +190,7 @@ fn property_equality_wire(
     10000,
     50,
   ).unwrap()
-  assert_true(@local_sga.cleanup_property_equality(active).unwrap())
+  assert_true(@local_sga.cleanup_graph_equality(active).unwrap())
   assert_true(@graphs.discard_completed(first_graph))
   assert_true(@graphs.discard_completed(second_graph))
   wire
@@ -233,7 +233,7 @@ test "Graph equality charges exact work and retains inputs after stop" {
     is @local_bridge.Complete(second_graph, ..) else {
     fail("second Graph construction failed")
   }
-  let receiver = property_equality_receiver(first_owner, second_owner)
+  let receiver = graph_equality_receiver(first_owner, second_owner)
   let first_read = @graphs.prepare_producer_read(
     receiver, 0, first_owner, first_graph,
   ).unwrap()
@@ -251,7 +251,7 @@ test "Graph equality charges exact work and retains inputs after stop" {
   // A different admitted node count needs CompareCounts, EmitResult, and
   // FinishResult; no identity or property scan is required.
   for (allowed, success) in [(3, true), (2, false)] {
-    let active = @local_sga.start_property_equality_views(
+    let active = @local_sga.start_graph_equality_views(
       @bounded.control(),
       task_test_completion(receiver),
       prepared_sequence(receiver),
@@ -268,12 +268,12 @@ test "Graph equality charges exact work and retains inputs after stop" {
     let mut terminal = false
     let mut prior_work = 0L
     for _ in 0..<4 {
-      match @local_sga.advance_property_equality(active, 1).unwrap() {
-        @local_sga.PropertyEqualityContinue(work~, ..) => {
+      match @local_sga.advance_graph_equality(active, 1).unwrap() {
+        @local_sga.GraphEqualityContinue(work~, ..) => {
           assert_true(work > prior_work && work - prior_work <= 1L)
           prior_work = work
         }
-        @local_sga.PropertyEqualityComplete(output, ..) => {
+        @local_sga.GraphEqualityComplete(output, ..) => {
           assert_true(success)
           assert_eq(
             @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
@@ -282,10 +282,7 @@ test "Graph equality charges exact work and retains inputs after stop" {
           terminal = true
           break
         }
-        @local_sga.PropertyEqualityFailed(
-          @local_sga.PropertyEqualityWorkLimit,
-          ..
-        ) => {
+        @local_sga.GraphEqualityFailed(@local_sga.GraphEqualityWorkLimit, ..) => {
           assert_false(success)
           terminal = true
           break
@@ -294,13 +291,13 @@ test "Graph equality charges exact work and retains inputs after stop" {
       }
     }
     assert_true(terminal)
-    assert_true(@local_sga.cleanup_property_equality(active).unwrap())
-    assert_false(@local_sga.property_equality_cleanup_pending(active))
+    assert_true(@local_sga.cleanup_graph_equality(active).unwrap())
+    assert_false(@local_sga.graph_equality_cleanup_pending(active))
     assert_true(@graphs.producer_read_available(first_read))
     assert_true(@graphs.producer_read_available(second_read))
   }
   assert_true(
-    @local_sga.start_property_equality_views(
+    @local_sga.start_graph_equality_views(
       @bounded.control(),
       task_test_completion(receiver),
       prepared_sequence(receiver),
@@ -314,10 +311,10 @@ test "Graph equality charges exact work and retains inputs after stop" {
       10000,
       3,
     )
-    is Err(@local_sga.PropertyEqualityWorkspaceLimit),
+    is Err(@local_sga.GraphEqualityWorkspaceLimit),
   )
   let control = @bounded.control()
-  let cancelling = @local_sga.start_property_equality_views(
+  let cancelling = @local_sga.start_graph_equality_views(
     control,
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -332,16 +329,16 @@ test "Graph equality charges exact work and retains inputs after stop" {
     3,
   ).unwrap()
   assert_true(
-    @local_sga.advance_property_equality(cancelling, 1).unwrap()
-    is @local_sga.PropertyEqualityContinue(work=1L, ..),
+    @local_sga.advance_graph_equality(cancelling, 1).unwrap()
+    is @local_sga.GraphEqualityContinue(work=1L, ..),
   )
   assert_true(@bounded.request_cancel(control))
   assert_true(
-    @local_sga.advance_property_equality(cancelling, 1).unwrap()
-    is @local_sga.PropertyEqualityStopped(_, ..),
+    @local_sga.advance_graph_equality(cancelling, 1).unwrap()
+    is @local_sga.GraphEqualityStopped(_, ..),
   )
-  assert_true(@local_sga.cleanup_property_equality(cancelling).unwrap())
-  assert_false(@local_sga.property_equality_cleanup_pending(cancelling))
+  assert_true(@local_sga.cleanup_graph_equality(cancelling).unwrap())
+  assert_false(@local_sga.graph_equality_cleanup_pending(cancelling))
   assert_true(@graphs.producer_read_available(first_read))
   assert_true(@graphs.producer_read_available(second_read))
   assert_true(@graphs.discard_completed(first_graph))
@@ -369,7 +366,7 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
   guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
     fail("long-value Graph construction failed")
   }
-  let receiver = property_equality_receiver(graph_owner, graph_owner)
+  let receiver = graph_equality_receiver(graph_owner, graph_owner)
   let left = @graphs.prepare_producer_read(receiver, 0, graph_owner, graph).unwrap()
   let right = @graphs.prepare_producer_read(receiver, 1, graph_owner, graph).unwrap()
   let first = @graphs.producer_read_view(left).unwrap()
@@ -380,7 +377,7 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
     max_text_bytes: 10000,
     max_depth: 50,
   }
-  let limited = @local_sga.start_property_equality_views(
+  let limited = @local_sga.start_graph_equality_views(
     @bounded.control(),
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -396,12 +393,9 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
   ).unwrap()
   let mut hit_limit = false
   for _ in 0..<25 {
-    match @local_sga.advance_property_equality(limited, 1).unwrap() {
-      @local_sga.PropertyEqualityContinue(..) => ()
-      @local_sga.PropertyEqualityFailed(
-        @local_sga.PropertyEqualityWorkLimit,
-        ..
-      ) => {
+    match @local_sga.advance_graph_equality(limited, 1).unwrap() {
+      @local_sga.GraphEqualityContinue(..) => ()
+      @local_sga.GraphEqualityFailed(@local_sga.GraphEqualityWorkLimit, ..) => {
         hit_limit = true
         break
       }
@@ -409,9 +403,9 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
     }
   }
   assert_true(hit_limit)
-  assert_true(@local_sga.cleanup_property_equality(limited).unwrap())
+  assert_true(@local_sga.cleanup_graph_equality(limited).unwrap())
   let control = @bounded.control()
-  let active = @local_sga.start_property_equality_views(
+  let active = @local_sga.start_graph_equality_views(
     control,
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -426,17 +420,17 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
     10000,
   ).unwrap()
   for _ in 0..<50 {
-    guard @local_sga.advance_property_equality(active, 1).unwrap()
-      is @local_sga.PropertyEqualityContinue(..) else {
+    guard @local_sga.advance_graph_equality(active, 1).unwrap()
+      is @local_sga.GraphEqualityContinue(..) else {
       fail("long-value comparison must yield within the value")
     }
   }
   assert_true(@bounded.request_cancel(control))
   assert_true(
-    @local_sga.advance_property_equality(active, 1).unwrap()
-    is @local_sga.PropertyEqualityStopped(_, ..),
+    @local_sga.advance_graph_equality(active, 1).unwrap()
+    is @local_sga.GraphEqualityStopped(_, ..),
   )
-  assert_true(@local_sga.cleanup_property_equality(active).unwrap())
+  assert_true(@local_sga.cleanup_graph_equality(active).unwrap())
   assert_true(@graphs.producer_read_available(left))
   assert_true(@graphs.producer_read_available(right))
   assert_true(@graphs.discard_completed(graph))
@@ -445,7 +439,7 @@ test "Graph equality bounds nested text comparison and stops mid-value" {
 ///|
 test "current Graph equality distinguishes a changed producer domain" {
   assert_eq(
-    property_equality_wire(
+    graph_equality_wire(
       "[{\"id\":1,\"tenant\":\"a\",\"name\":\"one\"}]", "[{\"id\":1,\"tenant\":\"a\",\"name\":\"two\"}]",
     ),
     "{\"equal\":false}",
@@ -455,13 +449,13 @@ test "current Graph equality distinguishes a changed producer domain" {
 ///|
 test "separately retained Graphs with the same semantic identity compare equal" {
   let rows = "[{\"id\":1,\"tenant\":\"a\",\"name\":\"one\"}]"
-  assert_eq(property_equality_wire(rows, rows), "{\"equal\":true}")
+  assert_eq(graph_equality_wire(rows, rows), "{\"equal\":true}")
 }
 
 ///|
 test "compatible empty Graphs remain equal despite different producer domains" {
   assert_eq(
-    property_equality_wire(
+    graph_equality_wire(
       "[{\"id\":null,\"tenant\":\"a\",\"name\":\"one\"}]", "[{\"id\":null,\"tenant\":\"a\",\"name\":\"two\"}]",
     ),
     "{\"equal\":true}",

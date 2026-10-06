@@ -1,5 +1,5 @@
 ///|
-priv enum PropertySnapshotPhase {
+priv enum GraphSnapshotPhase {
   ReloadNodes
   ReloadEdges
   RetainReload
@@ -9,8 +9,8 @@ priv enum PropertySnapshotPhase {
 ///|
 /// Operation state, not a new material owner. Private completion remains under
 /// the same retention owner until its entire canonical snapshot is verified.
-priv struct PropertySnapshotState {
-  mut header : @snapshot.PropertyHeader?
+priv struct GraphSnapshotState {
+  mut header : @snapshot.SnapshotHeader?
   limits : @snapshot.Limits
   expected_cid : String
   input_available : () -> Bool
@@ -18,13 +18,13 @@ priv struct PropertySnapshotState {
   mut output : @graph.OutputBuilder?
   mut completed : @graph.Completed?
   mut hashing : @snapshot.Preparation?
-  mut phase : PropertySnapshotPhase
+  mut phase : GraphSnapshotPhase
   mut index : Int
   mut control_work_remaining : Int?
 }
 
 ///|
-fn cleanup_property_snapshot_reload(state : PropertySnapshotState) -> Bool {
+fn cleanup_graph_snapshot_reload(state : GraphSnapshotState) -> Bool {
   if state.hashing is Some(hashing) {
     @snapshot.cancel(hashing) |> ignore
     state.hashing = None
@@ -42,8 +42,8 @@ fn cleanup_property_snapshot_reload(state : PropertySnapshotState) -> Bool {
 }
 
 ///|
-fn property_snapshot_reload_step(
-  state : PropertySnapshotState,
+fn graph_snapshot_reload_step(
+  state : GraphSnapshotState,
   quantum : Int,
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[@graph.Completed, GraphBridgeIssue] {
@@ -71,18 +71,18 @@ fn property_snapshot_reload_step(
         }
         let edge = state.phase == ReloadEdges
         let count = if edge {
-          @snapshot.property_header_edge_count(header)
+          @snapshot.header_edge_count(header)
         } else {
-          @snapshot.property_header_node_count(header)
+          @snapshot.header_node_count(header)
         }
         if state.index == count {
           state.index = 0
           state.phase = if edge { RetainReload } else { ReloadEdges }
         } else {
           let record = if edge {
-            @snapshot.property_header_edge_at(header, state.index)
+            @snapshot.header_edge_at(header, state.index)
           } else {
-            @snapshot.property_header_node_at(header, state.index)
+            @snapshot.header_node_at(header, state.index)
           }
           guard record is Some(record) else {
             return @bounded.Failed(InvalidGraphKernel, progress, used)
@@ -132,8 +132,7 @@ fn property_snapshot_reload_step(
         guard @graph.completed_storage(completed) is Some(storage) else {
           return @bounded.Failed(GraphInputUnavailable, progress, used + 1)
         }
-        state.hashing = match
-          @snapshot.prepare_property(storage, state.limits) {
+        state.hashing = match @snapshot.prepare(storage, "", state.limits) {
           Ok(hashing) => Some(hashing)
           Err(issue) =>
             return @bounded.Failed(GraphSnapshot(issue), progress, used + 1)
@@ -153,7 +152,7 @@ fn property_snapshot_reload_step(
         }
         // Verification drains into no persistent sink; these provisional bytes
         // are not a second serialization owner or a published snapshot.
-        match @snapshot.take_property_output(hashing) {
+        match @snapshot.take_output(hashing) {
           Ok(_) => ()
           Err(issue) =>
             return @bounded.Failed(GraphSnapshot(issue), progress, used + 1)
@@ -192,7 +191,7 @@ fn property_snapshot_reload_step(
 }
 
 ///|
-pub fn start_property_snapshot_reload(
+pub fn start_graph_snapshot_reload(
   control : @bounded.Control,
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -225,8 +224,7 @@ pub fn start_property_snapshot_reload(
     return Err(InvalidGraphKernel)
   }
   let profile = @carrier.graph_definition(graph)
-  let header = match
-    @snapshot.read_property_header(input, graph, snapshot_limits) {
+  let header = match @snapshot.read_header(input, graph, snapshot_limits) {
     Ok(header) => header
     Err(issue) => return Err(GraphSnapshot(issue))
   }
@@ -274,7 +272,7 @@ pub fn start_property_snapshot_reload(
     Ok(output) => output
     Err(issue) => return Err(GraphSnapshotOutput(issue))
   }
-  let state : PropertySnapshotState = {
+  let state : GraphSnapshotState = {
     header: Some(header),
     limits: snapshot_limits,
     expected_cid: expected_snapshot_cid,
@@ -289,7 +287,7 @@ pub fn start_property_snapshot_reload(
   }
   let (session, token) = @bounded.start(
     control,
-    PropertySnapshotReload(state),
+    GraphSnapshotReload(state),
     graph_construction_step,
     cleanup_graph_construction_state,
     @graph.discard_completed,

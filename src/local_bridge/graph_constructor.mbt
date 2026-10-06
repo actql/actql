@@ -3,11 +3,11 @@
 /// Graph output builder and retention owner. No historical tuple constructor.
 priv enum GraphConstructionState {
   GraphConstruction(GraphState)
-  PropertySnapshotReload(PropertySnapshotState)
+  GraphSnapshotReload(GraphSnapshotState)
 }
 
 ///|
-priv enum PropertyReadPhase {
+priv enum GraphReadPhase {
   BeginElement
   ReadKeys
   ReadSource
@@ -19,7 +19,7 @@ priv enum PropertyReadPhase {
 }
 
 ///|
-priv struct PropertyRowBinding {
+priv struct GraphRowBinding {
   input : Int
   definition : Int
   edge : Bool
@@ -32,13 +32,13 @@ priv struct PropertyRowBinding {
 ///|
 priv struct GraphState {
   inputs : Array[@execution.ProducerRead]
-  bindings : Array[PropertyRowBinding]
+  bindings : Array[GraphRowBinding]
   value_limits : @value.Limits
   mut output : @graph.OutputBuilder?
   mut element : Int
   mut row : Int
   mut column : Int
-  mut phase : PropertyReadPhase
+  mut phase : GraphReadPhase
   mut keys : Array[@value.CheckedValue]
   mut source : Array[@value.CheckedValue]
   mut target : Array[@value.CheckedValue]
@@ -54,8 +54,8 @@ fn graph_construction_step(
 ) -> @bounded.KernelStep[@graph.Completed, GraphBridgeIssue] {
   match state {
     GraphConstruction(value) => bounded_graph_step(value, quantum, reader)
-    PropertySnapshotReload(value) =>
-      property_snapshot_reload_step(value, quantum, reader)
+    GraphSnapshotReload(value) =>
+      graph_snapshot_reload_step(value, quantum, reader)
   }
 }
 
@@ -73,7 +73,7 @@ fn cleanup_graph_construction_state(state : GraphConstructionState) -> Bool {
       value.properties = []
       true
     }
-    PropertySnapshotReload(value) => cleanup_property_snapshot_reload(value)
+    GraphSnapshotReload(value) => cleanup_graph_snapshot_reload(value)
   }
 }
 
@@ -296,14 +296,14 @@ pub fn start_rows_to_graph(
   }
   remaining -= inputs.length()
   let mut row_slots = 0
-  let bindings : Array[PropertyRowBinding] = []
+  let bindings : Array[GraphRowBinding] = []
   for index in 0..<(n + e) {
     let (element, source, target) = if index < n {
       (@lower.graph_construction_node_at(prepared, index).unwrap(), [], [])
     } else {
       let edge = @lower.graph_construction_edge_at(prepared, index - n).unwrap()
-      let (source, target) = @lower.property_edge_binding_keys(edge)
-      (@lower.property_edge_binding_element(edge), source, target)
+      let (source, target) = @lower.graph_edge_binding_keys(edge)
+      (@lower.graph_edge_binding_element(edge), source, target)
     }
     let keys = @lower.graph_binding_keys(element)
     let properties = @lower.graph_binding_properties(element)

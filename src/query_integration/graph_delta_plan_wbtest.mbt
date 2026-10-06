@@ -77,7 +77,7 @@ test "formal Delta application Plan retains exact mixed input roles and runtime 
   let wire = @publication_host.client_task_plan_graph_wire(plan)
   assert_true(wire.contains("\"op\":\"SGA.apply_delta\""))
   assert_true(wire.contains("actql-graph-contract/0.1"))
-  assert_false(wire.contains("actql-graph-contract/0.1"))
+  assert_false(wire.contains("actql-property-graph-contract/0.1"))
   assert_true(
     @publication_host.admit_prepared_client_task_plan_graph(
       prepared, wire, sequence, 1000000, 100000, 100,

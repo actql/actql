@@ -154,7 +154,7 @@ pub enum CheckedOperation {
   GraphMatch(@graph.CheckedMatch)
   GraphBounds(@graph.CheckedGraphBounds)
   GraphDegree(@graph.CheckedDegree)
-  GraphEquality(right~ : Target, checked~ : @graph.CheckedPropertyEquality)
+  GraphEquality(right~ : Target, checked~ : @graph.CheckedGraphEquality)
   GraphNormalize(@graph.CheckedNormalize)
   GraphDelta(right~ : Target, checked~ : @graph.CheckedDelta)
   GraphUnion(inputs~ : Array[Target], checked~ : @graph.CheckedUnion)

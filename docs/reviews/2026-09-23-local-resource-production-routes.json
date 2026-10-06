@@ -10015,19 +10015,19 @@
       "profile": "sga_graph",
       "dispatch": {
         "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_property_equality_views("
+        "marker": "@sga.start_graph_equality_views("
       },
       "entrypoint": {
         "path": "src/local_sga/graph_equal.mbt",
-        "symbol": "start_property_equality_views"
+        "symbol": "start_graph_equality_views"
       },
       "selected_entrypoint": {
         "path": "src/local_sga/graph_equal.mbt",
-        "symbol": "start_property_equality_views"
+        "symbol": "start_graph_equality_views"
       },
       "boundary_tests": [
         {
-          "role": "property_equality_work_exact_one_short",
+          "role": "graph_equality_work_exact_one_short",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -10038,7 +10038,7 @@
           "fixture": "Graph equality charges exact work and retains inputs after stop"
         },
         {
-          "role": "property_equality_workspace_exact_one_short",
+          "role": "graph_equality_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -10049,7 +10049,7 @@
           "fixture": "Graph equality charges exact work and retains inputs after stop"
         },
         {
-          "role": "property_equality_cancel_cleanup",
+          "role": "graph_equality_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -10060,7 +10060,7 @@
           "fixture": "Graph equality charges exact work and retains inputs after stop"
         },
         {
-          "role": "property_equality_nested_value_work_ceiling",
+          "role": "graph_equality_nested_value_work_ceiling",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -10071,7 +10071,7 @@
           "fixture": "Graph equality bounds nested text comparison and stops mid-value"
         },
         {
-          "role": "property_equality_long_text_quantum_cancel_cleanup",
+          "role": "graph_equality_long_text_quantum_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -10084,7 +10084,7 @@
       ],
       "environment_tests": [
         {
-          "role": "property_equality_retained_named_results",
+          "role": "graph_equality_retained_named_results",
           "suite": "node:duckdb_standard_host",
           "targets": [
             "node"
@@ -10093,7 +10093,7 @@
           "fixture": "retained-graph-equality"
         },
         {
-          "role": "property_equality_host_in_flight_cancel",
+          "role": "graph_equality_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": [
             "node"
@@ -10104,51 +10104,51 @@
       ],
       "path_assurance": {
         "entrypoint": {
-          "exact_limit": "property_equality_work_exact_one_short",
-          "one_short_limit": "property_equality_work_exact_one_short",
-          "in_flight_cancel": "property_equality_host_in_flight_cancel",
-          "cleanup": "property_equality_cancel_cleanup"
+          "exact_limit": "graph_equality_work_exact_one_short",
+          "one_short_limit": "graph_equality_work_exact_one_short",
+          "in_flight_cancel": "graph_equality_host_in_flight_cancel",
+          "cleanup": "graph_equality_cancel_cleanup"
         },
         "selected_entrypoint": {
-          "exact_limit": "property_equality_work_exact_one_short",
-          "one_short_limit": "property_equality_work_exact_one_short",
-          "in_flight_cancel": "property_equality_host_in_flight_cancel",
-          "cleanup": "property_equality_cancel_cleanup"
+          "exact_limit": "graph_equality_work_exact_one_short",
+          "one_short_limit": "graph_equality_work_exact_one_short",
+          "in_flight_cancel": "graph_equality_host_in_flight_cancel",
+          "cleanup": "graph_equality_cancel_cleanup"
         }
       },
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "property_equality_work_exact_one_short",
-            "one_short_limit": "property_equality_work_exact_one_short"
+            "exact_limit": "graph_equality_work_exact_one_short",
+            "one_short_limit": "graph_equality_work_exact_one_short"
           },
           "workspace": {
-            "exact_limit": "property_equality_workspace_exact_one_short",
-            "one_short_limit": "property_equality_workspace_exact_one_short"
+            "exact_limit": "graph_equality_workspace_exact_one_short",
+            "one_short_limit": "graph_equality_workspace_exact_one_short"
           }
         },
         "selected_entrypoint": {
           "work": {
-            "exact_limit": "property_equality_work_exact_one_short",
-            "one_short_limit": "property_equality_work_exact_one_short"
+            "exact_limit": "graph_equality_work_exact_one_short",
+            "one_short_limit": "graph_equality_work_exact_one_short"
           },
           "workspace": {
-            "exact_limit": "property_equality_workspace_exact_one_short",
-            "one_short_limit": "property_equality_workspace_exact_one_short"
+            "exact_limit": "graph_equality_workspace_exact_one_short",
+            "one_short_limit": "graph_equality_workspace_exact_one_short"
           }
         }
       },
       "shared_proof_reuse": [
         {
-          "role": "property_equality_work_exact_one_short",
+          "role": "graph_equality_work_exact_one_short",
           "paths": [
             "entrypoint",
             "selected_entrypoint"
           ],
-          "reason": "The selected provider calls the same start_property_equality_views kernel with the same control-work limit and positioned Graph reads."
+          "reason": "The selected provider calls the same start_graph_equality_views kernel with the same control-work limit and positioned Graph reads."
         },
         {
-          "role": "property_equality_workspace_exact_one_short",
+          "role": "graph_equality_workspace_exact_one_short",
           "paths": [
             "entrypoint",
             "selected_entrypoint"
@@ -10156,7 +10156,7 @@
           "reason": "Both route names identify the same view-only kernel and its one-slot workspace admission before bounded execution."
         },
         {
-          "role": "property_equality_host_in_flight_cancel",
+          "role": "graph_equality_host_in_flight_cancel",
           "paths": [
             "entrypoint",
             "selected_entrypoint"
@@ -10164,7 +10164,7 @@
           "reason": "There is only one registered view-based Host dispatch; the timer cancellation exercises that exact provider and its bounded session."
         },
         {
-          "role": "property_equality_cancel_cleanup",
+          "role": "graph_equality_cancel_cleanup",
           "paths": [
             "entrypoint",
             "selected_entrypoint"

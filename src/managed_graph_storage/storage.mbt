@@ -39,7 +39,7 @@ pub(all) enum Issue {
 
 ///|
 priv struct Node {
-  property_definition : Int
+  definition_index : Int
   identity_order_key : String
   typed_key : Array[@value.CheckedValue]
   identity : @value.CheckedValue
@@ -48,7 +48,7 @@ priv struct Node {
 
 ///|
 priv struct Edge {
-  property_definition : Int
+  definition_index : Int
   identity_order_key : String
   identity : @value.CheckedValue
   typed_key : Array[@value.CheckedValue]
@@ -271,7 +271,7 @@ fn append_node_record(
   builder : Builder,
   identity : @value.CheckedValue,
   properties : Array[@value.CheckedValue],
-  property_definition : Int,
+  definition_index : Int,
   typed_key : Array[@value.CheckedValue],
   initial_work : Int,
 ) -> Result[Unit, Issue] {
@@ -299,7 +299,7 @@ fn append_node_record(
   builder.nodes.push({
     identity,
     properties: properties.copy(),
-    property_definition,
+    definition_index,
     identity_order_key: key,
     typed_key: typed_key.copy(),
   })

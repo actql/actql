@@ -393,7 +393,7 @@ fn check_graph_step(
     at, inputs, contracts, produced, steps, targets, b,
   )
   let checked = match
-    @graph.check_property_construction(at, schemas, domain, {
+    @graph.check_graph_construction(at, schemas, domain, {
       max_work: b.work,
       max_nodes: b.nodes,
       max_depth: b.limits.max_depth,

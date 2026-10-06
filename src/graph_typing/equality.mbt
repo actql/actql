@@ -2,7 +2,7 @@
 /// A current Graph comparison has two exact Graph ports. Compatible
 /// definitions can have different producer provenance; the provenance remains
 /// part of each runtime identity and therefore affects the Boolean result.
-struct CheckedPropertyEquality {
+struct CheckedGraphEquality {
   source : @decode.Cursor
   left : @carrier.Carrier
   right : @carrier.Carrier
@@ -11,32 +11,32 @@ struct CheckedPropertyEquality {
 }
 
 ///|
-pub(all) enum PropertyEqualityObligation {
+pub(all) enum GraphEqualityObligation {
   AdmitBothGraphs
   CompareCompleteGraphValues
-  ResolvePropertyEqualityResources
+  ResolveGraphEqualityResources
 } derive(Eq, Debug)
 
 ///|
-pub fn property_equality_pending_count(_ : CheckedPropertyEquality) -> Int {
+pub fn graph_equality_pending_count(_ : CheckedGraphEquality) -> Int {
   3
 }
 
 ///|
-pub fn property_equality_pending_at(
-  _ : CheckedPropertyEquality,
+pub fn graph_equality_pending_at(
+  _ : CheckedGraphEquality,
   index : Int,
-) -> PropertyEqualityObligation? {
+) -> GraphEqualityObligation? {
   match index {
     0 => Some(AdmitBothGraphs)
     1 => Some(CompareCompleteGraphValues)
-    2 => Some(ResolvePropertyEqualityResources)
+    2 => Some(ResolveGraphEqualityResources)
     _ => None
   }
 }
 
 ///|
-fn align_property_equality_definition(
+fn align_graph_equality_definition(
   source : @decode.Cursor,
   left : @carrier.GraphNodeDefinition,
   right : @carrier.GraphNodeDefinition,
@@ -105,7 +105,7 @@ fn align_property_equality_definition(
 }
 
 ///|
-fn align_property_equality_graphs(
+fn align_graph_equality_graphs(
   source : @decode.Cursor,
   left : @carrier.GraphDefinition,
   right : @carrier.GraphDefinition,
@@ -127,7 +127,7 @@ fn align_property_equality_graphs(
       is Some(second) else {
       fail(source, IncompatibleGraphDomains)
     }
-    align_property_equality_definition(source, first, second, b)
+    align_graph_equality_definition(source, first, second, b)
   }
   for index in 0..<edges {
     spend(b, source, 1)
@@ -149,7 +149,7 @@ fn align_property_equality_graphs(
       @carrier.graph_name_identity(second_target) {
       fail(source, IncompatibleGraphDomains)
     }
-    align_property_equality_definition(
+    align_graph_equality_definition(
       source,
       @carrier.graph_edge_element(first),
       @carrier.graph_edge_element(second),
@@ -159,12 +159,12 @@ fn align_property_equality_graphs(
 }
 
 ///|
-pub fn check_property_equality(
+pub fn check_graph_equality(
   source : @decode.Cursor,
   left : @carrier.Carrier,
   right : @carrier.Carrier,
   limits : Limits,
-) -> Result[CheckedPropertyEquality, Issue] {
+) -> Result[CheckedGraphEquality, Issue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
@@ -199,9 +199,7 @@ pub fn check_property_equality(
     let second_definition = @carrier.graph_definition(second)
     // A definition CID includes producer provenance. Compatible closed types
     // can therefore differ in CID while remaining valid equality operands.
-    align_property_equality_graphs(
-      other, first_definition, second_definition, b,
-    )
+    align_graph_equality_graphs(other, first_definition, second_definition, b)
     let output = diagnostic_rows(
       source,
       [
@@ -229,27 +227,23 @@ pub fn check_property_equality(
 }
 
 ///|
-pub fn property_equality_output(
-  value : CheckedPropertyEquality,
-) -> @carrier.Carrier {
+pub fn graph_equality_output(value : CheckedGraphEquality) -> @carrier.Carrier {
   value.output
 }
 
 ///|
-pub fn property_equality_usage(value : CheckedPropertyEquality) -> Usage {
+pub fn graph_equality_usage(value : CheckedGraphEquality) -> Usage {
   value.usage
 }
 
 ///|
-pub fn property_equality_source(
-  value : CheckedPropertyEquality,
-) -> @decode.Cursor {
+pub fn graph_equality_source(value : CheckedGraphEquality) -> @decode.Cursor {
   value.source
 }
 
 ///|
-pub fn property_equality_input(
-  value : CheckedPropertyEquality,
+pub fn graph_equality_input(
+  value : CheckedGraphEquality,
   right~ : Bool,
 ) -> @carrier.Carrier {
   if right {

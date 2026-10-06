@@ -1,11 +1,22 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { loadTransferLaws, validateTransferLaws } from './bound-transfer-laws.mjs';
+import { loadTransferLaws, validateTransferLaws, parseTransferLawSource } from './bound-transfer-laws.mjs';
 
 test('every public operation has exactly one closed bound transfer classification', () => {
   const { body, source } = loadTransferLaws();
-  assert.equal(validateTransferLaws(body, source).operations, 73);
+  assert.equal(validateTransferLaws(body, source).operations, 72);
   assert.equal(body.operations.graph, 'carrier_specific');
+});
+
+test('machine law source rejects duplicate names before ordinary JSON decoding', () => {
+  const {body} = loadTransferLaws();
+  const source = JSON.stringify(body);
+  assert.deepEqual(parseTransferLawSource(source), body);
+  const duplicate = source.replace('"graph":"carrier_specific"',
+    '"graph":"carrier_specific","graph":"carrier_specific"');
+  assert.notEqual(duplicate, source);
+  assert.deepEqual(JSON.parse(duplicate), body);
+  assert.throws(() => parseTransferLawSource(duplicate), /unique|duplicate/i);
 });
 
 test('missing, stale, and unknown classifications fail rather than infer a default', () => {

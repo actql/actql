@@ -51,7 +51,7 @@ test('independent complete snapshot preserves parallel edge keys, scoped identit
   }
   assert.deepEqual(contract.node_definitions[0].labels, {Node: ['name'], Person: []});
   assert.deepEqual(contract.edge_definitions[0].labels, {R: []});
-  for (const file of ['src/bounded_graph_snapshot/property_snapshot_wbtest.mbt',
+  for (const file of ['src/bounded_graph_snapshot/representation_wbtest.mbt',
     'src/query_integration/graph_snapshot_wbtest.mbt']) {
     const source = readFileSync(file, 'utf8');
     assert.ok(source.includes(fixture.expected_contract_cid));

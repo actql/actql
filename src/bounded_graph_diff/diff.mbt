@@ -182,10 +182,9 @@ fn start_snapshot(
   limits : Limits,
 ) -> Result[@snapshot.Preparation, Issue] {
   let result = match source {
-    Stored(storage) =>
-      @snapshot.prepare_property(storage, snapshot_limits(limits))
+    Stored(storage) => @snapshot.prepare(storage, "", snapshot_limits(limits))
     Viewed(view, graph) =>
-      @snapshot.prepare_property_view(view, graph, snapshot_limits(limits))
+      @snapshot.prepare_view(view, graph, "", snapshot_limits(limits))
   }
   result.map_err(issue => Snapshot(issue))
 }
@@ -491,7 +490,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             value.right_snapshot = Some(snapshot)
           }
         }
-        let chunk = match @snapshot.take_property_output(preparation) {
+        let chunk = match @snapshot.take_output(preparation) {
           Ok(chunk) => chunk
           Err(issue) =>
             return Ok(failed(value, Snapshot(issue), progress, used))
@@ -583,12 +582,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           -1
         } else {
           let left_key = if edge {
-            @snapshot.property_edge_key_at(left, value.left_cursor)
+            @snapshot.edge_key_at(left, value.left_cursor)
           } else {
             @snapshot.node_key_at(left, value.left_cursor)
           }
           let right_key = if edge {
-            @snapshot.property_edge_key_at(right, value.right_cursor)
+            @snapshot.edge_key_at(right, value.right_cursor)
           } else {
             @snapshot.node_key_at(right, value.right_cursor)
           }

@@ -226,7 +226,7 @@ pub fn operation_execution_phase(
         AdmitInputGraph => BeforeOperationInputUse
         RespectAuthoredHops
         | FilterAuthoredLabels
-        | EnumeratePropertyPaths
+        | EnumerateGraphPaths
         | DeduplicatePathIdentities
         | SelectMinimumEligibleNodeDepth
         | OrderTraversalRows => BeforeOperationOutput

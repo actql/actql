@@ -181,9 +181,7 @@ fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
 }
 
 ///|
-fn graph_read_property_definition(
-  source : GraphReadSource,
-) -> @carrier.GraphDefinition? {
+fn graph_read_definition(source : GraphReadSource) -> @carrier.GraphDefinition? {
   match source {
     Accumulated(storage) =>
       match @storage.carrier(storage) {

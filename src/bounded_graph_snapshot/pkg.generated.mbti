@@ -25,6 +25,16 @@ pub fn edge_at(Snapshot, Int) -> Int?
 
 pub fn edge_count(Snapshot) -> Int
 
+pub fn edge_key_at(Snapshot, Int) -> String?
+
+pub fn header_edge_at(SnapshotHeader, Int) -> @decode_core.Cursor?
+
+pub fn header_edge_count(SnapshotHeader) -> Int
+
+pub fn header_node_at(SnapshotHeader, Int) -> @decode_core.Cursor?
+
+pub fn header_node_count(SnapshotHeader) -> Int
+
 pub fn node_at(Snapshot, Int) -> Int?
 
 pub fn node_count(Snapshot) -> Int
@@ -33,25 +43,11 @@ pub fn node_key_at(Snapshot, Int) -> String?
 
 pub fn prepare(@managed_graph_storage.Storage, String, Limits) -> Result[Preparation, Issue]
 
-pub fn prepare_property(@managed_graph_storage.Storage, Limits) -> Result[Preparation, Issue]
-
-pub fn prepare_property_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, Limits) -> Result[Preparation, Issue]
-
 pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, String, Limits) -> Result[Preparation, Issue]
 
-pub fn property_edge_key_at(Snapshot, Int) -> String?
+pub fn read_header(@decode_core.Cursor, @carrier_contract.Graph, Limits) -> Result[SnapshotHeader, Issue]
 
-pub fn property_header_edge_at(PropertyHeader, Int) -> @decode_core.Cursor?
-
-pub fn property_header_edge_count(PropertyHeader) -> Int
-
-pub fn property_header_node_at(PropertyHeader, Int) -> @decode_core.Cursor?
-
-pub fn property_header_node_count(PropertyHeader) -> Int
-
-pub fn read_property_header(@decode_core.Cursor, @carrier_contract.Graph, Limits) -> Result[PropertyHeader, Issue]
-
-pub fn take_property_output(Preparation) -> Result[String, Issue]
+pub fn take_output(Preparation) -> Result[String, Issue]
 
 pub fn workspace_slots(@managed_graph_storage.Storage) -> Int?
 
@@ -88,9 +84,9 @@ pub enum Poll {
 
 type Preparation
 
-type PropertyHeader
-
 type Snapshot
+
+type SnapshotHeader
 
 // Type aliases
 

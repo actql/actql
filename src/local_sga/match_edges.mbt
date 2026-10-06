@@ -145,7 +145,7 @@ fn edge_predicate_binding(
   edge : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  let fields = @lower.graph_match_property_scope_fields(state.prepared)
+  let fields = @lower.graph_match_graph_scope_fields(state.prepared)
   guard @carrier.field_at(fields, index) is Some(field) &&
     field.contract is Some(contract) &&
     match_edge_value(state, edge, field.name, contract) is Some(value) else {
@@ -214,7 +214,7 @@ fn compare_selected_edges_step(
 ///|
 fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
   state.type_probes.val += 1
-  let definition = @lower.graph_match_property_definition(state.prepared)
+  let definition = @lower.graph_match_definition_index(state.prepared)
   guard graph_read_edge_definition(state.source, edge) == Some(definition) else {
     return false
   }
@@ -303,9 +303,7 @@ fn match_edges_step(
           }
           ignore(name)
           let profile = @carrier.graph_definition(state.graph)
-          let definition = @lower.graph_match_property_definition(
-            state.prepared,
-          )
+          let definition = @lower.graph_match_definition_index(state.prepared)
           if @carrier.graph_edge_at(profile, definition)
             is Some(edge_definition) &&
             @carrier.graph_element_definition_has_label(
@@ -684,7 +682,7 @@ fn start_match_edges_read(
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
-    @carrier.field_count(@lower.graph_match_property_scope_fields(prepared))
+    @carrier.field_count(@lower.graph_match_graph_scope_fields(prepared))
   } else {
     0
   }

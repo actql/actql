@@ -27,7 +27,7 @@ struct CheckedMatch {
   ids : Array[@value.CheckedValue]
   types : Array[String]?
   usage : PredicateUsage
-  property_scope : PropertyMatchScope
+  graph_scope : GraphMatchScope
 }
 
 ///|
@@ -82,7 +82,7 @@ pub fn check_match(
       fail(source, InvalidBody)
     }
     let scope = check_property_match_scope(entity, source, root, graph, b)
-    let property_scope = scope
+    let graph_scope = scope
     let scoped = scope.scope
     b.work -= scoped.usage.work
     b.text -= scoped.usage.text_bytes
@@ -210,7 +210,7 @@ pub fn check_match(
       fields: output.map(value => value.0),
       ids,
       types,
-      property_scope,
+      graph_scope,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,

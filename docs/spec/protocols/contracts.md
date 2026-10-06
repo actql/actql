@@ -525,8 +525,8 @@ multiplier is one; count evidence does not establish order or acquisition comple
 ```
 
 <!-- requirement-block: capacity-law-registry.graph-count-body capacity-law-registry.graph-count-machine -->
-The pinned `actql-bound-graph-laws/0.1` body governs Graph extent construction,
-combination, preservation and conversion to Relation row bounds, including
+The pinned `actql-bound-graph-laws/0.1` body governs established Graph entity
+quantities, combination, preservation and conversion to Relation row bounds, including
 node traversal and shortest-path selection. Applications MUST retain quantity,
 actual input and selector dependencies and reject unsafe arithmetic. Node
 emission bounds do not establish path-emission bounds, observed graph sizes,
@@ -534,7 +534,7 @@ completeness or discharged resource enforcement.
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-graph-laws.json# sha256:ef1923fe948bed0d07a08bf339e75f0ca9749bde9f1590b31ff3e9317a1e7c48
+../../../spec/contracts/actql-bound-graph-laws.json# sha256:2d71fa65e17dab552994446422b7e1d93a13e96b1376d060d21b1fc7a19ce50e
 ```
 
 <!-- requirement-block: capacity-law-registry.graph-construction-count-body capacity-law-registry.graph-construction-count-machine -->
@@ -548,7 +548,7 @@ establish a path-emission bound nor discharge the Graph's other obligations.
 
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-graph-construction-laws.json# sha256:6187c667d201ea1d8a1a3339e9f72b26ac2c9a844189b49c336e526f2cd75565
+../../../spec/contracts/actql-bound-graph-construction-laws.json# sha256:4ce27912b3cf5638294b674614fcec2ee460e67846899a00585063e039167fb7
 ```
 
 <!-- requirement-block: capacity-law-registry.ranking-series-body capacity-law-registry.ranking-machine capacity-law-registry.series-machine -->
@@ -572,7 +572,7 @@ or resource enforcement.
 <!-- requirement-block: capacity-law-registry.machine-contract -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-bound-law-registry.json# sha256:d55578f3dd0ee1b0838224494a369490d289c442af6f0025b764b494fdf25735
+../../../spec/contracts/actql-bound-law-registry.json# sha256:f8a41d10bb02ce9e3d52e17da0dd4e3f42ed047c7f93dd5007de2f92dba01e9c
 ```
 
 <a id="capacity-host-policy"></a>

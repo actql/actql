@@ -54,7 +54,7 @@ fn snapshot_material_fixture(
   maximum_bytes? : Int = 100000,
   maximum_frame_bytes? : Int = 100000,
 ) -> @carrier_runtime.Material {
-  @local_bridge.completed_property_snapshot_material(
+  @local_bridge.completed_graph_snapshot_material(
     control,
     owner,
     @pipeline.Input(0),
@@ -240,14 +240,14 @@ fn snapshot_handoff_source(owner : @lower.BoundPrepared) -> @graphs.Completed {
 
 ///|
 fn snapshot_handoff_save(
-  value : @local_bridge.PropertySnapshotHandoff,
+  value : @local_bridge.GraphSnapshotHandoff,
 ) -> (String, String) raise {
   let text = StringBuilder()
   let mut previous_work = 0L
   for _ in 0..<1000 {
-    let poll = @local_bridge.advance_property_snapshot_save(value, 1).unwrap()
+    let poll = @local_bridge.advance_graph_snapshot_save(value, 1).unwrap()
     text.write_string(
-      @local_bridge.take_property_snapshot_save_output(value).unwrap(),
+      @local_bridge.take_graph_snapshot_save_output(value).unwrap(),
     )
     match poll {
       @local_bridge.Saving(work~, ..) => {
@@ -270,7 +270,7 @@ test "snapshot handoff saves exact bytes and revokes the original before restori
   let source = snapshot_handoff_source(owner)
   let old_material = @graphs.completed_material(source).unwrap()
   let control = @bounded.control()
-  let handoff = @local_bridge.prepare_property_snapshot_handoff(
+  let handoff = @local_bridge.prepare_graph_snapshot_handoff(
     control,
     owner,
     @pipeline.Input(0),
@@ -281,29 +281,26 @@ test "snapshot handoff saves exact bytes and revokes the original before restori
     () => true,
   ).unwrap()
   assert_true(
-    @local_bridge.release_property_snapshot_source(
-      handoff,
-      snapshot_fixture_cid(),
-    )
+    @local_bridge.release_graph_snapshot_source(handoff, snapshot_fixture_cid())
     is Err(_),
   )
   assert_true(@graphs.completed_available(source))
   let (cid, body) = snapshot_handoff_save(handoff)
   assert_eq((cid, body), (snapshot_fixture_cid(), snapshot_fixture_body()))
   assert_true(
-    @local_bridge.release_property_snapshot_source(
+    @local_bridge.release_graph_snapshot_source(
       handoff,
       "sha256:" + "1".repeat(64),
     )
     is Err(_),
   )
   assert_true(@graphs.completed_available(source))
-  @local_bridge.release_property_snapshot_source(handoff, cid).unwrap()
+  @local_bridge.release_graph_snapshot_source(handoff, cid).unwrap()
   assert_false(@graphs.completed_available(source))
   assert_false(@carrier_runtime.material_available(old_material))
   assert_true(@graphs.completed_storage(source) is None)
-  assert_true(@local_bridge.take_property_snapshot_restored(handoff) is Err(_))
-  @local_bridge.start_property_snapshot_handoff_reload(
+  assert_true(@local_bridge.take_graph_snapshot_restored(handoff) is Err(_))
+  @local_bridge.start_graph_snapshot_handoff_reload(
     handoff,
     input_cursor(body),
     () => true,
@@ -311,7 +308,7 @@ test "snapshot handoff saves exact bytes and revokes the original before restori
   let mut finished = false
   for _ in 0..<1000 {
     match
-      @local_bridge.advance_property_snapshot_handoff_reload(handoff, 1).unwrap() {
+      @local_bridge.advance_graph_snapshot_handoff_reload(handoff, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(_, ..) => {
         finished = true
@@ -321,8 +318,8 @@ test "snapshot handoff saves exact bytes and revokes the original before restori
     }
   }
   assert_true(finished)
-  let restored = @local_bridge.take_property_snapshot_restored(handoff).unwrap()
-  assert_true(@local_bridge.take_property_snapshot_restored(handoff) is Err(_))
+  let restored = @local_bridge.take_graph_snapshot_restored(handoff).unwrap()
+  assert_true(@local_bridge.take_graph_snapshot_restored(handoff) is Err(_))
   assert_false(
     @carrier_runtime.completion_reference_same(
       @carrier_runtime.material_reference(old_material),
@@ -333,10 +330,8 @@ test "snapshot handoff saves exact bytes and revokes the original before restori
     snapshot_capture(@graphs.completed_storage(restored).unwrap()),
     (cid, body),
   )
-  assert_true(@local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap())
-  assert_false(
-    @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
-  )
+  assert_true(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
+  assert_false(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
   assert_true(@graphs.completed_available(restored))
   // Successful cleanup does not poison the shared bounded control. Subsequent
   // consumption of the restored generation remains possible under that owner.
@@ -350,7 +345,7 @@ test "snapshot handoff refuses equal-schema foreign owners and preserves cleanup
   let foreign = snapshot_fixture_owner()
   let source = snapshot_handoff_source(owner)
   assert_true(
-    @local_bridge.prepare_property_snapshot_handoff(
+    @local_bridge.prepare_graph_snapshot_handoff(
       @bounded.control(),
       foreign,
       @pipeline.Input(0),
@@ -364,7 +359,7 @@ test "snapshot handoff refuses equal-schema foreign owners and preserves cleanup
   )
   assert_true(@graphs.completed_available(source))
   let control = @bounded.control()
-  let handoff = @local_bridge.prepare_property_snapshot_handoff(
+  let handoff = @local_bridge.prepare_graph_snapshot_handoff(
     control,
     owner,
     @pipeline.Input(0),
@@ -375,30 +370,23 @@ test "snapshot handoff refuses equal-schema foreign owners and preserves cleanup
     () => true,
   ).unwrap()
   assert_true(
-    @local_bridge.advance_property_snapshot_save(handoff, 1).unwrap()
+    @local_bridge.advance_graph_snapshot_save(handoff, 1).unwrap()
     is @local_bridge.Saving(work=1L, ..),
   )
   @bounded.request_cancel(control) |> ignore
   assert_true(
-    @local_bridge.advance_property_snapshot_save(handoff, 1).unwrap()
+    @local_bridge.advance_graph_snapshot_save(handoff, 1).unwrap()
     is @local_bridge.SaveStopped(@bounded.Cancelled, work=1L, ..),
   )
+  assert_true(@local_bridge.take_graph_snapshot_save_output(handoff) is Err(_))
   assert_true(
-    @local_bridge.take_property_snapshot_save_output(handoff) is Err(_),
-  )
-  assert_true(
-    @local_bridge.release_property_snapshot_source(
-      handoff,
-      snapshot_fixture_cid(),
-    )
+    @local_bridge.release_graph_snapshot_source(handoff, snapshot_fixture_cid())
     is Err(_),
   )
   assert_true(@graphs.completed_available(source))
-  assert_true(@local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap())
+  assert_true(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
   assert_false(@graphs.completed_available(source))
-  assert_false(
-    @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
-  )
+  assert_false(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
 }
 
 ///|
@@ -407,7 +395,7 @@ test "snapshot handoff keeps trusted schema and never hands off corrupted or int
     let owner = snapshot_fixture_owner()
     let source = snapshot_handoff_source(owner)
     let control = @bounded.control()
-    let handoff = @local_bridge.prepare_property_snapshot_handoff(
+    let handoff = @local_bridge.prepare_graph_snapshot_handoff(
       control,
       owner,
       @pipeline.Input(0),
@@ -418,16 +406,16 @@ test "snapshot handoff keeps trusted schema and never hands off corrupted or int
       () => true,
     ).unwrap()
     let (cid, body) = snapshot_handoff_save(handoff)
-    @local_bridge.release_property_snapshot_source(handoff, cid).unwrap()
+    @local_bridge.release_graph_snapshot_source(handoff, cid).unwrap()
     assert_true(
-      @local_bridge.start_property_snapshot_handoff_reload(
+      @local_bridge.start_graph_snapshot_handoff_reload(
         handoff,
         input_cursor(body.replace(old="\"Person\":[]", new="\"Company\":[]")),
         () => true,
       )
       is Err(@local_bridge.GraphSnapshot(@snapshot.SnapshotContractMismatch)),
     )
-    @local_bridge.start_property_snapshot_handoff_reload(
+    @local_bridge.start_graph_snapshot_handoff_reload(
       handoff,
       input_cursor(
         if corrupted {
@@ -444,7 +432,7 @@ test "snapshot handoff keeps trusted schema and never hands off corrupted or int
     let mut stopped = false
     for _ in 0..<1000 {
       match
-        @local_bridge.advance_property_snapshot_handoff_reload(handoff, 1).unwrap() {
+        @local_bridge.advance_graph_snapshot_handoff_reload(handoff, 1).unwrap() {
         @local_bridge.Continue(..) => ()
         @local_bridge.Failed(
           @local_bridge.GraphSnapshot(@snapshot.SnapshotIdentityMismatch),
@@ -461,16 +449,10 @@ test "snapshot handoff keeps trusted schema and never hands off corrupted or int
       }
     }
     assert_true(stopped)
-    assert_true(
-      @local_bridge.take_property_snapshot_restored(handoff) is Err(_),
-    )
+    assert_true(@local_bridge.take_graph_snapshot_restored(handoff) is Err(_))
     assert_false(@graphs.completed_available(source))
-    assert_true(
-      @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
-    )
-    assert_false(
-      @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
-    )
+    assert_true(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
+    assert_false(@local_bridge.cleanup_graph_snapshot_handoff(handoff).unwrap())
   }
 }
 
@@ -531,7 +513,7 @@ fn snapshot_start(
   live? : Ref[Bool] = Ref(true),
   control_work_limit? : Int? = None,
 ) -> Result[@local_bridge.RowsToGraphExecution, @local_bridge.GraphBridgeIssue] {
-  @local_bridge.start_property_snapshot_reload(
+  @local_bridge.start_graph_snapshot_reload(
     control,
     owner,
     @pipeline.Input(0),
@@ -563,11 +545,11 @@ fn snapshot_terminal(
 
 ///|
 fn snapshot_capture(storage : @graph_storage.Storage) -> (String, String) {
-  let active = @snapshot.prepare_property(storage, snapshot_caps()).unwrap()
+  let active = @snapshot.prepare(storage, "", snapshot_caps()).unwrap()
   let text = StringBuilder()
   for _ in 0..<1000 {
     let poll = @snapshot.advance(active, 1).unwrap()
-    text.write_string(@snapshot.take_property_output(active).unwrap())
+    text.write_string(@snapshot.take_output(active).unwrap())
     match poll {
       @snapshot.Continue(..) => ()
       @snapshot.Complete(value, ..) => {
@@ -670,11 +652,11 @@ test "property snapshot reload refuses schema substitution malformed records and
     body in [
       snapshot_fixture_body().replace(
         old="actql-graph-snapshot/0.1",
-        new="actql-graph-snapshot/0.1",
+        new="actql-property-graph-snapshot/0.1",
       ),
       snapshot_fixture_body().replace(
         old="actql-graph-contract/0.1",
-        new="actql-graph-contract/0.1",
+        new="actql-property-graph-contract/0.1",
       ),
       snapshot_fixture_body().replace(old="\"Person\":[]", new="\"Company\":[]"),
       snapshot_fixture_body().replace(
@@ -822,7 +804,7 @@ test "constructor snapshot reload feeds existing MATCH and TRAIL with independen
   let (cid, body) = snapshot_capture(
     @graphs.completed_storage(original).unwrap(),
   )
-  let reload = @local_bridge.start_property_snapshot_reload(
+  let reload = @local_bridge.start_graph_snapshot_reload(
     @bounded.control(),
     graph_owner,
     @pipeline.Step(0),
@@ -964,7 +946,7 @@ test "empty constructor snapshot reload retains its typed definition schema" {
   let (cid, body) = snapshot_capture(
     @graphs.completed_storage(original).unwrap(),
   )
-  let reload = @local_bridge.start_property_snapshot_reload(
+  let reload = @local_bridge.start_graph_snapshot_reload(
     @bounded.control(),
     graph_owner,
     @pipeline.Step(0),

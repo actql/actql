@@ -11,14 +11,14 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     None,
     predicate_limits(),
   ).unwrap()
-  assert_eq(@graph_typing.match_property_definition(checked), 0)
+  assert_eq(@graph_typing.match_definition_index(checked), 0)
   assert_eq(@graph_typing.match_graph_element_definition_name(checked), "N")
   assert_eq(
     @carrier.field_count(@graph_typing.match_property_schema(checked)),
     0,
   )
   assert_eq(
-    @carrier.field_count(@graph_typing.match_property_scope_fields(checked)),
+    @carrier.field_count(@graph_typing.match_graph_scope_fields(checked)),
     1,
   )
   assert_eq(

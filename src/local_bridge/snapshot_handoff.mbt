@@ -1,5 +1,5 @@
 ///|
-priv enum PropertySnapshotHandoffPhase {
+priv enum GraphSnapshotHandoffPhase {
   Saving
   Saved
   Released
@@ -14,7 +14,7 @@ priv enum PropertySnapshotHandoffPhase {
 /// An operation on the existing Graph retention owner. The trusted checked
 /// port is captured before receiving any persisted bytes; a snapshot header
 /// cannot select another definition, domain, or producer occurrence.
-struct PropertySnapshotHandoff {
+struct GraphSnapshotHandoff {
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   control : @bounded.Control
@@ -34,11 +34,11 @@ struct PropertySnapshotHandoff {
   mut saved_cid : String?
   mut reload : RowsToGraphExecution?
   mut restored : @graph.Completed?
-  mut phase : PropertySnapshotHandoffPhase
+  mut phase : GraphSnapshotHandoffPhase
 }
 
 ///|
-pub enum PropertySnapshotSavePoll {
+pub enum GraphSnapshotSavePoll {
   Saving(progress~ : Int64, work~ : Int64)
   Saved(String, progress~ : Int64, work~ : Int64)
   SaveFailed(GraphBridgeIssue, progress~ : Int64, work~ : Int64)
@@ -48,7 +48,7 @@ pub enum PropertySnapshotSavePoll {
 ///|
 /// Begin bounded serialization of one exact completed Graph. This does not
 /// commit a file, release Site capacity, or publish the resulting bytes.
-pub fn prepare_property_snapshot_handoff(
+pub fn prepare_graph_snapshot_handoff(
   control : @bounded.Control,
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -57,7 +57,7 @@ pub fn prepare_property_snapshot_handoff(
   snapshot_limits : @snapshot.Limits,
   max_workspace_slots : Int,
   available : () -> Bool,
-) -> Result[PropertySnapshotHandoff, GraphBridgeIssue] {
+) -> Result[GraphSnapshotHandoff, GraphBridgeIssue] {
   guard @lifecycle.completion_reference_matches_port(
       @graph.completed_carrier_reference(source),
       owner,
@@ -70,7 +70,7 @@ pub fn prepare_property_snapshot_handoff(
   if !available() || max_workspace_slots < 0 {
     return Err(GraphInputUnavailable)
   }
-  let saving = match @snapshot.prepare_property(storage, snapshot_limits) {
+  let saving = match @snapshot.prepare(storage, "", snapshot_limits) {
     Ok(saving) => saving
     Err(issue) => return Err(GraphSnapshot(issue))
   }
@@ -119,10 +119,10 @@ pub fn prepare_property_snapshot_handoff(
 }
 
 ///|
-pub fn advance_property_snapshot_save(
-  value : PropertySnapshotHandoff,
+pub fn advance_graph_snapshot_save(
+  value : GraphSnapshotHandoff,
   quantum : Int,
-) -> Result[PropertySnapshotSavePoll, GraphBridgeIssue] {
+) -> Result[GraphSnapshotSavePoll, GraphBridgeIssue] {
   guard value.phase == Saving && value.save_token is Some(token) else {
     return Err(GraphInputUnavailable)
   }
@@ -154,22 +154,22 @@ pub fn advance_property_snapshot_save(
 ///|
 /// Drain provisional bytes into the Host's existing Store writer. Saved does
 /// not authorize source reclamation until that writer has actually finalized.
-pub fn take_property_snapshot_save_output(
-  value : PropertySnapshotHandoff,
+pub fn take_graph_snapshot_save_output(
+  value : GraphSnapshotHandoff,
 ) -> Result[String, GraphBridgeIssue] {
   guard (value.phase == Saving || value.phase == Saved) &&
     value.saving is Some(saving) else {
     return Err(GraphInputUnavailable)
   }
-  @snapshot.take_property_output(saving).map_err(issue => GraphSnapshot(issue))
+  @snapshot.take_output(saving).map_err(issue => GraphSnapshot(issue))
 }
 
 ///|
 /// The Store caller invokes this only after sealing and verifying the file.
 /// The source generation is made unavailable before any restored Graph can
 /// exist, so a consumer cannot silently keep reading the pre-save material.
-pub fn release_property_snapshot_source(
-  value : PropertySnapshotHandoff,
+pub fn release_graph_snapshot_source(
+  value : GraphSnapshotHandoff,
   persisted_cid : String,
 ) -> Result[Unit, GraphBridgeIssue] {
   guard value.phase == Saved &&
@@ -192,8 +192,8 @@ pub fn release_property_snapshot_source(
 }
 
 ///|
-pub fn start_property_snapshot_handoff_reload(
-  value : PropertySnapshotHandoff,
+pub fn start_graph_snapshot_handoff_reload(
+  value : GraphSnapshotHandoff,
   input : @decode.Cursor,
   input_available : () -> Bool,
   reference_issuer? : @value.ReferenceIssuer? = None,
@@ -203,7 +203,7 @@ pub fn start_property_snapshot_handoff_reload(
     return Err(GraphInputUnavailable)
   }
   let reload = match
-    start_property_snapshot_reload(
+    start_graph_snapshot_reload(
       value.control,
       value.owner,
       value.target,
@@ -230,8 +230,8 @@ pub fn start_property_snapshot_handoff_reload(
 /// The existing bounded reload owns validation, work, stop, and cleanup. Its
 /// cumulative work convention is unchanged, as is the save session's. The
 /// Host accounts differences once rather than adding repeated cumulative reads.
-pub fn advance_property_snapshot_handoff_reload(
-  value : PropertySnapshotHandoff,
+pub fn advance_graph_snapshot_handoff_reload(
+  value : GraphSnapshotHandoff,
   quantum : Int,
 ) -> Result[RowsToGraphPoll, GraphBridgeIssue] {
   guard value.phase == Reloading && value.reload is Some(reload) else {
@@ -252,8 +252,8 @@ pub fn advance_property_snapshot_handoff_reload(
 ///|
 /// Transfer completion custody once, before the physical task is committed.
 /// Equal schema/CID does not make this the old generation's completion token.
-pub fn take_property_snapshot_restored(
-  value : PropertySnapshotHandoff,
+pub fn take_graph_snapshot_restored(
+  value : GraphSnapshotHandoff,
 ) -> Result[@graph.Completed, GraphBridgeIssue] {
   guard value.phase == Restored &&
     value.restored is Some(output) &&
@@ -266,15 +266,15 @@ pub fn take_property_snapshot_restored(
 }
 
 ///|
-pub fn cleanup_property_snapshot_handoff(
-  value : PropertySnapshotHandoff,
+pub fn cleanup_graph_snapshot_handoff(
+  value : GraphSnapshotHandoff,
 ) -> Result[Bool, GraphBridgeIssue] {
   if value.phase == Closed {
     return Ok(false)
   }
   if value.save_token is Some(_) {
     @bounded.request_cancel(value.control) |> ignore
-    advance_property_snapshot_save(value, 1) |> ignore
+    advance_graph_snapshot_save(value, 1) |> ignore
   }
   match @bounded.cleanup(value.save_session) {
     Err(issue) => return Err(GraphExecution(issue))
@@ -308,8 +308,8 @@ pub fn cleanup_property_snapshot_handoff(
 }
 
 ///|
-pub fn property_snapshot_handoff_cleanup_pending(
-  value : PropertySnapshotHandoff,
+pub fn graph_snapshot_handoff_cleanup_pending(
+  value : GraphSnapshotHandoff,
 ) -> Bool {
   value.phase != Closed
 }

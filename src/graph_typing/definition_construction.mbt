@@ -154,7 +154,7 @@ fn property_columns(
 }
 
 ///|
-fn property_element(
+fn graph_element(
   b : Budget,
   inputs : Map[String, @carrier.Knowledge],
   at : @decode.Cursor,
@@ -329,7 +329,7 @@ fn property_endpoint(
 /// Structural constructor admission. The Program checking context issues the
 /// domain; source JSON cannot supply a domain or refresh it using runtime data.
 /// This value alone grants neither execution nor access to input rows.
-pub fn check_property_construction(
+pub fn check_graph_construction(
   source : @decode.Cursor,
   inputs : Array[(String, @carrier.Carrier)],
   domain : String,
@@ -377,7 +377,7 @@ pub fn check_property_construction(
       let object = decoded(
         @decode.closed_object(at, ["name", "from", "key", "labels"]),
       )
-      let node = property_element(b, available, at, object)
+      let node = graph_element(b, available, at, object)
       let name = @carrier.graph_element_definition_name(node.definition).to_lower()
       if names.contains(name) {
         fail(at, DuplicateConstructionField(name))
@@ -396,7 +396,7 @@ pub fn check_property_construction(
           "name", "from", "key", "labels", "source", "target",
         ]),
       )
-      let element = property_element(b, available, at, object)
+      let element = graph_element(b, available, at, object)
       let name = @carrier.graph_element_definition_name(element.definition).to_lower()
       if names.contains(name) || edge_names.contains(name) {
         fail(at, DuplicateConstructionField(name))
@@ -522,26 +522,26 @@ pub fn construction_edge_at(
 }
 
 ///|
-pub fn property_element_input(value : GraphElementConstruction) -> String {
+pub fn graph_element_input(value : GraphElementConstruction) -> String {
   value.input
 }
 
 ///|
-pub fn property_element_definition(
+pub fn graph_element_definition(
   value : GraphElementConstruction,
 ) -> @carrier.GraphNodeDefinition {
   value.definition
 }
 
 ///|
-pub fn property_element_keys(
+pub fn graph_element_keys(
   value : GraphElementConstruction,
 ) -> Array[@row.FieldName] {
   value.keys.copy()
 }
 
 ///|
-pub fn property_element_properties(
+pub fn graph_element_properties(
   value : GraphElementConstruction,
 ) -> Array[(@row.FieldName, @row.FieldName)] {
   value.properties.copy()
@@ -555,7 +555,7 @@ pub fn graph_edge_element(
 }
 
 ///|
-pub fn property_edge_keys(
+pub fn graph_edge_keys(
   value : GraphEdgeConstruction,
 ) -> (Array[@row.FieldName], Array[@row.FieldName]) {
   (value.source_keys.copy(), value.target_keys.copy())

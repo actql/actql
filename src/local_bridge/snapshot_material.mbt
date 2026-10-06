@@ -2,7 +2,7 @@
 /// Attach a lazy, exact-generation operation to the existing Graph material.
 /// Bounds are installed by the selected provider before execution; a persisted
 /// header cannot increase them or supply the expected owner/domain.
-pub fn completed_property_snapshot_material(
+pub fn completed_graph_snapshot_material(
   control : @bounded.Control,
   owner : @lower.BoundPrepared,
   target : @pipeline.Target,
@@ -30,7 +30,7 @@ pub fn completed_property_snapshot_material(
   }
   let factory = @lifecycle.prepare_snapshot_factory(reference, () => {
     let handoff = match
-      prepare_property_snapshot_handoff(
+      prepare_graph_snapshot_handoff(
         control,
         owner,
         target,
@@ -58,7 +58,7 @@ pub fn completed_property_snapshot_material(
         if byte_failure.val {
           return Err(@lifecycle.SnapshotByteLimit)
         }
-        match advance_property_snapshot_save(handoff, quantum) {
+        match advance_graph_snapshot_save(handoff, quantum) {
           Err(issue) =>
             Err(@lifecycle.SnapshotFamilyFailure(@debug.to_string(issue)))
           Ok(Saving(progress~, work~)) =>
@@ -89,7 +89,7 @@ pub fn completed_property_snapshot_material(
         if byte_failure.val {
           return Err(@lifecycle.SnapshotByteLimit)
         }
-        match take_property_snapshot_save_output(handoff) {
+        match take_graph_snapshot_save_output(handoff) {
           Err(issue) =>
             Err(@lifecycle.SnapshotFamilyFailure(@debug.to_string(issue)))
           Ok(text) => {
@@ -119,7 +119,7 @@ pub fn completed_property_snapshot_material(
         guard !byte_failure.val && ready_for_content.val else {
           return Err(@lifecycle.SnapshotUnavailable)
         }
-        release_property_snapshot_source(handoff, cid).map_err(issue => {
+        release_graph_snapshot_source(handoff, cid).map_err(issue => {
           @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue))
         })
       },
@@ -150,13 +150,13 @@ pub fn completed_property_snapshot_material(
               @lifecycle.SnapshotFamilyFailure("snapshot structural admission"),
             )
         }
-        start_property_snapshot_handoff_reload(handoff, cursor, input_available).map_err(issue => {
+        start_graph_snapshot_handoff_reload(handoff, cursor, input_available).map_err(issue => {
             @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue))
           },
         )
       },
       quantum => {
-        match advance_property_snapshot_handoff_reload(handoff, quantum) {
+        match advance_graph_snapshot_handoff_reload(handoff, quantum) {
           Err(issue) =>
             Err(@lifecycle.SnapshotFamilyFailure(@debug.to_string(issue)))
           Ok(Continue(progress~, work~)) =>
@@ -195,7 +195,7 @@ pub fn completed_property_snapshot_material(
               @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue)),
             )
         }
-        match take_property_snapshot_restored(handoff) {
+        match take_graph_snapshot_restored(handoff) {
           Err(issue) =>
             Err(@lifecycle.SnapshotFamilyFailure(@debug.to_string(issue)))
           Ok(_) => {
@@ -205,11 +205,11 @@ pub fn completed_property_snapshot_material(
         }
       },
       () => {
-        cleanup_property_snapshot_handoff(handoff)
+        cleanup_graph_snapshot_handoff(handoff)
         .map_err(issue => {
           @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue))
         })
-        .map(_ => !property_snapshot_handoff_cleanup_pending(handoff))
+        .map(_ => !graph_snapshot_handoff_cleanup_pending(handoff))
       },
     )
     match operation {
@@ -217,7 +217,7 @@ pub fn completed_property_snapshot_material(
       Err(issue) => {
         // Preparation checks above make invalid operation bounds unreachable.
         // No callback or Store I/O has run; release serializer/source custody.
-        cleanup_property_snapshot_handoff(handoff) |> ignore
+        cleanup_graph_snapshot_handoff(handoff) |> ignore
         Err(issue)
       }
     }

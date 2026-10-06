@@ -134,7 +134,7 @@ fn core_operation_count_root(
     }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)
     // The multi-definition keyed sum is in the distinct adopted contract,
-    // not the legacy two-operand/derived-endpoint GraphProfile count body.
+    // not an endpoint-derived or two-operand constructor count.
     GraphProfile =>
       (
         OperationGraphCountRules(stage, visit, step),

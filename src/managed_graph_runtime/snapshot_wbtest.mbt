@@ -1,5 +1,5 @@
 ///|
-fn property_snapshot_caps() -> @snapshot.Limits {
+fn graph_snapshot_caps() -> @snapshot.Limits {
   {
     max_workspace_slots: 1000,
     max_identity_bytes: 100000,
@@ -10,7 +10,7 @@ fn property_snapshot_caps() -> @snapshot.Limits {
 }
 
 ///|
-fn capture_property_snapshot(
+fn capture_graph_snapshot(
   preparation : @snapshot.Preparation,
 ) -> (String, String) raise {
   let text = StringBuilder()
@@ -18,7 +18,7 @@ fn capture_property_snapshot(
   let mut polls = 0
   while result is None {
     let poll = @snapshot.advance(preparation, 1).unwrap()
-    text.write_string(@snapshot.take_property_output(preparation).unwrap())
+    text.write_string(@snapshot.take_output(preparation).unwrap())
     polls += 1
     assert_true(polls < 1000)
     match poll {
@@ -87,15 +87,11 @@ test "property snapshot reference keys require existing Host authority rather th
   let builder = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
   @storage.append_node(builder, 0, [key], []).unwrap()
   let stored = @storage.finish(builder).unwrap()
-  let (cid, body) = capture_property_snapshot(
-    @snapshot.prepare_property(stored, property_snapshot_caps()).unwrap(),
+  let (cid, body) = capture_graph_snapshot(
+    @snapshot.prepare(stored, "", graph_snapshot_caps()).unwrap(),
   )
-  let header = @snapshot.read_property_header(
-    cursor(body),
-    graph,
-    property_snapshot_caps(),
-  ).unwrap()
-  let record = @snapshot.property_header_node_at(header, 0).unwrap()
+  let header = @snapshot.read_header(cursor(body), graph, graph_snapshot_caps()).unwrap()
+  let record = @snapshot.header_node_at(header, 0).unwrap()
   let denied = @storage.prepare(carrier, @storage.DeclaredNodes, limits).unwrap()
   assert_true(@storage.append_snapshot_node(denied, record) is Err(_))
   assert_true(@storage.finish(denied) is Err(_))
@@ -126,8 +122,8 @@ test "property snapshot reference keys require existing Host authority rather th
     "sha256:" + "d".repeat(64),
   )
   assert_eq(
-    capture_property_snapshot(
-      @snapshot.prepare_property(restored, property_snapshot_caps()).unwrap(),
+    capture_graph_snapshot(
+      @snapshot.prepare(restored, "", graph_snapshot_caps()).unwrap(),
     ),
     (cid, body),
   )
@@ -175,16 +171,16 @@ test "property snapshot uses the exact managed read schema and preserves handoff
   guard property_view_carrier() is @carrier.GraphValue(graph) else {
     fail("graph")
   }
-  let stored = capture_property_snapshot(
-    @snapshot.prepare_property(storage, property_snapshot_caps()).unwrap(),
+  let stored = capture_graph_snapshot(
+    @snapshot.prepare(storage, "", graph_snapshot_caps()).unwrap(),
   )
-  let viewed = capture_property_snapshot(
-    @snapshot.prepare_property_view(view, graph, property_snapshot_caps()).unwrap(),
+  let viewed = capture_graph_snapshot(
+    @snapshot.prepare_view(view, graph, "", graph_snapshot_caps()).unwrap(),
   )
   assert_eq(viewed, stored)
   assert_true(
-    @snapshot.prepare_property_view(view, graph, {
-      ..property_snapshot_caps(),
+    @snapshot.prepare_view(view, graph, "", {
+      ..graph_snapshot_caps(),
       max_identity_bytes: -1,
     })
     is Err(@snapshot.InvalidLimits),
@@ -201,28 +197,23 @@ test "property snapshot uses the exact managed read schema and preserves handoff
   ).unwrap()
   guard foreign is @carrier.GraphValue(foreign_graph) else { fail("graph") }
   assert_true(
-    @snapshot.prepare_property_view(
-      view,
-      foreign_graph,
-      property_snapshot_caps(),
-    )
+    @snapshot.prepare_view(view, foreign_graph, "", graph_snapshot_caps())
     is Err(@snapshot.InvalidGraph),
   )
   assert_true(producer_read_available(read))
-  let interrupted = @snapshot.prepare_property_view(
+  let interrupted = @snapshot.prepare_view(
     view,
     graph,
-    property_snapshot_caps(),
+    "",
+    graph_snapshot_caps(),
   ).unwrap()
   assert_true(@snapshot.advance(interrupted, 1) is Ok(@snapshot.Continue(..)))
   live.val = false
   assert_true(@snapshot.advance(interrupted, 1) is Err(@snapshot.InvalidGraph))
   assert_true(@snapshot.cancel(interrupted))
+  assert_true(@snapshot.take_output(interrupted) is Err(@snapshot.Terminal))
   assert_true(
-    @snapshot.take_property_output(interrupted) is Err(@snapshot.Terminal),
-  )
-  assert_true(
-    @snapshot.prepare_property_view(view, graph, property_snapshot_caps())
+    @snapshot.prepare_view(view, graph, "", graph_snapshot_caps())
     is Err(@snapshot.InvalidGraph),
   )
 }

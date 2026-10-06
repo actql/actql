@@ -99,7 +99,7 @@ test "formal Graph constructor and MATCH select their distinct profile and exist
           match_checks += 1
           assert_eq(check.site.step, 3)
           assert_true(physical_equal(check.site.pipeline, pipeline))
-          assert_eq(@graph.match_property_definition(check.operation), 0)
+          assert_eq(@graph.match_definition_index(check.operation), 0)
         }
         _ => ()
       }

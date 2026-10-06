@@ -220,6 +220,9 @@ pub fn prepare_view(
   graph_contract_cid : String,
   limits : Limits,
 ) -> Result[Preparation, Issue] {
+  if graph_contract_cid == "" && !valid_snapshot_limits(limits) {
+    return Err(InvalidLimits)
+  }
   let caps : @contract_graph.Limits = {
     max_bytes: limits.max_identity_bytes,
     max_nodes: limits.max_identity_nodes,
@@ -229,12 +232,29 @@ pub fn prepare_view(
     is Ok(expected) else {
     return Err(InvalidGraph)
   }
-  if graph_contract_cid != @contract_graph.cid(expected) {
+  if graph_contract_cid != "" &&
+    graph_contract_cid != @contract_graph.cid(expected) {
     return Err(SnapshotContractMismatch)
   }
-  // Every entry point checks the view's actual admitted definition. An expected
-  // contract cannot relabel a foreign producer before its records are read.
-  prepare_property_view(view, graph, limits)
+  if !valid_snapshot_limits(limits) {
+    return Err(InvalidLimits)
+  }
+  // An expected contract cannot relabel a foreign producer before its records
+  // are read. Deriving the CID does not waive this custody comparison.
+  guard @lifecycle.producer_view_graph_definition(view) is Ok(actual) &&
+    @carrier.graph(
+      @carrier.graph_domain(actual),
+      @carrier.graph_node_definitions(actual),
+      @carrier.graph_edge_definitions(actual),
+      max_definitions=limits.max_identity_nodes,
+      max_contract_work=limits.max_identity_nodes,
+    )
+    is Ok(actual_carrier) &&
+    @contract_graph.admit(actual_carrier, caps) is Ok(actual_contract) &&
+    @contract_graph.cid(actual_contract) == @contract_graph.cid(expected) else {
+    return Err(InvalidGraph)
+  }
+  prepare_source(Viewed(view, graph), graph_contract_cid, limits)
 }
 
 ///|
@@ -283,7 +303,7 @@ fn prepare_source(
     graph_contract_cid != @contract_graph.cid(checked) {
     return Err(SnapshotContractMismatch)
   }
-  let builder = match @identity.prepare_property(checked, identity_limits) {
+  let builder = match @identity.prepare(checked, identity_limits) {
     Ok(value) => value
     Err(issue) => return Err(Identity(issue))
   }
@@ -395,7 +415,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           Ok(keys) => keys
           Err(issue) => return Err(issue)
         }
-        match @identity.begin_property_node(builder, identity, keys) {
+        match @identity.begin_node(builder, identity, keys) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -508,9 +528,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           Err(issue) => return Err(issue)
         }
         match
-          @identity.begin_property_edge(
-            builder, identity, keys, source_id, target_id,
-          ) {
+          @identity.begin_edge(builder, identity, keys, source_id, target_id) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -550,7 +568,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       HashEdgeEnd => {
-        match @identity.end_property_edge(builder) {
+        match @identity.end_edge(builder) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -560,7 +578,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       Finish => {
-        let (cid, tail) = match @identity.finish_property(builder) {
+        let (cid, tail) = match @identity.finish(builder) {
           Ok(cid) => cid
           Err(issue) => return Err(Identity(issue))
         }

@@ -565,7 +565,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-count-machine",
-      "statement_sha256": "9331d58f30c6259db6b93cfb0bef5ec676ff3820796edba50ef832c53b40e185",
+      "statement_sha256": "40c6babdb7ebe0f73d87026aaf7d005dfb1d36f1d32653401e53ecaf12bcb62c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
@@ -587,7 +587,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.graph-construction-count-machine",
-      "statement_sha256": "c58c25407a8cda8ca34647e91b9a5946fd38a34dbfa2a5c32fc59809200e6d49",
+      "statement_sha256": "6d58002d68c9d3f626d989eede40c5a4a154436827f5598d11f293409124dde7",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",
@@ -631,7 +631,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.machine-contract",
-      "statement_sha256": "35ae574b408bbb9b389de92e9e0f8b147188da106493a1d0b899a4d568a83127",
+      "statement_sha256": "1d31be7d0b533b8401ab0d6866463db6c16dbb9b9f4f45c2b115a4ab976fd5a6",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this current Graph migration requirement with independent positive and negative evidence.",

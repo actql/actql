@@ -1,5 +1,5 @@
 ///|
-priv enum PropertyEqualityPhase {
+priv enum GraphEqualityPhase {
   CompareCounts
   FindNode
   CompareNodeKey
@@ -14,7 +14,7 @@ priv enum PropertyEqualityPhase {
 } derive(Eq)
 
 ///|
-priv struct PropertyEqualityState {
+priv struct GraphEqualityState {
   left : GraphReadSource
   right : GraphReadSource
   left_nodes : Int
@@ -27,7 +27,7 @@ priv struct PropertyEqualityState {
   live : Ref[Bool]
   accepted : Ref[Bool]
   port : @execution.TrustedOutputPort[Unit]
-  mut phase : PropertyEqualityPhase
+  mut phase : GraphEqualityPhase
   mut equal : Bool
   mut record : Int
   mut candidate : Int
@@ -42,53 +42,47 @@ priv struct PropertyEqualityState {
 }
 
 ///|
-struct PropertyEqualityExecution {
+struct GraphEqualityExecution {
   session : @bounded.Session[
-    PropertyEqualityState,
+    GraphEqualityState,
     @execution.CompletedOutput,
-    PropertyEqualityIssue,
+    GraphEqualityIssue,
   ]
   mut token : @bounded.Token?
   accepted : Ref[Bool]
 }
 
 ///|
-pub(all) enum PropertyEqualityIssue {
-  InvalidPropertyEqualityKernel
-  PropertyEqualityInputUnavailable
-  PropertyEqualityWorkspaceLimit
-  PropertyEqualityWorkLimit
-  PropertyEqualityValue(@value.CompleteEqualityIssue)
-  PropertyEqualityOutput(@execution.CaptureIssue)
-  PropertyEqualityCompletion(@execution.TrustedOutputIssue)
-  PropertyEqualityExecutionIssue(@bounded.Issue)
+pub(all) enum GraphEqualityIssue {
+  InvalidGraphEqualityKernel
+  GraphEqualityInputUnavailable
+  GraphEqualityWorkspaceLimit
+  GraphEqualityWorkLimit
+  GraphEqualityValue(@value.CompleteEqualityIssue)
+  GraphEqualityOutput(@execution.CaptureIssue)
+  GraphEqualityCompletion(@execution.TrustedOutputIssue)
+  GraphEqualityExecutionIssue(@bounded.Issue)
 } derive(Eq, Debug)
 
 ///|
-pub enum PropertyEqualityPoll {
-  PropertyEqualityContinue(progress~ : Int64, work~ : Int64)
-  PropertyEqualityComplete(
+pub enum GraphEqualityPoll {
+  GraphEqualityContinue(progress~ : Int64, work~ : Int64)
+  GraphEqualityComplete(
     @execution.CompletedOutput,
     progress~ : Int64,
     work~ : Int64
   )
-  PropertyEqualityFailed(
-    PropertyEqualityIssue,
-    progress~ : Int64,
-    work~ : Int64
-  )
-  PropertyEqualityStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
+  GraphEqualityFailed(GraphEqualityIssue, progress~ : Int64, work~ : Int64)
+  GraphEqualityStopped(@bounded.StopReason, progress~ : Int64, work~ : Int64)
 }
 
 ///|
-fn property_equality_count(
+fn graph_equality_count(
   source : GraphReadSource,
   record : Int,
   edge : Bool,
 ) -> Int? {
-  guard graph_read_property_definition(source) is Some(graph) else {
-    return None
-  }
+  guard graph_read_definition(source) is Some(graph) else { return None }
   let definition = if edge {
     graph_read_edge_definition(source, record).bind(index => {
       @carrier.graph_edge_at(graph, index).map(@carrier.graph_edge_element)
@@ -104,7 +98,7 @@ fn property_equality_count(
 }
 
 ///|
-fn property_equality_field(
+fn graph_equality_field(
   source : GraphReadSource,
   record : Int,
   property : Int,
@@ -118,7 +112,7 @@ fn property_equality_field(
 }
 
 ///|
-fn property_equality_endpoint_key(
+fn graph_equality_endpoint_key(
   source : GraphReadSource,
   edge : Int,
   target : Bool,
@@ -130,16 +124,16 @@ fn property_equality_endpoint_key(
 }
 
 ///|
-fn property_equality_keys(state : PropertyEqualityState) -> (String, String)? {
+fn graph_equality_keys(state : GraphEqualityState) -> (String, String)? {
   let edge = match state.phase {
     CompareEdgeKey | CompareEdgeSource | CompareEdgeTarget => true
     _ => false
   }
   if state.phase == CompareEdgeSource || state.phase == CompareEdgeTarget {
     let target = state.phase == CompareEdgeTarget
-    guard property_equality_endpoint_key(state.left, state.record, target)
+    guard graph_equality_endpoint_key(state.left, state.record, target)
       is Some(left) &&
-      property_equality_endpoint_key(state.right, state.candidate, target)
+      graph_equality_endpoint_key(state.right, state.candidate, target)
       is Some(right) else {
       return None
     }
@@ -162,11 +156,11 @@ fn property_equality_keys(state : PropertyEqualityState) -> (String, String)? {
 }
 
 ///|
-fn property_equality_step(
-  state : PropertyEqualityState,
+fn graph_equality_step(
+  state : GraphEqualityState,
   quantum : Int,
   reader : @bounded.Reader,
-) -> @bounded.KernelStep[@execution.CompletedOutput, PropertyEqualityIssue] {
+) -> @bounded.KernelStep[@execution.CompletedOutput, GraphEqualityIssue] {
   let mut used = 0
   let mut progress = 0
   while used < quantum {
@@ -174,14 +168,14 @@ fn property_equality_step(
       return @bounded.Stopped(reason, progress, used)
     }
     if !graph_read_available(state.left) || !graph_read_available(state.right) {
-      return @bounded.Failed(PropertyEqualityInputUnavailable, progress, used)
+      return @bounded.Failed(GraphEqualityInputUnavailable, progress, used)
     }
     if used >= state.work_remaining {
-      return @bounded.Failed(PropertyEqualityWorkLimit, progress, used)
+      return @bounded.Failed(GraphEqualityWorkLimit, progress, used)
     }
     guard state.output is Some(output) &&
       @execution.admitted_output_charge_control_work(output, 1) else {
-      return @bounded.Failed(PropertyEqualityWorkLimit, progress, used)
+      return @bounded.Failed(GraphEqualityWorkLimit, progress, used)
     }
     used += 1
     match state.phase {
@@ -206,12 +200,8 @@ fn property_equality_step(
           state.phase = CompareNodeKey
         }
       CompareNodeKey | CompareEdgeKey | CompareEdgeSource | CompareEdgeTarget => {
-        guard property_equality_keys(state) is Some((left, right)) else {
-          return @bounded.Failed(
-            PropertyEqualityInputUnavailable,
-            progress,
-            used,
-          )
+        guard graph_equality_keys(state) is Some((left, right)) else {
+          return @bounded.Failed(GraphEqualityInputUnavailable, progress, used)
         }
         let (order, next) = graph_identity_compare_unit(
           left,
@@ -250,7 +240,7 @@ fn property_equality_step(
               }
               _ =>
                 return @bounded.Failed(
-                  InvalidPropertyEqualityKernel,
+                  InvalidGraphEqualityKernel,
                   progress,
                   used,
                 )
@@ -260,15 +250,11 @@ fn property_equality_step(
       }
       CompareNodeProperty | CompareEdgeProperty => {
         let edge = state.phase == CompareEdgeProperty
-        guard property_equality_count(state.left, state.record, edge)
+        guard graph_equality_count(state.left, state.record, edge)
           is Some(count) &&
-          property_equality_count(state.right, state.matched, edge)
+          graph_equality_count(state.right, state.matched, edge)
           is Some(other_count) else {
-          return @bounded.Failed(
-            PropertyEqualityInputUnavailable,
-            progress,
-            used,
-          )
+          return @bounded.Failed(GraphEqualityInputUnavailable, progress, used)
         }
         if count != other_count {
           state.equal = false
@@ -278,14 +264,14 @@ fn property_equality_step(
           state.candidate = 0
           state.phase = if edge { FindEdge } else { FindNode }
         } else if state.comparison is None {
-          guard property_equality_field(
+          guard graph_equality_field(
               state.left,
               state.record,
               state.property,
               edge,
             )
             is Some(left) &&
-            property_equality_field(
+            graph_equality_field(
               state.right,
               state.matched,
               state.property,
@@ -293,7 +279,7 @@ fn property_equality_step(
             )
             is Some(right) else {
             return @bounded.Failed(
-              PropertyEqualityInputUnavailable,
+              GraphEqualityInputUnavailable,
               progress,
               used,
             )
@@ -306,19 +292,11 @@ fn property_equality_step(
           match @value.start_complete_equality(left, right, limits) {
             Ok(comparison) => state.comparison = Some(comparison)
             Err(issue) =>
-              return @bounded.Failed(
-                PropertyEqualityValue(issue),
-                progress,
-                used,
-              )
+              return @bounded.Failed(GraphEqualityValue(issue), progress, used)
           }
         } else {
           guard state.comparison is Some(comparison) else {
-            return @bounded.Failed(
-              InvalidPropertyEqualityKernel,
-              progress,
-              used,
-            )
+            return @bounded.Failed(InvalidGraphEqualityKernel, progress, used)
           }
           match @value.advance_complete_equality(comparison, 1) {
             @value.EqualityContinue(_) => ()
@@ -332,11 +310,7 @@ fn property_equality_step(
               }
             }
             @value.EqualityFailed(issue, ..) =>
-              return @bounded.Failed(
-                PropertyEqualityValue(issue),
-                progress,
-                used,
-              )
+              return @bounded.Failed(GraphEqualityValue(issue), progress, used)
           }
         }
       }
@@ -356,7 +330,7 @@ fn property_equality_step(
           field.name == @schema.Unqualified("equal") &&
           @value.checked_boolean_value(state.equal, field.contract)
           is Some(result) else {
-          return @bounded.Failed(InvalidPropertyEqualityKernel, progress, used)
+          return @bounded.Failed(InvalidGraphEqualityKernel, progress, used)
         }
         match @execution.append_admitted_output(output, [result]) {
           Ok(_) => {
@@ -364,11 +338,7 @@ fn property_equality_step(
             progress += 1
           }
           Err(issue) =>
-            return @bounded.Failed(
-              PropertyEqualityOutput(issue),
-              progress,
-              used,
-            )
+            return @bounded.Failed(GraphEqualityOutput(issue), progress, used)
         }
       }
       FinishResult => {
@@ -376,17 +346,13 @@ fn property_equality_step(
         let rows = match @execution.finish_admitted_output(output) {
           Ok(rows) => rows
           Err(issue) =>
-            return @bounded.Failed(
-              PropertyEqualityOutput(issue),
-              progress,
-              used,
-            )
+            return @bounded.Failed(GraphEqualityOutput(issue), progress, used)
         }
         state.rows.val = Some(rows)
         return match @execution.complete_trusted_output(state.port, ()) {
           Ok(completed) => @bounded.Complete(completed, progress, used)
           Err(issue) =>
-            @bounded.Failed(PropertyEqualityCompletion(issue), progress, used)
+            @bounded.Failed(GraphEqualityCompletion(issue), progress, used)
         }
       }
     }
@@ -396,7 +362,7 @@ fn property_equality_step(
 }
 
 ///|
-fn cleanup_property_equality_state(state : PropertyEqualityState) -> Bool {
+fn cleanup_graph_equality_state(state : GraphEqualityState) -> Bool {
   if state.output is Some(output) {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
@@ -410,7 +376,7 @@ fn cleanup_property_equality_state(state : PropertyEqualityState) -> Bool {
 }
 
 ///|
-pub fn start_property_equality_views(
+pub fn start_graph_equality_views(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
@@ -423,7 +389,7 @@ pub fn start_property_equality_views(
   max_entries : Int,
   max_name_bytes : Int,
   control_work_limit : Int,
-) -> Result[PropertyEqualityExecution, PropertyEqualityIssue] {
+) -> Result[GraphEqualityExecution, GraphEqualityIssue] {
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
@@ -445,7 +411,7 @@ pub fn start_property_equality_views(
       step,
       1,
     ) else {
-    return Err(InvalidPropertyEqualityKernel)
+    return Err(InvalidGraphEqualityKernel)
   }
   let first = Viewed(left)
   let second = Viewed(right)
@@ -455,14 +421,14 @@ pub fn start_property_equality_views(
     graph_read_node_count(second) is Some(right_nodes) &&
     graph_read_edge_count(first) is Some(left_edges) &&
     graph_read_edge_count(second) is Some(right_edges) &&
-    graph_read_property_definition(first) is Some(first_definition) &&
-    graph_read_property_definition(second) is Some(second_definition) &&
-    @graph_type.property_equality_input(
+    graph_read_definition(first) is Some(first_definition) &&
+    graph_read_definition(second) is Some(second_definition) &&
+    @graph_type.graph_equality_input(
       @lower.graph_equality_checked(checked),
       right=false,
     )
     is @carrier.GraphValue(checked_left) &&
-    @graph_type.property_equality_input(
+    @graph_type.graph_equality_input(
       @lower.graph_equality_checked(checked),
       right=true,
     )
@@ -471,15 +437,15 @@ pub fn start_property_equality_views(
     @carrier.graph_domain(@carrier.graph_definition(checked_left)) &&
     @carrier.graph_domain(second_definition) ==
     @carrier.graph_domain(@carrier.graph_definition(checked_right)) else {
-    return Err(PropertyEqualityInputUnavailable)
+    return Err(GraphEqualityInputUnavailable)
   }
   // Matching is a bounded scan of the retained identity indexes. No complete
   // key or record is copied at start; a live comparison holds one cursor.
   if max_workspace_slots < 1 || max_rows < 1 {
-    return Err(PropertyEqualityWorkspaceLimit)
+    return Err(GraphEqualityWorkspaceLimit)
   }
   if control_work_limit < 0 {
-    return Err(PropertyEqualityWorkLimit)
+    return Err(GraphEqualityWorkLimit)
   }
   let output = match
     @execution.prepare_admitted_output(
@@ -489,7 +455,7 @@ pub fn start_property_equality_views(
       limits,
     ) {
     Ok(output) => output
-    Err(issue) => return Err(PropertyEqualityOutput(issue))
+    Err(issue) => return Err(GraphEqualityOutput(issue))
   }
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
@@ -513,10 +479,10 @@ pub fn start_property_equality_views(
     Ok(port) => port
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
-      return Err(PropertyEqualityCompletion(issue))
+      return Err(GraphEqualityCompletion(issue))
     }
   }
-  let state : PropertyEqualityState = {
+  let state : GraphEqualityState = {
     left: first,
     right: second,
     left_nodes,
@@ -545,8 +511,8 @@ pub fn start_property_equality_views(
   let (session, token) = @bounded.start(
     control,
     state,
-    property_equality_step,
-    cleanup_property_equality_state,
+    graph_equality_step,
+    cleanup_graph_equality_state,
     _output => {
       state.live.val = false
       true
@@ -556,47 +522,45 @@ pub fn start_property_equality_views(
 }
 
 ///|
-pub fn advance_property_equality(
-  value : PropertyEqualityExecution,
+pub fn advance_graph_equality(
+  value : GraphEqualityExecution,
   quantum : Int,
-) -> Result[PropertyEqualityPoll, PropertyEqualityIssue] {
+) -> Result[GraphEqualityPoll, GraphEqualityIssue] {
   guard value.token is Some(token) else {
-    return Err(PropertyEqualityExecutionIssue(@bounded.Terminal))
+    return Err(GraphEqualityExecutionIssue(@bounded.Terminal))
   }
   match @bounded.advance(value.session, token, quantum) {
-    Err(issue) => Err(PropertyEqualityExecutionIssue(issue))
+    Err(issue) => Err(GraphEqualityExecutionIssue(issue))
     Ok(@bounded.ContinueWith(next, progress~, work~)) => {
       value.token = Some(next)
-      Ok(PropertyEqualityContinue(progress~, work~))
+      Ok(GraphEqualityContinue(progress~, work~))
     }
     Ok(@bounded.Completed(output, progress~, work~)) => {
       value.token = None
       value.accepted.val = true
-      Ok(PropertyEqualityComplete(output, progress~, work~))
+      Ok(GraphEqualityComplete(output, progress~, work~))
     }
     Ok(@bounded.FailedWith(issue, progress~, work~)) => {
       value.token = None
-      Ok(PropertyEqualityFailed(issue, progress~, work~))
+      Ok(GraphEqualityFailed(issue, progress~, work~))
     }
     Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
       value.token = None
-      Ok(PropertyEqualityStopped(reason, progress~, work~))
+      Ok(GraphEqualityStopped(reason, progress~, work~))
     }
   }
 }
 
 ///|
-pub fn property_equality_cleanup_pending(
-  value : PropertyEqualityExecution,
-) -> Bool {
+pub fn graph_equality_cleanup_pending(value : GraphEqualityExecution) -> Bool {
   @bounded.cleanup_pending(value.session)
 }
 
 ///|
-pub fn cleanup_property_equality(
-  value : PropertyEqualityExecution,
-) -> Result[Bool, PropertyEqualityIssue] {
+pub fn cleanup_graph_equality(
+  value : GraphEqualityExecution,
+) -> Result[Bool, GraphEqualityIssue] {
   @bounded.cleanup(value.session).map_err(issue => {
-    PropertyEqualityExecutionIssue(issue)
+    GraphEqualityExecutionIssue(issue)
   })
 }

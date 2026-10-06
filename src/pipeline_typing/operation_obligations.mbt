@@ -27,7 +27,7 @@ pub(all) enum OperationObligation {
   WindowRequirement(@window.Obligation)
   MatchRequirement(@graph.MatchObligation)
   DiagnosticRequirement(@graph.DiagnosticObligation)
-  PropertyEqualityRequirement(@graph.PropertyEqualityObligation)
+  GraphEqualityRequirement(@graph.GraphEqualityObligation)
   NormalizeRequirement(@graph.NormalizeObligation)
   DeltaRequirement(@graph.DeltaObligation)
   UnionRequirement(@graph.UnionObligation)
@@ -64,7 +64,7 @@ priv enum ObligationOwner {
   MatchOwner(@graph.CheckedMatch)
   BoundsOwner(@graph.CheckedGraphBounds)
   DegreeOwner(@graph.CheckedDegree)
-  PropertyEqualityOwner(@graph.CheckedPropertyEquality)
+  GraphEqualityOwner(@graph.CheckedGraphEquality)
   NormalizeOwner(@graph.CheckedNormalize)
   DeltaOwner(@graph.CheckedDelta)
   UnionOwner(@graph.CheckedUnion)
@@ -116,7 +116,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     MatchOwner(c) => @graph.match_source(c)
     BoundsOwner(c) => @graph.graph_bounds_source(c)
     DegreeOwner(c) => @graph.degree_source(c)
-    PropertyEqualityOwner(c) => @graph.property_equality_source(c)
+    GraphEqualityOwner(c) => @graph.graph_equality_source(c)
     NormalizeOwner(c) => @graph.normalize_source(c)
     DeltaOwner(c) => @graph.delta_source(c)
     UnionOwner(c) => @graph.union_source(c)
@@ -169,7 +169,7 @@ pub fn operation_obligations_selector(
 
 ///|
 /// Retain the exact admitted keyed constructor, not a structurally equal body.
-pub fn operation_obligations_property_construction(
+pub fn operation_obligations_graph_construction(
   v : OperationObligations,
 ) -> @graph.CheckedGraphConstruction? {
   match v.owner {
@@ -211,11 +211,11 @@ pub fn operation_obligations_graph_degree(
 
 ///|
 /// Retain the exact checked equality owner for its two Graph input ports.
-pub fn operation_obligations_property_equality(
+pub fn operation_obligations_graph_equality(
   v : OperationObligations,
-) -> @graph.CheckedPropertyEquality? {
+) -> @graph.CheckedGraphEquality? {
   match v.owner {
-    PropertyEqualityOwner(operation) => Some(operation)
+    GraphEqualityOwner(operation) => Some(operation)
     _ => None
   }
 }
@@ -301,7 +301,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     MatchOwner(c) => @graph.match_pending_count(c)
     BoundsOwner(c) => @graph.graph_bounds_pending_count(c)
     DegreeOwner(c) => @graph.degree_pending_count(c)
-    PropertyEqualityOwner(c) => @graph.property_equality_pending_count(c)
+    GraphEqualityOwner(c) => @graph.graph_equality_pending_count(c)
     NormalizeOwner(c) => @graph.normalize_pending_count(c)
     DeltaOwner(c) => @graph.delta_pending_count(c)
     UnionOwner(c) => @graph.union_pending_count(c)
@@ -366,9 +366,9 @@ pub fn operation_obligations_at(
       @graph.graph_bounds_pending_at(c, index).map(x => DiagnosticRequirement(x))
     DegreeOwner(c) =>
       @graph.degree_pending_at(c, index).map(x => DiagnosticRequirement(x))
-    PropertyEqualityOwner(c) =>
-      @graph.property_equality_pending_at(c, index).map(x => {
-        PropertyEqualityRequirement(x)
+    GraphEqualityOwner(c) =>
+      @graph.graph_equality_pending_at(c, index).map(x => {
+        GraphEqualityRequirement(x)
       })
     NormalizeOwner(c) =>
       @graph.normalize_pending_at(c, index).map(x => NormalizeRequirement(x))
@@ -473,7 +473,7 @@ pub fn operation_obligation_group_at(
       GraphBounds(c) => { scope: Body, owner: BoundsOwner(c), }
       GraphDegree(c) => { scope: Body, owner: DegreeOwner(c), }
       GraphEquality(checked=c, ..) =>
-        { scope: Body, owner: PropertyEqualityOwner(c), }
+        { scope: Body, owner: GraphEqualityOwner(c), }
       GraphNormalize(c) => { scope: Body, owner: NormalizeOwner(c), }
       GraphDelta(checked=c, ..) => { scope: Body, owner: DeltaOwner(c), }
       GraphUnion(checked=c, ..) => { scope: Body, owner: UnionOwner(c), }

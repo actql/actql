@@ -152,7 +152,7 @@ fn compare_bound_nodes_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, GraphBoundsIssue] {
-  guard graph_read_property_definition(state.source) is Some(profile) &&
+  guard graph_read_definition(state.source) is Some(profile) &&
     graph_read_node_definition(state.source, left) is Some(left_definition) &&
     graph_read_node_definition(state.source, right) is Some(right_definition) &&
     @carrier.graph_node_at(profile, left_definition) is Some(left_node) &&

@@ -36,7 +36,7 @@ fn graph_construction_execution_check(
     step.operation is @pipeline.GraphConstruction(inputs~, checked=operation) &&
     site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
-    @pipeline.operation_obligations_property_construction(site.obligations)
+    @pipeline.operation_obligations_graph_construction(site.obligations)
     is Some(obligation_owner) &&
     physical_equal(obligation_owner, operation) &&
     @graph.construction_pending_at(operation, site.index) == Some(pending) else {

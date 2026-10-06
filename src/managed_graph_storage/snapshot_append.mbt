@@ -1,15 +1,15 @@
 ///|
-priv suberror PropertySnapshotStop {
-  PropertySnapshotStop(Issue)
+priv suberror GraphSnapshotStop {
+  GraphSnapshotStop(Issue)
 }
 
 ///|
 fn snapshot_charge(
   builder : Builder,
   work : Int,
-) -> Unit raise PropertySnapshotStop {
+) -> Unit raise GraphSnapshotStop {
   if work < 0 || work > builder.limits.max_work - builder.work {
-    raise PropertySnapshotStop(WorkLimit)
+    raise GraphSnapshotStop(WorkLimit)
   }
   builder.work += work
 }
@@ -18,37 +18,37 @@ fn snapshot_charge(
 fn snapshot_object(
   input : @decode.Cursor,
   names : Array[String],
-) -> @decode.ObjectView raise PropertySnapshotStop {
+) -> @decode.ObjectView raise GraphSnapshotStop {
   guard @decode.object_length(input) == Some(names.length()) &&
     @decode.closed_object(input, names) is Ok(object) else {
-    raise PropertySnapshotStop(InvalidIdentity)
+    raise GraphSnapshotStop(InvalidIdentity)
   }
   object
 }
 
 ///|
-fn append_property_snapshot_record(
+fn append_graph_snapshot_record(
   builder : Builder,
   input : @decode.Cursor,
   edge : Bool,
   reference_issuer : @value.ReferenceIssuer?,
 ) -> Result[Unit, Issue] {
   let preparation = match
-    start_property_snapshot_append(builder, input, edge~, reference_issuer~) {
+    start_graph_snapshot_append(builder, input, edge~, reference_issuer~) {
     Ok(preparation) => preparation
     Err(issue) => return Err(issue)
   }
   while true {
-    match advance_property_snapshot_append(preparation, 64) {
-      PropertySnapshotAppendContinue(work~) => ignore(work)
-      PropertySnapshotAppendComplete(work~) => {
+    match advance_graph_snapshot_append(preparation, 64) {
+      GraphSnapshotAppendContinue(work~) => ignore(work)
+      GraphSnapshotAppendComplete(work~) => {
         ignore(work)
-        cleanup_property_snapshot_append(preparation)
+        cleanup_graph_snapshot_append(preparation)
         return Ok(())
       }
-      PropertySnapshotAppendFailed(issue, work~) => {
+      GraphSnapshotAppendFailed(issue, work~) => {
         ignore(work)
-        cleanup_property_snapshot_append(preparation)
+        cleanup_graph_snapshot_append(preparation)
         return Err(issue)
       }
     }
@@ -65,7 +65,7 @@ pub fn append_snapshot_node(
   input : @decode.Cursor,
   reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> Result[Unit, Issue] {
-  append_property_snapshot_record(builder, input, false, reference_issuer)
+  append_graph_snapshot_record(builder, input, false, reference_issuer)
 }
 
 ///|
@@ -74,5 +74,5 @@ pub fn append_snapshot_edge(
   input : @decode.Cursor,
   reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> Result[Unit, Issue] {
-  append_property_snapshot_record(builder, input, true, reference_issuer)
+  append_graph_snapshot_record(builder, input, true, reference_issuer)
 }

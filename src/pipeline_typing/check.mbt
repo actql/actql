@@ -795,7 +795,7 @@ fn check_impl(
       }
       let right = resolve_target(b, with_at, names)
       let checked = match
-        @graph.check_property_equality(
+        @graph.check_graph_equality(
           operation_body,
           carrier(input, inputs, steps),
           carrier(right, inputs, steps),
@@ -816,7 +816,7 @@ fn check_impl(
             range: None,
           })
       }
-      let used = @graph.property_equality_usage(checked)
+      let used = @graph.graph_equality_usage(checked)
       b.work -= used.work
       b.nodes -= used.nodes
       b.text -= used.text_bytes
@@ -827,7 +827,7 @@ fn check_impl(
         binding_name,
         metadata: meta,
         operation: GraphEquality(right~, checked~),
-        output: @graph.property_equality_output(checked),
+        output: @graph.graph_equality_output(checked),
         connections: {
           entries: [
             { role: Left, target: input, },

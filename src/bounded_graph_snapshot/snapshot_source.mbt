@@ -1,64 +1,23 @@
 ///|
-/// The sole Graph snapshot representation retains definition-scoped keys.
-pub fn prepare_property(
-  storage : @storage.Storage,
-  limits : Limits,
-) -> Result[Preparation, Issue] {
-  prepare_source(Stored(storage), "", limits)
-}
-
-///|
-pub fn prepare_property_view(
-  view : @lifecycle.ProducerView,
-  graph : @carrier.Graph,
-  limits : Limits,
-) -> Result[Preparation, Issue] {
-  if !valid_snapshot_limits(limits) {
-    return Err(InvalidLimits)
-  }
-  let caps : @contract_graph.Limits = {
-    max_bytes: limits.max_identity_bytes,
-    max_nodes: limits.max_identity_nodes,
-    max_depth: limits.max_identity_depth,
-  }
-  // A caller's schema is an expectation, not permission to relabel the view.
-  guard @lifecycle.producer_view_graph_definition(view) is Ok(actual) &&
-    @contract_graph.admit(@carrier.graph_carrier(graph), caps) is Ok(expected) &&
-    @carrier.graph(
-      @carrier.graph_domain(actual),
-      @carrier.graph_node_definitions(actual),
-      @carrier.graph_edge_definitions(actual),
-      max_definitions=limits.max_identity_nodes,
-      max_contract_work=limits.max_identity_nodes,
-    )
-    is Ok(actual_carrier) &&
-    @contract_graph.admit(actual_carrier, caps) is Ok(actual_contract) &&
-    @contract_graph.cid(actual_contract) == @contract_graph.cid(expected) else {
-    return Err(InvalidGraph)
-  }
-  prepare_source(Viewed(view, graph), "", limits)
-}
-
-///|
 /// Drain into the consumer's existing provisional writer. Publication requires
 /// Complete plus successful storage finalization, not receipt of these bytes.
-pub fn take_property_output(value : Preparation) -> Result[String, Issue] {
+pub fn take_output(value : Preparation) -> Result[String, Issue] {
   if value.phase == Finished {
     guard value.output_tail is Some(tail) else { return Err(Terminal) }
     value.output_tail = None
     return Ok(tail)
   }
   guard value.builder is Some(builder) else { return Err(Terminal) }
-  @identity.drain_property_output(builder).map_err(issue => Identity(issue))
+  @identity.drain_output(builder).map_err(issue => Identity(issue))
 }
 
 ///|
-pub fn property_edge_key_at(value : Snapshot, index : Int) -> String? {
+pub fn edge_key_at(value : Snapshot, index : Int) -> String? {
   @sort.key_component_at(value.edge_sort, index, 0)
 }
 
 ///|
-fn source_property_definition(
+fn source_definition_index(
   source : SnapshotSource,
   index : Int,
   edge~ : Bool,
@@ -92,7 +51,7 @@ fn source_element_definition(
   edge~ : Bool,
 ) -> @carrier.GraphNodeDefinition? {
   let profile = @carrier.graph_definition(graph)
-  guard source_property_definition(source, index, edge~) is Some(definition) else {
+  guard source_definition_index(source, index, edge~) is Some(definition) else {
     return None
   }
   if edge {

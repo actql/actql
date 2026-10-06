@@ -1636,7 +1636,7 @@ pub struct GraphEqualityCheck {
   step : @pipeline_typing.CheckedStep
   left : @pipeline_typing.Target
   right : @pipeline_typing.Target
-  operation : @graph_typing.CheckedPropertyEquality
+  operation : @graph_typing.CheckedGraphEquality
   rule : GraphEqualityRule
   policy : @capacity_policy.Policy
 }
@@ -3389,7 +3389,7 @@ pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
   FilterAuthoredLabels
-  EnumeratePropertyPaths
+  EnumerateGraphPaths
   DeduplicatePathIdentities
   SelectMinimumEligibleNodeDepth
   OrderTraversalRows

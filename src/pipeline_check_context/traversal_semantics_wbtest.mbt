@@ -59,7 +59,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
       match traversal_execution_check(site).unwrap() {
         Some(TraversalExecution(check)) => {
           assert_true(physical_equal(check.step, step))
-          assert_eq(@graph.traverse_property_path_mode(check.operation), mode)
+          assert_eq(@graph.traverse_graph_path_mode(check.operation), mode)
           assert_eq(check.input, @pipeline.Input(0))
           assert_true(check.selector_relation is None)
           rules.push(check.rule)
@@ -82,7 +82,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
       RespectAuthoredHops,
       FilterAuthoredLabels,
       OrderTraversalRows,
-      EnumeratePropertyPaths,
+      EnumerateGraphPaths,
       DeduplicatePathIdentities,
     ])
     assert_eq(unresolved, 2)
@@ -151,7 +151,7 @@ test "current TRAIL bindings preserve mode input roles custody and unresolved gu
           FilterAuthoredLabels,
           OrderTraversalRows,
         ]
-        expected.push(EnumeratePropertyPaths)
+        expected.push(EnumerateGraphPaths)
         expected.push(DeduplicatePathIdentities)
         let actual : Array[TraversalRule] = []
         let mut unresolved = 0

@@ -63,6 +63,11 @@ function contractCid(file, pointer, legacy, beforeMembership=legacy, preTypedJso
     // Both retained typed-JSON predecessor Catalogs select the owned Graph
     // law for this role, including fixtures whose values are only Relations.
     if (!legacy && file === 'spec/dependencies/aoa-sga-identity-laws.json') {
+      if (preTypedJson) {
+        // The historical Catalog selected this owned definition-keyed law,
+        // not the older tuple law recorded under the original role name.
+        return 'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc';
+      }
       return hash(body('spec/dependencies/actql-graph-laws.json'));
     }
     // Freeze both independent historical law generations before adapting the

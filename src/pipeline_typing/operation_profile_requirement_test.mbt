@@ -15,7 +15,7 @@ test "profile obligations map to their declared module without discharging other
     Some(GraphProfile),
   )
   assert_eq(
-    operation_profile_requirement(TraverseRequirement(EnumeratePropertyPaths)),
+    operation_profile_requirement(TraverseRequirement(EnumerateGraphPaths)),
     None,
   )
   assert_eq(

@@ -225,7 +225,7 @@ fn equality_alignment_case(
   }
   // The unchanged kernel admits its existing single live comparison cursor.
   assert_true(
-    @local_sga.start_property_equality_views(
+    @local_sga.start_graph_equality_views(
       @bounded.control(),
       task_test_completion(receiver),
       prepared_sequence(receiver),
@@ -239,10 +239,10 @@ fn equality_alignment_case(
       10000,
       100000,
     )
-    is Err(@local_sga.PropertyEqualityWorkspaceLimit),
+    is Err(@local_sga.GraphEqualityWorkspaceLimit),
   )
   let control = @bounded.control()
-  let active = @local_sga.start_property_equality_views(
+  let active = @local_sga.start_graph_equality_views(
     control,
     task_test_completion(receiver),
     prepared_sequence(receiver),
@@ -263,17 +263,17 @@ fn equality_alignment_case(
     if cancel && tick == 8 {
       assert_true(@bounded.request_cancel(control))
     }
-    match @local_sga.advance_property_equality(active, 1).unwrap() {
-      @local_sga.PropertyEqualityContinue(work~, ..) => {
+    match @local_sga.advance_graph_equality(active, 1).unwrap() {
+      @local_sga.GraphEqualityContinue(work~, ..) => {
         assert_true(work > prior_work && work - prior_work <= 1L)
         prior_work = work
       }
-      @local_sga.PropertyEqualityComplete(output, ..) => {
+      @local_sga.GraphEqualityComplete(output, ..) => {
         assert_false(cancel)
         result = Some(output)
         break
       }
-      @local_sga.PropertyEqualityStopped(_, ..) => {
+      @local_sga.GraphEqualityStopped(_, ..) => {
         assert_true(cancel)
         stopped = true
         break
@@ -301,8 +301,8 @@ fn equality_alignment_case(
       },
     )
   }
-  assert_true(@local_sga.cleanup_property_equality(active).unwrap())
-  assert_false(@local_sga.property_equality_cleanup_pending(active))
+  assert_true(@local_sga.cleanup_graph_equality(active).unwrap())
+  assert_false(@local_sga.graph_equality_cleanup_pending(active))
   assert_true(@graphs.producer_read_available(left))
   assert_true(@graphs.producer_read_available(right))
   assert_true(@graphs.discard_completed(first))

@@ -28,7 +28,7 @@ fn fixed_apply_workspace(
     is Some(with_storage) &&
     before_workspace_slots(limits) is Some(before_slots) &&
     checked_add(with_storage, before_slots) is Some(with_before) &&
-    @storage.property_snapshot_append_workspace_slots(graph, storage_limits)
+    @storage.graph_snapshot_append_workspace_slots(graph, storage_limits)
     is Some(append_slots) &&
     checked_add(with_before, append_slots) is Some(with_append) &&
     action_workspace_slots(limits) is Some(action_slots) else {

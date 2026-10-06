@@ -64,7 +64,7 @@ test "keyed constructor retains distinct repeated producer roles and independent
   assert_eq(@lowering_relation.graph_construction_edge_count(graph), 1)
   let node = @lowering_relation.graph_construction_node_at(graph, 0).unwrap()
   let edge = @lowering_relation.graph_construction_edge_at(graph, 0).unwrap()
-  let element = @lowering_relation.property_edge_binding_element(edge)
+  let element = @lowering_relation.graph_edge_binding_element(edge)
   // Producer schema is ordered dst, id, src, weight. Both roles use the same
   // producer, but the independent edge key is not its endpoint tuple.
   assert_eq(@lowering_relation.graph_binding_input(node), 0)
@@ -72,7 +72,7 @@ test "keyed constructor retains distinct repeated producer roles and independent
   assert_eq(@lowering_relation.graph_binding_keys(node), [1])
   assert_eq(@lowering_relation.graph_binding_keys(element), [1])
   assert_eq(@lowering_relation.graph_binding_properties(element), [3])
-  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([2], [0]))
+  assert_eq(@lowering_relation.graph_edge_binding_keys(edge), ([2], [0]))
   let checked = @lowering_relation.graph_construction_checked(graph)
   assert_eq(@graph.construction_node_count(checked), 1)
   assert_eq(@graph.construction_edge_count(checked), 1)
@@ -225,16 +225,16 @@ test "shared keyed endpoint retains both roles without projecting or merging edg
     fail("current constructor required")
   }
   let edge = @lowering_relation.graph_construction_edge_at(graph, 0).unwrap()
-  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([1], [1]))
+  assert_eq(@lowering_relation.graph_edge_binding_keys(edge), ([1], [1]))
   assert_eq(
     @lowering_relation.graph_binding_keys(
-      @lowering_relation.property_edge_binding_element(edge),
+      @lowering_relation.graph_edge_binding_element(edge),
     ),
     [1],
   )
-  let copy = @lowering_relation.property_edge_binding_keys(edge)
+  let copy = @lowering_relation.graph_edge_binding_keys(edge)
   copy.0[0] = 99
-  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([1], [1]))
+  assert_eq(@lowering_relation.graph_edge_binding_keys(edge), ([1], [1]))
   assert_eq(
     @lowering_relation.sequence_canonical_node_count(sequence, 1),
     Some(1),
