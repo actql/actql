@@ -3811,7 +3811,8 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
 });
 
 test('derive loses bounded assurance when a resource proof is removed', () => {
-  for (const role of ['derive_property_name_limits', 'derive_property_name_stop']) {
+  for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
+    'derive_field_name_limits', 'derive_field_name_stop']) {
     assert.match(run(undefined, routes => {
       const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
       derive.boundary_tests = derive.boundary_tests.filter(item => item.role !== role);
@@ -3821,6 +3822,10 @@ test('derive loses bounded assurance when a resource proof is removed', () => {
     const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
     derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_property_name_public');
   }), /RelA derive: property name public fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_field_name_public');
+  }), /RelA derive: field name public fixture is missing/u);
   for (const role of [
     'derive_scalar_work_exact_one_short',
     'derive_scalar_workspace_exact_one_short',

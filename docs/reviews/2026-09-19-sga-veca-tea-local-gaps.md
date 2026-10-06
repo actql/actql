@@ -320,6 +320,16 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The dependent 2026-10-07 field-name follow-up now splits long authored Field
+charging and exact input lookup in the same expression frame, preserving
+prior-slot binding, successful work totals and caller-owned input custody.
+The retained public Program shares the existing property harness and verifies
+three independent Named Results plus delivered post-progress cancellation.
+Initial row-map construction, short-name collision behavior and Object
+construction-name measurement are not closed by this unit. See the
+[field-name record](2026-10-07-local-field-name-cursor.md); #681 remains its
+unmerged parent until adopted on main.
+
 The 2026-10-07 property-name follow-up now resumes member-name UTF-8 charging
 and exact spelling comparison in the existing expression frame. The receiver
 root survives the scan, successful logical work and NULL semantics are

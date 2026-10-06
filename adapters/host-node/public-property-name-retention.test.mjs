@@ -27,8 +27,17 @@ function program(id) {
     [names[index],{from:{stage,result:'rows'}}]))};
 }
 
-test('public retained property names publish NULL and deliver cancellation after progress',
-  {timeout:90_000}, async t=>{
+function fieldProgram(id) {
+  const value=program(id);
+  value.stages[0].steps[0].values={schema:{
+    id:{type:'number',nullable:false},[member]:{type:'number',nullable:true}},
+    rows:[{id:1,[member]:7},{id:2,[member]:null}]};
+  value.stages[0].results.rows.fields=['id',member];
+  value.stages[1].steps[0].derive.value={field:member};
+  return value;
+}
+
+async function verifyRetainedNames(t,label,makeProgram){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
     const reached=Promise.withResolvers(),release=Promise.withResolvers();
     let client, cancelling=false, dispatches=0, advances=0, completions=0;
@@ -57,7 +66,7 @@ test('public retained property names publish NULL and deliver cancellation after
           }
         },
       }}});
-    const source=JSON.stringify(program('property-name-success'));
+    const source=JSON.stringify(makeProgram(`${label}-name-success`));
     const run=await client.aql(source,{format:'json',requestId:'property-name-success'});
     const status=await run.wait({signal:AbortSignal.timeout(45_000)});
     assert.equal(status.status,'succeeded',JSON.stringify(status));
@@ -70,7 +79,7 @@ test('public retained property names publish NULL and deliver cancellation after
     assert.deepEqual((await client.aql(source,{format:'json',requestId:'property-name-success'})).ref,run.ref);
     assert.equal(dispatches,count);
     cancelling=true;
-    const cancel=await client.aql(JSON.stringify(program('property-name-cancel')),
+    const cancel=await client.aql(JSON.stringify(makeProgram(`${label}-name-cancel`)),
       {format:'json',requestId:'property-name-cancel'});
     await Promise.race([reached.promise,cancel.wait({signal:AbortSignal.timeout(15_000)})
       .then(state=>{throw new Error(`property progress barrier missed: ${JSON.stringify(state)}`);})]);
@@ -89,4 +98,8 @@ test('public retained property names publish NULL and deliver cancellation after
       await assert.rejects(cancel.result(name).all());}
     assert.equal(completions,1);assert.equal(advances,before);assert.equal(dispatches,2);
     assert.deepEqual(await readdir(join(directory,'carrier-snapshots')),[]);
-  });
+}
+test('public retained property names publish NULL and deliver cancellation after progress',
+  {timeout:90_000},t=>verifyRetainedNames(t,'property',program));
+test('public retained field names publish NULL and deliver cancellation after progress',
+  {timeout:90_000},t=>verifyRetainedNames(t,'field',fieldProgram));

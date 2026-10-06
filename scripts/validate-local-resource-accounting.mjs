@@ -1803,11 +1803,15 @@ export function validateResourceAccounting({
       fail(`${label}: same-stage values derive evidence is missing`);
     }
     if (route.family === 'RelA' && route.operation === 'derive') {
-      for (const role of ['derive_property_name_limits', 'derive_property_name_stop']) {
+      for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
+        'derive_field_name_limits', 'derive_field_name_stop']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('derive_property_name_public')) {
         fail(`${label}: property name public fixture is missing`);
+      }
+      if (!environmentRoles.has('derive_field_name_public')) {
+        fail(`${label}: field name public fixture is missing`);
       }
       if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
         .includes("import './public-property-name-retention.test.mjs';")) {

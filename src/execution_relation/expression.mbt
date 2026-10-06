@@ -98,6 +98,7 @@ priv enum Evaluation {
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
   PropertyName(PropertyNameState)
+  FieldName(FieldNameState)
 }
 
 ///|
@@ -429,7 +430,8 @@ fn advance_expression_frame_impl(
     // work. The next semantic Return still pays its usual transition.
     if !(frame.state is CompareBinary(_) ||
       frame.state is CompareMembership(_, _) ||
-      frame.state is PropertyName(_)) {
+      frame.state is PropertyName(_) ||
+      frame.state is FieldName(_)) {
       if budget.remaining == 0 {
         return Err({ kind: ControlLimit, expression: frame.active, })
       }
@@ -473,6 +475,23 @@ fn advance_expression_frame_impl(
         }
         match body {
           Field(name, target) => {
+            if name.length() > 64 {
+              if !reserve_slots(workspace, 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = FieldName({
+                expression: expr,
+                name,
+                source: match target {
+                  @relation.InputField(_) => InputFields(input.iter())
+                  @relation.PriorSlot(index) => PriorSlot(index)
+                },
+                offset: 0,
+                measured: false,
+                candidate: None,
+              })
+              continue
+            }
             if !spend_control_text(budget, name) {
               return Err({ kind: ControlLimit, expression: expr, })
             }
@@ -1251,6 +1270,17 @@ fn advance_expression_frame_impl(
               frame.stack.push(Forward(expr))
               frame.state = Enter(otherwise)
             }
+          }
+        }
+      }
+      FieldName(state) => {
+        frame.active = state.expression
+        match advance_field_name(state, slots, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            release_slots(workspace, 2)
+            frame.state = Return(value)
           }
         }
       }
