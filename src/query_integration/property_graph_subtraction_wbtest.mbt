@@ -436,9 +436,9 @@ test "property Graph subtraction snapshot reload restores retained nodes after i
   assert_eq(@execution.completed_row_count(relation), 1)
   assert_eq(
     @execution.completed_output_row_wire(relation, 0, 10000, 10000, 50).unwrap(),
-    "{\"id\":" +
+    "{\"id\":{\"$json\":" +
     snapshot_fixture_identity("N", 1) +
-    ",\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}",
+    "},\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}",
   )
   assert_true(@local_connector.cleanup_managed_provider(projecting).unwrap())
   assert_true(@carrier_runtime.reclaim_material(restored))

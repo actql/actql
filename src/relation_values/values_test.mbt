@@ -127,6 +127,40 @@ test "values literal quoting is one level and nested parameter shapes are opaque
 }
 
 ///|
+test "Values retain a typed_literal-shaped cell as ordinary closed-object data" {
+  let field =
+    #|{"type":"object","nullable":false,"fields":{"typed_literal":{"type":"object","nullable":false,"fields":{"type":{"type":"string","nullable":false},"value":{"type":"string","nullable":false}}}}}
+  let checked = @relation_values.check(
+    body(
+      "[{\"x\":{\"typed_literal\":{\"type\":\"json\",\"value\":\"null\"}}}]",
+      field~,
+    ),
+    None,
+    limits(),
+  ).unwrap()
+  guard @relation_values.cell_at(
+      @relation_values.row_at(checked, 0).unwrap(),
+      0,
+    )
+    is Some(Literal(value, ..)) else {
+    fail("expected an ordinary literal cell")
+  }
+  guard value.value is @value.Object(fields) else {
+    fail("expected a closed Object, not JSON data")
+  }
+  let (name, payload) = @value.element_at(fields, 0).unwrap()
+  assert_eq(name, "typed_literal")
+  guard payload is @value.Object(members) else {
+    fail("expected the unchanged cell payload")
+  }
+  assert_eq(@value.element_count(members), 2)
+  assert_eq(@value.element_at(members, 0).unwrap().0, "type")
+  assert_true(@value.element_at(members, 0).unwrap().1 is @value.Text("json"))
+  assert_eq(@value.element_at(members, 1).unwrap().0, "value")
+  assert_true(@value.element_at(members, 1).unwrap().1 is @value.Text("null"))
+}
+
+///|
 test "decimal values use exact scale strings and report nested literal failures" {
   let field = "{\"type\":\"decimal\",\"precision\":4,\"scale\":2,\"nullable\":false}"
   let p = @relation_values.check(

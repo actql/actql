@@ -31,6 +31,7 @@ export const installedConnectors = Object.freeze([
     }),
     effect: Object.freeze({
       profileVersion: "actql-installed-salesforce-effect/0.1",
+      identityProfile: Object.freeze({"continuation":"actql-installed-salesforce-effect-continuation/0.1","continuationBinding":"publication_generation_cid","dispatch":"actql-installed-salesforce-effect-dispatch/0.1","recovery":"actql-installed-salesforce-effect-recovery/0.1","source":"actql-installed-salesforce-effect-source/0.1","targetCheck":"actql-salesforce-effect-target-check/0.1","unit":"actql-installed-salesforce-effect-unit/0.1"}),
       load: () => import("../connectors/salesforce/host/installed-salesforce-effect-installation.mjs")
         .then(module => Object.freeze({check: module.checkInstalledSalesforceEffectInstallation, identityParts: module.installedSalesforceEffectIdentityParts, publish: module.publishInstalledSalesforceEffectInstallation, load: module.loadInstalledSalesforceEffectInstallation})),
     }),

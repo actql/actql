@@ -157,6 +157,11 @@ pub fn advance_complete_equality(
         }
         let child_depth = depth + (if container { 1 } else { 0 })
         match (left, right) {
+          (JsonData(a), JsonData(b)) => {
+            // The domain marker is not an additional JSON payload node.
+            value.nodes -= 1
+            value.frames.push(CompareValue(a, b, depth))
+          }
           (Null, Null) => ()
           (Boolean(a), Boolean(b)) =>
             if a != b {
