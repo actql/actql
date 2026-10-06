@@ -7889,7 +7889,7 @@
         "entrypoint": {
           "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
           "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
-          "in_flight_cancel": "union_positive_work_cancel_cleanup",
+          "in_flight_cancel": "union_host_delivered_cancel_cleanup",
           "cleanup": "union_host_cleanup_failure_retry_custody"
         }
       },
@@ -7904,7 +7904,18 @@
             "one_short_limit": "union_workspace_exact_one_short_before_fold"
           }
         }
-      }
+      },
+      "environment_tests": [
+        {
+          "role": "union_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph union stops after positive work through the installed Local Host without publishing output"
+        }
+      ]
     },
     {
       "inventory": "families",

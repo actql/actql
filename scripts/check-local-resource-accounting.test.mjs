@@ -390,7 +390,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 63 with four-role boundary evidence, 63 with full work\/workspace assurance, 115 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
