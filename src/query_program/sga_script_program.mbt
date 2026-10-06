@@ -25,8 +25,9 @@ fn script_graph_named_input(
 }
 
 ///|
-// Normalize and Subgraph retain the admitted definition, properties, labels
-// and identity domain. A binding is not a copy, source read or materialization.
+// Normalize, Subgraph and Delta application retain the admitted definitions,
+// properties, labels and identity domain. A binding is not a copy, source read
+// or materialization.
 // Other SGA outputs require their adapted common Carrier/schema contract;
 // do not borrow legacy scalar-ID schemas to approximate those outputs.
 fn lower_script_graph_calls(
@@ -51,6 +52,12 @@ fn lower_script_graph_calls(
     }
     if call.operation == "subgraph" {
       current = lower_script_subgraph(
+        construction, query, call, current, known, limits, steps, reserved,
+      )
+      continue
+    }
+    if call.operation == "apply_graph_delta" {
+      current = lower_script_graph_delta(
         construction, query, call, current, known, limits, steps, reserved,
       )
       continue

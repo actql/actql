@@ -655,7 +655,8 @@ Document IDs (`source`, `parameter_declarations`, `parameters`) are roles within
 one report, not private file paths. Each Host issues a keyed, domain-separated
 revision over that role's exact bytes. These revisions are not public content
 hashes, authorization grants or retrieval references. `context_ref` additionally
-binds audience, disclosure policy, compiler, requested scope, admitted public
+binds audience, disclosure policy, compiler, both reason and outcome schema
+identities, requested scope, admitted public
 Host policy and checker profile selections, installed ModelTask contract CIDs,
 visible Source contracts and bindings. The full private Environment CID still
 binds internal publication ownership and Source authorization, but is excluded
@@ -663,6 +664,14 @@ from the public reference preimage. Adding or changing a hidden Source cannot
 distinguish its presence through this reference. Changing authority, visible
 Source contracts, policy or checker selections can
 change `context_ref` without changing the same input revision.
+
+The outcome schema CID participates even when the reason schema and the
+`actql-check-outcome/0.1` identifier are unchanged. Both the ordinary and
+received-input fallback preimages bind these identities. A projection change
+therefore invalidates reuse of an earlier context reference. This private keyed
+preimage change adds no response field, public input hash, retrieval API or
+retention. Document revisions continue to bind only the original document bytes
+and role; a context reference confers no execution or retry authority.
 
 Public Local and HTTPS ingress authenticate and authorize each check before
 invoking its installed checker. A Source read-decision owner only controls its
@@ -751,6 +760,19 @@ and correlation reference, without report binding. The helper preserves unknown
 problem codes as unknown within their received branch; malformed envelopes or
 unsupported variants have no explanation. It does not infer outcomes from
 problem codes, messages, severity or HTTP status.
+
+Public Local and HTTPS ingress use the existing connection authorization decision
+before checking. If that owner does not authorize disclosure of this checking
+context, ingress obtains the common `check_unavailable` projection without
+invoking analysis or Source read-decision owners. No input, scope, context binding,
+verdict, reason list or partial report is exposed. The admitted check service
+provides its internal `unavailable()` projection from the same MoonBit bridge;
+a missing or malformed producer is a Host contract failure, not a fabricated
+report. Authentication and request validation still precede this decision.
+Individual inaccessible or failed Source owners only hide their own aliases;
+under an authorized checking context, safe violations and protected unresolved
+coverage remain together in the bound report. Earlier reports retain their
+original context after connection authorization changes.
 
 Analysis-budget exhaustion can be a completed/undetermined report. The separate
 reserved reporting budget can fail to construct that envelope, producing
@@ -1124,3 +1146,28 @@ explanation. The verdict continues to come from the existing classification.
 The current flattened checker location does not retain an authored/generated
 origin kind; this projection omits its location instead of treating a decoded
 expression range or generated Program path as the original SQL position.
+
+### Binding JSON admission explanations
+
+The public projector retains the existing JSON parser's closed issue family as
+`binding_json_invalid` with `facts.document` and `facts.issue`. Declaration and
+supplied-value inputs use distinct submitted identities. Duplicate names and
+string values remain private input data, not diagnostic facts. An original
+structured pointer is optional: a preserving path read cannot replace the
+primary parser's issue, and a mismatch leaves the reason unlocated. Budgets
+remain `analysis_budget_exhausted`; other admission/decode failures keep their
+generic reasons. SDK explanations are advisory and never change the verdict.
+
+### Current document presentation
+
+The formatter's optional position encoding delegates to the same original-byte
+coordinate converter as document sessions. A document session formats its own
+check observation with the negotiated encoding; the exact input custody and
+current version/latest-issued-request gate remain authoritative for positions.
+Historical, copied, foreign and closed observations can still display admitted
+facts and safe explanations, but cannot supply current editor coordinates.
+Application-owned format options are captured before checking currency. Currency
+is rechecked after rendering so an input accessor cannot edit the buffer during
+rendering and publish a stale position. On such a change, the same safe observation
+is formatted with all positions omitted. Formatting performs no Host lookup,
+check, execution, cancellation or edit and retains no additional source buffer.

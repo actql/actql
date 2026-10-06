@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr568-events-execution-admission-2ca0066",
+  "kind": "change",
+  "revision": "2ca006634d44ce0afd6564bc3f8fe571946d052e",
+  "parents": [
+    "d932d7ca524712998c7c2a3668f28550905da266"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/evidence.test.mjs",
+      "before": [
+        {
+          "revision": "d932d7ca524712998c7c2a3668f28550905da266",
+          "digest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1f696960951b2e5b5b6ce8b8947e1c6bd780fa31a2baf6b0ebe895f5432e0232",
+      "afterMode": "100644",
+      "reason": "Admit concrete Events composition evidence through the existing bounded Session checker and collector while retaining the original obligations and strict proof acceptance."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "d932d7ca524712998c7c2a3668f28550905da266",
+          "digest": "49de54ea58b7ac26ac746d33faaee339b4e436cd08922dd5dad2b6c49a67b961",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c0513aaa114c4750a1bc8c51d479c145dea3eadb2cecee8178e5d57770e2bd42",
+      "afterMode": "100644",
+      "reason": "Admit concrete Events composition evidence through the existing bounded Session checker and collector while retaining the original obligations and strict proof acceptance."
+    }
+  ]
+}

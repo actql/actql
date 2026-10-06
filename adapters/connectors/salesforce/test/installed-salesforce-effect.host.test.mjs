@@ -2,6 +2,8 @@
 // public Client: submit, Preview, approval of the whole Set, Host restart,
 // current checks, writes and the Named Result. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
+// The public update acceptance runs with the installed Effect's Host tests.
+import './update-effect.acceptance.test.mjs';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -10,6 +12,7 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath} from 'node:url';
 import {connect} from '../../../../packages/sdk/index.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
@@ -24,6 +27,9 @@ import {effectProgram, installedEffect, moon, salesforceMoon} from
 import {installSalesforceAuthorization, installedSalesforceSiteBinding,
   loadInstalledSalesforceSite} from '../host/installed-salesforce-site.mjs';
 import {recordCheckpointApproval} from '../../../host-common/checkpoint-approval.mjs';
+import {releaseCompletedRunPreparedPayloads} from
+  '../../../host-common/completed-run-publication.mjs';
+import {completeInterruptedEffectRun} from '../../../host-node/effect-run-completion.mjs';
 
 const repository = fileURLToPath(new URL('../../../../', import.meta.url));
 const scratch = join(repository, '_build', 'salesforce-effect-host');
@@ -31,7 +37,7 @@ await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
 execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
-  '-subj', '/CN=localhost',
+  '-subj', '/CN=salesforce-effect-host-fixture',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
 {cwd: tlsRoot, stdio: 'ignore'});
 const tlsKey = await readFile(join(tlsRoot, 'host.key'));
@@ -80,15 +86,26 @@ const tokens = new Map([['owner-token', owner],
 
 // One Host process over `directory` with the installed Effect as loaded now.
 async function remoteHost(t, installation, directory, {configuration,
-  resumeAfterAnswer = true, beforeDispatch, decide, loseResolveReply = false} = {}) {
+  resumeAfterAnswer = true, beforeDispatch, decide, loseResolveReply = false,
+  decisionOptions = {}, instrument} = {}) {
   // The Host and its installed Site run under the same account text.
   const effect = await installation.load({
     accountConfigurationWire: configuration});
+  const hooks = salesforceEffectSiteHooks(effect);
   const site = createInstalledEffectSite({
-    ...salesforceEffectSiteHooks(effect),
+    ...(instrument?.hooks?.(hooks) ?? hooks),
     privateEvidenceKey: Buffer.alloc(32, 7)});
-  const effectInstallation = {...site, async resume(facts) {
-    try { return await site.resume(facts); }
+  const effectInstallation = {...site,
+    async execute(facts) {
+      try {
+        const result = await site.execute(instrument?.facts?.(facts, 'execute') ?? facts);
+        instrument?.observeResult?.(result);
+        return result;
+      }
+      catch (error) { instrument?.observeFailure?.(error); throw error; }
+    },
+    async resume(facts) {
+    try { return await site.resume(instrument?.facts?.(facts, 'resume') ?? facts); }
     catch (error) {
       diagnostics.push({name: 'resume_error', detail: {code: error.code,
         authorization: error.authorization}});
@@ -100,6 +117,7 @@ async function remoteHost(t, installation, directory, {configuration,
     authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
     beforeDispatch, effectInstallation,
     authorization: {accountConfiguration: configuration, reviewers, decide,
+      ...decisionOptions,
       observe: (name, detail) => diagnostics.push({name,
         detail: detail?.stack ?? detail?.code ?? detail}),
       reviewReaders: [], resumeAfterAnswer,
@@ -114,14 +132,17 @@ async function remoteHost(t, installation, directory, {configuration,
     return host.handler(request, response);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  let closed = false;
+  let closed = false, serverClosed = false;
   const close = async () => {
     if (closed) return;
-    closed = true;
-    server.closeAllConnections?.();
-    await new Promise(resolve => server.close(resolve));
+    if (!serverClosed) {
+      server.closeAllConnections?.();
+      await new Promise(resolve => server.close(resolve));
+      serverClosed = true;
+    }
     const remaining = await host.close();
     effect.close();
+    closed = true;
     return remaining;
   };
   installation.onClose(close);
@@ -145,12 +166,12 @@ const writesOf = org => org.seen.filter(item => item.method === 'PATCH' ||
 const ids = ['a00000000000001', 'a00000000000002'];
 
 // `targets`: the Resources the Program updates, one Effect member each.
-async function setup(t, {targets = ['Test_Record__c'], ...options} = {}) {
+async function setup(t, {targets = ['Test_Record__c'], org = {}, ...options} = {}) {
   const configuration = hostConfiguration(options);
   const installation = await installedEffect(t, {
     writes: targets.map(resource => ({resource, kind: 'update',
       fields: ['Name']})),
-    org: {writableObjects: ['Other_Record__c']},
+    org: {writableObjects: ['Other_Record__c'], ...org},
     // The explicit installation publication precedes the operation under
     // test. Its metadata permission is not retained as a target-read grant.
     principalId: owner, accountConfigurationWire: hostConfiguration({...options, read: 'allow'})});
@@ -405,6 +426,13 @@ test('the credential Site independently refuses a foreign target binding before 
     assert.throws(() => site.admitCheckpointEffectTargetRead(decisionFor(binding), binding),
       {code: 'SalesforceEffectTargetReadApprovalNotAdmitted'});
   }
+  const original = 'e\u0301\r\n' + JSON.stringify({nested: 'e\u0301'});
+  const exact = {...bindingFor(site), opaque: {text: original}};
+  for (const text of [original.normalize('NFC'), original.replace(/\r\n?/gu, '\n')]) {
+    const changed = {...exact, opaque: {text}};
+    assert.throws(() => site.admitCheckpointEffectTargetRead(decisionFor(exact), changed),
+      {code: 'SalesforceEffectTargetReadApprovalNotAdmitted'});
+  }
   assert.equal(fences, 0);
   const binding = bindingFor(site);
   const approved = site.admitCheckpointEffectTargetRead(decisionFor(binding), binding);
@@ -608,3 +636,661 @@ for (const targetRead of ['allow', 'delegate']) {
     }
   });
 }
+
+for (const entrance of ['source', 'program']) {
+test(`target and commit approvals retain original data through public Host restarts: ${entrance}`, async t => {
+  const x = await setup(t, {read: 'delegate'});
+  const text = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+  const program = JSON.parse(x.program);
+  const values = program.stages[0].steps[0].values;
+  values.schema.original = {type: 'string', nullable: false};
+  for (const row of values.rows) row.original = text;
+  program.stages[0].results.rows.fields.push('original');
+  x.program = JSON.stringify(program);
+  const before = x.installation.org.seen.length;
+  let host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  const client = await host.as('owner-token');
+  let run = entrance === 'program'
+    ? await client.start(program, {requestId: 'exact-target-and-commit'})
+    : await client.aql(x.program,
+      {format: 'json', requestId: 'exact-target-and-commit'});
+  const ref = run.ref;
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
+  assert.equal(read.kind, 'read_access');
+  assert.equal(x.installation.org.seen.length, before);
+  await host.close();
+  await answer(t, x, read, 'approved', ref.authorityScopeCid);
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  const [commit] = (await (await host.as('reviewer-token')).checkpoints()).items;
+  assert.equal(commit.kind, 'effect_set');
+  assert.equal(writesOf(x.installation.org).length, 0);
+  await host.close();
+  await answer(t, x, commit, 'approved', ref.authorityScopeCid);
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  await waitFor(async () => (await run.status()).status === 'succeeded');
+  const expected = ids.map(id => ({id, original: text}));
+  assert.deepEqual(await run.result('answer').all(), expected);
+  assert.equal(writesOf(x.installation.org).length, 2);
+  await host.close();
+  const calls = x.installation.org.seen.length;
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  assert.deepEqual(await run.result('answer').all(), expected);
+  assert.equal(x.installation.org.seen.length, calls);
+  await host.close();
+});
+}
+
+// These are consuming combinations over one public Run, rather than sums of
+// isolated gate tests. Every wrapped method delegates to the original owner.
+function integratedFault(t, selected) {
+  const state = {armed: true, phase: 'initial', injections: 0,
+    owners: [], captures: 0, recoveries: 0, computes: 0};
+  t.after(() => { state.armed = false; });
+  const blocked = name => state.armed && name === selected;
+  const fail = name => {
+    state.injections++;
+    throw Object.assign(new Error(`Integrated${name}Unavailable`),
+      {code: `Integrated${name}Unavailable`});
+  };
+  const wrapOwner = (owner, name) => {
+    const calls = {name, close: 0, cleanup: 0, completed: false};
+    state.owners.push(calls);
+    return {...owner, async close() {
+      calls.close++;
+      if (blocked(name)) fail(name);
+      const result = await owner.close();
+      // A Compute close and its reclamation are distinct obligations.
+      calls.completed = name !== 'computeClose' && result !== false &&
+        owner.cleanupPending?.() !== true;
+      return result;
+    }, async cleanup() {
+      calls.cleanup++;
+      if (blocked(name)) fail(name);
+      const result = await owner.cleanup();
+      calls.completed = result !== false && owner.cleanupPending?.() !== true;
+      return result;
+    }, cleanupPending: () => owner.cleanupPending?.() ?? !calls.completed};
+  };
+  const stageOf = stage => ({...stage,
+    ...(stage.releaseInputs === undefined ? {} : {releaseInputs() {
+      if (blocked('inputs')) fail('inputs');
+      return stage.releaseInputs();
+    }}), dispose() {
+      if (blocked('stage')) fail('stage');
+      return stage.dispose?.();
+    }});
+  const prepare = DatabaseSync.prototype.prepare;
+  const exec = DatabaseSync.prototype.exec;
+  const close = DatabaseSync.prototype.close;
+  const ledgers = new Set();
+  DatabaseSync.prototype.exec = function(sql) {
+    if (sql.includes('CREATE TABLE IF NOT EXISTS effect_ledger_entries') &&
+        state.phase === 'recovered') ledgers.add(this);
+    return exec.call(this, sql);
+  };
+  DatabaseSync.prototype.close = function() {
+    if (ledgers.has(this) && blocked('recoveredLedger')) fail('recoveredLedger');
+    return close.call(this);
+  };
+  DatabaseSync.prototype.prepare = function(sql) {
+    if (sql.includes('physical_close_confirmed = 1') && blocked('stopObservation')) {
+      fail('stopObservation');
+    }
+    return prepare.call(this, sql);
+  };
+  t.after(() => {
+    DatabaseSync.prototype.prepare = prepare;
+    DatabaseSync.prototype.exec = exec;
+    DatabaseSync.prototype.close = close;
+  });
+  return Object.assign(state, {hooks: hooks => ({...hooks,
+    async prepareCaptured(facts) {
+      state.phase = 'captured'; state.captures++;
+      return stageOf(await hooks.prepareCaptured(facts));
+    },
+    async prepareRecovered(facts) {
+      state.phase = 'recovered'; state.recoveries++;
+      return stageOf(await hooks.prepareRecovered(facts));
+    }}), facts(facts, path) {
+      const result = {...facts,
+        retainExecution(owner) {
+          state.custody = owner;
+          facts.retainExecution(owner);
+        },
+        effectAuthorization: async options => {
+          const gate = await facts.effectAuthorization(options);
+          return wrapOwner(gate, 'commitClose');
+        }};
+      if (path === 'execute') {
+        if (facts.targetReads !== undefined) {
+          result.targetReads = wrapOwner(facts.targetReads, 'targetClose');
+        }
+        result.openComputation = async options => {
+          state.computes++;
+          const opened = await facts.openComputation(options);
+          return {...opened,
+            cleanupOwner: wrapOwner(opened.cleanupOwner ?? opened.execution, 'computeClose')};
+        };
+      } else if (facts.prepareTargetReads !== undefined) {
+        result.prepareTargetReads = async claimed => {
+          const gate = await facts.prepareTargetReads(claimed);
+          return gate === undefined ? undefined : wrapOwner(gate, 'targetClose');
+        };
+      }
+      return result;
+    }});
+}
+
+function exactValueProgram(x) {
+  const original = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+  const program = JSON.parse(x.program);
+  const values = program.stages[0].steps[0].values;
+  values.schema.original = {type: 'string', nullable: false};
+  for (const row of values.rows) row.original = original;
+  program.stages[0].results.rows.fields.push('original');
+  x.program = JSON.stringify(program);
+  return ids.map(id => ({id, original}));
+}
+
+for (const failed of ['targetClose', 'commitClose', 'inputs', 'computeClose',
+  'stage', 'recoveredLedger', 'stopObservation']) {
+  test(`integrated Run retains ${failed} custody across both approvals and exact-value restarts`,
+    {timeout: 30_000}, async t => {
+    const fault = integratedFault(t, failed);
+    const x = await setup(t, {read: 'delegate'});
+    const expected = exactValueProgram(x);
+    const before = x.installation.org.seen.length;
+    const options = {configuration: x.configuration, instrument: fault,
+      decisionOptions: {decisionTimeoutMs: 250, maxInFlightDecisions: 1,
+        maxRetainedDecisions: 32}};
+    let host = await remoteHost(t, x.installation, x.directory, options);
+    let run = await (await host.as('owner-token')).aql(x.program,
+      {format: 'json', requestId: 'integrated-' + failed});
+    const ref = run.ref;
+    let recoveredFailure;
+    const closePhase = async shouldFail => {
+      const io = x.installation.org.seen.length;
+      if (shouldFail) {
+        await assert.rejects(host.close(), error => {
+          recoveredFailure = error;
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+          assert.ok(error.cleanupHandle.status().pending.length > 0);
+          return true;
+        });
+        assert.ok(fault.injections > 0, 'the selected physical failure must actually fire');
+        const completed = fault.owners.filter(value => value.completed)
+          .map(value => [value, value.close, value.cleanup]);
+        fault.armed = false;
+        await recoveredFailure.cleanupHandle.retry();
+        assert.deepEqual(recoveredFailure.cleanupHandle.status().pending, []);
+        await recoveredFailure.cleanupHandle.retry();
+        for (const [value, closes, cleanups] of completed) {
+          assert.equal(value.close, closes, 'completed children are not closed twice');
+          assert.equal(value.cleanup, cleanups, 'retry only visits pending children');
+        }
+      }
+      const remaining = await host.close();
+      if (remaining !== undefined) {
+        assert.equal(remaining.storeCleanupPending, false);
+        assert.deepEqual(remaining.pendingRetention, []);
+      }
+      assert.equal(x.installation.org.seen.length, io,
+        'cleanup cannot reacquire or dispatch provider work');
+    };
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    let [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(checkpoint.kind, 'read_access');
+    assert.equal(x.installation.org.seen.length, before);
+    await closePhase(['targetClose', 'stopObservation'].includes(failed));
+    await answer(t, x, checkpoint, 'approved', ref.authorityScopeCid);
+    host = await remoteHost(t, x.installation, x.directory, options);
+    run = await (await host.as('owner-token')).attach(ref);
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(checkpoint.kind, 'effect_set');
+    assert.deepEqual(run.ref, ref);
+    assert.equal(writesOf(x.installation.org).length, 0);
+    await closePhase(['commitClose', 'inputs', 'computeClose', 'stage'].includes(failed));
+    await answer(t, x, checkpoint, 'approved', ref.authorityScopeCid);
+    host = await remoteHost(t, x.installation, x.directory, options);
+    run = await (await host.as('owner-token')).attach(ref);
+    await waitFor(async () => (await run.status()).status === 'succeeded');
+    assert.deepEqual(await run.result('answer').all(), expected);
+    assert.equal(writesOf(x.installation.org).length, 2);
+    await closePhase(failed === 'recoveredLedger');
+    assert.equal(fault.computes, 1, 'approval and cleanup reuse the original computation');
+    assert.equal(fault.captures, 1);
+    assert.equal(fault.recoveries, 1);
+    assert.ok(fault.injections > 0);
+    const io = x.installation.org.seen.length;
+    host = await remoteHost(t, x.installation, x.directory, options);
+    run = await (await host.as('owner-token')).attach(ref);
+    assert.equal((await run.status()).status, 'succeeded');
+    assert.deepEqual(await run.result('answer').all(), expected);
+    await host.close();
+    assert.equal(x.installation.org.seen.length, io);
+    t.diagnostic(JSON.stringify({baseline: '91ae3cb79fe7431e75fccfcb55a1ee59b84a5cc3',
+      failure: failed, runDefinitionCid: ref.runDefinitionCid,
+      injections: fault.injections, computes: fault.computes,
+      captures: fault.captures, recoveries: fault.recoveries,
+      writes: writesOf(x.installation.org).length}));
+  });
+}
+
+for (const boundary of ['acquisition', 'effect_commit']) {
+  test(`integrated Run keeps a timed-out ${boundary} callback through shutdown retry`,
+    {timeout: 20_000}, async t => {
+    const x = await setup(t, {read: 'delegate'});
+    exactValueProgram(x);
+    let host, run;
+    const requestId = 'integrated-timeout-' + boundary;
+    if (boundary === 'effect_commit') {
+      host = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration});
+      run = await (await host.as('owner-token')).aql(x.program,
+        {format: 'json', requestId});
+      await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+      const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
+      assert.equal(read.kind, 'read_access');
+      await host.close();
+      await answer(t, x, read, 'approved', run.ref.authorityScopeCid);
+    }
+    const calls = [];
+    const decide = (view, {signal}) => new Promise(settle => {
+      calls.push({view, signal, settle});
+    });
+    t.after(async () => {
+      for (const call of calls) call.settle({decision: 'unavailable'});
+      await new Promise(setImmediate);
+    });
+    host = await remoteHost(t, x.installation, x.directory,
+      {configuration: x.configuration, decide,
+        decisionOptions: {decisionTimeoutMs: 40, maxInFlightDecisions: 1,
+          maxRetainedDecisions: 32}});
+    if (run === undefined) run = await (await host.as('owner-token')).aql(x.program,
+      {format: 'json', requestId});
+    else run = await (await host.as('owner-token')).attach(run.ref);
+    await waitFor(() => calls.length === 1);
+    assert.equal(calls[0].view.boundary, boundary);
+    await waitFor(() => calls[0].signal.aborted);
+    assert.equal(writesOf(x.installation.org).length, 0);
+    assert.ok(!['succeeded', 'cancelled'].includes((await run.status()).status));
+    let failure;
+    await assert.rejects(host.close(), error => {
+      failure = error;
+      assert.equal(error.cleanupPending, true);
+      assert.equal(typeof error.cleanupHandle?.retry, 'function');
+      return true;
+    });
+    const io = x.installation.org.seen.length;
+    const handle = failure.cleanupHandle;
+    await assert.rejects(handle.retry(), error => error.cleanupPending === true);
+    assert.ok(handle.status().pending.length > 0,
+      'deadline and repeated close cannot reclaim an unfinished callback');
+    assert.equal(calls.length, 1);
+    calls[0].settle({decision: 'permit', subject: calls[0].view.subject,
+      authority: 'reviewer'});
+    await new Promise(setImmediate);
+    try { await handle.retry(); }
+    catch (error) {
+      const describe = failure => ({code: failure?.code, message: failure?.message,
+        pending: failure?.cleanupHandle?.status?.(),
+        errors: failure?.cleanupErrors?.map(item => ({owner: item.owner,
+          code: item.error?.code, message: item.error?.message,
+          status: item.error?.cleanupHandle?.status?.()}))});
+      t.diagnostic(JSON.stringify({callbackBoundary: boundary,
+        retained: await retained(x), failure: describe(error)}));
+      throw error;
+    }
+    assert.deepEqual(handle.status().pending, []);
+    await handle.retry();
+    await host.close();
+    assert.equal(calls.length, 1, 'cleanup cannot ask for another decision');
+    assert.equal(x.installation.org.seen.length, io,
+      'late permit cannot dispatch or reacquire the timed-out Run');
+    assert.equal(writesOf(x.installation.org).length, 0);
+    if (boundary === 'effect_commit') {
+      const kept = await retained(x);
+      assert.ok(kept.holdings.length > 0 && kept.objects.length > 0,
+        'releasing process-local payloads cannot erase the durable capture');
+      const restarted = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration, decide});
+      const attached = await (await restarted.as('owner-token')).attach(run.ref);
+      assert.deepEqual(attached.ref, run.ref);
+      assert.ok(!['succeeded', 'cancelled'].includes((await attached.status()).status));
+      await restarted.close();
+      assert.equal(calls.length, 1, 'restart does not request a replacement judgment');
+      assert.equal(x.installation.org.seen.length, io, 'restart cannot resend the Run');
+    }
+    t.diagnostic(JSON.stringify({boundary, configuredTimeoutMs: 40,
+      runDefinitionCid: run.ref.runDefinitionCid, callbacks: calls.length,
+      latePermitWrites: writesOf(x.installation.org).length}));
+  });
+}
+
+for (const capacity of ['physical', 'retained']) {
+test(`integrated Run shares one ${capacity} decision slot at target and commit across exact-value restarts`,
+  {timeout: 30_000}, async t => {
+  const x = await setup(t, {read: 'delegate'});
+  const expected = exactValueProgram(x);
+  const calls = [];
+  const decide = (view, {signal}) => new Promise(settle => {
+    calls.push({view, signal, settle});
+  });
+  t.after(async () => {
+    for (const call of calls) call.settle({decision: 'unavailable'});
+    await new Promise(setImmediate);
+  });
+  const options = {configuration: x.configuration, decide,
+    decisionOptions: {decisionTimeoutMs: 5_000,
+      maxInFlightDecisions: capacity === 'physical' ? 1 : 4,
+      maxRetainedDecisions: capacity === 'retained' ? 1 : 32}};
+  let host = await remoteHost(t, x.installation, x.directory, options);
+  let run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'integrated-shared-slot'});
+  const ref = run.ref;
+  let configurationCid, primaryRunId;
+  for (const [index, boundary] of ['acquisition', 'effect_commit'].entries()) {
+    await waitFor(() => calls.length === index + 1);
+    const call = calls[index];
+    assert.equal(call.view.boundary, boundary);
+    configurationCid ??= call.view.subject.configuration_cid;
+    assert.equal(call.view.subject.configuration_cid, configurationCid,
+      'execution options never replace account-configuration identity');
+    const before = diagnostics.length;
+    if (capacity === 'retained') {
+      await assert.rejects((await host.as('owner-token')).aql(x.program,
+        {format: 'json', requestId: `integrated-contender-${index}`}),
+      error => error.code === 'ACTQL_E_DELEGATION_UNAVAILABLE');
+    } else {
+      const contender = await (await host.as('owner-token')).aql(x.program,
+        {format: 'json', requestId: `integrated-contender-${index}`});
+      await waitFor(async () => (await contender.status()).status === 'failed');
+      assert.ok(diagnostics.slice(before).some(value =>
+        JSON.stringify(value).includes('ExecutionAuthorizationDecisionFailed')),
+      JSON.stringify(diagnostics.slice(before)));
+    }
+    assert.equal(calls.length, index + 1, 'a second Run cannot acquire the owned slot');
+    assert.equal(writesOf(x.installation.org).length, 0);
+    call.settle({decision: 'defer', subject: call.view.subject});
+    await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+    const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
+    assert.equal(checkpoint.kind, index === 0 ? 'read_access' : 'effect_set');
+    primaryRunId ??= checkpoint.subject.runId;
+    assert.equal(checkpoint.subject.runId, primaryRunId);
+    await host.close();
+    await answer(t, x, checkpoint, 'approved', ref.authorityScopeCid);
+    host = await remoteHost(t, x.installation, x.directory, options);
+    run = await (await host.as('owner-token')).attach(ref);
+  }
+  await waitFor(async () => (await run.status()).status === 'succeeded');
+  assert.deepEqual(await run.result('answer').all(), expected);
+  assert.equal(calls.length, 2, 'committed approvals do not request replacement judgments');
+  assert.equal(writesOf(x.installation.org).length, 2);
+  await host.close();
+  t.diagnostic(JSON.stringify({runDefinitionCid: ref.runDefinitionCid,
+    configurationCid, callbacks: calls.map(call => call.view.boundary),
+    deniedContenders: 2, ...options.decisionOptions}));
+});
+}
+
+
+// Fail only after the real Host has acquired a complete durable capture. The
+// public Result's composite prepared handle can be instrumented without
+// replacing the Store's physical holding owner or the ledger connection.
+for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
+  for (const blockedCleanup of [false, true]) {
+    test(`captured Run keeps ${boundary} payload custody${blockedCleanup ? ' through cleanup retry' : ''}`,
+      {timeout: 20_000}, async t => {
+      const x = await setup(t, {commit: 'allow'});
+      const abort = new AbortController();
+      const primary = new Error(`Injected captured ${boundary}`);
+      const cleanupFailure = new Error('Injected prepared payload release');
+      const state = {blocked: blockedCleanup, prepared: [], releases: 0,
+        inputs: 0, disposals: 0, captures: 0, refusals: 0, refreshes: 0};
+      t.after(() => { state.blocked = false; });
+      const instrument = {
+        observeFailure(error) { state.failure = error; },
+        observeResult(result) { state.result = result; },
+        hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+          const stage = await hooks.prepareCaptured(facts);
+          state.captures++;
+          state.stage = stage;
+          assert.ok(state.prepared.length > 0);
+          assert.ok(state.prepared.some(owner => owner.status().pending));
+          state.store = facts.store;
+          if (boundary === 'pre-send-abort') abort.abort(primary);
+          return {...stage,
+            apply: {...stage.apply, async refreshPreflight(...args) {
+              state.refreshes++;
+              if (boundary === 'refresh-io') throw primary;
+              return stage.apply.refreshPreflight(...args);
+            }},
+            releaseInputs() { state.inputs++; return stage.releaseInputs(); },
+            dispose() { state.disposals++; return stage.dispose(); }};
+        }}),
+        facts: facts => ({...facts, signal: abort.signal,
+          ...(boundary !== 'published' ? {} : {store: {...facts.store,
+            async commitEffectfulIndex(...args) {
+              await facts.store.commitEffectfulIndex(...args);
+              // The second real Store call observes the committed index.
+              const result = await facts.store.commitEffectfulIndex(...args);
+              assert.equal(result.idempotent, true);
+              state.terminalRelease = true;
+              return result;
+            }}}),
+          retainExecution(owner) { state.custody = owner; facts.retainExecution(owner); },
+          observePreEffectFailure() { state.refusals++; facts.observePreEffectFailure?.(); },
+          async openComputation(options) {
+            const opened = await facts.openComputation(options);
+            const original = opened.execution;
+            return {...opened, cleanupOwner: opened.cleanupOwner ?? original,
+              execution: {...original, async storePublicationResult(...args) {
+                const stored = await original.storePublicationResult(...args);
+                const prepared = stored.prepared;
+                state.prepared.push(prepared);
+                const release = async () => {
+                  state.releases++;
+                  if (state.blocked) throw cleanupFailure;
+                  return prepared.release();
+                };
+                return {...stored, prepared: {status() {
+                  // After Store transfer, a failed status observation still
+                  // leaves the completed owner responsible for its release.
+                  if (state.blocked && state.terminalRelease) throw cleanupFailure;
+                  return prepared.status();
+                }, release,
+                  async retry() { await release(); return prepared.status(); }}};
+              }}};
+          }}),
+      };
+      const host = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration, instrument,
+          decisionOptions: {maxInFlightDecisions: 1, maxRetainedDecisions: 32}});
+      const run = await (await host.as('owner-token')).aql(x.program,
+        {format: 'json', requestId: `captured-${boundary}-${blockedCleanup}`});
+      if (boundary === 'published') {
+        if (blockedCleanup) {
+          await waitFor(() => state.failure !== undefined);
+          assert.ok(state.failure.cleanupErrors.includes(cleanupFailure));
+        }
+        if (!blockedCleanup) await waitFor(() => state.result?.status === 'published');
+        await waitFor(async () => (await run.status()).status === 'succeeded');
+      } else {
+        await waitFor(() => state.failure !== undefined);
+        assert.equal(state.failure, primary, 'the original generic exception stays primary');
+      }
+      assert.equal(state.refusals, 0, 'generic failures are not definitive pre-send refusals');
+      assert.equal(state.captures, 1);
+      assert.equal(state.refreshes, boundary === 'pre-send-abort' ? 0 : 1);
+      assert.equal(writesOf(x.installation.org).length, boundary === 'published' ? 2 : 0);
+      const io = x.installation.org.seen.length;
+      const capacity = state.store.status();
+      if (blockedCleanup) {
+        let failure;
+        await assert.rejects(host.close(), error => {
+          failure = error;
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+          return true;
+        });
+        assert.ok(state.releases > 0, 'captured payload cleanup was attempted');
+        assert.equal(state.custody.cleanupPending(), true);
+        assert.equal(state.disposals, 0, 'ledger stays owned until payload cleanup finishes');
+        await assert.rejects(failure.cleanupHandle.retry());
+        const releases = state.releases;
+        state.blocked = false;
+        try { await failure.cleanupHandle.retry(); }
+        catch (error) {
+          t.diagnostic(JSON.stringify({code: error.code,
+            cleanup: error.failures?.map(item => item.cleanup?.code)}));
+          throw error;
+        }
+        assert.deepEqual(failure.cleanupHandle.status().pending, []);
+        if (boundary !== 'published') assert.ok(state.releases > releases);
+        const completed = state.releases;
+        await failure.cleanupHandle.retry();
+        assert.equal(state.releases, completed, 'completed payloads are not released twice');
+      }
+      let remaining;
+      try { remaining = await host.close(); }
+      catch (error) {
+        t.diagnostic(JSON.stringify({boundary, blockedCleanup,
+          code: error.code, pending: error.cleanupHandle?.status(),
+          failures: error.cleanupErrors?.map(item => ({owner: item.owner,
+            code: item.error?.code, message: item.error?.message,
+            stack: item.error?.stack}))}));
+        throw error;
+      }
+      if (remaining !== undefined) {
+        assert.equal(remaining.storeCleanupPending, false);
+        assert.deepEqual(remaining.pendingRetention, []);
+      }
+      assert.ok(state.prepared.every(owner => owner.status().pending === false),
+        'no process-local prepared Result owner survives Host cleanup');
+      assert.equal(state.custody.cleanupPending(), false);
+      assert.equal(state.inputs, 1, 'consumer pins are released once');
+      assert.equal(state.disposals, 1, 'the ledger connection is disposed once');
+      assert.equal(x.installation.org.seen.length, io, 'cleanup performs no provider I/O');
+      const kept = await retained(x);
+      if (boundary === 'published') {
+        assert.ok(kept.holdings.length > 0 && kept.objects.length > 0,
+          'terminal payload release cannot retire published Store custody');
+      } else {
+        assert.deepEqual(kept, {holdings: [], objects: []},
+          'the existing Host owner retires an unheld capture after physical stop');
+      }
+      assert.ok(state.store.status().storedBytes <= capacity.storedBytes,
+        'cleanup never duplicates Store capacity');
+      assert.ok(state.store.status().objectCount <= capacity.objectCount);
+      const restarted = await remoteHost(t, x.installation, x.directory,
+        {configuration: x.configuration});
+      const attached = await (await restarted.as('owner-token')).attach(run.ref);
+      if (boundary === 'published') {
+        assert.equal((await attached.status()).status, 'succeeded');
+        assert.deepEqual(await attached.result('answer').all(), ids.map(id => ({id})));
+      } else {
+        assert.ok(!['succeeded', 'cancelled'].includes((await attached.status()).status));
+      }
+      await restarted.close();
+      assert.equal(x.installation.org.seen.length, io, 'restart cannot duplicate the original Run');
+      assert.equal(writesOf(x.installation.org).length, boundary === 'published' ? 2 : 0);
+    });
+  }
+}
+
+
+test('a captured Checkpoint cannot switch an already retained payload owner to retirement',
+  async t => {
+  const x = await setup(t);
+  let captured;
+  const instrument = {hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+    captured = {stage: await hooks.prepareCaptured(facts), control: facts.control};
+    return captured.stage;
+  }})};
+  const host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration, instrument});
+  const run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'captured-release-mode-conflict'});
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  assert.throws(() => releaseCompletedRunPreparedPayloads(
+    captured.stage.storedResults, captured.control),
+  {code: 'CompletedRunResultSetReleaseModeConflict'});
+  await host.close();
+  const kept = await retained(x);
+  assert.ok(kept.holdings.length > 0 && kept.objects.length > 0);
+  assert.equal(writesOf(x.installation.org).length, 0);
+});
+
+
+test('an interrupted captured Run keeps transferred custody after repeated receipt I/O failures',
+  async t => {
+  const x = await setup(t, {commit: 'allow', org: {loseWriteReplyOnce: true}});
+  const primary = new Error('Injected receipt evidence I/O');
+  const state = {blocked: true, reads: 0, refusals: 0};
+  t.after(() => { state.blocked = false; });
+  const instrument = {
+    observeFailure(error) { state.failure = error; },
+    facts: facts => ({...facts,
+      retainExecution(owner) { state.custody = owner; facts.retainExecution(owner); },
+      observePreEffectFailure() { state.refusals++; facts.observePreEffectFailure?.(); },
+      async openComputation(options) {
+        const opened = await facts.openComputation(options);
+        const owner = opened.cleanupOwner ?? opened.execution;
+        return {...opened, cleanupOwner: {...owner,
+          cleanup: () => state.blocked ? false : owner.cleanup()}};
+      }}),
+    hooks: hooks => ({...hooks, async prepareCaptured(facts) {
+      const stage = await hooks.prepareCaptured(facts);
+      state.prepared = stage.storedResults.results.map(result => result.prepared);
+      state.stage = {...stage,
+        releaseInputs() {
+          if (state.blocked) throw new Error('Injected input pin release');
+          return stage.releaseInputs();
+        },
+        receipt: {...stage.receipt,
+          async authorizeEvidenceRead() { state.reads++; throw primary; }}};
+      return state.stage;
+    }}),
+  };
+  const host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration, instrument});
+  const run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'captured-interrupted-receipt'});
+  await waitFor(() => state.failure !== undefined);
+  assert.equal(state.failure, primary);
+  assert.equal(state.refusals, 0);
+  assert.equal(state.reads, 1);
+  assert.equal(state.custody.cleanupPending(), true);
+  const {apply, receipt, publication} = state.stage;
+  await assert.rejects(completeInterruptedEffectRun({apply, receipt, publication}, false),
+    error => error === primary);
+  assert.equal(state.reads, 2);
+  assert.equal(writesOf(x.installation.org).length, 1);
+  const io = x.installation.org.seen.length;
+  state.blocked = false;
+  await host.close();
+  assert.ok(state.prepared.every(owner => owner.status().pending === false));
+  assert.equal(state.custody.cleanupPending(), false);
+  const kept = await retained(x);
+  assert.ok(kept.holdings.length > 0 && kept.objects.length > 0,
+    'physical dispatch has transferred durable capture custody');
+  const restarted = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  const attached = await (await restarted.as('owner-token')).attach(run.ref);
+  assert.ok(!['succeeded', 'cancelled'].includes((await attached.status()).status));
+  await restarted.close();
+  assert.equal(x.installation.org.seen.length, io);
+  assert.equal(writesOf(x.installation.org).length, 1,
+    'neither interrupted completion nor cleanup can send the uncertain row again');
+});

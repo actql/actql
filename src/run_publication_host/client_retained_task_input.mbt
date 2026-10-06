@@ -295,6 +295,76 @@ pub fn client_retained_task_input_binding(
 }
 
 ///|
+/// Recover the saved destination-use identity through the existing physical
+/// binding decoder, then perform ordinary exact retained-input admission.
+/// Parsing this identity issues no borrow or current material authority.
+pub fn restore_client_retained_task_input(
+  saved : @remote.RemoteInputBinding,
+  producer : ClientRetainedInputProducer,
+  transfer_record : @transfer.RemoteTransferRecord,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  current : ClientRetainedInputCurrent,
+  max_binding_bytes : Int,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue] {
+  let node = match
+    @source.parse_json_bytes(
+      @utf8.encode(@remote.remote_input_binding_body(saved)),
+      { max_input_bytes: max_binding_bytes, max_nodes: 32, max_depth: 2, },
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding)
+  }
+  let cursor = match
+    @decode.admit(node, {
+      max_nodes: 32,
+      max_depth: 2,
+      max_string_bytes: max_binding_bytes,
+      max_total_string_bytes: max_binding_bytes,
+    }) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding)
+  }
+  let fields = match
+    @decode.closed_object(cursor, [
+      "consumer_input_port", "consumer_logical_cid", "consumer_task_key", "destination_receipt_json",
+      "physical_input_json", "producer_evidence_json", "producer_logical_cid", "producer_output_port",
+      "producer_request_json", "producer_subject_json", "run_definition_cid", "version",
+    ]) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding)
+  }
+  guard client_transfer_input_text(fields, "version") is Some(version) &&
+    version == "actql-remote-retained-task-input/0.1" &&
+    client_transfer_input_text(fields, "physical_input_json") is Some(body) else {
+    return Err(InvalidBinding)
+  }
+  let physical = match
+    @remote.prepare_remote_input_binding(body, max_binding_bytes) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding)
+  }
+  let physical = match
+    admit_client_transfer_input(
+      physical, max_binding_bytes, max_chunks, max_manifest_bytes, max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding)
+  }
+  admit_client_retained_task_input(
+    saved,
+    producer,
+    transfer_record,
+    receipt,
+    client_transfer_destination_use_id(physical),
+    current,
+    max_binding_bytes,
+  )
+}
+
+///|
 pub fn validate_client_retained_task_input_current(
   value : ClientRetainedTaskInput,
   current : ClientRetainedInputCurrent,
