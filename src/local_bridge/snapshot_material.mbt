@@ -1,7 +1,8 @@
 ///|
 /// Attach a lazy, exact-generation operation to the existing Graph material.
 /// Bounds are installed by the selected provider before execution; a persisted
-/// header cannot increase them or supply the expected owner/domain.
+/// header cannot increase them or supply the expected owner/domain. Reference
+/// values are re-admitted only through the caller's current Host authority.
 pub fn completed_graph_snapshot_material(
   control : @bounded.Control,
   owner : @lower.BoundPrepared,
@@ -14,6 +15,7 @@ pub fn completed_graph_snapshot_material(
   maximum_frame_bytes : Int,
   workspace_bytes : Int64,
   available : () -> Bool,
+  reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> Result[@lifecycle.Material, GraphBridgeIssue] {
   let reference = @graph.completed_carrier_reference(source)
   if !@lifecycle.completion_reference_matches_port(reference, owner, target) ||
@@ -150,10 +152,14 @@ pub fn completed_graph_snapshot_material(
               @lifecycle.SnapshotFamilyFailure("snapshot structural admission"),
             )
         }
-        start_graph_snapshot_handoff_reload(handoff, cursor, input_available).map_err(issue => {
-            @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue))
-          },
-        )
+        start_graph_snapshot_handoff_reload(
+          handoff,
+          cursor,
+          input_available,
+          reference_issuer~,
+        ).map_err(issue => {
+          @lifecycle.SnapshotFamilyFailure(@debug.to_string(issue))
+        })
       },
       quantum => {
         match advance_graph_snapshot_handoff_reload(handoff, quantum) {

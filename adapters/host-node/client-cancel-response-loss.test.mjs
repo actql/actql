@@ -51,7 +51,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local',
     maxBatchRetainedValueBytes: 2048}};
 
 async function fixture(t, transport, loss, {physicalStart = false, terminal = false,
-  reply = null, runId = 'saved-run', cancelResponseCache, transformCancelReply} = {}) {
+  reply = null, runId = 'saved-run', cancelResponseCache, transformCancelReply, transformRunReply} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-cancel-loss-'));
   const journal = openClientRequestJournal(directory);
   let database, server, client;
@@ -165,7 +165,7 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
         if (phase === 'before-dispatch') throw new Error('LostCancelTransport');
         const reply = await port.perform(operation, body, signal);
         if (phase === 'after-commit') throw new Error('LostCancelTransport');
-        return operation === 'cancel' ? alterReply(reply) : reply;
+        return operation === 'cancel' ? alterReply(reply) : operation === 'status' && transformRunReply ? transformRunReply(reply) : reply;
       },
     });
   } else {
@@ -195,6 +195,13 @@ async function fixture(t, transport, loss, {physicalStart = false, terminal = fa
           assert.equal(response.statusCode, 200);
           const value = JSON.parse(data.toString());
           return end.call(this, JSON.stringify(alterReply(value)), ...args);
+        };
+      }
+      if (operation === 'status' && transformRunReply) {
+        const end = response.end;
+        response.end = function(data, ...args) {
+          if (response.statusCode !== 200) return end.call(this, data, ...args);
+          return end.call(this, JSON.stringify(transformRunReply(JSON.parse(data.toString()))), ...args);
         };
       }
       void handler(request, response);
@@ -376,6 +383,12 @@ for (const transport of ['in-process', 'https']) {
       summary: 'The Host recorded a Run cancellation request. Refresh Run state for physical stop, Effects and release.', next};
     assert.deepEqual(sdk.explainCancellation(accepted), expected, '[check-mutation:cancel-explanation]');
     const beforeLocale = f.counts();
+    for (const format of ['text', 'html', 'json']) {
+      const output = sdk.formatCancellation(accepted, {format});
+      assert.ok(output);
+      if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, expected,
+        '[check-mutation:operation-cancel-public-format]');
+    }
     assert.deepEqual(sdk.explainCancellation(accepted, {locale: 'ja'}), {...expected,
       summary: 'HostはRunの取消し要求を記録しました。物理停止・Effect・解放はRunの現在状態で確認してください。'},
     '[check-mutation:operation-cancel-public-locale]');
@@ -470,5 +483,47 @@ for (const transport of ['in-process', 'https']) {
       return error.code === 'ClientClosed';
     });
     assert.deepEqual(closed.counts(), {cancelCalls: 0, submits: 0});
+  });
+}
+
+
+for (const transport of ['in-process', 'https']) {
+  test(`${transport}: uninterpretable Run observations retain only the original authorized lookup`, async t => {
+    let alter = value => value;
+    const setup = await fixture(t, transport, undefined, {transformRunReply: value => alter(value)});
+    const {execution} = setup;
+    const original = await execution.status();
+    assert.equal(original.status, 'running');
+    const before = setup.stored();
+    for (const [mutation, kind, problem] of [
+      [value => ({...value, status: 'private-future-state', next_action: {kind: 'submit'}}), 'uninterpretable', 'unknown_state'],
+      [value => ({...value, result_available: 'true'}), 'protocol_failure', 'malformed_response'],
+      [value => ({...value, version: 'actql-private-future-state/0.1'}), 'protocol_failure', 'contract_mismatch'],
+    ]) {
+      alter = mutation;
+      const previous = setup.operations.length;
+      let error;
+      try { await execution.status(); } catch (failure) { error = failure; }
+      assert.equal(error?.code, 'InvalidHostRunState', '[check-mutation:run-protocol-public-rejection]');
+      const view = sdk.explainRunObservationFailure(error);
+      assert.deepEqual({kind: view?.kind, problem: view?.problem, operation: view?.operation},
+        {kind, problem, operation: 'status'}, '[check-mutation:run-protocol-public-kind]');
+      assert.deepEqual(view.next, {operation: 'status', ref: execution.ref}, '[check-mutation:run-protocol-public-ref]');
+      assert.equal(sdk.explainRunObservationFailure({...error}), undefined);
+      assert.equal(sdk.explainRunObservationFailure(error, {locale: 'ja'}).kind, kind);
+      assert.equal(sdk.explainEffectUncertainty(error), undefined);
+      assert.doesNotMatch(JSON.stringify({error, view}), /private-future-state|actql-private/);
+      assert.deepEqual(setup.operations.slice(previous), ['status'], '[check-mutation:run-protocol-public-passive]');
+      assert.deepEqual(setup.stored(), before);
+    }
+    alter = value => value;
+    assert.deepEqual(await execution.status(), original);
+    setup.authorize(false);
+    let denied;
+    try { await execution.status(); } catch (error) { denied = error; }
+    assert.ok(denied);
+    assert.equal(sdk.explainRunObservationFailure(denied), undefined);
+    assert.deepEqual(setup.counts(), {cancelCalls: 0, submits: 0});
+    assert.deepEqual(setup.stored(), before);
   });
 }

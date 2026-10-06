@@ -6186,6 +6186,7 @@ fn direct_relation_pool_owner(
   source : @lower.BoundPrepared,
   prefix? : Bool = false,
   group_name? : String = "group",
+  source_step? : Int = 1,
 ) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
@@ -6208,7 +6209,7 @@ fn direct_relation_pool_owner(
           @pipeline.ProducedInput(
             @pipeline.produced_input(
               @lower.pipeline(@lower.bound_preparation(source)),
-              @pipeline.Step(1),
+              @pipeline.Step(source_step),
             ).unwrap(),
           ),
         ),

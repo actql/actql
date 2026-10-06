@@ -106,12 +106,12 @@ test "ordinary values document prepares one named Effect-free result" {
   assert_eq(
     client_result_plan_wire(result_plan),
     (
-      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:1a20a8bf0cacf27e2567535833edaa39ea58eb3a12f1fd0e0b5ccbdb72de1564","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:1e8e7830dddd545a741135b8a2eb43d2a96b54d54e97b0d0f01588de0160151d","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
+      #|{"order":{"strategy":"inherited","terms":[]},"projection":[{"input":"id","output":"id","value_contract_cid":"sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d"}],"result_name":"answer","result_plan_logical_cid":"sha256:6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8","typed_output_port":{"carrier":"relation","name":"rows","row_contract_cid":"sha256:999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c"},"unit_definition_cid":"sha256:0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca","unit_result_name":"rows","unit_result_ordinal":0,"version":"actql-result-plan/0.1"}
     ),
   )
   assert_eq(
     client_result_plan_cid(result_plan),
-    "sha256:1a20a8bf0cacf27e2567535833edaa39ea58eb3a12f1fd0e0b5ccbdb72de1564",
+    "sha256:6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8",
   )
   assert_eq(
     client_result_plan_cid(

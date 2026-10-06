@@ -5652,6 +5652,8 @@ clarification does not create uniqueness, order or resource proofs at check.
 ```yaml
 - from: customer_graph
   match_nodes:
+    definition: customers
+    bindings: {identity: node_id}
     where:
       and:
         - {eq: [{field: entity_type}, {literal: company}]}
@@ -5662,6 +5664,8 @@ clarification does not create uniqueness, order or resource proofs at check.
 ```yaml
 - from: customer_graph
   match_edges:
+    definition: ownerships
+    bindings: {identity: edge_id, source: source_id, target: target_id}
     types: [owns, subsidiary_of]
     where: {eq: [{field: active}, {literal: true}]}
     fields: [edge_id, source_id, target_id, edge_type]
@@ -5676,17 +5680,25 @@ type, then edge identity. A graph lacking a requested property or identity
 MUST fail during check.
 
 <!-- requirement-block: graph-property-match.closed-selectors-and-projections -->
-`match_nodes` admits only `ids`, `where` and `fields`, with exactly one of `ids`
-and `where`. `ids` is a nonempty array of explicit values admitted under the
+`match_nodes` admits only `definition`, `label`, `bindings`, `ids`, `where` and
+`fields`, with required `definition` and exactly one of `ids` and `where`.
+`ids` is a nonempty array of explicit values admitted under the
 semantic node-ID contract, without string conversion or implicit Parameter
 substitution. Authored JSON alone cannot establish an opaque Ref as specified
 in [Opaque reference values](#opaque-references). Repeated IDs remain in the
 authored representation; membership selection deduplicates them and requires
 every selected identity to exist before publication. `match_edges` admits only
-`types`, `where` and `fields`; both filters are optional and, when present, are
-conjoined. `types` contains nonempty normalized strings. An empty type list
+`definition`, `label`, `bindings`, `types`, `where` and `fields`, with required
+`definition`; both filters are optional and, when present, are conjoined.
+`types` contains nonempty normalized strings. An empty type list
 selects no edges, while absence does not filter types. Repeated types do not
 repeat output rows and remain in the authored representation.
+
+The required `definition` names one admitted node or edge definition. Optional
+`label` selects a static label of that definition. Optional `bindings` is closed:
+node matches admit only `identity`; edge matches admit `identity`, `source` and
+`target`. Each binding names a caller-selected output field; name collisions
+reject rather than supplying implicit identity aliases.
 
 Both `fields` lists MUST be nonempty and free of repeated references. Their
 order is the output projection order. Predicates admit nullable boolean and
@@ -5714,7 +5726,8 @@ Homogeneous bounded traversal uses:
 ```yaml
 - from: customer_graph
   traverse:
-    start: {ids: [company:A]}
+    start: {from: start_nodes, id: node_id}
+    path_mode: trail
     edge_types: [owns]
     direction: out
     min_hops: 1
@@ -5729,6 +5742,7 @@ An authored typed pattern uses `hops` instead of `edge_types`, `direction`,
 - from: customer_graph
   traverse:
     start: {where: {eq: [{field: entity_type}, {literal: customer}]}}
+    path_mode: walk
     hops:
       - {edge_types: [purchased], direction: out}
       - {edge_types: [belongs_to], direction: out,
@@ -5752,8 +5766,10 @@ direction and may constrain edge types, edge properties, and the reached node.
 No implementation may widen the authored maximum.
 
 <!-- requirement-block: traverse.closed-modes-and-filters -->
-The closed body MUST admit only `start`, `emit`, optional `max_output_rows`, and exactly
-one traversal mode. Homogeneous mode requires literal finite integer-valued
+The closed body MUST admit only required `start`, `emit` and `path_mode`,
+optional `max_output_rows`, and exactly one traversal mode. `path_mode` is
+explicitly `walk`, `trail` or `acyclic`; omission does not select a default.
+Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
 optional `edge_types`, `edge_where`, and `node_where`. Pattern mode instead
 requires a nonempty `hops` array
@@ -5803,15 +5819,18 @@ order. The search-path ceiling and the node-output row ceiling remain separate;
 multiple eligible paths to one node do not consume multiple node-output rows.
 
 <!-- requirement-block: traverse.typed-edge-identity-records -->
-In traversal and shortest-path output, each `edge_ids` element MUST be the
-closed record `{src, dst, rel}` representing the pinned SGA edge-identity tuple.
-`src` and `dst` retain the semantic node-ID type; `rel` is the semantic label
-or explicit null. These are the edge's original directed endpoints, even when
-the path traverses that edge in the incoming direction. Ordering compares the
-semantic tuple `(src, dst, rel)`, not JSON field order or serialized text.
-No provider edge locator, string conversion, property named `edge_id`, or
-newly computed CID substitutes for this identity. This fixes the output
-representation of the existing edge-identity law; it does not issue new IDs.
+In supported path output, each `edge_ids` element MUST retain the complete
+admitted Graph identity: constructor definition domain, edge definition name,
+ordered semantic key type descriptors and complete non-null typed key tuple.
+Edge endpoints, labels and properties are snapshot content, not edge identity.
+Distinct independent edge keys preserve parallel edges even when their
+endpoints and labels agree. Incoming traversal preserves that same edge
+identity. Ordering uses the admitted typed identity comparison, not JSON field
+order, display strings or serialized text. No endpoint tuple, provider locator,
+property named `edge_id`, or newly computed CID substitutes for this identity.
+This follows the current [Graph law](../../spec/dependencies/actql-graph-laws.json)
+identity, content and path requirements; it does not establish execution
+support for an otherwise unimplemented Graph consumer.
 
 <a id="shortest-path-and-components"></a>
 
