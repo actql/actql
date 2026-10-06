@@ -345,6 +345,7 @@ fn prepare_kernel_measured(
     | GraphNormalizeValue(_)
     | GraphDeltaValue(_)
     | GraphUnionValue(_)
+    | GraphSubtractionValue(_)
     | GraphComponentsRows(_)
     | GraphSubgraphValue(_)
     | GraphTraverseRows(_)

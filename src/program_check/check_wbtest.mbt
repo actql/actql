@@ -163,7 +163,7 @@ test "check rejects unsupported or malformed later steps without a partial resul
       ("[{\"shortest_path\":{}}]", false),
       ("[{\"graft_graph\":{}}]", false),
       ("[{\"union_graphs\":{}}]", true),
-      ("[{\"subtract_graphs\":{}}]", false),
+      ("[{\"subtract_graphs\":{}}]", true),
       ("[{\"mean_graphs\":{}}]", false),
       ("[{\"to_vectors\":{}}]", true),
       ("[{\"normalize_vectors\":{}}]", true),

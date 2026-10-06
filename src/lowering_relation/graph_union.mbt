@@ -13,8 +13,12 @@ pub(all) enum GraphUnionIssue {
 fn prepare_graph_union_node(
   node : PreparedNode,
 ) -> Result[PreparedGraphUnion, GraphUnionIssue] {
-  guard node.payload is GraphUnionValue(checked) &&
-    node.inputs.length() == @graph.union_input_count(checked) &&
+  let checked = match node.payload {
+    GraphUnionValue(checked) => checked
+    GraphSubtractionValue(checked) => @graph.subtraction_composition(checked)
+    _ => return Err(InvalidGraphUnionWiring)
+  }
+  guard node.inputs.length() == @graph.union_input_count(checked) &&
     node.inputs.length() >= 2 &&
     node.output_schema is None &&
     node.output_carrier is @carrier.GraphValue(_) else {

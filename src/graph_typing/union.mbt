@@ -458,6 +458,18 @@ pub fn check_union(
   inputs : Array[@carrier.Carrier],
   limits : Limits,
 ) -> Result[CheckedUnion, Issue] {
+  check_structural_composition(source, inputs, limits, allow_list=true)
+}
+
+///|
+/// Shared compatibility and field alignment construction. The operation's
+/// closed operand form remains distinct; subtraction never admits a fold list.
+fn check_structural_composition(
+  source : @decode.Cursor,
+  inputs : Array[@carrier.Carrier],
+  limits : Limits,
+  allow_list~ : Bool,
+) -> Result[CheckedUnion, Issue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
@@ -475,7 +487,7 @@ pub fn check_union(
     let body = decoded(@decode.closed_object(source, ["with", "merge"]))
     let at = decoded(@decode.required(body, "with"))
     let peers = if @decode.array_length(at) is Some(count) {
-      if count == 0 {
+      if !allow_list || count == 0 {
         fail(at, InvalidBody)
       }
       decoded(@decode.elements(at))

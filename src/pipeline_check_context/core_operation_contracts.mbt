@@ -47,7 +47,9 @@ fn operation_count_contract(
     // common transfer root without borrowing the constructor's count proof;
     // runtime composition resource admission remains mandatory. A typed execution
     // requirement is not a count proof or evidence of successful admission.
-    @pipeline.GraphDelta(..) | @pipeline.GraphUnion(..) => ClassificationOnly
+    @pipeline.GraphDelta(..)
+    | @pipeline.GraphUnion(..)
+    | @pipeline.GraphSubtraction(..) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking
     @pipeline.TimeSeries(_) | @pipeline.Calendar(_) => Series

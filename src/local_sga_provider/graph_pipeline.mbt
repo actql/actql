@@ -178,7 +178,8 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
     ) {
     Some(@lower.PropertyGraphConstructionStep(_))
     | Some(@lower.GraphNormalizeStep(_))
-    | Some(@lower.GraphUnionStep(_)) => true
+    | Some(@lower.GraphUnionStep(_))
+    | Some(@lower.GraphSubtractionStep(_)) => true
     _ => false
   }
 }
@@ -340,11 +341,14 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         .bind(target => @lower.preparation_carrier_at(prepared, target))
         .map(current_graph)
         .unwrap_or(false)
-      @lower.GraphUnionStep(union) => {
+      @lower.GraphUnionStep(union) | @lower.GraphSubtractionStep(union) => {
         let count = @graph_type.union_input_count(
           @lower.graph_union_checked(union),
         )
-        @lower.operation(node) == "SGA.union_structural" &&
+        (
+          @lower.operation(node) == "SGA.union_structural" ||
+          (@lower.operation(node) == "SGA.diff_structural" && count == 2)
+        ) &&
         count >= 2 &&
         @lower.node_input_count(node) == count &&
         ({
@@ -590,7 +594,7 @@ fn advance_execution(
     match value.phase {
       StartUnion => {
         match
-          @sga.start_union_views(
+          @sga.start_graph_composition_views(
             value.control,
             value.sequence,
             value.selected_step.unwrap_or(0),
@@ -598,7 +602,7 @@ fn advance_execution(
             value.limits,
             value.storage_bytes,
             () => true,
-            control_work_limit=Some(value.limits.max_work),
+            Some(value.limits.max_work),
           ) {
           Ok(active) => value.union = Some(active)
           Err(_) => return fail_execution(value)
@@ -1688,8 +1692,12 @@ pub fn provider(
           is Some(step) else {
           return None
         }
-        if @lower.sequence_step(prepared, step)
-          is Some(@lower.GraphUnionStep(union)) {
+        let composition = match @lower.sequence_step(prepared, step) {
+          Some(@lower.GraphUnionStep(union))
+          | Some(@lower.GraphSubtractionStep(union)) => Some(union)
+          _ => None
+        }
+        if composition is Some(union) {
           let checked = @lower.graph_union_checked(union)
           union_selected = true
           guard @sga.union_order_workspace_bytes(checked, limits) is Some(bytes) else {
@@ -1837,7 +1845,8 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphUnionStep(union)) =>
+        Some(@lower.GraphUnionStep(union))
+        | Some(@lower.GraphSubtractionStep(union)) =>
           Some(@graph_type.union_input_count(@lower.graph_union_checked(union)))
         _ => None
       }
