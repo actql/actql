@@ -404,6 +404,11 @@ fn append_resolved(
                   lowering.form("literal", raw)
                 }
                 _ if op == "-" => lowering.form("negate", nodes[child])
+                _ if op == "+" && literals[child] is None =>
+                  // Two type-preserving numeric negations keep the existing
+                  // checker signature and reference the operand exactly once.
+                  // Dropping the operator would also admit nonnumeric values.
+                  lowering.form("negate", lowering.form("negate", nodes[child]))
                 _ => raise Abort(InvalidArguments)
               }
             _ => raise Abort(InvalidArguments)
