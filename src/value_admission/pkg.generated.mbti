@@ -32,6 +32,8 @@ pub fn advance_canonical_conversion(CanonicalConversion) -> CanonicalConversionP
 
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
+pub fn advance_complete_order(CompleteOrder, Int) -> CompleteOrderPoll
+
 pub fn advance_json_admission(JsonAdmission) -> JsonAdmissionPoll
 
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
@@ -59,6 +61,8 @@ pub fn boolean_value(Bool) -> Value
 pub fn cancel_array_value(ArrayBuilder) -> Bool
 
 pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
+
+pub fn cancel_complete_order(CompleteOrder) -> Unit
 
 pub fn cancel_json_admission(JsonAdmission) -> Unit
 
@@ -166,6 +170,8 @@ pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contra
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
+pub fn start_complete_order(CheckedValue, Limits, max_output_bytes? : Int?) -> Result[CompleteOrder, CompleteOrderIssue]
+
 pub fn start_host_typed_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits, wire? : Bool) -> Result[TypedAdmission, Issue]
 
 pub fn start_json_admission(@decode_core.Cursor, Limits, allow_json_null? : Bool, data_keys? : Bool) -> Result[JsonAdmission, Issue]
@@ -231,11 +237,19 @@ pub enum CompleteEqualityPoll {
   EqualityFailed(CompleteEqualityIssue, work~ : Int)
 }
 
+type CompleteOrder
+
 pub(all) enum CompleteOrderIssue {
   InvalidCompleteOrderLimits
   CompleteOrderLimit
   CompleteOrderReferenceUnavailable
 } derive(Eq, @debug.Debug)
+
+pub enum CompleteOrderPoll {
+  OrderContinue(work~ : Int)
+  OrderComplete(String, bytes~ : Int, work~ : Int)
+  OrderFailed(CompleteOrderIssue, work~ : Int)
+}
 
 pub struct DecimalValue {
   coefficient : String

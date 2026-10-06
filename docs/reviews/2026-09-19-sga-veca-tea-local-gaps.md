@@ -775,12 +775,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 62 |
-| Typed pre-execution refusals (not execution success) | 7 |
-| Operation-specific boundary records | 62 |
-| Four-role lifecycle assurance | 62 |
-| Full route work/workspace assurance | 62 |
-| Path-scoped work/workspace assurance | 114 |
+| Executable production routes | 64 |
+| Typed pre-execution refusals (not execution success) | 5 |
+| Operation-specific boundary records | 64 |
+| Four-role lifecycle assurance | 64 |
+| Full route work/workspace assurance | 64 |
+| Path-scoped work/workspace assurance | 116 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -3456,15 +3456,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 28/40 |
-| `lowering` | 28/40 |
-| `kernel` | 28/40 |
-| `managed` | 28/40 |
-| `standard_host` | 26/40 |
-| `consumer_lifetime` | 26/40 |
-| `resources` | 33/40 |
-| `cancellation` | 33/40 |
-| `publication` | 26/40 |
+| `checker` | 30/40 |
+| `lowering` | 30/40 |
+| `kernel` | 30/40 |
+| `managed` | 30/40 |
+| `standard_host` | 27/40 |
+| `consumer_lifetime` | 27/40 |
+| `resources` | 35/40 |
+| `cancellation` | 35/40 |
+| `publication` | 27/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
@@ -5806,7 +5806,51 @@ output encoding retains custody until confirmed stop and reclaims it once.
 The normal installed Host reads three explicit Named Results from a real Store,
 reuses a request without Compute/dispatch and delivers cancellation inside output
 Vector encoding. Gate removal/foreign-suite checks require shared and operation
-evidence. Identity text assembly/hash/equality, schema/type/name scans, other
-record callers and whole-Run physical accounting remain separate residuals.
+evidence. The following identity unit supersedes the earlier synchronous
+identity residual; schema/type/name scans, other record callers and whole-Run
+physical accounting remain separate residuals.
 This is not all-Local completion. See the
 [record-admission evidence](2026-10-06-local-pool-record-admission.md).
+
+### Record identity hashing and exact streaming matches
+
+The shared append cursor now hashes identity wire without final full-String
+assembly. Fixed-size digests select prior retained records only; exact wire
+equality is resumed through bounded fragments, including digest collisions.
+Prior identity lookup is stepped, comparison workspace is reserved before
+allocation, and failed/cancelled custody survives until cleanup. Both append
+APIs share this equality domain without changing wire/CID/order semantics.
+
+Independent shared limits are construction **8/7**, bytes **278/277**, workspace
+**20/19**; duplicate comparison has workspace **35/34**. Forced collisions,
+Unicode/escaping, differing fragment boundaries and cleanup are tested.
+An 8,096-unit Pool output key gives control **8410/8409** across quanta 1/7/256;
+the ordinary installed Host uses the same independently derived **8192**
+in-key cancellation boundary, reads three Named Results from the real Store,
+retains custody before stop and publishes nothing after cancellation.
+
+Schema/type/name scans, synchronous legacy drains, Relation member-identity
+concatenation, physical heap/whole-Run budgets and unexecuted target/packed
+campaigns remain outside this boundary. See the
+[identity evidence](2026-10-06-local-record-identity-streaming.md).
+
+### Record contract equality scanning
+
+The shared record append now retains exact type equality across field-contract
+transitions. Contract nodes, wide Object children, long Object names and
+reference parameter spelling no longer hide a complete recursive comparison
+inside one field poll. The same contract owner backs synchronous type equality;
+pair limits and reverse-name-before-forward-child refusal precedence are
+preserved. Deeper contracts reserve continuation custody before allocation,
+including a NULL value whose declared contract exceeds its wire depth.
+
+Focused JS evidence covers pair limits 130/129, extra workspace 25/24, original
+wire construction 7/6, typed mismatch before commit, prior-row custody and
+single cleanup. Atomic draining is detected by negative mutation. Existing
+installed retained Pool publication/request/cancellation cases remain successful;
+they do not prove cancellation inside a recursive contract. Field lookup/Map
+name scans, runtime Object-name validation, member-key concatenation, legacy
+drains, whole-Run physical accounting and unexecuted target/packed campaigns
+remain separate residuals. This supersedes only the recursive type-equality
+part of the historical schema/type/name residual. See the
+[contract scanning evidence](2026-10-06-local-record-contract-scanning.md).

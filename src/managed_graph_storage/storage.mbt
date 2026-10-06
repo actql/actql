@@ -407,6 +407,21 @@ pub fn builder_node_count(builder : Builder) -> Int {
 }
 
 ///|
+/// Query the existing private node index using a canonical typed identity token
+/// obtained from admitted Graph input. This grants no append/read authority and
+/// keeps endpoint-closure selection on the same Builder, without another table.
+pub fn builder_contains_node_identity_order_key(
+  builder : Builder,
+  token : String,
+) -> Bool? {
+  if !builder.open {
+    None
+  } else {
+    Some(builder.node_keys.contains(token))
+  }
+}
+
+///|
 pub fn builder_edge_count(builder : Builder) -> Int {
   builder.edges.length()
 }
