@@ -40,6 +40,8 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
+  ['scripts/fixtures/join-star-source-input.mjs', 'join-star-source-input.mjs'],
   ['scripts/fixtures/right-join-source-input.mjs', 'right-join-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
@@ -301,8 +303,14 @@ if (process.argv.includes('--qualified-star-only')) {
 if (process.argv.includes('--right-join-only')) {
   runtimeEnvironment.ACTQL_TEST_RIGHT_JOIN_ONLY = '1';
 }
+if (process.argv.includes('--join-star-only')) {
+  runtimeEnvironment.ACTQL_TEST_JOIN_STAR_ONLY = '1';
+}
 if (process.argv.includes('--star-replace-only')) {
   runtimeEnvironment.ACTQL_TEST_STAR_REPLACE_ONLY = '1';
+}
+if (process.argv.includes('--qualify-only')) {
+  runtimeEnvironment.ACTQL_TEST_QUALIFY_ONLY = '1';
 }
 if (process.argv.includes('--select-all-only')) {
   runtimeEnvironment.ACTQL_TEST_SELECT_ALL_ONLY = '1';
@@ -410,7 +418,9 @@ const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--qualified-star-only',
   '--right-join-only',
+  '--join-star-only',
   '--star-replace-only',
+  '--qualify-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -459,7 +469,9 @@ try {
 if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--right-join-only')) return;
+if (process.argv.includes('--join-star-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
+if (process.argv.includes('--qualify-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||

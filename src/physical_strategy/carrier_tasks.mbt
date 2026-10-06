@@ -22,7 +22,7 @@ fn carrier_node_supports_selected_execution(
   work : Ref[Int],
   analytic? : Bool = false,
 ) -> Bool raise CarrierWorkStop {
-  // Source-free Relation DAGs may hand an analytic occurrence to the already
+  // Relation DAGs with independent Values roots may hand an analytic occurrence to the already
   // registered bounded group provider. That provider retains the exact
   // order, frame, expression-context and numeric admission checks. Other
   // analytic shapes keep their existing fused ownership decision.
@@ -298,86 +298,82 @@ fn carrier_segment_prefix_end(
       intermediate_result = true
     }
   }
-  let mut source_free_relation_dag = false
-  if stage == 0 {
-    if !graph.source_free_root {
-      return None
+  if stage == 0 && !graph.source_free_root {
+    return None
+  }
+  let mut values_source = false
+  let mut carrier_construction = false
+  let mut carrier_relation_consumer = false
+  let mut relation_only = true
+  let mut values_roots = 0
+  let mut binary_relation_consumer = false
+  for step in 0..<count {
+    carrier_work(work)
+    guard @lower.node_at(prepared, step) is Some(node) else { return None }
+    match @lower.operation(node) {
+      "REL.values" => {
+        values_source = true
+        if @lower.node_input_count(node) == 0 {
+          values_roots += 1
+        }
+      }
+      _ => ()
     }
-    let mut values_source = false
-    let mut carrier_construction = false
-    let mut carrier_relation_consumer = false
-    let mut relation_only = true
-    let mut values_roots = 0
-    let mut binary_relation_consumer = false
-    for step in 0..<count {
-      carrier_work(work)
-      guard @lower.node_at(prepared, step) is Some(node) else { return None }
-      match @lower.operation(node) {
-        "REL.values" => {
-          values_source = true
-          if @lower.node_input_count(node) == 0 {
-            values_roots += 1
-          }
-        }
-        _ => ()
-      }
-      if @carrier.kind(@lower.node_output_carrier(node)) !=
-        @carrier.RelationKind {
-        relation_only = false
-        for input in 0..<@lower.node_input_count(node) {
-          carrier_work(work)
-          if @lower.node_input_target(node, input)
-            is Some(@pipeline.Step(producer)) &&
-            @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
-            is Some(source) &&
-            @carrier.kind(source) == @carrier.RelationKind {
-            carrier_construction = true
-          }
-        }
-      }
-      if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
-        is Some(output) &&
-        @carrier.kind(output) == @carrier.RelationKind {
-        if @lower.node_input_count(node) == 2 {
-          binary_relation_consumer = true
-        }
-        for input in 0..<@lower.node_input_count(node) {
-          carrier_work(work)
-          match @lower.node_input_target(node, input) {
-            Some(@pipeline.Step(producer)) =>
-              if @lower.preparation_carrier_at(
-                  prepared,
-                  @pipeline.Step(producer),
-                )
-                is Some(source) &&
-                @carrier.kind(source) != @carrier.RelationKind {
-                carrier_relation_consumer = true
-              }
-            _ => ()
-          }
+    if @carrier.kind(@lower.node_output_carrier(node)) != @carrier.RelationKind {
+      relation_only = false
+      for input in 0..<@lower.node_input_count(node) {
+        carrier_work(work)
+        if @lower.node_input_target(node, input)
+          is Some(@pipeline.Step(producer)) &&
+          @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
+          is Some(source) &&
+          @carrier.kind(source) == @carrier.RelationKind {
+          carrier_construction = true
         }
       }
     }
-    // Independent Values roots and branches joined from one shared Values
-    // root need exact operation ports. Let these Relation-only DAGs reach the
-    // selected-provider and per-edge checks below; shape alone cannot split.
-    // A unary nonlinear Values suffix still retains its existing refusal.
-    let relation_dag = relation_only &&
-      (values_roots > 1 || (values_roots > 0 && binary_relation_consumer))
-    source_free_relation_dag = relation_dag
-    // A source-free Carrier prefix needs segmentation when a later typed
-    // Carrier-to-Relation step or an intermediate Result needs independent
-    // ownership. Carrier-only prefixes without either retain fused execution.
-    if !values_source ||
+    if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+      is Some(output) &&
+      @carrier.kind(output) == @carrier.RelationKind {
+      if @lower.node_input_count(node) == 2 {
+        binary_relation_consumer = true
+      }
+      for input in 0..<@lower.node_input_count(node) {
+        carrier_work(work)
+        match @lower.node_input_target(node, input) {
+          Some(@pipeline.Step(producer)) =>
+            if @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
+              is Some(source) &&
+              @carrier.kind(source) != @carrier.RelationKind {
+              carrier_relation_consumer = true
+            }
+          _ => ()
+        }
+      }
+    }
+  }
+  // Independent Values roots and branches joined from one shared Values
+  // root need exact operation ports. Let these Relation-only DAGs reach the
+  // selected-provider and per-edge checks below; shape alone cannot split.
+  // A unary nonlinear Values suffix still retains its existing refusal.
+  let relation_dag = relation_only &&
+    (values_roots > 1 || (values_roots > 0 && binary_relation_consumer))
+  let selected_relation_dag = relation_dag
+  // A source-free Carrier prefix needs segmentation when a later typed
+  // Carrier-to-Relation step or an intermediate Result needs independent
+  // ownership. Carrier-only prefixes without either retain fused execution.
+  if stage == 0 &&
+    (
+      !values_source ||
       (
         !relation_dag &&
         (
           (!carrier_construction && !intermediate_result) ||
           (!carrier_relation_consumer && !intermediate_result)
         )
-      ) {
-      return None
-    }
+      )
+    ) {
+    return None
   }
   if count < 2 {
     return None
@@ -406,7 +402,7 @@ fn carrier_segment_prefix_end(
     if !carrier_node_supports_selected_execution(
         node,
         work,
-        analytic=source_free_relation_dag,
+        analytic=selected_relation_dag,
       ) {
       all_selected = false
       break

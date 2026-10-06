@@ -41,7 +41,7 @@ cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
                 [ where_clause ], [ group_clause ],
-                [ having_clause ] ;
+                [ having_clause ], [ qualify_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
 relation_pipe = "FROM", source, { "|>", pipe_item } ;
 graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
@@ -78,6 +78,7 @@ join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
+qualify_clause = "QUALIFY", expression ;
 select_list   = select_item, { ",", select_item } ;
 select_item   = ( "*" | path, ".", "*" ), [ star_except ], [ star_replace ]
               | expression, [ "AS", identifier ] ;
