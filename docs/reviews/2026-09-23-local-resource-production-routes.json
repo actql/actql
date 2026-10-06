@@ -11192,6 +11192,13 @@
           "fixture": "Graph presence projection fragments long names and nested values under one row owner"
         },
         {
+          "role": "graph_projection_label_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
           "role": "graph_projection_presence_charge",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -11237,7 +11244,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows and the shared AdmittedOutputRow cursor for dense and conditional output. Indexed cell initialization, ASCII-folded name fragments, cell recheck and logical charge now yield separately. Exact/one-short and every-phase cleanup evidence executes both wrappers. Shared presence fixtures cover omission versus NULL and nested-cell measurement. This is not a claim that Graph label construction or all selector scans are stepped. See docs/reviews/2026-10-06-local-graph-projection-steps.md."
+      "notes": "Stored and viewed Graph wrappers share indexed matching and AdmittedOutputRow admission/charging for dense and conditional output. Label Text now uses the existing bounded recheck; a reserved ArrayBuilder transfers without final copying. Label slots stay reserved through row commit and do not overlap row traversal reservations. Independent long/wide-label boundaries execute node and edge entrypoints; existing every-phase stop cases cover both wrappers. Presence remains distinct from NULL. Selectors, ordering keys and JSON object-name admission still have synchronous scans. See docs/reviews/2026-10-06-local-graph-label-output.md and docs/reviews/2026-10-06-local-graph-projection-steps.md."
     },
     {
       "inventory": "families",
@@ -11274,6 +11281,13 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_row_steps_wbtest.mbt",
           "fixture": "Graph presence projection fragments long names and nested values under one row owner"
+        },
+        {
+          "role": "graph_projection_label_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
         },
         {
           "role": "graph_projection_presence_charge",
@@ -11321,7 +11335,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows and the shared AdmittedOutputRow cursor for dense and conditional output. Indexed cell initialization, ASCII-folded name fragments, cell recheck and logical charge now yield separately. Exact/one-short and every-phase cleanup evidence executes both wrappers. Shared presence fixtures cover omission versus NULL and nested-cell measurement. This is not a claim that Graph label construction or all selector scans are stepped. See docs/reviews/2026-10-06-local-graph-projection-steps.md."
+      "notes": "Stored and viewed Graph wrappers share indexed matching and AdmittedOutputRow admission/charging for dense and conditional output. Label Text now uses the existing bounded recheck; a reserved ArrayBuilder transfers without final copying. Label slots stay reserved through row commit and do not overlap row traversal reservations. Independent long/wide-label boundaries execute node and edge entrypoints; existing every-phase stop cases cover both wrappers. Presence remains distinct from NULL. Selectors, ordering keys and JSON object-name admission still have synchronous scans. See docs/reviews/2026-10-06-local-graph-label-output.md and docs/reviews/2026-10-06-local-graph-projection-steps.md."
     },
     {
       "inventory": "families",

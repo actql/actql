@@ -2404,7 +2404,8 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'Bridge' && ['node_rows', 'edge_rows'].includes(route.operation)) {
-      for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge']) {
+      for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+        'graph_projection_label_limits']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('graph_projection_public_store')) {
@@ -2434,6 +2435,24 @@ export function validateResourceAccounting({
       if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
         !cleanup.includes('state.record_cells = []')) {
         fail(`${label}: Graph projection cleanup custody is missing`);
+      }
+      const graph = fs.readFileSync(path.join(root, 'src/local_bridge/graph_rows.mbt'), 'utf8');
+      for (const marker of ['count > source.label_workspace', 'source.label_reserved = count',
+        '@value.prepare_array_value(', '@value.start_recheck_runtime_text(',
+        '@value.advance_recheck_runtime_value(', '@value.append_array_item(',
+        '@value.finish_array_value(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph labels are missing`);
+      }
+      if (graph.includes('@value.text_value(') || graph.includes('@utf8.encode(') ||
+        graph.includes('@value.array_value(')) {
+        fail(`${label}: Graph labels compute synchronously`);
+      }
+      if (!projection.includes('source.label_reserved') ||
+        !projection.includes('source.label_reserved = 0') ||
+        !cleanup.includes('source.label_reserved = 0') ||
+        !cleanup.includes('@value.cancel_recheck_runtime_value(recheck)') ||
+        !cleanup.includes('@value.cancel_array_value(builder)')) {
+        fail(`${label}: Graph label cleanup custody is missing`);
       }
     }
     if (route.family === 'Bridge' && route.operation === 'graph' &&

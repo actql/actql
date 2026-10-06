@@ -15,7 +15,10 @@ priv struct GraphRowsSource {
   mut selection_label_index : Int
   edge : Bool
   limits : @execution.ValueLimits
-  mut label_values : Array[@value.Value]
+  mut label_builder : @value.ArrayBuilder?
+  mut label_recheck : @value.RecheckCursor?
+  mut label_workspace : Int
+  mut label_reserved : Int
   mut label_index : Int
   mut label_bytes : Int
   order_keys : Array[Array[String]]
@@ -228,21 +231,53 @@ fn graph_rows_field(
       if count >= source.limits.max_nodes {
         return Err(InvalidRecord(record))
       }
+      // Reserve the complete provisional array before growing it. Borrowed
+      // Text recheck frames use the existing depth/custody reservation; the
+      // sealed array keeps its reservation until the row is committed. Its
+      // private elements cannot overlap the row cursor's own reservation.
+      if source.label_builder is None {
+        if count > source.label_workspace {
+          return Err(RelationOutput(@execution.CaptureLimit))
+        }
+        source.label_builder = @value.prepare_array_value(count)
+        source.label_reserved = count
+      }
+      guard source.label_builder is Some(builder) else {
+        return Err(InvalidRecord(record))
+      }
       if source.label_index < count {
-        let (label, _) = @carrier.property_definition_label_at(
-          definition,
-          source.label_index,
-        ).unwrap()
-        guard @value.text_value(label, source.label_bytes) is Some(value) else {
+        if source.label_recheck is None {
+          let (label, _) = @carrier.property_definition_label_at(
+            definition,
+            source.label_index,
+          ).unwrap()
+          source.label_recheck = @value.start_recheck_runtime_text(
+            label,
+            @contract.primitive(@contract.StringType, nullable=false),
+            { max_nodes: 1, max_depth: 0, max_text_bytes: source.label_bytes, },
+          )
+        }
+        guard source.label_recheck is Some(recheck) else {
           return Err(InvalidRecord(record))
         }
-        source.label_bytes -= @utf8.encode(label).length()
-        source.label_values.push(value)
-        source.label_index += 1
+        match @value.advance_recheck_runtime_value(recheck) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed => return Err(InvalidRecord(record))
+          @value.RecheckComplete(checked, _, bytes) => {
+            guard @value.append_array_item(builder, checked.value) else {
+              return Err(InvalidRecord(record))
+            }
+            source.label_bytes -= bytes
+            source.label_index += 1
+            source.label_recheck = None
+          }
+        }
         return Ok(PendingField)
       }
-      let labels = @value.array_value(source.label_values)
-      source.label_values = []
+      guard @value.finish_array_value(builder) is Some(labels) else {
+        return Err(InvalidRecord(record))
+      }
+      source.label_builder = None
       source.label_index = 0
       source.label_bytes = source.limits.max_text_bytes
       return Ok(GraphField(@schema.Unqualified(name), labels))
@@ -347,7 +382,10 @@ pub fn start_graph_view_to_rows(
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
-    label_values: [],
+    label_builder: None,
+    label_recheck: None,
+    label_workspace: 0,
+    label_reserved: 0,
     label_index: 0,
     label_bytes: limits.max_text_bytes,
     order_keys: [],
@@ -423,7 +461,10 @@ pub fn start_graph_to_rows(
     edge: @lower.carrier_projection_operation(projection) ==
     @projection.EdgeRows,
     limits,
-    label_values: [],
+    label_builder: None,
+    label_recheck: None,
+    label_workspace: 0,
+    label_reserved: 0,
     label_index: 0,
     label_bytes: limits.max_text_bytes,
     order_keys: [],

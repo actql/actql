@@ -59,14 +59,16 @@ test "Graph presence projection fragments long names and nested values under one
   }
   // Order 2; initialize 4; field reads 5 (including label P); match probes
   // 2+3+4+9=18; recheck 24+6+2+259=291; verify 4; start row 1 = 325.
+  // Label P construction adds two Text recheck polls to setup: 327.
   // Shared row: load/recheck 295; charge start 1; names 13 (one long-name
   // setup plus nine fragments and three short names); ID 19 (including its JsonData marker); label/key 2;
-  // array 258; commit 1 = 589. Total 914 polls. The final Array recheck
+  // array 258; commit 1 = 589. Total 916 polls. The final Array recheck
   // includes an empty-stack poll; measurement has no final container sentinel.
-  let exact_work = 914
+  let exact_work = 916
   // Order 4 + matched cells 4 + borrowed depth/custody 23 + row scope 5
-  // + measurement frames 2 = 38, independent of the 128 immutable elements.
-  let exact_slots = 38
+  // + measurement frames 2 + the provisional label P = 39, independent of
+  // the 128 borrowed immutable property elements.
+  let exact_slots = 39
   // Row + full ID + labels/P + scalar key + Array/128 elements = 141 nodes.
   // Names id/labels/person_key/long name = 531 bytes; ID = 110; P = 1.
   let limits : @execution.ValueLimits = {

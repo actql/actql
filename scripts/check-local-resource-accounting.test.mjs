@@ -67,7 +67,8 @@ test('record projections require value, name, stop and public Store evidence', (
 
 test('Graph projections require fragment, presence and public Store evidence', () => {
   for (const operation of ['node_rows', 'edge_rows']) {
-    for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge']) {
+    for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+      'graph_projection_label_limits']) {
       assert.match(run(undefined, routes => {
         const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
         route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
@@ -77,6 +78,27 @@ test('Graph projections require fragment, presence and public Store evidence', (
       const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
       route.environment_tests = route.environment_tests.filter(item => item.role !== 'graph_projection_public_store');
     }), new RegExp(`Bridge ${operation}: Graph projection public Store fixture is missing`, 'u'));
+  }
+});
+
+test('Graph labels require staged Text, reserved arrays and cleanup connections', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'count > source.label_workspace', 'false', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', 'source.label_reserved = count', 'source.label_reserved = 0', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.start_recheck_runtime_text(', 'missing_text(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.advance_recheck_runtime_value(', 'missing_advance(', 'stepped Graph labels are missing'],
+    ['src/local_bridge/graph_rows.mbt', '@value.finish_array_value(', '@value.array_value(', 'Graph labels compute synchronously'],
+    ['src/local_bridge/events.mbt', '@value.cancel_array_value(builder)', 'missing_cleanup(builder)', 'Graph label cleanup custody is missing'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
   }
 });
 
