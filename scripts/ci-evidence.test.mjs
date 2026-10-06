@@ -1,6 +1,7 @@
 // Keep offline artifact fixtures in the existing CI evidence tooling gate.
 import './ci-artifact-reader.test.mjs';
 import './ci-artifacts.test.mjs';
+import './ci-session-costs.test.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
@@ -547,6 +548,83 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
     assert.equal(group.sampleCount, 2);
     assert.equal(group.medianSeconds, 45); // (40 + 50) / 2.
     assert.equal(group.maximumSeconds, 50);
+  });
+
+  test('runner totals count distinct overlapping jobs once and keep the wall span separate', async () => {
+    const report = await collect(), total = report.timing.runnerConsumption.find(item => item.runId === 10);
+    assert.equal(total.totalJobSeconds, 100); // build 40 + test 60, including their setup/transfer boundaries.
+    assert.equal(total.knownJobSeconds, 100);
+    assert.equal(total.observedJobWallSpan.seconds, 70);
+    assert.equal(total.successfulSample, true);
+    assert.equal(total.measuredJobCount, 2); assert.equal(total.unknownJobCount, 0);
+    assert.deepEqual(total.jobs.map(item => item.jobId), [100, 101]);
+    assert.equal(total.jobs[0].execution.from.endpoint, `${path(10)}/jobs?per_page=100`);
+    assert.match(formatHuman(report), /Runner consumption:.*total 100s/u);
+    assert.equal(report.timing.runnerConsumption.length, 3);
+  });
+
+  test('billing-style no-step jobs and missing runner observations do not create cheap successful totals', async () => {
+    for (const [change, reason] of [
+      [item => {item.steps = [];}, 'no-observed-step-execution'],
+      [item => {delete item.steps;}, 'no-observed-step-execution'],
+      [item => {item.steps[0].conclusion = 'skipped';}, 'no-observed-step-execution'],
+      [item => {item.steps[0].completed_at = at(80);}, 'no-observed-step-execution'],
+      [item => {item.steps[0].status = 'in_progress';}, 'incomplete-step-execution'],
+      [item => {item.runner_name = '';}, 'missing-runner-observation'],
+      [item => {item.labels = [];}, 'missing-runner-observation'],
+    ]) {
+      const data = fixture(); change(data[`${path(10)}/jobs?per_page=100`][0].jobs[0]);
+      const total = (await collect(data)).timing.runnerConsumption.find(item => item.runId === 10);
+      assert.equal(total.totalJobSeconds, null);
+      assert.equal(total.knownJobSeconds, 60); assert.equal(total.successfulSample, false);
+      assert.equal(total.unknownJobCount, 1); assert.equal(total.jobs[0].execution.reason, reason);
+    }
+  });
+
+  test('failed and cancelled attempt consumption remains separate from successful retries', async () => {
+    const data = fixture(); data[`${prefix}/10`] = run(10, 2);
+    data[path(10)] = run(10, 1, 'failure'); data[path(10, 2)] = run(10, 2);
+    data[`${path(10)}/jobs?per_page=100`] = pages([
+      job(100, 10, 'build', 20, 60, 'failure'), job(101, 10, 'test', 30, 50, 'cancelled'),
+      job(102, 10, 'skip', 0, 0, 'skipped'),
+    ]);
+    data[`${path(10, 2)}/jobs?per_page=100`] = pages([job(110, 10, 'build', 100, 140, 'success', 2)]);
+    const totals = (await collect(data, {runs: [10]})).timing.runnerConsumption;
+    assert.deepEqual(totals.map(item => [item.attempt, item.totalJobSeconds, item.successfulSample]), [[1, 60, false], [2, 40, true]]);
+    assert.equal(totals[0].skippedJobCount, 1); assert.equal(totals[0].jobs[2].execution.seconds, null);
+    assert.equal(totals[0].observedJobWallSpan.seconds, 40);
+  });
+
+  test('partial, mismatched and empty job inventories retain unknown totals instead of zero', async () => {
+    for (const change of [
+      data => {data[`${path(10)}/jobs?per_page=100`][1].jobs[0].run_attempt++;},
+      data => {data[`${path(10)}/jobs?per_page=100`][1].jobs[0].id = 100;},
+      data => {data[`${path(10)}/jobs?per_page=100`][0].total_count++;},
+      data => {data[`${path(10)}/jobs?per_page=100`] = new Error('gh API HTTP 503');},
+      data => {data[`${path(10)}/jobs?per_page=100`] = [{total_count: 0, jobs: []}];},
+      data => {data[`${path(10)}/jobs?per_page=100`] = pages([job(100, 10, 'skip', 0, 0, 'skipped')]);},
+      data => {data[path(10)].status = 'in_progress'; data[path(10)].conclusion = null;},
+      data => {data[`${path(10)}/jobs?per_page=100`][0].jobs[0].started_at = 'bad';},
+    ]) {
+      const data = fixture(); change(data);
+      const total = (await collect(data)).timing.runnerConsumption.find(item => item.runId === 10);
+      assert.equal(total.totalJobSeconds, null); assert.equal(total.successfulSample, false);
+      assert.notEqual(total.reason, null);
+    }
+  });
+
+  test('millisecond runner-total overflow stays unknown rather than rounding to a precise total', async () => {
+    const data = fixture();
+    data[`${path(10)}/jobs?per_page=100`] = pages(Array.from({length: 40}, (_, index) => {
+      const value = job(100 + index, 10, `independent-${index}`, 20, 60);
+      value.started_at = '0001-01-01T00:00:00Z'; value.completed_at = '9999-12-31T23:59:59Z';
+      value.steps[0].started_at = '0001-01-01T00:00:01Z'; value.steps[0].completed_at = '9999-12-31T23:59:58Z';
+      return value;
+    }));
+    const total = (await collect(data, {runs: [10]})).timing.runnerConsumption[0];
+    assert.equal(total.measuredJobCount, 40); assert.equal(total.unknownJobCount, 0);
+    assert.equal(total.totalJobSeconds, null); assert.equal(total.knownJobSeconds, null);
+    assert.equal(total.reason, 'duration-overflow'); assert.equal(total.successfulSample, false);
   });
 }
 

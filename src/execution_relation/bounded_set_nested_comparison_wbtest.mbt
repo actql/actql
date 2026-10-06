@@ -250,16 +250,20 @@ test "complete tree cursor preserves admitted domains and canonical UTF-16 order
         269,
       ),
     ] {
-    // This owner-level corpus admits JSON values directly. The Set tests
-    // above use checked Programs and typed producer bindings.
+    // Preserve the historical structural-payload corpus and its exact charges.
+    // Typed JSON marker charges have dedicated domain regressions.
     let contract = @contract.primitive(JsonType, nullable=false)
     let limits : @admitted.Limits = {
       max_nodes: 100,
       max_depth: 10,
       max_text_bytes: 1000,
     }
-    let a = @admitted.admit(contract, input_cursor(left), limits).unwrap().value
-    let b = @admitted.admit(contract, input_cursor(right), limits).unwrap().value
+    let admitted_left = @admitted.admit(contract, input_cursor(left), limits).unwrap().value
+    let admitted_right = @admitted.admit(contract, input_cursor(right), limits).unwrap().value
+    guard admitted_left is @admitted.JsonData(a) &&
+      admitted_right is @admitted.JsonData(b) else {
+      fail("JSON admission must retain its domain marker")
+    }
     let control : ControlBudget = { remaining: work, max_frames: 10, }
     let workspace = row_workspace(10)
     let cursor = start_complete_tree_comparison(a, b, control, workspace).unwrap()

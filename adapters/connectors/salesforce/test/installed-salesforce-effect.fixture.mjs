@@ -267,8 +267,9 @@ export async function effectHost(t, installation, state, {effect,
   };
   installation.onClose(close);
   return {installed, journal, store, control, outcomes, close,
-    async run(document, requestId) {
-      const prepared = prepareProgram({kind: 'program', input: document,
+    async run(document, requestId, {kind = 'program', format = 'json'} = {}) {
+      const prepared = prepareProgram({kind,
+        input: kind === 'program' ? document : {text: document, format},
         parameters: null});
       const accepted = await runs.accept({prepared,
         authorityScopeCid: cid('e'), requestId, namespaceId: 'namespace-a',

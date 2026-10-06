@@ -173,8 +173,11 @@ export const checkpointAuthorization = (accountConfiguration, extra) => ({
 // stateful org. `org` options go to the shared org fixture.
 // `sourceRead` is the source profile's read decision: 'allow', 'deny', or
 // 'delegate' (a deferred read, which this path refuses).
+// `writes` are the installed Effect writes (default: an update of Name).
 export async function readComputeEffectInstallation(t, {org: orgOptions = {},
-  records = storedRecords, sourceRead = 'allow'} = {}) {
+  records = storedRecords, sourceRead = 'allow',
+  writes = [{resource: 'Test_Record__c', kind: 'update',
+    fields: ['Name']}]} = {}) {
   const org = await openSalesforceEffectSiteFixture(t, {commonMoon,
     salesforceMoon, runInvocationCid: cid('1'), dispatchRequestCid: cid('2'),
     statefulRecords: true, storedRecords: records.map(record => ({...record})),
@@ -234,8 +237,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       siteProfilePath: sitePath,
       publicationPath: join(root, 'effect-publication.json'),
       connectorId: 'crm-main', accountConfigurationWire,
-      writes: [{resource: 'Test_Record__c', kind: 'update',
-        fields: ['Name']}]}));
+      writes}));
   await writeEffectProfile(hostAccountConfiguration(org.orgId));
   const published = await publishInstalledEffect({effectProfilePath,
     directory: hostRoot, resolveEffectSecret: secret});
@@ -276,11 +278,13 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
 
   // Run the Embedded steps of one request, each in a new process over this
   // installation: the local owner submits, reviews and resumes.
+  // `resultName` is the Named Result a resumed step reads; `failFirstClose`
+  // makes the first close of that module's journals fail in each step.
   const embedded = async (requestId, program, {accountConfiguration =
-    hostAccountConfiguration(org.orgId)} = {}) => {
+    hostAccountConfiguration(org.orgId), resultName, failFirstClose} = {}) => {
     const path = join(root, `embedded-${requestId}.json`);
     await writeFile(path, JSON.stringify({directory: hostRoot,
-      sourceProfilePath, effectProfilePath, program, requestId,
+      sourceProfilePath, effectProfilePath, program, requestId, resultName,
       reviewerPrivateKey: pem(reviewerKeys.privateKey),
       authorization: {...checkpointAuthorization(accountConfiguration),
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
@@ -289,7 +293,10 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
     return step => new Promise((resolve, reject) => {
       execFile(process.execPath, [fileURLToPath(new URL(
         './read-compute-effect.embedded-child.mjs', import.meta.url)),
-      step, path], {timeout: 120_000}, (error, stdout, stderr) => {
+      step, path], {timeout: 120_000, env: {...process.env,
+        ...(failFirstClose === undefined ? {}
+          : {ACTQL_EMBEDDED_FAIL_FIRST_CLOSE: failFirstClose})}},
+      (error, stdout, stderr) => {
         if (error) {
           reject(Object.assign(error, {stdout, stderr}));
           return;

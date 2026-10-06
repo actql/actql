@@ -58,12 +58,12 @@ function continuation(facts, stage) {
       stage.preview),
     ...(facts.targetReads === undefined ? {} : {
       target_read_binding: facts.targetReads.captureBinding()}),
-    provider});
+    provider}, {dataKeys: true});
 }
 
 function checkContinuation(facts, stage) {
   const expected = continuation(facts, stage);
-  if (canonicalValueJson(facts.continuation) !== expected) {
+  if (canonicalValueJson(facts.continuation, {dataKeys: true}) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
 }
@@ -354,6 +354,20 @@ export function createInstalledEffectSite({environmentWire,
         throw error;
       }
       custody.attach(stage);
+      // Capture has transferred the prepared Result handles to this owner.
+      // Register their cleanup before validation or any fallible apply work.
+      // Until a terminal outcome selects retirement, release local handles
+      // only. Existing Host owners still decide durable retention/retirement
+      // and transfer; cleanup does not reclassify the application failure.
+      let releaseMode = 'retain';
+      const storedResults = stage?.storedResults;
+      if (storedResults !== undefined) {
+        custody.requireRelease(() => releaseMode === 'retire'
+          ? releaseCompletedRunPreparedPayloads(storedResults, facts.control)
+          : suspendCompletedEffectfulComputation({execution,
+            store: facts.store, storedResults, control: facts.control,
+            computation: stage.computation, preview: stage.preview}));
+      }
       ownedStage(stage, 'InvalidInstalledEffectCapture');
       if (stage.publication.execution !== execution ||
           stage.publication.store !== facts.store ||
@@ -389,9 +403,7 @@ export function createInstalledEffectSite({environmentWire,
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
               if (terminalPreSendRefusal(error, options)) {
-                custody.requireRelease(() =>
-                  releaseCompletedRunPreparedPayloads(
-                    stage.storedResults, facts.control));
+                releaseMode = 'retire';
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
               }
               throw error;
@@ -404,9 +416,10 @@ export function createInstalledEffectSite({environmentWire,
             store: facts.store, storedResults: stage.storedResults,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
-        } else if (result.status === 'failed') {
-          custody.requireRelease(() => releaseCompletedRunPreparedPayloads(
-            stage.storedResults, facts.control));
+        } else if (result.status === 'failed' || result.status === 'published') {
+          // An idempotent publication may already have released this owner.
+          // Retry with the same terminal mode, never switch back to retain.
+          releaseMode = 'retire';
         }
         recordUnknown(facts, result, stage);
         return finishStatus(result);

@@ -38,7 +38,7 @@ const mutations = [
     '      | OperationScalarViolation(_, _, _)\n' +
     '      | GraphViolation(_, _)\n' +
     '      | TypeViolation(_, _, _, _)\n' +
-    '      | DefaultTypeViolation(_, _, _, _)\n      | SuppliedViolation(_)\n' +
+    '      | DefaultTypeViolation(_, _, _, _)\n      | JsonInputViolation(_, _, _)\n      | SuppliedParseViolation(_)\n      | SuppliedViolation(_)\n' +
     '      | DeclarationViolation(_)\n' +
     '      | ConstraintViolation(_, _, _)\n' +
     '      | UndeclaredParameter(_, _)\n' +

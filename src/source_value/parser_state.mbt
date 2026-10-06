@@ -11,6 +11,8 @@ priv struct Parser {
   source_path : String
   limits : ParseLimits
   normalize_text : Bool
+  effect_literal_keys : Bool
+  literal_json : Bool
   path : Array[PathSegment]
   mut offset : Int
   mut byte_offset : Int
@@ -26,6 +28,8 @@ fn Parser::make(
   source_path : String,
   limits : ParseLimits,
   normalize_text? : Bool = true,
+  effect_literal_keys? : Bool = false,
+  literal_json? : Bool = false,
 ) -> Parser {
   let bom = source.length() > 0 && source[0].to_int() == 0xfeff
   {
@@ -33,6 +37,8 @@ fn Parser::make(
     source_path,
     limits,
     normalize_text,
+    effect_literal_keys,
+    literal_json,
     path: [],
     offset: if bom {
       1
@@ -48,6 +54,34 @@ fn Parser::make(
     column: 1,
     nodes: 0,
     deepest: 0,
+  }
+}
+
+///|
+// Program syntax retains candidate Effect literal data until its target
+// contract is checked. Only these root-anchored payload positions opt out of
+// identifier normalization; nested lookalike syntax cannot open another one.
+fn Parser::normalize_key(self : Parser) -> Bool {
+  if !self.normalize_text {
+    return false
+  }
+  let path = self.path
+  if !self.effect_literal_keys || path.length() < 8 {
+    return true
+  }
+  guard path[0] is Key("stages") &&
+    path[1] is Index(_) &&
+    path[2] is Key("effects") &&
+    path[3] is Key(_) &&
+    path[6] is Key(_) &&
+    path[7] is Key("literal") else {
+    return true
+  }
+  match (path[4], path[5]) {
+    (Key("update"), Key("set"))
+    | (Key("upsert"), Key("set"))
+    | (Key("command"), Key("input")) => false
+    _ => true
   }
 }
 

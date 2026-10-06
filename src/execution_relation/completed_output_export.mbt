@@ -537,6 +537,7 @@ pub fn next_completed_output_export_canonical_row(
     max_nodes,
     max_depth,
     max_utf16_units,
+    data_keys=true,
   ) catch {
     _ => {
       value.source = None

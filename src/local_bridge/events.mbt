@@ -2,7 +2,9 @@
 priv enum RowsToEventsPhase {
   BeginRow
   ReadCell
+  RecheckCell
   CommitRow
+  AppendRow
   FinishRows
 }
 
@@ -17,6 +19,8 @@ priv struct RowsToEventsState {
   mut row : Int
   mut column : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut recheck : @value.RecheckCursor?
+  mut append : @records.RecordAppend?
 }
 
 ///|
@@ -42,11 +46,14 @@ priv enum EventsToRowsPhase {
   InitializeGraphOrder
   SortGraphOrder
   BeginRecord
+  InitializeRecordCells
   ScanFields
+  MatchRecordName
   MatchGraphField
   RecheckGraphField
   VerifyFields
   CommitRelationRow
+  AppendRelationRow
   FinishRelation
 }
 
@@ -74,11 +81,17 @@ priv struct EventsToRowsState {
   mut source_field : Int
   mut verified_column : Int
   mut matched_count : Int
-  mut matched : Map[String, @value.CheckedValue]
   mut control_work_remaining : Int?
   mut pending_graph_field : (@schema.FieldName, @value.Value)?
   mut graph_column : Int
   mut graph_recheck : @value.RecheckCursor?
+  mut record_cells : Array[@value.CheckedValue?]
+  mut record_field : (@schema.FieldName, @value.CheckedValue)?
+  mut match_low : Int
+  mut match_high : Int
+  mut name_offset : Int
+  row_workspace : Int
+  mut output_row : @execution.AdmittedOutputRowCursor?
 }
 
 ///|
@@ -184,8 +197,14 @@ fn rows_to_events_step(
             return @bounded.Failed(InvalidKernel, progress, used)
           }
           let retained = @records.output_workspace_slots(output)
-          if retained > state.max_workspace_slots ||
-            state.fields.length() >= state.max_workspace_slots - retained {
+          // One borrowed root, the recheck handle, and at most depth+1
+          // traversal frames overlap the pending field snapshot.
+          let depth = state.value_limits.max_depth
+          if depth > 2147483644 ||
+            retained > state.max_workspace_slots ||
+            depth + 3 > state.max_workspace_slots - retained ||
+            state.fields.length() >
+            state.max_workspace_slots - retained - depth - 3 {
             return @bounded.Failed(
               Output(@records.Storage(@storage.WorkspaceLimit)),
               progress,
@@ -193,46 +212,97 @@ fn rows_to_events_step(
             )
           }
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
-            @execution.producer_read_checked_cell(
-              state.input,
-              state.row,
-              state.column,
-              state.value_limits,
-            )
-            is Some(checked) else {
+            @execution.producer_read_cell(state.input, state.row, state.column)
+            is Some(cell) else {
             return @bounded.Failed(InvalidRow(state.row), progress, used)
           }
-          state.fields.push((field.name, checked))
-          state.column += 1
           used += 1
+          // Reuse the exact receiving contract without validating raw Text
+          // before the first caller-controlled yield/stop boundary.
+          let recheck = match cell {
+            @execution.Text(text) =>
+              @value.start_recheck_runtime_text(
+                text,
+                field.contract,
+                state.value_limits,
+              )
+            _ => {
+              let raw = match cell {
+                @execution.Null => Some(@value.null_value())
+                @execution.Number(number) => @value.number_value(number)
+                @execution.Boolean(boolean) =>
+                  Some(@value.boolean_value(boolean))
+                @execution.Captured(value) => Some(value)
+                @execution.Text(_) => None
+              }
+              raw.bind(value => {
+                @value.start_recheck_runtime_value(
+                  value,
+                  field.contract,
+                  state.value_limits,
+                )
+              })
+            }
+          }
+          guard recheck is Some(recheck) else {
+            return @bounded.Failed(InvalidRow(state.row), progress, used)
+          }
+          state.recheck = Some(recheck)
+          state.phase = RecheckCell
         } else {
           state.phase = CommitRow
         }
+      RecheckCell => {
+        guard state.recheck is Some(recheck) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        used += 1
+        match @value.advance_recheck_runtime_value(recheck) {
+          @value.RecheckContinue => ()
+          @value.RecheckFailed =>
+            return @bounded.Failed(InvalidRow(state.row), progress, used)
+          @value.RecheckComplete(checked, _, _) => {
+            let field = @schema.field_at(state.schema, state.column).unwrap()
+            state.fields.push((field.name, checked))
+            state.recheck = None
+            state.column += 1
+            state.phase = ReadCell
+          }
+        }
+      }
       CommitRow => {
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidKernel, progress, used)
         }
-        let retained = @records.output_workspace_slots(output)
-        let fields = state.fields.length()
-        // append_record copies the scratch fields into retained storage.
-        if retained > state.max_workspace_slots ||
-          fields > state.max_workspace_slots - retained ||
-          fields > state.max_workspace_slots - retained - fields - 2 {
-          return @bounded.Failed(
-            Output(@records.Storage(@storage.WorkspaceLimit)),
-            progress,
-            used,
-          )
+        used += 1
+        match
+          @records.start_record_append(
+            output,
+            state.fields,
+            external_workspace_slots=state.fields.length() + 2,
+          ) {
+          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
+          Ok(append) => {
+            state.append = Some(append)
+            state.phase = AppendRow
+          }
+        }
+      }
+      AppendRow => {
+        guard state.append is Some(append) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
         }
         used += 1
-        match @records.append_record(output, state.fields) {
-          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
-          Ok(_) => {
+        match @records.advance_record_append(append) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.append = None
             state.fields = []
             state.row += 1
             state.phase = BeginRow
             progress += 1
           }
+          Err(issue) => return @bounded.Failed(Output(issue), progress, used)
         }
       }
       FinishRows => {
@@ -252,6 +322,14 @@ fn rows_to_events_step(
 
 ///|
 fn cleanup_rows_to_events_state(state : RowsToEventsState) -> Bool {
+  if state.recheck is Some(recheck) {
+    @value.cancel_recheck_runtime_value(recheck)
+    state.recheck = None
+  }
+  if state.append is Some(append) {
+    @records.cleanup_record_append(append) |> ignore
+    state.append = None
+  }
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
@@ -304,6 +382,8 @@ fn start_rows_to_records(
     row: 0,
     column: 0,
     fields: [],
+    recheck: None,
+    append: None,
   }
   let (session, token) = @bounded.start(
     control, state, rows_to_events_step, cleanup_rows_to_events_state, @records.discard_completed,
@@ -472,10 +552,20 @@ fn events_to_rows_step(
           state.source_field = 0
           state.verified_column = 0
           state.matched_count = 0
-          state.matched = Map([])
-          state.phase = ScanFields
+          state.record_cells = []
+          state.phase = InitializeRecordCells
         } else {
           state.phase = FinishRelation
+        }
+      InitializeRecordCells =>
+        if state.record_cells.length() < @schema.field_count(state.schema) {
+          if !charge_events_to_rows_work(state) {
+            return @bounded.Failed(ControlWorkLimit, progress, used)
+          }
+          used += 1
+          state.record_cells.push(None)
+        } else {
+          state.phase = ScanFields
         }
       ScanFields => {
         guard events_source_field_count(state.source, state.record)
@@ -489,14 +579,15 @@ fn events_to_rows_step(
             return @bounded.Failed(ControlWorkLimit, progress, used)
           }
           used += 1
-          let selected = match state.source {
+          match state.source {
             GraphRows(source) =>
               match graph_rows_field(source, state.record, state.source_field) {
                 Ok(PendingField) => continue
-                Ok(AbsentField) => None
+                Ok(AbsentField) => ()
                 Ok(GraphField(name, value)) => {
                   state.pending_graph_field = Some((name, value))
                   state.graph_column = 0
+                  state.name_offset = 0
                   state.source_field += 1
                   state.phase = MatchGraphField
                   continue
@@ -516,15 +607,44 @@ fn events_to_rows_step(
                   used,
                 )
               }
-              Some((name, checked))
+              state.record_field = Some((name, checked))
+              state.match_low = 0
+              state.match_high = @schema.field_count(state.schema)
+              state.name_offset = 0
+              state.phase = MatchRecordName
             }
           }
           state.source_field += 1
-          if selected is Some((name, checked)) &&
-            @schema.lookup_reference(state.schema, @schema.reference_name(name))
-            is Some(expected) {
-            let key = @schema.reference_name(name)
-            if !state.matched.contains(key) {
+        } else {
+          state.phase = VerifyFields
+        }
+      }
+      MatchRecordName => {
+        guard state.record_field is Some((name, checked)) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        if state.match_low >= state.match_high {
+          state.record_field = None
+          state.phase = ScanFields
+          continue
+        }
+        if !charge_events_to_rows_work(state) {
+          return @bounded.Failed(ControlWorkLimit, progress, used)
+        }
+        used += 1
+        let column = state.match_low + (state.match_high - state.match_low) / 2
+        let expected = @schema.field_at(state.schema, column).unwrap()
+        let (comparison, offset, _) = @schema.compare_reference_fragment(
+          expected.name,
+          name,
+          state.name_offset,
+          64,
+        )
+        state.name_offset = offset
+        match comparison {
+          None => ()
+          Some(0) => {
+            if state.record_cells[column] is None {
               if !physical_equal(expected.contract, checked.contract) {
                 return @bounded.Failed(
                   InvalidRecord(state.record),
@@ -532,12 +652,18 @@ fn events_to_rows_step(
                   used,
                 )
               }
+              state.record_cells[column] = Some(checked)
               state.matched_count += 1
-              state.matched[key] = checked
             }
+            state.record_field = None
+            state.phase = ScanFields
           }
-        } else {
-          state.phase = VerifyFields
+          Some(order) =>
+            if order < 0 {
+              state.match_low = column + 1
+            } else {
+              state.match_high = column
+            }
         }
       }
       MatchGraphField => {
@@ -549,8 +675,21 @@ fn events_to_rows_step(
           return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
-        if @carrier.property_name_identity(@schema.reference_name(name)) ==
-          @carrier.property_name_identity(@schema.reference_name(expected.name)) {
+        guard name is @schema.Unqualified(actual_name) &&
+          expected.name is @schema.Unqualified(expected_name) else {
+          return @bounded.Failed(InvalidRecord(state.record), progress, used)
+        }
+        let (comparison, offset, _) = @carrier.compare_property_name_fragment(
+          actual_name,
+          expected_name,
+          state.name_offset,
+          64,
+        )
+        state.name_offset = offset
+        if comparison is None {
+          continue
+        }
+        if comparison == Some(0) {
           guard @value.start_recheck_runtime_value(raw, expected.contract, {
               max_nodes: state.value_limits.max_nodes,
               max_text_bytes: state.value_limits.max_text_bytes,
@@ -578,10 +717,7 @@ fn events_to_rows_step(
           @value.RecheckFailed =>
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           @value.RecheckComplete(checked, _, _) => {
-            let key = @schema.reference_name(
-              @schema.field_at(state.schema, state.graph_column).unwrap().name,
-            )
-            if state.matched.contains(key) {
+            if state.record_cells[state.graph_column] is Some(_) {
               return @bounded.Failed(
                 InvalidRecord(state.record),
                 progress,
@@ -589,7 +725,7 @@ fn events_to_rows_step(
               )
             }
             state.matched_count += 1
-            state.matched[key] = checked
+            state.record_cells[state.graph_column] = Some(checked)
             state.graph_recheck = None
             state.pending_graph_field = None
             state.phase = ScanFields
@@ -606,8 +742,8 @@ fn events_to_rows_step(
             is Some(expected) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
-          if expected.presence == @schema.Required &&
-            !state.matched.contains(@schema.reference_name(expected.name)) {
+          let present = state.record_cells[state.verified_column] is Some(_)
+          if expected.presence == @schema.Required && !present {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
           state.verified_column += 1
@@ -622,45 +758,59 @@ fn events_to_rows_step(
           return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
-        let appended = if @schema.all_fields_required(state.schema) {
-          @execution.append_admitted_output_cells(
-            output,
-            @schema.field_count(state.schema),
-            column => {
-              @schema.field_at(state.schema, column).bind(field => {
-                state.matched.get(@schema.reference_name(field.name))
-              })
-            },
-          )
-        } else {
-          let cells = Array::makei(@schema.field_count(state.schema), column => {
-            state.matched.get(
-              @schema.reference_name(
-                @schema.field_at(state.schema, column).unwrap().name,
-              ),
-            )
+        let row_workspace = state.row_workspace -
+          (match state.source {
+            GraphRows(source) => source.label_reserved
+            _ => 0
           })
-          let row = match
-            @execution.admit_relation_row(
-              state.schema,
-              cells,
-              state.value_limits,
-            ) {
-            Ok(row) => row
-            Err(issue) =>
-              return @bounded.Failed(Presence(issue), progress, used)
-          }
-          @execution.append_admitted_output_presence(output, row)
+        let started = if @schema.all_fields_required(state.schema) {
+          @execution.start_admitted_output_row(output, row_workspace, column => {
+            state.record_cells
+            .get(column)
+            .bind(value => value)
+            .map(value => value.value)
+          })
+        } else {
+          @execution.start_admitted_presence_output_row(output, row_workspace, column => {
+            state.record_cells
+            .get(column)
+            .map(cell => {
+              @execution.relation_cell(cell.map(checked => checked.value))
+            })
+          })
         }
-        match appended {
+        match started {
+          Ok(row) => {
+            state.output_row = Some(row)
+            state.phase = AppendRelationRow
+          }
           Err(issue) =>
-            return @bounded.Failed(RelationOutput(issue), progress, used)
-          Ok(_) => {
-            state.matched = Map([])
+            return @bounded.Failed(relation_row_issue(issue), progress, used)
+        }
+      }
+      AppendRelationRow => {
+        guard state.output_row is Some(row) else {
+          return @bounded.Failed(InvalidKernel, progress, used)
+        }
+        if !charge_events_to_rows_work(state) {
+          return @bounded.Failed(ControlWorkLimit, progress, used)
+        }
+        used += 1
+        match @execution.advance_admitted_output_row(row) {
+          Ok(false) => ()
+          Ok(true) => {
+            @execution.cleanup_admitted_output_row(row) |> ignore
+            state.output_row = None
+            state.record_cells = []
+            if state.source is GraphRows(source) {
+              source.label_reserved = 0
+            }
             state.record += 1
             state.phase = BeginRecord
             progress += 1
           }
+          Err(issue) =>
+            return @bounded.Failed(relation_row_issue(issue), progress, used)
         }
       }
       FinishRelation => {
@@ -691,6 +841,16 @@ fn events_to_rows_step(
 }
 
 ///|
+fn relation_row_issue(
+  issue : @execution.AdmittedOutputRowIssue,
+) -> EventsBridgeIssue {
+  match issue {
+    @execution.OutputRowCapture(issue) => RelationOutput(issue)
+    @execution.OutputRowWorkspace => RelationOutput(@execution.CaptureLimit)
+  }
+}
+
+///|
 fn charge_events_to_rows_work(state : EventsToRowsState) -> Bool {
   match state.control_work_remaining {
     None => true
@@ -706,13 +866,29 @@ fn charge_events_to_rows_work(state : EventsToRowsState) -> Bool {
 
 ///|
 fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
+  if state.output_row is Some(row) {
+    @execution.cleanup_admitted_output_row(row) |> ignore
+    state.output_row = None
+  }
+  state.record_field = None
+  state.record_cells = []
   if state.graph_recheck is Some(recheck) {
     @value.cancel_recheck_runtime_value(recheck)
     state.graph_recheck = None
   }
   state.pending_graph_field = None
   if state.source is GraphRows(source) {
-    source.label_values.clear()
+    source.selection_label_index = 0
+    source.selection_name_offset = 0
+    if source.label_recheck is Some(recheck) {
+      @value.cancel_recheck_runtime_value(recheck)
+      source.label_recheck = None
+    }
+    if source.label_builder is Some(builder) {
+      @value.cancel_array_value(builder) |> ignore
+      source.label_builder = None
+    }
+    source.label_reserved = 0
     if source.order is Some(sort) {
       @sort.cleanup(sort) |> ignore
     }
@@ -723,7 +899,6 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.matched = Map([])
   if state.owned is Some(owned) {
     @records.discard_completed(owned) |> ignore
     state.owned = None
@@ -800,8 +975,21 @@ fn start_storage_to_rows(
       return Err(Completion(issue))
     }
   }
-  // Trusted output admission bounds the schema width by max_entries. The
-  // per-record map only retains names in that admitted output schema.
+  // Keep matched cells and borrowed name/recheck custody within the existing
+  // admission workspace, including conditional Graph presence cells.
+  let width = @schema.field_count(schema)
+  let row_workspace = {
+    if limits.max_depth > 2147483644 ||
+      width > max_entries ||
+      limits.max_depth + 3 > max_entries - width {
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(RelationOutput(@execution.CaptureLimit))
+    }
+    max_entries - width - limits.max_depth - 3
+  }
+  if source is GraphRows(graph) {
+    graph.label_workspace = row_workspace
+  }
   let state : EventsToRowsState = {
     available,
     owned,
@@ -822,11 +1010,17 @@ fn start_storage_to_rows(
     source_field: 0,
     verified_column: 0,
     matched_count: 0,
-    matched: Map([]),
     control_work_remaining: control_work_limit,
     pending_graph_field: None,
     graph_column: 0,
     graph_recheck: None,
+    record_cells: [],
+    record_field: None,
+    match_low: 0,
+    match_high: 0,
+    name_offset: 0,
+    row_workspace,
+    output_row: None,
   }
   let (session, token) = @bounded.start(
     control,

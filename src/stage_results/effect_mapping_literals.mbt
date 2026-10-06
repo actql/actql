@@ -193,11 +193,16 @@ fn effect_mapping_literal_admit(
     }
   }
   let (checked, used_nodes, used_text) = match
-    @value.admit_usage(@schema.field_contract(field), cursor, {
-      max_nodes: nodes.val,
-      max_depth: limits.max_value_depth,
-      max_text_bytes: text.val,
-    }) {
+    @value.admit_usage(
+      @schema.field_contract(field),
+      cursor,
+      {
+        max_nodes: nodes.val,
+        max_depth: limits.max_value_depth,
+        max_text_bytes: text.val,
+      },
+      authored_fields=origin == InlineSet,
+    ) {
     Ok(value) => value
     Err(@value.ValueIssue(@value.BudgetExceeded, ..)) =>
       return Err(effect_mapping_literal_issue(WorkLimit, header))
