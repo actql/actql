@@ -618,7 +618,10 @@ test('baseline preimages and changed normative pins independently determine the 
   // Retain optional-alias and SELECT ALL parent Runs with their own pins.
   assert.equal(vector('sha256:7a5c14d8f251a791a5d7bdf87b7d861a661ce9d5911568cc64148d1706bdad6d', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:c5b782e7a52b65b45bca1d6b7d78dea24bb0c008182a40d93afa5197cd349ba5');
   assert.equal(vector('sha256:1c3aaf05a32d93786cccab80b36e627ea43cc1b62a26479f3a9e1e8266fe9194', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:877787622f2fb8fa22d37b593fdbd8bf0ba485674ad06a878a96e1d9747e46f5');
-  assert.equal(current.run.run_definition_cid, 'sha256:19ff185221b8829f0a11b917131897c92134a6b19468b2e140303d4d75a49263');
+  // Keep each independently calculated parent Run bound to its own grammar.
+  assert.equal(vector('sha256:fa861e86e6e0859bd5a77f5c070b79a1dfe3c7211477bba7a7bba1da8c283530', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:b11522eb94f1e774a9deaf27c104e3b34ab17081491fe8d218c6a02cecb4e3e2');
+  assert.equal(vector('sha256:0d2511e37b6a90115493a17569622104a2834b4c0959f17f10930cd291038c0e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:19ff185221b8829f0a11b917131897c92134a6b19468b2e140303d4d75a49263');
+  assert.equal(current.run.run_definition_cid, 'sha256:bb55c1bd750ef5d854aa6ad64256b3385cf7d489b9ad94a8b9dd1508b9a406cc');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
