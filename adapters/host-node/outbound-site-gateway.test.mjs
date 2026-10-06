@@ -31,7 +31,9 @@ const transferControl = runtime.remoteTransferControl;
 const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
 
 function openssl(root, ...arguments_) {
-  execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
+  execFileSync('openssl', arguments_, {
+    cwd: root, stdio: ['ignore', 'pipe', 'pipe'],
+  });
 }
 
 function issue(root, name, subject, extension) {
