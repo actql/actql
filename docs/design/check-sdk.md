@@ -1126,3 +1126,14 @@ per-call association; a copy or stale revision cannot resolve a position.
 This SDK presentation addition does not change wire contracts or identities,
 Host retention or Owner boundaries. It establishes the selected check locale
 path, not complete CLI/IDE/agent rendering or cumulative diagnostics coverage.
+
+
+Expression argument types are explanations of existing common-checker
+rejections. `expression_type_mismatch` exposes one closed `expected_type`
+(`number`, `boolean`, or `string`) when the typed Owner cause retains that
+required-type tag. It does not expose the actual value, private identifier or
+arbitrary type-description text. An unrecognized tag retains the generic
+explanation. The verdict continues to come from the existing classification.
+The current flattened checker location does not retain an authored/generated
+origin kind; this projection omits its location instead of treating a decoded
+expression range or generated Program path as the original SQL position.

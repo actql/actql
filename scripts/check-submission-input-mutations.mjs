@@ -10,6 +10,10 @@ const cancellationAcceptance = 'adapters/host-node/client-cancel-response-loss.t
 const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'check-expression-type') return ['local', 'http'].map(entrance => ({
+    name: `${entrance}: expression type rejections explain only owned expected domains`,
+    assertions: [{id: assertion, operator: 'deepStrictEqual'}],
+  }));
   if (phase === 'check-operation-parameter') return ['local', 'http'].map(entrance => ({
     name: `${entrance}: operation parameter violations explain owned domains and input origins`,
     assertions: [{id: assertion, operator: 'deepStrictEqual'}],
@@ -92,6 +96,9 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['check expression type explanation loses its required domain',
+    'Use an expression with number type for the rejected argument.',
+    'Correct the argument count.', 'check-expression-type', 'expression-type-explanation'],
   ['check operation parameter explanation loses its positive lower bound',
     'Supply an integer from 1 through 9007199254740991.',
     'Supply any finite number.', 'check-operation-parameter', 'operation-parameter-explanation'],
