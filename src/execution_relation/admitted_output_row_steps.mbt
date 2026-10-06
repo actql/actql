@@ -15,9 +15,10 @@ struct AdmittedOutputRowCursor {
   output : AdmittedOutput
   workspace : RowWorkspace
   mut scope : SlotScope?
-  mut read : ((Int) -> @admitted.Value?)?
+  mut read : ((Int) -> RelationCell?)?
   mut column : Int
   mut cells : Array[@admitted.Value]
+  mut presence_cells : Array[@admitted.Value?]?
   mut recheck : @admitted.RecheckCursor?
   mut charge : BoundedOutputRowCharge?
   mut phase : AdmittedOutputRowPhase
@@ -38,15 +39,47 @@ pub fn start_admitted_output_row(
   max_workspace_slots : Int,
   read : (Int) -> @admitted.Value?,
 ) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue] {
+  start_admitted_output_row_state(
+    output,
+    max_workspace_slots,
+    column => read(column).map(value => Present(value)),
+    false,
+  )
+}
+
+///|
+/// Explicit absence is accepted only for a conditional schema field. An
+/// unavailable coordinate is not an absent cell, and NULL remains a value.
+pub fn start_admitted_presence_output_row(
+  output : AdmittedOutput,
+  max_workspace_slots : Int,
+  read : (Int) -> RelationCell?,
+) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue] {
+  start_admitted_output_row_state(output, max_workspace_slots, read, true)
+}
+
+///|
+fn start_admitted_output_row_state(
+  output : AdmittedOutput,
+  max_workspace_slots : Int,
+  read : (Int) -> RelationCell?,
+  allow_presence : Bool,
+) -> Result[AdmittedOutputRowCursor, AdmittedOutputRowIssue] {
   let buffer = output.buffer
   if !buffer.open || buffer.reading {
     return Err(OutputRowCapture(ClosedCapture))
   }
   let width = @schema.field_count(buffer.schema)
-  if buffer.rows.length() >= buffer.max_rows {
+  let conditional = !@schema.all_fields_required(buffer.schema)
+  let count = if conditional {
+    buffer.presence_rows.length()
+  } else {
+    buffer.rows.length()
+  }
+  if count >= buffer.max_rows {
     return Err(OutputRowCapture(CaptureLimit))
   }
-  if !@schema.all_fields_required(buffer.schema) {
+  if conditional && !allow_presence {
     return Err(OutputRowCapture(ConditionalInputRequiresPresence))
   }
   let workspace = row_workspace(max_workspace_slots)
@@ -62,6 +95,11 @@ pub fn start_admitted_output_row(
     read: Some(read),
     column: 0,
     cells: [],
+    presence_cells: if conditional {
+      Some([])
+    } else {
+      None
+    },
     recheck: None,
     charge: None,
     phase: if width == 0 {
@@ -99,7 +137,7 @@ pub fn advance_admitted_output_row(
   match cursor.phase {
     ReadCell => {
       guard cursor.read is Some(read) &&
-        read(cursor.column) is Some(value) &&
+        read(cursor.column) is Some(cell) &&
         @schema.field_at(buffer.schema, cursor.column) is Some(field) else {
         return fail_admitted_output_row(
           cursor,
@@ -108,6 +146,26 @@ pub fn advance_admitted_output_row(
       }
       if !buffer.open || !buffer.reading {
         return fail_admitted_output_row(cursor, OutputRowCapture(ClosedCapture))
+      }
+      let value = match cell {
+        Absent => {
+          guard field.presence == @schema.Conditional &&
+            cursor.presence_cells is Some(cells) else {
+            return fail_admitted_output_row(
+              cursor,
+              OutputRowCapture(InvalidCheckedRow),
+            )
+          }
+          cells.push(None)
+          cursor.column += 1
+          cursor.phase = if cursor.column == @schema.field_count(buffer.schema) {
+            StartCharge
+          } else {
+            ReadCell
+          }
+          return Ok(false)
+        }
+        Present(value) => value
       }
       guard @admitted.start_recheck_runtime_value(value, field.contract, {
           max_nodes: buffer.budget.limits.max_nodes - buffer.budget.nodes,
@@ -139,7 +197,11 @@ pub fn advance_admitted_output_row(
             OutputRowCapture(InvalidCheckedRow),
           )
         @admitted.RecheckComplete(checked, _, _) => {
-          cursor.cells.push(checked.value)
+          if cursor.presence_cells is Some(cells) {
+            cells.push(Some(checked.value))
+          } else {
+            cursor.cells.push(checked.value)
+          }
           cursor.recheck = None
           cursor.column += 1
           cursor.phase = if cursor.column == @schema.field_count(buffer.schema) {
@@ -158,6 +220,7 @@ pub fn advance_admitted_output_row(
           cursor.output,
           cursor.cells,
           cursor.workspace,
+          presence_cells=cursor.presence_cells,
         ) {
         Err(OutputCapture(issue)) => {
           buffer.reading = true
@@ -170,6 +233,7 @@ pub fn advance_admitted_output_row(
         Ok(charge) => cursor.charge = Some(charge)
       }
       cursor.cells = []
+      cursor.presence_cells = None
       cursor.phase = Charge
     }
     Charge => {
@@ -223,6 +287,7 @@ pub fn cleanup_admitted_output_row(cursor : AdmittedOutputRowCursor) -> Bool {
     cursor.output.buffer.reading = false
   }
   cursor.cells = []
+  cursor.presence_cells = None
   cursor.read = None
   if cursor.scope is Some(scope) {
     scope.close() |> ignore

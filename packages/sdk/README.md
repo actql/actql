@@ -857,6 +857,38 @@ substitute another issue. Budgets are checking limits, not invalid JSON. Correct
 the submitted input and explicitly check again; these hints apply no edit and
 grant no execution authority.
 
+
+The operation explanation helpers `explainSubmission`, `explainCancellation`,
+`explainReadFailure` and `explainEffectUncertainty` accept optional `{locale}`
+with the same `en` / `ja` / `ja-JP` selection as check presentation. Unknown
+selections or a throwing locale getter retain the safe English explanation.
+`getOperationPresentationInfo({locale})` returns the operation translation
+revision; it is separate from the check translation revision, schema CIDs and
+Program/Run/Result identity.
+
+The helpers first retrieve the original immutable SDK observation, then choose
+wording. Locale changes preserve every observation, request/Run/read reference,
+control revision, physical-stop fact, cleanup fact and caller-yielded row count.
+They perform no lookup, submit, cancellation, reconciliation or read. Changing
+an error or response while the locale getter runs cannot replace retained facts;
+copies and foreign objects still have no retained explanation. English keeps
+the original frozen explanation; translated results are frozen and reuse its
+immutable nested data. No source, value or credential retention is added.
+
+```js
+const explanation = explainCancellation(cancelReply, {locale: 'ja'});
+// Cancellation acceptance still requires a fresh status for stop and release.
+const presentation = getOperationPresentationInfo({locale: 'ja'});
+```
+
+A held request is distinct from uncertain acceptance and from a received Run
+reference. A reader interruption reports only rows returned to that caller;
+it does not establish publication or execution success. Uncertain reader cleanup
+stays uncertain. An unresolved Effect stays unresolved even when computation
+stop is separately confirmed. Translation cannot grant retry or reconciliation
+permission; inspect the original Owner through the retained reference and current
+authorization when the caller explicitly chooses to do so.
+
 When response decoding, schema admission or original-input binding fails,
 `client.check` still rejects with `InvalidHostCheckOutcome`.
 `explainCheckFailure(error, {locale})` explains only the original error produced

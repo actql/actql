@@ -6047,6 +6047,58 @@ comparison/session identity, intermediate aggregate bytes and whole-Run
 accounting remain separate. Full-target, packed and CI completion are not
 claimed. See the [projection evidence](2026-10-06-local-records-row-projection.md).
 
+The four parent Graph projection work failures above are now explained by
+four previously uncounted JSON data-Text polls per full typed identity.
+Independent identity evidence fixes recheck work 24, nodes eight and Text
+bytes 110; old projection control boundaries are 44/43 for nodes and
+105/104 for edges. Exact/one-short and every-phase cancellation passed in
+the focused eight-case candidate selection. This is a work-premise repair,
+not stepped Graph materialization or final integration evidence. See the
+[Graph projection record](2026-10-06-local-graph-projection-steps.md).
+
+Graph projection now shares the stepped AdmittedOutputRow owner for both
+required and conditional output. Indexed cell initialization, fragmented
+ASCII-folded name matching, value recheck and logical output measurement
+yield independently. Presence remains distinct from NULL in retained bytes
+and reread. Independent small/large exact and one-short limits, every private
+phase stop, and focused public Host/real Store evidence are recorded in the
+same [Graph projection record](2026-10-06-local-graph-projection-steps.md).
+This supersedes the atomic Graph append residual above, not the synchronous
+label construction, selector, ordering-key or JSON object-name boundaries.
+The route checker requires the new evidence and shared cursor connections;
+removing them or restoring atomic output fails its mutation checks.
+
+Graph label output now also uses the existing Text recheck and private
+ArrayBuilder. Each label yields during Unicode/byte validation; finalization
+transfers the array without copying it. Provisional label slots remain
+reserved until row commit, including overlap with shared row admission and
+measurement. Exact/one-short limits, long/wide labels, quantum invariance and
+stop/cleanup pass for node and edge projection. Existing viewed wrappers and
+public Host/real Store cases remain covered. The resource gate requires these
+connections and operation-bound evidence.
+
+This supersedes label construction/measurement and final label-array copy
+as residuals, not selectors, identity ordering keys, JSON object-name scans,
+constructor preparation, Events comparisons or whole-Run accounting. No full
+Local completion or pristine packed campaign is claimed. See the
+[label-output record](2026-10-06-local-graph-label-output.md).
+
+Graph row selection now keeps each definition/label candidate and character
+offset across charged fragments, preserving raw definition equality and
+ASCII-folded label identity. Shared tuple sorting also retains component and
+character offsets, so long prefixes and wide equal keys no longer hide a full
+comparison inside one merge poll. Snapshot sort preparation uses the existing
+deferred shape-admission path. Real sorter consumers and Graph selection
+boundaries pass focused JS checks, and public Local/real Store cases remain
+covered; see the [selection/order record](2026-10-06-local-graph-selection-order.md).
+
+Earlier ordering-key acquisition residual wording is corrected: current
+production Storage and its managed view reuse indexed retained tokens rather
+than re-encoding identity. The unbounded part was tuple comparison, now split.
+This does not certify arbitrary custom view callbacks. Runtime JSON object-name
+admission, constructor preparation, Events comparison, intermediate aggregate
+bytes and whole-Run accounting remain. Full Local closure is not asserted.
+
 ### Nearest input role-name matching
 
 Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16
