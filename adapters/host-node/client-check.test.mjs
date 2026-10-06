@@ -4307,8 +4307,10 @@ for (const entrance of ['local', 'http']) {
       const client = await contextClient(t, entrance, absentEnvironment, {mutateCheckTransportReply(outcome) {
         mutate(outcome.report.coverage.limits[0].location); return outcome;
       }});
-      await assert.rejects(client.check('/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n', {format: 'sql'}),
-        {code: 'InvalidHostCheckOutcome'}, '[check-mutation:function-position-admission]');
+      let rejection;
+      try { await client.check('/*😀*/\r\nSELECT UNKNOWN_FUNCTION(1) AS n', {format: 'sql'}); }
+      catch (error) { rejection = error; }
+      assert.equal(rejection?.code, 'InvalidHostCheckOutcome', '[check-mutation:function-position-admission]');
     }
   });
 }

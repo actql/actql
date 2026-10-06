@@ -26,7 +26,7 @@ const mutations = [
     from: 'for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits])',
     to: 'for (const reason of [...report.reasons, ...(report.requirements ?? [])])',
     targets: ['local', 'http'].map(entrance => target(
-      `${entrance}: malformed function-limit locations reject as protocol observations`, 'function-position-admission', 'rejects'))},
+      `${entrance}: malformed function-limit locations reject as protocol observations`, 'function-position-admission'))},
 ];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
