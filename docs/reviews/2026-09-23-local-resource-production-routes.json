@@ -9590,6 +9590,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/normalize_wbtest.mbt",
           "fixture": "normalize observes cancellation between component work units"
+        },
+        {
+          "role": "normalize_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "normalize_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "normalize_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "normalize_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
         }
       ],
       "environment_tests": [
@@ -9599,6 +9627,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-normalize"
+        },
+        {
+          "role": "normalize_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Normalize publishes and cancels inside provisional record emission"
         },
         {
           "role": "installed_retained_vectors_named_results",
@@ -9691,6 +9726,41 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/score_wbtest.mbt",
           "fixture": "score observes cancellation between bounded work units"
+        },
+        {
+          "role": "score_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "score_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "score_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "score_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
+        },
+        {
+          "role": "score_key_stop_order",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Score typed Text identity validation and ties keep bounded cursors"
         }
       ],
       "environment_tests": [
@@ -9700,6 +9770,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-score"
+        },
+        {
+          "role": "score_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Score publishes and cancels inside provisional record emission"
         }
       ],
       "path_assurance": {

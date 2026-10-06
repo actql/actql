@@ -5974,3 +5974,25 @@ not preparation/schema lookup, per-poll input-availability loops, normalization,
 legacy drains, final runtime assembly, aggregate intermediate bytes or
 whole-Run accounting. See the [Ranking name-matching evidence](2026-10-06-local-ranking-name-matching.md)
 for independent budgets, negative evidence and executed/unverified checks.
+
+### Score and Normalize stepped record emission (2026-10-06)
+
+Score and Normalize now use the shared stepped record append instead of a
+synchronous append after bounded numerical computation. This includes Vector
+wire output and unused nested columns. Reference names are scanned in borrowed
+UTF-16 fragments; Score typed identity validation and ties retain the existing
+bounded key cursor. A decided tie returns to merge-side exhaustion checks.
+
+Current two-dimensional control limits are Normalize 35/34 and Score 50/49;
+workspace is respectively 67/66 and 79/78. For one 256-dimensional record,
+control limits are 804/803 and 821/820, workspace 327/326 and 338/337, and
+logical construction work 272/271 and 276/275. These supersede historical
+pre-stepped append figures only for the affected current implementations.
+
+Ordinary installed Host evidence covers real retained output, three explicit
+Named Results, two consumers, repeated-request reuse and cancellation during
+unfinished record emission. The route checker requires the executed boundary
+fixtures and their actual public suite connection; full boundary completion is
+still not asserted. Broader physical accounting, remaining execution scans and
+unexecuted packed/target campaigns are not closed by this change. See the
+[record-emission evidence](2026-10-06-local-vector-record-emission.md).

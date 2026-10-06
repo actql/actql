@@ -224,13 +224,14 @@ test "score view checks exact work and workspace before publication" {
   let source = single_scored_source(producer)
   let material = @records.completed_material(source).unwrap()
   let owner = score_owner(producer)
-  // The one-record score requires 19 work units. Its one ordered record,
-  // query, output fields, and identity require 14 workspace slots.
+  // Kernel 19 + append 31: fields 4, required 4, identity 2, key 3,
+  // begin 1, two scalar fields 8, Vector field 7, finish/commit 2.
+  // Workspace: existing 14 + append (16+9+1+30) + fixed custody 9 = 79.
   for
     (work, workspace, accepted) in [
-      (19, 14, true),
-      (18, 14, false),
-      (19, 13, false),
+      (50, 79, true),
+      (49, 79, false),
+      (50, 78, false),
     ] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, producer,
@@ -246,11 +247,11 @@ test "score view checks exact work and workspace before publication" {
         fn() { true },
         control_work_limit=Some(work),
       ) {
-      Err(ScoreWorkspaceLimit) => assert_eq(workspace, 13)
+      Err(ScoreWorkspaceLimit) => assert_eq(workspace, 78)
       Err(_) => fail("score view failed before its selected boundary")
       Ok(execution) => {
         let mut terminal = false
-        for _ in 0..<24 {
+        for _ in 0..<55 {
           if !terminal {
             match advance_score(execution, 1).unwrap() {
               ScoreContinue(..) => ()
@@ -405,8 +406,8 @@ test "score enforces cumulative one-record control work" {
   let owner = score_owner(producer)
   // Query validation: 2; scratch: 1; record start, identity scratch,
   // and field/identity scan: 8; score fold and finish: 3; emit fields,
-  // score, commit, and finish: 5.
-  for (ceiling, accepted) in [(19, true), (18, false)] {
+  // score, append setup, and finish: 5; shared append: 31 (see view fixture).
+  for (ceiling, accepted) in [(50, true), (49, false)] {
     let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
     let execution = start_score_with_control_work_limit(
       @bounded.control(),
@@ -420,7 +421,7 @@ test "score enforces cumulative one-record control work" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<24 {
+    for _ in 0..<55 {
       if !terminal {
         match advance_score(execution, 1).unwrap() {
           ScoreContinue(work=next, ..) => {
@@ -611,7 +612,7 @@ test "score admits complete ordering workspace before execution" {
       sequence(owner),
       0,
       input,
-      limits(workspace=29),
+      limits(workspace=94),
       4096L,
       fn() { true },
     )
@@ -627,12 +628,13 @@ test "score completes at its exact ordering workspace boundary" {
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Three score slots and five retained slots per record, plus two query
   // components, three output fields, and one identity slot total 30.
+  // Shared append 56 and fixed custody 9 bring the total to 95.
   let execution = start_score(
     @bounded.control(),
     sequence(owner),
     0,
     input,
-    limits(workspace=30),
+    limits(workspace=95),
     4096L,
     fn() { true },
   ).unwrap()
