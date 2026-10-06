@@ -2185,6 +2185,7 @@ export function projectTaskSiteRun(prepared, compilation, admission, definition,
   const next = Number(fields[2]);
   return Object.freeze({...progress, stateWire: fields[0], execution: fields[1],
     nextTask: next < 0 ? undefined : next, publicationReady: fields[3] === '1',
+    cleanupComplete: fields[4] === '1',
     tasks: Object.freeze(progress.tasks.map((task, index) =>
       Object.freeze({...task, nextWork: work[index]}))),
   });

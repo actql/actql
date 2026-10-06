@@ -1467,6 +1467,7 @@ pub struct ClientRemoteTaskRunProjection {
   work : Array[String]
   next_task : Int?
   publication_ready : Bool
+  cleanup_complete : Bool
 }
 
 pub(all) enum ClientRemoteTaskRunProjectionIssue {

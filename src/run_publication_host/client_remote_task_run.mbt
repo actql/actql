@@ -8,6 +8,7 @@ pub struct ClientRemoteTaskRunProjection {
   work : Array[String]
   next_task : Int?
   publication_ready : Bool
+  cleanup_complete : Bool
 }
 
 ///|
@@ -51,6 +52,8 @@ pub fn project_client_remote_task_run(
   let mut unknown = false
   let mut observed = false
   let mut all_terminal = true
+  let mut cleanup_complete = true
+  let mut fenced_unstarted = false
   for task in 0..<progress.keys.length() {
     let execution = progress.observations[task].bind(value => value.execution)
     failed = failed || execution is Some(@remote.ExecutionFailed)
@@ -59,14 +62,34 @@ pub fn project_client_remote_task_run(
       execution is Some(@remote.ExecutionUnknown) ||
       (claimed[task] && execution is None)
     observed = observed || execution is Some(_)
+    // A saved cancellation fence prevents a never-dispatched, unclaimed
+    // checked slot from acquiring execution custody. It is not a Released
+    // Site observation. Every admitted dispatch or saved start claim still
+    // needs its own terminal and cleanup evidence; absence cannot settle it.
+    let unstarted = cancellation_requested &&
+      progress.requests[task] is None &&
+      !claimed[task]
+    fenced_unstarted = fenced_unstarted || unstarted
     all_terminal = all_terminal &&
-      progress.observations[task]
-      .map(value => value.execution_terminal)
-      .unwrap_or(false)
+      (
+        unstarted ||
+        progress.observations[task]
+        .map(value => value.execution_terminal)
+        .unwrap_or(false)
+      )
+    cleanup_complete = cleanup_complete &&
+      (
+        unstarted ||
+        progress.observations[task]
+        .map(value => value.cleanup_complete)
+        .unwrap_or(false)
+      )
   }
   // A request or one task's cancellation is not the Run's completed
   // cancellation. Require all observed execution and cleanup obligations.
-  // Missing task custody remains pending, never inferred from resource zero.
+  // Missing claimed/dispatched custody remains pending. A checked slot that
+  // the persisted fence proves never started has no task cleanup obligation;
+  // producer/Transfer cleanup remains required through its observed Owner.
   // This immutable effect-free unpublished snapshot supplies facts to the
   // same eligibility owner used by live and restored Run execution. The Host
   // must recheck its publication fence/revision before committing anything.
@@ -79,10 +102,10 @@ pub fn project_client_remote_task_run(
       reconciliation_required: unknown,
       publication_committed: false,
       physical_stop_confirmed: all_terminal,
-      cleanup_confirmed: progress.cleanup_complete,
+      cleanup_confirmed: cleanup_complete,
       revision_unchanged: true,
     }) &&
-    (cancelled || progress.execution_complete)
+    (cancelled || progress.execution_complete || fenced_unstarted)
   let terminal = if failed {
     Some(@publication.RunOutcomeStatus::Failed)
   } else if cancellation_complete {
@@ -186,6 +209,7 @@ pub fn project_client_remote_task_run(
       progress.next_task
     },
     publication_ready,
+    cleanup_complete,
   })
 }
 
@@ -198,6 +222,11 @@ pub fn client_remote_task_run_projection_fields(
     value.execution,
     value.next_task.map(task => task.to_string()).unwrap_or("-1"),
     if value.publication_ready {
+      "1"
+    } else {
+      "0"
+    },
+    if value.cleanup_complete {
       "1"
     } else {
       "0"
