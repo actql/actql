@@ -820,3 +820,13 @@ const display = formatCheckOutcome(outcome, {format: 'text'});
 if (display === undefined) throw new Error('CheckDisplayUnavailable');
 console.log(display);
 ```
+
+`binding_json_invalid` explains the existing parser's failure to admit submitted
+parameter declarations or values. Closed `facts.document` identifies which
+original input failed, and `facts.issue` identifies the parser family without
+including member names, values or messages. Unicode scalar failures and member
+names that collide under the admitted normalization rules are distinct. Exact
+owned structured pointers remain optional; a location recovery read cannot
+substitute another issue. Budgets are checking limits, not invalid JSON. Correct
+the submitted input and explicitly check again; these hints apply no edit and
+grant no execution authority.
