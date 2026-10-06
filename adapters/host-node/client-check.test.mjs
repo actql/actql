@@ -3325,7 +3325,7 @@ for (const entrance of ['local', 'http']) {
       // duplicate key. It cannot replace the authoritative failure's location.
       const collision = fixture.document === 'parameters'
         ? {parameterDeclarations: {payload: {type: 'number'}},
-          parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}}
+          parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}
         : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
       const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
       assert.deepEqual(duplicate.report.reasons, [{code: fixture.code}]);

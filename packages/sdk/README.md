@@ -516,7 +516,8 @@ Other violations remain safely generic rather than guessing a cause.
 JSON parser failures in supplied values and declarations can also carry the
 original structural path before a decoded cursor exists. The existing preserving
 JSON reader supplies location material only when its typed failure and source
-position match the authoritative parser failure; it never changes the verdict. These retain
+position match the authoritative parser failure; it never changes the verdict.
+These retain
 `supplied_parameters_invalid` / `parameter_declarations_invalid`; the pointer
 belongs to the corresponding submitted input revision. Escaped unpaired
 surrogates identify the original value; an undecodable member name identifies
