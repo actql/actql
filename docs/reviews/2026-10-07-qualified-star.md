@@ -47,7 +47,7 @@ evidence in this connection.
 
 ## Independent acceptance and identity
 
-The fixed public fixture contains ten successes and seven preparation refusals.
+The fixed public fixture contains ten successes and eight preparation refusals.
 It includes an authored JSON control, a complete range, hidden-input ordering,
 quoted dot-containing aliases, the original positive values after SET negates
 the current columns, replacement AS, nullable LEFT JOIN output, GROUP ordinal,
@@ -55,7 +55,7 @@ CTE scope and typed empty output. Independent rows include NULL and duplicate
 Source rows. The ordinary harness verifies rows, complete schema/column order,
 stream completion, one acquisition session and same-request/re-read identity.
 Refusals require zero Run admission/provider I/O and cover missing/displaced
-ranges, post-projection access, ungrouped columns, unknown exclusions and
+ranges (including ambiguous receiver aliases), post-projection access, ungrouped columns, unknown exclusions and
 currently unsupported multi-part field receivers.
 
 The grammar and query rules update the grammar-manifest self CID from

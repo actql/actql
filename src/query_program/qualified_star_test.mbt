@@ -41,6 +41,17 @@ test "range stars use current CTE JOIN and GROUP scopes" {
 
 ///|
 test "range stars never revive hidden renamed or projected aliases" {
+  assert_true(
+    compile(
+      @query.parse_query(
+        "SELECT q.* FROM t AS q JOIN r AS q ON x = k",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    )
+    is Err(AmbiguousRelation),
+  )
   for
     source in [
       "SELECT missing.* FROM t", "SELECT t.* FROM t AS renamed", "FROM t AS old |> AS current |> SELECT old.*",

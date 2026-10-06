@@ -17,6 +17,9 @@ fn expanded_star_columns(
         raise Abort(UnsupportedProjection)
       }
       let matches = ranges.filter(range => same_name(path[0], range.0))
+      if matches.length() > 1 {
+        raise Abort(AmbiguousRelation)
+      }
       guard matches.length() == 1 else { raise Abort(UnknownColumn) }
       matches[0].1
     }

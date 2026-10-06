@@ -53,6 +53,7 @@ export const qualifiedStarSuccesses = [
   success('typed-empty', sql, {sourceRows: [], expected: []}),
 ];
 export const qualifiedStarRefusals = [
+  'SELECT q.* FROM records AS q JOIN (SELECT 1 AS k) AS q ON id = k MAX_OUTPUT_ROWS 10',
   'SELECT missing.* FROM records',
   'SELECT records.* FROM records AS r',
   'FROM records AS old |> AS current |> SELECT old.*',
