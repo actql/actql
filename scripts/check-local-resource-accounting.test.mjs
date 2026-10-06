@@ -65,6 +65,40 @@ test('record projections require value, name, stop and public Store evidence', (
   }), /Bridge events: record projection public Store fixture is missing/u);
 });
 
+test('Graph projections require fragment, presence and public Store evidence', () => {
+  for (const operation of ['node_rows', 'edge_rows']) {
+    for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item => item.role !== 'graph_projection_public_store');
+    }), new RegExp(`Bridge ${operation}: Graph projection public Store fixture is missing`, 'u'));
+  }
+});
+
+test('Graph projections reject missing cursor connections and atomic output', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, replacement, message] of [
+    ['@carrier.compare_property_name_fragment(', 'missing_fragment(', 'stepped Graph projection is missing'],
+    ['@execution.start_admitted_presence_output_row(', 'missing_presence(', 'stepped Graph projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'missing_advance(', 'stepped Graph projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'missing_cleanup(', 'Graph projection cleanup custody is missing'],
+    ['@execution.start_admitted_presence_output_row(', '@execution.append_admitted_output_presence(', 'Graph projection output computes synchronously'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
 test('record projections reject missing production cursor and cleanup connections', () => {
   const file = join(root, 'src/local_bridge/events.mbt');
   for (const [marker, message] of [

@@ -438,8 +438,12 @@ function deltaApplicationScenario(projection, failure) {
   return deltaScenario(presenceFixture, projection, failure);
 }
 
+// A stable executable registration for the resource evidence index. Other
+// profiles keep their existing generated names; this adds no duplicate test.
+const namedProfiles = [{mode:'local',profile:'presence-selection',
+  name: 'presence selection sort and take survives Relation Store and public Named Results through local'}];
 for (const mode of ['local','remote']) for (const profile of ['graph','presence-filter','presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct','presence-whole-distinct','presence-group','delta-application','delta-relation-composition','delta-diff']) {
-  const name = profile === 'graph'
+  const name = namedProfiles.find(item => item.mode === mode && item.profile === profile)?.name ?? (profile === 'graph'
     ? `keyed constructor and TRAIL reach public Named Results through ${mode}`
     : profile === 'delta-diff'
       ? `Graph diff Delta survives Relation Store reload and reapplication through ${mode}`
@@ -457,7 +461,7 @@ for (const mode of ['local','remote']) for (const profile of ['graph','presence-
       ? `presence whole-row distinct survives Relation Store and public Named Results through ${mode}`
     : profile === 'selector-derive'
       ? `selector property derive survives Relation Store and public Named Results through ${mode}`
-      : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`;
+      : `presence ${profile === 'presence-filter' ? 'filter' : 'selection sort and take'} survives Relation Store and public Named Results through ${mode}`);
   test(name, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);

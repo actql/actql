@@ -932,6 +932,8 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
         'node:property_graph_surface_checker':
           'scripts/property-graph-surface-checker.test.mjs',
+        'node:property_graph_public_host':
+          'scripts/property-graph-public-host.test.mjs',
         'node:embedded_distinct_values':
           'adapters/host-node/public-distinct-value-retention.test.mjs',
         'node:embedded_expression_comparison':
@@ -952,6 +954,11 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:property_graph_public_host' &&
+        !fs.readFileSync(path.join(root, 'package.json'), 'utf8')
+          .includes('scripts/property-graph-public-host.test.mjs')) {
+        fail(`${label}: Graph projection public fixture is not suite-connected`);
+      }
       if (item.suite === 'node:embedded_distinct_values' &&
           !fs.readFileSync(path.join(root,
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
@@ -2318,6 +2325,39 @@ export function validateResourceAccounting({
       if (route.operation === 'events' &&
         !environmentRoles.has('record_projection_public_store')) {
         fail(`${label}: record projection public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'Bridge' && ['node_rows', 'edge_rows'].includes(route.operation)) {
+      for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('graph_projection_public_store')) {
+        fail(`${label}: Graph projection public Store fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root, 'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn events_to_rows_step(');
+      const issueStart = bridge.indexOf('fn relation_row_issue(');
+      const projection = stepStart >= 0 && issueStart > stepStart
+        ? bridge.slice(stepStart, issueStart) : '';
+      for (const marker of ['InitializeRecordCells =>',
+        '@carrier.compare_property_name_fragment(',
+        'state.record_cells[state.graph_column]',
+        '@execution.start_admitted_presence_output_row(',
+        '@execution.advance_admitted_output_row(']) {
+        if (!projection.includes(marker)) fail(`${label}: stepped Graph projection is missing`);
+      }
+      if (projection.includes('@execution.append_admitted_output_cells(') ||
+        projection.includes('@execution.admit_relation_row(') ||
+        projection.includes('@execution.append_admitted_output_presence(')) {
+        fail(`${label}: Graph projection output computes synchronously`);
+      }
+      const cleanupStart = bridge.indexOf('fn cleanup_events_to_rows_state(');
+      const ownerStart = bridge.indexOf('fn start_storage_to_rows(');
+      const cleanup = cleanupStart >= 0 && ownerStart > cleanupStart
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
+        !cleanup.includes('state.record_cells = []')) {
+        fail(`${label}: Graph projection cleanup custody is missing`);
       }
     }
     if (route.family === 'Bridge' && route.operation === 'graph' &&

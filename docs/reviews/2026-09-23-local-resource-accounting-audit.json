@@ -388,7 +388,11 @@
       "sources": [
         "src/local_sga_provider/graph_pipeline.mbt",
         "src/local_tea_provider/events_pipeline.mbt",
-        "src/local_veca_provider/vectors_pipeline.mbt"
+        "src/local_veca_provider/vectors_pipeline.mbt",
+        "src/local_bridge/events.mbt",
+        "src/execution_relation/admitted_output_row_steps.mbt",
+        "src/execution_relation/bounded_output_row_charge.mbt",
+        "src/carrier_contract/property_name_steps.mbt"
       ],
       "evidence": [
         {
