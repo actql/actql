@@ -1042,20 +1042,26 @@ fn parse_contract_wire(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  data_keys? : Bool = false,
 ) -> Result[@json.CanonicalValue, PublicationContractIssue] {
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     return Err(InvalidLimits)
   }
+  let parse_limits : @source.ParseLimits = {
+    max_input_bytes: max_wire_bytes,
+    max_nodes,
+    max_depth,
+  }
   let node = match
-    @source.parse_json(wire, {
-      max_input_bytes: max_wire_bytes,
-      max_nodes,
-      max_depth,
+    (if data_keys {
+      @source.parse_json_bytes_preserving(@utf8.encode(wire), parse_limits)
+    } else {
+      @source.parse_json(wire, parse_limits)
     }) {
     Ok(value) => value
     Err(_) => return Err(InvalidWire)
   }
-  Ok(@json.from_source(node, max_nodes, max_depth, max_wire_bytes)) catch {
+  Ok(@json.from_source(node, max_nodes, max_depth, max_wire_bytes, data_keys~)) catch {
     _ => Err(InvalidWire)
   }
 }
@@ -1076,7 +1082,13 @@ pub fn seal_publication_contract(
     return Err(InvalidLimits)
   }
   let body = match
-    parse_contract_wire(body_wire, max_wire_bytes, max_nodes - 1, max_depth) {
+    parse_contract_wire(
+      body_wire,
+      max_wire_bytes,
+      max_nodes - 1,
+      max_depth,
+      data_keys=name == "captured_run",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -1135,7 +1147,13 @@ pub fn admit_publication_contract(
     None => return Err(UnknownContract)
   }
   let complete = match
-    parse_contract_wire(complete_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      complete_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=name == "captured_run",
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

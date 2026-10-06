@@ -136,3 +136,27 @@ budgets, positive-Continue validation or completion authority were weakened.
 This establishes sensitivity to even a single lost unit in each of the three
 forwarding stages. It does not exhaust all possible accounting mutations or
 prove work totals for nonempty action sets.
+
+## Typed JSON and bounded Text recheck integration
+
+The original 2,858-work evidence above remains tied to its original source.
+With the current bounded Text recheck and explicit JSON value domain, the
+independent fixture requires 2,873 physical control-work units. Neither its
+logical value work nor the configured production ceilings change.
+
+Each recheck adds seven Text polls: the version needs one, and each of the
+three 71-unit CIDs needs two 64-unit chunks. The diff kernel and output import
+each run a recheck, adding fourteen units. Import measurement additionally
+walks the JSON domain marker in one separate `SteppedRead` frame; the payload
+continues to be measured exactly once. Thus kernel=2,791, row import=80, row
+start=1 and trusted completion=1. Their total is **2,873**.
+
+The test retains kernel-only, row-start, one-short and exact ceilings and both
+whole/selected providers. Its output expectation is an independently ordered
+Delta envelope, with `$json` around the column payload and no marker around
+the Relation row. No product encoder constructs the expected bytes.
+
+All seven preserved Graph diff provider cases passed on the integrated JSON
+diagnostic source through the bounded JS wrapper (`run-25K9cE`). This is a
+working-tree diagnostic; it does not replace the old mutation receipts or
+establish a published-head, packed, cross-target or hosted-CI pass.

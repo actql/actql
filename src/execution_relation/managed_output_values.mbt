@@ -696,6 +696,7 @@ fn collect_managed_references(
       | @admitted.Timestamp(_)
       | @admitted.Decimal(_)
       | @admitted.Vector(_) => ()
+      @admitted.JsonData(_) => ()
     }
   }
   Some(references)

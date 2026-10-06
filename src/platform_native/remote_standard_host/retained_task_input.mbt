@@ -28,6 +28,55 @@ pub struct NativeRemoteRetainedTaskInput {
 }
 
 ///|
+/// Reuse the installed common current ports; do not reconstruct authority from
+/// saved binding fields or take a successful answer as a permanent grant.
+pub fn install_native_remote_retained_input_owner_current(
+  current : @publication_host.ClientRetainedInputCurrent,
+) -> NativeRemoteRetainedInputCurrent {
+  { common: current, }
+}
+
+///|
+pub fn restore_native_remote_retained_task_input(
+  saved : @remote.RemoteInputBinding,
+  producer : @publication_host.ClientRetainedInputProducer,
+  transfer_record : @transfer.RemoteTransferRecord,
+  receipt : @transfer.RemoteTransferDestinationReceipt,
+  current : NativeRemoteRetainedInputCurrent,
+  limits : NativeRemoteStandardTransferBindingLimits,
+) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue] {
+  let common = match
+    @publication_host.restore_client_retained_task_input(
+      saved,
+      producer,
+      transfer_record,
+      receipt,
+      current.common,
+      limits.max_binding_bytes,
+      limits.max_chunks,
+      limits.max_manifest_bytes,
+      limits.max_referenced_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(native_retained_task_input_issue(issue))
+  }
+  Ok({
+    common,
+    physical: native_transfer_input(
+      @publication_host.client_retained_task_input_physical(common),
+    ),
+    binding: @publication_host.client_retained_task_input_binding(common),
+  })
+}
+
+///|
+pub fn native_remote_retained_task_input_destination_use_id(
+  value : NativeRemoteRetainedTaskInput,
+) -> String {
+  value.physical.destination_use_id
+}
+
+///|
 pub(all) enum NativeRemoteRetainedTaskInputIssue {
   ProducerUnavailable
   ForeignTransfer

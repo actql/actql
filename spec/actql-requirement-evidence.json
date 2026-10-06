@@ -2170,8 +2170,30 @@
       }
     },
     {
+      "requirement_id": "actql.language/common-expression-contract.typed-json-literal",
+      "statement_sha256": "835300047f2dd851723e8a28cb6cd3ff5b554de50240f44ffaae7d8a00fd90b2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "common-expression-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/common-expression-contract.typed-json-wire",
+      "statement_sha256": "582e91a0582503d28ed135bc65340e852d9dc4e13bcc6f4fa42963f9f5f15058",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "common-expression-contract",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/common-expression-contract.canonical-nodes",
-      "statement_sha256": "87d0f8c2aecaf9c3e4876bbff27a70c85e562a65cde2d29244fe85f66e42e90e",
+      "statement_sha256": "c706a8383be018007d0ee80b650a5e1cba2dac76d19c87747b6c4ffb88eb6a1b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -5296,6 +5318,28 @@
     {
       "requirement_id": "actql.language/structural-graphs.property-contracts-and-strategies",
       "statement_sha256": "0c199b79938961073677e9dfe26c3b5a292ba9edd25489ccc7be0f3e8845720a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.union-identity-compatible-definitions",
+      "statement_sha256": "73346e604197ebfd1437d7f1d1f4630c38c280297fec243425e1228e4333519d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.union-shared-edge-endpoint-integrity",
+      "statement_sha256": "0dd0bc8a41330ba2cb34cc1162530414684e9552650c8139156c27aa94ffdbff",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8606,7 +8650,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "106b92a1f3ecb96bb42a7b8817fe854f163ed566777ac905e794efad2a6953f5",
+      "statement_sha256": "c65aed6df7eb9a972feccf90c1bf8a0d301677678af8c0ad4b747464f6bcdb5e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -11345,7 +11389,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/capacity-law-registry.values-wire-machine-contract",
-      "statement_sha256": "1a2d8d3e061f1056dc5c2899ea542fb433f157f6c84952fab74a0cd8f39a3cbb",
+      "statement_sha256": "4671c8d15cd8acaa20cfa083b71867eb66f3809eb9475bfeee511e6b3b59a60a",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13028,7 +13072,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "ba6ee6668e32cee63f71c602492b7ce8abc5d9f56e18610d6c2bf9284fce4fad",
+      "statement_sha256": "f8de19de68ef95bdf5aa83466410e382f0e85371cfbeda291bd4ad9e69c228e9",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -13381,6 +13425,17 @@
     {
       "requirement_id": "actql.protocol.artifacts/result-delivery.delivery-must-not-evaluate-a-shape-language-perform-joins-or",
       "statement_sha256": "8255d2cf45d6892e38c5749584ff5c9cdd432ac02fa3ad3f2ba6e8b302209384",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.typed-json-wire-profile",
+      "statement_sha256": "a050a5f1e82146769b9431445cd54c33d739b5c22bd21088d2a3d2ead8636be1",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

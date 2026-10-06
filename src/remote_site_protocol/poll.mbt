@@ -68,6 +68,8 @@ struct RemotePollOutput {
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Plan(RemotePollOutput)
+  RetainedPlan(RemotePollRetainedInput)
+  RetainedTransfer(RemotePollRetainedTransfer)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)
@@ -442,6 +444,14 @@ pub fn admit_remote_poll_operation_json(
     Ok(dispatch) => return Ok(Dispatch(dispatch))
     Err(_) => ()
   }
+  match admit_remote_poll_retained_input_plan_json(body) {
+    Ok(input) => return Ok(RetainedPlan(input))
+    Err(_) => ()
+  }
+  match admit_remote_poll_retained_input_transfer_json(body) {
+    Ok(input) => return Ok(RetainedTransfer(input))
+    Err(_) => ()
+  }
   match admit_remote_poll_output_plan_json(body) {
     Ok(output) => return Ok(Plan(output))
     Err(_) => ()
@@ -472,6 +482,8 @@ pub fn remote_poll_operation_request(
   match operation {
     Dispatch(dispatch) => dispatch.request
     Plan(output) | Output(output) => output.request
+    RetainedPlan(input) => input.request
+    RetainedTransfer(input) => input.intent.request
     Query(request) | Cancel(request) | Release(request) => request
   }
 }
@@ -479,7 +491,8 @@ pub fn remote_poll_operation_request(
 ///|
 pub fn remote_poll_operation_is_query(operation : RemotePollOperation) -> Bool {
   match operation {
-    Dispatch(_) | Plan(_) | Output(_) => false
+    Dispatch(_) | RetainedPlan(_) | RetainedTransfer(_) | Plan(_) | Output(_) =>
+      false
     Query(_) => true
     Release(_) | Cancel(_) => false
   }
@@ -491,7 +504,13 @@ pub fn remote_poll_operation_is_release(
 ) -> Bool {
   match operation {
     Release(_) => true
-    Dispatch(_) | Plan(_) | Output(_) | Query(_) | Cancel(_) => false
+    Dispatch(_)
+    | RetainedPlan(_)
+    | RetainedTransfer(_)
+    | Plan(_)
+    | Output(_)
+    | Query(_)
+    | Cancel(_) => false
   }
 }
 
@@ -499,7 +518,13 @@ pub fn remote_poll_operation_is_release(
 pub fn remote_poll_operation_is_output(operation : RemotePollOperation) -> Bool {
   match operation {
     Output(_) => true
-    Dispatch(_) | Plan(_) | Query(_) | Release(_) | Cancel(_) => false
+    Dispatch(_)
+    | RetainedPlan(_)
+    | RetainedTransfer(_)
+    | Plan(_)
+    | Query(_)
+    | Release(_)
+    | Cancel(_) => false
   }
 }
 
@@ -509,7 +534,13 @@ pub fn remote_poll_operation_is_output_plan(
 ) -> Bool {
   match operation {
     Plan(_) => true
-    Dispatch(_) | Output(_) | Query(_) | Release(_) | Cancel(_) => false
+    Dispatch(_)
+    | RetainedPlan(_)
+    | RetainedTransfer(_)
+    | Output(_)
+    | Query(_)
+    | Release(_)
+    | Cancel(_) => false
   }
 }
 
@@ -590,6 +621,26 @@ pub fn admit_remote_poll_not_seen_json(
 pub fn remote_poll_operation_is_cancel(operation : RemotePollOperation) -> Bool {
   match operation {
     Cancel(_) => true
-    Dispatch(_) | Plan(_) | Output(_) | Query(_) | Release(_) => false
+    Dispatch(_)
+    | RetainedPlan(_)
+    | RetainedTransfer(_)
+    | Plan(_)
+    | Output(_)
+    | Query(_)
+    | Release(_) => false
   }
+}
+
+///|
+pub fn remote_poll_operation_is_retained_input_plan(
+  operation : RemotePollOperation,
+) -> Bool {
+  operation is RetainedPlan(_)
+}
+
+///|
+pub fn remote_poll_operation_is_retained_input_transfer(
+  operation : RemotePollOperation,
+) -> Bool {
+  operation is RetainedTransfer(_)
 }

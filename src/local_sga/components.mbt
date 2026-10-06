@@ -985,6 +985,7 @@ fn start_components_source(
   let live = Ref(true)
   let accepted = Ref(false)
   let port_result = match source {
+    Accumulated(_) => return Err(InvalidComponentsKernel)
     Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,

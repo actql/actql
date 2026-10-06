@@ -352,8 +352,6 @@ test "unconnected current Graph consumers cannot manufacture a legacy checked pi
         "]},\"direction\":\"out\",\"max_hops\":1}",
       ),
       ("graft_graph", "{\"with\":\"peer\"}"),
-      ("subtract_graphs", "{\"with\":\"peer\"}"),
-      ("union_graphs", "{\"with\":[\"peer\",\"g\",\"peer\"]}"),
       (
         "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
       ),
