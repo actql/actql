@@ -27,6 +27,8 @@ pub fn coordinator_admit_poll_not_seen(String, @remote_site_protocol.DispatchReq
 
 pub fn coordinator_admit_response_json(String, @remote_site_protocol.DispatchRequest, Bool) -> Result[@remote_site_protocol.RemoteDispatchResponse, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_can_retire_cancellation_delivery(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
+
 pub fn coordinator_checked_output_intent_cid(CoordinatorCheckedOutputPlan) -> String
 
 pub fn coordinator_checked_output_plan_cid(CoordinatorCheckedOutputPlan) -> String

@@ -130,11 +130,11 @@ test "current Graph components preserve typed order and bounded ownership" {
       assert_eq(
         @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
         "{\"component_id\":" +
-        identity(component) +
+        property_graph_expected_json_wire(identity(component)) +
         ",\"component_size\":" +
         size.to_string() +
         ",\"node_id\":" +
-        identity(key) +
+        property_graph_expected_json_wire(identity(key)) +
         "}",
       )
     }
@@ -181,9 +181,9 @@ test "current Graph components preserve typed order and bounded ownership" {
           50,
         ).unwrap(),
         "{\"component_id\":" +
-        identity(first) +
+        property_graph_expected_json_wire(identity(first)) +
         ",\"component_size\":2,\"node_id\":" +
-        identity(first) +
+        property_graph_expected_json_wire(identity(first)) +
         "}",
       )
       assert_true(@local_sga.cleanup_components(selected).unwrap())
@@ -301,11 +301,11 @@ test "components distinguish a directed cycle feeder and isolated node" {
       assert_eq(
         @execution.completed_output_row_wire(output, index, 10000, 10000, 50).unwrap(),
         "{\"component_id\":" +
-        identity(component) +
+        property_graph_expected_json_wire(identity(component)) +
         ",\"component_size\":" +
         size.to_string() +
         ",\"node_id\":" +
-        identity(node) +
+        property_graph_expected_json_wire(identity(node)) +
         "}",
       )
     }

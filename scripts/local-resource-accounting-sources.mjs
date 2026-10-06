@@ -16,6 +16,7 @@ const fixedSources = [
   'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
   'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
   'adapters/local-node/strategy-bundle.mjs',
+  'adapters/host-node/embedded-installation.test.mjs',
   'scripts/property-graph-public-host.test.mjs',
   'scripts/property-graph-surface-checker.test.mjs',
   'scripts/test-packed-property-graph.mjs',

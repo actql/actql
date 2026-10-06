@@ -110,3 +110,105 @@ test "identity scan cancellation releases nested traversal without revoking its 
   assert_true(advance_completed_relation_identity_scan(scan, 1) is Err(Closed))
   assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
 }
+
+///|
+test "completed identity yields inside both long column key streams" {
+  let name = String::make(256, 'k')
+  let owner = bound_pipeline(
+    "[{\"values\":{\"schema\":{\"" +
+    name +
+    "\":{\"type\":\"number\",\"nullable\":true}},\"rows\":[{\"" +
+    name +
+    "\":null}]},\"as\":\"v\"},{\"select\":[\"" +
+    name +
+    "\"],\"as\":\"selected\"}]",
+  )
+  let source = export_fixture(owner)
+  // Three ten-node writer envelopes and one eight-slot column summary,
+  // plus one measurement/key cursor. Four name chunks and six chunks per
+  // wire key add to eight other transitions: 24 total advances.
+  for
+    (work, workspace, accepted) in [
+      (24, 39, true),
+      (23, 39, false),
+      (24, 38, false),
+    ] {
+    let scan = identity_scan_fixture(source, work~, workspace~)
+    let mut done = false
+    let mut failed = false
+    let mut payload_keys = 0
+    let mut logical_keys = 0
+    for _ in 0..<24 {
+      let before = @encode.writer_progress(scan.stream.writer).0
+      match advance_completed_relation_identity_scan(scan, 1) {
+        Ok((finished, consumed)) => {
+          assert_eq(consumed, 1)
+          assert_true(
+            @encode.writer_progress(scan.stream.writer).0 - before <= 68,
+          )
+          if scan.phase is EmitPayloadKey(_) {
+            payload_keys += 1
+          }
+          if scan.phase is EmitLogicalKey(_) {
+            logical_keys += 1
+          }
+          done = finished
+          if done {
+            break
+          }
+        }
+        Err(Admission(CaptureLimit)) => {
+          failed = true
+          break
+        }
+        _ => abort("unexpected long-key identity failure")
+      }
+    }
+    assert_eq(done, accepted)
+    assert_eq(failed, !accepted)
+    if accepted {
+      assert_eq(scan.work, 24)
+      assert_eq(scan.workspace.peak, 39)
+      assert_eq(payload_keys, 6)
+      assert_eq(logical_keys, 6)
+      let receipt = finish_completed_relation_identity_scan(scan).unwrap()
+      // Independent SHA-256 of [{"<256 k units>":null}] and the registered
+      // {"sort":"relation","value":...} envelope, not execution output.
+      assert_eq(
+        output_stream_identity(completed_relation_export_content(receipt)).0,
+        "sha256:d864ef15f2f6d814b1936a58cf852d84d66f6e3d70d14a1590dc5c26ccd8ea38",
+      )
+      assert_eq(
+        logical_relation_cid(completed_relation_export_identity(receipt)),
+        "sha256:62c52a4acd02f75317090121a9ff0dc7e2eeb11ac1176ef1e5e805bbb686476e",
+      )
+      assert_eq(completed_relation_export_measurement(receipt).column_bytes, [4])
+    } else {
+      assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
+    }
+    assert_eq(scan.workspace.live, 0)
+    assert_true(completed_output_available(source))
+  }
+  for logical in [false, true] {
+    let scan = identity_scan_fixture(source, work=24, workspace=39)
+    let mut reached = false
+    for _ in 0..<24 {
+      assert_false(advance_completed_relation_identity_scan(scan, 1).unwrap().0)
+      if (logical && scan.phase is EmitLogicalKey(_)) ||
+        (!logical && scan.phase is EmitPayloadKey(_)) {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    let work = scan.work
+    assert_true(cancel_completed_relation_identity_scan(scan))
+    assert_eq(scan.work, work)
+    assert_eq(scan.workspace.live, 0)
+    assert_true(completed_output_available(source))
+    assert_true(
+      advance_completed_relation_identity_scan(scan, 1) is Err(Closed),
+    )
+    assert_true(finish_completed_relation_identity_scan(scan) is Err(Closed))
+  }
+}

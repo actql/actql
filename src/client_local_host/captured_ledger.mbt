@@ -40,6 +40,7 @@ fn client_local_execution_limits() -> (
 fn client_local_sequence_capacity(
   sequences : Array[@execution.GeneratedSequence],
   task_count : Int,
+  retained_inputs? : Array[Int]? = None,
 ) -> (@resources.LedgerLimits, Int64, Int64)? {
   if task_count < 1 || task_count > 32 || sequences.length() > task_count {
     return None
@@ -68,12 +69,44 @@ fn client_local_sequence_capacity(
       execution_bytes = executing
     }
   }
+  let mut transfer_bytes = task_count.to_int64() * 1000000L
+  if retained_inputs is Some(inputs) {
+    if inputs.length() != sequences.length() {
+      return None
+    }
+    let (values, _, _) = client_local_execution_limits()
+    let import_limits = client_local_import_limits(
+      {
+        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+        max_rows: 100,
+        max_value_bytes: 10000,
+        common_fragment: None,
+      },
+      values,
+    )
+    guard @local.local_import_retention_capacity(import_limits)
+      is Some(import_bytes) &&
+      @local.local_export_retention_capacity(
+        client_local_export_limits(100, values),
+      )
+      is Some(export_bytes) &&
+      client_local_store_inventory(
+        inputs, retained_bytes, import_bytes, export_bytes, 536870912L,
+      )
+      is Some((retained, ports)) else {
+      return None
+    }
+    total_retained_bytes = retained
+    let imported_wire = ports * import_limits.wire.max_bytes.to_int64()
+    if imported_wire > transfer_bytes {
+      transfer_bytes = imported_wire
+    }
+  }
   let limits : @resources.LedgerLimits = {
     planning_work: 100000,
     attempts: task_count,
     holdings: task_count,
-    // Each checked task may import one input under the existing 1 MB wire cap.
-    transfer_bytes: task_count.to_int64() * 1000000L,
+    transfer_bytes,
     retained_bytes: if total_retained_bytes > 200000000L {
       total_retained_bytes
     } else {
@@ -82,6 +115,45 @@ fn client_local_sequence_capacity(
     execution_bytes: 536870912L,
   }
   Some((limits, retained_bytes, execution_bytes))
+}
+
+///|
+/// Whole-Run holding allowance for retained Local outputs. Inputs count ports,
+/// not distinct producers: two ports can each require an independent import.
+/// Use the installed provider ceiling for every task, just as family providers
+/// do. Keep the existing finite admission ceiling; do not sample a successful
+/// execution or drop a parent holding to manufacture a fitting reservation.
+fn client_local_store_inventory(
+  inputs : Array[Int],
+  provider_bytes : Int64,
+  import_bytes : Int64,
+  export_bytes : Int64,
+  max_bytes : Int64,
+) -> (Int64, Int64)? {
+  if provider_bytes < 0L ||
+    import_bytes < 0L ||
+    export_bytes < 0L ||
+    max_bytes < 0L ||
+    provider_bytes > max_bytes ||
+    export_bytes > max_bytes - provider_bytes {
+    return None
+  }
+  let per_task = provider_bytes + export_bytes
+  let mut retained = 0L
+  let mut ports = 0L
+  for count in inputs {
+    if count < 0 || per_task > max_bytes - retained {
+      return None
+    }
+    retained += per_task
+    // The division precheck avoids overflow even for rejected inventories.
+    if count > 0 && import_bytes > (max_bytes - retained) / count.to_int64() {
+      return None
+    }
+    retained += count.to_int64() * import_bytes
+    ports += count.to_int64()
+  }
+  Some((retained, ports))
 }
 
 ///|

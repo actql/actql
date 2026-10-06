@@ -84,7 +84,7 @@ test "description projects exact retained evidence and rejects substitutions" {
   )
   assert_true(
     description.contains(
-      "\"contractCid\":\"sha256:2b15824ab044228057826503eb186f7608e2fc05a1564bb18f057d6eb7bb5041\"",
+      "\"contractCid\":\"sha256:61035606b44ad7f4dc24127825bcc46636f40ce5e06881cf9c97996dcb3bde84\"",
     ),
   )
   assert_true(

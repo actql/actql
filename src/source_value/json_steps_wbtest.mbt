@@ -11,8 +11,14 @@ fn limits(
 fn resumable_parse(
   text : String,
   bound : ParseLimits,
+  data_keys? : Bool = false,
 ) -> Result[ParsedSource, ParseError] raise {
-  let parser = start_json_parse(text, bound, source_path="steps.json").unwrap()
+  let parser = start_json_parse(
+    text,
+    bound,
+    source_path="steps.json",
+    data_keys~,
+  ).unwrap()
   for _ in 0..<100000 {
     match advance_json_parse(parser, 1).unwrap() {
       JsonParseContinue(work~) => assert_true(work > 0 && work <= 1)
@@ -85,4 +91,20 @@ test "resumable JSON limits and cancellation retain no partial tree" {
   assert_true(parser.document.frames.is_empty())
   assert_true(parser.document.completed is None)
   assert_eq(parser.document.parser.source, "")
+}
+
+///|
+test "resumable JSON data mode preserves exact keys without weakening duplicate or bounds checks" {
+  let text = "{\"é\":1,\"é\":2,\"line\":\"a\\r\\nb\"}"
+  let parsed = resumable_parse(text, limits(), data_keys=true).unwrap()
+  guard parsed.node.value is Object(fields) else { fail("object") }
+  assert_eq(fields.map(f => f.key), ["é", "é", "line"])
+  assert_true(fields[2].value.value is String("a\r\nb"))
+  assert_true(resumable_parse(text, limits()) is Err(_))
+  for invalid in ["{\"é\":1,\"é\":2}", "[1,]"] {
+    assert_true(resumable_parse(invalid, limits(), data_keys=true) is Err(_))
+  }
+  for bound in [limits(nodes=2), limits(depth=0), limits(bytes=4)] {
+    assert_true(resumable_parse(text, bound, data_keys=true) is Err(_))
+  }
 }

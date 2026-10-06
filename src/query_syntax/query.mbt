@@ -44,7 +44,7 @@ pub(all) struct AnalyticFrame {
 
 ///|
 pub(all) struct AnalyticWindow {
-  partition_by : Array[Array[NamePart]]
+  partition_by : Array[Expression]
   order_by : Array[SortTerm]
   frame : AnalyticFrame?
 }
@@ -70,6 +70,14 @@ pub(all) enum GroupingScope {
 } derive(Eq)
 
 ///|
+/// An authored operation integer. Bound values belong to the common checker;
+/// the parser retains the parameter name without evaluating or defaulting it.
+pub(all) enum QueryInteger {
+  Integer(Int64)
+  BoundParameter(String)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
   AssertUnique(Array[Array[NamePart]])
@@ -87,7 +95,7 @@ pub(all) enum QueryOperation {
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
-  Limit(Int64, Int64)
+  Limit(QueryInteger, QueryInteger)
 }
 
 ///|
@@ -895,13 +903,28 @@ fn QueryParser::over(self : QueryParser) -> AnalyticWindow raise QueryAbort {
   if self.advance().value != Symbol(40) {
     raise QueryAbort("Expected OVER opening parenthesis", self.peek().start)
   }
-  let partition_by : Array[Array[NamePart]] = []
+  let partition_by : Array[Expression] = []
   if self.has("PARTITION") {
     self.keyword("PARTITION")
     self.keyword("BY")
     while true {
+      let start = self.peek().start
       self.node()
-      partition_by.push(self.path())
+      let path = self.path()
+      // Keep the existing path grammar, but retain its original expression
+      // owner and span so ordinary prefix/property lowering can consume it.
+      partition_by.push({
+        source: self.source,
+        nodes: [
+          {
+            kind: Reference(path),
+            start,
+            end: self.source.tokens[self.index - 1].end,
+          },
+        ],
+        root: 0,
+        work: 1,
+      })
       if self.peek().value != Symbol(44) {
         break
       }
@@ -1091,14 +1114,27 @@ fn QueryParser::safe_integer(
 ///|
 fn QueryParser::limit(self : QueryParser) -> QueryOperation raise QueryAbort {
   self.keyword("LIMIT")
-  let count = self.safe_integer(false)
+  let count = self.limit_integer(false)
   let offset = if self.has("OFFSET") {
     self.keyword("OFFSET")
-    self.safe_integer(true)
+    self.limit_integer(true)
   } else {
-    0L
+    Integer(0L)
   }
   Limit(count, offset)
+}
+
+///|
+fn QueryParser::limit_integer(
+  self : QueryParser,
+  zero_allowed : Bool,
+) -> QueryInteger raise QueryAbort {
+  if self.peek().value is Parameter(name) {
+    ignore(self.advance())
+    BoundParameter(name)
+  } else {
+    Integer(self.safe_integer(zero_allowed))
+  }
 }
 
 ///|

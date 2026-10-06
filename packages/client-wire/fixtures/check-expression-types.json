@@ -1,0 +1,20 @@
+[
+  {
+    "code": "expression_type_mismatch",
+    "facts": {
+      "expected_type": "number"
+    }
+  },
+  {
+    "code": "expression_type_mismatch",
+    "facts": {
+      "expected_type": "boolean"
+    }
+  },
+  {
+    "code": "expression_type_mismatch",
+    "facts": {
+      "expected_type": "string"
+    }
+  }
+]

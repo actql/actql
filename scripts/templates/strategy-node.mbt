@@ -8912,3 +8912,19 @@ pub fn strategy_remote_standard_input_failure_cleanup_retry(
   @remote_standard.retry_native_remote_standard_input_failure_cleanup(failure)
 }
 // NATIVE_REMOTE_STANDARD_END
+
+///|
+#export_name("strategyRemoteDispatchResponseCanRetireCancellationDelivery")
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(
+  response : @remote.RemoteDispatchResponse,
+) -> Bool {
+  @remote.remote_dispatch_response_can_retire_cancellation_delivery(response)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorCanRetireCancellationDelivery")
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
+}

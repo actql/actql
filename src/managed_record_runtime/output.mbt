@@ -23,6 +23,56 @@ struct OutputBuilder {
 }
 
 ///|
+struct RecordAppend {
+  output : OutputBuilder
+  cursor : @storage.AppendCursor
+  mut settled : Bool
+}
+
+///|
+pub fn start_record_append(
+  output : OutputBuilder,
+  fields : Array[(@schema.FieldName, @value.CheckedValue)],
+) -> Result[RecordAppend, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  match @storage.start_append(output.records, fields) {
+    Ok(cursor) => Ok({ output, cursor, settled: false, })
+    Err(issue) => {
+      if issue != @storage.Closed {
+        output.open = false
+        @lifecycle.cancel_retention_port(output.retention) |> ignore
+      }
+      Err(Storage(issue))
+    }
+  }
+}
+
+///|
+pub fn advance_record_append(value : RecordAppend) -> Result[Bool, Issue] {
+  if !value.output.open || value.settled {
+    return Err(Closed)
+  }
+  match @storage.advance_append(value.cursor) {
+    Ok(done) => {
+      value.settled = done
+      Ok(done)
+    }
+    Err(issue) => {
+      value.output.open = false
+      @lifecycle.cancel_retention_port(value.output.retention) |> ignore
+      Err(Storage(issue))
+    }
+  }
+}
+
+///|
+pub fn cleanup_record_append(value : RecordAppend) -> Bool {
+  @storage.cleanup_append(value.cursor)
+}
+
+///|
 struct Completed {
   core : @lifecycle.Completed[Evidence, @storage.Storage]
 }
@@ -148,6 +198,9 @@ pub fn append_record(
   if !output.open {
     return Err(Closed)
   }
+  if @storage.builder_append_pending(output.records) {
+    return Err(Storage(@storage.Closed))
+  }
   @storage.append(output.records, fields).map_err(issue => {
     output.open = false
     @lifecycle.cancel_retention_port(output.retention) |> ignore
@@ -173,6 +226,9 @@ pub fn cancel_output(output : OutputBuilder) -> Bool {
 pub fn finish_output(output : OutputBuilder) -> Result[Completed, Issue] {
   if !output.open {
     return Err(Closed)
+  }
+  if @storage.builder_append_pending(output.records) {
+    return Err(Storage(@storage.Closed))
   }
   output.open = false
   let records = match @storage.finish(output.records) {
