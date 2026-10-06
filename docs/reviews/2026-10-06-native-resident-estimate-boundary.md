@@ -32,10 +32,14 @@ not a general calibration or physical-capacity proof.
 Current-source release execution and measured calibration results must be
 recorded separately from the historical fixed-source observations below.
 
-This is G's connection work for #170 and #488. It does not establish a latency
-improvement, Native/Broad paired acceptance, or completion of the performance
-task. Host remains an explicit experiment condition. Product resident offers
-remain disabled by default.
+This records G's original connection work for #170 and #488. At that stage it
+did not establish a latency improvement or complete the performance task, and
+the ordinary Native resident offer was disabled. Subsequent #507, #546 and #557
+are merged: the measured improvement, policy/dispatch checks and enabled
+registered Native resident offer are mapped in the
+[completion audit](2026-10-06-planner-native-completion-audit.md). Host remains
+an explicit experiment condition. Historical observations below keep their own
+revisions; offering a resident candidate does not force its selection.
 
 ## Completed connection
 

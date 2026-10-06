@@ -108,44 +108,60 @@ test "current paths retain start-major depth order and direction across resume q
           for depth in depths {
             for first in first_edges {
               let edge_ids = if depth == 1 {
-                "[" + edge(first) + "]"
+                "[" + property_graph_expected_json_wire(edge(first)) + "]"
               } else if depth == 2 {
-                "[" + edge(first) + "," + edge(21 - first) + "]"
+                "[" +
+                property_graph_expected_json_wire(edge(first)) +
+                "," +
+                property_graph_expected_json_wire(edge(21 - first)) +
+                "]"
               } else {
                 "[" +
-                edge(first) +
+                property_graph_expected_json_wire(edge(first)) +
                 "," +
-                edge(21 - first) +
+                property_graph_expected_json_wire(edge(21 - first)) +
                 "," +
-                edge(first) +
+                property_graph_expected_json_wire(edge(first)) +
                 "]"
               }
               let node_ids = if depth == 1 {
-                "[" + node(start) + "," + node(next) + "]"
+                "[" +
+                property_graph_expected_json_wire(node(start)) +
+                "," +
+                property_graph_expected_json_wire(node(next)) +
+                "]"
               } else if depth == 2 {
-                "[" + node(start) + "," + node(next) + "," + node(start) + "]"
+                "[" +
+                property_graph_expected_json_wire(node(start)) +
+                "," +
+                property_graph_expected_json_wire(node(next)) +
+                "," +
+                property_graph_expected_json_wire(node(start)) +
+                "]"
               } else {
                 "[" +
-                node(start) +
+                property_graph_expected_json_wire(node(start)) +
                 "," +
-                node(next) +
+                property_graph_expected_json_wire(node(next)) +
                 "," +
-                node(start) +
+                property_graph_expected_json_wire(node(start)) +
                 "," +
-                node(next) +
+                property_graph_expected_json_wire(node(next)) +
                 "]"
               }
               expected.push(
                 "{\"edge_ids\":" +
                 edge_ids +
                 ",\"end_id\":" +
-                node(if depth % 2 == 1 { next } else { start }) +
+                property_graph_expected_json_wire(
+                  node(if depth % 2 == 1 { next } else { start }),
+                ) +
                 ",\"hop_count\":" +
                 depth.to_string() +
                 ",\"node_ids\":" +
                 node_ids +
                 ",\"start_id\":" +
-                node(start) +
+                property_graph_expected_json_wire(node(start)) +
                 "}",
               )
             }

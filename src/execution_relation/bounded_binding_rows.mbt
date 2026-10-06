@@ -251,6 +251,7 @@ priv struct BoundedRowComparison {
   mut phase : Int
   mut offset : Int
   charge : BoundedTextCharge
+  mut tree : BoundedCompleteTreeComparison?
 }
 
 ///|
@@ -283,6 +284,7 @@ fn bounded_row_comparison_step_with(
   terms : Int,
   presence? : ((Int, Int) -> Result[Bool, OrderingIssue])? = None,
   complete_values? : Bool = false,
+  workspace? : RowWorkspace? = None,
 ) -> Result[Int?, OrderingIssue] {
   if terms < 0 || terms > orders.length() {
     return Err(InvalidInput)
@@ -337,11 +339,38 @@ fn bounded_row_comparison_step_with(
     return Err(InvalidInput)
   }
   if complete_values && !(left is Text(_) && right is Text(_)) {
-    // Reuse the row-set owner's complete-value equality, including admitted
-    // arrays, objects and typed identities. This is not an authored sort key.
-    let compared = match compare_complete_value(left, right, control) {
-      Ok(value) => value
+    // The private whole-row order uses the same complete-value domain as Set.
+    // Recursive admitted values retain their cursor, roots and reservation
+    // across merge and adjacent-row polls; this is not an authored sort key.
+    if cursor.tree is None &&
+      left is Captured(a) &&
+      right is Captured(b) &&
+      (match (a, b) {
+        (@admitted.Array(_), @admitted.Array(_))
+        | (@admitted.Object(_), @admitted.Object(_))
+        | (@admitted.Vector(_), @admitted.Vector(_))
+        | (@admitted.JsonData(_), @admitted.JsonData(_)) => true
+        _ => false
+      }) {
+      guard workspace is Some(workspace) else { return Err(InvalidInput) }
+      match start_complete_tree_comparison(a, b, control, workspace) {
+        Ok(tree) => cursor.tree = Some(tree)
+        Err(issue) => return Err(issue)
+      }
+    }
+    let compared = match cursor.tree {
+      Some(tree) => advance_complete_tree_comparison(tree, control)
+      None =>
+        compare_complete_value(left, right, control).map(value => Some(value))
+    }
+    let compared = match compared {
+      Ok(None) => return Ok(None)
+      Ok(Some(value)) => value
       Err(issue) => return Err(issue)
+    }
+    if cursor.tree is Some(tree) {
+      close_complete_tree_comparison(tree)
+      cursor.tree = None
     }
     if compared != 0 {
       cursor.phase = -1
@@ -483,6 +512,7 @@ fn bounded_row_comparison_step(
       None
     },
     complete_values=state.distinct && !state.dedupe,
+    workspace=Some(state.workspace),
   )
 }
 
@@ -753,6 +783,12 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
       return false
     }
     state.sort_execution = None
+  }
+  // The child sort must confirm stop before its borrowed comparison cursor
+  // can release the admitted roots and scratch reservation.
+  if state.comparison.tree is Some(tree) {
+    close_complete_tree_comparison(tree)
+    state.comparison.tree = None
   }
   state.sort_orders = []
   state.dedupe_orders = []
@@ -3508,6 +3544,7 @@ fn start_bounded_binding_rows_with_input(
       phase: -1,
       offset: 0,
       charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     sort_kernel,
     sort_only,

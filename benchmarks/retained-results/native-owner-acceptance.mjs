@@ -39,7 +39,9 @@ test('100 rows: actual resident/fresh/Local choices, cheaper capacity refusal an
       database, fixture.workload, fixture.layout, String(fixture.rows)],
       {cwd: root, timeout: fixture.limits.timeoutMs});
       for (const [label, settings] of [
-        ['resident', {residentPolicy: true, phaseObserver: true}],
+        // Exercise the registered default, rather than an explicit diagnostic
+        // resident override. Other settings below keep their stated controls.
+        ['resident', {phaseObserver: true}],
         ['resident-profiled', {residentPolicy: true, phaseObserver: true,
           residentEstimates: {preparationMilliseconds: '2', cleanupMilliseconds: '3',
             taskMilliseconds: ['4', '5', '6'], importMilliseconds: ['7', '8', '9', null]}}],

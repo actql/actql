@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync, copyFil
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { execute, executions, root, environment, toolchain } from '../../execute.mjs';
+import { execute, executions, closeExecutor, root, environment, toolchain } from '../../execute.mjs';
 import { registry } from '../../registry.mjs';
 import { snapshot, hash } from '../../inventory.mjs';
 import { generatedObservers, installGeneratedObservers, restoreGeneratedObservers } from '../instrument.mjs';
@@ -68,15 +68,27 @@ try {
     path => originals[path] ?? read(path), 'native');
   report.retainedCore = inspectParentCorePhases(testCase,
     observation.faults.find(f => f.kind === 'parent control investigation'),
-    observation.faults.filter(f => f.kind === 'parent core observation'), 'native');
+    observation.faults.filter(f => f.kind === 'parent core observation'), 'native',
+    observation.faults.filter(f => f.kind === 'parent completed identity'));
 } finally {
+  // Close only this executor's exact fixture before restoring its source.
+  try { closeExecutor(); } finally {
   for (const [path, code] of Object.entries(originals)) writeFileSync(join(root, path), code);
   if (installed) for (const [path, code] of Object.entries(generatedObservers)) writeFileSync(join(root, path), code);
   if (ownsHelper) unlinkSync(join(root, helper));
   restoreGeneratedObservers(root);
   assert.equal(snapshot(root).digest, source.digest, 'Parent probe source restoration failed');
+  }
 }
 const result = auditParentStartup(report, source, read);
 console.log(rejectParentSubstitutions(report, source, read));
-writeFileSync(join(root, directory, 'all.json'), JSON.stringify(report, null, 2) + '\n');
+const reportBytes = JSON.stringify(report, null, 2) + '\n';
+const reportPath = join(root, directory, 'all.json');
+if (existsSync(reportPath)) {
+  const prior = readFileSync(reportPath);
+  const archive = join(root, directory, `report-${hash(prior)}.json`);
+  if (!existsSync(archive)) writeFileSync(archive, prior, {flag: 'wx'});
+  else assert.deepEqual(readFileSync(archive), prior);
+}
+writeFileSync(reportPath, reportBytes);
 console.log(JSON.stringify(result));

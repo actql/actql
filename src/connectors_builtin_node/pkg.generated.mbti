@@ -256,7 +256,7 @@ pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.Ef
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
-pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?) -> String
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String, String, String?, String?, String) -> String
 
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
@@ -2153,6 +2153,8 @@ pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, Str
 pub fn strategy_remote_dispatch_reply_json(@remote_site_protocol.DispatchRecord) -> String raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_response_admit_json(String, @remote_site_protocol.DispatchRequest, Bool) -> @remote_site_protocol.RemoteDispatchResponse raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(@remote_site_protocol.RemoteDispatchResponse) -> Bool
 
 pub fn strategy_remote_dispatch_response_evidence(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteExecutionEvidence?
 

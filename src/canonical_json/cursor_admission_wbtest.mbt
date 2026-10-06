@@ -186,3 +186,62 @@ test "resumed canonical emission writes at most one value node per advance" {
   }
   @encode.cancel_writer(writer)
 }
+
+///|
+test "canonical emission resumes long keys and Text with visible custody" {
+  let key = String::make(256, 'k')
+  let text = String::make(4096, 'g')
+  let expected = "{\"" + key + "\":[\"" + text + "\",null]}"
+  let value = from_source(
+    @source.parse_json(expected, {
+      max_input_bytes: 10000,
+      max_nodes: 10,
+      max_depth: 4,
+    }).unwrap(),
+    10,
+    4,
+    10000,
+  )
+  let writer = @encode.writer(expected.length(), 4, 2)
+  let cursor = start_emit(value, writer)
+  let mut complete = false
+  let mut polls = 0
+  for _ in 0..<200 {
+    let frames = emit_pending_frames(cursor)
+    let bytes = @encode.writer_progress(writer).0
+    complete = advance_emit(cursor)
+    assert_true(emit_pending_frames(cursor) <= frames + 1)
+    assert_true(@encode.writer_progress(writer).0 - bytes <= 68)
+    polls += 1
+    if complete {
+      break
+    }
+  }
+  assert_true(complete && polls > 60)
+  assert_eq(emit_pending_frames(cursor), 0)
+  assert_eq(@encode.finish(writer), expected)
+  for cancel_key in [true, false] {
+    let writer = @encode.writer(expected.length(), 4, 2)
+    let cursor = start_emit(value, writer)
+    let mut reached = false
+    for _ in 0..<200 {
+      assert_false(advance_emit(cursor))
+      if (cursor.pending.last() is Some(KeyNext(_)) && cancel_key) ||
+        (cursor.pending.last() is Some(TextNext(_)) && !cancel_key) {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    cancel_emit(cursor)
+    assert_eq(emit_pending_frames(cursor), 0)
+    cancel_emit(cursor)
+    assert_true(advance_emit(cursor))
+    try @encode.finish(writer) catch {
+      @encode.ClosedWriter => ()
+      _ => abort("unexpected cancelled canonical writer issue")
+    } noraise {
+      _ => abort("unfinished canonical emission finished")
+    }
+  }
+}

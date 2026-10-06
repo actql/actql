@@ -189,7 +189,7 @@ test('public source preparation binds installed aliases before checking a Progra
   }
 });
 const programCid =
-  'sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c';
+  'sha256:ed4ad86f18214721af7ba7531060f91b918d4976c5d76737aa0793e188dd0137';
 const parametersCid =
   'sha256:c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52';
 const publicationLimits = Object.freeze({

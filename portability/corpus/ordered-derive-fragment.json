@@ -1,30 +1,92 @@
 {
   "version": "actql-ordered-derive-fragment-vectors/0.1",
-  "extension_cid": "sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62",
-  "expected_aoa_node_cid": "sha256:3450035bd1f23d2992b6579a09c266f30627edc616d0ffa0d7c5ab786a81e14e",
+  "extension_cid": "sha256:2e29b27ce6d75b190ab34926bdc4fe4127b654da86f41f027470b3144082919a",
+  "expected_aoa_node_cid": "sha256:e01feb6001cf187d2c54fb9a57f85d60baa995cf4540dc78ea7f97a664b61c6e",
   "source_step": {
     "id": "derive",
-    "in": ["input"],
-    "op": "REL.derive",
-    "params": {"bindings": [
-      {"name": "amount", "expr": {"add": [{"field": "amount"}, {"$param": "delta"}]}},
-      {"name": "copy", "expr": {"field": "amount"}}
-    ]}
-  },
-  "parameters": {"delta": {"contract": {"type": "number", "nullable": false}, "value": 1}},
-  "graph_step": {
-    "id": "derive",
-    "in": ["input"],
+    "in": [
+      "input"
+    ],
     "op": "REL.derive",
     "params": {
-      "row_kernel_contract_cid": "sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62",
       "bindings": [
-        {"name": "amount", "expr": {"op": "add", "body": [{"op": "field", "body": "amount"}, {"op": "literal", "body": 1}]}},
-        {"name": "copy", "expr": {"op": "field", "body": "amount"}}
+        {
+          "name": "amount",
+          "expr": {
+            "add": [
+              {
+                "field": "amount"
+              },
+              {
+                "$param": "delta"
+              }
+            ]
+          }
+        },
+        {
+          "name": "copy",
+          "expr": {
+            "field": "amount"
+          }
+        }
+      ]
+    }
+  },
+  "parameters": {
+    "delta": {
+      "contract": {
+        "type": "number",
+        "nullable": false
+      },
+      "value": 1
+    }
+  },
+  "graph_step": {
+    "id": "derive",
+    "in": [
+      "input"
+    ],
+    "op": "REL.derive",
+    "params": {
+      "row_kernel_contract_cid": "sha256:2e29b27ce6d75b190ab34926bdc4fe4127b654da86f41f027470b3144082919a",
+      "bindings": [
+        {
+          "name": "amount",
+          "expr": {
+            "op": "add",
+            "body": [
+              {
+                "op": "field",
+                "body": "amount"
+              },
+              {
+                "op": "literal",
+                "body": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "copy",
+          "expr": {
+            "op": "field",
+            "body": "amount"
+          }
+        }
       ],
       "references": [
-        {"at": "/bindings/0/expr/body/0", "target": {"input_field": "amount"}},
-        {"at": "/bindings/1/expr", "target": {"prior_slot": 0}}
+        {
+          "at": "/bindings/0/expr/body/0",
+          "target": {
+            "input_field": "amount"
+          }
+        },
+        {
+          "at": "/bindings/1/expr",
+          "target": {
+            "prior_slot": 0
+          }
+        }
       ]
     }
   },
@@ -36,8 +98,8 @@
     },
     {
       "id": "graph_step",
-      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:18c717048b5ca41eca1be358683b26fba7f9c19ca70abe7ee1051aaa84bf6c62\"}}",
-      "cid": "sha256:3450035bd1f23d2992b6579a09c266f30627edc616d0ffa0d7c5ab786a81e14e"
+      "canonical": "{\"id\":\"derive\",\"in\":[\"input\"],\"op\":\"REL.derive\",\"params\":{\"bindings\":[{\"expr\":{\"body\":[{\"body\":\"amount\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"},\"name\":\"amount\"},{\"expr\":{\"body\":\"amount\",\"op\":\"field\"},\"name\":\"copy\"}],\"references\":[{\"at\":\"/bindings/0/expr/body/0\",\"target\":{\"input_field\":\"amount\"}},{\"at\":\"/bindings/1/expr\",\"target\":{\"prior_slot\":0}}],\"row_kernel_contract_cid\":\"sha256:2e29b27ce6d75b190ab34926bdc4fe4127b654da86f41f027470b3144082919a\"}}",
+      "cid": "sha256:e01feb6001cf187d2c54fb9a57f85d60baa995cf4540dc78ea7f97a664b61c6e"
     }
   ]
 }

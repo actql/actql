@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:4061e705e740d8c634a49afcb3af7e7a8fb9fa220b1dd6f58bb6b0ea39d3093a",
+  "artifact_registry_cid": "sha256:affa7db67b030e3cef3f0667f7969e499e2381094f964c4e98e80e387ad46998",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:6211c24d057832d414b8b7a649ebe4ecd75aef34f830594fea06d99006ab1fed",
+    "executable_plan": "sha256:fe0af9afcf8a8d1af4740dd77b321bab61a3fe4d0890a3e57b6e96c8a6d7cc02",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:4ccb9e9e3c885c48a19359c2771456a0d25fa9dfb44bf27130d6a655257ace45",
+    "plan_document": "sha256:e072e415a6ee3c6a2c0f90fd1dd28205172e8ea3d23cdd74a3d6c07a825e682b",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:c2ebf8037e6afe346c0168d45b25aa1863e3f68592ca894d413714ff7697e49c",
-    "check_reason": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6",
+    "check_outcome": "sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0",
+    "check_reason": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -19288,6 +19288,31 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 },
@@ -24364,6 +24389,31 @@
                                 "ms",
                                 "sm"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
                             }
                           }
                         }
@@ -29594,6 +29644,31 @@
                                       ]
                                     }
                                   ]
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "typed_literal"
+                                ],
+                                "properties": {
+                                  "typed_literal": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "const": "json"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             ]
@@ -36418,6 +36493,31 @@
                                           "minLength": 1
                                         }
                                       }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      }
                                     }
                                   ]
                                 }
@@ -36561,6 +36661,31 @@
                                         "field": {
                                           "type": "string",
                                           "minLength": 1
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
                                         }
                                       }
                                     }
@@ -36772,6 +36897,31 @@
                                       ],
                                       "properties": {
                                         "literal": {}
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
                                       }
                                     }
                                   ]
@@ -48983,6 +49133,31 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     },
@@ -54059,6 +54234,31 @@
                                     "ms",
                                     "sm"
                                   ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
                                 }
                               }
                             }
@@ -59289,6 +59489,31 @@
                                           ]
                                         }
                                       ]
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "typed_literal"
+                                    ],
+                                    "properties": {
+                                      "typed_literal": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "type",
+                                          "value"
+                                        ],
+                                        "properties": {
+                                          "type": {
+                                            "const": "json"
+                                          },
+                                          "value": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
                                     }
                                   }
                                 ]
@@ -66113,6 +66338,31 @@
                                               "minLength": 1
                                             }
                                           }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
+                                          }
                                         }
                                       ]
                                     }
@@ -66256,6 +66506,31 @@
                                             "field": {
                                               "type": "string",
                                               "minLength": 1
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
                                             }
                                           }
                                         }
@@ -66467,6 +66742,31 @@
                                           ],
                                           "properties": {
                                             "literal": {}
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
                                           }
                                         }
                                       ]
@@ -75949,7 +76249,8 @@
             "outcome",
             "report",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "outcome": {
@@ -76366,6 +76667,49 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -76418,7 +76762,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -76427,6 +76772,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -76510,6 +76935,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -76531,6 +76963,7 @@
                           "properties": {
                             "facts": {
                               "required": [
+                                "parameter",
                                 "expected_type"
                               ],
                               "not": {
@@ -76599,6 +77032,82 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "expression_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "expected_type"
+                              ],
+                              "properties": {
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "boolean",
+                                    "string"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -76687,6 +77196,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -76741,7 +77288,10 @@
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid",
+                                  "expression_type_mismatch"
                                 ]
                               }
                             }
@@ -76974,6 +77524,49 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -77026,7 +77619,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -77035,6 +77629,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -77118,6 +77792,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -77139,6 +77820,7 @@
                           "properties": {
                             "facts": {
                               "required": [
+                                "parameter",
                                 "expected_type"
                               ],
                               "not": {
@@ -77207,6 +77889,82 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "expression_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "expected_type"
+                              ],
+                              "properties": {
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "boolean",
+                                    "string"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -77295,6 +78053,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -77349,7 +78145,10 @@
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid",
+                                  "expression_type_mismatch"
                                 ]
                               }
                             }
@@ -77387,8 +78186,12 @@
                 }
               }
             },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -77402,7 +78205,9 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid",
+            "correlation_ref"
           ],
           "properties": {
             "outcome": {
@@ -77819,6 +78624,49 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -77871,7 +78719,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -77880,6 +78729,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -77963,6 +78892,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -77984,6 +78920,7 @@
                           "properties": {
                             "facts": {
                               "required": [
+                                "parameter",
                                 "expected_type"
                               ],
                               "not": {
@@ -78052,6 +78989,82 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "expression_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "expected_type"
+                              ],
+                              "properties": {
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "boolean",
+                                    "string"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -78140,6 +79153,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -78194,7 +79245,10 @@
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid",
+                                  "expression_type_mismatch"
                                 ]
                               }
                             }
@@ -78427,6 +79481,49 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "expected_type"
+                            ],
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "parameter",
+                              "domain"
+                            ],
+                            "properties": {
+                              "parameter": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
+                              },
+                              "domain": {
+                                "enum": [
+                                  "positive_safe_integer",
+                                  "nonnegative_safe_integer",
+                                  "unit_fraction",
+                                  "finite_number",
+                                  "duration",
+                                  "positive_milliseconds",
+                                  "signed_milliseconds",
+                                  "timestamp"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "operation",
                               "issue"
                             ],
@@ -78479,7 +79576,8 @@
                                   "invalid_parameter",
                                   "unknown_reference",
                                   "invalid_arguments",
-                                  "expected_boolean"
+                                  "expected_boolean",
+                                  "invalid_bounds"
                                 ]
                               }
                             }
@@ -78488,6 +79586,86 @@
                       }
                     },
                     "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "query_syntax_invalid",
+                                "parameter_undeclared"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "supplied_value_type_mismatch",
+                                "supplied_value_constraint_violation",
+                                "supplied_value_invalid",
+                                "supplied_parameters_invalid"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameters"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "enum": [
+                                "parameter_declarations_invalid",
+                                "parameter_value_required"
+                              ]
+                            }
+                          }
+                        },
+                        "then": {
+                          "properties": {
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "const": "parameter_declarations"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
                       {
                         "if": {
                           "properties": {
@@ -78571,6 +79749,13 @@
                                       "constraint"
                                     ]
                                   }
+                                },
+                                {
+                                  "not": {
+                                    "required": [
+                                      "domain"
+                                    ]
+                                  }
                                 }
                               ]
                             }
@@ -78592,6 +79777,7 @@
                           "properties": {
                             "facts": {
                               "required": [
+                                "parameter",
                                 "expected_type"
                               ],
                               "not": {
@@ -78660,6 +79846,82 @@
                               "required": [
                                 "constraint"
                               ]
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "expression_type_mismatch"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "expected_type"
+                              ],
+                              "properties": {
+                                "expected_type": {
+                                  "enum": [
+                                    "number",
+                                    "boolean",
+                                    "string"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "operation_parameter_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "domain"
+                              ]
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                },
+                                "document_id": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                }
+                              }
                             }
                           }
                         }
@@ -78748,6 +80010,44 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "query_frame_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "invalid_bounds"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "text"
+                                },
+                                "document_id": {
+                                  "const": "source"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "graph_operation_invalid"
                             }
                           }
@@ -78802,7 +80102,10 @@
                                   "supplied_value_constraint_violation",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
-                                  "graph_operation_invalid"
+                                  "query_frame_invalid",
+                                  "graph_operation_invalid",
+                                  "operation_parameter_invalid",
+                                  "expression_type_mismatch"
                                 ]
                               }
                             }
@@ -78852,8 +80155,18 @@
                 }
               }
             },
+            "correlation_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9:_-]+$"
+            },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78868,7 +80181,8 @@
             "outcome",
             "problem",
             "version",
-            "reason_schema_cid"
+            "reason_schema_cid",
+            "outcome_schema_cid"
           ],
           "properties": {
             "correlation_ref": {
@@ -78893,8 +80207,12 @@
                 }
               }
             },
+            "outcome_schema_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
             "reason_schema_cid": {
-              "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -79116,6 +80434,49 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
+                "expected_type"
+              ],
+              "properties": {
+                "expected_type": {
+                  "enum": [
+                    "number",
+                    "boolean",
+                    "string"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "parameter",
+                "domain"
+              ],
+              "properties": {
+                "parameter": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "domain": {
+                  "enum": [
+                    "positive_safe_integer",
+                    "nonnegative_safe_integer",
+                    "unit_fraction",
+                    "finite_number",
+                    "duration",
+                    "positive_milliseconds",
+                    "signed_milliseconds",
+                    "timestamp"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
                 "operation",
                 "issue"
               ],
@@ -79168,7 +80529,8 @@
                     "invalid_parameter",
                     "unknown_reference",
                     "invalid_arguments",
-                    "expected_boolean"
+                    "expected_boolean",
+                    "invalid_bounds"
                   ]
                 }
               }
@@ -79177,6 +80539,86 @@
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "query_syntax_invalid",
+                  "parameter_undeclared"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "supplied_value_type_mismatch",
+                  "supplied_value_constraint_violation",
+                  "supplied_value_invalid",
+                  "supplied_parameters_invalid"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameters"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "enum": [
+                  "parameter_declarations_invalid",
+                  "parameter_value_required"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "const": "parameter_declarations"
+                  }
+                }
+              }
+            }
+          }
+        },
         {
           "if": {
             "properties": {
@@ -79260,6 +80702,13 @@
                         "constraint"
                       ]
                     }
+                  },
+                  {
+                    "not": {
+                      "required": [
+                        "domain"
+                      ]
+                    }
                   }
                 ]
               }
@@ -79281,6 +80730,7 @@
             "properties": {
               "facts": {
                 "required": [
+                  "parameter",
                   "expected_type"
                 ],
                 "not": {
@@ -79349,6 +80799,82 @@
                 "required": [
                   "constraint"
                 ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "expression_type_mismatch"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "expected_type"
+                ],
+                "properties": {
+                  "expected_type": {
+                    "enum": [
+                      "number",
+                      "boolean",
+                      "string"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "operation_parameter_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "domain"
+                ]
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  },
+                  "document_id": {
+                    "enum": [
+                      "parameters",
+                      "parameter_declarations"
+                    ]
+                  }
+                }
               }
             }
           }
@@ -79437,6 +80963,44 @@
           "if": {
             "properties": {
               "code": {
+                "const": "query_frame_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "invalid_bounds"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "text"
+                  },
+                  "document_id": {
+                    "const": "source"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "const": "graph_operation_invalid"
               }
             }
@@ -79491,7 +81055,10 @@
                     "supplied_value_constraint_violation",
                     "query_lexical_invalid",
                     "query_expression_invalid",
-                    "graph_operation_invalid"
+                    "query_frame_invalid",
+                    "graph_operation_invalid",
+                    "operation_parameter_invalid",
+                    "expression_type_mismatch"
                   ]
                 }
               }

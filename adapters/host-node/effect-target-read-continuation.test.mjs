@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {originalModelRunWire} from './installed-model-originals.mjs';
+import {assertEffectTargetReadBinding, effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
 import {effectTargetReadInventory} from './effect-target-read-inventory.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
 
@@ -142,4 +145,89 @@ test('target inventory is immutable, bounded, and does not coalesce distinct bin
   assert.throws(() => effectTargetReadInventory([]), {code: 'InvalidEffectTargetReadInventory'});
   assert.throws(() => effectTargetReadInventory([{readTuple: {...tuple('Account'), operation: 'effect'},
     physicalBinding: {version: 'fixture/0.1'}}]), {code: 'InvalidEffectTargetReadInventory'});
+});
+
+
+const originalText = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+const exactSubmission = () => ({requestId: 'original-request',
+  input: {format: 'json', text: JSON.stringify({document: originalText})},
+  parameters: {text: originalText}});
+const exactInventory = () => [{readTuple: tuple('Account'), physicalBinding: {
+  version: 'fixture-target/0.1', nested: {text: originalText}}}];
+
+test('target inventory retains opaque data and hashes its exact retained preimage', () => {
+  const bound = effectTargetReadInventory(exactInventory());
+  assert.equal(bound.targets[0].physicalBindings[0].nested.text, originalText);
+  // Independently ordered envelope, not the product's encoder or CID helper.
+  const preimage = JSON.stringify({targets: [{index: 0,
+    physicalBindings: [{nested: {text: originalText}, version: 'fixture-target/0.1'}],
+    readTuple: {connection: 'crm', operation: 'read', resource: 'Account'}}],
+  version: 'actql-effect-target-read-inventory/0.1'});
+  assert.equal(bound.inventoryCid,
+    `sha256:${createHash('sha256').update(preimage).digest('hex')}`);
+  for (const changed of [originalText.normalize('NFC'), originalText.replace(/\r\n?/gu, '\n')]) {
+    const other = exactInventory(); other[0].physicalBinding.nested.text = changed;
+    assert.notEqual(effectTargetReadInventory(other).inventoryCid, bound.inventoryCid);
+  }
+});
+
+test('target continuation and capture retain exact submitted strings', async () => {
+  const f = fixture();
+  f.options.submission = exactSubmission(); f.options.inventory = exactInventory();
+  const owner = await effectTargetReadContinuation(f.options);
+  assert.deepEqual(owner.captureBinding().submission, exactSubmission());
+  await owner.prepare(); owner.close();
+  assert.deepEqual(f.records[0].continuation.submission, exactSubmission());
+  assert.deepEqual(f.records[0].continuation.targets[0].physicalBindings,
+    [exactInventory()[0].physicalBinding]);
+});
+
+for (const mismatch of ['submission', 'binding']) {
+  test(`normalization-distinct ${mismatch} refuses target resumption before entry`, async () => {
+    const f = fixture();
+    f.options.submission = exactSubmission(); f.options.inventory = exactInventory();
+    const first = await effectTargetReadContinuation(f.options);
+    await first.prepare(); first.close(); f.approve(0);
+    const current = structuredClone(f.options[mismatch === 'submission' ? 'submission' : 'inventory']);
+    if (mismatch === 'submission') current.parameters.text = current.parameters.text.normalize('NFC');
+    else current[0].physicalBinding.nested.text = current[0].physicalBinding.nested.text.normalize('NFC');
+    let sends = 0;
+    await assert.rejects(async () => {
+      const owner = await effectTargetReadContinuation({...f.options,
+        [mismatch === 'submission' ? 'submission' : 'inventory']: current,
+        resume: f.resume(0)});
+      await owner.prepare();
+      owner.enterComputation();
+      sends++;
+    }, {code: 'EffectTargetBindingChanged'});
+    assert.equal(sends, 0); assert.equal(f.entered(), 0);
+  });
+}
+
+test('commit target binding comparison does not fold Unicode data', async () => {
+  const f = fixture(); f.options.submission = exactSubmission();
+  const owner = await effectTargetReadContinuation(f.options);
+  const bound = owner.captureBinding();
+  const changed = structuredClone(bound);
+  changed.submission.parameters.text = changed.submission.parameters.text.normalize('NFC');
+  assert.throws(() => assertEffectTargetReadBinding(changed, bound),
+    {code: 'EffectTargetBindingChanged'});
+  owner.close();
+});
+
+
+test('Effect data envelopes cannot import the configuration encoder', async () => {
+  for (const path of ['effect-target-read-inventory.mjs',
+    'effect-target-read-continuation.mjs', 'installed-effect-site.mjs']) {
+    const source = await readFile(new URL(path, import.meta.url), 'utf8');
+    assert.doesNotMatch(source, /from ['"]\.\/local-account-config\.mjs['"]/u);
+    assert.match(source, /canonicalJson as canonicalValueJson/u);
+  }
+});
+
+test('the same original text remains unchanged in the existing Model envelope', () => {
+  const compiled = {template: {wire: originalText}, preparedEvidence: {wire: originalText},
+    authorization: {wire: originalText}, compiledPlan: {wire: originalText}};
+  const saved = JSON.parse(originalModelRunWire(compiled, {wire: originalText}));
+  assert.deepEqual(Object.values(saved), Array(5).fill(originalText));
 });

@@ -59,7 +59,7 @@ test "unknown contract pins are not interpreted as dependency-free leaves" {
     cid in [
       "", "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd5",
       "sha256:2D41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
-      "sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f",
+      "sha256:800ab1eed12a3bcf98779493833081bc636c6ea108adbe1b57a57c01512b2f67",
     ] {
     assert_true(inherited_text_time_contract(cid) is None)
   }

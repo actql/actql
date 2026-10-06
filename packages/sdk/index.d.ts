@@ -19,12 +19,17 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
-  Readonly<{outcome: 'failed'; report?: CheckReportExplanation<'partial'>;
+  Readonly<{outcome: 'failed'; correlationRef: string; report?: CheckReportExplanation<'partial'>;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}> |
   Readonly<{outcome: 'unavailable'; correlationRef: string;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
 /** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
-export declare function explainCheckOutcome(outcome: unknown): CheckOutcomeExplanation | undefined;
+export type CheckExplanationOptions = Readonly<{locale?: string}>;
+/** The selected translation revision, separate from reason/outcome schema identity. */
+export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+export declare function explainCheckOutcome(outcome: unknown,
+  options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
@@ -32,7 +37,7 @@ export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
-  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
   'parameter' | 'expected_type'>>;
 /** The known public parameter Requirements, not a complete future obligation list. */
 export type CheckRequirementFrontier = Readonly<{
@@ -84,6 +89,24 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type ReadFailureExplanation = Readonly<{
+  observation: 'read_incomplete' | 'cleanup_unknown';
+  cleanup?: 'unknown';
+  attemptId: string;
+  rowsYielded: number;
+  summary: string;
+  hint: string;
+  next: Readonly<{
+    operation: 'deliveryAttempt';
+    ref: Readonly<RunReference>;
+    resultName: string;
+    attemptId: string;
+    lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+  }>;
+}>;
+/** SDK-observed progress for this exact read error; no opening, Run or release proof. */
+export declare function explainReadFailure(result: unknown): ReadFailureExplanation | undefined;
+
 export type CancellationExplanation = Readonly<{
   summary: string;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
@@ -108,7 +131,8 @@ export declare function resolveCheckTextRange(outcome: CheckOutcome,
       end: Readonly<{line: number; character: number}>;
     }>;
   }>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>,
+  options?: CheckExplanationOptions):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{
