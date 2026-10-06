@@ -3,6 +3,8 @@ package "actql/actql/platform_native/remote_journal"
 
 import {
   "actql/actql/execution_site",
+  "actql/actql/physical_manifest",
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/sqlite",
   "actql/actql/publication_payload",
   "actql/actql/remote_site_protocol",
@@ -11,9 +13,23 @@ import {
 }
 
 // Values
+pub fn native_output_file_custody_content_cid(NativeOutputFileCustody) -> String
+
+pub fn native_output_file_custody_generation(NativeOutputFileCustody) -> @filesystem.NativeFileGeneration
+
+pub fn native_output_file_custody_manifest(NativeOutputFileCustody) -> @physical_manifest.PhysicalManifest
+
+pub fn native_output_file_custody_matches_request(NativeOutputFileCustody, @remote_site_protocol.DispatchRequest) -> Bool
+
+pub fn native_output_file_custody_material_generation(NativeOutputFileCustody) -> String
+
+pub fn native_output_file_custody_occurrence(NativeOutputFileCustody) -> String
+
 pub fn open_coordinator_journal(@sqlite.Library, String, Int64, @remote_site_protocol.CoordinatorDispatchJournal) -> Result[CoordinatorJournal, NativeRemoteJournalIssue]
 
 pub fn open_journal(@sqlite.Library, String, Int64, @remote_site_protocol.SiteDispatchJournal) -> Result[Journal, NativeRemoteJournalIssue]
+
+pub fn prepare_native_output_file_custody(@remote_site_protocol.DispatchRequest, String, @filesystem.NativeFileGeneration, String, String, @physical_manifest.PhysicalManifest) -> Result[NativeOutputFileCustody, NativeRemoteJournalIssue]
 
 pub fn recovered_coordinator_dispatch_evidence(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?
 
@@ -26,6 +42,8 @@ pub fn recovered_coordinator_dispatch_record(RecoveredCoordinatorDispatch) -> @r
 pub fn recovered_coordinator_dispatch_subject(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteManagedOutputSubject?
 
 pub fn recovered_site_dispatch_evidence(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?
+
+pub fn recovered_site_dispatch_file_custody(RecoveredSiteDispatch) -> NativeOutputFileCustody?
 
 pub fn recovered_site_dispatch_measurement(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteManagedOutputMeasurement?
 
@@ -54,7 +72,7 @@ pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@
 pub fn Journal::cancellation_requested(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
-pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
@@ -75,6 +93,8 @@ pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, Nativ
 pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::start_claimant(Self, @remote_site_protocol.DispatchRequest) -> Result[String?, NativeRemoteJournalIssue]
+
+type NativeOutputFileCustody
 
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget

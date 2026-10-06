@@ -250,6 +250,7 @@ fn test_capability(
 ///|
 fn test_managed_output(
   request : @remote.DispatchRequest,
+  manifest_cid? : String? = None,
 ) -> (
   @remote.RemoteExecutionEvidence,
   @remote.RemoteManagedOutputSubject,
@@ -300,7 +301,11 @@ fn test_managed_output(
     test_cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
     test_cid("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
     test_cid("1111111111111111111111111111111111111111111111111111111111111111"),
-    test_cid("2222222222222222222222222222222222222222222222222222222222222222"),
+    manifest_cid.unwrap_or(
+      test_cid(
+        "2222222222222222222222222222222222222222222222222222222222222222",
+      ),
+    ),
     @remote.remote_managed_output_measurement_cid(measurement),
     1,
     1L,

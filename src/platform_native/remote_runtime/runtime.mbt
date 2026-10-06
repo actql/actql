@@ -27,6 +27,7 @@ struct NativeRemoteOutput {
   ]
   release : () -> Bool
   source_observation : @remote.RemoteSourceObservation?
+  file_custody : @journal.NativeOutputFileCustody?
 }
 
 ///|
@@ -251,6 +252,7 @@ pub fn prepare_native_remote_output(
     String,
   ],
   release : () -> Bool,
+  file_custody? : @journal.NativeOutputFileCustody? = None,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
   let manifest = facts.physical_manifest
   guard readmit_native_remote_output_manifest(manifest)
@@ -262,6 +264,19 @@ pub fn prepare_native_remote_output(
     admitted_manifest.codec_contract_cid != facts.representation_codec_cid ||
     admitted_manifest.row_count != facts.row_count ||
     admitted_manifest.referenced_bytes != facts.retained_bytes {
+    return Err(OutputRejected)
+  }
+  if file_custody is Some(custody) &&
+    (
+      @journal.native_output_file_custody_material_generation(custody) !=
+      facts.material_generation ||
+      @journal.native_output_file_custody_generation(custody).size !=
+      facts.retained_bytes ||
+      @manifest.manifest_cid(
+        @journal.native_output_file_custody_manifest(custody),
+      ) !=
+      @manifest.manifest_cid(admitted_manifest)
+    ) {
     return Err(OutputRejected)
   }
   let measurement_cid = @remote.remote_managed_output_measurement_cid(
@@ -289,6 +304,7 @@ pub fn prepare_native_remote_output(
           open_manifest_reader,
           release,
           source_observation: None,
+          file_custody,
         }),
       )
     Err(_) => Err(OutputRejected)
@@ -1097,7 +1113,14 @@ fn NativeRemoteRuntime::run_success(
                 ),
               )
             }
-            if output.facts.retained_bytes > retained_bytes {
+            if output.facts.retained_bytes > retained_bytes ||
+              (
+                output.file_custody is Some(custody) &&
+                !@journal.native_output_file_custody_matches_request(
+                  custody,
+                  owner.request,
+                )
+              ) {
               return Err(
                 self.retain_failed_owner(
                   identity,
@@ -1424,6 +1447,7 @@ fn NativeRemoteRuntime::run_success(
             subject,
             measurement,
             source_observation=output.source_observation,
+            file_custody=output.file_custody,
           ) {
           Ok(_) => {
             owner.evidence = Some(evidence)
