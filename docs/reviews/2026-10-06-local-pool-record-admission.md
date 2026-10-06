@@ -140,8 +140,12 @@ but explicitly does not assert full boundary completion.
 
 ## Residual scope
 
-Identity String assembly and String-key Map hashing/equality remain synchronous;
-so do each field's schema lookup/type-equality and name comparisons. Group lookup
+At this recorded source, identity String assembly and String-key Map
+hashing/equality remained synchronous. The later
+[identity boundary](2026-10-06-local-record-identity-streaming.md) supersedes
+that residual without relabelling this unit's historical checks. Each field's
+schema lookup/type-equality and name comparisons still remain synchronous.
+Group lookup
 and other callers of synchronous record append are not closed by this unit.
 The cursor's value/Text traversal is not a claim that arbitrary key or metadata
 operations have constant cancellation latency.

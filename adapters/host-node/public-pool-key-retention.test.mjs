@@ -15,7 +15,7 @@ const expected = ['a', 'b'].map(suffix => ({
   group: prefix + suffix, embedding: [1, 2], member_count: 1,
 }));
 
-function program(id, direct = false, outputScan = false) {
+function program(id, direct = false, outputScan = false, identityScan = false) {
   const dimensions = outputScan ? 257 : 2;
   const schema = {
     id: {type: 'number', nullable: false},
@@ -26,8 +26,8 @@ function program(id, direct = false, outputScan = false) {
   };
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
-      rows: (outputScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
-      id: index + 1, group: outputScan ? 1 : prefix + suffix,
+      rows: (outputScan || identityScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
+      id: index + 1, group: outputScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(direct ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
@@ -53,7 +53,8 @@ function program(id, direct = false, outputScan = false) {
   }};
 }
 
-async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}) {
+async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
+  identityScan = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -69,9 +70,10 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = outputScan ? 'public-pool-output' :
+    const fixtureId = identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
-    const expectedRows = outputScan ? [{group: 1,
+    const expectedRows = identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
+      member_count: 1}] : outputScan ? [{group: 1,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
     let prefixComplete = false;
@@ -96,20 +98,23 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
         if (!direct && !prefixComplete) {
-          assert.equal(detail.progress, outputScan ? '1' : '2');
-          assert.equal(detail.work, outputScan ? '4' : '8');
+          assert.equal(detail.progress, outputScan || identityScan ? '1' : '2');
+          assert.equal(detail.work, outputScan || identityScan ? '4' : '8');
           prefixComplete = true;
           return;
         }
-        if (outputScan) {
+        if (outputScan || identityScan) {
           // One 257-dimensional member needs >1,000 control steps before
           // output, then >257 wire polls. 1280 lies inside the output vector;
           // the kernel fixture independently fixes that shared cursor boundary.
           poolWork += Number(detail.work);
           poolProgress += Number(detail.progress);
           assert.ok(Number(detail.work) <= 256);
-          if (poolWork < 1280) return;
-          assert.equal(poolWork, 1280);
+          // The matching kernel derives 8,192 inside canonical identity
+          // hashing for the 8,096-unit group, before record emission.
+          const boundary = identityScan ? 8192 : 1280;
+          if (poolWork < boundary) return;
+          assert.equal(poolWork, boundary);
           assert.equal(poolProgress, 1);
           barrier.resolve();
           await released.promise;
@@ -133,7 +138,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program(fixtureId, direct, outputScan));
+    const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options);
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
@@ -151,7 +156,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false} = {}
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan)),
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await barrier.promise;
     const atBarrier = advances;
@@ -187,3 +192,6 @@ test('public retained Pool admits Relation input and cancels inside unused array
 
 test('public retained Pool publishes and cancels inside output Vector encoding',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {outputScan: true}));
+
+test('public retained Pool publishes and cancels inside output identity hashing',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {identityScan: true}));

@@ -12,10 +12,10 @@ import {workloads} from './fixtures.mjs';
 // case name selects it. Diagnostics that construct their own selection keep
 // their explicit inputs.
 export const productResidentOffer = true;
-// Keep the registered release experiment unchanged until the instrumented
-// resident release/calibration path has been accepted. Explicit diagnostics
-// can offer resident execution and verify its extra environment/import attempts.
-export const nativeRegisteredResidentOffer = false;
+// The Native Host offers the same registered resident realization. Offering
+// is not selection: current feasibility, authority and estimates still pass
+// through the ordinary planner, including preparation/import attempts.
+export const nativeRegisteredResidentOffer = productResidentOffer;
 
 export function managedCaseConfiguration(fixture, contracts, database, directory) {
   const l = fixture.limits;
