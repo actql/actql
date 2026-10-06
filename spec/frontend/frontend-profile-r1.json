@@ -732,12 +732,14 @@
       "surface_forms": [
         "SELECT",
         "FROM-only",
-        "WHERE"
+        "WHERE",
+        "JSON query_string"
       ],
       "canonical_lowering": "derive/filter/select",
       "preconditions": [
         "complete output schema",
-        "declared expression subset"
+        "declared expression subset",
+        "JSON roots use the common typed literal, exact numeric subset and complete-input bounds"
       ],
       "spec_section": "7",
       "execution_evidence_ids": [],

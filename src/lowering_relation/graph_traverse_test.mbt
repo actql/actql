@@ -13,7 +13,9 @@ test "current TRAIL retains homogeneous bounds edge labels and independent ident
   assert_eq(
     @encode.finish(writer),
     "[{\"id\":\"traverse_0\",\"in\":[\"input_0\"],\"op\":\"SGA.traverse\",\"params\":{\"start\":{\"ids\":[" +
+    "{\"$json\":" +
     id +
+    "}" +
     "]},\"path_mode\":\"trail\",\"direction\":\"out\",\"edge_types\":[\"owns\"],\"min_hops\":1,\"max_hops\":3,\"emit\":\"paths\",\"max_output_rows\":10}}]",
   )
 }
@@ -47,13 +49,13 @@ test "current TRAIL exposes a complete homogeneous kernel view and keyed path sc
     graph_match_checked_value_wire(
       @lowering_relation.graph_traverse_start_id_at(view, 0).unwrap(),
     ),
-    id,
+    "{\"$json\":" + id + "}",
   )
   assert_eq(
     graph_match_checked_value_wire(
       @lowering_relation.graph_traverse_start_id_at(view, 1).unwrap(),
     ),
-    id,
+    "{\"$json\":" + id + "}",
   )
   assert_eq(@lowering_relation.graph_traverse_start_relation_field(view), None)
   assert_eq(@lowering_relation.graph_traverse_hop_count(view), 1)

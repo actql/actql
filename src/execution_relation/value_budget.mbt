@@ -113,10 +113,11 @@ fn measure(value : @admitted.Value, depth : Int, b : ValueBudget) -> Bool {
   while stack.pop() is Some(frame) {
     match frame {
       Read(value, depth) => {
-        if !charge_node(b, depth) {
+        if !(value is @admitted.JsonData(_)) && !charge_node(b, depth) {
           return false
         }
         match value {
+          @admitted.JsonData(payload) => stack.push(Read(payload, depth))
           @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => ()
           @admitted.Text(s) | @admitted.Date(s) | @admitted.Timestamp(s) =>
             if !charge_text(b, s) {
@@ -347,10 +348,12 @@ fn advance_stepped_measure_result(
     SteppedTextNext(text, index) =>
       step_stepped_measure_text(cursor, text, index, budget)
     SteppedRead(value, depth) => {
-      if !charge_node(budget, depth) {
+      if !(value is @admitted.JsonData(_)) && !charge_node(budget, depth) {
         return SteppedMeasureLimit
       }
       match value {
+        @admitted.JsonData(payload) =>
+          push_stepped_measure(cursor, SteppedRead(payload, depth))
         @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => true
         @admitted.Text(text)
         | @admitted.Date(text)

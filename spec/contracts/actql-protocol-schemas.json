@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:8923e2c0c7f41daa59bfab3a2dca9d295221402c1c34adeedb69aec69c159d8c",
+  "artifact_registry_cid": "sha256:79ceb9789abc6fb262a6a8a1dcdb396c26628ad620d17ca2ea328dba5f6350f5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:6211c24d057832d414b8b7a649ebe4ecd75aef34f830594fea06d99006ab1fed",
+    "executable_plan": "sha256:fe0af9afcf8a8d1af4740dd77b321bab61a3fe4d0890a3e57b6e96c8a6d7cc02",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:4ccb9e9e3c885c48a19359c2771456a0d25fa9dfb44bf27130d6a655257ace45",
+    "plan_document": "sha256:e072e415a6ee3c6a2c0f90fd1dd28205172e8ea3d23cdd74a3d6c07a825e682b",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -10713,8 +10713,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0",
-    "check_reason": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace",
+    "check_outcome": "sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2",
+    "check_reason": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3"
   },
@@ -19288,6 +19288,31 @@
                           }
                         }
                       }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     }
                   ]
                 },
@@ -24364,6 +24389,31 @@
                                 "ms",
                                 "sm"
                               ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "typed_literal"
+                      ],
+                      "properties": {
+                        "typed_literal": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "type",
+                            "value"
+                          ],
+                          "properties": {
+                            "type": {
+                              "const": "json"
+                            },
+                            "value": {
+                              "type": "string"
                             }
                           }
                         }
@@ -29594,6 +29644,31 @@
                                       ]
                                     }
                                   ]
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "typed_literal"
+                                ],
+                                "properties": {
+                                  "typed_literal": {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "type",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "type": {
+                                        "const": "json"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             ]
@@ -36418,6 +36493,31 @@
                                           "minLength": 1
                                         }
                                       }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
+                                      }
                                     }
                                   ]
                                 }
@@ -36561,6 +36661,31 @@
                                         "field": {
                                           "type": "string",
                                           "minLength": 1
+                                        }
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
                                         }
                                       }
                                     }
@@ -36772,6 +36897,31 @@
                                       ],
                                       "properties": {
                                         "literal": {}
+                                      }
+                                    },
+                                    {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "typed_literal"
+                                      ],
+                                      "properties": {
+                                        "typed_literal": {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "type",
+                                            "value"
+                                          ],
+                                          "properties": {
+                                            "type": {
+                                              "const": "json"
+                                            },
+                                            "value": {
+                                              "type": "string"
+                                            }
+                                          }
+                                        }
                                       }
                                     }
                                   ]
@@ -48983,6 +49133,31 @@
                               }
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
                         }
                       ]
                     },
@@ -54059,6 +54234,31 @@
                                     "ms",
                                     "sm"
                                   ]
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "typed_literal"
+                          ],
+                          "properties": {
+                            "typed_literal": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "type",
+                                "value"
+                              ],
+                              "properties": {
+                                "type": {
+                                  "const": "json"
+                                },
+                                "value": {
+                                  "type": "string"
                                 }
                               }
                             }
@@ -59289,6 +59489,31 @@
                                           ]
                                         }
                                       ]
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "typed_literal"
+                                    ],
+                                    "properties": {
+                                      "typed_literal": {
+                                        "type": "object",
+                                        "additionalProperties": false,
+                                        "required": [
+                                          "type",
+                                          "value"
+                                        ],
+                                        "properties": {
+                                          "type": {
+                                            "const": "json"
+                                          },
+                                          "value": {
+                                            "type": "string"
+                                          }
+                                        }
+                                      }
                                     }
                                   }
                                 ]
@@ -66113,6 +66338,31 @@
                                               "minLength": 1
                                             }
                                           }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
+                                          }
                                         }
                                       ]
                                     }
@@ -66256,6 +66506,31 @@
                                             "field": {
                                               "type": "string",
                                               "minLength": 1
+                                            }
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
                                             }
                                           }
                                         }
@@ -66467,6 +66742,31 @@
                                           ],
                                           "properties": {
                                             "literal": {}
+                                          }
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": false,
+                                          "required": [
+                                            "typed_literal"
+                                          ],
+                                          "properties": {
+                                            "typed_literal": {
+                                              "type": "object",
+                                              "additionalProperties": false,
+                                              "required": [
+                                                "type",
+                                                "value"
+                                              ],
+                                              "properties": {
+                                                "type": {
+                                                  "const": "json"
+                                                },
+                                                "value": {
+                                                  "type": "string"
+                                                }
+                                              }
+                                            }
                                           }
                                         }
                                       ]
@@ -76447,6 +76747,39 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -76816,6 +77149,112 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "binding_json_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "document",
+                                "issue"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_unicode",
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_string",
+                                    "invalid_escape",
+                                    "invalid_number",
+                                    "number_out_of_range",
+                                    "negative_zero",
+                                    "expected_colon",
+                                    "expected_array_separator",
+                                    "expected_object_separator",
+                                    "duplicate_key",
+                                    "trailing_content"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "query_lexical_invalid"
                             }
                           }
@@ -76986,6 +77425,7 @@
                                   "parameter_undeclared",
                                   "parameter_unused",
                                   "supplied_value_constraint_violation",
+                                  "binding_json_invalid",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
@@ -77304,6 +77744,39 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -77673,6 +78146,112 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "binding_json_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "document",
+                                "issue"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_unicode",
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_string",
+                                    "invalid_escape",
+                                    "invalid_number",
+                                    "number_out_of_range",
+                                    "negative_zero",
+                                    "expected_colon",
+                                    "expected_array_separator",
+                                    "expected_object_separator",
+                                    "duplicate_key",
+                                    "trailing_content"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "query_lexical_invalid"
                             }
                           }
@@ -77843,6 +78422,7 @@
                                   "parameter_undeclared",
                                   "parameter_unused",
                                   "supplied_value_constraint_violation",
+                                  "binding_json_invalid",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
@@ -77891,7 +78471,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
+              "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -78404,6 +78984,39 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -78773,6 +79386,112 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "binding_json_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "document",
+                                "issue"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_unicode",
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_string",
+                                    "invalid_escape",
+                                    "invalid_number",
+                                    "number_out_of_range",
+                                    "negative_zero",
+                                    "expected_colon",
+                                    "expected_array_separator",
+                                    "expected_object_separator",
+                                    "duplicate_key",
+                                    "trailing_content"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "query_lexical_invalid"
                             }
                           }
@@ -78943,6 +79662,7 @@
                                   "parameter_undeclared",
                                   "parameter_unused",
                                   "supplied_value_constraint_violation",
+                                  "binding_json_invalid",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
@@ -79261,6 +79981,39 @@
                             "type": "object",
                             "additionalProperties": false,
                             "required": [
+                              "document",
+                              "issue"
+                            ],
+                            "properties": {
+                              "document": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              },
+                              "issue": {
+                                "enum": [
+                                  "invalid_unicode",
+                                  "unexpected_end",
+                                  "unexpected_token",
+                                  "invalid_string",
+                                  "invalid_escape",
+                                  "invalid_number",
+                                  "number_out_of_range",
+                                  "negative_zero",
+                                  "expected_colon",
+                                  "expected_array_separator",
+                                  "expected_object_separator",
+                                  "duplicate_key",
+                                  "trailing_content"
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
                               "issue"
                             ],
                             "properties": {
@@ -79630,6 +80383,112 @@
                         "if": {
                           "properties": {
                             "code": {
+                              "const": "binding_json_invalid"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "document",
+                                "issue"
+                              ],
+                              "properties": {
+                                "document": {
+                                  "enum": [
+                                    "parameters",
+                                    "parameter_declarations"
+                                  ]
+                                },
+                                "issue": {
+                                  "enum": [
+                                    "invalid_unicode",
+                                    "unexpected_end",
+                                    "unexpected_token",
+                                    "invalid_string",
+                                    "invalid_escape",
+                                    "invalid_number",
+                                    "number_out_of_range",
+                                    "negative_zero",
+                                    "expected_colon",
+                                    "expected_array_separator",
+                                    "expected_object_separator",
+                                    "duplicate_key",
+                                    "trailing_content"
+                                  ]
+                                }
+                              }
+                            },
+                            "location": {
+                              "properties": {
+                                "kind": {
+                                  "const": "structured"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameters"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "if": {
+                                "properties": {
+                                  "facts": {
+                                    "properties": {
+                                      "document": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "then": {
+                                "properties": {
+                                  "location": {
+                                    "properties": {
+                                      "document_id": {
+                                        "const": "parameter_declarations"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
                               "const": "query_lexical_invalid"
                             }
                           }
@@ -79800,6 +80659,7 @@
                                   "parameter_undeclared",
                                   "parameter_unused",
                                   "supplied_value_constraint_violation",
+                                  "binding_json_invalid",
                                   "query_lexical_invalid",
                                   "query_expression_invalid",
                                   "query_frame_invalid",
@@ -79866,7 +80726,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
+              "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -79912,7 +80772,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
+              "const": "sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -80206,6 +81066,39 @@
                 "issue": {
                   "enum": [
                     "invalid_node_selector"
+                  ]
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "document",
+                "issue"
+              ],
+              "properties": {
+                "document": {
+                  "enum": [
+                    "parameters",
+                    "parameter_declarations"
+                  ]
+                },
+                "issue": {
+                  "enum": [
+                    "invalid_unicode",
+                    "unexpected_end",
+                    "unexpected_token",
+                    "invalid_string",
+                    "invalid_escape",
+                    "invalid_number",
+                    "number_out_of_range",
+                    "negative_zero",
+                    "expected_colon",
+                    "expected_array_separator",
+                    "expected_object_separator",
+                    "duplicate_key",
+                    "trailing_content"
                   ]
                 }
               }
@@ -80583,6 +81476,112 @@
           "if": {
             "properties": {
               "code": {
+                "const": "binding_json_invalid"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "document",
+                  "issue"
+                ],
+                "properties": {
+                  "document": {
+                    "enum": [
+                      "parameters",
+                      "parameter_declarations"
+                    ]
+                  },
+                  "issue": {
+                    "enum": [
+                      "invalid_unicode",
+                      "unexpected_end",
+                      "unexpected_token",
+                      "invalid_string",
+                      "invalid_escape",
+                      "invalid_number",
+                      "number_out_of_range",
+                      "negative_zero",
+                      "expected_colon",
+                      "expected_array_separator",
+                      "expected_object_separator",
+                      "duplicate_key",
+                      "trailing_content"
+                    ]
+                  }
+                }
+              },
+              "location": {
+                "properties": {
+                  "kind": {
+                    "const": "structured"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "facts": {
+                      "properties": {
+                        "document": {
+                          "const": "parameters"
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "location": {
+                      "properties": {
+                        "document_id": {
+                          "const": "parameters"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "facts": {
+                      "properties": {
+                        "document": {
+                          "const": "parameter_declarations"
+                        }
+                      }
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "location": {
+                      "properties": {
+                        "document_id": {
+                          "const": "parameter_declarations"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
                 "const": "query_lexical_invalid"
               }
             }
@@ -80753,6 +81752,7 @@
                     "parameter_undeclared",
                     "parameter_unused",
                     "supplied_value_constraint_violation",
+                    "binding_json_invalid",
                     "query_lexical_invalid",
                     "query_expression_invalid",
                     "query_frame_invalid",

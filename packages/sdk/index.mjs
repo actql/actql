@@ -9,6 +9,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome, snapshotCheckRequest} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
@@ -521,6 +522,28 @@ export function explainCheckReason(reason, options) {
     invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
   };
   const issue = reason?.facts?.issue;
+  const jsonExplanations = {
+    invalid_unicode: ['The binding JSON contains invalid Unicode text.', 'Use valid Unicode scalar values in member names and string values.'],
+    unexpected_end: ['The binding JSON ends before a value is complete.', 'Complete the JSON value and its closing delimiters.'],
+    unexpected_token: ['The binding JSON contains an unexpected token.', 'Use a token allowed by JSON at the reported input location.'],
+    invalid_string: ['A binding JSON string is invalid.', 'Quote the string and escape control characters using JSON syntax.'],
+    invalid_escape: ['A binding JSON escape is invalid.', 'Use an escape sequence allowed by JSON.'],
+    invalid_number: ['A binding JSON number has invalid spelling.', 'Use a valid JSON number, including a complete exponent when present.'],
+    number_out_of_range: ['A binding JSON number is outside the admitted numeric range.', 'Use a number within the selected input numeric contract.'],
+    negative_zero: ['The binding JSON contains inadmissible negative zero.', 'Use an admitted numeric value; negative zero is not admitted.'],
+    expected_colon: ['A binding JSON member is missing its colon.', 'Separate the member name and value with a colon.'],
+    expected_array_separator: ['Binding JSON array elements are not separated correctly.', 'Use commas between array elements and a closing bracket.'],
+    expected_object_separator: ['Binding JSON object members are not separated correctly.', 'Use commas between object members and a closing brace.'],
+    duplicate_key: ['Two binding JSON member names compare equal under the admitted key rules.', 'Choose distinct member names under the input normalization rules.'],
+    trailing_content: ['Unexpected content follows the binding JSON value.', 'Submit one complete JSON value without trailing content.'],
+  };
+  if (reason?.code === 'binding_json_invalid' &&
+      ['parameters', 'parameter_declarations'].includes(reason?.facts?.document) &&
+      typeof issue === 'string' && Object.hasOwn(jsonExplanations, issue)) {
+    const [summary, hint] = localizeCheck(`binding_json.${issue}`, jsonExplanations[issue], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
     const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);
@@ -1132,7 +1155,8 @@ async function connectSelected(selected, port) {
           const schema = Object.fromEntries(answer.columns.map(column =>
             [column.name, column.contract]));
           if (await contentCid(schema) !== answer.resultSchemaCid ||
-              await contentCid({version: answer.serialization.version}) !==
+              await contentCid({json_value_wire_contract_cid: jsonValueWireContractCid,
+                version: answer.serialization.version}) !==
                 answer.serialization.contractCid ||
               await contentCid({version: 'actql-result-definition/0.1',
                 program_definition_cid: answer.programDefinitionCid,

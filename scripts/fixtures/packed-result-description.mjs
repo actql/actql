@@ -100,7 +100,7 @@ for (const mode of ['local', 'remote']) {
         result_name: 'answer'}));
       assert.deepEqual(description.serialization, {format: 'jsonl',
         version: 'actql-jsonl/0.1',
-        contractCid: cid({version: 'actql-jsonl/0.1'})});
+        contractCid: cid({json_value_wire_contract_cid: 'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b', version: 'actql-jsonl/0.1'})});
       assert.deepEqual(await result.all(), fixture.rows);
       assert.deepEqual(await (await client.attach(execution.ref))
         .result('answer').describe(), description);
@@ -109,7 +109,7 @@ for (const mode of ['local', 'remote']) {
         assert.deepEqual(other.columns, description.columns);
         assert.deepEqual(other.serialization, {format,
           version: `actql-${format}/0.1`,
-          contractCid: cid({version: `actql-${format}/0.1`})});
+          contractCid: cid({json_value_wire_contract_cid: 'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b', version: `actql-${format}/0.1`})});
       }
       await assert.rejects(result.describe({format: 'parquet'}),
         code('UnsupportedResultDescriptionFormat'));
