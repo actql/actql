@@ -70,6 +70,28 @@ test('missing/dynamic/nested inputs stay unresolved and each new call observes m
   assert(!second.paths.includes('src/unrelated/value.mbt'));
 });
 
+test('indexed directory boundaries retain deep unmodelled inputs and refuse unsupported member modes', () => {
+  const tree = fixture({'toolchain.json': '{}', 'src/a/moon.pkg': '', 'src/a/value.mbt': 'value',
+    'src/a/link.mbt': 'not a regular input', 'src/a/assets/deep/input.json': '{}',
+    'src/a/assets/../outside.json': 'invalid path',
+    'src/a/module/moon.pkg': '', 'src/a/module/value.mbt': 'not imported',
+    'src/ab/moon.pkg': '', 'src/ab/value.mbt': 'different directory prefix'});
+  tree.entries.get('src/a/link.mbt').mode = '120000';
+  const observed = packageSourceInputs({tree, packages: ['src/a'], target: 'js'});
+  assert.deepEqual(observed.paths, ['src/a/assets/../outside.json', 'src/a/assets/deep/input.json',
+    'src/a/link.mbt', 'src/a/moon.pkg', 'src/a/value.mbt']);
+  assert.deepEqual(observed.directories, [{path: 'src/a/*',
+    members: ['src/a/link.mbt', 'src/a/moon.pkg', 'src/a/value.mbt']}]);
+  assert.deepEqual(observed.unresolved, [
+    'nested package input requires review: src/a/assets/../outside.json',
+    'nested package input requires review: src/a/assets/deep/input.json',
+    'unmodelled source path: src/a/assets/../outside.json',
+    'unsupported source kind/mode: src/a/link.mbt',
+  ]);
+  assert(!tree.reads.includes('src/a/module/moon.pkg'));
+  assert(!tree.reads.includes('src/ab/moon.pkg'));
+});
+
 test('every registered actual Git action input matches the previous traversal on the same candidate bytes', async () => {
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
