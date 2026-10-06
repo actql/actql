@@ -116,7 +116,9 @@ async function archiveFixture(t) {
   const observations = compareFreshObservations({plan: comparison, context, runtime, actionRuntimes, tree, receipts,
     mutationResult: {...report, sourceRestored: true, revision}, acquisitions: acquisition.actions});
   let output;
-  const lean = checkPlan(required, applications, {onOutput: value => {output = Buffer.from(value);}});
+  // Real Git identities and all thirty obligations use the same kernel proof.
+  // Bound this local fixture explicitly; production keeps its existing 30s limit.
+  const lean = checkPlan(required, applications, {timeout: 60000, onOutput: value => {output = Buffer.from(value);}});
   const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context,
     catalogDigest: hash(encode(catalog)), receiptDigests, lean, comparisonDigest: hash(jsonBytes(comparison)),
     comparisonObservationsDigest: hash(jsonBytes(observations)), acquisitionDigest: hash(jsonBytes(acquisition))};
