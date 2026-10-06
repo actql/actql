@@ -1681,6 +1681,16 @@ pub(all) enum GraphSelectorRule {
   RequireSelectorResources
 } derive(Eq, @debug.Debug)
 
+pub struct GraphSubtractionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  left : @pipeline_typing.Target
+  right : @pipeline_typing.Target
+  operation : @graph_typing.CheckedSubtraction
+  rule : @graph_typing.SubtractionObligation
+  policy : @capacity_policy.Policy
+}
+
 pub struct GraphUnionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2211,6 +2221,7 @@ pub(all) enum OperationExecutionCheck {
   GraphNormalizeExecution(GraphNormalizeCheck)
   GraphDeltaExecution(GraphDeltaCheck)
   GraphUnionExecution(GraphUnionCheck)
+  GraphSubtractionExecution(GraphSubtractionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)

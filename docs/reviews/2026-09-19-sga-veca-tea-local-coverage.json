@@ -80,7 +80,7 @@
       "graph_diff": "partial",
       "graft_graph": "blocked",
       "union_graphs": "partial",
-      "subtract_graphs": "blocked",
+      "subtract_graphs": "partial",
       "subgraph": "partial",
       "graphs_equal": "partial",
       "apply_graph_delta": "partial",
@@ -1670,11 +1670,22 @@
       "output": "graph",
       "canonical": ["SGA.diff_structural"],
       "variants": ["node removal", "edge removal", "property laws", "no-op"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current identity-preserving binary subtraction reuses the checked named-property composition, bounded fold, managed provider and snapshot owner. Focused JS diagnostics cover shared-record removal, explicit property strategies, induced endpoint closure, ordered occurrences, cancellation, exact small-fixture work and snapshot reload. Public Local/HTTPS acceptance, Wasm/native execution, complete allocation and source-premise audits, final-SHA packed acceptance and CI remain unverified. Historical tuple-profile evidence is not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+      "layer_evidence": [{
+        "scope": "current_identity_preserving_binary_subtraction_and_snapshot_reload",
+        "targets": ["js"],
+        "evidence": [
+          "src/graph_typing/subtraction_test.mbt",
+          "src/pipeline_typing/property_graph_subtraction_test.mbt",
+          "src/lowering_relation/graph_subtraction_test.mbt",
+          "src/local_sga/subtraction_fold_wbtest.mbt",
+          "src/query_integration/property_graph_subtraction_wbtest.mbt"
+        ],
+        "limits": "Selected logical-work, capacity, cancellation and snapshot custody cases are not a physical heap bound or cross-target execution evidence. Public acceptance and inherited source-premise audit obligations remain open."
+      }],
       "historical_implementation_evidence": [
         {
           "scope": "property_free_node_removal_and_endpoint_closure",

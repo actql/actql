@@ -400,7 +400,18 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 63 with four-role boundary evidence, 63 with full work\/workspace assurance, 115 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 64 production routes mapped, 5 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.boundary_tests = route.boundary_tests.filter(value => value.role !== 'subtract_empty_work_exact_one_short_and_cleanup');
+  }), /SGA subtract_graphs: structural Graph cumulative-work evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.dispatch.marker = '@sga.uninstalled_subtraction(';
+  }), /SGA subtract_graphs: dispatch marker does not reach production source/);
 });
 
 test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
@@ -1374,7 +1385,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 115 |',
+    '| Path-scoped work/workspace assurance | 116 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -3437,4 +3448,12 @@ test('union cannot claim its logical workspace assurance without the independent
     union.boundary_tests = union.boundary_tests.filter(item =>
       item.role !== 'union_workspace_exact_one_short_before_fold');
   }), /SGA union_graphs: entrypoint operation workspace lacks an executable fixture/);
+});
+
+test('subtraction cannot claim workspace assurance without its own boundary', () => {
+  assert.match(run(undefined, routes => {
+    const subtract = routes.routes.find(route => route.operation === 'subtract_graphs');
+    subtract.boundary_tests = subtract.boundary_tests.filter(item =>
+      item.role !== 'subtract_workspace_exact_one_short_before_fold');
+  }), /SGA subtract_graphs: entrypoint operation workspace lacks an executable fixture/);
 });

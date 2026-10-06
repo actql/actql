@@ -28,6 +28,7 @@ pub enum PreparedStep {
   GraphNormalizeStep(Int)
   GraphDeltaStep(PreparedGraphDelta)
   GraphUnionStep(PreparedGraphUnion)
+  GraphSubtractionStep(PreparedGraphUnion)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -344,6 +345,11 @@ fn prepare_sequence_count(
           Ok(prepared) => GraphUnionStep(prepared)
           Err(issue) => return Err(GraphUnionFailure(i, issue))
         }
+      GraphSubtractionValue(_) =>
+        match prepare_graph_union_node(owner.prepared.nodes[i]) {
+          Ok(prepared) => GraphSubtractionStep(prepared)
+          Err(issue) => return Err(GraphUnionFailure(i, issue))
+        }
       GraphDeltaValue(_) =>
         match prepare_graph_delta_node(owner.prepared.nodes[i]) {
           Ok(prepared) => GraphDeltaStep(prepared)
@@ -580,6 +586,7 @@ pub fn emit_sequence_step_range(
         emit_graph_normalize_node(value.owner, index, out)
       GraphDeltaStep(prepared) => emit_graph_delta_node(prepared, out)
       GraphUnionStep(prepared) => emit_graph_union_node(prepared, out)
+      GraphSubtractionStep(prepared) => emit_graph_union_node(prepared, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)

@@ -220,6 +220,7 @@ pub fn collect_parameter_slots(
         | GraphNormalize(_)
         | GraphDelta(..)
         | GraphUnion(..)
+        | GraphSubtraction(..)
         | PropertyGraphConstruction(..)
         | Nearest(..)
         | Pool(_)

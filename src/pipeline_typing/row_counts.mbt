@@ -361,6 +361,11 @@ fn derive_row_counts(
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
       GraphNormalize(_) => graph_input
+      GraphSubtraction(..) =>
+        graph_input.map(value => {
+          nodes: reduce_count(value.nodes),
+          edges: reduce_count(value.edges),
+        })
       GraphUnion(inputs~, ..) => {
         let mut nodes = Some(count(0L, true))
         let mut edges = Some(count(0L, true))
