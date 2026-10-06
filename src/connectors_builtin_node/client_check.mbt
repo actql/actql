@@ -186,12 +186,23 @@ fn check_source_findings(
   let (supplied, supplied_admitted) = match
     client_program_input("json", parameters) {
     Ok((_, supplied)) => (supplied, true)
-    Err(SuppliedSyntax({ issue, path, .. })) => {
+    Err(SuppliedSyntax(error)) => {
+      let issue = error.issue
       findings.push(
         if check_parse_budget(issue) {
           Limit("analysis_budget_exhausted")
         } else {
-          SuppliedParseViolation(path.bind(check_supplied_pointer))
+          SuppliedParseViolation(
+            if parameters is Some(body) {
+              check_parse_original_pointer(body, error, {
+                max_input_bytes: 65536,
+                max_nodes: 8192,
+                max_depth: 64,
+              })
+            } else {
+              None
+            },
+          )
         },
       )
       (None, false)
@@ -520,7 +531,8 @@ fn check_declarations(
       max_depth: 32,
     }) {
     Ok(node) => node
-    Err({ issue, path, .. }) =>
+    Err(error) => {
+      let issue = error.issue
       return Err({
         kind: if check_parse_budget(issue) {
           Budget
@@ -532,10 +544,15 @@ fn check_declarations(
         pointer: if check_parse_budget(issue) {
           None
         } else {
-          path.bind(check_supplied_pointer)
+          check_parse_original_pointer(body, error, {
+            max_input_bytes: 1048576,
+            max_nodes: 16384,
+            max_depth: 32,
+          })
         },
         finding: None,
       })
+    }
   }
   let cursor = match
     @decode.admit(node, {
@@ -1436,6 +1453,35 @@ fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
     pointer += "/" + token
   }
   Some(pointer)
+}
+
+///|
+/// Canonical parser paths contain admitted keys. Reuse the existing preserving
+/// reader solely for original-path material after an authoritative failure.
+/// A different failure, budget or unknown path cannot supply a location.
+fn check_parse_original_pointer(
+  body : String,
+  original : @source.ParseError,
+  limits : @source.ParseLimits,
+) -> String? {
+  guard !check_parse_budget(original.issue) && original.path is Some(_) else {
+    return None
+  }
+  match
+    @source.parse_json_bytes_preserving(
+      @utf8.encode(body),
+      limits,
+      source_path=original.source_path,
+    ) {
+    Err(preserved) => {
+      guard preserved.issue == original.issue &&
+        preserved.location == original.location else {
+        return None
+      }
+      preserved.path.bind(check_supplied_pointer)
+    }
+    Ok(_) => None
+  }
 }
 
 ///|

@@ -3320,6 +3320,15 @@ for (const entrance of ['local', 'http']) {
         assert.equal(resolveCheckLocation(result, location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
         assert.equal(JSON.stringify(result).includes('safe'), false);
       }
+
+      // A preserving read may reach a later Unicode error after a normalized
+      // duplicate key. It cannot replace the authoritative failure's location.
+      const collision = fixture.document === 'parameters'
+        ? {parameterDeclarations: {payload: {type: 'number'}},
+          parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}}
+        : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
+      const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
+      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code}]);
       // A malformed member name has the parser's known enclosing root path,
       // not a fabricated location at a member that could not be decoded.
       const options = fixture.document === 'parameters'
@@ -3348,7 +3357,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(results[0].report.reasons[0].code, fixture.code);
       if (fixture.document === 'parameters') {
         assert.deepEqual(results[0].report.coverage.unresolved,
-          [{code: 'unresolved_protected', obligation: 'source:records'}]);
+          [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
       }
     }
   });
