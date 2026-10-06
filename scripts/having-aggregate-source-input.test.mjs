@@ -63,6 +63,11 @@ test('hidden property order distinguishes HAVING aliases from selected input slo
   const cases = new Map(havingAggregateSuccesses.map(item => [item.name, item]));
   const alias = cases.get('having-aggregate-property-alias-input-collision');
   assert.deepEqual(alias.expected, [{n: 5, payload: {score: 5}, original: 'b|b|a|c'}]);
+  const checkedObject = {type: 'object', nullable: false,
+    additional_properties: false, fields: {score: {type: 'number', nullable: false}}};
+  assert.deepEqual(alias.columns[1], {name: 'payload', contract: checkedObject});
+  assert.deepEqual(cases.get('having-aggregate-property-qualified-input-control')
+    .columns[1], {name: 'payload', contract: checkedObject});
   assert.deepEqual(cases.get('having-aggregate-property-qualified-input-control').expected, []);
   assert.deepEqual(alias.parameters.o1, {score: 5});
   assert.equal(alias.parameters.p3, null);

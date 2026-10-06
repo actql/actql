@@ -121,7 +121,12 @@ const propertySuccess = (name, tail, extra = {}) => ({...propertyBase,
   name: 'having-aggregate-property-' + name, text: propertyPrefix + tail,
   expected: [{n: 5}], columns: columns(['n']), ...extra});
 const collision = "SELECT COUNT(*) AS n, @o1 AS payload, STRING_AGG(name, '|' ORDER BY payload.score NULLS LAST, id) AS original FROM objects HAVING STRING_AGG(name, '|' ORDER BY ";
-const collisionColumns = [columnCount(), {name: 'payload', contract: propertyControl.params.o1},
+// Result descriptions expose complete checked contracts, including the sole
+// closed-object meaning of the authored parameter's omitted default.
+const collisionColumns = [columnCount(), {name: 'payload', contract: {
+  type: 'object', nullable: false, additional_properties: false,
+  fields: {score: {type: 'number', nullable: false}},
+}},
   {name: 'original', contract: {type: 'string', nullable: true}}];
 function columnCount() { return {name: 'n', contract: number}; }
 havingAggregateSuccesses.push(
