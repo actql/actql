@@ -23,6 +23,14 @@ pub fn parse_json_literal(String, ParseLimits) -> Result[ParsedSource, ParseErro
 
 pub fn parse_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
+pub fn parse_program_json_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_json_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
+pub fn parse_program_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
+
 pub fn parse_yaml(String, ParseLimits, source_path? : String) -> Result[Node, ParseError]
 
 pub fn parse_yaml_bytes(Bytes, ParseLimits, source_path? : String) -> Result[Node, ParseError]

@@ -2,13 +2,40 @@
 fn vector_input_recheck_owner(
   id : Int,
   pooling? : Bool = false,
+  object_names? : Bool = false,
+  unused_items? : Int = 257,
+  group_name? : String = "group",
 ) -> @lower.BoundPrepared {
+  let name = String::make(130, 'x')
+  let unused_schema = if object_names {
+    let object = "{\"type\":\"object\",\"nullable\":false," +
+      "\"fields\":{\"" +
+      name +
+      "\":{\"type\":\"number\",\"nullable\":false}}}"
+    "\"aa_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":112," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}},\"zz_unused\":" +
+    object
+  } else {
+    "\"zz_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":" +
+    unused_items.to_string() +
+    "," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}}"
+  }
+  let unused_values = if object_names {
+    "\"aa_unused\":[" +
+    Array::make(112, "1").join(",") +
+    "],\"zz_unused\":{\"" +
+    name +
+    "\":2}"
+  } else {
+    "\"zz_unused\":[" + Array::make(unused_items, "1").join(",") + "]"
+  }
   let group_schema = if pooling {
-    "\"group\":{\"type\":\"number\",\"nullable\":false},"
+    "\"" + group_name + "\":{\"type\":\"number\",\"nullable\":false},"
   } else {
     ""
   }
-  let group_value = if pooling { "\"group\":1," } else { "" }
+  let group_value = if pooling { "\"" + group_name + "\":1," } else { "" }
   let keyed = if pooling {
     ",{\"from\":\"rows\",\"assert_rows\":{\"unique_by\":[\"id\"]}}"
   } else {
@@ -21,14 +48,14 @@ fn vector_input_recheck_owner(
         group_schema +
         "\"id\":{\"type\":\"number\",\"nullable\":false}," +
         "\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}," +
-        "\"zz_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":257," +
-        "\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\":[{" +
+        unused_schema +
+        "},\"rows\":[{" +
         group_value +
         "\"id\":" +
         id.to_string() +
-        ",\"embedding\":[1,2],\"zz_unused\":[" +
-        Array::make(257, "1").join(",") +
-        "]}]},\"as\":\"rows\"}" +
+        ",\"embedding\":[1,2]," +
+        unused_values +
+        "}]},\"as\":\"rows\"}" +
         keyed +
         "]",
       ),
@@ -265,7 +292,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
   ).unwrap()
   // Original 32 plus one extra field/group/identity scan (3), two scalar
   // rechecks (4), Vector (5), Array (517): 561. Append polls add 31: 592.
-  // Workspace 18+8+3+2=31 plus append custody 8+6+1+3*3=24: 55.
+  // Workspace 18+8+3+2=31 plus append custody 16+9+1+3*3=35: 66.
   // Depth three also admits the existing stored-record outer array,
   // field tuple and Vector envelope; depth two fails Store encoding.
   assert_true(
@@ -275,7 +302,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
       0,
       read,
       {
-        ..direct_relation_pool_limits(54, 592),
+        ..direct_relation_pool_limits(65, 592),
         max_value_depth: 3,
         max_value_nodes: 258,
       },
@@ -292,7 +319,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
         0,
         read,
         {
-          ..direct_relation_pool_limits(55, limit),
+          ..direct_relation_pool_limits(66, limit),
           max_value_depth: 3,
           max_value_nodes: 258,
         },
@@ -342,7 +369,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(55, 592),
+      ..direct_relation_pool_limits(66, 592),
       max_value_depth: 3,
       max_value_nodes: 258,
     },
@@ -365,7 +392,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(55, 592),
+      ..direct_relation_pool_limits(66, 592),
       max_value_depth: 3,
       max_value_nodes: 257,
     },

@@ -19,6 +19,8 @@ fn acquisition_runtime_transfer_consumer(
   sqlite : @sqlite.Library,
   root_path : String,
   name : String,
+  through_consumer_holder? : Bool = false,
+  cancel_consumer_before_start? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
@@ -485,6 +487,47 @@ fn acquisition_runtime_transfer_consumer(
     common_input,
     common_current,
   ).unwrap()
+  if through_consumer_holder {
+    retained_consumer_holder_case(
+      transfer,
+      producer_journal,
+      materials,
+      admission,
+      configuration,
+      common_input,
+      dispatch,
+      @host.prepare_client_retained_task_dispatch(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        caller,
+        1,
+        2,
+        "foreign-holder-consumer",
+        selected,
+        common_input,
+        common_current,
+      ).unwrap(),
+      site,
+      sqlite,
+      root_path,
+      name + ".consumer-holder",
+      destination_journal,
+      bytes,
+      cancel_before_start=cancel_consumer_before_start,
+    )
+    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_true(transfer.reclaim().unwrap())
+    assert_false(transfer.reclaim().unwrap())
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(@site.site_status(site)[6], before[6])
+    assert_true(destination_journal.close())
+    return
+  }
   let material = @transfer_client.pin_durable_direct_destination_material(
     destination_journal,
     root,
