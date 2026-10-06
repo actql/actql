@@ -69,7 +69,7 @@ export declare function getCheckFixes(outcome: CheckOutcome): readonly CheckFix[
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
   CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
-  'parameter' | 'expected_type'>>;
+  'parameter' | 'expected_type'> & {admission?: CheckParameterAdmission}>;
 /** The known public parameter Requirements, not a complete future obligation list. */
 export type CheckRequirementFrontier = Readonly<{
   contextRef: string;
@@ -400,6 +400,14 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+
+/** The caller-owned declaration contract/rules, not complete Program verification. */
+export type CheckParameterAdmission = NonNullable<Extract<NonNullable<
+  Extract<CheckOutcome, {outcome: 'completed'}>['report']['requirements'][number]['facts']>,
+  {admission?: unknown}>['admission']>;
+/** Undefined without original check custody, a disclosed Requirement or typed conditions. */
+export declare function getCheckParameterAdmission(outcome: unknown,
+  parameter: string): CheckParameterAdmission | undefined;
 
 /** Complete display of original SDK-owned operation facts; never performs I/O. */
 export type OperationFormatOptions = OperationExplanationOptions & Readonly<{

@@ -283,7 +283,7 @@ fn[R] aggregate_direct_start_finish(
       return aggregate_direct_finish_with(
         s,
         () => advance_aggregate_array(state),
-        () => state.closed = true,
+        () => close_aggregate_array(state),
       )
     }
     @relation.StringAgg => {

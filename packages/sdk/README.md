@@ -439,7 +439,11 @@ exhaustion are not author errors. Inaccessible and absent installed Source alias
 share unresolved coverage; an independent public violation remains visible.
 
 `getCheckRequirementFrontier(outcome)` retains the known public parameter
-Requirements of this exact completed SDK response. `equalCheckRequirementFrontiers(a, b)`
+Requirements of this exact completed SDK response. Each typed requirement also
+retains its optional `facts.admission` as `CheckParameterAdmission`, including
+the checked contract, constraints and supplying role. This is the same disclosed
+condition shape returned by `getCheckParameterAdmission`; it adds no validation
+or execution permission. `equalCheckRequirementFrontiers(a, b)`
 compares their bound scope, opaque context reference, reason schema, typed
 obligation set and outstanding coverage. Requirement order, duplicates, fact-key
 order and optional presentation locations do not establish progress. Changed
@@ -939,6 +943,28 @@ that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
 
 
+### Located function-lowering limits
+
+The existing lowerer's UnsupportedFunction conflates unknown names, quoted or
+qualified forms and implementation gaps. Public checking keeps implementation_limit
+in coverage and never infers author blame from that issue. Its optional closed
+facts identify function_lowering_unresolved, with an existing original Authored
+call range. The generic code-only limit and its required payload remain unchanged.
+
+The bridge consumes the typed origin directly. Unknown/generated origins remain
+unlocated; no text search, second parser, rerun resolution or lowered JSON path
+supplies an SQL position. Exact original source revisions/UTF-8 ranges survive
+Local/HTTPS and SDK, including repeated names/comments, non-BMP/combining text and
+CRLF. Located coverage limits receive the same revision, bounds and UTF-8-boundary
+admission as violations/Requirements; malformed transported material is a protocol
+failure. No fix or operation permission follows from this support limit.
+
+A protected relation can stop lowering before a dependent function issue exists.
+It cannot manufacture a function fact or position. Public violations still survive;
+unsupported-only checks remain undetermined. Reason/Outcome schema bodies, pins,
+producer, validators, generated types, SDK and independent fixtures change together.
+Legacy diagnostics and unrelated schema bodies remain separate. No compatibility
+path, new source custody, retention or lowerer implementation is introduced.
 ### Bounded known Requirement enumeration
 
 A completed check may include `report.omissions: {requirements: true}` when the
@@ -956,6 +982,48 @@ truncated enumeration, so a check supplementation session stops rather than
 mistaking a prefix for a complete admission frontier. A valid old report remains
 bound to its original input/context; no more checking or supplementation is
 performed by presentation.
+
+
+### Declared parameter admission conditions
+
+A known missing-parameter Requirement can include `facts.admission`. This
+closed `parameter_declaration` representation is emitted from the existing
+admitted `ParameterType` Owner: its complete checked value contract,
+parameter-only numeric/integer, duration and exact-array-length rules, and
+`supplier: "caller"`. The checked-contract schema CID is pinned in the facts
+schema, so changing that referenced schema changes the Reason/Outcome identities.
+Defaults, annotation metadata and supplied values are never projected here.
+
+Rule paths use typed `field` and `items` segments of a type definition. They are
+not source positions or supplied-array indices. The Requirement's separate
+structured location still binds the caller's original declaration document and
+revision. Nullability, object fields, array maxima and decimal precision/scale
+come from the checked contract; parameter-only constraints retain their own
+rules. Conditions describe declaration admission, not all later operations or
+complete Program verification. An absent optional admission object means those
+expanded conditions are not available in that public Reason; no unconstrained
+fallback is invented.
+
+`getCheckParameterAdmission(outcome, name)` returns conditions only for that
+call's original SDK-owned completed response and a disclosed Requirement.
+Copies, forged responses, omitted Requirements and supplied values return
+undefined. The data is immutable and confers no input-write, approval or Run
+permission. Actual supplied values re-enter the existing binder and checker.
+The original unbound report remains bound to its earlier context.
+
+Constraint-row order is not supplementation progress; the existing frontier
+comparison uses its unordered typed set while preserving the semantic order of
+segments within each path. Context changes still consume the total attempt cap.
+If the reserved report budget cannot encode a whole Requirement's conditions,
+the existing omissions marker preserves the complete bound verdict/scope and
+prevents an incomplete frontier. Analysis is not repeated.
+
+`NeedsInputs` remains a partial checking frontier. Preparing declaration types,
+Stage topology or an unbound result wiring cannot certify all remaining static
+obligations as verified(template). A public template scope requires the common
+checker to close those obligations under a scope selected before checking,
+without fabricated values or a second checker. No template success or unsupported
+preparation-write path is introduced by these declaration conditions.
 
 ### Passive operation diagnostic formats
 

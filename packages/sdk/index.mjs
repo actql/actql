@@ -121,6 +121,15 @@ const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
 
+// Admitted declaration conditions from this call's public Requirement only.
+// This is neither supplied-value admission nor proof of the remaining Program.
+export function getCheckParameterAdmission(outcome, parameter) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed' ||
+      typeof parameter !== 'string') return undefined;
+  return outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
+    reason.facts.parameter === parameter)?.facts.admission;
+}
+
 export function getCheckRequirementFrontier(outcome) {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
@@ -131,7 +140,8 @@ export function getCheckRequirementFrontier(outcome) {
   const frontier = freezeInput({contextRef: report.context_ref,
     reasonSchemaCid: outcome.reason_schema_cid,
     scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
-      ({code, facts}))),
+      ({code, facts: facts.admission === undefined ? facts : {...facts,
+        admission: {...facts.admission, constraints: unordered(facts.admission.constraints)}}}))),
     coverage: {limits: unordered(report.coverage.limits),
       unresolved: unordered(report.coverage.unresolved)}});
   checkFrontiers.set(outcome, frontier);
@@ -639,6 +649,12 @@ export function explainCheckReason(reason, options) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  if (reason?.code === 'implementation_limit' && reason?.facts?.issue === 'function_lowering_unresolved') {
+    const [summary, hint] = localizeCheck('limit.function_lowering_unresolved',
+      ['The expression lowerer cannot classify or support this function form.',
+        'Ask the checking-context owner to review function support at the original expression; this is not a proven function-name violation.'], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const expressionTypes = {
     number: ['An expression argument must have number type.', 'Use an expression with number type for the rejected argument.'],
     boolean: ['An expression argument must have boolean type.', 'Use an expression with boolean type for the rejected argument.'],
@@ -1550,7 +1566,7 @@ async function connectSelected(selected, port) {
               documentId: document.document_id, revision: document.revision}));
           }
           checkInputs.set(outcome, snapshots);
-          for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+          for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
             if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
               checkInputs.delete(outcome);
               reject();

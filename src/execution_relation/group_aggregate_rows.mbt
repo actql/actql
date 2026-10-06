@@ -309,7 +309,7 @@ fn admitted_aggregate_item(
       }
     Text(value) => {
       // Row Text is not an admitted type. Pay for the complete UTF-8 scan
-      // before asking the admission layer to normalize or retain it.
+      // before asking the admission layer to validate Unicode and retain it.
       if !spend_control_text(control, value) {
         return Err(RowLimit)
       }

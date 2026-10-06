@@ -6,6 +6,7 @@ import {machineCid} from './actql-spec-family.mjs';
 // The public `check` outcome. A distinct contract from actql-diagnostics/0.1
 // and actql-plan-result/0.1, which keep their own schemas and identities.
 const path = 'spec/contracts/actql-protocol-schemas.json';
+const parameterContractSchemaCid = machineCid(JSON.parse(readFileSync(path, 'utf8')).schemas.canonical_value_contract);
 const code = {type: 'string', pattern: '^[a-z][a-z0-9_]{0,63}$'};
 const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
   pattern: '^[A-Za-z0-9:_-]+$'};
@@ -42,6 +43,33 @@ const fix = {type: 'object', additionalProperties: false,
       required: ['start_byte', 'end_byte', 'replacement'],
       properties: {start_byte: integer, end_byte: integer,
         replacement: {const: '*/'}}}}}};
+// Requirement admission facts expose only the caller's admitted type and rules,
+// never defaults or arbitrary annotations. Paths name type-definition children,
+// not authored text positions or supplied-array indices.
+const requirementPath = {type: 'array', maxItems: 64, items: {oneOf: [
+  {type: 'object', additionalProperties: false, required: ['kind', 'name'],
+    properties: {kind: {const: 'field'}, name: {type: 'string', minLength: 1, maxLength: 65536}}},
+  {type: 'object', additionalProperties: false, required: ['kind'],
+    properties: {kind: {const: 'items'}}},
+]}};
+const finiteNumber = {type: 'number'};
+const parameterAdmission = {type: 'object', additionalProperties: false,
+  required: ['kind', 'contract_schema_cid', 'contract', 'constraints', 'supplier'], properties: {
+    contract_schema_cid: {const: parameterContractSchemaCid},
+    kind: {const: 'parameter_declaration'},
+    contract: {$ref: 'actql-protocol-schemas.json#/schemas/canonical_value_contract'},
+    supplier: {const: 'caller'},
+    constraints: {type: 'array', maxItems: 8192, items: {oneOf: [
+      {type: 'object', additionalProperties: false, required: ['kind', 'path', 'integer'],
+        properties: {kind: {const: 'numeric'}, path: requirementPath,
+          integer: {type: 'boolean'}, minimum: finiteNumber, maximum: finiteNumber}},
+      {type: 'object', additionalProperties: false, required: ['kind', 'path'],
+        properties: {kind: {const: 'duration'}, path: requirementPath}},
+      {type: 'object', additionalProperties: false, required: ['kind', 'path', 'length'],
+        properties: {kind: {const: 'array_length'}, path: requirementPath,
+          length: {type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER}}},
+    ]}},
+  }};
 // This registered facts schema is separate from outcome and presentation identity.
 // Known facts are closed; future codes have only a safe code-only representation.
 const parameterName = {type: 'string', minLength: 1, maxLength: 256};
@@ -72,7 +100,7 @@ export const checkReasonSchema = {
         properties: {parameter: parameterName, expected_type: typeName, actual_type: typeName}},
       {type: 'object', additionalProperties: false,
         required: ['parameter', 'expected_type'],
-        properties: {parameter: parameterName, expected_type: typeName}},
+        properties: {parameter: parameterName, expected_type: typeName, admission: parameterAdmission}},
       {type: 'object', additionalProperties: false,
         required: ['parameter', 'constraint'],
         properties: {parameter: parameterName,
@@ -88,9 +116,14 @@ export const checkReasonSchema = {
       {type: 'object', additionalProperties: false, required: ['document', 'issue'],
         properties: {document: {enum: ['parameters', 'parameter_declarations']}, issue: {enum: jsonIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
-        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
+        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues, 'function_lowering_unresolved'])]}}},
     ]}},
   allOf: [
+    {if: {properties: {code: {const: 'implementation_limit'}}}, then: {
+      properties: {facts: {required: ['issue'], properties: {issue: {const: 'function_lowering_unresolved'}}},
+        location: {properties: {kind: {const: 'text'}, document_id: {const: 'source'}}}}}},
+    {if: {properties: {code: {not: {const: 'parameter_value_required'}}}},
+      then: {properties: {facts: {not: {required: ['admission']}}}}},
     {if: {required: ['fixes']}, then: {required: ['facts', 'location'],
       properties: {code: {const: 'query_lexical_invalid'},
         facts: {properties: {issue: {const: 'unterminated_comment'}}},
@@ -159,13 +192,13 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch', 'implementation_limit']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };
 export const checkReasonSchemaCid = machineCid(checkReasonSchema);
 
-function report(verdicts) {
+function report(verdicts, reasonSchema = checkReasonSchema) {
   const empty = {type: 'array', items: {}, maxItems: 0};
   const emptyCoverage = {properties: {limits: empty, unresolved: empty}};
   return {
@@ -192,9 +225,14 @@ function report(verdicts) {
         type: 'object', additionalProperties: false,
         required: ['limits', 'unresolved'],
         properties: {
-          limits: {type: 'array', items: {
-            type: 'object', additionalProperties: false,
-            required: ['code'], properties: {code}}},
+          limits: {type: 'array', items: {oneOf: [
+            {type: 'object', additionalProperties: false, required: ['code'], properties: {code}},
+            {type: 'object', additionalProperties: false, required: ['code', 'facts'],
+              properties: {code: {const: 'implementation_limit'},
+                facts: {type: 'object', additionalProperties: false, required: ['issue'],
+                  properties: {issue: {const: 'function_lowering_unresolved'}}},
+                location: location.oneOf[0]}},
+          ]}},
           unresolved: {type: 'array', items: {
             type: 'object', additionalProperties: false,
             required: ['boundary', 'reason'],
@@ -202,9 +240,9 @@ function report(verdicts) {
               reason: {const: 'unresolved_protected'}}}},
         },
       },
-      reasons: {type: 'array', maxItems: 1024, items: checkReasonSchema},
-      requirements: {type: 'array', maxItems: 1024, items: {...checkReasonSchema,
-        properties: {...checkReasonSchema.properties, code: {const: 'parameter_value_required'}},
+      reasons: {type: 'array', maxItems: 1024, items: reasonSchema},
+      requirements: {type: 'array', maxItems: 1024, items: {...reasonSchema,
+        properties: {...reasonSchema.properties, code: {const: 'parameter_value_required'}},
         required: ['code', 'facts']}},
       scope: {type: 'object', additionalProperties: false,
         required: ['kind'], properties: {kind: {const: 'bound_input'}}},
@@ -216,7 +254,8 @@ function report(verdicts) {
 const problem = {type: 'object', additionalProperties: false,
   required: ['code'], properties: {code}};
 
-export function checkOutcomeSchema() {
+export function checkOutcomeSchema(reasonSchema = checkReasonSchema) {
+  const reasonCid = machineCid(reasonSchema);
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: 'https://smooth.dev/schemas/actql-check-outcome-0.1.json',
@@ -226,20 +265,20 @@ export function checkOutcomeSchema() {
         required: ['outcome', 'report', 'version', 'reason_schema_cid', 'outcome_schema_cid'],
         properties: {
           outcome: {const: 'completed'},
-          report: report(['invalid', 'undetermined', 'verified']),
+          report: report(['invalid', 'undetermined', 'verified'], reasonSchema),
           outcome_schema_cid: schemaCid,
-          reason_schema_cid: {const: checkReasonSchemaCid},
+          reason_schema_cid: {const: reasonCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // A partial report can never verify.
       {type: 'object', additionalProperties: false,
         required: ['outcome', 'problem', 'version', 'reason_schema_cid', 'outcome_schema_cid', 'correlation_ref'],
         properties: {
           outcome: {const: 'failed'},
-          partial_report: report(['invalid', 'undetermined']),
+          partial_report: report(['invalid', 'undetermined'], reasonSchema),
           problem,
           correlation_ref: opaqueRef,
           outcome_schema_cid: schemaCid,
-          reason_schema_cid: {const: checkReasonSchemaCid},
+          reason_schema_cid: {const: reasonCid},
           version: {const: 'actql-check-outcome/0.1'}}},
       // No verdict, report, scope or context field.
       {type: 'object', additionalProperties: false,
@@ -249,16 +288,26 @@ export function checkOutcomeSchema() {
           outcome: {const: 'unavailable'},
           problem,
           outcome_schema_cid: schemaCid,
-          reason_schema_cid: {const: checkReasonSchemaCid},
+          reason_schema_cid: {const: reasonCid},
           version: {const: 'actql-check-outcome/0.1'}}},
     ],
   };
 }
 
+export function checkReasonSchemaFor(registry) {
+  const reason = structuredClone(checkReasonSchema);
+  const pin = machineCid(registry.schemas.canonical_value_contract);
+  for (const facts of reason.properties.facts.oneOf) {
+    if (facts.properties.admission) facts.properties.admission.properties.contract_schema_cid.const = pin;
+  }
+  return reason;
+}
+
 export function applyCheckOutcomeSchema(registry) {
-  const schema = checkOutcomeSchema();
-  registry.artifact_schemas.check_reason = checkReasonSchema;
-  registry.artifact_schema_cids.check_reason = checkReasonSchemaCid;
+  const reason = checkReasonSchemaFor(registry);
+  const schema = checkOutcomeSchema(reason);
+  registry.artifact_schemas.check_reason = reason;
+  registry.artifact_schema_cids.check_reason = machineCid(reason);
   registry.artifact_schemas.check_outcome = schema;
   registry.artifact_schema_cids.check_outcome = machineCid(schema);
   registry.artifact_registry_cid = machineCid(registry.artifact_schemas);
@@ -266,20 +315,22 @@ export function applyCheckOutcomeSchema(registry) {
 }
 
 export function checkCheckOutcomeSchema(registry) {
-  assert.deepEqual(registry.artifact_schemas.check_reason, checkReasonSchema);
-  assert.equal(registry.artifact_schema_cids.check_reason, checkReasonSchemaCid);
+  const reason = checkReasonSchemaFor(registry);
+  assert.deepEqual(registry.artifact_schemas.check_reason, reason);
+  assert.equal(registry.artifact_schema_cids.check_reason, machineCid(reason));
   assert.deepEqual(registry.artifact_schemas.check_outcome,
-    checkOutcomeSchema());
+    checkOutcomeSchema(reason));
   assert.equal(registry.artifact_schema_cids.check_outcome,
-    machineCid(checkOutcomeSchema()));
+    machineCid(checkOutcomeSchema(reason)));
   assert.equal(registry.artifact_registry_cid,
     machineCid(registry.artifact_schemas));
 }
 
-const generatedPins = () =>
+const generatedPins = registry =>
   '// Generated by scripts/check-outcome-contract.mjs --write.\n\n///|\n' +
-  'let check_reason_schema_cid = ' + JSON.stringify(checkReasonSchemaCid) + '\n\n///|\n' +
-  'let check_outcome_schema_cid = ' + JSON.stringify(machineCid(checkOutcomeSchema())) + '\n';
+  'let check_reason_schema_cid = ' + JSON.stringify(machineCid(checkReasonSchemaFor(registry))) + '\n\n///|\n' +
+  'let check_outcome_schema_cid = ' + JSON.stringify(machineCid(checkOutcomeSchema(checkReasonSchemaFor(registry)))) + '\n\n///|\nlet check_parameter_contract_schema_cid = ' +
+  JSON.stringify(machineCid(registry.schemas.canonical_value_contract)) + '\n';
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const registry = JSON.parse(readFileSync(path, 'utf8'));
@@ -287,10 +338,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     applyCheckOutcomeSchema(registry);
     writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync('src/connectors_builtin_node/check_reason_schema.generated.mbt',
-      generatedPins());
+      generatedPins(registry));
   }
   checkCheckOutcomeSchema(registry);
   assert.equal(readFileSync(
     'src/connectors_builtin_node/check_reason_schema.generated.mbt', 'utf8'),
-  generatedPins());
+  generatedPins(registry));
 }

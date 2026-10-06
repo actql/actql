@@ -267,6 +267,20 @@ not duplicate its evaluation, failures or resource accounting. Unqualified
 joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
 
+`RIGHT [OUTER] JOIN` uses the existing common LEFT JOIN after exchanging
+input ports and equality-key sides. Projection keeps the original SQL range
+names and column meanings: unmatched original-left columns become nullable,
+while the original right side is preserved. Explicit MAX_OUTPUT_ROWS and
+pre-/post-join predicates retain their original logical boundary. RIGHT USING
+exposes the preserved right key unqualified; qualified left/right keys remain
+distinct. Its visible USING columns lead the row in authored USING order,
+followed by remaining left then right columns. Normal checked projection,
+nullability, ordering and output-name rules remain in force, including explicit
+refusal when a public Result cannot represent duplicate field names. No second
+join implementation, source re-acquisition or evidence fabrication is added.
+The selected [GoogleSQL RIGHT JOIN](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#right_outer_join)
+is a logical outer join, not a new placement or authorization instruction.
+
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
 body, named FROM/JOIN subquery and parenthesized query operand use the same
 relational query composition: SELECT or FROM-starting Pipe, set expressions,

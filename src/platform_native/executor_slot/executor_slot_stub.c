@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -344,30 +345,40 @@ int32_t actql_executor_slot_open_channel(void) {
     if (write_end >= 0) close(write_end);
     return -1;
   }
+  int flags = fcntl(write_end, F_GETFL);
+  if (flags < 0 || fcntl(write_end, F_SETFL, flags | O_NONBLOCK) != 0) {
+    close(read_end);
+    close(write_end);
+    return -1;
+  }
   return (read_end << 16) | write_end;
 }
 
-// Write one line to a channel. 0 on success, -1 when the holder is gone.
+// Append a suffix of one encoded frame, including its final newline.
+// Nonnegative means the exact number written; -2 means busy/unavailable, and
+// -1 means write failure. The caller retains any unfinished frame and offset.
 int32_t actql_executor_slot_channel_write(
   int32_t descriptor,
-  moonbit_bytes_t line,
-  int32_t line_length
+  int32_t inspection_descriptor,
+  moonbit_bytes_t frame,
+  int32_t frame_length,
+  int32_t offset
 ) {
-  if (descriptor < 0) return -1;
-  int32_t offset = 0;
-  while (offset < line_length) {
-    ssize_t count = write(descriptor, line + offset,
-      (size_t)(line_length - offset));
-    if (count < 0) {
-      if (errno == EINTR) continue;
-      return -1;
-    }
-    offset += (int32_t)count;
+  if (descriptor < 0 || inspection_descriptor < 0 || offset < 0 ||
+      offset >= frame_length) return -1;
+  if (offset == 0) {
+    int unread = 0;
+    // Inspect the read side without consuming it. Starting another frame
+    // while bytes are unread would accumulate stale repeated offers.
+    if (ioctl(inspection_descriptor, FIONREAD, &unread) != 0 || unread != 0)
+      return -2;
   }
   while (true) {
-    ssize_t count = write(descriptor, "\n", 1);
-    if (count == 1) return 0;
+    ssize_t count = write(descriptor, frame + offset,
+      (size_t)(frame_length - offset));
+    if (count > 0) return (int32_t)count;
     if (count < 0 && errno == EINTR) continue;
+    if (count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return -2;
     return -1;
   }
 }

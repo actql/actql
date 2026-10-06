@@ -97,6 +97,10 @@ priv enum Evaluation {
   CompareBinary(BinaryComparisonState)
   CompareMembership(MembershipState, BinaryComparisonState)
   TextFunction(TextFunctionState)
+  PropertyName(PropertyNameState)
+  FieldName(FieldNameState)
+  ObjectName(ObjectNameState)
+  ObjectText(ObjectExpressionState, RawTextAdmission)
 }
 
 ///|
@@ -326,6 +330,7 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
     MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
+    ObjectText(_, cursor) => close_raw_text_admission(cursor)
     _ => ()
   }
   release_slots(frame.workspace, frame.measurement_slots)
@@ -427,7 +432,11 @@ fn advance_expression_frame_impl(
     // Splitting those scans must not add a charge for each resume or refund
     // work. The next semantic Return still pays its usual transition.
     if !(frame.state is CompareBinary(_) ||
-      frame.state is CompareMembership(_, _)) {
+      frame.state is CompareMembership(_, _) ||
+      frame.state is PropertyName(_) ||
+      frame.state is FieldName(_) ||
+      frame.state is ObjectName(_) ||
+      frame.state is ObjectText(_, _)) {
       if budget.remaining == 0 {
         return Err({ kind: ControlLimit, expression: frame.active, })
       }
@@ -471,6 +480,23 @@ fn advance_expression_frame_impl(
         }
         match body {
           Field(name, target) => {
+            if name.length() > 64 {
+              if !reserve_slots(workspace, 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = FieldName({
+                expression: expr,
+                name,
+                source: match target {
+                  @relation.InputField(_) => InputFields(input.iter())
+                  @relation.PriorSlot(index) => PriorSlot(index)
+                },
+                offset: 0,
+                measured: false,
+                candidate: None,
+              })
+              continue
+            }
             if !spend_control_text(budget, name) {
               return Err({ kind: ControlLimit, expression: expr, })
             }
@@ -517,7 +543,10 @@ fn advance_expression_frame_impl(
             }
             guard fields.get(0) is Some((_, child)) &&
               reserve_slots(workspace, 1) &&
-              @admitted.prepare_object_value(fields.length()) is Some(builder) else {
+              @admitted.prepare_contract_object_value(
+                @lower.expression_contract(expr),
+              )
+              is Some(builder) else {
               return Err({ kind: WorkspaceLimit, expression: expr, })
             }
             frame.objects.push(builder)
@@ -739,6 +768,22 @@ fn advance_expression_frame_impl(
             if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
+            if name.length() > 64 {
+              if !reserve_slots(workspace, 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = PropertyName({
+                expression: expr,
+                name,
+                index,
+                value,
+                offset: 0,
+                measured: false,
+                actual: "",
+                selected: None,
+              })
+              continue
+            }
             if !spend_control_text(budget, name) {
               return Err({ kind: ControlLimit, expression: expr, })
             }
@@ -765,6 +810,34 @@ fn advance_expression_frame_impl(
           Object(state) => {
             let expr = state.expression
             frame.active = expr
+            if state.fields[state.index].0.length() > 64 {
+              let value_bytes = if state.root is Some(root) {
+                match
+                  consume_expression_value(
+                    root.scope.budget,
+                    value,
+                    frame.current_root,
+                  ) {
+                  Ok(measured) => measured.wire_bytes.to_int64()
+                  Err(issue) =>
+                    return Err({ kind: LogicalValue(issue), expression: expr, })
+                }
+              } else {
+                0L
+              }
+              if !reserve_slots(workspace, 2) {
+                return Err({ kind: WorkspaceLimit, expression: expr, })
+              }
+              frame.state = ObjectName({
+                object: state,
+                value,
+                value_bytes,
+                wire_bytes: 2,
+                offset: 0,
+                phase: 0,
+              })
+              continue
+            }
             if state.root is Some(root) {
               let budget = root.scope.budget
               let measured = match
@@ -801,27 +874,9 @@ fn advance_expression_frame_impl(
             if !spend_control_text(budget, state.fields[state.index].0) {
               return Err({ kind: ControlLimit, expression: expr, })
             }
-            let admitted = match admitted_aggregate_item(value, budget) {
-              Ok(Some(value)) => value
-              Ok(None) => @admitted.null_value()
-              Err(_) => return Err({ kind: ControlLimit, expression: expr, })
-            }
-            if !@admitted.append_object_field(
-                state.builder,
-                state.fields[state.index].0,
-                admitted,
-              ) {
-              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
-            }
-            state.roots.push(frame.current_root)
-            frame.current_root = None
-            state.index += 1
-            if state.fields.get(state.index) is Some((_, child)) {
-              frame.stack.push(Object(state))
-              frame.state = Enter(child)
-            } else {
-              state.index = 0
-              frame.state = FinishObject(state)
+            match append_expression_object_field(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
             }
           }
           Forward(expr) => {
@@ -1233,6 +1288,55 @@ fn advance_expression_frame_impl(
               frame.stack.push(Forward(expr))
               frame.state = Enter(otherwise)
             }
+          }
+        }
+      }
+      ObjectText(state, admission) => {
+        frame.active = state.expression
+        match advance_raw_text_admission(admission, budget) {
+          Err(_) =>
+            return Err({ kind: ControlLimit, expression: state.expression, })
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match append_admitted_expression_object_field(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
+      ObjectName(state) => {
+        frame.active = state.object.expression
+        match advance_object_name(frame, state) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      FieldName(state) => {
+        frame.active = state.expression
+        match advance_field_name(state, slots, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            release_slots(workspace, 2)
+            frame.state = Return(value)
+          }
+        }
+      }
+      PropertyName(state) => {
+        frame.active = state.expression
+        match advance_property_name(state, budget) {
+          Err(issue) => return Err(issue)
+          Ok(None) => ()
+          Ok(Some(value)) => {
+            if release(frame.current_root) is Some(issue) {
+              return Err({
+                kind: LogicalValue(issue),
+                expression: state.expression,
+              })
+            }
+            frame.current_root = None
+            release_slots(workspace, 3)
+            frame.state = Return(value)
           }
         }
       }

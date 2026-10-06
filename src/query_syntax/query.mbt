@@ -849,6 +849,12 @@ fn QueryParser::join_part(
       self.keyword("OUTER")
     }
     "full"
+  } else if self.has("RIGHT") {
+    self.keyword("RIGHT")
+    if self.has("OUTER") {
+      self.keyword("OUTER")
+    }
+    "right"
   } else if self.has("CROSS") {
     self.keyword("CROSS")
     "cross"
@@ -922,6 +928,7 @@ fn QueryParser::starts_join(self : QueryParser) -> Bool {
   self.has("JOIN") ||
   self.has("INNER") ||
   self.has("LEFT") ||
+  self.has("RIGHT") ||
   self.has("FULL") ||
   self.has("CROSS")
 }
