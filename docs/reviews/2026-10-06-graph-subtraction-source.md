@@ -75,6 +75,16 @@ Frontend refusal cases assert their specific public error codes.
 - The preceding 10/11 attempt (`run-DCgoaV`) had a test comparing JSON object
   member order in a substring; separate reference/policy assertions fixed that
   fixture. The failure is retained, not counted as success.
+- First packed attempt at `45895576593abfb0a3e2cfa7837e17edf1cdf13c` passed
+  its install/README checks and the first 11 Local cases, including both JSON
+  controls and nonempty endpoint closure. It stopped at the zero-value fixture:
+  replacing `7 AS p` also matched the prefix of `7 AS part`, so the authored
+  source changed the key instead of the property. Receipt
+  `public-query-evidence-GHPOqK` preserves the failure; later cases and HTTPS
+  were not reached. The replacement now includes the terminating semicolon;
+  zero/NULL expectations remain unchanged and explicit source assertions
+  ensure the key stays 7. Corrected lowering tests passed 5/5 JS and fixture
+  tests 2/2 Node (`run-Iv4SaX`). No product change is needed for this fixture bug.
 - The submitted PR body records the actual fixed SHA, pack manifest/digests,
   receipt and Local/HTTPS outcomes. Syntax/checker success is not execution
   evidence, and public acceptance remains unverified until that receipt passes.

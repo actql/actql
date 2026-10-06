@@ -18,6 +18,12 @@ test('subtraction expectations distinguish binary removal, property retention an
   assert.deepEqual(empty.rows, []);
   assert.deepEqual(empty.columns[0], {name: 'p', contract: {type: 'number', nullable: true}});
   assert.equal(cases.get('graph-subtraction-zero-is-retained-value-nodes').results.nodes.rows[0].p, 0);
+  assert.ok(cases.get('graph-subtraction-zero-is-retained-value-nodes').text.includes(
+    'DATA n = SELECT 7 AS part, 1 AS node_key, 0 AS p;'));
+  assert.ok(cases.get('graph-subtraction-nullable-empty-contract-nodes').text.includes(
+    'DATA n = SELECT 7 AS part, 1 AS node_key, CAST(NULL AS FLOAT64) AS p;'));
+  assert.ok(graphSubtractionSourceExecutionFailures.find(c => c.name === 'graph-subtraction-null-is-not-zero').text.includes(
+    'DATA n = SELECT 7 AS part, 1 AS node_key, CAST(NULL AS FLOAT64) AS p;'));
   for (const kind of ['nodes', 'edges']) {
     assert.ok(cases.get('graph-subtraction-quoted-data-numeric-policy-' + kind).text.includes('with: `peer graph`'));
   }

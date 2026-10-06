@@ -25,7 +25,7 @@ const prefix = 'DATA n = SELECT 7 AS part, 1 AS node_key, 7 AS p; ' +
   'DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (part, node_key) LABEL Person PROPERTIES (p)) ' +
   'EDGE TABLES (e AS E KEY (part, edge_key) SOURCE KEY (part, src_key) REFERENCES N ' +
   'DESTINATION KEY (part, dst_key) REFERENCES N LABEL R PROPERTIES (w))); ';
-const nullablePrefix = prefix.replace('7 AS p', 'CAST(NULL AS FLOAT64) AS p');
+const nullablePrefix = prefix.replace('7 AS p;', 'CAST(NULL AS FLOAT64) AS p;');
 const output = kind => kind === 'nodes'
   ? ' |> node_rows() |> SELECT p, part, node_key, labels |> ORDER BY node_key |> RESULT nodes'
   : ' |> edge_rows() |> SELECT w, part, edge_key, labels |> ORDER BY edge_key |> RESULT edges';
@@ -74,7 +74,7 @@ export const graphSubtractionSourceSuccesses = [
   ...['nodes', 'edges'].map(kind => textCase('nonempty-subset-and-endpoint-closure', '', kind, subsetRows[kind], {
     text: subsetPrefix + peerSelection + 'FROM g |> subtract_graphs(with: peer)' + output(kind)})),
   textCase('zero-is-retained-value', '', 'nodes', [node(0)], {
-    text: prefix.replace('7 AS p', '0 AS p') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
+    text: prefix.replace('7 AS p;', '0 AS p;') + "FROM g |> subtract_graphs(with: g, merge: {node_properties: {p: 'number_sum'}})" + output('nodes')}),
   textCase('nullable-empty-contract', '', 'nodes', [], {
     text: nullablePrefix + 'FROM g |> subtract_graphs(with: g)' + output('nodes'), results: result('nodes', [], true)}),
 ];
