@@ -182,7 +182,13 @@ test "string steps charge separators and item bytes and honor the maximum" {
   // Items 2 + 2 + 1 bytes and two ", " separators of 2 bytes.
   let charge = 5 + 4
   let exact : ControlBudget = { remaining: charge, max_frames: 0, }
-  let state = start_aggregate_string(values, ", ", 2L, 100L, exact)
+  let state = start_aggregate_string(
+    values,
+    ", ",
+    100L,
+    exact,
+    row_workspace(100),
+  ).unwrap()
   let (value, at_most_one, _) = drain_counting(
     () => advance_aggregate_string(state),
     exact,
@@ -192,14 +198,26 @@ test "string steps charge separators and item bytes and honor the maximum" {
   assert_eq(exact.remaining, 0)
   assert_true(at_most_one)
   let short : ControlBudget = { remaining: charge - 1, max_frames: 0, }
-  let failing = start_aggregate_string(values, ", ", 2L, 100L, short)
+  let failing = start_aggregate_string(
+    values,
+    ", ",
+    100L,
+    short,
+    row_workspace(100),
+  ).unwrap()
   let (failed, _, _) = drain_counting(
     () => advance_aggregate_string(failing),
     short,
   )
   assert_true(failed is Err(RowLimit))
   let capped : ControlBudget = { remaining: 100, max_frames: 0, }
-  let over = start_aggregate_string(values, ", ", 2L, 8L, capped)
+  let over = start_aggregate_string(
+    values,
+    ", ",
+    8L,
+    capped,
+    row_workspace(100),
+  ).unwrap()
   let (limited, _, _) = drain_counting(
     () => advance_aggregate_string(over),
     capped,

@@ -7,7 +7,7 @@
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 export const packageConfigurationReview = Object.freeze({
-  revision: 'd093bcedf8b64b5d7b3e8fdecc988310c51bff90',
+  revision: 'b98a50ff763d1367e344fdfa8aea380ec8749132',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -21,7 +21,8 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/https_server/moon.pkg': '880ad74137ab58e0f92f43465f9bc2bcd096eb2b29461b9f93d68883ed5d22bd',
   'src/platform_native/publication_store/moon.pkg': '35d6c3f1c56d57b9f11dcc2798f82a1cebe98d1022c2ec35885c79e7b4e10bf7',
   'src/platform_native/remote_client/moon.pkg': '67756b13c514822718fe21600a9e807392d7c2c4ee5b99cc6e2ab09616761a59',
-  'src/platform_native/remote_journal/moon.pkg': '4047fb7cc48a8da82ae6c131d026f8045c7040b0fc4756383c79cebf282b2ce7',
+  'src/platform_native/remote_journal/moon.pkg': 'd0c6ba5ca3760d425f90ceafcc6c06d22737c4c2978995ccd31ac3c2b228d90e',
+  'src/platform_native/remote_standard_host/moon.pkg': '14c80ec28c7c4f706f8aa55c2a73fa0c2f3023c4f91d4cb016094d0170b04f87',
   'src/platform_native/remote_transfer_client/moon.pkg': '95f25cf39e6857265915ea63db4f4de47b8e209b6bb32bb6566bd9297f87a8f0',
   'src/platform_native/remote_transfer_journal/moon.pkg': '5baf57142f807ae0121c9bdd1c40173a81d9e8248b3b5dbcee3cd969f4e23601',
   'src/platform_native/retained_task_file/moon.pkg': 'e3050859982bfa2a176e04f44c08dcf073be7405e42be6f0af81f51a680347de',

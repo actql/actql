@@ -22,7 +22,7 @@ export function project(schema) {
     if (!allowed.has(key)) throw new Error(`UnsupportedPublicationSchema:${key}`);
   }
   if (schema.type !== undefined &&
-      !['object', 'array', 'string', 'integer', 'boolean'].includes(schema.type)) {
+      !['object', 'array', 'string', 'integer', 'number', 'boolean'].includes(schema.type)) {
     throw new Error(`UnsupportedPublicationType:${schema.type}`);
   }
   if (schema.uniqueItems && schema.items?.type !== 'string') {
@@ -64,9 +64,12 @@ export function typeOf(schema) {
   if (Object.hasOwn(schema, 'const')) return JSON.stringify(schema.const);
   if (schema.enum) return schema.enum.map(JSON.stringify).join(' | ');
   if (schema.type === 'string') return 'string';
-  if (schema.type === 'integer') return 'number';
+  if (schema.type === 'integer' || schema.type === 'number') return 'number';
   if (schema.type === 'boolean') return 'boolean';
-  if (schema.type === 'array') return `readonly ${typeOf(schema.items)}[]`;
+  if (schema.type === 'array') {
+    const item = typeOf(schema.items);
+    return schema.items.oneOf ? `readonly (${item})[]` : `readonly ${item}[]`;
+  }
   if (schema.type === 'object') {
     if (schema.additionalProperties &&
         typeof schema.additionalProperties === 'object' &&
@@ -100,6 +103,7 @@ export function structuralValidatorSource() {
 `        (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))\n` +
 `    return false;\n` +
 `  if (schema.type === 'string') return typeof value === 'string';\n` +
+`  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0);\n` +
 `  if (schema.type === 'integer') return Number.isSafeInteger(value) &&\n` +
 `    (schema.minimum === undefined || value >= schema.minimum) &&\n` +
 `    (schema.maximum === undefined || value <= schema.maximum);\n` +

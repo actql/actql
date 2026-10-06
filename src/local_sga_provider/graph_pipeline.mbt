@@ -45,6 +45,7 @@ priv struct Execution {
   limits : @storage.Limits
   storage_bytes : Int64
   snapshot_policy : SnapshotPolicy?
+  mut reference_issuer : @value.ReferenceIssuer?
   max_rows : Int
   max_value_bytes : Int
   selected_step : Int?
@@ -562,6 +563,7 @@ fn complete_graph_poll(
         policy.maximum_frame_bytes,
         policy.workspace_bytes,
         () => true,
+        reference_issuer=value.reference_issuer,
       ).map_err(_ => issue())
   }
   let material = match material {
@@ -811,6 +813,7 @@ fn advance_execution(
                     // generation. The snapshot port checks source availability
                     // and the restored lifecycle still enforces reclamation.
                     () => true,
+                    reference_issuer=value.reference_issuer,
                   ).map_err(_ => issue())
               }
               let material = match prepared_material {
@@ -1646,11 +1649,14 @@ fn cleanup_execution(
     union_pending {
     return Ok(false)
   }
+  value.reference_issuer = None
   value.reclaimed = true
   Ok(true)
 }
 
 ///|
+/// Reference-bearing snapshots require the installing Host's current issuer.
+/// Stored envelopes and provider availability cannot supply that authority.
 pub fn provider(
   limits : @storage.Limits,
   storage_bytes : Int64,
@@ -1658,6 +1664,7 @@ pub fn provider(
   snapshot_policy? : SnapshotPolicy? = None,
   delta_policy? : DeltaPolicy? = None,
   union_policy? : UnionPolicy? = None,
+  reference_issuer? : @value.ReferenceIssuer? = None,
 ) -> @local.ManagedProvider {
   let eligible = fn(sequence) {
     accepts(sequence) &&
@@ -1934,6 +1941,7 @@ pub fn provider(
         } else {
           None
         },
+        reference_issuer,
         max_rows,
         max_value_bytes,
         selected_step,

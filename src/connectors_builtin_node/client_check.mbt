@@ -23,11 +23,12 @@ priv enum CheckFinding {
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   UnusedParameter(String, String?)
-  RequiredValue(String, String)
+  RequiredValue(@parameter_binding.Declaration, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
   Limit(String)
+  FunctionLimit((Int, Int)?)
 }
 
 ///|
@@ -252,7 +253,7 @@ fn check_source_findings(
           let declaration = @parameter_binding.missing_at(missing, index).unwrap()
           if declaration.name.length() <= 256 &&
             check_declaration_type(declaration) is Some(expected) {
-            findings.push(RequiredValue(declaration.name, expected))
+            findings.push(RequiredValue(declaration, expected))
           }
         }
       }
@@ -347,8 +348,8 @@ fn check_source_findings(
         ) => return Failed("check_internal")
         // This lowerer issue conflates unknown names with unsupported forms.
         // Without a distinct input violation it cannot justify author blame.
-        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>
-          findings.push(Limit("implementation_limit"))
+        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
+          findings.push(FunctionLimit(check_authored_range(origin)))
         QueryLowering(
           Expression(
             { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
@@ -892,6 +893,7 @@ fn write_check_report(
   context_ref : String,
   verdict : String,
   documents : CheckDocuments,
+  requirement_limit : Int,
 ) -> Unit raise @encode.EncodeFailure {
   let violations = check_codes(findings, finding => {
     match finding {
@@ -926,6 +928,7 @@ fn write_check_report(
   let limits = check_codes(findings, finding => {
     match finding {
       Limit(code) => Some(code)
+      FunctionLimit(_) => Some("implementation_limit")
       _ => None
     }
   })
@@ -940,6 +943,26 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "implementation_limit" {
+      for finding in findings {
+        if finding is FunctionLimit(range) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, "function_lowering_unresolved")
+          @encode.end_object(writer)
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
+      }
+    }
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
@@ -983,6 +1006,21 @@ fn write_check_report(
     )
   }
   @encode.end_array(writer)
+  let mut required_count = 0
+  for finding in findings {
+    if finding is RequiredValue(_, _) {
+      required_count = required_count + 1
+    }
+  }
+  if required_count > requirement_limit {
+    // Only already-public input obligations determine this bounded summary.
+    // Never expose an omitted count or replace protected coverage with it.
+    @encode.key(writer, "omissions")
+    @encode.begin_object(writer)
+    @encode.key(writer, "requirements")
+    @encode.bool_value(writer, true)
+    @encode.end_object(writer)
+  }
   @encode.key(writer, "reasons")
   @encode.begin_array(writer)
   for code in violations {
@@ -1281,13 +1319,21 @@ fn write_check_report(
   @encode.end_array(writer)
   @encode.key(writer, "requirements")
   @encode.begin_array(writer)
+  let mut written_requirements = 0
   for finding in findings {
-    if finding is RequiredValue(name, expected) {
+    if written_requirements >= requirement_limit {
+      continue
+    }
+    if finding is RequiredValue(declaration, expected) {
+      let name = declaration.name
+      written_requirements = written_requirements + 1
       @encode.begin_object(writer)
       @encode.key(writer, "code")
       @encode.string_value(writer, "parameter_value_required")
       @encode.key(writer, "facts")
       @encode.begin_object(writer)
+      @encode.key(writer, "admission")
+      write_check_parameter_admission(writer, declaration.parameter_type)
       @encode.key(writer, "expected_type")
       @encode.string_value(writer, expected)
       @encode.key(writer, "parameter")
@@ -1316,8 +1362,9 @@ fn write_check_report(
 }
 
 ///|
-/// The reporting budget is separate from the analysis budget: a report that
-/// cannot be bounded becomes Failed without a partial report.
+/// Report enumeration has its own bounded budget. Keep the complete findings
+/// for verdict/scope/coverage and retry only encoding a smaller public prefix.
+/// At most nine reserved encoding attempts occur; analysis is never repeated.
 fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
@@ -1325,6 +1372,28 @@ fn check_outcome_json(
   correlation_ref : String,
   documents : CheckDocuments,
 ) -> String {
+  let mut requirement_limit = 128
+  for attempt = 0; attempt < 9; attempt = attempt + 1 {
+    match
+      check_outcome_attempt(
+        findings, stop, context_ref, correlation_ref, documents, requirement_limit,
+      ) {
+      Some(value) => return value
+      None => requirement_limit = requirement_limit / 2
+    }
+  }
+  check_failed_json("check_report_unbounded", correlation_ref)
+}
+
+///|
+fn check_outcome_attempt(
+  findings : Array[CheckFinding],
+  stop : CheckStop,
+  context_ref : String,
+  correlation_ref : String,
+  documents : CheckDocuments,
+  requirement_limit : Int,
+) -> String? {
   try {
     let writer = @encode.writer(65536, 4096, 16)
     @encode.begin_object(writer)
@@ -1339,6 +1408,7 @@ fn check_outcome_json(
           context_ref,
           check_verdict(findings),
           documents,
+          requirement_limit,
         )
       }
       Failed(problem) => {
@@ -1350,7 +1420,7 @@ fn check_outcome_json(
         if check_verdict(findings) == "invalid" {
           @encode.key(writer, "partial_report")
           write_check_report(
-            writer, findings, context_ref, "invalid", documents,
+            writer, findings, context_ref, "invalid", documents, requirement_limit,
           )
         }
         @encode.key(writer, "problem")
@@ -1367,9 +1437,9 @@ fn check_outcome_json(
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
-    @encode.finish(writer)
+    Some(@encode.finish(writer))
   } catch {
-    _ => check_failed_json("check_report_unbounded", correlation_ref)
+    _ => None
   }
 }
 
@@ -1473,6 +1543,22 @@ fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
 }
 
 ///|
+/// Use only the existing lowerer's owned authored range. Unknown/generated
+/// origins remain unlocated; no matching or parsing of diagnostic text.
+fn check_authored_range(origin : @source_origin.Origin?) -> (Int, Int)? {
+  match origin {
+    Some(origin) if @source_origin.kind(origin) == @source_origin.Authored =>
+      Some(
+        (
+          @source_origin.start(origin).byte_offset,
+          @source_origin.end(origin).byte_offset,
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
 /// Project existing typed expression issues and owned authored origins. No
 /// protected Source-resolution issue or generated origin acquires a location.
 fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
@@ -1484,16 +1570,7 @@ fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
       _ => None
     }
     if code is Some(code) {
-      let range = match diagnostic.origin {
-        Some(origin) if @source_origin.kind(origin) == @source_origin.Authored =>
-          Some(
-            (
-              @source_origin.start(origin).byte_offset,
-              @source_origin.end(origin).byte_offset,
-            ),
-          )
-        _ => None
-      }
+      let range = check_authored_range(diagnostic.origin)
       return ExpressionViolation(code, range)
     }
   }

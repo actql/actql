@@ -68,6 +68,7 @@ source        = path, [ source_alias ]
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
+                | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
                 "JOIN", source, ( "ON", expression
                 | "USING", "(", identifier, { ",", identifier }, ")" ),
@@ -78,9 +79,11 @@ where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
 select_list   = select_item, { ",", select_item } ;
-select_item   = "*", [ star_except ] | path, ".", "*"
+select_item   = ( "*" | path, ".", "*" ), [ star_except ], [ star_replace ]
               | expression, [ "AS", identifier ] ;
 star_except   = "EXCEPT", "(", identifier, { ",", identifier }, ")" ;
+star_replace  = "REPLACE", "(", expression, "AS", identifier,
+               { ",", expression, "AS", identifier }, ")" ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;

@@ -50,6 +50,8 @@ priv struct Entry {
 /// Complete relation field types only; no row data, key/order or Carrier proof.
 struct Schema {
   representation : Representation
+  all_required : Bool
+  qualified : Bool
 }
 
 ///|
@@ -60,7 +62,11 @@ pub fn from_object(row : @contract.Contract) -> Result[Schema, Issue] {
       if row.nullable {
         Err(InvalidRowContract)
       } else {
-        Ok({ representation: Flat(row, fields), })
+        Ok({
+          representation: Flat(row, fields),
+          all_required: true,
+          qualified: false,
+        })
       }
     _ => Err(InvalidRowContract)
   }
@@ -124,18 +130,12 @@ pub fn field_presence(field : Field) -> Presence {
 
 ///|
 pub fn all_fields_required(schema : Schema) -> Bool {
-  match schema.representation {
-    Flat(_, _) => true
-    Scoped(fields) => fields.all(f => f.field.presence == Required)
-  }
+  schema.all_required
 }
 
 ///|
 pub fn has_qualified_fields(schema : Schema) -> Bool {
-  match schema.representation {
-    Flat(_, _) => false
-    Scoped(fields) => fields.any(f => f.field.name is Qualified(_, _))
-  }
+  schema.qualified
 }
 
 ///|
@@ -267,6 +267,10 @@ pub fn from_presence_fields(
     from_object(row)
   } else {
     output.sort_by((a, b) => @canonical.compare_utf16(a.spelling, b.spelling))
-    Ok({ representation: Scoped(output), })
+    Ok({
+      representation: Scoped(output),
+      all_required: !conditional,
+      qualified,
+    })
   }
 }

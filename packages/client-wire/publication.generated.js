@@ -272,6 +272,7 @@ function valid(value, schema) {
         (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))
     return false;
   if (schema.type === 'string') return typeof value === 'string';
+  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0);
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
     (schema.maximum === undefined || value <= schema.maximum);

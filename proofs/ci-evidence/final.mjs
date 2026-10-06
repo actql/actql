@@ -11,7 +11,7 @@ import {performance} from 'node:perf_hooks';
 import {actionsReader} from '../../scripts/ci-main-base.mjs';
 import {openArtifactZip} from '../../scripts/ci-artifact-reader.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {readCatalog, initialRegistrationRevision} from './actions.mjs';
+import {readCatalog, protectedRegistrationRevision} from './actions.mjs';
 import {checkCostObservation} from './costs.mjs';
 import {checkExecutionRecipes} from './execution-recipes.mjs';
 import {hash} from './inputs.mjs';
@@ -107,9 +107,9 @@ export async function verifyCurrentFamily({root, artifactId, expectedDigest, con
     assert.equal(encode(receipt.origin), encode(state.origin), 'Mixed fresh collection owner');
   const applicationContext = reused ? {...context, ancestors: [reused.origin.revision]} : context;
   const result = await checkApplications({root, context: applicationContext, runtime: state.runtime, actionRuntimes,
-    // Independent published inventory for bootstrap, not the candidate's own
-    // edited inventory. Activation will use the verified main checkpoint.
-    protectedRevision: initialRegistrationRevision, entries, request,
+    // All independently published obligations, including the Bridge. The
+    // separately authenticated main original controls reuse, not this pin.
+    protectedRevision: protectedRegistrationRevision, entries, request,
     prove: (required, applications, {receiptDigests}) =>
       checkCertificate({certificate, output, context, catalog, required, applications, receiptDigests})});
   // The ancestor authorization is derived above from the live resolver and

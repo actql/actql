@@ -31,7 +31,22 @@ test('owner schema changes invalidate generated Client bindings', () => {
     /UnsupportedPublicationSchema:newRule/u);
   delete changed[runPath].schemas.delivery_attempt.properties.result_name.newRule;
   changed[runPath].schemas.delivery_attempt.properties.result_name.type =
-    'number';
+    'null';
   assert.throws(() => buildClientPublicationWire(changed),
-    /UnsupportedPublicationType:number/u);
+    /UnsupportedPublicationType:null/u);
+});
+
+test('arrays of discriminated unions retain readonly array precedence', async () => {
+  const {project, typeOf} = await import('./generate-client-publication-wire.mjs');
+  assert.equal(typeOf(project({type: 'array', items: {oneOf: [
+    {const: 'field'}, {const: 'items'},
+  ]}})), 'readonly ("field" | "items")[]');
+  assert.equal(typeOf(project({type: 'number'})), 'number');
+});
+
+test('readonly arrays group their union alternatives', async () => {
+  const {project, typeOf} = await import('./generate-client-publication-wire.mjs');
+  assert.equal(typeOf(project({type: 'array', items: {oneOf: [
+    {const: 'generic'}, {const: 'located'},
+  ]}})), 'readonly ("generic" | "located")[]');
 });

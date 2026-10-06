@@ -30,6 +30,56 @@ test "presence is independent of nullable and the finite field set" {
 }
 
 ///|
+test "wide admitted schemas retain independent presence and qualification facts" {
+  let number = @contract.primitive(NumberType, nullable=true)
+  for
+    (qualified, conditional) in [
+      (false, false),
+      (true, false),
+      (false, true),
+      (true, true),
+    ] {
+    let entries = Array::makei(257, index => {
+      let name = "column_" + index.to_string()
+      let reference = if qualified && index == 256 {
+        @relation_schema.Qualified(@relation_schema.Left, name)
+      } else {
+        @relation_schema.Unqualified(name)
+      }
+      // A nullable value is still a required column. Only the explicit
+      // final conditional declaration may permit absence.
+      (
+        reference,
+        number,
+        if conditional && index == 256 {
+          @relation_schema.Conditional
+        } else {
+          @relation_schema.Required
+        },
+      )
+    })
+    let schema = @relation_schema.from_presence_fields(
+      entries,
+      max_fields=257,
+      max_name_bytes=10000,
+    ).unwrap()
+    entries.clear()
+    for _ in 0..<3 {
+      assert_eq(@relation_schema.all_fields_required(schema), !conditional)
+      assert_eq(@relation_schema.has_qualified_fields(schema), qualified)
+      assert_eq(@relation_schema.field_count(schema), 257)
+    }
+    assert_eq(
+      @relation_schema.as_object(schema) is Some(_),
+      !qualified && !conditional,
+    )
+    @relation_schema.fields(schema).clear()
+    assert_eq(@relation_schema.all_fields_required(schema), !conditional)
+    assert_eq(@relation_schema.has_qualified_fields(schema), qualified)
+  }
+}
+
+///|
 test "all-required construction retains ordinary object admission and bounds" {
   let number = @contract.primitive(NumberType, nullable=false)
   let schema = @relation_schema.from_presence_fields(

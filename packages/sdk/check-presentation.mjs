@@ -1,5 +1,5 @@
 // Translation data is separate from wire semantics and checking authority.
-// English defaults remain at the semantic call site; a missing or malformed
+// English Reason defaults come from the generated public catalog; a missing or malformed
 // translation uses that same safe default without changing the observation.
 const japanese = Object.freeze(Object.fromEntries(Object.entries({
   'protocol.unknown_outcome': ['このSDKでは検査応答のoutcomeを解釈できません。',
@@ -8,6 +8,10 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
     'HostとSDKの契約を揃えてください。拒否された応答は検査判定を示しません。'],
   'protocol.malformed_response': ['検査応答が登録済み応答契約または元入力のbindingに違反しています。',
     'Hostの管理者にprotocol失敗の調査を依頼してください。入力誤りの診断ではありません。'],
+  'limit.function_lowering_unresolved': ['式lowererがこの関数形式を判定・対応できません。',
+    '元の式での関数対応を検査文脈の管理者に確認してください。関数名の誤りが確定した診断ではありません。'],
+  'omissions.requirements': ['Hostは既知の不足入力の一部を省略しました。省略件数は公開しません。',
+    '判定は元の検査範囲を保持します。この一覧は補足入力の完全なfrontierではありません。'],
   'completed.invalid': ['検査範囲内の入力違反が確認されました。',
     '開示された理由を確認し、示された提出時のrevisionを修正してください。'],
   'completed.verified': ['この報告が検証するのは、束縛された検査範囲と文脈だけです。',
@@ -110,7 +114,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.6`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.${locale}.8`});
 }
 
 export function localizeCheck(key, english, options) {

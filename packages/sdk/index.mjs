@@ -1,3 +1,5 @@
+import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
+export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
 import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCancellation, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
@@ -6,10 +8,11 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
+import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 import {localizeOperation} from './operation-presentation.mjs';
@@ -20,6 +23,40 @@ const checkInputs = new WeakMap();
 // Rejected transport observations retain only a safe classification and this
 // call's own input. No unvalidated reply, revision or location gains custody.
 const checkFailures = new WeakMap();
+const runObservationFailures = new WeakMap();
+
+// Only a rejected observation of this SDK's attached Run retains its lookup
+// candidate. No rejected state, effect, revision or write permission is kept.
+export function explainRunObservationFailure(error, options) {
+  return localizeOperation(runObservationFailures.get(error), 'observation', options);
+}
+
+const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
+  const error = new ClientError(code);
+  const summaries = {
+    unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
+    contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
+    malformed_response: 'The Run reply violates the registered state contract.',
+  };
+  runObservationFailures.set(error, freezeInput({
+    kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
+    problem, operation, summary: summaries[problem],
+    hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
+    next: {operation: 'status', ref: {...ref}},
+  }));
+  return error;
+};
+
+const rejectedRunProblem = value => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'malformed_response';
+    const version = Object.getOwnPropertyDescriptor(value, 'version')?.value;
+    const status = Object.getOwnPropertyDescriptor(value, 'status')?.value;
+    if (typeof version !== 'string' || !version || typeof status !== 'string' || !status) return 'malformed_response';
+    if (version !== runStateProtocol.version) return 'contract_mismatch';
+    return runStateProtocol.statuses.includes(status) ? 'malformed_response' : 'unknown_state';
+  } catch { return 'malformed_response'; }
+};
 
 export function getCheckFailureInput(error) {
   return checkFailures.get(error)?.input;
@@ -86,17 +123,27 @@ const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
 
+// Admitted declaration conditions from this call's public Requirement only.
+// This is neither supplied-value admission nor proof of the remaining Program.
+export function getCheckParameterAdmission(outcome, parameter) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed' ||
+      typeof parameter !== 'string') return undefined;
+  return outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
+    reason.facts.parameter === parameter)?.facts.admission;
+}
+
 export function getCheckRequirementFrontier(outcome) {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
   const report = outcome.report;
   // These are the currently exposed typed Requirements. Unknown obligations
   // cannot supply a structural admission condition for supplementation.
-  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  if (report.omissions?.requirements || report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
   const frontier = freezeInput({contextRef: report.context_ref,
     reasonSchemaCid: outcome.reason_schema_cid,
     scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
-      ({code, facts}))),
+      ({code, facts: facts.admission === undefined ? facts : {...facts,
+        admission: {...facts.admission, constraints: unordered(facts.admission.constraints)}}}))),
     coverage: {limits: unordered(report.coverage.limits),
       unresolved: unordered(report.coverage.unresolved)}});
   checkFrontiers.set(outcome, frontier);
@@ -431,7 +478,8 @@ export function createCheckDocumentSession(client, options) {
 export function explainCheckOutcome(outcome, options) {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = (report, completeness) => ({completeness,
-    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref,
+    ...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})});
   if (outcome.outcome === 'completed') {
     const explanations = {
       invalid: ['The report establishes an input violation in its checking scope.',
@@ -532,7 +580,11 @@ export function formatCheckOutcome(outcome, options) {
       'Correlation: ' + checkDisplayString(observation.correlationRef) :
       'Scope: ' + observation.report.scope.kind + '; context_ref: ' + checkDisplayString(observation.report.contextRef);
     const omitted = rows.length - entries.length;
-    const suffix = omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '';
+    const suffix = [omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '',
+      report?.omissions?.requirements ? localizeCheck('omissions.requirements',
+        ['The Host omitted some known input requirements; no omitted count is exposed.',
+          'The verdict still covers the original scope; this requirement list is not a complete supplementation frontier.'],
+        {locale: presentation.locale}).join(' ') : ''].filter(Boolean).join(' ');
     if (format === 'html') return '<section><h2>' + checkHtml(heading) + '</h2><p>' +
       checkHtml(observation.hint) + '</p><p>' + checkHtml(binding) + '</p><ol>' + entries.map(entry => '<li>' +
         checkHtml(line(entry)) + '</li>').join('') + '</ol><p>' + checkHtml(suffix) + '</p></section>';
@@ -571,149 +623,9 @@ export function formatCheckOutcome(outcome, options) {
 
 // Reason presentation does not decide the report's verdict or outcome branch.
 export function explainCheckReason(reason, options) {
-  const explanations = {
-    query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
-    query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
-    query_frame_invalid: ['The analytic ROWS frame boundaries do not form a valid interval.',
-      'For two PRECEDING boundaries, the start distance must be at least the end distance; for two FOLLOWING boundaries, it must be at most the end distance.'],
-    query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
-    parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
-    parameter_unused: ['A declared parameter is not used by the complete Program.',
-      'Remove the unused declaration or reference the parameter in the Program, then check again.'],
-    query_invalid: ['The query violates its language or name-resolution contract.', 'Correct the query using its declared names and visible context.'],
-    parameter_declarations_invalid: ['The parameter declarations are invalid.', 'Correct the supplied declarations.'],
-    supplied_parameters_invalid: ['The supplied parameter input is invalid.', 'Correct the supplied parameter map.'],
-    supplied_value_invalid: ['A supplied value violates its declaration.', 'Correct the value to satisfy its declared contract.'],
-    supplied_value_constraint_violation: ['A supplied value violates a declared constraint.', 'Correct the value to satisfy the declared constraint family.'],
-    supplied_value_type_mismatch: ['A supplied value has the wrong type.', 'Supply a value of the declared type.'],
-    parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
-    parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
-      'Correct the default to match the declared type, then check again.'],
-    expression_type_mismatch: ['An expression violates its required argument type.', 'Use an argument with the required type.'],
-    operation_parameter_invalid: ['A parameter violates an operation scalar domain.', 'Correct the supplied value or selected default under the reported operation domain.'],
-    program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
-    bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
-    implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
-    analysis_budget_exhausted: ['The analysis budget was exhausted.', 'Ask the checking-context owner to review the analysis budget.'],
-    check_unclassified: ['The checker could not establish a classified conclusion.', 'Ask the checking-context owner to investigate.'],
-    unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
-  };
-  const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
-  const expressionTypes = {
-    number: ['An expression argument must have number type.', 'Use an expression with number type for the rejected argument.'],
-    boolean: ['An expression argument must have boolean type.', 'Use an expression with boolean type for the rejected argument.'],
-    string: ['An expression argument must have string type.', 'Use an expression with string type for the rejected argument.'],
-  };
-  const expectedType = reason?.facts?.expected_type;
-  if (reason?.code === 'expression_type_mismatch' && typeof expectedType === 'string' &&
-      Object.hasOwn(expressionTypes, expectedType)) {
-    const [summary, hint] = localizeCheck(`expression_type.${expectedType}`, expressionTypes[expectedType], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  const scalarExplanations = {
-    positive_safe_integer: ['An operation parameter must be a positive safe integer.',
-      'Supply an integer from 1 through 9007199254740991.'],
-    nonnegative_safe_integer: ['An operation parameter must be a nonnegative safe integer.',
-      'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
-    unit_fraction: ['An operation parameter must be a finite fraction between 0 and 1.',
-      'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
-    finite_number: ['An operation parameter must be a finite number.',
-      'Supply a finite number; negative zero is not admitted.'],
-    duration: ['An operation parameter must be an admitted duration.',
-      'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
-    positive_milliseconds: ['An operation parameter must be positive safe milliseconds or an admitted duration.',
-      'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
-    signed_milliseconds: ['An operation parameter must be signed safe milliseconds or an admitted duration.',
-      'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
-    timestamp: ['An operation parameter must be an admitted timestamp value.',
-      'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
-  };
-  const domain = reason?.facts?.domain;
-  if (reason?.code === 'operation_parameter_invalid' && typeof domain === 'string' &&
-      Object.hasOwn(scalarExplanations, domain)) {
-    const [summary, hint] = localizeCheck(`scalar.${domain}`, scalarExplanations[domain], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  const lexicalExplanations = {
-    unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
-    unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],
-    invalid_escape: ['An escape sequence is invalid.', 'Use an escape allowed by the selected string or identifier syntax.'],
-    invalid_scalar: ['A token contains a scalar forbidden by its lexical context.', 'Correct the scalar escape or quoted identifier under the selected lexical syntax.'],
-    empty_identifier: ['A quoted identifier is empty.', 'Provide a non-empty identifier inside the quoting delimiters.'],
-    unterminated_comment: ['A block comment is not terminated.', 'Add the closing block-comment delimiter.'],
-    invalid_number: ['A numeric token has invalid spelling.', 'Correct the numeric token, including any exponent.'],
-    invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
-  };
-  const issue = reason?.facts?.issue;
-  const jsonExplanations = {
-    invalid_unicode: ['The binding JSON contains invalid Unicode text.', 'Use valid Unicode scalar values in member names and string values.'],
-    unexpected_end: ['The binding JSON ends before a value is complete.', 'Complete the JSON value and its closing delimiters.'],
-    unexpected_token: ['The binding JSON contains an unexpected token.', 'Use a token allowed by JSON at the reported input location.'],
-    invalid_string: ['A binding JSON string is invalid.', 'Quote the string and escape control characters using JSON syntax.'],
-    invalid_escape: ['A binding JSON escape is invalid.', 'Use an escape sequence allowed by JSON.'],
-    invalid_number: ['A binding JSON number has invalid spelling.', 'Use a valid JSON number, including a complete exponent when present.'],
-    number_out_of_range: ['A binding JSON number is outside the admitted numeric range.', 'Use a number within the selected input numeric contract.'],
-    negative_zero: ['The binding JSON contains inadmissible negative zero.', 'Use an admitted numeric value; negative zero is not admitted.'],
-    expected_colon: ['A binding JSON member is missing its colon.', 'Separate the member name and value with a colon.'],
-    expected_array_separator: ['Binding JSON array elements are not separated correctly.', 'Use commas between array elements and a closing bracket.'],
-    expected_object_separator: ['Binding JSON object members are not separated correctly.', 'Use commas between object members and a closing brace.'],
-    duplicate_key: ['Two binding JSON member names compare equal under the admitted key rules.', 'Choose distinct member names under the input normalization rules.'],
-    trailing_content: ['Unexpected content follows the binding JSON value.', 'Submit one complete JSON value without trailing content.'],
-  };
-  if (reason?.code === 'binding_json_invalid' &&
-      ['parameters', 'parameter_declarations'].includes(reason?.facts?.document) &&
-      typeof issue === 'string' && Object.hasOwn(jsonExplanations, issue)) {
-    const [summary, hint] = localizeCheck(`binding_json.${issue}`, jsonExplanations[issue], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-
-  if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
-      Object.hasOwn(lexicalExplanations, issue)) {
-    const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  const expressionExplanations = {
-    expected_boolean: ['A predicate must have Boolean type.', 'Use a Boolean condition, such as a comparison, in the predicate.'],
-    unknown_reference: ['An expression reference cannot be resolved in the checked scope.', 'Use a declared reference from the disclosed query context.'],
-    invalid_arguments: ['Expression arguments violate the selected operation contract.', 'Correct the argument count or form required by the selected operation.'],
-    invalid_number: ['A numeric expression is outside the admitted numeric domain.', 'Use a finite number in the admitted precision and signed-zero domain.'],
-  };
-  if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
-      Object.hasOwn(expressionExplanations, issue)) {
-    const [summary, hint] = localizeCheck(`expression.${issue}`, expressionExplanations[issue], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  const graphExplanations = {
-    invalid_kind: ['The components kind is invalid.', 'Choose weak or strong for components kind.'],
-    invalid_output_rows: ['The components output row limit is invalid.', 'Supply a positive safe integer for components max_output_rows.'],
-  };
-  if (reason?.code === 'graph_operation_invalid' &&
-      reason?.facts?.operation === 'components' && typeof issue === 'string' &&
-      Object.hasOwn(graphExplanations, issue)) {
-    const [summary, hint] = localizeCheck(`components.${issue}`, graphExplanations[issue], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  if (reason?.code === 'graph_operation_invalid' &&
-      reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
-    const [summary, hint] = localizeCheck('subgraph.invalid_node_selector',
-      ['The Subgraph node selector is invalid.',
-        'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  const constraintHints = {
-    numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
-    duration: 'Supply a string in the admitted duration format.',
-    array_length: 'Supply an array with the declared exact length.',
-    array_size: 'Supply an array within the declared maximum item count.',
-  };
-  const constraint = reason?.facts?.constraint;
-  if (reason?.code === 'supplied_value_constraint_violation' &&
-      typeof constraint === 'string' && Object.hasOwn(constraintHints, constraint)) {
-    const [summary, hint] = localizeCheck(`constraint.${constraint}`, [known[0], constraintHints[constraint]], options);
-    return Object.freeze({kind: 'known', summary, hint});
-  }
-  if (known) {
-    const [summary, hint] = localizeCheck(`reason.${reason.code}`, known, options);
+  const display = selectCheckReasonPresentation(reason);
+  if (display) {
+    const [summary, hint] = localizeCheck(display.key, display.english, options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const [summary] = localizeCheck('reason.unknown', ['No supported explanation is available for this reason.'], options);
@@ -1066,6 +978,26 @@ async function connectSelected(selected, port) {
       }
     };
 
+    const readRunObservation = async (operation, body, signal) => {
+      // Credential/transport refusals occur before interpreting a received
+      // observation and retain their existing operation-specific behavior.
+      const response = await runRequest(operation, body, signal);
+      let state;
+      try { state = await controlValue(response); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
+      const problem = rejectedRunProblem(state);
+      try {
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        // Each observation owns its value even if a Local port reuses a reply.
+        state = structuredClone(state);
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        return retainEffectUncertainty(state, ref);
+      } catch (cause) {
+        if (runObservationFailures.has(cause)) throw cause;
+        throw rejectedRunObservation(ref, operation, 'malformed_response');
+      }
+    };
+
     const result = name => {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
       const rows = (options = {}) => {
@@ -1338,14 +1270,10 @@ async function connectSelected(selected, port) {
     return Object.freeze({
       ref, profile: runProfile, result,
       status: async ({signal} = {}) => {
-        const state = await readControl('status', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('status', {}, signal);
       },
       wait: async ({until, signal} = {}) => {
-        const state = await readControl('wait', {until: until ?? null}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('wait', {until: until ?? null}, signal);
       },
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
@@ -1378,9 +1306,7 @@ async function connectSelected(selected, port) {
       // unknown Effect outcome stays `needs_reconciliation` until the Host
       // has provider evidence; nothing is resent to find out.
       reconcile: async ({signal} = {}) => {
-        const state = await readControl('reconcile', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('reconcile', {}, signal);
       },
     });
   };
@@ -1496,7 +1422,7 @@ async function connectSelected(selected, port) {
               documentId: document.document_id, revision: document.revision}));
           }
           checkInputs.set(outcome, snapshots);
-          for (const reason of [...report.reasons, ...(report.requirements ?? [])]) {
+          for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
             if (reason.location && !resolveCheckLocation(outcome, reason.location)) {
               checkInputs.delete(outcome);
               reject();
@@ -1752,4 +1678,19 @@ async function connectSelected(selected, port) {
     },
     close() { closed = true; },
   });
+}
+
+
+/** Display retained operation facts without lookup, retry or execution authority. */
+export function formatSubmission(result, options) {
+  return formatOperationExplanation(explainSubmission(result), 'submission', options);
+}
+export function formatCancellation(result, options) {
+  return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
+}
+export function formatReadFailure(result, options) {
+  return formatOperationExplanation(explainReadFailure(result), 'read', options);
+}
+export function formatEffectUncertainty(result, options) {
+  return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
 }

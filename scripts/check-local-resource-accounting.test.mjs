@@ -711,6 +711,7 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
     'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
     'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
+    'pool_json_name_limits_stop', 'pool_json_name_shared_limits',
     'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
     'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
     'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -767,6 +768,12 @@ test('Pool output requires shared append accounting and public stop custody evid
     route.environment_tests = route.environment_tests.filter(item =>
       item.role !== 'pool_object_name_public_store');
   }), /VecA pool_vectors: Pool Object name public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_json_name_public_store');
+  }), /VecA pool_vectors: Pool JSON name public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');
@@ -3805,7 +3812,52 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
   }), /RelA derive: ordinary derive Host timer evidence is missing/);
 });
 
+test('string aggregation assurance requires limits stop and public evidence', () => {
+  for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
+    ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {
+    assert.match(run(undefined, routes => {
+      const group=routes.routes.find(entry=>entry.family==='RelA'&&entry.operation==='group');
+      group[kind]=group[kind].filter(entry=>entry.role!==role);
+    }), /(?:group_string_cursor_(?:limits|stop)|string cursor public) fixture is missing/u);
+  }
+});
+
+test('raw Text conversion assurance requires common and public evidence', () => {
+  for (const [operation,kind,role] of [
+    ['derive','boundary_tests','derive_raw_text_child_limits'],
+    ['derive','boundary_tests','derive_raw_text_child_stop'],
+    ['derive','environment_tests','derive_raw_text_child_public'],
+    ['group','boundary_tests','group_raw_text_array_limits_stop'],
+    ['group','environment_tests','group_raw_text_array_public'],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:raw Text.*|derive_raw_text_child_(?:limits|stop)) fixture is missing/u);
+  }
+});
+
 test('derive loses bounded assurance when a resource proof is removed', () => {
+  for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
+    'derive_field_name_limits', 'derive_field_name_stop',
+    'derive_object_name_limits', 'derive_object_name_stop']) {
+    assert.match(run(undefined, routes => {
+      const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+      derive.boundary_tests = derive.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`RelA derive: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_property_name_public');
+  }), /RelA derive: property name public fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_field_name_public');
+  }), /RelA derive: field name public fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+    derive.environment_tests = derive.environment_tests.filter(item => item.role !== 'derive_object_name_public');
+  }), /RelA derive: constructed object name public fixture is missing/u);
   for (const role of [
     'derive_scalar_work_exact_one_short',
     'derive_scalar_workspace_exact_one_short',
