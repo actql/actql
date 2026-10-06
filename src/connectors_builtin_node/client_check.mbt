@@ -28,6 +28,7 @@ priv enum CheckFinding {
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
   Limit(String)
+  FunctionLimit((Int, Int)?)
 }
 
 ///|
@@ -347,8 +348,8 @@ fn check_source_findings(
         ) => return Failed("check_internal")
         // This lowerer issue conflates unknown names with unsupported forms.
         // Without a distinct input violation it cannot justify author blame.
-        QueryLowering(Expression({ issue: UnsupportedFunction, .. })) =>
-          findings.push(Limit("implementation_limit"))
+        QueryLowering(Expression({ issue: UnsupportedFunction, origin, })) =>
+          findings.push(FunctionLimit(check_authored_range(origin)))
         QueryLowering(
           Expression(
             { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
@@ -927,6 +928,7 @@ fn write_check_report(
   let limits = check_codes(findings, finding => {
     match finding {
       Limit(code) => Some(code)
+      FunctionLimit(_) => Some("implementation_limit")
       _ => None
     }
   })
@@ -941,6 +943,26 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "implementation_limit" {
+      for finding in findings {
+        if finding is FunctionLimit(range) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, "function_lowering_unresolved")
+          @encode.end_object(writer)
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
+      }
+    }
     @encode.end_object(writer)
   }
   @encode.end_array(writer)
@@ -1521,6 +1543,22 @@ fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
 }
 
 ///|
+/// Use only the existing lowerer's owned authored range. Unknown/generated
+/// origins remain unlocated; no matching or parsing of diagnostic text.
+fn check_authored_range(origin : @source_origin.Origin?) -> (Int, Int)? {
+  match origin {
+    Some(origin) if @source_origin.kind(origin) == @source_origin.Authored =>
+      Some(
+        (
+          @source_origin.start(origin).byte_offset,
+          @source_origin.end(origin).byte_offset,
+        ),
+      )
+    _ => None
+  }
+}
+
+///|
 /// Project existing typed expression issues and owned authored origins. No
 /// protected Source-resolution issue or generated origin acquires a location.
 fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
@@ -1532,16 +1570,7 @@ fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
       _ => None
     }
     if code is Some(code) {
-      let range = match diagnostic.origin {
-        Some(origin) if @source_origin.kind(origin) == @source_origin.Authored =>
-          Some(
-            (
-              @source_origin.start(origin).byte_offset,
-              @source_origin.end(origin).byte_offset,
-            ),
-          )
-        _ => None
-      }
+      let range = check_authored_range(diagnostic.origin)
       return ExpressionViolation(code, range)
     }
   }

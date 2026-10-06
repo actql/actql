@@ -939,6 +939,28 @@ that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
 
 
+### Located function-lowering limits
+
+The existing lowerer's UnsupportedFunction conflates unknown names, quoted or
+qualified forms and implementation gaps. Public checking keeps implementation_limit
+in coverage and never infers author blame from that issue. Its optional closed
+facts identify function_lowering_unresolved, with an existing original Authored
+call range. The generic code-only limit and its required payload remain unchanged.
+
+The bridge consumes the typed origin directly. Unknown/generated origins remain
+unlocated; no text search, second parser, rerun resolution or lowered JSON path
+supplies an SQL position. Exact original source revisions/UTF-8 ranges survive
+Local/HTTPS and SDK, including repeated names/comments, non-BMP/combining text and
+CRLF. Located coverage limits receive the same revision, bounds and UTF-8-boundary
+admission as violations/Requirements; malformed transported material is a protocol
+failure. No fix or operation permission follows from this support limit.
+
+A protected relation can stop lowering before a dependent function issue exists.
+It cannot manufacture a function fact or position. Public violations still survive;
+unsupported-only checks remain undetermined. Reason/Outcome schema bodies, pins,
+producer, validators, generated types, SDK and independent fixtures change together.
+Legacy diagnostics and unrelated schema bodies remain separate. No compatibility
+path, new source custody, retention or lowerer implementation is introduced.
 ### Bounded known Requirement enumeration
 
 A completed check may include `report.omissions: {requirements: true}` when the

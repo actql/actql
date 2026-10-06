@@ -116,9 +116,12 @@ export const checkReasonSchema = {
       {type: 'object', additionalProperties: false, required: ['document', 'issue'],
         properties: {document: {enum: ['parameters', 'parameter_declarations']}, issue: {enum: jsonIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
-        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
+        properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues, 'function_lowering_unresolved'])]}}},
     ]}},
   allOf: [
+    {if: {properties: {code: {const: 'implementation_limit'}}}, then: {
+      properties: {facts: {required: ['issue'], properties: {issue: {const: 'function_lowering_unresolved'}}},
+        location: {properties: {kind: {const: 'text'}, document_id: {const: 'source'}}}}}},
     {if: {properties: {code: {not: {const: 'parameter_value_required'}}}},
       then: {properties: {facts: {not: {required: ['admission']}}}}},
     {if: {required: ['fixes']}, then: {required: ['facts', 'location'],
@@ -189,7 +192,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch', 'implementation_limit']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };
@@ -222,9 +225,14 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
         type: 'object', additionalProperties: false,
         required: ['limits', 'unresolved'],
         properties: {
-          limits: {type: 'array', items: {
-            type: 'object', additionalProperties: false,
-            required: ['code'], properties: {code}}},
+          limits: {type: 'array', items: {oneOf: [
+            {type: 'object', additionalProperties: false, required: ['code'], properties: {code}},
+            {type: 'object', additionalProperties: false, required: ['code', 'facts'],
+              properties: {code: {const: 'implementation_limit'},
+                facts: {type: 'object', additionalProperties: false, required: ['issue'],
+                  properties: {issue: {const: 'function_lowering_unresolved'}}},
+                location: location.oneOf[0]}},
+          ]}},
           unresolved: {type: 'array', items: {
             type: 'object', additionalProperties: false,
             required: ['boundary', 'reason'],
