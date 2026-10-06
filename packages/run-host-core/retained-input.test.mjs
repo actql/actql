@@ -18,7 +18,7 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
   retainedInputResultFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
-  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress}
+  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -706,4 +706,154 @@ test('retained result refuses uncommitted and substituted reports and forged han
   for (const forged of [plan, saved, retainedInputResultFacts(admitRetainedInputResult(plan, saved))]) {
     assert.throws(() => retainedInputResultFacts(forged), {message: 'ForeignRunHostHandle'});
   }
+});
+
+
+const projectionAt = '2026-10-06T01:00:00.000Z';
+const projectionFixture = () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'),
+    issueConsumer(original, fixture, input));
+  const keys = taskKeys(original.prepared, original.compilation);
+  const project = (records, cancellationRequested = false, claims = keys) =>
+    projectTaskSiteRun(original.prepared, original.compilation, original.admission,
+      original.definition, fixture.completed.authority,
+      records.map(value => value.current().durableRecordWire), projectionAt,
+      cancellationRequested, claims);
+  return {original, fixture, consumer, keys, project};
+};
+
+test('checked whole Run projection requires both task proofs and keeps cleanup separate from publication', () => {
+  const {fixture, consumer, keys, project} = projectionFixture();
+  const producer = project([fixture.completed], false, [keys[0]]);
+  assert.equal(producer.publicationReady, false);
+  assert.equal(producer.executionComplete, false);
+  assert.equal(producer.nextTask, 1);
+  assert.equal(JSON.parse(producer.stateWire).status, 'running');
+  assert.deepEqual(producer.tasks.map(task => task.nextWork), ['none', 'none']);
+  let pending = project([fixture.completed, consumer]);
+  assert.equal(pending.execution, 'unknown');
+  assert.equal(pending.nextTask, undefined);
+  assert.equal(JSON.parse(pending.stateWire).status, 'needs_reconciliation');
+  assert.equal(pending.tasks[1].nextWork, 'reconcile');
+  consumer.observe([3, 2, 0, 1, 0], 5, false);
+  pending = project([fixture.completed, consumer]);
+  assert.equal(pending.publicationReady, false);
+  assert.equal(pending.tasks[1].nextWork, 'reconcile');
+  consumer.observe([3, 2, 0, 1, 0], 6);
+  let complete = project([consumer, fixture.completed]);
+  assert.equal(complete.execution, 'settled');
+  assert.equal(complete.publicationReady, true);
+  assert.equal(complete.cleanupComplete, false);
+  assert.equal(JSON.parse(complete.stateWire).status, 'running',
+    'settled execution is still unpublished until the existing publication Owner commits');
+  assert(complete.stateWire.includes('not_published'));
+  assert.deepEqual(complete.resultTasks, [1]);
+  assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'publication']);
+  for (const record of [fixture.completed, consumer]) {
+    record.observe([3, 2, 1, 1, 0], 7);
+    assert.equal(project([fixture.completed, consumer]).cleanupComplete, false);
+    record.observe([3, 2, 2, 0, 0], 8);
+  }
+  complete = project([fixture.completed, consumer]);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, true);
+  assert.deepEqual(complete.tasks.map(task => task.cleanup), ['released', 'released']);
+  // Producer: settlement + release-start + release-confirmed. Consumer also
+  // admitted a separate proofless settlement before its full evidence.
+  assert.deepEqual(complete.tasks.map(task => task.revision), [3, 4]);
+  assert(Object.isFrozen(complete));
+  assert(Object.isFrozen(complete.tasks));
+  assert(Object.isFrozen(complete.tasks[0]));
+});
+
+test('checked whole Run projection preserves unknown claims and refuses foreign task ownership', () => {
+  const {original, fixture, keys, project} = projectionFixture();
+  const preparing = project([], false, []);
+  assert.equal(preparing.execution, 'unobserved');
+  assert.equal(JSON.parse(preparing.stateWire).status, 'preparing');
+  assert.equal(preparing.nextTask, 0);
+  assert.equal(preparing.publicationReady, false);
+  const absent = project([], false, [keys[0]]);
+  assert.equal(absent.execution, 'unknown');
+  assert.equal(absent.nextTask, undefined);
+  assert.equal(absent.publicationReady, false);
+  assert.equal(absent.cleanupComplete, false);
+  assert.equal(absent.tasks[0].nextWork, 'reconcile');
+  assert.equal(JSON.parse(absent.stateWire).status, 'needs_reconciliation');
+  for (const claims of [[keys[0], keys[0]], ['foreign-task'], [keys[1], 'foreign-task']]) {
+    assert.throws(() => project([], false, claims), {code: 'RunHostTaskRunProjectionRejected'});
+  }
+  assert.throws(() => project([], false, [1]), {message: 'InvalidRunHostTaskRunProjection'});
+  const foreign = coordinatorProducerFixture(run(document.replace('id > 2', 'id > 1')));
+  assert.throws(() => project([foreign]), {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => project([fixture.completed, fixture.completed]),
+    {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => projectTaskSiteRun(original.prepared, original.compilation,
+    original.admission, original.definition, fixture.completed.authority, [], 'invalid', false, []),
+  {code: 'RunHostTaskRunProjectionRejected'});
+  assert.throws(() => projectSiteRun(original.prepared, original.compilation, original.admission,
+    original.definition, fixture.completed.authority,
+    fixture.completed.current().durableRecordWire, projectionAt),
+  {code: 'RunHostSiteProjectionRejected'}, 'the old one-task projection guard remains intact');
+});
+
+test('checked whole Run projection retains failure and cancellation cleanup without claiming a request is terminal', () => {
+  const failed = projectionFixture();
+  failed.consumer.observe([4, 0, 0, 0, 0], 1, false);
+  const failure = failed.project([failed.fixture.completed, failed.consumer]);
+  assert.equal(failure.execution, 'failed');
+  assert.equal(JSON.parse(failure.stateWire).status, 'failed');
+  assert.equal(failure.nextTask, undefined);
+  assert.equal(failure.publicationReady, false);
+  assert.equal(failure.cleanupComplete, false);
+  assert.deepEqual(failure.tasks.map(task => task.nextWork), ['release', 'cleanup']);
+  const cancelled = projectionFixture();
+  const requested = cancelled.project([cancelled.fixture.completed], true, [cancelled.keys[0]]);
+  assert.notEqual(JSON.parse(requested.stateWire).status, 'cancelled');
+  assert.equal(requested.nextTask, undefined);
+  assert.equal(requested.publicationReady, false);
+  assert.equal(requested.cleanupComplete, false);
+  cancelled.consumer.observe([5, 0, 0, 0, 0], 1, false);
+  let pending = cancelled.project([cancelled.fixture.completed, cancelled.consumer], true);
+  assert.notEqual(pending.execution, 'cancelled');
+  assert.equal(pending.cleanupComplete, false);
+  assert.deepEqual(pending.tasks.map(task => task.nextWork), ['release', 'cleanup']);
+  cancelled.fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  cancelled.fixture.completed.observe([3, 2, 2, 0, 0], 7);
+  cancelled.consumer.observe([5, 0, 1, 0, 0], 2, false);
+  cancelled.consumer.observe([5, 0, 2, 0, 0], 3, false);
+  const complete = cancelled.project([cancelled.fixture.completed, cancelled.consumer], true);
+  assert.equal(complete.execution, 'cancelled');
+  assert.equal(JSON.parse(complete.stateWire).status, 'cancelled');
+  assert.equal(complete.cleanupComplete, true);
+  assert.equal(complete.publicationReady, false);
+  assert.deepEqual(complete.tasks.map(task => task.nextWork), ['none', 'none']);
+});
+
+
+test('checked whole Run projection distinguishes recovered custody from normal Released', () => {
+  const {fixture, consumer, project} = projectionFixture();
+  consumer.observe([3, 2, 0, 1, 0], 5);
+  fixture.completed.observe([3, 2, 4, 0, 1], 6);
+  let state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, false);
+  assert.equal(state.tasks[0].cleanup, 'force_lost');
+  assert.equal(state.tasks[1].cleanup, 'active');
+  fixture.completed.observe([3, 2, 5, 0, 0], 7);
+  state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, false);
+  assert.equal(state.tasks[0].cleanup, 'recovered_after_loss');
+  consumer.observe([3, 2, 1, 1, 0], 6);
+  consumer.observe([3, 2, 2, 0, 0], 7);
+  state = project([fixture.completed, consumer]);
+  assert.equal(state.cleanupComplete, true);
+  assert.deepEqual(state.tasks.map(task => task.cleanup), ['recovered_after_loss', 'released']);
+  assert.notDeepEqual(state.tasks.map(task => task.cleanup), ['released', 'released']);
+  // Formal recovery can discharge its owner, but never proves normal release
+  // or resolves an unrelated historical Run such as the #88 recovery ledger.
 });

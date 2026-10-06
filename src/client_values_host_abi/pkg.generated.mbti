@@ -207,6 +207,8 @@ pub fn client_values_host_project_committed_result_read_wire(@run_publication.Pu
 
 pub fn client_values_host_project_publication_snapshot(@run_publication.PublicationContract?, Int, @run_publication.PublicationContract?) -> Result[Array[String], ClientValuesHostPublicationSnapshotIssue]
 
+pub fn client_values_host_project_remote_task_run(@run_publication_host.ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[@run_publication_host.ClientRemoteTaskRunProjection, Unit]
+
 pub fn client_values_host_project_site_run(@run_publication.PublicationContract, @run_publication_host.ClientValuesCompilation, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
 
 pub fn client_values_host_project_task_site_run(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, Bool, Bool) -> Result[Array[String], Unit]
@@ -230,6 +232,10 @@ pub fn client_values_host_record_result_access_read_admission(@run_publication.R
 pub fn client_values_host_record_result_access_request_authorization(@run_publication.ResultAccessProgress, Bool) -> Bool
 
 pub fn client_values_host_record_result_access_resolution(@run_publication.ResultAccessProgress, Bool) -> Bool
+
+pub fn client_values_host_remote_task_run_fields(@run_publication_host.ClientRemoteTaskRunProjection) -> Array[String]
+
+pub fn client_values_host_remote_task_run_work(@run_publication_host.ClientRemoteTaskRunProjection) -> Array[String]
 
 pub fn client_values_host_request_authority_scope_cid(@run_publication_host.ClientRequestIdentity) -> String
 

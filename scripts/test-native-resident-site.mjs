@@ -885,9 +885,11 @@ try {
       currentSite = site;
       const producerDispatch = dispatchFor('retained-producer', 1);
       await ensureOutputReceiver(producerDispatch);
-      const inspectProgress = () => runHost.inspectTaskProgress(retainedPrepared,
+      let cancellationRequested = false;
+      const inspectProgress = () => runHost.projectTaskSiteRun(retainedPrepared,
         retainedCompilation, retainedAdmission, retainedDefinition, coordinatorAuthority,
-        [...retainedCoordinatorRecords.values()].map(value => value.wire));
+        [...retainedCoordinatorRecords.values()].map(value => value.wire),
+        new Date().toISOString(), cancellationRequested);
       assert.equal(inspectProgress().nextTask, undefined,
         'persisted producer intent cannot be selected for another start');
       await within(gateway.dispatch({dispatch: producerDispatch, inputBindingBody: bindingBody,
@@ -896,6 +898,8 @@ try {
       assert.equal(inspectProgress().nextTask, 1);
       assert.equal(inspectProgress().executionComplete, false,
         'producer completion is not checked Run completion');
+      assert.equal(inspectProgress().publicationReady, false);
+      assert.equal(JSON.parse(inspectProgress().stateWire).status, 'running');
       assert.deepEqual(inspectProgress().resultTasks, [1]);
       const edge = runHost.prepareRetainedTaskInputEdge(retainedPrepared, retainedCompilation,
         retainedAdmission, retainedDefinition, 1, 0);
@@ -1023,6 +1027,7 @@ try {
         coordinator.admitDispatchJson(issued.wire, issued.cid), consumerBinding, 1048576, materials);
       let resultCid;
       if (retainedCancelBeforeConsumer) {
+        cancellationRequested = true;
         const cancelled = await within(gateway.cancel({dispatch: consumerDispatch}),
           'cancel retained consumer before handout');
         assert.deepEqual(cancelled.state, [5, 0, 2, 0, 0]);
@@ -1057,6 +1062,11 @@ try {
         await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
         assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
         assert.equal(inspectProgress().executionComplete, true);
+        assert.equal(inspectProgress().publicationReady, true);
+        assert.deepEqual(inspectProgress().tasks.map(task => task.nextWork),
+          ['none', 'publication']);
+        assert.equal(JSON.parse(inspectProgress().stateWire).status, 'running',
+          'Native execution and ACK do not commit public Cloud publication');
         assert.equal(inspectProgress().cleanupComplete, false,
           'completed Result does not release either task holding');
         // Exact repeated delivery observes the original consumer; it must never
@@ -1083,6 +1093,12 @@ try {
       assert.equal(pendingIntents().length, 0);
       assert.equal(inspectProgress().cleanupComplete, true,
         'both exact task observations must confirm cleanup');
+      assert.deepEqual(inspectProgress().tasks.map(task => task.cleanup),
+        ['released', 'released']);
+      if (retainedCancelBeforeConsumer) {
+        assert.equal(JSON.parse(inspectProgress().stateWire).status, 'cancelled');
+        assert.equal(inspectProgress().publicationReady, false);
+      }
       assert.equal((await entries()).length, retainedCancelBeforeConsumer ? 1 : 2);
       if (resultCid !== undefined) {
         const reread = [];
@@ -1108,6 +1124,9 @@ try {
         typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
         pendingIntents: 0, siteCapacity: capacity,
         coordinatorReconstructed: retainedCoordinatorReconstruction,
+        checkedRunProjection: true,
+        publicationReady: inspectProgress().publicationReady,
+        taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
         producerHolderRecreated: false,
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,

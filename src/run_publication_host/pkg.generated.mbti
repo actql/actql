@@ -360,6 +360,10 @@ pub fn client_remote_task_progress_result_tasks(ClientRemoteTaskProgress) -> Arr
 
 pub fn client_remote_task_progress_scopes(ClientRemoteTaskProgress) -> Array[Array[String]]
 
+pub fn client_remote_task_run_projection_fields(ClientRemoteTaskRunProjection) -> Array[String]
+
+pub fn client_remote_task_run_projection_work(ClientRemoteTaskRunProjection) -> Array[String]
+
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_caller_id(ClientRequestIdentity) -> String
@@ -841,6 +845,8 @@ pub fn prepared_client_source_evidence_facts(PreparedClientProgram, Int, Int) ->
 pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
+
+pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
@@ -1428,6 +1434,9 @@ pub(all) enum ClientQueryRequirementIssue {
 }
 
 pub struct ClientRemoteTaskProgress {
+  definition : @run_publication.PublicationContract
+  result_names : Array[String]
+  completed : Array[Bool]
   keys : Array[String]
   requests : Array[@remote_site_protocol.DispatchRequest?]
   observations : Array[@remote_site_protocol.CoordinatorExecutionObservation?]
@@ -1444,6 +1453,21 @@ pub(all) enum ClientRemoteTaskProgressIssue {
   ForeignObservation
   DuplicateTask
   Protocol(@remote_site_protocol.DispatchIssue)
+}
+
+pub struct ClientRemoteTaskRunProjection {
+  progress : ClientRemoteTaskProgress
+  state_wire : String
+  execution : String
+  work : Array[String]
+  next_task : Int?
+  publication_ready : Bool
+}
+
+pub(all) enum ClientRemoteTaskRunProjectionIssue {
+  InvalidStartClaims
+  MissingRunId
+  State(@run_publication.RunStateIssue)
 }
 
 type ClientRequestIdentity derive(Eq, @debug.Debug)
