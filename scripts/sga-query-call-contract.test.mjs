@@ -61,7 +61,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_rules_sha256,
     '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966');
   assert.equal(body.source_grammar_cid,
-    'sha256:cefbc719deb477390be03d777795035462f2c8ba55352560d88ee30a74302cef');
+    'sha256:3b20a88d6009d131def226ea623d38cbba3c5a3929c752de85ceb6fd1ade6938');
   // Historical manifests retain the pre-alignment expression law rather than
   // being relabeled with the new shared membership meaning.
   // Retain the complete pre-typed-JSON main normative preimage.
@@ -153,7 +153,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...priorTypedBody, query_text_rules_sha256:
     '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
     'sha256:a5d5cf748d303dd303d92b2dede9e60d23ee5fc8439173fd916a2d8d1c702fb6');
-  const expected = 'sha256:d53377fb0065ffa0e12bcbd92664d50c03c6ef317e148d632c593cce65d4b922';
+  const expected = 'sha256:f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...beforeMembershipBody, query_text_rules_sha256:

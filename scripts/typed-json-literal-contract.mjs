@@ -34,7 +34,10 @@ export const typedJsonLaw = {
 function visit(value, source, node, write) {
   if (!value || typeof value !== 'object') return;
   if (Array.isArray(value.oneOf)) {
-    if (value.oneOf.some(v => v.required?.length === 1 && v.required[0] === 'literal')) {
+    // Expression literals are closed forms. Values cells instead reserve only
+    // $param and literal, and otherwise retain the whole cell as data.
+    if (value.oneOf.some(v => v.additionalProperties === false &&
+        v.required?.length === 1 && v.required[0] === 'literal')) {
       const found = value.oneOf.find(v => v.required?.length === 1 && v.required[0] === 'typed_literal');
       if (write) {
         if (found) Object.assign(found, structuredClone(source));

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {sourceTypedLiteral, nodeTypedLiteral, updateTypedJsonContracts} from './typed-json-literal-contract.mjs';
+import {parameterPrograms} from './parameter-schema.mjs';
+import {checkValuesSchemas} from './values-schema.mjs';
 
 test('typed literal has explicit JSON domain and opaque source data', () => {
   assert.equal(sourceTypedLiteral.additionalProperties, false);
@@ -24,6 +26,24 @@ test('every embedded source/node schema and complete artifact pin is current', (
   const changed = structuredClone(protocol);
   changed.artifact_schema_cids.executable_plan = 'sha256:' + '0'.repeat(64);
   assert.throws(() => updateTypedJsonContracts(expressions, changed));
+});
+
+test('typed expression generation preserves Values whole-cell grammar', () => {
+  const expressions = JSON.parse(readFileSync('spec/contracts/actql-expressions.json'));
+  const protocol = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+  const cells = parameterPrograms(protocol).map(program =>
+    structuredClone(program.properties.steps.items.properties.values.properties.rows.items.additionalProperties));
+  updateTypedJsonContracts(expressions, protocol, true);
+  parameterPrograms(protocol).forEach((program, index) => {
+    const cell = program.properties.steps.items.properties.values.properties.rows.items.additionalProperties;
+    assert.deepEqual(cell, cells[index]);
+    assert.equal(cell.oneOf.length, 3);
+    assert.deepEqual(cell.oneOf[2].not.anyOf.map(form => form.required[0]),
+      ['$param', 'literal']);
+  });
+  checkValuesSchemas(protocol);
+  assert.deepEqual(expressions.schemas.expression.$defs.expression.oneOf
+    .find(form => form.required?.[0] === 'typed_literal'), sourceTypedLiteral);
 });
 
 test('ordered derive and expression fragments bind the integrated expression law', async () => {
