@@ -1,5 +1,18 @@
 # Native parent allocation census, retained core and the 256-byte premise
 
+## Current completed-array update and historical evidence
+
+The current chain retains `Array[CompletedOutput?]`, rather than a single
+`previous` completion. Its reader now requires the actual array/backing/nullable
+slots and an independent typed output/completion/result-identity observation.
+Old single-reference observations cannot pass that admission check.
+The following 616-byte startup diagnosis is retained as historical evidence;
+it is not a current-reader acceptance result. The current two-child
+source/ABI-derived startup subtotal is 664, including the 48-byte completed
+container, and actual Native correspondence for this update remains pending.
+The current retained-core formula below includes that container separately.
+See [the current source, verification and pending boundaries](../../../../docs/reviews/2026-10-06-parent-completed-output-custody.md).
+
 This diagnostic connects one existing generated `filter → distinct` pipeline
 to the real registered serial-chain constructor. It inspects its owned roots
 at startup under the pinned 64-bit native debug profile. It is finite
@@ -86,7 +99,7 @@ their byte/lifetime bounds are unresolved.
 
 For an admitted Int32 step count `n ≥ 2`, let
 `C(n) = max(1, max(8, 2*n))`, the existing grow-at-full backing ceiling. The
-conditional retained-core envelope is **680 + 16*C(n)** requested bytes:
+current conditional retained-core envelope is **736 + 16*C(n) + 8*n** requested bytes:
 
 | Source group, including replacement overlap | Upper component |
 | --- | ---: |
@@ -98,6 +111,9 @@ conditional retained-core envelope is **680 + 16*C(n)** requested bytes:
 | Two children Array owners | 48 |
 | Two backing headers | 16 |
 | Two backing payloads, each at most `C(n)` pointer slots | `16*C(n)` |
+| Completed old/new Array owners at cleanup reset | 48 |
+| Fixed completed dynamic backing header | 8 |
+| Completed nullable reference slots, never grown/copied | `8*n` |
 
 The bound is derived before execution from source/ABI premises and input count,
 not from the largest observed value. The scalar GC class does not encode an
@@ -174,7 +190,7 @@ capture identities and the RowStep capability predicate are unchanged.
 The source census includes the new configuration Array, backing, tuples,
 enlarged selected records, retained configurations and old/new update overlap.
 These are not part of the **2344** candidate-factory construction component or
-the **680 + 16*C(n)** retained-core subtotal; their original checked configuration
+the **736 + 16*C(n) + 8*n** retained-core subtotal; their original checked configuration
 owner and unresolved selected-context/lifetime obligations remain explicit.
 In particular, the empty Array is still an allocation, and replacing a
 configuration does not prove physical reclamation. No whole-parent bound,

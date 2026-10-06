@@ -40,6 +40,10 @@ const japanese = Object.freeze(Object.fromEntries(Object.entries({
     '宣言された値を補い、束縛された入力全体を再検査してください。'],
   'reason.parameter_default_type_mismatch': ['パラメータの既定値が宣言された型と一致しません。',
     '宣言された型に合わせて既定値を修正し、再検査してください。'],
+  'reason.expression_type_mismatch': ['式が必要な引数型に違反しています。', '必要な型を持つ引数を使用してください。'],
+  'expression_type.number': ['式の引数にはnumber型が必要です。', '拒否された引数にはnumber型の式を使用してください。'],
+  'expression_type.boolean': ['式の引数にはboolean型が必要です。', '拒否された引数にはboolean型の式を使用してください。'],
+  'expression_type.string': ['式の引数にはstring型が必要です。', '拒否された引数にはstring型の式を使用してください。'],
   'reason.operation_parameter_invalid': ['パラメータが演算のscalar領域に違反しています。',
     '示された演算領域に従って、渡した値または使用された既定値を修正してください。'],
   'scalar.positive_safe_integer': ['演算パラメータには正のsafe integerが必要です。',
@@ -100,7 +104,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.3`});
+  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.4`});
 }
 
 export function localizeCheck(key, english, options) {
