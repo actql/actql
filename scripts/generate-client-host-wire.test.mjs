@@ -301,6 +301,8 @@ test('Requirement fact identities follow their referenced checked-contract schem
   assert.notEqual(changed.artifact_schema_cids.check_outcome, protocol.artifact_schema_cids.check_outcome);
   assert.notEqual(buildClientHostWire(registry, changed).module, buildClientHostWire(registry, protocol).module);
 
+});
+
 test('Run observation vocabulary derives from the registered state schema', async () => {
   const expected = ['preparing', 'running', 'waiting_checkpoint', 'resuming',
     'needs_reconciliation', 'succeeded', 'failed', 'cancelled'];

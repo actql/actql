@@ -227,7 +227,8 @@ for (const [entrance, open] of Object.entries(entrances)) {
         const requirements = outcome.report.requirements.reverse();
         outcome.report.requirements = [...requirements, requirements[0]];
         for (const reason of requirements) {
-          reason.facts = {parameter: reason.facts.parameter, expected_type: reason.facts.expected_type};
+          reason.facts = {parameter: reason.facts.parameter, expected_type: reason.facts.expected_type,
+            ...(reason.facts.admission === undefined ? {} : {admission: reason.facts.admission})};
           delete reason.location;
         }
       }
@@ -262,7 +263,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const changed = await client.check(text, {...options, parameters: {a: 1}});
     assert.equal(changed.report.verdict, 'undetermined');
     assert.deepEqual(changed.report.requirements.map(reason => reason.facts),
-      [{parameter: 'b', expected_type: 'string'}]);
+      [{parameter: 'b', expected_type: 'string', admission: {
+        kind: 'parameter_declaration', supplier: 'caller',
+        contract: {type: 'string', nullable: false}, constraints: [],
+        contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551'}}]);
     assert.notEqual(changed.report.context_ref, first.report.context_ref);
     assert.equal(frontierSDK.equalCheckRequirementFrontiers(first, changed), false, '[check-mutation:frontier-context]');
     const anotherBinding = await client.check(text, {...options, parameters: {a: 2}});
@@ -549,7 +553,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: Graph components expose typed argument violations`, async t => {
     const client = await open(t, configurations.denied);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = GRAPH ' +
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
     for (const format of ['aql-text']) {
       for (const kind of ['weak', 'strong']) {
@@ -1590,7 +1594,7 @@ for (const entrance of ['local', 'http']) {
 
   test(`${entrance}: Subgraph selector violations preserve the common Owner reason`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment);
-    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = GRAPH ' +
+    const prefix = 'DATA n = SELECT 1 AS node_key; DATA g = PROPERTY GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES)); ';
     for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
       const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
