@@ -63,7 +63,7 @@ import {
 import {canonical, hash as canonicalHash} from './typed-catalog.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 import {deltaApplicationScenario, deltaDiffScenario} from
-  '../../../../../scripts/fixtures/property-graph-delta-application.mjs';
+  '../../../../../scripts/fixtures/graph-delta-application.mjs';
 import {publicationResultExportLimits, standardPublicationPlan} from
   './publication-plan-fixture.mjs';
 
@@ -309,21 +309,21 @@ async function subgraphHostCancellation() {
   const values = {schema:{node_key:{type:'number',nullable:false}},
     rows:Array.from({length:8}, (_, index)=>({node_key:index+1}))};
   const definition = {name:'N',key:['node_key'],labels:[]};
-  const constructor = {version:'actql-property-graph-constructor/0.1',
+  const constructor = {version:'actql-graph-constructor/0.1',
     nodes:[{...definition,from:'rows'}],edges:[]};
   // Independently authored definition preimage; no executed Graph supplies
   // expected identity or cancellation progress.
   const domain = canonicalHash({
     constructor:{...constructor,nodes:[{...definition,input_occurrence:0}]},
     producer_definitions:[{producer:{body:{values},dependencies:[]},projection:null}],
-    version:'actql-property-graph-definition/0.1',
+    version:'actql-graph-definition/0.1',
   });
   const registry = await readFile(join(root, 'spec/dependencies/aoa-pipeline-registry.json'), 'utf8');
   const aoa = JSON.parse(await readFile(join(root, 'spec/contracts/actql-aoa.json'), 'utf8'));
   const fixture = await import(pathToFileURL(join(root,
     '_build/js/release/build/connectors/duckdb/conformance/conformance.js')));
   const fused = checked(fixture.subgraphCancelCreate(JSON.stringify([{values,as:'rows'}]),
-    JSON.stringify([{property_graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},
+    JSON.stringify([{graph:{...constructor,nodes:[{...definition,from:'prior'}]},as:'g'},
       {from:'g',subgraph:{nodes:{ids:values.rows.map(({node_key})=>({
         definition:'N',domain,key:[node_key],key_types:[{kind:'number'}],
       }))},edges:'true'},as:'slice'}]), registry,
@@ -388,9 +388,9 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
   const moon = await import(pathToFileURL(join(root,
     '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')));
   const fixture = JSON.parse(await readFile(join(root,
-    'scripts/fixtures/property-graph-presence.program.json'), 'utf8'));
-  const {unionGraphScenario} = await import('../../../../../scripts/fixtures/property-graph-union.mjs');
-  const {subtractionScenario} = await import('../../../../../scripts/fixtures/property-graph-subtraction.mjs');
+    'scripts/fixtures/graph-presence.program.json'), 'utf8'));
+  const {unionGraphScenario} = await import('../../../../../scripts/fixtures/graph-union.mjs');
+  const {subtractionScenario} = await import('../../../../../scripts/fixtures/graph-subtraction.mjs');
   const {document} = subtraction ? subtractionScenario(fixture, 'empty-right')
     : union ? unionGraphScenario(fixture, 'node_rows', {numeric:true})
     : diff ? deltaDiffScenario(fixture, 'node_rows')
@@ -409,11 +409,11 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
   const environmentWire = canonical({...environmentBody,
     evidence_bundle_cid:canonicalHash(environmentBody)});
   const lawCid = async path => canonicalHash(JSON.parse(await readFile(join(root, path), 'utf8')));
-  const environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+  const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
     environmentWire, JSON.parse(environmentWire).evidence_bundle_cid,
     false, true, true, true, true, false, false,
     await lawCid('spec/contracts/actql-numeric-reduction.json'),
-    await lawCid('spec/dependencies/actql-property-graph-laws.json'));
+    await lawCid('spec/dependencies/actql-graph-laws.json'));
   assert.ok(environment);
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(JSON.stringify(document), 'json', environment);
   const prepared = moon.clientProgramPreparationReady(preparation);
@@ -1781,8 +1781,8 @@ async function exerciseStrategyGraph(
       id: 'graph',
       inputs: {rows: {result: {stage: 'values', result: 'r'}}},
       steps: [{
-        property_graph: {
-          version:'actql-property-graph-constructor/0.1',
+        graph: {
+          version:'actql-graph-constructor/0.1',
           nodes:[{name:'N',from:'rows',key:['id'],
             labels:[{name:'Node',properties:{mode:'all_columns'}}]}],
           edges:[{name:'E',from:'rows',key:['id'],
@@ -2138,7 +2138,7 @@ async function exerciseStrategyGraph(
     if (publicationCase.edgeDefinitions !== undefined) {
       graphStage.inputs.edges_alt =
         {result:{stage:'values',result:'r'}};
-      graphStage.steps[0].property_graph.edges =
+      graphStage.steps[0].graph.edges =
         publicationCase.edgeDefinitions;
     }
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');

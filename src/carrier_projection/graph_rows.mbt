@@ -19,13 +19,11 @@ fn check_graph_rows(
   guard input is @carrier.GraphValue(graph) else {
     return Err(issue(source, IncompleteGraph))
   }
-  let profile = @carrier.graph_property_definition(graph)
+  let profile = @carrier.graph_definition(graph)
   let family = if operation == NodeRows {
-    @carrier.property_graph_node_definitions(profile)
+    @carrier.graph_node_definitions(profile)
   } else {
-    @carrier.property_graph_edge_definitions(profile).map(
-      @carrier.property_edge_element,
-    )
+    @carrier.graph_edge_definitions(profile).map(@carrier.graph_edge_element)
   }
   if family.length() > limits.max_work - 1 ||
     family.length() > limits.max_nodes - 1 {
@@ -60,12 +58,12 @@ fn check_graph_rows(
       Ok(size) => text -= size
       Err(_) => return Err(issue(at, BudgetExceeded))
     }
-    let folded_name = @carrier.property_name_identity(name)
+    let folded_name = @carrier.graph_name_identity(name)
     if definition_at is Some(_) {
       let mut found = None
       for definition in family {
-        if @carrier.property_name_identity(
-            @carrier.property_definition_name(definition),
+        if @carrier.graph_name_identity(
+            @carrier.graph_element_definition_name(definition),
           ) ==
           folded_name {
           found = Some(definition)
@@ -74,20 +72,25 @@ fn check_graph_rows(
       guard found is Some(definition) else {
         return Err(issue(at, UnknownDefinition(name)))
       }
-      ([definition], Some(@carrier.property_definition_name(definition)), None)
+      (
+        [definition],
+        Some(@carrier.graph_element_definition_name(definition)),
+        None,
+      )
     } else {
       let candidates = []
       let mut resolved : String? = None
       for definition in family {
-        for index in 0..<@carrier.property_definition_label_count(definition) {
+        for
+          index in 0..<@carrier.graph_element_definition_label_count(definition) {
           if work == 0 {
             return Err(issue(at, BudgetExceeded))
           }
           work -= 1
-          let (candidate, _) = @carrier.property_definition_label_at(
+          let (candidate, _) = @carrier.graph_element_definition_label_at(
             definition, index,
           ).unwrap()
-          if @carrier.property_name_identity(candidate) == folded_name {
+          if @carrier.graph_name_identity(candidate) == folded_name {
             candidates.push(definition)
             match resolved {
               None => resolved = Some(candidate)
@@ -121,8 +124,8 @@ fn check_graph_rows(
       }
       work -= 1
       if @canonical.compare_utf16(
-          @carrier.property_definition_name(definitions[current - 1]),
-          @carrier.property_definition_name(definitions[current]),
+          @carrier.graph_element_definition_name(definitions[current - 1]),
+          @carrier.graph_element_definition_name(definitions[current]),
         ) <=
         0 {
         break
@@ -149,8 +152,8 @@ fn check_graph_rows(
   }
   for definition in definitions {
     let definition_names : Map[String, Bool] = Map([])
-    let properties = @carrier.property_definition_properties(definition)
-    let key_count = @carrier.property_definition_key_count(definition)
+    let properties = @carrier.graph_element_definition_properties(definition)
+    let key_count = @carrier.graph_element_definition_key_count(definition)
     let field_count = @carrier.field_count(properties)
     if key_count > work || field_count > work - key_count {
       return Err(issue(source, BudgetExceeded))
@@ -158,12 +161,13 @@ fn check_graph_rows(
     for index in 0..<(key_count + field_count) {
       work -= 1
       let (name, contract, guaranteed) = if index < key_count {
-        match @carrier.property_definition_key_column_at(definition, index) {
+        match
+          @carrier.graph_element_definition_key_column_at(definition, index) {
           None => continue
           Some(name) =>
             (
               name,
-              @carrier.property_definition_key_at(definition, index).unwrap(),
+              @carrier.graph_element_definition_key_at(definition, index).unwrap(),
               true,
             )
         }
@@ -175,7 +179,7 @@ fn check_graph_rows(
           field.presence == @row.Required,
         )
       }
-      let folded = @carrier.property_name_identity(name)
+      let folded = @carrier.graph_name_identity(name)
       if roles.contains(folded) || definition_names.contains(folded) {
         return Err(issue(source, OutputCollision(@row.Unqualified(name))))
       }

@@ -67,7 +67,7 @@ test "producer Graph counts keep node edge and row quantities separate" {
         count_values(n, "nodes") +
         "," +
         graph_count_seed(n) +
-        ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"edges\",\"key\":[\"src\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}]},\"as\":\"g\"}]",
+        ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"edges\",\"key\":[\"src\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}]},\"as\":\"g\"}]",
       ),
       [],
       None,

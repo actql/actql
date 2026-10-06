@@ -23,7 +23,7 @@ fn subgraph_test_location(
 
 ///|
 test "subgraph retains the admitted Graph and supports subsequent Graph consumers" {
-  let graph = graph_property_scope_input()
+  let graph = graph_graph_scope_input()
   let selected = @carrier.relation(
     @carrier.rows(
       [

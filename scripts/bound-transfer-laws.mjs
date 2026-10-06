@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { machineCid } from './actql-spec-family.mjs';
+import {parseDocument} from 'yaml';
 
 const root = new URL('../', import.meta.url);
 const kinds = new Set(['preserve', 'clamp', 'multiply', 'add', 'reduce',
@@ -40,9 +41,19 @@ export function validateTransferLaws(body, source) {
 
 export function loadTransferLaws() {
   return {
-    body: JSON.parse(readFileSync(new URL('spec/contracts/actql-bound-transfer-laws.json', root), 'utf8')),
+    body: parseTransferLawSource(readFileSync(new URL('spec/contracts/actql-bound-transfer-laws.json', root), 'utf8')),
     source: readFileSync(new URL('docs/spec/language.md', root), 'utf8'),
   };
+}
+
+// Validate the original JSON source before JSON.parse can erase duplicate keys.
+// Reuse the existing document parser only for its duplicate-key diagnostic;
+// JSON syntax and the admitted value still come from JSON.parse.
+export function parseTransferLawSource(source) {
+  const document = parseDocument(source, {uniqueKeys: true});
+  assert.equal(document.errors.length, 0,
+    document.errors.map(error => error.message).join('; '));
+  return JSON.parse(source);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

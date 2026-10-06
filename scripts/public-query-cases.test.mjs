@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {uniquePublicQueryCases} from './fixtures/public-query-cases.mjs';
 import {relationDataSuccesses} from './fixtures/public-query-input.mjs';
-import {propertyGraphSourceSuccesses} from './fixtures/property-graph-source-input.mjs';
+import {graphSourceSuccesses} from './fixtures/graph-source-input.mjs';
 
 test('shared Relation controls and Graph source cases have one request each', () => {
   const selected = uniquePublicQueryCases([
-    ...relationDataSuccesses, ...propertyGraphSourceSuccesses,
+    ...relationDataSuccesses, ...graphSourceSuccesses,
   ]);
   assert.equal(selected.length, 29);
   assert.deepEqual(selected.slice(0, 3).map(item => item.name), [
@@ -14,7 +14,7 @@ test('shared Relation controls and Graph source cases have one request each', ()
     'data-retained-results',
   ]);
   assert.equal(selected.filter(item => item.name.startsWith('keyed-')).length, 26);
-  assert.deepEqual(selected, propertyGraphSourceSuccesses);
+  assert.deepEqual(selected, graphSourceSuccesses);
 });
 
 test('duplicate request names cannot hide conflicting source or expectations', () => {

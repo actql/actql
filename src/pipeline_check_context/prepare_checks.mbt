@@ -21,7 +21,7 @@ pub fn prepare_program_checks(
   max_policy_depth~ : Int,
   max_requirements~ : Int,
   max_regex_depth~ : Int,
-  property_graph? : Bool = false,
+  graph? : Bool = false,
 ) -> Result[OperationProfileChecks, PrepareChecksIssue] {
   if limits.work < 0 ||
     limits.text_bytes < 0 ||
@@ -97,7 +97,7 @@ pub fn prepare_program_checks(
       preparation,
       operation_profiles,
       limits.work,
-      property_graph~,
+      graph~,
     ) {
     Ok(v) => Ok(v)
     Err(e) => Err(OperationProfiles(e))

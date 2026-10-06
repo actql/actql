@@ -1,0 +1,23 @@
+{
+  "version": "actql/0.1",
+  "id": "graph-presence",
+  "stages": [{
+    "id": "source",
+    "inputs": {},
+    "steps": [
+      {"values": {"schema": {"person_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "p": {"type": "number", "nullable": true}}, "rows": [{"person_key": 2, "tenant_key": "a", "p": null}, {"person_key": 1, "tenant_key": "a", "p": 7}]}, "as": "persons"},
+      {"values": {"schema": {"company_key": {"type": "number", "nullable": false}}, "rows": [{"company_key": 3}]}, "as": "companies"},
+      {"values": {"schema": {"edge_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "source_key": {"type": "number", "nullable": false}, "target_key": {"type": "number", "nullable": false}}, "rows": [{"edge_key": 11, "tenant_key": "a", "source_key": 1, "target_key": 2}, {"edge_key": 10, "tenant_key": "a", "source_key": 1, "target_key": 2}]}, "as": "edges"},
+      {"graph": {"version": "actql-graph-constructor/0.1", "nodes": [
+        {"name": "N", "from": "persons", "key": ["person_key", "tenant_key"], "labels": [{"name": "Person", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}, {"name": "Owner", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}]},
+        {"name": "M", "from": "companies", "key": ["company_key"], "labels": []}
+      ], "edges": [
+        {"name": "E", "from": "edges", "key": ["edge_key", "tenant_key"], "source": {"definition": "N", "key": ["source_key", "tenant_key"]}, "target": {"definition": "N", "key": ["target_key", "tenant_key"]}, "labels": [{"name": "Link", "properties": {"mode": "no_properties"}}]}
+      ]}, "as": "g"},
+      {"from": "g", "node_rows": true, "as": "rows"},
+      {"select": ["id", "labels"], "as": "projected"}
+    ],
+    "results": {"out": {"from": "projected", "fields": ["id", "labels"]}}
+  }],
+  "results": {"answer": {"from": {"stage": "source", "result": "out"}}}
+}

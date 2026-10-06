@@ -11,10 +11,10 @@ export function carrierBodyContract(protocol, aoa) {
   const record = {$ref:'#/$defs/record'};
   // Reuse the admitted constructor's owned structural grammar. A catalog
   // schema is not a second definition/domain issuer or a runtime snapshot.
-  const graph = structuredClone(aoa.execution_contracts['BRIDGE.rows.to_property_graph'].params_schema.properties.contract);
-  assert.equal(graph.properties.version.const, 'actql-property-graph-contract/0.1');
-  assert.equal(graph.properties.identity_law_cid.const, aoa.property_graph_law_manifest_cid);
-  assert.equal(graph.properties.value_law_cid.const, aoa.property_graph_law_manifest_cid);
+  const graph = structuredClone(aoa.execution_contracts['BRIDGE.rows.to_graph'].params_schema.properties.contract);
+  assert.equal(graph.properties.version.const, 'actql-graph-contract/0.1');
+  assert.equal(graph.properties.identity_law_cid.const, aoa.graph_law_manifest_cid);
+  assert.equal(graph.properties.value_law_cid.const, aoa.graph_law_manifest_cid);
   const schema = {
     $schema:'https://json-schema.org/draft/2020-12/schema',
     oneOf:[

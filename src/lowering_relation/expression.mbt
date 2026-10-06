@@ -577,7 +577,7 @@ fn lower_expression_measured(
       | GraphUnionValue(_)
       | GraphSubtractionValue(_)
       | GraphComponentsRows(_)
-      | PropertyGraphConstructionValue(_)
+      | GraphConstructionValue(_)
       | VectorValue(_)
       | NearestValue(_)
       | PoolValue(_)

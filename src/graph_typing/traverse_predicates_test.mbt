@@ -33,7 +33,7 @@ fn heterogeneous_traversal_graph() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let node_a = @carrier.property_node_definition(
+  let node_a = @carrier.graph_node_definition(
     "A",
     [number],
     node_a_properties,
@@ -41,7 +41,7 @@ fn heterogeneous_traversal_graph() -> @carrier.Carrier {
     max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  let node_b = @carrier.property_node_definition(
+  let node_b = @carrier.graph_node_definition(
     "B",
     [number],
     node_b_properties,
@@ -49,8 +49,8 @@ fn heterogeneous_traversal_graph() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let edge_a = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge_a = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "EA",
       [number],
       edge_a_properties,
@@ -61,8 +61,8 @@ fn heterogeneous_traversal_graph() -> @carrier.Carrier {
     "A",
     "A",
   ).unwrap()
-  let edge_b = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge_b = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "EB",
       [number],
       edge_b_properties,
@@ -73,7 +73,7 @@ fn heterogeneous_traversal_graph() -> @carrier.Carrier {
     "B",
     "B",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:0000000000000000000000000000000000000000000000000000000000000000",
     [node_a, node_b],
     [edge_a, edge_b],

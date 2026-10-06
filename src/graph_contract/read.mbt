@@ -115,13 +115,3 @@ fn read_properties(
     Err(_) => stop(InvalidStructure)
   }
 }
-
-///|
-/// Read only the current definition-scoped Graph contract. Historical seven-field
-/// schemas remain provenance, not an executable input or implicit conversion.
-pub fn read_cursor(
-  root : @decode.Cursor,
-  limits : Limits,
-) -> Result[CheckedContract, ReadIssue] {
-  read_property_graph_cursor(root, limits)
-}

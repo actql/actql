@@ -63,9 +63,9 @@ test('the execution profile covers the fixed non-expression mother set', () => {
   // Preserve the frozen legacy profile; the keyed constructor is a separately
   // admitted additive operation, never a replacement for rows.to_graph.
   assert.equal(fromCoverage.filter(operation =>
-    operation === 'BRIDGE.rows.to_property_graph').length, 1);
+    operation === 'BRIDGE.rows.to_graph').length, 1);
   assert.deepEqual(fromCoverage.filter(operation =>
-    operation !== 'BRIDGE.rows.to_property_graph'), expectedOperations);
+    operation !== 'BRIDGE.rows.to_graph'), expectedOperations);
   for (const operation of expectedOperations) {
     assert.ok(registry[operation], `missing registry operation ${operation}`);
   }

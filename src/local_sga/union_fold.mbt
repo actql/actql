@@ -40,7 +40,7 @@ priv struct UnionFoldPreparation {
   left : GraphReadSource
   right : GraphReadSource
   builder : @storage.Builder
-  profile : @carrier.PropertyGraphDefinition
+  profile : @carrier.GraphDefinition
   value_limits : @value.Limits
   mut remaining : Int
   mut phase : UnionFoldPhase
@@ -54,7 +54,7 @@ priv struct UnionFoldPreparation {
   mut left_index : Int
   mut right_index : Int
   mut definition_index : Int
-  mut definition : @carrier.PropertyNodeDefinition?
+  mut definition : @carrier.GraphNodeDefinition?
   mut column : Int
   mut endpoint : Int
   mut identity : @value.CheckedValue?
@@ -63,7 +63,7 @@ priv struct UnionFoldPreparation {
   mut keys : Array[@value.CheckedValue]
   mut properties : Array[@value.CheckedValue]
   mut property : UnionProperty?
-  mut append : @storage.PropertySnapshotAppend?
+  mut append : @storage.GraphSnapshotAppend?
 }
 
 ///|
@@ -102,7 +102,7 @@ fn prepare_union_fold(
     left,
     right,
     builder,
-    profile: @carrier.graph_property_definition(graph),
+    profile: @carrier.graph_definition(graph),
     value_limits: {
       max_nodes: limits.max_value_nodes,
       max_depth: limits.max_value_depth,
@@ -155,13 +155,13 @@ fn union_fold_index(value : UnionFoldPreparation) -> Int {
 fn union_fold_definition(
   value : UnionFoldPreparation,
   index : Int,
-) -> @carrier.PropertyNodeDefinition? {
+) -> @carrier.GraphNodeDefinition? {
   if value.edge {
-    @carrier.property_graph_edge_at(value.profile, index).map(
-      @carrier.property_edge_element,
+    @carrier.graph_edge_at(value.profile, index).map(
+      @carrier.graph_edge_element,
     )
   } else {
-    @carrier.property_graph_node_at(value.profile, index)
+    @carrier.graph_node_at(value.profile, index)
   }
 }
 
@@ -452,7 +452,8 @@ fn advance_union_fold(
       ReadUnionKeys => {
         work += 1
         let definition = value.definition.unwrap()
-        if value.column < @carrier.property_definition_key_count(definition) {
+        if value.column <
+          @carrier.graph_element_definition_key_count(definition) {
           let key = if value.edge {
             graph_read_edge_key_component(
               union_fold_source(value),
@@ -478,7 +479,7 @@ fn advance_union_fold(
       }
       ReadUnionProperties => {
         work += 1
-        let fields = @carrier.property_definition_properties(
+        let fields = @carrier.graph_element_definition_properties(
           value.definition.unwrap(),
         )
         if value.column < @carrier.field_count(fields) {
@@ -641,7 +642,7 @@ fn advance_union_fold(
           return union_fold_failed(value, InvalidUnionFold, work)
         }
         value.append = match
-          @storage.start_property_record_append(
+          @storage.start_record_append(
             value.builder,
             value.definition_index,
             identity,
@@ -663,17 +664,17 @@ fn advance_union_fold(
         guard value.append is Some(append) else {
           return union_fold_failed(value, InvalidUnionFold, work)
         }
-        match @storage.advance_property_snapshot_append(append, budget) {
-          @storage.PropertySnapshotAppendContinue(work=used) => work += used
-          @storage.PropertySnapshotAppendFailed(issue, work=used) =>
+        match @storage.advance_graph_snapshot_append(append, budget) {
+          @storage.GraphSnapshotAppendContinue(work=used) => work += used
+          @storage.GraphSnapshotAppendFailed(issue, work=used) =>
             return union_fold_failed(
               value,
               UnionFoldStorage(issue),
               work + used,
             )
-          @storage.PropertySnapshotAppendComplete(work=used) => {
+          @storage.GraphSnapshotAppendComplete(work=used) => {
             work += used
-            @storage.cleanup_property_snapshot_append(append)
+            @storage.cleanup_graph_snapshot_append(append)
             value.append = None
             value.previous = value.selected
             union_fold_reset_scan(value)
@@ -703,7 +704,7 @@ fn cleanup_union_fold(value : UnionFoldPreparation) -> Unit {
     value.property = None
   }
   if value.append is Some(append) {
-    @storage.cleanup_property_snapshot_append(append)
+    @storage.cleanup_graph_snapshot_append(append)
     value.append = None
   }
   @storage.cancel(value.builder) |> ignore

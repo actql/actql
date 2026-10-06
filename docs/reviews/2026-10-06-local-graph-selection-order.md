@@ -67,7 +67,7 @@ node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
   src/query_integration/property_graph_row_steps_wbtest.mbt \
   src/canonical_json/cursor_admission_wbtest.mbt \
   src/bounded_graph_snapshot/snapshot_wbtest.mbt \
-  src/bounded_graph_snapshot/property_snapshot_wbtest.mbt \
+  src/bounded_graph_snapshot/representation_wbtest.mbt \
   src/value_admission/key_order_text_wbtest.mbt
 ```
 

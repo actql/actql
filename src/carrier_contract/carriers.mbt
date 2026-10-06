@@ -22,7 +22,7 @@ pub(all) enum Issue {
 
 ///|
 struct Graph {
-  property_graph : PropertyGraphDefinition
+  graph : GraphDefinition
   identity : @value.Contract
 }
 

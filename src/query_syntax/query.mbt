@@ -399,7 +399,14 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Group(keys, projections, scope) =>
       Some(Group(keys.copy(), copy_projections(projections), scope))
     Having(e, calls) =>
-      Some(Having(e, calls.map(pair => { (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), }) })))
+      Some(
+        Having(
+          e,
+          calls.map(pair => {
+            (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), })
+          }),
+        ),
+      )
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
@@ -1368,7 +1375,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       name: Some(pair.0),
       star: None,
       except_columns: [],
-  })
+    })
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
     self.keyword("FROM")
@@ -1722,7 +1729,7 @@ fn QueryParser::pipe_tail(
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()
           // Syntax preserves a label. Its owner is resolved by lowering:
-          // property graphs carry label membership themselves; the legacy
+          // graphs carry label membership themselves; the legacy
           // property-mapping profile requires its explicit annotation.
           graph = Some({ ..current, pattern: Some(pattern), })
         }

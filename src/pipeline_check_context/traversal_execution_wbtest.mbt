@@ -9,9 +9,7 @@ fn traversal_checked_fixture(
   guard @pipeline.output_carrier(producer) is Some(@carrier.GraphValue(graph)) else {
     fail("current constructor Graph")
   }
-  let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(graph),
-  )
+  let domain = @carrier.graph_domain(@carrier.graph_definition(graph))
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"

@@ -2444,12 +2444,12 @@ async function effectFixture({splitSource = false,
     false, false, true, false, false, false, false,
   ];
   const environment = splitSource
-    ? moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+    ? moon.clientProgramCheckEnvironmentWithGraphProfile(
       ...environmentArgs,
       machineCid(JSON.parse(await readFile(new URL(
         '../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'))),
       machineCid(JSON.parse(await readFile(new URL(
-        '../../spec/dependencies/actql-property-graph-laws.json', import.meta.url), 'utf8'))))
+        '../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'))))
     : moon.clientProgramCheckEnvironment(...environmentArgs);
   assert.ok(environment);
   const document = JSON.parse(documentBody);
@@ -2474,8 +2474,8 @@ async function effectFixture({splitSource = false,
       id: 'middle',
       inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
       steps: [
-        {property_graph: {
-          version: 'actql-property-graph-constructor/0.1',
+        {graph: {
+          version: 'actql-graph-constructor/0.1',
           nodes: [{name: 'N', from: 'rows', key: ['id'],
             labels: [{name: 'Node', properties: {mode: 'all_columns'}}]}],
           edges: [],

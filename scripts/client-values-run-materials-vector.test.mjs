@@ -252,7 +252,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     priorAoA).run.run_definition_cid,
     pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
-  // Freeze the pre-refresh Property Graph vectors as history. The later
+  // Freeze the pre-refresh Graph vectors as history. The later
   // query grammar pin changes compilation/Run identity, not this Values
   // Unit, cardinality proof or Result Plan. No product issuer is consulted.
   const preRefreshDependencies = {
@@ -579,22 +579,30 @@ test('baseline preimages and changed normative pins independently determine the 
     resultPlan: pin('2d37e465bf372e6115235bd843172cd85367704c4ba728a7ad1ce57523c81738'),
   };
   assert.equal(vector(pin('cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6'),
-    cid(aoaContract), previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('36560241fceee9447094100569f3c391e28ac5a0dcce70ef3cd1d446f8bc7ace'));
   assert.equal(vector(pin('a5d5cf748d303dd303d92b2dede9e60d23ee5fc8439173fd916a2d8d1c702fb6'),
-    cid(aoaContract), previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('2273330bbd1b44ddc60f67167b8ba9c6a37dd28460c1b303a0c3b87a941ef63b'));
   assert.equal(vector(pin('d53377fb0065ffa0e12bcbd92664d50c03c6ef317e148d632c593cce65d4b922'),
-    cid(aoaContract), previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', previousCellDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('8d0f3153f18ba0d64478dd83dbed1d9141ddf57b5d2176465b3b28c6dbcafdc9'));
+  const beforeGraphDependencies = {
+  "unit": "sha256:86b9e82b02cce7df5c0a861c7e48f3689ceb65db7e9946ef62e876bf161c16a3",
+  "proof": "sha256:4ff04aa1cb1ba627265867e8d8666b12d334310f0b30708f0b22b06c341ada35",
+  "resultPlan": "sha256:8ae7b346cc776132bf1dfc3354e30eaee3bc555cbef2358e6b59d21cc745940d"
+};
   assert.equal(vector('sha256:f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead',
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:0f55021c0394bc5cd6b6fa37fa3f30ebad510678911822e8c7b3da6fd557e659');
   // Keep the ordinary typed-JSON/main integration predecessor intact.
   assert.equal(vector('sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52',
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:80cca8baf237d7c1d546d91d221ade151cb78961ffc467dacad95ef2f7b15b91');
-  assert.equal(current.run.run_definition_cid, 'sha256:e9e1315ed7d55af5076ef8b6507364f7727cf6556d6ee5ad19f3694f4e7813b2');
+  assert.equal(vector('sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5',
+    'sha256:c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958', beforeGraphDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:e9e1315ed7d55af5076ef8b6507364f7727cf6556d6ee5ad19f3694f4e7813b2');
+  assert.equal(current.run.run_definition_cid, 'sha256:53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

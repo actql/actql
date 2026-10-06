@@ -1,7 +1,7 @@
 ///|
 fn delta_graph_carrier() -> @carrier.Carrier raise {
   let body =
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":[]},"name":"N","properties":{}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":[]},"name":"N","properties":{}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"}
   let contract = @graph_contract.read_cursor(cursor(body), {
     max_bytes: 10000,
     max_nodes: 1000,
@@ -10,7 +10,7 @@ fn delta_graph_carrier() -> @carrier.Carrier raise {
   // Independent Node crypto digest of the authored constructor definition.
   assert_eq(
     @graph_contract.cid(contract),
-    "sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667",
+    "sha256:183b5a03d53a1edef82907958e3a40620703dde16b01f617b82a7ecf4ba0f284",
   )
   @carrier.graph_carrier(@graph_contract.graph(contract))
 }
@@ -54,7 +54,7 @@ test "Delta lowering retains ordered Graph inputs and the formal contract CID" {
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
     @encode.finish(writer),
-    "[{\"id\":\"graph_diff_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.diff\",\"params\":{\"graph_contract_cid\":\"sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667\"}}]",
+    "[{\"id\":\"graph_diff_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.diff\",\"params\":{\"graph_contract_cid\":\"sha256:183b5a03d53a1edef82907958e3a40620703dde16b01f617b82a7ecf4ba0f284\"}}]",
   )
   // Selection still requires the installed Diff policy and exact Graph views;
   // the checked node alone is not a resource/custody receipt.
@@ -107,7 +107,7 @@ test "Delta application lowering binds the selected Relation field without repar
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
     @encode.finish(writer),
-    "[{\"id\":\"apply_graph_delta_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.apply_delta\",\"params\":{\"field\":\"changes\",\"graph_contract_cid\":\"sha256:ad5cb6732d059d85e5d6581974006b9cb551e2704d0260e82ceebc43015db667\"}}]",
+    "[{\"id\":\"apply_graph_delta_0\",\"in\":[\"input_0\",\"input_1\"],\"op\":\"SGA.apply_delta\",\"params\":{\"field\":\"changes\",\"graph_contract_cid\":\"sha256:183b5a03d53a1edef82907958e3a40620703dde16b01f617b82a7ecf4ba0f284\"}}]",
   )
   let node = @lowering_relation.node_at(prepared, 0).unwrap()
   // Registered selected execution still requires the installed provider and

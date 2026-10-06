@@ -147,7 +147,7 @@ function familyProgram(family, filter = 'id >= 1') {
     ? {from: 'seed', to_events: {id: 'id', time: 'id'}, as: 'carrier'}
     : family === 'vectors'
       ? {from: 'seed', to_vectors: {id: 'id', vector: 'embedding'}, as: 'carrier'}
-      : {property_graph: {version:'actql-property-graph-constructor/0.1',
+      : {graph: {version:'actql-graph-constructor/0.1',
         nodes:[{name:'N',from:'seed',key:['id'],labels:[{name:'Node',
           properties:{mode:'columns',columns:[{from:'id',to:'id'}]}}]}],
         edges:[{name:'E',from:'seed',key:['id'],
@@ -283,14 +283,14 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       false, route.family === 'vectors', true, route.family === 'graph',
       route.family === 'events', false, false];
     const environment = route.family === 'graph'
-      ? moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+      ? moon.clientProgramCheckEnvironmentWithGraphProfile(
         ...checkArguments,
         'sha256:' + createHash('sha256').update(canonicalText(JSON.parse(
           await readFile(join(root,'spec/contracts/actql-numeric-reduction.json'),'utf8'),
         ))).digest('hex'),
         'sha256:' + createHash('sha256').update(canonicalText(JSON.parse(
           await readFile(join(root,
-            'spec/dependencies/actql-property-graph-laws.json'),'utf8'),
+            'spec/dependencies/actql-graph-laws.json'),'utf8'),
         ))).digest('hex'),
       )
       : moon.clientProgramCheckEnvironment(...checkArguments);

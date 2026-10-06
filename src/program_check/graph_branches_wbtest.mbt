@@ -1,11 +1,11 @@
 ///|
-test "formal Property Graph operands and definition scoped MATCH retain repeated producer ownership through Result import" {
+test "formal Graph operands and definition scoped MATCH retain repeated producer ownership through Result import" {
   for empty in [true, false] {
     for repeated in [true, false] {
       for node_match in [true, false] {
         let programs : Array[CheckedProgram] = []
         let nodes = if repeated { "derived" } else { "seed" }
-        let graph = ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
+        let graph = ",{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
           nodes +
           "\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"all_columns\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"derived\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"all_columns\"}}]}]},\"as\":\"g\"}"
         let projection = if node_match {
@@ -18,7 +18,7 @@ test "formal Property Graph operands and definition scoped MATCH retain repeated
           through_check=true,
           checked_results=programs,
           second_stage=true,
-          property_graph=true,
+          graph=true,
           graph_construction_limit=Some(1000),
           generated_rows=Some(
             if empty {
@@ -74,13 +74,12 @@ test "formal Property Graph operands and definition scoped MATCH retain repeated
         let mut resources = 0
         for i in 0..<@context.operation_closure_count(operations) {
           guard @context.operation_closure_at(operations, i)
-            is Some(ExecutionCheck(PropertyGraphConstructionExecution(check))) else {
+            is Some(ExecutionCheck(GraphConstructionExecution(check))) else {
             continue
           }
           assert_true(physical_equal(check.site.pipeline, pipeline))
           assert_true(physical_equal(check.step, step))
-          guard check.step.operation
-            is @pipeline.PropertyGraphConstruction(inputs~, ..) else {
+          guard check.step.operation is @pipeline.GraphConstruction(inputs~, ..) else {
             fail("property occurrence owner lost")
           }
           assert_eq(inputs, [left.target, right.target])

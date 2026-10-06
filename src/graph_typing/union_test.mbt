@@ -8,14 +8,14 @@ fn union_test_node(
     @contract.primitive(NumberType, nullable=false),
   ],
   columns? : Array[String] = [key],
-) -> @carrier.PropertyNodeDefinition {
+) -> @carrier.GraphNodeDefinition {
   let properties = @carrier.rows(
     fields.map(pair => (@row.Unqualified(pair.0), Some(pair.1))),
     field_set=Closed,
     max_fields=100,
     max_name_bytes=10000,
   ).unwrap()
-  @carrier.property_node_definition(
+  @carrier.graph_node_definition(
     name,
     keys,
     properties,
@@ -28,7 +28,7 @@ fn union_test_node(
 
 ///|
 fn union_test_graph(
-  nodes : Array[@carrier.PropertyNodeDefinition],
+  nodes : Array[@carrier.GraphNodeDefinition],
   edge_properties? : Array[(String, @contract.Contract)] = [],
   target? : String = "N",
   edge_name? : String = "Link",
@@ -37,7 +37,7 @@ fn union_test_graph(
   ],
   domain? : String = "sha256:0000000000000000000000000000000000000000000000000000000000000000",
 ) -> @carrier.Carrier {
-  let edge = @carrier.property_edge_definition(
+  let edge = @carrier.graph_edge_definition(
     union_test_node(
       edge_name,
       edge_properties,
@@ -48,7 +48,7 @@ fn union_test_graph(
     "N",
     target,
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     domain,
     nodes,
     [edge],
@@ -181,25 +181,22 @@ test "union joins text extents and property domains without changing ordered key
   guard @graph_typing.union_output(checked) is @carrier.GraphValue(graph) else {
     fail("Graph output required")
   }
-  let definition = @carrier.property_graph_node_at(
-    @carrier.graph_property_definition(graph),
-    0,
-  ).unwrap()
+  let definition = @carrier.graph_node_at(@carrier.graph_definition(graph), 0).unwrap()
   for index in 0..<2 {
-    let key = @carrier.property_definition_key_at(definition, index).unwrap()
-    assert_eq(@carrier.property_key_descriptor(key), Some(@carrier.TextKey))
+    let key = @carrier.graph_element_definition_key_at(definition, index).unwrap()
+    assert_eq(@carrier.graph_key_descriptor(key), Some(@carrier.TextKey))
     assert_true(@contract.type_equal(key, text, 1))
   }
   assert_eq(
-    @carrier.property_definition_key_column_at(definition, 0),
+    @carrier.graph_element_definition_key_column_at(definition, 0),
     Some("tenant"),
   )
   assert_eq(
-    @carrier.property_definition_key_column_at(definition, 1),
+    @carrier.graph_element_definition_key_column_at(definition, 1),
     Some("person"),
   )
   let field = @carrier.field_at(
-    @carrier.property_definition_properties(definition),
+    @carrier.graph_element_definition_properties(definition),
     0,
   ).unwrap()
   assert_true(
@@ -337,12 +334,9 @@ test "union derives strategy output extents without narrowing nullable one sided
   guard @graph_typing.union_output(checked) is @carrier.GraphValue(output) else {
     fail("Graph output required")
   }
-  let definition = @carrier.property_graph_node_at(
-    @carrier.graph_property_definition(output),
-    0,
-  ).unwrap()
+  let definition = @carrier.graph_node_at(@carrier.graph_definition(output), 0).unwrap()
   let schema = @carrier.complete_schema(
-    @carrier.property_definition_properties(definition),
+    @carrier.graph_element_definition_properties(definition),
   ).unwrap()
   assert_true(
     @row.lookup(schema, Unqualified("p"))

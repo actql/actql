@@ -45,7 +45,7 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(PropertyGraphConstructionExecution(check)) => {
+      Execution(GraphConstructionExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }

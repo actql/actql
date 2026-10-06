@@ -1,0 +1,22 @@
+{
+  "version": "actql-bound-graph-vectors/0.1",
+  "cases": [
+    {"rule":"endpoints","inputs":[0],"expected":0},
+    {"rule":"endpoints","inputs":[3],"expected":6},
+    {"rule":"endpoints","inputs":[4503599627370496],"error":"Overflow"},
+    {"rule":"preserve","inputs":[3],"expected":3},
+    {"rule":"sum","inputs":[3,3],"expected":6},
+    {"rule":"sum","inputs":[0,3,2],"expected":5},
+    {"rule":"sum","inputs":[9007199254740991,1],"error":"Overflow"},
+    {"rule":"traverse","inputs":[100,3],"expected":9},
+    {"rule":"traverse","inputs":[2,3],"expected":6},
+    {"rule":"traverse","inputs":[5,0],"expected":0},
+    {"rule":"traverse","inputs":[9007199254740991,2],"expected":4},
+    {"rule":"each_pair","inputs":[3,4],"expected":12},
+    {"rule":"each_pair","inputs":[0,9007199254740991],"expected":0},
+    {"rule":"each_pair","inputs":[9007199254740991,2],"error":"Overflow"},
+    {"rule":"nearest_per_source","inputs":[3],"expected":3},
+    {"rule":"nearest_per_source","inputs":[0],"expected":0},
+    {"rule":"nearest_pair","inputs":[],"expected":1}
+  ]
+}

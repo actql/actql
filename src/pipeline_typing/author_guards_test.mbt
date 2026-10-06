@@ -221,7 +221,7 @@ test "current TRAIL output guards exclude hop limits without fabricating unsuppo
       identity +
       "]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"paths\",\"max_output_rows\":7}}]",
     ),
-    [("g", query_property_graph())],
+    [("g", query_graph())],
     None,
     None,
     limits(),

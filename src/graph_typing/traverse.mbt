@@ -11,7 +11,7 @@ struct TraversalHop {
 }
 
 ///|
-pub(all) enum PropertyPathMode {
+pub(all) enum GraphPathMode {
   Walk
   Trail
   Acyclic
@@ -22,14 +22,14 @@ pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
   FilterTraversalLabels
-  EnumeratePropertyPaths
+  EnumerateGraphPaths
   DeduplicateExactPaths
   MinimumEligibleNodeDepth
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolvePropertyGraphTraversalProfile
+  ResolveGraphTraversalProfile
 } derive(Eq, Debug)
 
 ///|
@@ -45,7 +45,7 @@ struct CheckedTraverse {
   guard_rows : Count?
   output : @carrier.Carrier
   usage : PredicateUsage
-  property_mode : PropertyPathMode
+  path_mode : GraphPathMode
 }
 
 ///|
@@ -129,7 +129,7 @@ pub fn check_traverse(
         "max_output_rows", "path_mode", "edge_where", "node_where",
       ]),
     )
-    let property_mode = {
+    let path_mode = {
       // A current path mode cannot be interpreted as a historical simple path.
       guard @decode.lookup(root, "path_mode") is Some(at) else {
         fail(source, UnsupportedGraphProfile)
@@ -288,7 +288,7 @@ pub fn check_traverse(
       emit,
       guard_rows,
       output: output.output,
-      property_mode,
+      path_mode,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -309,8 +309,8 @@ pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
 }
 
 ///|
-pub fn traverse_property_path_mode(c : CheckedTraverse) -> PropertyPathMode {
-  c.property_mode
+pub fn traverse_graph_path_mode(c : CheckedTraverse) -> GraphPathMode {
+  c.path_mode
 }
 
 ///|
@@ -441,8 +441,8 @@ fn traverse_pending_each(
   emit(FilterTraversalLabels)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
-  emit(ResolvePropertyGraphTraversalProfile)
-  emit(EnumeratePropertyPaths)
+  emit(ResolveGraphTraversalProfile)
+  emit(EnumerateGraphPaths)
   if c.emit == TraversedPaths {
     emit(DeduplicateExactPaths)
   } else {

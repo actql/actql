@@ -1,5 +1,5 @@
 ///|
-priv enum PropertyValueFrame {
+priv enum GraphDefinitionValueFrame {
   Value(@decode.Cursor, Int, Bool)
   ArrayRest(@decode.Cursor, Int, Int, Int)
   ObjectRest(@decode.ObjectView, Array[String], Int, Int, Bool)
@@ -8,14 +8,14 @@ priv enum PropertyValueFrame {
 ///|
 /// The domain is issued from admitted producer definitions, never from Run
 /// bindings or materialized bytes. This projection is not execution authority.
-fn property_definition_value(
+fn graph_element_definition_value(
   at : @decode.Cursor,
   out : @encode.Writer,
   b : Budget,
   depth : Int,
   step_root : Bool,
 ) -> Unit raise {
-  let pending = [PropertyValueFrame::Value(at, depth, step_root)]
+  let pending = [GraphDefinitionValueFrame::Value(at, depth, step_root)]
   while pending.pop() is Some(frame) {
     match frame {
       Value(at, depth, step_root) => {
@@ -69,7 +69,7 @@ fn property_definition_value(
 }
 
 ///|
-priv enum PropertyProducerFrame {
+priv enum GraphProducerDefinitionFrame {
   Target(
     Array[(String, @carrier.Carrier)],
     Array[InputContract],
@@ -92,7 +92,7 @@ priv enum PropertyProducerFrame {
 }
 
 ///|
-fn property_definition_target(
+fn graph_element_definition_target(
   inputs : Array[(String, @carrier.Carrier)],
   contracts : Array[InputContract],
   produced : Array[ProducedInput?],
@@ -104,7 +104,7 @@ fn property_definition_target(
   depth : Int,
 ) -> Unit raise {
   let pending = [
-    PropertyProducerFrame::Target(
+    GraphProducerDefinitionFrame::Target(
       inputs, contracts, produced, steps, target, depth,
     ),
   ]
@@ -116,7 +116,7 @@ fn property_definition_target(
         match projection {
           None => @encode.null_value(out)
           Some(projection) =>
-            property_definition_value(
+            graph_element_definition_value(
               @relation.source(projection),
               out,
               b,
@@ -188,7 +188,13 @@ fn property_definition_target(
                 ),
               )
               @encode.key(out, "declaration")
-              property_definition_value(declaration, out, b, depth + 2, false)
+              graph_element_definition_value(
+                declaration,
+                out,
+                b,
+                depth + 2,
+                false,
+              )
               @encode.key(out, "selected_view")
               @encode.string_value(
                 out,
@@ -211,7 +217,7 @@ fn property_definition_target(
           Step(index) => {
             guard steps.get(index) is Some(step) else { fail(at, InvalidBody) }
             @encode.key(out, "body")
-            property_definition_value(step.source, out, b, depth + 1, true)
+            graph_element_definition_value(step.source, out, b, depth + 1, true)
             @encode.key(out, "dependencies")
             @encode.begin_array(out)
             pending.push(
@@ -235,7 +241,7 @@ fn property_definition_target(
 ///|
 // Resolve constructor source coordinates before hashing. The ordered producer
 // occurrences below carry provenance; a DATA alias is not definition identity.
-fn property_definition_constructor(
+fn graph_element_definition_constructor(
   source : @decode.Cursor,
   out : @encode.Writer,
   b : Budget,
@@ -267,7 +273,7 @@ fn property_definition_constructor(
           @encode.number_value(out, (offset + index).to_double())
         } else {
           // Property-column mappings named "from" remain semantic fields.
-          property_definition_value(
+          graph_element_definition_value(
             @decode.lookup(object, key).unwrap(),
             out,
             b,
@@ -285,12 +291,12 @@ fn property_definition_constructor(
     Some(version) => version
     None => fail(source, InvalidBody)
   }
-  property_definition_value(version, out, b, 1, false)
+  graph_element_definition_value(version, out, b, 1, false)
   @encode.end_object(out)
 }
 
 ///|
-fn property_definition_domain(
+fn graph_element_definition_domain(
   source : @decode.Cursor,
   inputs : Array[(String, @carrier.Carrier)],
   contracts : Array[InputContract],
@@ -303,17 +309,17 @@ fn property_definition_domain(
     let out = @encode.hashing_writer(b.text, b.nodes, b.limits.max_depth)
     @encode.begin_object(out)
     @encode.key(out, "constructor")
-    property_definition_constructor(source, out, b)
+    graph_element_definition_constructor(source, out, b)
     @encode.key(out, "producer_definitions")
     @encode.begin_array(out)
     for target in targets {
-      property_definition_target(
+      graph_element_definition_target(
         inputs, contracts, produced, steps, target, source, out, b, 0,
       )
     }
     @encode.end_array(out)
     @encode.key(out, "version")
-    @encode.string_value(out, "actql-property-graph-definition/0.1")
+    @encode.string_value(out, "actql-graph-definition/0.1")
     @encode.end_object(out)
     let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(out)
     spend(b, source, nodes)
@@ -327,7 +333,7 @@ fn property_definition_domain(
 }
 
 ///|
-fn check_property_graph_step(
+fn check_graph_step(
   body : @decode.Cursor,
   at : @decode.Cursor,
   object : @decode.ObjectView,
@@ -383,11 +389,11 @@ fn check_property_graph_step(
       }
     }
   }
-  let domain = property_definition_domain(
+  let domain = graph_element_definition_domain(
     at, inputs, contracts, produced, steps, targets, b,
   )
   let checked = match
-    @graph.check_property_construction(at, schemas, domain, {
+    @graph.check_graph_construction(at, schemas, domain, {
       max_work: b.work,
       max_nodes: b.nodes,
       max_depth: b.limits.max_depth,
@@ -403,7 +409,7 @@ fn check_property_graph_step(
         range: None,
       })
   }
-  let used = @graph.property_construction_usage(checked)
+  let used = @graph.construction_usage(checked)
   b.work -= used.work
   b.nodes -= used.nodes
   b.text -= used.text_bytes
@@ -416,8 +422,8 @@ fn check_property_graph_step(
     input: None,
     binding_name: Some(binding),
     metadata: meta,
-    operation: PropertyGraphConstruction(inputs=targets, checked~),
-    output: @graph.property_construction_output(checked),
+    operation: GraphConstruction(inputs=targets, checked~),
+    output: @graph.construction_output(checked),
     connections: {
       entries: targets.mapi((index, target) => { role: Sample(index), target, }),
     },

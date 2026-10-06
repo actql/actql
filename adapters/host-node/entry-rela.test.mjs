@@ -47,7 +47,7 @@ test('RelA-only Node bundle executes a checked Local Program', async () => {
     'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904',
     false, false, true, true, false, false, false, numericCid), undefined);
   // A matching new law pin cannot install a provider absent from this package.
-  assert.equal(moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+  assert.equal(moon.clientProgramCheckEnvironmentWithGraphProfile(
     environmentBody.trimEnd(),
     'sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904',
     false, false, true, false, false, false, false, numericCid,

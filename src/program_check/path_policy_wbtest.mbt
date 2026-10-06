@@ -5,7 +5,7 @@ test "Source-backed current TRAIL retains selector sources and independent searc
       let relation = mode != 0
       let path_step = if relation { 4 } else { 3 }
       let graph_body =
-        #|{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}OTHER_NODE],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]}
+        #|{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"remote","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}OTHER_NODE],"edges":[{"name":"E","from":"remote","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["extra"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]}
       let graph_body = graph_body.replace(
         old="OTHER_NODE",
         new=if mode == 2 {
@@ -23,7 +23,7 @@ test "Source-backed current TRAIL retains selector sources and independent searc
       } else {
         "{\"ids\":[{\"definition\":\"N\",\"domain\":\"sha256:e95f67084a112ecd81cf96752d7dcffc731922c81ee7946fcf8ab2ef11a5b4a5\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}]}"
       }
-      let steps = "{\"from\":\"remote\",\"derive\":{\"value\":\"extra\"}},{\"filter\":\"id = id\"},{\"property_graph\":" +
+      let steps = "{\"from\":\"remote\",\"derive\":{\"value\":\"extra\"}},{\"filter\":\"id = id\"},{\"graph\":" +
         graph_body +
         ",\"as\":\"g\"}" +
         (if relation {
@@ -48,7 +48,7 @@ test "Source-backed current TRAIL retains selector sources and independent searc
         graph_traversal="traverse",
         graph_traversal_step=path_step,
         graph_step_limit=if relation { 7 } else { 6 },
-        property_graph=true,
+        graph=true,
       ) catch {
         Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
           fail(

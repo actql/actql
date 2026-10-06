@@ -7,7 +7,7 @@ fn union_token_carrier() -> @carrier.Carrier {
     max_name_bytes=100,
   ).unwrap()
   let key = @contract.primitive(StringType, nullable=false)
-  let node = @carrier.property_node_definition(
+  let node = @carrier.graph_node_definition(
     "N",
     [key],
     properties,
@@ -16,8 +16,8 @@ fn union_token_carrier() -> @carrier.Carrier {
     max_fields=10,
     max_name_bytes=100,
   ).unwrap()
-  let edge = @carrier.property_edge_definition(
-    @carrier.property_node_definition(
+  let edge = @carrier.graph_edge_definition(
+    @carrier.graph_node_definition(
       "E",
       [key],
       properties,
@@ -29,7 +29,7 @@ fn union_token_carrier() -> @carrier.Carrier {
     "N",
     "N",
   ).unwrap()
-  @carrier.property_graph(
+  @carrier.graph(
     "sha256:" + "0".repeat(64),
     [node],
     [edge],
@@ -53,9 +53,9 @@ fn union_token_input(
     union_property_test_value(contract, "\"" + "x".repeat(512) + suffix + "\"")
   }
   // Declaration order opposes UTF-16 order, including its surrogate boundary.
-  @storage.append_property_node(builder, 0, [key("\ue000")], []).unwrap()
-  @storage.append_property_node(builder, 0, [key("𐀀")], []).unwrap()
-  @storage.append_property_edge(
+  @storage.append_node(builder, 0, [key("\ue000")], []).unwrap()
+  @storage.append_node(builder, 0, [key("𐀀")], []).unwrap()
+  @storage.append_edge(
     builder,
     0,
     [key("edge")],

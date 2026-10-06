@@ -1003,7 +1003,7 @@ fn prepare_target_source_policy(
             unknown = true
             2
           }
-          @pipeline.PropertyGraphConstruction(inputs~, ..) => {
+          @pipeline.GraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,

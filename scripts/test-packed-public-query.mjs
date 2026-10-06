@@ -60,8 +60,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/having-aggregate-source-input.mjs', 'having-aggregate-source-input.mjs'],
   ['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs'],
   ['scripts/fixtures/statistical-aggregate-source-input.mjs', 'statistical-aggregate-source-input.mjs'],
-  ['scripts/fixtures/property-graph-subtraction-source-input.mjs', 'property-graph-subtraction-source-input.mjs'],
-  ['scripts/fixtures/property-graph-union-source-input.mjs', 'property-graph-union-source-input.mjs'],
+  ['scripts/fixtures/graph-subtraction-source-input.mjs', 'graph-subtraction-source-input.mjs'],
+  ['scripts/fixtures/graph-union-source-input.mjs', 'graph-union-source-input.mjs'],
   ['scripts/fixtures/group-star-source-input.mjs', 'group-star-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-order-source-input.mjs', 'aggregate-property-order-source-input.mjs'],
   ['scripts/fixtures/aggregate-property-source-input.mjs', 'aggregate-property-source-input.mjs'],
@@ -84,17 +84,17 @@ for (const [source, destination] of [
   ['scripts/fixtures/computed-object-property-source-input.mjs', 'computed-object-property-source-input.mjs'],
   ['scripts/fixtures/group-property-source-input.mjs', 'group-property-source-input.mjs'],
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
-  ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
-  ['scripts/fixtures/property-graph-row-source-input.mjs', 'property-graph-row-source-input.mjs'],
+  ['scripts/fixtures/graph-source-input.mjs', 'graph-source-input.mjs'],
+  ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
   ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
-  ['scripts/fixtures/property-graph-traverse-source-input.mjs', 'property-graph-traverse-source-input.mjs'],
-  ['scripts/fixtures/property-graph-traverse-path-source-input.mjs', 'property-graph-traverse-path-source-input.mjs'],
-  ['scripts/fixtures/property-graph-diagnostics-source-input.mjs', 'property-graph-diagnostics-source-input.mjs'],
+  ['scripts/fixtures/graph-traverse-source-input.mjs', 'graph-traverse-source-input.mjs'],
+  ['scripts/fixtures/graph-traverse-path-source-input.mjs', 'graph-traverse-path-source-input.mjs'],
+  ['scripts/fixtures/graph-diagnostics-source-input.mjs', 'graph-diagnostics-source-input.mjs'],
   ['scripts/fixtures/subgraph-source-input.mjs', 'subgraph-source-input.mjs'],
   ['scripts/fixtures/analytic-offset-source-input.mjs', 'analytic-offset-source-input.mjs'],
-  ['scripts/fixtures/property-graph-equality-source-input.mjs', 'property-graph-equality-source-input.mjs'],
-  ['scripts/fixtures/property-graph-difference-source-input.mjs', 'property-graph-difference-source-input.mjs'],
+  ['scripts/fixtures/graph-equality-source-input.mjs', 'graph-equality-source-input.mjs'],
+  ['scripts/fixtures/graph-difference-source-input.mjs', 'graph-difference-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
@@ -115,8 +115,8 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/group-scope/cases.json', 'group-scope-cases.json'],
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
-  ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
-  ['scripts/property-graph-source-snapshot.test.mjs', 'property-graph-source-snapshot.test.mjs'],
+  ['scripts/graph-public-host.test.mjs', 'graph-public-host.test.mjs'],
+  ['scripts/graph-source-snapshot.test.mjs', 'graph-source-snapshot.test.mjs'],
   ['scripts/check-canonical-json.mjs', 'check-canonical-json.mjs'],
   ['docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', 'local-family-coverage.json'],
 ]) {
@@ -137,18 +137,18 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
-await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
-await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
-await writeFile(join(root, 'fixtures/property-graph-definition-rows.program.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-definition-rows.program.json')));
-await writeFile(join(root, 'fixtures/property-graph-label-rows.program.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-label-rows.program.json')));
-await writeFile(join(root, 'fixtures/property-graph-selector-derive.program.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-selector-derive.program.json')));
-await writeFile(join(root, 'fixtures/property-graph-traverse-nodes.expected.json'),
-  await readFile(join(repository, 'scripts/fixtures/property-graph-traverse-nodes.expected.json')));
+await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-parallel.program.json')));
+await writeFile(join(root, 'fixtures/graph-presence.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-presence.program.json')));
+await writeFile(join(root, 'fixtures/graph-definition-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-definition-rows.program.json')));
+await writeFile(join(root, 'fixtures/graph-label-rows.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-label-rows.program.json')));
+await writeFile(join(root, 'fixtures/graph-selector-derive.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-selector-derive.program.json')));
+await writeFile(join(root, 'fixtures/graph-traverse-nodes.expected.json'),
+  await readFile(join(repository, 'scripts/fixtures/graph-traverse-nodes.expected.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -172,8 +172,8 @@ if (process.argv.includes('--having-object-property-only')) {
 if (process.argv.includes('--unary-plus-only')) {
   runtimeEnvironment.ACTQL_TEST_UNARY_PLUS_ONLY = '1';
 }
-if (process.argv.includes('--property-graph-source-only')) {
-  runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
+if (process.argv.includes('--graph-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_SOURCE_ONLY = '1';
 }
 if (process.argv.includes('--graph-property-predicate-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
@@ -383,7 +383,7 @@ async function exerciseNativeGraphSource(sourceOnly = false) {
       root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
     root, runtimeEnvironment).trimEnd());
 }
-if (process.argv.includes('--property-graph-native-only')) {
+if (process.argv.includes('--graph-native-only')) {
   await exerciseNativeGraphSource(true);
   return;
 }
@@ -405,7 +405,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--rep
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
-  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
+  '--data-set-strategy-only', '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
@@ -459,7 +459,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--group-property-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
-  '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
+  '--graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -504,7 +504,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
   process.argv.includes('--graph-difference-only') ||
   process.argv.includes('--graph-rows-only') ||
   process.argv.includes('--graph-traverse-paths-only')) return;
-if (!process.argv.includes('--property-graph-source-only')) {
+if (!process.argv.includes('--graph-source-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -512,9 +512,9 @@ await mkdir(join(root, 'tls'));
 await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
 await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
 await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
-console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs',
-  'property-graph-source-snapshot.test.mjs'], root,
-  {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
-if (process.argv.includes('--property-graph-source-only')) return;
+console.log(run(process.execPath, ['--test', 'graph-public-host.test.mjs',
+  'graph-source-snapshot.test.mjs'], root,
+  {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
+if (process.argv.includes('--graph-source-only')) return;
 await exerciseNativeGraphSource();
 });

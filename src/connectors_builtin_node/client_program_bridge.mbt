@@ -54,11 +54,11 @@ pub fn client_program_check_environment_with_numeric_profile(
 }
 
 ///|
-/// Explicit installed capability for the separately identified Property Graph
+/// Explicit installed capability for the separately identified Graph
 /// subset. Existing bridge entries and their legacy SGA flag remain unchanged.
 /// A law pin selects semantics, not execution authorization.
-#export_name("clientProgramCheckEnvironmentWithPropertyGraphProfile")
-pub fn client_program_check_environment_with_property_graph_profile(
+#export_name("clientProgramCheckEnvironmentWithGraphProfile")
+pub fn client_program_check_environment_with_graph_profile(
   body : String,
   evidence_bundle_cid : String,
   text_time : Bool,
@@ -69,10 +69,10 @@ pub fn client_program_check_environment_with_property_graph_profile(
   calendar : Bool,
   text_rank : Bool,
   numeric_profile_cid : String,
-  property_graph_law_cid : String,
+  graph_law_cid : String,
 ) -> @program_check.CheckEnvironment? {
-  if !selected_property_graph_supported() ||
-    property_graph_law_cid != @graph_contract.property_law_cid() ||
+  if !selected_graph_supported() ||
+    graph_law_cid != @graph_contract.law_cid() ||
     (sga && !selected_sga_supported()) {
     return None
   }
@@ -82,7 +82,7 @@ pub fn client_program_check_environment_with_property_graph_profile(
     { text_time, veca, },
     { rela, sga, tea, calendar, text_rank, },
     numeric_profile_cid=Some(numeric_profile_cid),
-    property_graph=true,
+    graph=true,
   )
 }
 

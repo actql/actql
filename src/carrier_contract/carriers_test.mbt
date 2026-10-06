@@ -92,7 +92,7 @@ test "definition label domains are owned canonical sets, not graph data evidence
   let id = @value.primitive(StringType, nullable=false)
   let empty = rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap()
   let labels = ["z", "a"]
-  let definition = property_node_definition(
+  let definition = graph_node_definition(
     "N",
     [id],
     empty,
@@ -101,12 +101,12 @@ test "definition label domains are owned canonical sets, not graph data evidence
     max_name_bytes=3,
   ).unwrap()
   labels.clear()
-  assert_eq(property_definition_labels(definition), ["a", "z"])
-  let copy = property_definition_labels(definition)
+  assert_eq(graph_element_definition_labels(definition), ["a", "z"])
+  let copy = graph_element_definition_labels(definition)
   copy.clear()
-  assert_eq(property_definition_labels(definition), ["a", "z"])
+  assert_eq(graph_element_definition_labels(definition), ["a", "z"])
   assert_true(
-    property_node_definition(
+    graph_node_definition(
       "N",
       [id],
       empty,
@@ -117,7 +117,7 @@ test "definition label domains are owned canonical sets, not graph data evidence
     is Err(DuplicateLabel),
   )
   assert_true(
-    property_node_definition(
+    graph_node_definition(
       "N",
       [id],
       empty,
@@ -128,7 +128,7 @@ test "definition label domains are owned canonical sets, not graph data evidence
     is Err(InvalidLabel),
   )
   assert_true(
-    property_node_definition(
+    graph_node_definition(
       "N",
       [id],
       empty,

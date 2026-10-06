@@ -154,7 +154,7 @@ test('duplicate Model keys remain distinct Graph identities until the explicit a
   assert.deepEqual(persons.values.rows, [
     {person_key:1,tenant_key:'a',note:7}, {person_key:1,tenant_key:'b',note:9}]);
   assert.deepEqual(edges.values.rows, []);
-  assert.deepEqual(constructor.property_graph.nodes[0].key, ['tenant_key','person_key']);
+  assert.deepEqual(constructor.graph.nodes[0].key, ['tenant_key','person_key']);
   assert.equal(rows.node_rows, true);
   assert.deepEqual(projection.select.slice(0,2), [{graph_identity:'id'}, {id:'person_key'}]);
   assert.deepEqual(program.stages[1].steps[0].assert_rows, {unique_by:['id']});

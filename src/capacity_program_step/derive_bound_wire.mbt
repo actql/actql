@@ -92,7 +92,7 @@ fn emit_derived_rule(
     One
     | Constant(_)
     | GraphMeasure(_, _, _, _)
-    | PropertyGraphMeasure(_, _, _)
+    | GraphConstructionMeasure(_, _, _)
     | Join(_)
     | Ranking(_, _) => {
       @encode.key(out, "op")

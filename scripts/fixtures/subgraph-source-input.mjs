@@ -14,7 +14,7 @@ const edges = [
   {edge_key: 12, src_key: 2, dst_key: 3, w: 40},
   {edge_key: 13, src_key: 2, dst_key: 2, w: 30},
 ];
-const constructor = {version: 'actql-property-graph-constructor/0.1',
+const constructor = {version: 'actql-graph-constructor/0.1',
   nodes: [{name: 'N', from: 'n', key: ['node_key'],
     labels: [{name: 'Node', properties: properties(['p'])}]}],
   edges: [{name: 'E', from: 'e', key: ['edge_key'],
@@ -25,7 +25,7 @@ const construction = [
   {values: {schema: {node_key: number, p: nullableNumber}, rows: nodes}, as: 'n'},
   {values: {schema: Object.fromEntries(['edge_key', 'src_key', 'dst_key', 'w']
     .map(name => [name, number])), rows: edges}, as: 'e'},
-  {property_graph: constructor, as: 'g'},
+  {graph: constructor, as: 'g'},
 ];
 const program = (edgeOutput, edgePredicate) => {
   const fields = edgeOutput ? ['edge_key', 'w'] : ['node_key', 'p'];
@@ -71,7 +71,7 @@ const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).joi
   : value !== null && typeof value === 'object' ? '{' + Object.keys(value).sort()
     .map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
     : JSON.stringify(value);
-const singleConstructor = {version: 'actql-property-graph-constructor/0.1',
+const singleConstructor = {version: 'actql-graph-constructor/0.1',
   nodes: [{name: 'N', input_occurrence: 0, key: ['node_key'],
     labels: [{name: 'Node', properties: properties(['p'])}]}], edges: []};
 const singleProducer = {body: {select: [{node_key: 'aql_query_expr_0'}, {p: 'aql_query_expr_1'}]},
@@ -80,7 +80,7 @@ const singleProducer = {body: {select: [{node_key: 'aql_query_expr_0'}, {p: 'aql
       rows: [{aql_source_free_unit: true}]}}, dependencies: []}]}]};
 const singleDomain = 'sha256:' + createHash('sha256').update(canonical({
   constructor: singleConstructor, producer_definitions: [singleProducer],
-  version: 'actql-property-graph-definition/0.1'})).digest('hex');
+  version: 'actql-graph-definition/0.1'})).digest('hex');
 const singleIdentity = {definition: 'N', domain: singleDomain, key: [1], key_types: [{kind: 'number'}]};
 // Named-call object keys are query identifiers; JSON-quoted keys are Strings.
 const singleIdentitySource = '{definition: "N", domain: ' + JSON.stringify(singleDomain) +
@@ -176,7 +176,7 @@ export const subgraphSourceRefusals = [
       'FROM g |> subgraph(nodes: {ids: [' + JSON.stringify(singleIdentity) + ']})' + tail(false)},
 ];
 const collidingControl = JSON.parse(program(false, false));
-collidingControl.stages[0].steps[2].property_graph.nodes[0].labels[0].properties =
+collidingControl.stages[0].steps[2].graph.nodes[0].labels[0].properties =
   properties(['node_key', 'p']);
 subgraphSourceRefusals.push({name: 'subgraph-key-property-row-collision', format: 'json',
   text: JSON.stringify(collidingControl)});

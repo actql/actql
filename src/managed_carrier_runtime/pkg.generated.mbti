@@ -67,11 +67,11 @@ pub fn material_storage_bytes(Material) -> Int64?
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
+pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> Int?, (Int) -> Int?, (Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int, Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> String?, (Int) -> String?) -> Result[ProducerView, ViewIssue]
+
 pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, (@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool, snapshot_factory? : SnapshotFactory?) -> Result[Material, Issue]
 
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
-
-pub fn prepare_property_graph_producer_view(ProducerReadReference, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> Int?, (Int) -> Int?, (Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int, Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> String?, (Int) -> String?) -> Result[ProducerView, ViewIssue]
 
 pub fn prepare_record_producer_view(ProducerReadReference, Int, (Int) -> Int?, (Int, Int) -> (@relation_schema.FieldName, @value_admission.CheckedValue)?) -> Result[ProducerView, ViewIssue]
 
@@ -127,6 +127,8 @@ pub fn producer_view_edge_key(ProducerView, Int, Int) -> Result[@value_admission
 
 pub fn producer_view_edge_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
 
+pub fn producer_view_graph_definition(ProducerView) -> Result[@carrier_contract.GraphDefinition, ViewIssue]
+
 pub fn producer_view_kind(ProducerView) -> @carrier_contract.Kind
 
 pub fn producer_view_matches_read(ProducerView, ProducerReadReference) -> Bool
@@ -144,8 +146,6 @@ pub fn producer_view_node_index(ProducerView, @value_admission.CheckedValue) -> 
 pub fn producer_view_node_key(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
 
 pub fn producer_view_node_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
-
-pub fn producer_view_property_graph_definition(ProducerView) -> Result[@carrier_contract.PropertyGraphDefinition, ViewIssue]
 
 pub fn producer_view_read_reference(ProducerView) -> ProducerReadReference
 

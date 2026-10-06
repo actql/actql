@@ -249,7 +249,7 @@ shared. The builder does not prove path existence, simple-path constraints,
 cardinality, ordering, weights or execution bounds. It is not yet a complete
 traversal checker or pipeline operation.
 
-The current Property Graph node emission uses the same bounded traversal owner
+The current Graph node emission uses the same bounded traversal owner
 as path emission, not the retired reach implementation. It enumerates paths
 under their authored mode and conditions before collecting the minimum eligible
 depth per typed start/node pair. A visited node does not prune path states.
@@ -534,7 +534,7 @@ selection remains a separate static check.
 ## Historical structural graph typing
 
 This section describes the historical tuple-profile checker. It is not the
-current Property Graph execution contract or an external AoA dependency. The
+current Graph execution contract or an external AoA dependency. The
 current named-definition union boundary is specified below.
 
 Binary structural operations retain both input occurrences, including repeated
@@ -778,7 +778,7 @@ implementation of Graph Delta execution.
 
 `carrier_projection` checks `node_rows: true` and `edge_rows: true`, or the closed
 `{definition: "Person"}` or `{label: "Person"}` body for either bridge, on an
-admitted definition-keyed Property Graph. `true` projects every definition of the corresponding kind;
+admitted definition-keyed Graph. `true` projects every definition of the corresponding kind;
 the definition object selects one definition using the existing Graph name identity.
 The exclusive label object selects every same-kind definition that declares the
 label, not a subset inferred from observed data. Empty output retains that full

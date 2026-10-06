@@ -1,7 +1,7 @@
 ///|
 struct PreparedGraphEquality {
   node : PreparedNode
-  checked : @graph.CheckedPropertyEquality
+  checked : @graph.CheckedGraphEquality
 }
 
 ///|
@@ -32,7 +32,7 @@ pub fn graph_equality_output_schema(
 ///|
 pub fn graph_equality_checked(
   value : PreparedGraphEquality,
-) -> @graph.CheckedPropertyEquality {
+) -> @graph.CheckedGraphEquality {
   value.checked
 }
 

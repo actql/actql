@@ -1,0 +1,20 @@
+{
+  "version": "actql/0.1",
+  "id": "graph-parallel",
+  "stages": [{
+    "id": "source",
+    "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "number", "nullable": false}, "tenant": {"type": "string", "nullable": false}}, "rows": [{"id": 1, "tenant": "a"}]}, "as": "nodes"},
+      {"values": {"schema": {"key": {"type": "number", "nullable": false}, "src": {"type": "number", "nullable": false}, "dst": {"type": "number", "nullable": false}, "tenant": {"type": "string", "nullable": false}}, "rows": [{"key": 10, "src": 1, "dst": 1, "tenant": "a"}, {"key": 11, "src": 1, "dst": 1, "tenant": "a"}]}, "as": "edges"},
+      {"graph": {
+        "version": "actql-graph-constructor/0.1",
+        "nodes": [{"name": "N", "from": "nodes", "key": ["tenant", "id"], "labels": [{"name": "Node", "properties": {"mode": "all_columns"}}, {"name": "Person", "properties": {"mode": "no_properties"}}]}],
+        "edges": [{"name": "E", "from": "edges", "key": ["tenant", "key"], "source": {"definition": "N", "key": ["tenant", "src"]}, "target": {"definition": "N", "key": ["tenant", "dst"]}, "labels": [{"name": "R", "properties": {"mode": "all_columns"}}, {"name": "Link", "properties": {"mode": "no_properties"}}]}]
+      }, "as": "g"},
+      {"match_edges": {"definition": "E", "label": "R", "where": "key > 0", "fields": ["key"]}, "as": "matched"}
+    ],
+    "results": {"out": {"from": "matched", "fields": ["key"]}}
+  }],
+  "results": {"answer": {"from": {"stage": "source", "result": "out"}}}
+}

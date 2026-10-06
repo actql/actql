@@ -4,7 +4,7 @@ pub(all) enum ConstructionObligation {
   RejectDuplicateDefinitionKeys
   ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
-  ResolvePropertyGraphProfile
+  ResolveGraphProfile
 } derive(Eq, Debug)
 
 ///|

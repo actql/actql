@@ -420,12 +420,12 @@ within two hours:
     as: detected_sequences
 ```
 
-**Property Graph.** Build definition-keyed nodes and edges, then select edge
+**Graph.** Build definition-keyed nodes and edges, then select edge
 properties. Distinct edge keys preserve parallel edges with the same endpoints:
 
 ```yaml
-  - property_graph:
-      version: actql-property-graph-constructor/0.1
+  - graph:
+      version: actql-graph-constructor/0.1
       nodes:
         - name: N
           from: nodes
@@ -452,12 +452,12 @@ properties. Distinct edge keys preserve parallel edges with the same endpoints:
     as: matched
 ```
 
-The [complete Program](scripts/fixtures/property-graph-parallel.program.json)
+The [complete Program](scripts/fixtures/graph-parallel.program.json)
 declares the `nodes` and `edges` Relations. Submit it with the public Client
 above using `format: 'json'`; its `answer` Result contains `{key: 10}` and
 `{key: 11}`. The retired `graph` constructor is refused. Other Graph consumers
 without a current keyed implementation are also refused before Run acceptance;
-see the [current Graph contract](docs/design/graph-contract.md#definition-keyed-property-graph-profile).
+see the [current Graph contract](docs/design/graph-contract.md#definition-keyed-graph-profile).
 
 **Vector search.** Rank active runbooks against the original alert embedding:
 

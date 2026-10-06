@@ -119,7 +119,7 @@ test "parameterized Graph bounds retains each exact threshold occurrence" {
     cursor(
       "[{\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":{\"$param\":\"n\"},\"max_degree\":{\"$param\":\"n\"}}}]",
     ),
-    [("g", query_property_graph())],
+    [("g", query_graph())],
     Some(operand_parameters()),
     None,
     limits(),
@@ -144,7 +144,7 @@ test "parameterized Graph components retains its output bound slot" {
     cursor(
       "[{\"from\":\"g\",\"components\":{\"kind\":\"weak\",\"max_output_rows\":{\"$param\":\"n\"}}}]",
     ),
-    [("g", query_property_graph())],
+    [("g", query_graph())],
     Some(operand_parameters()),
     None,
     limits(),

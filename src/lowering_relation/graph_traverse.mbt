@@ -14,10 +14,10 @@ struct PreparedGraphTraverse {
 }
 
 ///|
-pub fn graph_traverse_property_path_mode(
+pub fn graph_traverse_graph_path_mode(
   value : PreparedGraphTraverse,
-) -> @graph.PropertyPathMode {
-  @graph.traverse_property_path_mode(value.checked)
+) -> @graph.GraphPathMode {
+  @graph.traverse_graph_path_mode(value.checked)
 }
 
 ///|
@@ -350,7 +350,7 @@ fn emit_graph_traverse_node(
   @encode.key(out, "path_mode")
   @encode.string_value(
     out,
-    match graph_traverse_property_path_mode(prepared) {
+    match graph_traverse_graph_path_mode(prepared) {
       @graph.Walk => "walk"
       @graph.Trail => "trail"
       @graph.Acyclic => "acyclic"

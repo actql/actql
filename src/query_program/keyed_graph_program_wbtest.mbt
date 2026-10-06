@@ -58,7 +58,7 @@ test "keyed source node labels are membership and NODE_ID is the full identity s
   // the unrelated Company property is preserved and never used as the label.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":"Company"}}},{"select":[{"id":"aql_query_expr_0"},{"entity_type":"aql_query_expr_1"}],"as":"aql_data_0"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"entity_type","to":"entity_type"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","entity_type"]},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":"Company"}}},{"select":[{"id":"aql_query_expr_0"},{"entity_type":"aql_query_expr_1"}],"as":"aql_data_0"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_data_0","key":["id"],"labels":[{"name":"Person","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"entity_type","to":"entity_type"}]}}]}],"edges":[]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","label":"Person","where":{"literal":true},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","entity_type"]},"as":"aql_keyed_seeds_3"},{"from":"aql_keyed_seeds_3","select":["id"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     mapping_limits().program,
     format=Json,
@@ -119,11 +119,7 @@ test "keyed source path modes lower to the existing traversal with full identity
       ),
     )
     assert_true(body.contains("\"fields\":[\"depth\"]"))
-    assert_true(
-      !body.contains("\"graph\":") &&
-      !body.contains("\"join\":") &&
-      !body.contains("\"sort\":"),
-    )
+    assert_true(!body.contains("\"join\":") && !body.contains("\"sort\":"))
     assert_eq(@program.stage_count(program), 1)
     assert_eq(@program.export_count(program), 1)
   }

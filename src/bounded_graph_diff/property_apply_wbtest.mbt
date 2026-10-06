@@ -6,7 +6,7 @@ fn json_contract() -> @contract.Contract {
 ///|
 fn delta_expected_target_snapshot() -> String {
   (
-    #|["actql-property-graph-snapshot/0.1","sha256:a8248c5cd6d92997c058bdb9794747453581acd6336746b92b1779290e544443",{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"},[{"id":{"definition":"M","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{}},{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":null}},{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"key":[3],"props":{"score":9}}],[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}},{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[12],"key_types":[{"kind":"number"}]},"key":[12],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}]]
+    #|["actql-graph-snapshot/0.1","sha256:4580e3be875e9489b9d3d53c9ab83d6853ebd018cc45ab4bd48e480e30d7c959",{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Link":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","node_definitions":[{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Other":[]},"name":"M","properties":{}},{"key_columns":[null],"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["score"]},"name":"N","properties":{"score":{"nullable":true,"type":"number"}}}],"value_law_cid":"sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34","version":"actql-graph-contract/0.1"},[{"id":{"definition":"M","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{}},{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]},"key":[1],"props":{"score":null}},{"id":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"key":[3],"props":{"score":9}}],[{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[10],"key_types":[{"kind":"number"}]},"key":[10],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}},{"dst":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[3],"key_types":[{"kind":"number"}]},"id":{"definition":"E","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[12],"key_types":[{"kind":"number"}]},"key":[12],"props":{},"src":{"definition":"N","domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","key":[1],"key_types":[{"kind":"number"}]}}]]
   )
 }
 
@@ -42,14 +42,15 @@ fn apply_failure_issue(value : ApplyPreparation) -> Issue raise {
 
 ///|
 fn delta_snapshot_wire(storage : @storage.Storage) -> String raise {
-  let preparation = @snapshot.prepare_property(
+  let preparation = @snapshot.prepare(
     storage,
+    "",
     snapshot_limits(delta_fixture_limits()),
   ).unwrap()
   let chunks = []
   for _ in 0..<100000 {
     let poll = @snapshot.advance(preparation, 1).unwrap()
-    chunks.push(@snapshot.take_property_output(preparation).unwrap())
+    chunks.push(@snapshot.take_output(preparation).unwrap())
     match poll {
       @snapshot.Continue(..) => ()
       @snapshot.Complete(snapshot, ..) => {
@@ -132,7 +133,7 @@ test "property delta rejects retired snapshot identity without format fallback" 
   let retired_base = prepare_fixture_apply(
     base,
     delta_fixture_expected().replace_all(
-      old="sha256:c50c44bfeaa72f109a02dd512b22c031c9cd7d9e503fa474a7320e863300e4a8",
+      old="sha256:e1f53c8849fd0a06d570f5db5b406bb44bff849c76354e389ea468fa23a43fd1",
       new="sha256:ae28c07f50bb973ce54bf0b6cd21f4809700079a6f3e881e0175a5c8afad976e",
     ),
   )
@@ -143,7 +144,7 @@ test "property delta rejects retired snapshot identity without format fallback" 
   let retired_target = prepare_fixture_apply(
     base,
     delta_fixture_expected().replace_all(
-      old="sha256:84a3ee72261465a8864d987b0215329de2222270827c7f0436a449ec55ac1e3f",
+      old="sha256:f054e156e39406687150b99b9a43b31cf62f922e472ab27e32fd00e730375fae",
       new="sha256:427b4161a991848279136a8ac37c688eae5fc8ccdd6887d8ad3d8bdf5cabc8d1",
     ),
   )
@@ -169,7 +170,7 @@ test "property delta exact before mismatch and target mismatch publish no partia
   let wrong_target = prepare_fixture_apply(
     base,
     delta_fixture_expected().replace_all(
-      old="sha256:84a3ee72261465a8864d987b0215329de2222270827c7f0436a449ec55ac1e3f",
+      old="sha256:f054e156e39406687150b99b9a43b31cf62f922e472ab27e32fd00e730375fae",
       new="sha256:" + "0".repeat(64),
     ),
   )
@@ -353,7 +354,7 @@ test "property delta includes staged record workspace before provisional allocat
   let graph = source_graph(Stored(base)).unwrap()
   // Configuration terms are separately admitted; neither the retained Builder
   // slots nor the decoded body budget replaces the record's transient custody.
-  let append = @storage.property_snapshot_append_workspace_slots(
+  let append = @storage.graph_snapshot_append_workspace_slots(
     graph,
     storage_limits(),
   ).unwrap()

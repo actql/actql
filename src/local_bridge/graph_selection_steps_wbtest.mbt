@@ -10,7 +10,7 @@ fn graph_selection_tag(selection : GraphRowSelection) -> Int {
 ///|
 test "Graph selection retains a name fragment and candidate until comparison settles" {
   let prefix = "L".repeat(512)
-  let definition = @carrier.property_node_definition(
+  let definition = @carrier.graph_node_definition(
     "D".repeat(513),
     [@contract.primitive(@contract.NumberType, nullable=false)],
     @carrier.rows([], field_set=@carrier.Closed, max_fields=0, max_name_bytes=0).unwrap(),

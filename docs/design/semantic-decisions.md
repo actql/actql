@@ -168,9 +168,9 @@ not define their preimage. That omission made independently implemented
 `graph_diff` and `apply_graph_delta` unable to establish the same identity.
 
 The previous four-element `actql-graph-snapshot/0.1` preimage conflicts with
-the sole current Property Graph snapshot owner, which also saves admitted
+the sole current Graph snapshot owner, which also saves admitted
 definitions. The approved replacement is the canonical JSON array
-`["actql-property-graph-snapshot/0.1", graph_contract_cid,
+`["actql-graph-snapshot/0.1", graph_contract_cid,
 admitted_definition_body, nodes, edges]`. Delta base and target identities use
 that formal snapshot CID, not another implementation-specific graph digest.
 This changes the previously prescribed Delta identity domain; the old preimage

@@ -231,16 +231,14 @@ fn check_impl(
       Some(v) => v
       None => fail(body, InvalidBody)
     }
-    if key == "property_graph" {
-      let step = check_property_graph_step(
-        body,
-        @decode.lookup(object, key).unwrap(),
-        object,
-        names,
-        inputs,
-        input_contracts,
-        produced_inputs,
-        steps,
+    if key == "graph" {
+      let at = @decode.lookup(object, key).unwrap()
+      if @decode.open_object(at) is Ok(config) &&
+        @decode.lookup(config, "version") is None {
+        fail(at, Graph(@graph.UnsupportedGraphOperation))
+      }
+      let step = check_graph_step(
+        body, at, object, names, inputs, input_contracts, produced_inputs, steps,
         b,
       )
       let target = Step(steps.length())
@@ -248,12 +246,6 @@ fn check_impl(
       steps.push(step)
       current = Some(target)
       continue
-    }
-    if key == "graph" {
-      // The retired constructor is rejected at the public checked boundary.
-      // Do not resolve its operands or construct a compatibility operation.
-      let at = @decode.lookup(object, key).unwrap()
-      fail(at, Graph(@graph.UnsupportedGraphOperation))
     }
     if key == "values" {
       if @decode.lookup(object, "from") is Some(s) {
@@ -803,7 +795,7 @@ fn check_impl(
       }
       let right = resolve_target(b, with_at, names)
       let checked = match
-        @graph.check_property_equality(
+        @graph.check_graph_equality(
           operation_body,
           carrier(input, inputs, steps),
           carrier(right, inputs, steps),
@@ -824,7 +816,7 @@ fn check_impl(
             range: None,
           })
       }
-      let used = @graph.property_equality_usage(checked)
+      let used = @graph.graph_equality_usage(checked)
       b.work -= used.work
       b.nodes -= used.nodes
       b.text -= used.text_bytes
@@ -835,7 +827,7 @@ fn check_impl(
         binding_name,
         metadata: meta,
         operation: GraphEquality(right~, checked~),
-        output: @graph.property_equality_output(checked),
+        output: @graph.graph_equality_output(checked),
         connections: {
           entries: [
             { role: Left, target: input, },
@@ -1148,7 +1140,7 @@ fn check_impl(
         _ => None
       }
       // A bounded authored reference is checked above, but reach has no
-      // implementation under the sole keyed Property Graph contract.
+      // implementation under the sole keyed Graph contract.
       ignore(selector)
       match carrier(input, inputs, steps) {
         @carrier.GraphValue(_) =>
@@ -2265,7 +2257,7 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
-        PropertyGraphConstruction(inputs~, ..) | GraphUnion(inputs~, ..) =>
+        GraphConstruction(inputs~, ..) | GraphUnion(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>

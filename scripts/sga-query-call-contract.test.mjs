@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
@@ -28,11 +29,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     .flatMap(line => [...line.split('|')[2].matchAll(/\[`([a-z_]+)`\]\(#[a-z-]+\)/g)]
       .map(match => match[1])).sort();
   assert.equal(new Set(operations).size, operations.length);
-  // The integrated common owner registers property_graph in addition to the
-  // 72-operation predecessor. This remains distinct from the historical
-  // imported inventory and the 19 named SGA surface operations.
-  assert.equal(operations.length, 73);
-  assert.ok(operations.includes('property_graph'));
+  // The canonical constructor replaces the retired spelling rather than
+  // adding a second Graph representation to the current inventory.
+  assert.equal(operations.length, 72);
+  assert.ok(operations.includes('graph'));
   const protocol = read('spec/contracts/actql-protocol-schemas.json');
   const program = protocol.artifact_schemas.executable_plan.properties
     .execution_material.properties.program;
@@ -52,7 +52,15 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
-  const body = {...currentBody, query_text_grammar_sha256:
+  const manifest = read('spec/manifests/actql-grammar-0.1.json');
+  const {grammar_manifest_cid: currentCid, ...currentPreimage} = manifest;
+  assert.deepEqual(currentPreimage, currentBody);
+  assert.equal(currentCid, cid(currentBody));
+  const frozen = JSON.parse(execFileSync('git', ['show',
+    'f503f2afa804a05e58ea430af1782319c007bfc9:spec/manifests/actql-grammar-0.1.json'],
+  {encoding: 'utf8'}));
+  const {grammar_manifest_cid: _frozenCid, ...frozenPreimage} = frozen;
+  const body = {...frozenPreimage, query_text_grammar_sha256:
     '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
   // Literal expectations bind the independent normative preimage above, not
@@ -182,8 +190,9 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(cid({...body, query_text_rules_sha256:
     'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85'}),
     'sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52');
-  const currentExpected = 'sha256:e8cb271a8e74c8900258d53c9443bbc6bb78694b313a282a1f2807b3ca5137d5';
-  assert.equal(currentBody.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
+  const currentExpected = 'sha256:3fe450061e6884fc773ecda7492de02dd27a15219a6832e8e490a096e29b1c9a';
+  assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
+  assert.equal(currentBody.query_text_rules_sha256, 'e073701e0ba2126603b448877323cec95ad4955614c43b31aa8b472cf57c9619');
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);

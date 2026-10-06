@@ -4,7 +4,7 @@ fn source_graph_domain(program : CheckedProgram, step : Int) -> String {
     is @carrier.GraphValue(graph) else {
     abort("expected current Graph")
   }
-  @carrier.property_graph_domain(@carrier.graph_property_definition(graph))
+  @carrier.graph_domain(@carrier.graph_definition(graph))
 }
 
 ///|
@@ -14,7 +14,7 @@ fn source_graph_steps(name : String, derived? : Bool = false) -> String {
   } else {
     ""
   }) +
-  "{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
+  "{\"graph\":{\"version\":\"actql-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
   (if derived { "derived" } else { name }) +
   "\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"id\",\"to\":\"id\"}]}}]}],\"edges\":[]},\"as\":\"g\"},{\"match_nodes\":{\"definition\":\"N\",\"fields\":[\"id\"],\"where\":{\"literal\":true}}}"
 }
@@ -23,7 +23,7 @@ fn source_graph_steps(name : String, derived? : Bool = false) -> String {
 test "current Graph keeps original Source declaration and selected Catalog owner through MATCH" {
   let program = checked_direct_program_fixture(
     graph_steps=source_graph_steps("remote"),
-    property_graph=true,
+    graph=true,
   )
   let pipeline = program.units[0].pipeline
   guard @pipeline.input_contract_at(pipeline, 0)
@@ -59,7 +59,7 @@ test "current Graph keeps original Source declaration and selected Catalog owner
   // preimage; no compiler output was used to produce this expected identity.
   assert_eq(
     source_graph_domain(program, 0),
-    "sha256:4e99c7ad4487c68499e66d81ddef818b42053f8b6f439ca65dcfcd975a850cc3",
+    "sha256:db66c7759db184a8b1ddd4352cb6a3306dad611a01c3084636294b789fcc28d7",
   )
 }
 
@@ -67,12 +67,12 @@ test "current Graph keeps original Source declaration and selected Catalog owner
 test "Source Graph domain ignores DATA aliases but retains changed producer semantics" {
   let first = checked_direct_program_fixture(
     graph_steps=source_graph_steps("remote"),
-    property_graph=true,
+    graph=true,
   )
   let renamed = checked_direct_program_fixture(
     input_name="renamed",
     graph_steps=source_graph_steps("renamed"),
-    property_graph=true,
+    graph=true,
   ) catch {
     Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
       fail("renamed Source pipeline: " + @debug.to_string(issue.kind))
@@ -80,7 +80,7 @@ test "Source Graph domain ignores DATA aliases but retains changed producer sema
   }
   let changed = checked_direct_program_fixture(
     graph_steps=source_graph_steps("remote", derived=true),
-    property_graph=true,
+    graph=true,
   ) catch {
     Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
       fail("changed Source pipeline: " + @debug.to_string(issue.kind))

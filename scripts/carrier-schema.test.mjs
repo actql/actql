@@ -18,9 +18,9 @@ test('four disjoint Carrier bodies reuse checked value grammar without backend l
   assert.deepEqual(vectors.required,['version','records','ids','components']);
   assert.equal(vectors.properties.ids.minItems,1);
   assert.equal(vectors.properties.ids.uniqueItems,true);
-  assert.equal(graph.properties.identity_law_cid.const,aoa.property_graph_law_manifest_cid);
-  assert.equal(graph.properties.value_law_cid.const,aoa.property_graph_law_manifest_cid);
-  assert.deepEqual(graph,aoa.execution_contracts['BRIDGE.rows.to_property_graph'].params_schema.properties.contract);
+  assert.equal(graph.properties.identity_law_cid.const,aoa.graph_law_manifest_cid);
+  assert.equal(graph.properties.value_law_cid.const,aoa.graph_law_manifest_cid);
+  assert.deepEqual(graph,aoa.execution_contracts['BRIDGE.rows.to_graph'].params_schema.properties.contract);
   assert.equal(graph.properties.node_id_contract,undefined);
   assert.equal(graph.properties.edge_labels,undefined);
 });

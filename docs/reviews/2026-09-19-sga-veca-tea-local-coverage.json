@@ -1,9 +1,24 @@
 {
   "version": "actql-local-family-coverage/0.1",
   "baseline": "0886df5ab75ff77edcd68291470f487346fc1cc4",
-  "targets": ["js", "wasm", "native"],
-  "families": ["SGA", "TEA", "VecA", "Bridge", "VecAExpression"],
-  "states": ["complete", "partial", "missing", "blocked"],
+  "targets": [
+    "js",
+    "wasm",
+    "native"
+  ],
+  "families": [
+    "SGA",
+    "TEA",
+    "VecA",
+    "Bridge",
+    "VecAExpression"
+  ],
+  "states": [
+    "complete",
+    "partial",
+    "missing",
+    "blocked"
+  ],
   "required_layers": [
     "contract",
     "checker",
@@ -64,7 +79,7 @@
     "family_selective_artifacts"
   ],
   "current_graph_profile": {
-    "contract": "actql-property-graph-contract/0.1",
+    "contract": "actql-graph-contract/0.1",
     "source_sha": "5b317a6ee111e5b4ea3694e3db7da9d2042a4160",
     "historical_inventory": "portability/historical/local-family-coverage-pre-property-graph.json.txt",
     "classification": {
@@ -85,12 +100,12 @@
       "graphs_equal": "partial",
       "apply_graph_delta": "partial",
       "mean_graphs": "blocked",
-      "property_graph": "partial",
-      "graph": "blocked",
+      "graph": "partial",
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components, subgraph and equality paths, plus typed Delta planning and explicitly configured provider tests recorded below; it does not establish all normative variants, public Delta acceptance or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds, degree, components, subgraph and equality paths, plus typed Delta planning and explicitly configured provider tests recorded below; it does not establish all normative variants, public Delta acceptance or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch.",
+    "migration_scope": "Historical source_sha is the baseline only. Current names and source references identify the canonical Graph migration; current execution evidence is reported separately for the final source SHA."
   },
   "operations": [
     {
@@ -98,40 +113,86 @@
       "operation": "normalize_graph",
       "input": "graph",
       "output": "graph",
-      "canonical": ["SGA.normalize"],
-      "variants": ["duplicate policy", "dangling edge policy", "property admission"],
+      "canonical": [
+        "SGA.normalize"
+      ],
+      "variants": [
+        "duplicate policy",
+        "dangling edge policy",
+        "property admission"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current typed Graph normalization has checker, bounded provider, keyed-copy custody, control-work, workspace and entity-count exact/one-short boundaries on JS/Wasm/native, plus focused retained-Store Host publication, failure and in-flight cancellation cases. Opaque external Graph normalization permitted by the language contract remains unconnected; Graph storage encoded-value work, long-value cancellation, the full Host failure matrix, and final-source CI are also not yet current-profile evidence.",
-      "completed_layers": ["contract", "resources", "cancellation"],
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
       "layer_evidence": [
         {
           "scope": "current_typed_graph_checked_program",
-          "layers": ["checker", "lowering"],
-          "targets": ["js"],
-          "evidence": ["src/program_check/property_graph_public_test.mbt"],
+          "layers": [
+            "checker",
+            "lowering"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/program_check/graph_public_test.mbt"
+          ],
           "verification": "The focused JS Program check passed for constructor, normalize, MATCH and derive."
         },
         {
           "scope": "current_typed_graph_selected_provider",
-          "layers": ["kernel", "managed", "consumer_lifetime", "resources", "cancellation"],
-          "targets": ["js", "wasm", "native"],
-          "evidence": ["src/query_integration/property_graph_provider_custody_wbtest.mbt"],
+          "layers": [
+            "kernel",
+            "managed",
+            "consumer_lifetime",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/graph_provider_custody_wbtest.mbt"
+          ],
           "verification": "The focused selected-provider fixture passed on JS, Wasm and native. It checks independently calculated control-work exact/one-short under quanta 1 and 7, workspace and node/edge capacity exact/one-short, and partial-output cancellation."
         },
         {
           "scope": "current_typed_graph_retained_host_publication",
-          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
-          "targets": ["node"],
-          "evidence": ["adapters/connectors/duckdb/node/test/standard-host.test.mjs"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "node"
+          ],
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
           "verification": "Focused postmerge standard Host retained-Store cases passed for three independent Named Results, cleanup failure with held responsibility followed by successful retry, a later filter arithmetic failure after normalization, and cancellation delivered after positive normalized-task work. The filter failure retains its typed cause and publishes no Result; cancellation observes physical stop before cleanup, and both paths release resources. This does not claim the full Host failure matrix or resource closure."
         }
       ],
       "historical_implementation_evidence": [
         {
           "scope": "shared_graph_generation_carrier_and_bridge_consumers",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "1905ea74",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -140,8 +201,16 @@
         },
         {
           "scope": "managed_normalization_bridge_and_environment_cancellation",
-          "layers": ["managed", "standard_host", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "managed",
+            "standard_host",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "88f94892",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -187,13 +256,13 @@
             "native"
           ],
           "evidence": [
-            "src/query_integration/property_graph_construction_wbtest.mbt",
-            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
-            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
-            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
-            "scripts/property-graph-surface-checker.test.mjs"
+            "src/query_integration/graph_construction_wbtest.mbt",
+            "src/query_integration/graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/graph_trail_resource_wbtest.mbt",
+            "src/query_integration/graph_selector_custody_wbtest.mbt",
+            "src/query_integration/graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
+            "scripts/graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
         },
@@ -321,13 +390,13 @@
             "native"
           ],
           "evidence": [
-            "src/query_integration/property_graph_construction_wbtest.mbt",
-            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
-            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
-            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
-            "scripts/property-graph-surface-checker.test.mjs"
+            "src/query_integration/graph_construction_wbtest.mbt",
+            "src/query_integration/graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/graph_trail_resource_wbtest.mbt",
+            "src/query_integration/graph_selector_custody_wbtest.mbt",
+            "src/query_integration/graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
+            "scripts/graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
         },
@@ -983,11 +1052,14 @@
             "consumer_lifetime",
             "publication"
           ],
-          "targets": ["js", "node"],
+          "targets": [
+            "js",
+            "node"
+          ],
           "evidence": [
             "src/graph_typing/traverse_predicates_test.mbt",
             "src/lowering_relation/graph_traverse_test.mbt",
-            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/graph_predicate_custody_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "Focused JS checker/lowering/kernel tests and standard Node Host retained publication passed locally; final submitted-SHA CI and cross-target acceptance remain unverified."
@@ -1004,13 +1076,13 @@
             "native"
           ],
           "evidence": [
-            "src/query_integration/property_graph_construction_wbtest.mbt",
-            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
-            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
-            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
-            "scripts/property-graph-surface-checker.test.mjs"
+            "src/query_integration/graph_construction_wbtest.mbt",
+            "src/query_integration/graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/graph_trail_resource_wbtest.mbt",
+            "src/query_integration/graph_selector_custody_wbtest.mbt",
+            "src/query_integration/graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
+            "scripts/graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
         },
@@ -1033,7 +1105,7 @@
             "node"
           ],
           "evidence": [
-            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/graph_trail_resource_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "Focused portable regression passed on JS, Wasm and native; standard Node Host regression passed locally. Pushed-SHA CI remains required."
@@ -1045,18 +1117,40 @@
       "operation": "shortest_path",
       "input": "graph plus up to two selector relations",
       "output": "relation",
-      "canonical": ["SGA.shortest_path"],
-      "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
+      "canonical": [
+        "SGA.shortest_path"
+      ],
+      "variants": [
+        "single/selected endpoints",
+        "each_pair/nearest_per_source/nearest_pair",
+        "direction",
+        "weighted/unweighted",
+        "ties"
+      ],
       "status": "blocked",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": [
+        "contract"
+      ],
       "layer_evidence": [],
       "historical_implementation_evidence": [
         {
           "scope": "scalar_unweighted_each_pair_vertical_slice",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "757705ba",
           "evidence": [
             "src/local_sga/shortest.mbt",
@@ -1067,8 +1161,16 @@
         },
         {
           "scope": "canonical_equal_hop_identity_ties",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "457e1886",
           "evidence": [
             "src/local_sga/shortest.mbt",
@@ -1077,8 +1179,20 @@
         },
         {
           "scope": "bounded_edge_type_filters_and_publication",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "77a0bed4",
           "evidence": [
             "src/local_sga/shortest.mbt",
@@ -1088,73 +1202,94 @@
         },
         {
           "scope": "direction_and_zero_hop_standard_host_paths",
-          "layers": ["standard_host", "consumer_lifetime", "publication", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "8023b17d",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
         },
-      {
-        "scope": "literal_selected_endpoint_identity_sets",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+        {
+          "scope": "literal_selected_endpoint_identity_sets",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "43b173aa",
           "evidence": [
             "src/local_sga/shortest.mbt",
             "src/local_sga_provider/graph_pipeline.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "src/query_integration/query_checked_program_wbtest.mbt"
-        ]
-      },
-      {
-        "scope": "relation_and_predicate_selected_endpoint_sets",
-        "layers": [
-          "kernel",
-          "managed",
-          "standard_host",
-          "consumer_lifetime",
-          "publication",
-          "resources",
-          "cancellation",
-          "three_targets"
-        ],
-        "targets": [
-          "js",
-          "wasm",
-          "native"
-        ],
-        "sha": "c23d7db5",
-        "evidence": [
-          "src/local_sga/shortest.mbt",
-          "src/local_sga_provider/graph_pipeline.mbt",
-          "src/query_integration/join_graph_capacity_wbtest.mbt",
-          "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "src/query_integration/query_checked_program_wbtest.mbt"
-        ]
-      },
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_and_predicate_selected_endpoint_sets",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "sha": "c23d7db5",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
         {
           "scope": "unweighted_nearest_selection_and_empty_endpoints",
-        "layers": [
-          "kernel",
-          "managed",
-          "standard_host",
-          "consumer_lifetime",
-          "publication",
-          "resources",
-          "cancellation",
-          "three_targets"
-        ],
-        "targets": [
-          "js",
-          "wasm",
-          "native"
-        ],
-        "sha": "b69cfba4",
-        "evidence": [
-          "src/local_sga/shortest.mbt",
-          "src/local_sga_provider/graph_pipeline.mbt",
-          "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "sha": "b69cfba4",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
             "src/query_integration/query_checked_program_wbtest.mbt"
           ]
         },
@@ -1189,29 +1324,63 @@
       "operation": "components",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.components"],
-      "variants": ["weak", "strong", "cycles", "disconnected nodes"],
+      "canonical": [
+        "SGA.components"
+      ],
+      "variants": [
+        "weak",
+        "strong",
+        "cycles",
+        "disconnected nodes"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current definition-keyed weak and strong components use a bounded provider, typed identity order and admitted output. JS fixtures cover a directed cycle, feeder and isolated node, stored and viewed workspace 90/89, empty-Graph output-work budget 1/0, quantum-one stop and cleanup. Both variants reach retained Store publication and two consumers through the standard Node Host; fused and selected strong cancellation cases also ran there. Cross-target execution, other formal branches and submitted-SHA CI are not yet complete evidence.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication"
+      ],
       "layer_evidence": [
         {
-          "scope": "current_property_graph_components_bounded_identity_and_budget",
-          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
-          "targets": ["js"],
+          "scope": "current_graph_components_bounded_identity_and_budget",
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "evidence": [
             "src/local_sga/components.mbt",
-            "src/query_integration/property_graph_components_wbtest.mbt"
+            "src/query_integration/graph_components_wbtest.mbt"
           ],
           "verification": "Directed-cycle and feeder results use typed component identity. Stored and viewed empty output charge one control unit and reject zero; both input paths check workspace 90/89 and quantum-one stop with custody through cleanup."
         },
         {
-          "scope": "current_property_graph_components_retained_publication_and_stop",
-          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
-          "targets": ["js"],
+          "scope": "current_graph_components_retained_publication_and_stop",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "The selected weak and strong routes enter the ordinary Host, retain the same-Stage filter output in a real Store and read producer and two consumer Named Results against fixed component sizes. Fused and selected strong cases deliver cancellation after Graph construction."
@@ -1220,8 +1389,14 @@
       "historical_implementation_evidence": [
         {
           "scope": "weak_components_named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "447d674b",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1231,8 +1406,15 @@
         },
         {
           "scope": "component_publication_and_environment_cancellation",
-          "layers": ["cancellation", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "bc7c89fa",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1248,7 +1430,9 @@
       "operation": "reach",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.reachable"],
+      "canonical": [
+        "SGA.reachable"
+      ],
       "variants": [
         "incoming",
         "outgoing",
@@ -1259,8 +1443,10 @@
       ],
       "status": "blocked",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": [
+        "contract"
+      ],
       "layer_evidence": [],
       "historical_implementation_evidence": [
         {
@@ -1274,7 +1460,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "4606d221",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -1289,7 +1479,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "f96153c8",
           "evidence": [
             "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
@@ -1304,29 +1498,65 @@
       "operation": "graph_bounds",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.bounds_check"],
-      "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
+      "canonical": [
+        "SGA.bounds_check"
+      ],
+      "variants": [
+        "node bound",
+        "edge bound",
+        "degree bound",
+        "combined bounds"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Combined node/edge/degree thresholds, zero bounds on an empty Graph, long typed-key ordering and a focused JS two-definition self-loop case are exercised. The stored and viewed two-node fixture enforces cumulative control and output-value work at exact/one-short limits. The new multi-definition retained Host bounds case is registered but not yet locally executed; other formal branches and final CI remain open.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication"
+      ],
       "layer_evidence": [
         {
-          "scope": "current_property_graph_bounds_bounded_order_and_stop",
-          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "scope": "current_graph_bounds_bounded_order_and_stop",
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "evidence": [
             "src/local_sga/graph_diagnostics.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
+            "src/query_integration/graph_text_key_custody_wbtest.mbt"
           ],
           "verification": "Long typed identity ordering, workspace 10/9, output rows 2/1, control work 184/183, cumulative control plus output-value work 802/801, and quantum-one stop cover stored and managed-view inputs on three targets."
         },
         {
-          "scope": "current_property_graph_bounds_retained_store_publication",
-          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
-          "targets": ["js"],
+          "scope": "current_graph_bounds_retained_store_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "The ordinary Host selects the bounded Graph diagnostic, compares retained producer and two consumer Named Results for combined node/edge/degree threshold violations and zero bounds on an empty Graph, and delivers an in-flight cancel without publishing a partial result."
@@ -1343,7 +1573,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "69685605",
           "evidence": [
             "src/lowering_relation/graph_basic.mbt",
@@ -1354,8 +1588,12 @@
         },
         {
           "scope": "named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "native"
+          ],
           "sha": "83dcc2d2",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1364,8 +1602,14 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "7a7b822e",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1380,29 +1624,65 @@
       "operation": "degree",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.degree_metrics"],
-      "variants": ["incoming", "outgoing", "both", "typed edges"],
+      "canonical": [
+        "SGA.degree_metrics"
+      ],
+      "variants": [
+        "incoming",
+        "outgoing",
+        "both",
+        "typed edges"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. Two-node fixtures cover in/out/both, semantic ID order and, on focused JS, a self-loop across two separately bound typed edge definitions. The retained Store publishes directional and empty Graph output with two consumers; its selected multi-definition self-loop case also passed. The stored and viewed fixture enforces cumulative control and output-value work at exact/one-short limits. Other typed edge variants and final CI remain open.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication"
+      ],
       "layer_evidence": [
         {
-          "scope": "current_property_graph_directional_degree",
-          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "scope": "current_graph_directional_degree",
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "evidence": [
             "src/local_sga/graph_diagnostics.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
+            "src/query_integration/graph_text_key_custody_wbtest.mbt"
           ],
           "verification": "In/out/both directed-incidence results, canonical semantic ID order, workspace 8/7, control work 178/177 and cumulative control plus output-value work 760/759 cover stored and managed-view inputs on three targets."
         },
         {
-          "scope": "current_property_graph_degree_retained_store_publication",
-          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
-          "targets": ["js"],
+          "scope": "current_graph_degree_retained_store_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "The ordinary Host selects the bounded degree provider, compares retained producer and two consumer Named Results for in/out/both and empty Graph output, and delivers selected and fused in-flight cancellation."
@@ -1419,7 +1699,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b24d953a",
           "evidence": [
             "src/local_sga/graph_bounds.mbt",
@@ -1429,8 +1713,12 @@
         },
         {
           "scope": "named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "native"
+          ],
           "sha": "83dcc2d2",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1439,8 +1727,14 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "7a7b822e",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1455,32 +1749,68 @@
       "operation": "graph_diff",
       "input": "graph, graph",
       "output": "relation",
-      "canonical": ["SGA.diff"],
-      "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
+      "canonical": [
+        "SGA.diff"
+      ],
+      "variants": [
+        "empty diff",
+        "node changes",
+        "edge changes",
+        "graph CID deadlines"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current Difference reaches formal task planning and an explicitly configured managed provider with two occurrence-scoped borrowed Graph views. The bounded Delta kernel feeds the existing incremental Relation import and completion owner. Focused JS fixtures cover self-diff and independent parallel-edge removal. Public Local/HTTPS executes changed and unchanged node/edge cases: the exact independently authored Delta crosses Relation Store source revocation and verified reload before reapplication, Graph snapshot reload and ordered Named Result read/reattach. Fresh packed acceptance, complete physical-resource assurance and final-revision three-target evidence remain open. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation"],
-      "layer_evidence": [{
-        "scope": "current_formal_diff_plan_and_bounded_managed_delta_relation",
-        "targets": ["js"],
-        "evidence": [
-          "src/lowering_relation/graph_delta_test.mbt",
-          "src/query_integration/property_graph_diff_plan_wbtest.mbt",
-          "src/query_integration/property_graph_diff_provider_wbtest.mbt"
-        ],
-        "limits": "Selected and single-operation providers require installed Delta limits. These core fixtures are not fresh packed, all-variant or total-heap evidence."
-      }, {
-        "scope": "current_diff_delta_relation_store_reapplication_and_named_result",
-        "targets": ["js"],
-        "evidence": ["scripts/fixtures/property-graph-delta-application.mjs", "scripts/property-graph-public-host.test.mjs"],
-        "limits": "Public Local and HTTPS share independently authored changed/unchanged Delta and snapshot expectations. Source-backed success is separate from clean-revision packed and three-target acceptance."
-      }],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation"
+      ],
+      "layer_evidence": [
+        {
+          "scope": "current_formal_diff_plan_and_bounded_managed_delta_relation",
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/lowering_relation/graph_delta_test.mbt",
+            "src/query_integration/graph_diff_plan_wbtest.mbt",
+            "src/query_integration/graph_diff_provider_wbtest.mbt"
+          ],
+          "limits": "Selected and single-operation providers require installed Delta limits. These core fixtures are not fresh packed, all-variant or total-heap evidence."
+        },
+        {
+          "scope": "current_diff_delta_relation_store_reapplication_and_named_result",
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "scripts/fixtures/graph-delta-application.mjs",
+            "scripts/graph-public-host.test.mjs"
+          ],
+          "limits": "Public Local and HTTPS share independently authored changed/unchanged Delta and snapshot expectations. Source-backed success is separate from clean-revision packed and three-target acceptance."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "canonical_bounded_snapshot_and_delta_construction",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "8d730cf95",
           "evidence": [
             "src/bounded_graph_snapshot/snapshot.mbt",
@@ -1498,7 +1828,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "050469b0b",
           "evidence": [
             "src/local_sga/graph_diff.mbt",
@@ -1508,8 +1842,16 @@
         },
         {
           "scope": "partial_snapshot_cancellation_stop_and_cleanup",
-          "layers": ["cancellation", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "050469b0b",
           "evidence": [
             "src/bounded_graph_snapshot/snapshot.mbt",
@@ -1525,12 +1867,20 @@
       "operation": "graft_graph",
       "input": "graph, graph",
       "output": "graph",
-      "canonical": ["SGA.graft"],
-      "variants": ["conflict laws", "equal semantic ids", "shared storage"],
+      "canonical": [
+        "SGA.graft"
+      ],
+      "variants": [
+        "conflict laws",
+        "equal semantic ids",
+        "shared storage"
+      ],
       "status": "blocked",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": [
+        "contract"
+      ],
       "layer_evidence": [],
       "historical_implementation_evidence": [
         {
@@ -1541,7 +1891,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "867489fb",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1556,35 +1910,71 @@
       "operation": "union_graphs",
       "input": "graph plus ordered nonempty graph list",
       "output": "graph",
-      "canonical": ["SGA.union_structural"],
-      "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
+      "canonical": [
+        "SGA.union_structural"
+      ],
+      "variants": [
+        "singleton",
+        "finite list",
+        "repeated input positions",
+        "property laws"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current single-domain, identity-descriptor-preserving union has ordered occurrence-aware checking and lowering, bounded named-property folds, endpoint collision refusal, cumulative resource enforcement and selected managed-provider/snapshot reload diagnostics. Focused source Local/HTTPS cases cover repeated inputs, overlap, parallel edges, empty Graphs and Graph/Relation Store reload through Named Results. Pristine final-SHA packed acceptance, all-target execution, complete allocation audit, final-SHA resource/custody mutants and current-source CI remain unverified; historical tuple-profile records below do not discharge these obligations.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation"],
-      "layer_evidence": [{
-        "scope": "current_identity_preserving_ordered_union_and_existing_host_custody",
-        "targets": ["js"],
-        "evidence": [
-          "src/graph_typing/union_test.mbt",
-          "src/local_sga/union_fold_wbtest.mbt",
-          "src/local_sga/union_property_wbtest.mbt",
-          "src/query_integration/property_graph_union_wbtest.mbt",
-          "src/query_integration/property_graph_union_custody_wbtest.mbt",
-          "src/managed_graph_storage/property_snapshot_steps_wbtest.mbt"
-        ],
-        "limits": "Scoped logical work, cursor capacity, stop and cleanup evidence. Target registration is not execution on Wasm/native, full route assurance or a physical heap theorem. Inherited source-premise audit failures remain visible."
-      }, {
-        "scope": "current_union_graph_and_sparse_relation_store_named_results",
-        "targets": ["js"],
-        "evidence": ["scripts/fixtures/property-graph-union.mjs", "scripts/property-graph-public-host.test.mjs"],
-        "limits": "Source-backed Local/HTTPS success is not clean final-revision packed or CI success."
-      }],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation"
+      ],
+      "layer_evidence": [
+        {
+          "scope": "current_identity_preserving_ordered_union_and_existing_host_custody",
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/graph_typing/union_test.mbt",
+            "src/local_sga/union_fold_wbtest.mbt",
+            "src/local_sga/union_property_wbtest.mbt",
+            "src/query_integration/graph_union_wbtest.mbt",
+            "src/query_integration/graph_union_custody_wbtest.mbt",
+            "src/managed_graph_storage/snapshot_append_steps_wbtest.mbt"
+          ],
+          "limits": "Scoped logical work, cursor capacity, stop and cleanup evidence. Target registration is not execution on Wasm/native, full route assurance or a physical heap theorem. Inherited source-premise audit failures remain visible."
+        },
+        {
+          "scope": "current_union_graph_and_sparse_relation_store_named_results",
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "scripts/fixtures/graph-union.mjs",
+            "scripts/graph-public-host.test.mjs"
+          ],
+          "limits": "Source-backed Local/HTTPS success is not clean final-revision packed or CI success."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "no_merge_ordered_finite_list",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5dd60e2d",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1594,15 +1984,31 @@
         },
         {
           "scope": "finite_list_resource_boundary",
-          "layers": ["resources"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "resources"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "cf752643",
-          "evidence": ["src/local_sga/graft_wbtest.mbt"]
+          "evidence": [
+            "src/local_sga/graft_wbtest.mbt"
+          ]
         },
         {
           "scope": "explicit_exact_equal_property_law",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c282a9f0",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1618,7 +2024,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c533f7a0",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1637,7 +2047,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1649,8 +2063,17 @@
         },
         {
           "scope": "resumable_canonical_set_order_and_cleanup",
-          "layers": ["kernel", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
           "evidence": [
             "src/bounded_value_set/set.mbt",
@@ -1668,24 +2091,43 @@
       "operation": "subtract_graphs",
       "input": "graph, graph",
       "output": "graph",
-      "canonical": ["SGA.diff_structural"],
-      "variants": ["node removal", "edge removal", "property laws", "no-op"],
+      "canonical": [
+        "SGA.diff_structural"
+      ],
+      "variants": [
+        "node removal",
+        "edge removal",
+        "property laws",
+        "no-op"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current identity-preserving binary subtraction reuses the checked named-property composition, bounded fold, managed provider and snapshot owner. Focused JS diagnostics cover shared-record removal, explicit property strategies, induced endpoint closure, ordered occurrences, cancellation, exact small-fixture work and snapshot reload. Public Local/HTTPS acceptance, Wasm/native execution, complete allocation and source-premise audits, final-SHA packed acceptance and CI remain unverified. Historical tuple-profile evidence is not current completion.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
-      "layer_evidence": [{
-        "scope": "current_identity_preserving_binary_subtraction_and_snapshot_reload",
-        "targets": ["js"],
-        "evidence": [
-          "src/graph_typing/subtraction_test.mbt",
-          "src/pipeline_typing/property_graph_subtraction_test.mbt",
-          "src/lowering_relation/graph_subtraction_test.mbt",
-          "src/local_sga/subtraction_fold_wbtest.mbt",
-          "src/query_integration/property_graph_subtraction_wbtest.mbt"
-        ],
-        "limits": "Selected logical-work, capacity, cancellation and snapshot custody cases are not a physical heap bound or cross-target execution evidence. Public acceptance and inherited source-premise audit obligations remain open."
-      }],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "cancellation"
+      ],
+      "layer_evidence": [
+        {
+          "scope": "current_identity_preserving_binary_subtraction_and_snapshot_reload",
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "src/graph_typing/subtraction_test.mbt",
+            "src/pipeline_typing/graph_subtraction_test.mbt",
+            "src/lowering_relation/graph_subtraction_test.mbt",
+            "src/local_sga/subtraction_fold_wbtest.mbt",
+            "src/query_integration/graph_subtraction_wbtest.mbt"
+          ],
+          "limits": "Selected logical-work, capacity, cancellation and snapshot custody cases are not a physical heap bound or cross-target execution evidence. Public acceptance and inherited source-premise audit obligations remain open."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "property_free_node_removal_and_endpoint_closure",
@@ -1698,7 +2140,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "1b7dbec3",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1709,8 +2155,15 @@
         },
         {
           "scope": "explicit_exact_equal_property_law",
-          "layers": ["kernel", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "9c0cf275",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1726,7 +2179,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "00063427",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1735,8 +2192,12 @@
         },
         {
           "scope": "node_environment_cancellation_delivery",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "053005b9",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -1753,7 +2214,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
           "evidence": [
             "src/local_sga/graft.mbt",
@@ -1765,8 +2230,17 @@
         },
         {
           "scope": "resumable_canonical_set_order_and_cleanup",
-          "layers": ["kernel", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
           "evidence": [
             "src/bounded_value_set/set.mbt",
@@ -1784,40 +2258,76 @@
       "operation": "subgraph",
       "input": "graph plus optional relation",
       "output": "graph",
-      "canonical": ["SGA.subgraph"],
-      "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
+      "canonical": [
+        "SGA.subgraph"
+      ],
+      "variants": [
+        "selector forms",
+        "edge predicate absent/present",
+        "induced structure"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The keyed Property Graph checker, bounded kernel and selected provider admit explicit and Relation selectors with induced independent edge identities. The cross-Stage selector now uses the checked retained Relation port to segment constructor/Subgraph/MATCH rather than reaching MissingTask. A focused Plan regression detects the missing segmentation; source public Local/HTTPS cases verify all/subset/empty selection, independent identity/property expectations, parallel edges, endpoint exclusion, and Graph/Relation Store reload after source access is revoked. Fresh packed acceptance and final integrated-SHA CI remain pending. Earlier focused JS/Wasm/native evidence covers exact owner resolution and stored/viewed work/workspace limits; the large standard-Host diagnostic timed out before reaching this case. Predicate node selection and Store fault cleanup remain open; historical tuple-profile evidence does not discharge these gaps.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+      "current_gap": "The keyed Graph checker, bounded kernel and selected provider admit explicit and Relation selectors with induced independent edge identities. The cross-Stage selector now uses the checked retained Relation port to segment constructor/Subgraph/MATCH rather than reaching MissingTask. A focused Plan regression detects the missing segmentation; source public Local/HTTPS cases verify all/subset/empty selection, independent identity/property expectations, parallel edges, endpoint exclusion, and Graph/Relation Store reload after source access is revoked. Fresh packed acceptance and final integrated-SHA CI remain pending. Earlier focused JS/Wasm/native evidence covers exact owner resolution and stored/viewed work/workspace limits; the large standard-Host diagnostic timed out before reaching this case. Predicate node selection and Store fault cleanup remain open; historical tuple-profile evidence does not discharge these gaps.",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "cancellation"
+      ],
       "layer_evidence": [
         {
           "scope": "current_keyed_graph_subgraph_selection_and_handoff",
-          "layers": ["checker", "lowering", "kernel", "managed"],
-          "targets": ["js"],
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed"
+          ],
+          "targets": [
+            "js"
+          ],
           "evidence": [
             "src/pipeline_check_context/subgraph_execution_wbtest.mbt",
-            "src/query_integration/property_graph_subgraph_wbtest.mbt",
-            "src/query_integration/property_graph_host_custody_wbtest.mbt"
+            "src/query_integration/graph_subgraph_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt"
           ],
           "verification": "Exact checked body owner and input ports, independent parallel edge identities, nullable property retention, snapshot reload and a selected Graph/Relation/Graph/Relation chain with two managed Host consumers."
         },
         {
           "scope": "current_keyed_graph_external_relation_selector_public_reload",
-          "layers": ["checker", "lowering", "managed"],
-          "targets": ["js", "node"],
+          "layers": [
+            "checker",
+            "lowering",
+            "managed"
+          ],
+          "targets": [
+            "js",
+            "node"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_plan_wbtest.mbt",
-            "scripts/property-graph-public-host.test.mjs"
+            "src/query_integration/graph_plan_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs"
           ],
           "verification": "The Plan regression preserves the fused constructor/MATCH without a secondary selector and independently selects the Subgraph with both exact input ports. Source public Local/HTTPS exercises inline and retained external constructor inputs, all/subset/empty selectors, independent canonical snapshots and sparse Relation streams, original-output read refusal, reload and Named Result reread. Fresh packed and integrated-SHA CI are separate pending obligations."
         },
         {
           "scope": "current_keyed_graph_subgraph_selected_resource_and_stop",
-          "layers": ["resources", "cancellation"],
-          "targets": ["js", "wasm", "native", "node"],
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_subgraph_wbtest.mbt",
+            "src/query_integration/graph_subgraph_wbtest.mbt",
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
           "verification": "The stored and viewed false-edge kernel paths admit exact control work and workspace, reject one short, stop after positive progress and preserve the source. The selected viewed path additionally receives a real Node Host cancellation after positive work. The fused Host path remains unassured."
@@ -1826,8 +2336,20 @@
       "historical_implementation_evidence": [
         {
           "scope": "literal_identity_induced_subgraph",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "87909cdf",
           "evidence": [
             "src/local_sga/subgraph.mbt",
@@ -1838,8 +2360,16 @@
         },
         {
           "scope": "literal_subgraph_carrier_and_bridge_fanout",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0c359fda",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -1848,8 +2378,20 @@
         },
         {
           "scope": "literal_edge_predicate",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0a769228",
           "evidence": [
             "src/lowering_relation/graph_subgraph.mbt",
@@ -1860,8 +2402,12 @@
         },
         {
           "scope": "literal_subgraph_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "bf716212",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1870,8 +2416,20 @@
         },
         {
           "scope": "node_and_edge_predicate_induced_subgraph",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "2cbc57bf",
           "evidence": [
             "src/local_sga/predicate_bindings.mbt",
@@ -1883,8 +2441,20 @@
         },
         {
           "scope": "relation_selector_membership_and_fanout",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d80944d1",
           "evidence": [
             "src/lowering_relation/graph_subgraph.mbt",
@@ -1896,8 +2466,12 @@
         },
         {
           "scope": "predicate_and_relation_selector_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "38923228",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -1911,28 +2485,65 @@
       "operation": "graphs_equal",
       "input": "graph, graph",
       "output": "relation",
-      "canonical": ["SGA.equal"],
-      "variants": ["equal", "not equal", "representation difference"],
+      "canonical": [
+        "SGA.equal"
+      ],
+      "variants": [
+        "equal",
+        "not equal",
+        "representation difference"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The current definition-keyed Property Graph checker accepts compatible closed domains and the selected bounded equality provider executes two positioned Graph inputs. Focused JS, Wasm and native tests cover equal and unequal values, producer-domain differences, three/two charged work steps, one/zero workspace slots, nested long-text comparison and stop cleanup. The retained Node Host publishes the one-row result to two consumers and delivers in-flight cancellation after both Graphs are built. Broader representation differences and final CI remain unverified.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication", "three_targets"],
+      "current_gap": "The current definition-keyed Graph checker accepts compatible closed domains and the selected bounded equality provider executes two positioned Graph inputs. Focused JS, Wasm and native tests cover equal and unequal values, producer-domain differences, three/two charged work steps, one/zero workspace slots, nested long-text comparison and stop cleanup. The retained Node Host publishes the one-row result to two consumers and delivers in-flight cancellation after both Graphs are built. Broader representation differences and final CI remain unverified.",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
       "layer_evidence": [
         {
-          "scope": "current_property_graph_equality_bounded_execution",
-          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "scope": "current_graph_equality_bounded_execution",
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "evidence": [
-            "src/graph_typing/property_equality_test.mbt",
-            "src/pipeline_typing/property_graph_equality_test.mbt",
-            "src/query_integration/property_graph_equal_wbtest.mbt"
+            "src/graph_typing/graph_equality_test.mbt",
+            "src/pipeline_typing/graph_equality_test.mbt",
+            "src/query_integration/graph_equal_wbtest.mbt"
           ],
           "verification": "Two exact Graph ports and compatible closed definitions reach the selected provider on JS, Wasm and native. The independently derived three-step count mismatch succeeds at the exact work limit and fails one short; one workspace slot succeeds and zero fails. Long text comparison remains resumable and stops mid-value. Cancellation after charged progress keeps both input reads available and cleans the private result."
         },
         {
-          "scope": "current_property_graph_equality_retained_host",
-          "layers": ["standard_host", "consumer_lifetime", "cancellation", "publication"],
-          "targets": ["node"],
+          "scope": "current_graph_equality_retained_host",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "cancellation",
+            "publication"
+          ],
+          "targets": [
+            "node"
+          ],
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
           ],
@@ -1951,7 +2562,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "738d19da",
           "evidence": [
             "src/local_sga/graphs_equal.mbt",
@@ -1962,8 +2577,14 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "092cc87b",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -1977,7 +2598,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5b3bb4e5",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt"
@@ -1990,30 +2615,51 @@
       "operation": "apply_graph_delta",
       "input": "graph, relation",
       "output": "graph",
-      "canonical": ["SGA.apply_delta"],
-      "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
+      "canonical": [
+        "SGA.apply_delta"
+      ],
+      "variants": [
+        "valid delta",
+        "wrong base",
+        "empty delta",
+        "CID validation"
+      ],
       "status": "partial",
       "owner": "local-sga",
       "current_gap": "Current complete-record application reaches the typed formal task Plan, configured managed Graph provider and standard Node Client installation. Public Local/HTTPS cases verify exact target snapshots, Graph and Relation Store reload, parallel-edge removal and malformed/wrong-base/wrong-target failure cleanup. Focused packed and portable three-target evidence is revision-bound, not a full SGA campaign. Real installed Local Host fixtures deliver cancellation after positive work during conversion and bounded application, with no partial completion or new task during cleanup. Source/physical-resource assurance and published final-revision acceptance remain open. Installed Delta limits are logical runtime admission and reservations, not a count proof or a machine-independent total-heap theorem. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "resources",
+        "cancellation"
+      ],
       "layer_evidence": [
         {
           "scope": "current_typed_delta_plan_managed_provider_and_source_public_acceptance",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "evidence": [
-            "src/query_integration/property_graph_delta_plan_wbtest.mbt",
-            "src/query_integration/property_graph_delta_input_wbtest.mbt",
-            "src/query_integration/property_graph_delta_provider_wbtest.mbt",
-            "scripts/property-graph-public-host.test.mjs"
+            "src/query_integration/graph_delta_plan_wbtest.mbt",
+            "src/query_integration/graph_delta_input_wbtest.mbt",
+            "src/query_integration/graph_delta_provider_wbtest.mbt",
+            "scripts/graph-public-host.test.mjs"
           ],
           "limits": "Formal Plan issuance retains runtime checks. Portable selected fixtures cover exact/one-short control work, handoff cancellation, installed workspace capacity/overflow, borrowed-input lifetime and cleanup on JS/Wasm/native. Public acceptance reaches Named Results after real Graph and Relation Store reload; fresh packed evidence belongs to its recorded clean revision. This is not complete physical-resource assurance or a full three-target SGA campaign."
         },
         {
           "scope": "installed_local_host_timer_delivered_delta_stop",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-            "scripts/fixtures/property-graph-delta-application.mjs"
+            "scripts/fixtures/graph-delta-application.mjs"
           ],
           "limits": "The real installed provider is cancelled after positive conversion work and, separately, positive application progress. The existing driver confirms stop, withholds task completion, and releases held/reserved bytes without starting the projection or resuming Compute on duplicate cleanup. This is a physical Host boundary fixture, not an SDK cancel-response-loss or cleanup-I/O-failure acceptance claim."
         }
@@ -2028,7 +2674,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "098f29445",
           "evidence": [
             "src/local_sga/graph_apply.mbt",
@@ -2043,7 +2693,11 @@
             "consumer_lifetime",
             "publication"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d3877af58",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -2058,12 +2712,22 @@
       "operation": "mean_graphs",
       "input": "ordered finite graph list",
       "output": "graph",
-      "canonical": ["SGA.mean_structural"],
-      "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
+      "canonical": [
+        "SGA.mean_structural"
+      ],
+      "variants": [
+        "equal values",
+        "weighted mean",
+        "missing exclude/zero",
+        "null exclude/zero/fail",
+        "repeated inputs"
+      ],
       "status": "blocked",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "blocker": "The current Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": [
+        "contract"
+      ],
       "layer_evidence": [],
       "historical_implementation_evidence": [
         {
@@ -2074,7 +2738,11 @@
             "standard_host",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0b3ef3297e8278f55e4b97bc176401e4dd6f2201",
           "evidence": [
             "src/exact_binary64/exact.mbt",
@@ -2087,8 +2755,16 @@
         },
         {
           "scope": "bounded_canonical_order_and_workspace",
-          "layers": ["resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5ff6996a3ecfafebdd01d26d768e3a8392cb78b3",
           "evidence": [
             "src/local_sga/mean.mbt",
@@ -2097,10 +2773,20 @@
         },
         {
           "scope": "policy_failure_conformance",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "9a9956508f7c1b45eb193e33678eb1e696d7f466",
-          "evidence": ["src/local_sga/mean_wbtest.mbt"]
+          "evidence": [
+            "src/local_sga/mean_wbtest.mbt"
+          ]
         },
         {
           "scope": "standard_host_consumers_and_publication",
@@ -2110,7 +2796,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "39d718cae9297432576bc5f3e3b3b8cb5dd6ce49",
           "evidence": [
             "src/local_sga_provider/graph_pipeline.mbt",
@@ -2120,8 +2810,15 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation", "resources"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "cancellation",
+            "resources"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "309d51113514806949bd81bc236b8d4c492a770b",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -2134,8 +2831,17 @@
       "operation": "window_events",
       "input": "events",
       "output": "events",
-      "canonical": ["TEA.window.fixed_label", "TEA.window.sliding_assign"],
-      "variants": ["fixed", "sliding", "literal/parameter size and step", "offset", "multiple membership"],
+      "canonical": [
+        "TEA.window.fixed_label",
+        "TEA.window.sliding_assign"
+      ],
+      "variants": [
+        "fixed",
+        "sliding",
+        "literal/parameter size and step",
+        "offset",
+        "multiple membership"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2165,7 +2871,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
@@ -2179,7 +2889,9 @@
             "consumer_lifetime",
             "resources"
           ],
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "sha": "c000f109",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -2192,8 +2904,15 @@
       "operation": "watermark_events",
       "input": "events",
       "output": "events",
-      "canonical": ["TEA.watermark.label"],
-      "variants": ["drop", "mark", "late boundary", "stable retained order"],
+      "canonical": [
+        "TEA.watermark.label"
+      ],
+      "variants": [
+        "drop",
+        "mark",
+        "late boundary",
+        "stable retained order"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2224,7 +2943,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
@@ -2238,8 +2961,15 @@
       "operation": "session",
       "input": "relation or events",
       "output": "same carrier",
-      "canonical": ["TEA.window.session_assign"],
-      "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
+      "canonical": [
+        "TEA.window.session_assign"
+      ],
+      "variants": [
+        "relation/events",
+        "global/grouped",
+        "literal/parameter gap",
+        "ties"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2273,7 +3003,11 @@
             "reclamation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d1e3201e",
           "evidence": [
             "src/local_tea/session.mbt",
@@ -2289,7 +3023,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "790ac5d8",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
@@ -2298,8 +3036,12 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js-node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "dbaebaa2",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -2308,8 +3050,16 @@
         },
         {
           "scope": "resumable_bounded_session_identity_generation",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "2bf2499d",
           "evidence": [
             "src/local_tea/session.mbt",
@@ -2325,7 +3075,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "90e18aff",
           "evidence": [
             "src/local_tea/session.mbt",
@@ -2335,8 +3089,15 @@
         },
         {
           "scope": "equal_time_semantic_identity_order",
-          "layers": ["standard_host", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "4ef9c6be",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt"
@@ -2353,7 +3114,11 @@
             "reclamation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "1a9e0e42",
           "evidence": [
             "src/managed_record_storage/storage_wbtest.mbt",
@@ -2371,7 +3136,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "dfff01b2e",
           "evidence": [
             "src/physical_strategy/carrier_tasks.mbt",
@@ -2385,8 +3154,15 @@
       "operation": "time_series",
       "input": "none",
       "output": "relation",
-      "canonical": ["TEA.time_series"],
-      "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
+      "canonical": [
+        "TEA.time_series"
+      ],
+      "variants": [
+        "literal/parameter endpoints",
+        "empty",
+        "nonempty",
+        "overflow"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2417,7 +3193,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "78064895",
           "evidence": [
             "src/query_integration/local_time_series_wbtest.mbt",
@@ -2432,8 +3212,14 @@
       "operation": "interval_join",
       "input": "relation, relation",
       "output": "relation",
-      "canonical": ["TEA.join.interval"],
-      "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
+      "canonical": [
+        "TEA.join.interval"
+      ],
+      "variants": [
+        "inner/left/semi/anti",
+        "point_in_interval/overlap",
+        "empty/nonempty equality correlation"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2459,8 +3245,14 @@
       "implementation_evidence": [
         {
           "scope": "managed_relation_named_result_publication",
-          "layers": ["publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "4cf40d94",
           "evidence": [
             "src/query_integration/local_managed_interval_join_wbtest.mbt"
@@ -2468,8 +3260,16 @@
         },
         {
           "scope": "bounded_pair_search_and_environment_cancellation",
-          "layers": ["managed", "resources", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "managed",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c59c3352",
           "evidence": [
             "src/execution_relation/bounded_interval_join_wbtest.mbt",
@@ -2484,8 +3284,14 @@
       "operation": "dedupe_events",
       "input": "events",
       "output": "events",
-      "canonical": ["TEA.dedupe"],
-      "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
+      "canonical": [
+        "TEA.dedupe"
+      ],
+      "variants": [
+        "global/grouped",
+        "resolved tie",
+        "unresolved tie failure"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2515,7 +3321,11 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "fa716474",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt",
@@ -2529,8 +3339,16 @@
       "operation": "asof_join",
       "input": "relation/events, relation",
       "output": "relation",
-      "canonical": ["TEA.join.asof"],
-      "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
+      "canonical": [
+        "TEA.join.asof"
+      ],
+      "variants": [
+        "relation/events left",
+        "left/inner",
+        "backward/forward/nearest",
+        "identity completion",
+        "tie completion"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2556,8 +3374,14 @@
       "implementation_evidence": [
         {
           "scope": "managed_relation_named_result_publication",
-          "layers": ["publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "4cf40d94",
           "evidence": [
             "src/query_integration/local_managed_asof_join_wbtest.mbt"
@@ -2565,8 +3389,16 @@
         },
         {
           "scope": "bounded_candidate_search_and_environment_cancellation",
-          "layers": ["managed", "resources", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "managed",
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "a27bd31e",
           "evidence": [
             "src/execution_relation/bounded_asof_join_wbtest.mbt",
@@ -2581,8 +3413,16 @@
       "operation": "sequence",
       "input": "relation or events",
       "output": "relation",
-      "canonical": ["TEA.sequence.match"],
-      "variants": ["relation/events", "allow/disallow overlap", "adjacent/subsequence", "global/grouped", "literal/parameter guards"],
+      "canonical": [
+        "TEA.sequence.match"
+      ],
+      "variants": [
+        "relation/events",
+        "allow/disallow overlap",
+        "adjacent/subsequence",
+        "global/grouped",
+        "literal/parameter guards"
+      ],
       "status": "complete",
       "owner": "local-tea",
       "completed_layers": [
@@ -2608,8 +3448,16 @@
       "implementation_evidence": [
         {
           "scope": "relation_host_consumers_and_named_result_publication",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "a93ea126",
           "evidence": [
             "src/query_integration/local_managed_sequence_wbtest.mbt"
@@ -2617,8 +3465,16 @@
         },
         {
           "scope": "bounded_matching_and_managed_cancellation",
-          "layers": ["managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "1e2c48f6",
           "evidence": [
             "src/execution_relation/bounded_sequence_match.mbt",
@@ -2628,8 +3484,12 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js-node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "1e2c48f6",
           "evidence": [
             "src/connectors/duckdb/conformance/sequence_capacity_fixture.mbt",
@@ -2647,7 +3507,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d4fb3d6da",
           "evidence": [
             "src/local_tea_provider/sequence_match.mbt",
@@ -2661,8 +3525,14 @@
       "operation": "normalize_vectors",
       "input": "vectors",
       "output": "vectors",
-      "canonical": ["VEC.normalize_l2"],
-      "variants": ["zero vector", "finite components", "rounding boundary"],
+      "canonical": [
+        "VEC.normalize_l2"
+      ],
+      "variants": [
+        "zero vector",
+        "finite components",
+        "rounding boundary"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -2690,8 +3560,16 @@
       "implementation_evidence": [
         {
           "scope": "shared_vector_generation_and_formal_bridge",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "8a204939",
           "evidence": [
             "src/local_veca_provider/vectors_pipeline.mbt",
@@ -2701,8 +3579,12 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "8a204939",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -2715,8 +3597,14 @@
       "operation": "score_vectors",
       "input": "vectors",
       "output": "vectors",
-      "canonical": ["VEC.score_sort"],
-      "variants": ["literal/parameter query", "cosine/dot/l2", "score ties"],
+      "canonical": [
+        "VEC.score_sort"
+      ],
+      "variants": [
+        "literal/parameter query",
+        "cosine/dot/l2",
+        "score ties"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -2745,8 +3633,16 @@
       "implementation_evidence": [
         {
           "scope": "literal_parameter_metrics_ties_and_shared_generation",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "ca6abe4f",
           "evidence": [
             "src/local_veca/score_wbtest.mbt",
@@ -2756,8 +3652,12 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "ca6abe4f",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -2770,8 +3670,16 @@
       "operation": "nearest",
       "input": "relation/vectors, relation/vectors",
       "output": "relation",
-      "canonical": ["VEC.knn_join"],
-      "variants": ["four Carrier combinations", "explicit/completed roles", "cosine/dot/l2", "k boundaries", "ties"],
+      "canonical": [
+        "VEC.knn_join"
+      ],
+      "variants": [
+        "four Carrier combinations",
+        "explicit/completed roles",
+        "cosine/dot/l2",
+        "k boundaries",
+        "ties"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -2805,7 +3713,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0fd16e6d",
           "evidence": [
             "src/local_veca/nearest.mbt",
@@ -2822,7 +3734,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "611a7969",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -2838,7 +3754,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e8f06d62",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -2846,8 +3766,14 @@
         },
         {
           "scope": "relation_relation_named_result_publication",
-          "layers": ["publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "6b723dd9",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -2855,8 +3781,17 @@
         },
         {
           "scope": "all_relation_vectors_input_combinations",
-          "layers": ["kernel", "managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "ab818437",
           "evidence": [
             "src/local_veca/nearest.mbt",
@@ -2886,7 +3821,11 @@
             "publication",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "396da45da",
           "evidence": [
             "src/local_veca/nearest.mbt",
@@ -2901,8 +3840,15 @@
       "operation": "pool_vectors",
       "input": "relation or vectors",
       "output": "vectors",
-      "canonical": ["VEC.pool"],
-      "variants": ["relation/vectors", "mean/sum/max", "single/composite group", "output id"],
+      "canonical": [
+        "VEC.pool"
+      ],
+      "variants": [
+        "relation/vectors",
+        "mean/sum/max",
+        "single/composite group",
+        "output id"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -2928,8 +3874,16 @@
       "implementation_evidence": [
         {
           "scope": "pooled_generation_consumer_bridge_and_publication",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "9c751e9c",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
@@ -2938,8 +3892,12 @@
         },
         {
           "scope": "environment_cancellation_stop_and_cleanup",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "9c751e9c",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -2952,8 +3910,16 @@
       "operation": "merge_rankings",
       "input": "ordered relation inputs",
       "output": "relation",
-      "canonical": ["VEC.merge_rankings"],
-      "variants": ["maximum", "weighted sum", "finite-list reciprocal rank", "tie completion", "repeated inputs"],
+      "canonical": [
+        "VEC.merge_rankings"
+      ],
+      "variants": [
+        "maximum",
+        "weighted sum",
+        "finite-list reciprocal rank",
+        "tie completion",
+        "repeated inputs"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -2980,8 +3946,16 @@
       "verified_slices": [
         {
           "scope": "typed_max_weighted_sum_and_ordered_finite_list_rrf",
-          "layers": ["lowering", "three_targets", "resource_admission"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "lowering",
+            "three_targets",
+            "resource_admission"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b954085a",
           "evidence": [
             "src/lowering_relation/vector.mbt",
@@ -2990,8 +3964,16 @@
         },
         {
           "scope": "authenticated_maximum_and_weighted_provider_execution",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "25aff2fd",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -3006,7 +3988,11 @@
             "reclamation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "467537d6",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
@@ -3016,8 +4002,17 @@
         },
         {
           "scope": "negative_rrf_provider_execution",
-          "layers": ["kernel", "managed", "reclamation", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "bf85b1b4",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -3033,7 +4028,11 @@
             "resource_admission",
             "reclamation"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "47660253",
           "evidence": [
             "src/local_veca/ranking.mbt",
@@ -3050,7 +4049,12 @@
             "reclamation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "4ed328ba",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
@@ -3066,7 +4070,9 @@
             "stop_confirmation",
             "reclamation"
           ],
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "sha": "580993ac",
           "evidence": [
             "src/connectors/duckdb/conformance/strategy_fixture.mbt",
@@ -3075,8 +4081,16 @@
         },
         {
           "scope": "nullable_business_tie_order",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "06974f71",
           "evidence": [
             "src/value_admission/key_order.mbt",
@@ -3087,8 +4101,16 @@
         },
         {
           "scope": "nullable_query_group_order",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5a8badc2",
           "evidence": [
             "src/value_admission/key_order.mbt",
@@ -3101,11 +4123,11 @@
     },
     {
       "family": "Bridge",
-      "operation": "property_graph",
+      "operation": "graph",
       "input": "finite ordered relation occurrences",
       "output": "keyed property graph",
       "canonical": [
-        "BRIDGE.rows.to_property_graph"
+        "BRIDGE.rows.to_graph"
       ],
       "variants": [
         "definition-scoped typed composite keys",
@@ -3138,147 +4160,15 @@
             "native"
           ],
           "evidence": [
-            "src/query_integration/property_graph_construction_wbtest.mbt",
-            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
-            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
-            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
-            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
-            "src/query_integration/property_graph_host_custody_wbtest.mbt",
-            "scripts/property-graph-surface-checker.test.mjs"
+            "src/query_integration/graph_construction_wbtest.mbt",
+            "src/query_integration/graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/graph_trail_resource_wbtest.mbt",
+            "src/query_integration/graph_selector_custody_wbtest.mbt",
+            "src/query_integration/graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/graph_host_custody_wbtest.mbt",
+            "scripts/graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
-        }
-      ]
-    },
-    {
-      "family": "Bridge",
-      "operation": "graph",
-      "input": "relation, relation",
-      "output": "graph",
-      "canonical": ["BRIDGE.rows.to_graph"],
-      "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
-      "status": "blocked",
-      "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
-      "historical_implementation_evidence": [
-        {
-          "scope": "explicit_graph_projection_endpoint_closure_and_finite_expansion",
-          "layers": [
-            "lowering",
-            "kernel",
-            "resources",
-            "three_targets"
-          ],
-          "targets": ["js", "wasm", "native"],
-          "sha": "d3080fa9",
-          "evidence": [
-            "src/lowering_relation/graph_construction.mbt",
-            "src/lowering_relation/graph_construction_test.mbt",
-            "src/local_bridge/graph.mbt",
-            "src/query_integration/local_carrier_graph_wbtest.mbt"
-          ]
-        },
-        {
-          "scope": "stable_unique_physical_projection_per_graph_branch",
-          "layers": ["lowering", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
-          "sha": "f37b3714",
-          "evidence": [
-            "src/lowering_relation/graph_construction.mbt",
-            "src/lowering_relation/graph_construction_test.mbt"
-          ]
-        },
-        {
-          "scope": "concise_and_split_graph_construction",
-          "layers": [
-            "lowering",
-            "kernel",
-            "standard_host",
-            "consumer_lifetime",
-            "resources",
-            "three_targets"
-          ],
-          "targets": ["js", "wasm", "native"],
-          "sha": "d8928e40",
-          "evidence": [
-            "src/lowering_relation/graph_construction.mbt",
-            "src/lowering_relation/graph_construction_test.mbt",
-            "src/local_bridge/graph.mbt",
-            "src/local_sga_provider/graph_pipeline.mbt",
-            "src/query_integration/local_carrier_graph_wbtest.mbt"
-          ]
-        },
-        {
-          "scope": "concise_graph_environment_cancellation",
-          "layers": [
-            "cancellation",
-            "stop_confirmation",
-            "reclamation"
-          ],
-          "targets": ["node"],
-          "sha": "088770c3",
-          "evidence": [
-            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
-            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
-          ]
-        },
-        {
-          "scope": "managed_graph_material_and_exact_consumers",
-          "layers": [
-            "kernel",
-            "managed",
-            "consumer_lifetime",
-            "resources",
-            "cancellation",
-            "three_targets"
-          ],
-          "targets": ["js", "wasm", "native"],
-          "sha": "da4ec645",
-          "evidence": [
-            "src/managed_graph_runtime/output.mbt",
-            "src/local_bridge/graph.mbt",
-            "src/local_sga_provider/graph_pipeline.mbt",
-            "src/query_integration/local_carrier_graph_wbtest.mbt"
-          ]
-        },
-        {
-          "scope": "graph_construction_projection_publication",
-          "layers": [
-            "publication",
-            "three_targets"
-          ],
-          "targets": [
-            "js",
-            "wasm",
-            "native",
-            "node"
-          ],
-          "sha": "9940712f",
-          "evidence": [
-            "src/query_integration/local_carrier_graph_wbtest.mbt",
-            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-          ]
-        },
-        {
-          "scope": "retained_graph_across_physical_tasks",
-          "layers": [
-            "managed",
-            "standard_host",
-            "consumer_lifetime",
-            "publication",
-            "resources",
-            "three_targets"
-          ],
-          "targets": ["js", "wasm", "native"],
-          "sha": "16bae24a5",
-          "evidence": [
-            "src/physical_strategy/carrier_tasks.mbt",
-            "src/local_sga_provider/graph_pipeline.mbt",
-            "src/query_integration/local_carrier_graph_wbtest.mbt"
-          ]
         }
       ]
     },
@@ -3287,24 +4177,48 @@
       "operation": "node_rows",
       "input": "graph",
       "output": "relation",
-      "canonical": ["BRIDGE.graph.to_node_rows"],
-      "variants": ["identity restoration", "property columns", "collision failure"],
+      "canonical": [
+        "BRIDGE.graph.to_node_rows"
+      ],
+      "variants": [
+        "identity restoration",
+        "property columns",
+        "collision failure"
+      ],
       "status": "partial",
       "owner": "local-bridge",
       "current_gap": "Current definition-keyed node rows support declaration-derived single-definition and label selection through the existing Bridge, checked Plan parameters and bounded row kernel. Label candidates include every same-kind definition declaring the label, including when output is empty; only columns guaranteed in every candidate are Required. Finite common Relation presence, typed identity roles and original typed key components survive retention and verified reload; nullable is independent of presence. Only schema-guaranteed columns can be referenced or published. Row-predicate presence refinement and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication"
+      ],
       "layer_evidence": [
         "src/local_bridge/graph_rows.mbt",
         "src/local_bridge/events.mbt",
-        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
-        "scripts/property-graph-surface-checker.test.mjs",
-        "scripts/property-graph-public-query.test.mjs"
+        "src/query_integration/graph_rows_presence_wbtest.mbt",
+        "scripts/graph-surface-checker.test.mjs",
+        "scripts/graph-public-query.test.mjs"
       ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
-          "layers": ["publication", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "00113491",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
@@ -3318,24 +4232,48 @@
       "operation": "edge_rows",
       "input": "graph",
       "output": "relation",
-      "canonical": ["BRIDGE.graph.to_edge_rows"],
-      "variants": ["identity restoration", "endpoint roles", "collision failure"],
+      "canonical": [
+        "BRIDGE.graph.to_edge_rows"
+      ],
+      "variants": [
+        "identity restoration",
+        "endpoint roles",
+        "collision failure"
+      ],
       "status": "partial",
       "owner": "local-bridge",
       "current_gap": "Current definition-keyed edge rows support declaration-derived single-definition and label selection through the existing Bridge, checked Plan parameters and bounded row kernel. Label candidates include every same-kind definition declaring the label, including when output is empty; only columns guaranteed in every candidate are Required. Parallel edge identities, typed src/dst roles and original composite key components survive common Relation presence, retention and verified reload; nullable is independent of presence. Only schema-guaranteed columns can be referenced or published. Row-predicate presence refinement and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication"
+      ],
       "layer_evidence": [
         "src/local_bridge/graph_rows.mbt",
         "src/local_bridge/events.mbt",
-        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
-        "scripts/property-graph-surface-checker.test.mjs",
-        "scripts/property-graph-public-query.test.mjs"
+        "src/query_integration/graph_rows_presence_wbtest.mbt",
+        "scripts/graph-surface-checker.test.mjs",
+        "scripts/graph-public-query.test.mjs"
       ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
-          "layers": ["publication", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "00113491",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
@@ -3349,8 +4287,14 @@
       "operation": "to_events",
       "input": "relation",
       "output": "events",
-      "canonical": ["BRIDGE.rows.to_events"],
-      "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
+      "canonical": [
+        "BRIDGE.rows.to_events"
+      ],
+      "variants": [
+        "semantic id",
+        "number/timestamp clock",
+        "uniqueness failure"
+      ],
       "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
@@ -3374,8 +4318,16 @@
       "implementation_evidence": [
         {
           "scope": "exact_carrier_and_bridge_consumers_across_tasks",
-          "layers": ["managed", "consumer_lifetime", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "managed",
+            "consumer_lifetime",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5b83cf99",
           "evidence": [
             "src/local_bridge/events.mbt",
@@ -3385,8 +4337,12 @@
         },
         {
           "scope": "environment_cancellation_during_rows_to_events",
-          "layers": ["cancellation"],
-          "targets": ["js-node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "15af5df1",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -3394,8 +4350,12 @@
         },
         {
           "scope": "bridged_relation_named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["js-node"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "fb4a149b9",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -3410,7 +4370,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "dfff01b2e",
           "evidence": [
             "src/physical_strategy/carrier_tasks.mbt",
@@ -3425,8 +4389,14 @@
       "operation": "events",
       "input": "events",
       "output": "relation",
-      "canonical": ["BRIDGE.events.to_rows"],
-      "variants": ["identity transfer", "clock preservation", "page split invariance"],
+      "canonical": [
+        "BRIDGE.events.to_rows"
+      ],
+      "variants": [
+        "identity transfer",
+        "clock preservation",
+        "page split invariance"
+      ],
       "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
@@ -3449,8 +4419,15 @@
       "implementation_evidence": [
         {
           "scope": "relation_consumers_and_named_result_publication",
-          "layers": ["consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "842825f8",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt"
@@ -3458,8 +4435,12 @@
         },
         {
           "scope": "environment_cancellation_during_events_to_rows",
-          "layers": ["cancellation"],
-          "targets": ["js-node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "15af5df1",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -3467,8 +4448,16 @@
         },
         {
           "scope": "timestamp_clock_and_semantic_identity_conformance",
-          "layers": ["kernel", "managed", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c5f7dd45",
           "evidence": [
             "src/query_integration/local_carrier_events_wbtest.mbt"
@@ -3481,8 +4470,14 @@
       "operation": "to_vectors",
       "input": "relation",
       "output": "vectors",
-      "canonical": ["BRIDGE.rows.to_vectors"],
-      "variants": ["single/composite semantic id", "dimension", "finite component failure"],
+      "canonical": [
+        "BRIDGE.rows.to_vectors"
+      ],
+      "variants": [
+        "single/composite semantic id",
+        "dimension",
+        "finite component failure"
+      ],
       "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
@@ -3511,7 +4506,12 @@
             "publication",
             "cancellation"
           ],
-          "targets": ["js", "wasm", "native", "js-node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "js-node"
+          ],
           "sha": "eb01dc6f",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt",
@@ -3525,8 +4525,14 @@
       "operation": "vectors",
       "input": "vectors",
       "output": "relation",
-      "canonical": ["BRIDGE.vectors.to_rows"],
-      "variants": ["identity restoration", "dimension preservation", "opaque carrier evidence"],
+      "canonical": [
+        "BRIDGE.vectors.to_rows"
+      ],
+      "variants": [
+        "identity restoration",
+        "dimension preservation",
+        "opaque carrier evidence"
+      ],
       "status": "complete",
       "owner": "local-bridge",
       "completed_layers": [
@@ -3548,8 +4554,15 @@
       "implementation_evidence": [
         {
           "scope": "relation_consumers_and_named_result_publication",
-          "layers": ["consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e34840d4",
           "evidence": [
             "src/query_integration/local_carrier_vectors_wbtest.mbt"
@@ -3557,8 +4570,12 @@
         },
         {
           "scope": "bridge_only_projection_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js-node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js-node"
+          ],
           "sha": "eb01dc6f",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
@@ -3571,8 +4588,14 @@
       "operation": "vector_score",
       "input": "two same-dimension vectors and metric",
       "output": "number",
-      "canonical": ["expression.vector_score"],
-      "variants": ["cosine/dot/l2", "nullable/non-null", "demanded evaluation"],
+      "canonical": [
+        "expression.vector_score"
+      ],
+      "variants": [
+        "cosine/dot/l2",
+        "nullable/non-null",
+        "demanded evaluation"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -3599,8 +4622,12 @@
       "implementation_evidence": [
         {
           "scope": "named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "native"
+          ],
           "sha": "f59e17eb",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -3609,8 +4636,21 @@
         },
         {
           "scope": "bounded_binding_provider_and_environment_cancellation",
-          "layers": ["managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native", "js-node"],
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "js-node"
+          ],
           "sha": "05f70065",
           "evidence": [
             "src/execution_relation/bounded_binding_rows.mbt",
@@ -3627,8 +4667,15 @@
       "operation": "vector_concat",
       "input": "ordered vector expression list",
       "output": "vector",
-      "canonical": ["expression.vector_concat"],
-      "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
+      "canonical": [
+        "expression.vector_concat"
+      ],
+      "variants": [
+        "arity two/many",
+        "dimension overflow",
+        "null propagation",
+        "demanded evaluation"
+      ],
       "status": "complete",
       "owner": "local-veca",
       "completed_layers": [
@@ -3654,8 +4701,12 @@
       "implementation_evidence": [
         {
           "scope": "named_result_publication_and_retrieval",
-          "layers": ["publication"],
-          "targets": ["native"],
+          "layers": [
+            "publication"
+          ],
+          "targets": [
+            "native"
+          ],
           "sha": "f59e17eb",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -3664,8 +4715,21 @@
         },
         {
           "scope": "bounded_binding_provider_and_environment_cancellation",
-          "layers": ["managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
-          "targets": ["js", "wasm", "native", "js-node"],
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "js-node"
+          ],
           "sha": "05f70065",
           "evidence": [
             "src/execution_relation/bounded_binding_rows.mbt",
@@ -3685,25 +4749,37 @@
       "suites": [
         {
           "path": "src/query_integration/property_graph_construction_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed",
           "scope": "Executed with domain, Plan, snapshot and legacy integration regressions: 38/38 each target. Constructor file includes private capacity/cancel cleanup, independently calculated exact/one-short control work and workspace under quanta 1 and 7."
         },
         {
           "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed",
           "scope": "Same fixed-SHA 38-case sweep: independent fixed snapshot bytes/CID, canonical reload, release of original before restored MATCH/TRAIL, empty types and refusal/cancellation cleanup."
         },
         {
           "path": "scripts/property-graph-surface-checker.test.mjs",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "result": "passed",
           "scope": "Same fixed-SHA 7-case Node run with public Local/HTTPS and legacy RelA. Four surface cases include constructor-positive-work timer cancellation and repeated close without pending custody."
         },
         {
           "path": "scripts/property-graph-public-host.test.mjs",
-          "targets": ["node"],
+          "targets": [
+            "node"
+          ],
           "result": "passed",
           "scope": "Same fixed-SHA 7-case run: actual public Local/HTTPS Named Result values, schema, reread and independent TRAIL identities."
         }
@@ -3716,13 +4792,19 @@
         {
           "name": "portable shared Graph generation",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3734,13 +4816,19 @@
         {
           "name": "portable Graph graft and retained consumers",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3752,19 +4840,29 @@
         {
           "name": "portable bounded structural set merge",
           "path": "src/local_sga/graft_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "portable Graph consumers and publication",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3776,19 +4874,29 @@
         {
           "name": "portable exact bounded structural mean",
           "path": "src/local_sga/mean_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "portable Graph consumers and publication",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3800,19 +4908,29 @@
         {
           "name": "portable bounded structural set merge",
           "path": "src/local_sga/graft_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "portable Graph consumers and publication",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3824,13 +4942,19 @@
         {
           "name": "portable equal and unequal Graph comparison",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3842,19 +4966,27 @@
         {
           "name": "portable retained consumers and publication identity",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host bounded observation page split",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3866,13 +4998,19 @@
         {
           "name": "portable retained consumers and publication identity",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3884,13 +5022,19 @@
         {
           "name": "portable retained consumers and publication identity",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host kernel cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3902,13 +5046,19 @@
         {
           "name": "portable publication and retained consumers",
           "path": "src/query_integration/local_time_series_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host timer cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3920,13 +5070,19 @@
         {
           "name": "portable bounded join and managed lifetime",
           "path": "src/query_integration/local_managed_interval_join_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host timer cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3938,13 +5094,19 @@
         {
           "name": "portable bounded join and managed lifetime",
           "path": "src/query_integration/local_managed_asof_join_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host timer cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3956,13 +5118,19 @@
         {
           "name": "portable managed node projection",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3974,13 +5142,19 @@
         {
           "name": "portable managed edge projection",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -3992,13 +5166,19 @@
         {
           "name": "portable managed node predicates",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4010,13 +5190,19 @@
         {
           "name": "portable managed edge predicates",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4028,13 +5214,19 @@
         {
           "name": "portable managed components",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4046,13 +5238,19 @@
         {
           "name": "portable bounded reach variants and lifetime",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4064,13 +5262,19 @@
         {
           "name": "portable node and path variants with retained consumers",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4082,7 +5286,11 @@
         {
           "name": "portable weighted paths, publication, and cancellation",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         }
       ]
@@ -4094,13 +5302,19 @@
         {
           "name": "portable selector variants and retained consumers",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host selector cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4112,13 +5326,19 @@
         {
           "name": "portable managed graph bounds",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host graph cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4130,13 +5350,19 @@
         {
           "name": "portable managed degree",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host graph cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4148,13 +5374,19 @@
         {
           "name": "portable shared Vectors generation",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4166,13 +5398,21 @@
         {
           "name": "portable bounded graph delta and lifecycle",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "portable incremental graph delta core",
           "path": "src/bounded_graph_diff/diff_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         }
       ]
@@ -4184,7 +5424,11 @@
         {
           "name": "portable atomic graph application and lifecycle",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         }
       ]
@@ -4196,13 +5440,19 @@
         {
           "name": "portable scored Vectors conformance and lifetime",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4214,13 +5464,19 @@
         {
           "name": "portable pooled Vectors conformance and lifetime",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4232,13 +5488,19 @@
         {
           "name": "portable scored and reciprocal-rank lifecycle",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host policy cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4250,13 +5512,19 @@
         {
           "name": "portable Carrier and Bridge consumers",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host Bridge cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4268,13 +5536,19 @@
         {
           "name": "portable projection publication and consumers",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host Bridge cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4286,13 +5560,19 @@
         {
           "name": "portable typed Events projection and consumers",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4304,19 +5584,29 @@
         {
           "name": "portable vector expression and numeric conformance",
           "path": "src/execution_relation/expression_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "portable managed expression lifecycle",
           "path": "src/query_integration/local_managed_values_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4328,13 +5618,19 @@
         {
           "name": "portable vector expression conformance",
           "path": "src/execution_relation/expression_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and retrieval",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["native"],
+          "targets": [
+            "native"
+          ],
           "result": "passed"
         }
       ]
@@ -4346,13 +5642,19 @@
         {
           "name": "portable fused Carrier combinations and lifetime",
           "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host nearest cancellation and cleanup",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4364,13 +5666,19 @@
         {
           "name": "portable retained Events session lifecycle",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host publication and cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4382,13 +5690,19 @@
         {
           "name": "portable Events sequence lifecycle and publication",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host sequence cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4400,13 +5714,19 @@
         {
           "name": "portable retained Graph lifecycle and publication",
           "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host Graph cancellation",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]
@@ -4418,13 +5738,19 @@
         {
           "name": "portable retained Events bridge lifecycle",
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "result": "passed"
         },
         {
           "name": "standard Host Bridge cancellation and publication",
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "targets": ["js"],
+          "targets": [
+            "js"
+          ],
           "result": "passed"
         }
       ]

@@ -78,7 +78,7 @@ fn union_strategy_map(
   let result : Map[String, UnionPropertyStrategy] = Map([])
   for name in decoded(@decode.object_field_names(source)) {
     spend(b, source, 1)
-    let key = @carrier.property_name_identity(name)
+    let key = @carrier.graph_name_identity(name)
     if name.is_empty() || @canonical.normalize_nfc_lf(name) != Ok(name) {
       fail(source, InvalidName(name))
     }
@@ -148,11 +148,11 @@ fn union_property_index(
   name : String,
   b : Budget,
 ) -> Int raise Stop {
-  let key = @carrier.property_name_identity(name)
+  let key = @carrier.graph_name_identity(name)
   for index in 0..<@carrier.field_count(properties) {
     spend(b, source, 1)
     let field = @carrier.field_at(properties, index).unwrap()
-    if @carrier.property_name_identity(@row.reference_name(field.name)) == key {
+    if @carrier.graph_name_identity(@row.reference_name(field.name)) == key {
       return index
     }
   }
@@ -162,49 +162,49 @@ fn union_property_index(
 ///|
 fn union_definition(
   source : @decode.Cursor,
-  left : @carrier.PropertyNodeDefinition,
-  right : @carrier.PropertyNodeDefinition,
+  left : @carrier.GraphNodeDefinition,
+  right : @carrier.GraphNodeDefinition,
   strategies : Map[String, UnionPropertyStrategy],
   seen : Map[String, Bool],
   b : Budget,
-) -> (@carrier.PropertyNodeDefinition, Array[UnionField]) raise Stop {
+) -> (@carrier.GraphNodeDefinition, Array[UnionField]) raise Stop {
   spend(b, source, 1)
-  let name = @carrier.property_definition_name(left)
-  if name != @carrier.property_definition_name(right) {
+  let name = @carrier.graph_element_definition_name(left)
+  if name != @carrier.graph_element_definition_name(right) {
     fail(source, UnionDefinitionIdentityMismatch(name))
   }
-  let keys = @carrier.property_definition_key_count(left)
-  if keys != @carrier.property_definition_key_count(right) {
+  let keys = @carrier.graph_element_definition_key_count(left)
+  if keys != @carrier.graph_element_definition_key_count(right) {
     fail(source, IncompatibleGraphDomains)
   }
   let key_contracts = []
   let key_columns = []
   for index in 0..<keys {
     spend(b, source, 1)
-    let first = @carrier.property_definition_key_column_at(left, index)
-    let second = @carrier.property_definition_key_column_at(right, index)
-    if first.map(@carrier.property_name_identity) !=
-      second.map(@carrier.property_name_identity) {
+    let first = @carrier.graph_element_definition_key_column_at(left, index)
+    let second = @carrier.graph_element_definition_key_column_at(right, index)
+    if first.map(@carrier.graph_name_identity) !=
+      second.map(@carrier.graph_name_identity) {
       fail(source, IncompatibleGraphDomains)
     }
     if first is Some(name) {
       key_columns.push(name)
     }
-    let left_key = @carrier.property_definition_key_at(left, index).unwrap()
-    let right_key = @carrier.property_definition_key_at(right, index).unwrap()
-    let descriptor = @carrier.property_key_descriptor(left_key)
+    let left_key = @carrier.graph_element_definition_key_at(left, index).unwrap()
+    let right_key = @carrier.graph_element_definition_key_at(right, index).unwrap()
+    let descriptor = @carrier.graph_key_descriptor(left_key)
     if descriptor is None ||
-      descriptor != @carrier.property_key_descriptor(right_key) {
+      descriptor != @carrier.graph_key_descriptor(right_key) {
       fail(source, UnionKeyIdentityMismatch(name, index))
     }
     let joined = union_join(source, left_key, right_key, b)
-    if @carrier.property_key_descriptor(joined) != descriptor {
+    if @carrier.graph_key_descriptor(joined) != descriptor {
       fail(source, UnionKeyIdentityMismatch(name, index))
     }
     key_contracts.push(joined)
   }
-  let left_properties = @carrier.property_definition_properties(left)
-  let right_properties = @carrier.property_definition_properties(right)
+  let left_properties = @carrier.graph_element_definition_properties(left)
+  let right_properties = @carrier.graph_element_definition_properties(right)
   let count = @carrier.field_count(left_properties)
   if count != @carrier.field_count(right_properties) {
     fail(source, IncompatibleGraphDomains)
@@ -215,7 +215,7 @@ fn union_definition(
     spend(b, source, 1)
     let field = @carrier.field_at(left_properties, index).unwrap()
     let name = @row.reference_name(field.name)
-    let key = @carrier.property_name_identity(name)
+    let key = @carrier.graph_name_identity(name)
     let other = union_property_index(source, right_properties, name, b)
     let right_field = @carrier.field_at(right_properties, other).unwrap()
     guard field.presence == @row.Required &&
@@ -251,22 +251,22 @@ fn union_definition(
     alignment.push({ left: index, right: other, strategy, })
   }
   let properties = union_knowledge(source, fields, b)
-  let labels = @carrier.property_definition_label_count(left)
-  if labels != @carrier.property_definition_label_count(right) {
+  let labels = @carrier.graph_element_definition_label_count(left)
+  if labels != @carrier.graph_element_definition_label_count(right) {
     fail(source, IncompatibleGraphDomains)
   }
   let label_properties = []
   for index in 0..<labels {
     spend(b, source, 1)
-    let (name, first) = @carrier.property_definition_label_at(left, index).unwrap()
+    let (name, first) = @carrier.graph_element_definition_label_at(left, index).unwrap()
     let mut second = None
     for other in 0..<labels {
       spend(b, source, 1)
-      let (candidate, fields) = @carrier.property_definition_label_at(
+      let (candidate, fields) = @carrier.graph_element_definition_label_at(
         right, other,
       ).unwrap()
-      if @carrier.property_name_identity(name) ==
-        @carrier.property_name_identity(candidate) {
+      if @carrier.graph_name_identity(name) ==
+        @carrier.graph_name_identity(candidate) {
         second = Some(fields)
         break
       }
@@ -288,19 +288,19 @@ fn union_definition(
     label_properties.push((name, union_knowledge(source, exposed, b)))
   }
   let name_bytes = b.text
-  charge(b, source, @carrier.property_definition_name(left))
+  charge(b, source, @carrier.graph_element_definition_name(left))
   for name in key_columns {
     charge(b, source, name)
   }
-  for name in @carrier.property_definition_labels(left) {
+  for name in @carrier.graph_element_definition_labels(left) {
     charge(b, source, name)
   }
   let (definition, used) = match
-    @carrier.property_node_definition_usage(
-      @carrier.property_definition_name(left),
+    @carrier.graph_node_definition_usage(
+      @carrier.graph_element_definition_name(left),
       key_contracts,
       properties,
-      @carrier.property_definition_labels(left),
+      @carrier.graph_element_definition_labels(left),
       max_fields=keys + count + labels,
       max_name_bytes=name_bytes,
       max_contract_work=b.work,
@@ -319,9 +319,9 @@ fn union_definition(
 fn union_graph_definition(
   source : @decode.Cursor,
   value : @carrier.Carrier,
-) -> @carrier.PropertyGraphDefinition raise Stop {
+) -> @carrier.GraphDefinition raise Stop {
   match value {
-    @carrier.GraphValue(value) => @carrier.graph_property_definition(value)
+    @carrier.GraphValue(value) => @carrier.graph_definition(value)
     @carrier.Opaque(GraphKind) => fail(source, IncompleteGraph)
     _ => fail(source, WrongCarrier(@carrier.kind(value)))
   }
@@ -338,12 +338,11 @@ fn union_fold(
 ) -> UnionFold raise Stop {
   let first = union_graph_definition(source, left)
   let second = union_graph_definition(source, right)
-  let nodes = @carrier.property_graph_node_count(first)
-  let edges = @carrier.property_graph_edge_count(first)
-  if @carrier.property_graph_domain(first) !=
-    @carrier.property_graph_domain(second) ||
-    nodes != @carrier.property_graph_node_count(second) ||
-    edges != @carrier.property_graph_edge_count(second) {
+  let nodes = @carrier.graph_node_count(first)
+  let edges = @carrier.graph_edge_count(first)
+  if @carrier.graph_domain(first) != @carrier.graph_domain(second) ||
+    nodes != @carrier.graph_node_count(second) ||
+    edges != @carrier.graph_edge_count(second) {
     fail(source, IncompatibleGraphDomains)
   }
   let node_definitions = []
@@ -353,16 +352,16 @@ fn union_fold(
   let seen_nodes : Map[String, Bool] = Map([])
   let seen_edges : Map[String, Bool] = Map([])
   for index in 0..<nodes {
-    let definition = @carrier.property_graph_node_at(first, index).unwrap()
-    let key = @carrier.property_name_identity(
-      @carrier.property_definition_name(definition),
+    let definition = @carrier.graph_node_at(first, index).unwrap()
+    let key = @carrier.graph_name_identity(
+      @carrier.graph_element_definition_name(definition),
     )
     let mut matched = None
     for other in 0..<nodes {
       spend(b, source, 1)
-      let candidate = @carrier.property_graph_node_at(second, other).unwrap()
-      if @carrier.property_name_identity(
-          @carrier.property_definition_name(candidate),
+      let candidate = @carrier.graph_node_at(second, other).unwrap()
+      if @carrier.graph_name_identity(
+          @carrier.graph_element_definition_name(candidate),
         ) ==
         key {
         matched = Some((other, candidate))
@@ -379,18 +378,18 @@ fn union_fold(
     node_alignment.push({ right: other, fields, })
   }
   for index in 0..<edges {
-    let definition = @carrier.property_graph_edge_at(first, index).unwrap()
-    let element = @carrier.property_edge_element(definition)
-    let key = @carrier.property_name_identity(
-      @carrier.property_definition_name(element),
+    let definition = @carrier.graph_edge_at(first, index).unwrap()
+    let element = @carrier.graph_edge_element(definition)
+    let key = @carrier.graph_name_identity(
+      @carrier.graph_element_definition_name(element),
     )
     let mut matched = None
     for other in 0..<edges {
       spend(b, source, 1)
-      let candidate = @carrier.property_graph_edge_at(second, other).unwrap()
-      if @carrier.property_name_identity(
-          @carrier.property_definition_name(
-            @carrier.property_edge_element(candidate),
+      let candidate = @carrier.graph_edge_at(second, other).unwrap()
+      if @carrier.graph_name_identity(
+          @carrier.graph_element_definition_name(
+            @carrier.graph_edge_element(candidate),
           ),
         ) ==
         key {
@@ -401,24 +400,24 @@ fn union_fold(
     guard matched is Some((other, candidate)) else {
       fail(source, IncompatibleGraphDomains)
     }
-    let (src, dst) = @carrier.property_edge_endpoints(definition)
-    let (other_src, other_dst) = @carrier.property_edge_endpoints(candidate)
-    if @carrier.property_name_identity(src) !=
-      @carrier.property_name_identity(other_src) ||
-      @carrier.property_name_identity(dst) !=
-      @carrier.property_name_identity(other_dst) {
+    let (src, dst) = @carrier.graph_edge_endpoints(definition)
+    let (other_src, other_dst) = @carrier.graph_edge_endpoints(candidate)
+    if @carrier.graph_name_identity(src) !=
+      @carrier.graph_name_identity(other_src) ||
+      @carrier.graph_name_identity(dst) !=
+      @carrier.graph_name_identity(other_dst) {
       fail(source, IncompatibleGraphDomains)
     }
     let (output, fields) = union_definition(
       source,
       element,
-      @carrier.property_edge_element(candidate),
+      @carrier.graph_edge_element(candidate),
       edge_strategies,
       seen_edges,
       b,
     )
     edge_definitions.push(
-      @carrier.property_edge_definition(output, src, dst).unwrap(),
+      @carrier.graph_edge_definition(output, src, dst).unwrap(),
     )
     edge_alignment.push({ right: other, fields, })
   }
@@ -435,8 +434,8 @@ fn union_fold(
     }
   }
   let (output, used) = match
-    @carrier.property_graph_usage(
-      @carrier.property_graph_domain(first),
+    @carrier.graph_usage(
+      @carrier.graph_domain(first),
       node_definitions,
       edge_definitions,
       max_definitions=nodes + edges,

@@ -29,7 +29,7 @@ test "current TRAIL limit conversion matches independent namespaces and aggregat
       { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
       through_check=true,
       checked_results=programs,
-      property_graph=true,
+      graph=true,
       graph_output_limit=Some(cap),
       graph_construction_limit=Some(1000),
       traversal_capacity=true,

@@ -52,15 +52,13 @@ fn delta_fixture_view() -> (
     100000L,
     () => output_live.val,
   ).unwrap()
-  @graph_runtime.append_property_node(output, 1, [delta_number(2.0)], [
-    delta_score(None),
-  ]).unwrap()
-  @graph_runtime.append_property_node(output, 0, [delta_number(1.0)], []).unwrap()
-  @graph_runtime.append_property_node(output, 1, [delta_number(1.0)], [
+  @graph_runtime.append_node(output, 1, [delta_number(2.0)], [delta_score(None)]).unwrap()
+  @graph_runtime.append_node(output, 0, [delta_number(1.0)], []).unwrap()
+  @graph_runtime.append_node(output, 1, [delta_number(1.0)], [
     delta_score(Some(7.0)),
   ]).unwrap()
   for key in [11.0, 10.0] {
-    @graph_runtime.append_property_edge(
+    @graph_runtime.append_edge(
       output,
       0,
       [delta_number(key)],

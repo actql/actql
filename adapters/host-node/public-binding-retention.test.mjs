@@ -11,7 +11,7 @@ const hash = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const longText = 'x'.repeat(4096);
 const fixture = JSON.parse(await readFile(new URL(
-  '../../scripts/fixtures/property-graph-presence.program.json', import.meta.url), 'utf8'));
+  '../../scripts/fixtures/graph-presence.program.json', import.meta.url), 'utf8'));
 
 function bindingProgram() {
   const document = structuredClone(fixture);
@@ -39,7 +39,7 @@ function bindingProgram() {
 // order and all presence/value states below are independently specified.
 function expectedBindingRows(document) {
   const steps = document.stages[0].steps;
-  const constructor = structuredClone(steps[3].property_graph);
+  const constructor = structuredClone(steps[3].graph);
   let occurrence = 0;
   for (const family of ['nodes', 'edges']) for (const entry of constructor[family]) {
     delete entry.from;
@@ -48,7 +48,7 @@ function expectedBindingRows(document) {
   const domain = hash({constructor,
     producer_definitions: steps.slice(0, 3).map(step =>
       ({body: {values: step.values}, dependencies: []})),
-    version: 'actql-property-graph-definition/0.1'});
+    version: 'actql-graph-definition/0.1'});
   const id = (definition, key, kinds) => ({definition, domain, key,
     key_types: kinds.map(kind => ({kind}))});
   const before = [

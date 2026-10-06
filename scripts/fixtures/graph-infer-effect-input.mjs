@@ -26,7 +26,7 @@ const cid = value => 'sha256:' + createHash('sha256').update(
 
 // Graph definition identity is derived from the authored canonical preimage,
 // never an admitted Graph, checker, snapshot encoder or observed Result.
-const definitionConstructor = structuredClone(templates.node.stages[0].steps[2].property_graph);
+const definitionConstructor = structuredClone(templates.node.stages[0].steps[2].graph);
 let occurrence = 0;
 for (const family of ['nodes','edges']) for (const element of definitionConstructor[family]) {
   delete element.from;
@@ -35,7 +35,7 @@ for (const family of ['nodes','edges']) for (const element of definitionConstruc
 export const graphDefinitionCid = cid({constructor:definitionConstructor,
   producer_definitions: templates.node.stages[0].steps.slice(0,2)
     .map(step => ({body:{values:step.values},dependencies:[]})),
-  version:'actql-property-graph-definition/0.1'});
+  version:'actql-graph-definition/0.1'});
 const identity = (definition, key) => ({definition,domain:graphDefinitionCid,
   key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
 const classified = definition => [

@@ -123,6 +123,10 @@ fn runtime_issue_message(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
       "remote output reader chunk limit was exceeded"
     @runtime.OutputReaderPhysical(message) =>
       "remote output reader failed: " + message
+    @runtime.CompletedRestorationPending =>
+      "remote completed runtime restoration remains pending"
+    @runtime.CompletedMaterialUnavailable(_) =>
+      "remote completed material is unavailable"
     @runtime.Physical(message) => "remote runtime failed: " + message
     @runtime.ExecutorEntryUnrecorded =>
       "remote runtime executor entry evidence was not recorded"

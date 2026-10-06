@@ -46,11 +46,11 @@ fn graph_order_fixture(work? : Int = 10000) -> GraphOrderFixture raise {
     empty,
     body=Some(
       (
-        #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["person_key"],"labels":[]},{"name":"M","from":"edges","key":["person_key"],"labels":[]}],"edges":[]},"as":"g"}]
+        #|[{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["person_key"],"labels":[]},{"name":"M","from":"edges","key":["person_key"],"labels":[]}],"edges":[]},"as":"g"}]
       ),
     ),
   )
-  let construction = start_rows_to_property_graph(
+  let construction = start_rows_to_graph(
     @bounded.control(),
     graph_order_prepared_sequence(graph_owner),
     0,
@@ -81,7 +81,7 @@ fn graph_order_fixture(work? : Int = 10000) -> GraphOrderFixture raise {
   }
   let source : GraphRowsSource = {
     source: StoredGraph(storage),
-    definition: @carrier.graph_property_definition(carrier),
+    definition: @carrier.graph_definition(carrier),
     selected_definition: None,
     selected_label: None,
     selection_label_index: 0,
@@ -361,7 +361,7 @@ fn graph_order_registry_limits() -> @execution.RegistryLimits {
   { max_body_bytes: 100000, max_body_nodes: 10000, max_body_depth: 100, }
 }
 
-// Fixture adapted from src/query_integration/property_graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_keyed_source_owner(
@@ -401,7 +401,7 @@ fn graph_order_keyed_source_owner(
   ).unwrap()
 }
 
-// Fixture adapted from src/query_integration/property_graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_keyed_bridge_owner(
@@ -447,7 +447,7 @@ fn graph_order_keyed_bridge_owner(
     graph_order_input_cursor(
       body.unwrap_or(
         (
-          #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["tenant","src"]},"target":{"definition":"N","key":["tenant","dst"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"g"}]
+          #|[{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["tenant","src"]},"target":{"definition":"N","key":["tenant","dst"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"g"}]
         ),
       ),
     ),
@@ -476,7 +476,7 @@ fn graph_order_keyed_bridge_owner(
   ).unwrap()
 }
 
-// Fixture adapted from src/query_integration/property_graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_keyed_bridge_inputs(
@@ -504,7 +504,7 @@ fn graph_order_keyed_bridge_inputs(
   inputs
 }
 
-// Fixture adapted from src/query_integration/property_graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_keyed_bridge_terminal(
@@ -520,7 +520,7 @@ fn graph_order_keyed_bridge_terminal(
   abort("bounded property constructor did not finish")
 }
 
-// Fixture adapted from src/query_integration/property_graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_construction_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_keyed_graph_receiver(
@@ -564,7 +564,7 @@ fn graph_order_keyed_graph_receiver(
   ).unwrap()
 }
 
-// Fixture adapted from src/query_integration/property_graph_fixture_helpers_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
+// Fixture adapted from src/query_integration/graph_fixture_helpers_wbtest.mbt at bc4690dac556404e0d31cb410329fdb50553d6de.
 
 ///|
 fn graph_order_carrier_graph_storage_limits() -> @graph_storage.Limits {
