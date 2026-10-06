@@ -22,6 +22,8 @@ priv enum PoolSortMode {
 ///|
 priv enum PoolPhase {
   EncodeRelationIdentity
+  CopyRelationIdentity
+  RecheckRelationIdentity
   BeginRecord
   InitializeGroups
   InitializeIdentities
@@ -77,6 +79,10 @@ priv struct PoolState {
   mut group_probe : Int
   mut identity_probe : Int
   mut identity_builder : StringBuilder?
+  mut identity_text : @value.ScalarText?
+  mut identity_copy : String?
+  mut identity_offset : Int
+  mut identity_recheck : @value.RecheckCursor?
   mut identity_bytes : Int
   mut current_field : (@schema.FieldName, @value.CheckedValue)?
   mut source_vector : @value.CheckedValue?
@@ -425,24 +431,48 @@ fn encode_pool_identity_component(state : PoolState) -> Result[Unit, PoolIssue] 
     return Err(InvalidPoolKernel)
   }
   if state.identity_probe >= state.source_identity_count {
-    guard state.member_identity_contract is Some(contract) &&
-      @value.checked_text_value(output.to_string(), contract) is Some(value) else {
+    guard state.member_identity_contract is Some(contract) else {
       return Err(InvalidPoolIdentity(state.record))
     }
+    let text = output.to_string()
     state.identity_builder = None
-    state.collected_identities.push(value)
-    state.component = 0
-    state.phase = ValidateComponents
+    if text.length() <= 64 {
+      guard @value.checked_text_value(text, contract) is Some(value) else {
+        return Err(InvalidPoolIdentity(state.record))
+      }
+      state.collected_identities.push(value)
+      state.component = 0
+      state.phase = ValidateComponents
+    } else {
+      state.identity_recheck = @value.start_recheck_runtime_text(
+        text,
+        contract,
+        state.value_limits,
+      )
+      guard state.identity_recheck is Some(_) else {
+        return Err(InvalidPoolIdentity(state.record))
+      }
+      state.phase = RecheckRelationIdentity
+    }
     return Ok(())
   }
-  let value = state.identity_values[state.identity_probe].unwrap()
-  guard @value.canonical_scalar_text(value, state.value_limits.max_text_bytes)
-    is Some(text) &&
-    @scalar.unicode_scalar_count(text) is Some(codepoints) &&
-    @scalar.admit_utf8_length(text, state.value_limits.max_text_bytes)
-    is Ok(text_bytes) else {
+  if state.identity_text is None {
+    state.identity_text = @value.start_scalar_text(
+      state.identity_values[state.identity_probe].unwrap(),
+      state.value_limits.max_text_bytes,
+    )
+  }
+  guard state.identity_text is Some(cursor) else {
     return Err(InvalidPoolIdentity(state.record))
   }
+  let (text, codepoints, text_bytes) = match
+    @value.advance_scalar_text(cursor) {
+    @value.ScalarTextContinue => return Ok(())
+    @value.ScalarTextFailed => return Err(InvalidPoolIdentity(state.record))
+    @value.ScalarTextComplete(text, codepoints, bytes) =>
+      (text, codepoints, bytes)
+  }
+  state.identity_text = None
   let prefix = codepoints.to_string() + ":"
   let suffix = "|"
   guard @scalar.admit_utf8_length(prefix, state.value_limits.max_text_bytes)
@@ -458,11 +488,60 @@ fn encode_pool_identity_component(state : PoolState) -> Result[Unit, PoolIssue] 
     return Err(InvalidPoolIdentity(state.record))
   }
   output.write_string(prefix)
-  output.write_string(text)
-  output.write_string(suffix)
   state.identity_bytes += prefix_bytes + text_bytes + suffix.length()
-  state.identity_probe += 1
+  if text.length() <= 64 {
+    output.write_string(text)
+    output.write_string(suffix)
+    state.identity_probe += 1
+  } else {
+    state.identity_copy = Some(text)
+    state.identity_offset = 0
+    state.phase = CopyRelationIdentity
+  }
   Ok(())
+}
+
+///|
+fn copy_pool_identity_component(state : PoolState) -> Result[Unit, PoolIssue] {
+  guard state.identity_builder is Some(output) &&
+    state.identity_copy is Some(text) else {
+    return Err(InvalidPoolKernel)
+  }
+  let start = state.identity_offset
+  let mut end = start + Int::min(64, text.length() - start)
+  // Never split an admitted scalar in the builder's chunked copy.
+  if end < text.length() &&
+    text[end - 1].to_int() >= 0xd800 &&
+    text[end - 1].to_int() <= 0xdbff {
+    end -= 1
+  }
+  output.write_string(text[start:end].to_owned())
+  state.identity_offset = end
+  if end == text.length() {
+    output.write_string("|")
+    state.identity_copy = None
+    state.identity_probe += 1
+    state.phase = EncodeRelationIdentity
+  }
+  Ok(())
+}
+
+///|
+fn recheck_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
+  guard state.identity_recheck is Some(cursor) else {
+    return Err(InvalidPoolKernel)
+  }
+  match @value.advance_recheck_runtime_value(cursor) {
+    @value.RecheckContinue => Ok(())
+    @value.RecheckFailed => Err(InvalidPoolIdentity(state.record))
+    @value.RecheckComplete(value, _, _) => {
+      state.identity_recheck = None
+      state.collected_identities.push(value)
+      state.component = 0
+      state.phase = ValidateComponents
+      Ok(())
+    }
+  }
 }
 
 ///|
@@ -1000,6 +1079,20 @@ fn pool_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      CopyRelationIdentity => {
+        used += 1
+        match copy_pool_identity_component(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      RecheckRelationIdentity => {
+        used += 1
+        match recheck_pool_identity(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
       ValidateComponents =>
         if state.component < state.dimensions {
           used += 1
@@ -1196,6 +1289,15 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
   state.collected_groups = []
   state.collected_identities = []
   state.identity_builder = None
+  if state.identity_text is Some(cursor) {
+    @value.cancel_scalar_text(cursor)
+  }
+  if state.identity_recheck is Some(cursor) {
+    @value.cancel_recheck_runtime_value(cursor)
+  }
+  state.identity_text = None
+  state.identity_copy = None
+  state.identity_recheck = None
   state.records = []
   state.scratch = []
   state.output_fields = []
@@ -1324,6 +1426,10 @@ fn start_pool_carrier_source(
     group_probe: 0,
     identity_probe: 0,
     identity_builder: None,
+    identity_text: None,
+    identity_copy: None,
+    identity_offset: 0,
+    identity_recheck: None,
     identity_bytes: 0,
     current_field: None,
     source_vector: None,
@@ -1606,6 +1712,10 @@ pub fn start_relation_pool(
     group_probe: 0,
     identity_probe: 0,
     identity_builder: None,
+    identity_text: None,
+    identity_copy: None,
+    identity_offset: 0,
+    identity_recheck: None,
     identity_bytes: 0,
     current_field: None,
     source_vector: None,

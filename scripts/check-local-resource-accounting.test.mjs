@@ -215,7 +215,10 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
     'pool_identity_output_control_stop', 'pool_record_contract_names',
     'pool_record_contract_workspace', 'pool_record_contract_cleanup',
-    'pool_record_contract_pair_limits', 'pool_record_contract_binding']) {
+    'pool_record_contract_pair_limits', 'pool_record_contract_binding',
+    'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
+    'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
+    'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');
@@ -234,6 +237,18 @@ test('Pool output requires shared append accounting and public stop custody evid
     route.environment_tests = route.environment_tests.filter(item =>
       item.role !== 'pool_identity_output_public_store');
   }), /VecA pool_vectors: Pool identity output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_member_encoding_public_store');
+  }), /VecA pool_vectors: Pool member encoding public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_object_name_public_store');
+  }), /VecA pool_vectors: Pool Object name public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');

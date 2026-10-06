@@ -4,10 +4,27 @@
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
+import {DatabaseSync} from 'node:sqlite';
 import {connectEmbeddedLocal} from '../../../host-node/embedded-local.mjs';
 
 const [step, installationPath] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(installationPath, 'utf8'));
+// A test fault: the first close of a journal of this module fails.
+const faultModule = process.env.ACTQL_EMBEDDED_FAIL_FIRST_CLOSE;
+const closes = {attempts: 0, failed: 0};
+if (faultModule !== undefined) {
+  const original = DatabaseSync.prototype.close;
+  DatabaseSync.prototype.close = function () {
+    if (new Error().stack.includes(faultModule)) {
+      closes.attempts++;
+      if (closes.failed === 0) {
+        closes.failed++;
+        throw new Error('InjectedJournalCloseFailure');
+      }
+    }
+    return original.call(this);
+  };
+}
 const secret = async () => 'test-only-secret';
 const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
   durability: 'durable', installation: {
@@ -63,8 +80,13 @@ try {
         .includes(current.status) ? current : undefined;
     });
     const rows = state.status === 'succeeded'
-      ? await execution.result('updates').all() : undefined;
-    console.log(JSON.stringify({status: state.status, rows}));
+      ? await execution.result(installation.resultName ?? 'updates').all()
+      : undefined;
+    // Wait for the Run's physical work and cleanup to be confirmed stopped.
+    await waitFor(async () => (await execution.status()).control
+      ?.physical_stop === 'confirmed');
+    console.log(JSON.stringify({status: state.status, rows,
+      ...(faultModule === undefined ? {} : {closes})}));
   } else {
     throw new Error('InvalidEmbeddedStep');
   }

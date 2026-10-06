@@ -3675,6 +3675,56 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: check formats retain submitted coordinates and protected equivalence`, async t => {
+    const client = await open(t, configurations.denied);
+    const outcome = await client.check('\ufeff/*😀*/\r\nSELECT (', {format: 'sql'});
+    const json = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+    assert.equal(json.observation.report.verdict, 'invalid', '[check-mutation:format-verdict]');
+    assert.deepEqual(json.entries[0].location, {kind: 'text', documentId: 'source',
+      revision: outcome.report.inputs[0].revision, startByte: 21, endByte: 21, precision: 'exact',
+      positionEncoding: 'utf-16', range: {start: {line: 1, character: 8}, end: {line: 1, character: 8}}},
+    '[check-mutation:format-location]');
+    const copied = JSON.parse(sdk.formatCheckOutcome(JSON.parse(JSON.stringify(outcome)), {format: 'json'}));
+    assert.equal(Object.hasOwn(copied.entries[0], 'location'), false, '[check-mutation:format-stale]');
+    const input = getCheckInput(outcome, 'source');
+    for (const currentInputs of [[], [{...input, text: 'SELECT 1 AS n'}],
+      [{...input, revision: 'rev:' + '0'.repeat(64)}]]) {
+      const stale = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false, '[check-mutation:format-stale]');
+      assert.equal(stale.observation.report.verdict, 'invalid');
+    }
+    assert.deepEqual(JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [input]})), json);
+    let reads = 0;
+    const changing = {...input, get text() { return ++reads <= 2 ? input.text : ' '.repeat(21); }};
+    const owned = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [changing]}));
+    assert.deepEqual(owned.entries[0].location.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}}, '[check-mutation:format-owned-input]');
+
+    for (const format of ['text', 'html', 'json']) {
+      const views = [];
+      for (const configuration of [configurations.absent, configurations.denied]) {
+        const selected = await contextClient(t, entrance, sourceEnvironment, {
+          aliases: configuration.aliases,
+          ...(configuration.aliases.length ? {readOutcome: configuration.readOutcome} : {})});
+        const check = await selected.check('SELECT @x AS n FROM records', {format: 'sql',
+          parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 'private-supplied-value'}});
+        const rendered = sdk.formatCheckOutcome(check, {format});
+        assert.doesNotMatch(rendered, /private-supplied-value|records\.duckdb/u, '[check-mutation:format-input]');
+        views.push(rendered);
+      }
+      assert.equal(views[0], views[1], '[check-mutation:format-disclosure]');
+      if (format === 'json') {
+        const model = JSON.parse(views[0]);
+        assert.equal(model.observation.report.verdict, 'invalid');
+        assert.deepEqual(model.entries.map(x => x.kind), ['violation', 'unresolved']);
+      }
+    }
+    client.assertNoExecution();
+  });
+}
+
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: raw check ingress refuses lossy source numbers`, async t => {
     let post, checked = 0;
@@ -3796,3 +3846,66 @@ test('local: check snapshots cannot erase or introduce unexpected request fields
   assert.deepEqual(result, {code: 'InvalidClientRequest'});
   assert.equal(checked, 0);
 });
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unsaved document sessions bind current revisions and reply order`, async t => {
+    let hold = false;
+    const waiting = [];
+    let arrived;
+    const client = await contextClient(t, entrance, absentEnvironment, {
+      mutateCheckReply: outcome => hold ? new Promise(resolve => {
+        waiting.push(() => resolve(outcome));
+        arrived?.();
+      }) : outcome,
+    });
+    const waitFor = count => waiting.length >= count ? Promise.resolve() :
+      new Promise(resolve => {arrived = () => {if (waiting.length >= count) resolve();};});
+    // Independent source bytes include BOM, a non-BMP scalar and unchanged CRLF.
+    for (const [encoding, eof] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: eof}, end: {line: 0, character: eof}},
+        '[check-mutation:document-public-encoding]');
+      assert.equal(getCheckInput(observation.outcome, 'source').text, '\ufeff/*😀*/SELECT (');
+      session.close();
+    }
+    const session = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    hold = true;
+    const first = session.check({format: 'sql'});
+    const second = session.check({format: 'sql', parameters: {x: 'private-second-binding'}});
+    await waitFor(2);
+    waiting[1](); const newer = await second;
+    waiting[0](); const older = await first;
+    const location = newer.outcome.report.reasons[0].location;
+    assert.equal(newer.outcome.report.verdict, 'invalid');
+    assert.deepEqual(session.resolveTextRange(newer, location)?.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
+    assert.equal(session.resolveTextRange(older, older.outcome.report.reasons[0].location), undefined,
+      '[check-mutation:document-public-order]');
+    assert.equal(session.resolveTextRange({...newer}, location), undefined,
+      '[check-mutation:document-public-copy]');
+    session.update('SELECT 1 AS n', 2);
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-current]');
+    const closing = session.check({format: 'sql'});
+    await waitFor(3); session.close(); waiting[2](); const closed = await closing;
+    assert.equal(closed.outcome.report.verdict, 'verified');
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-close]');
+    hold = false;
+    const reopened = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    assert.equal(reopened.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-session]');
+    const current = await reopened.check({format: 'sql'});
+    assert.ok(reopened.resolveTextRange(current, current.outcome.report.reasons[0].location));
+    assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
+    assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
+    reopened.close();
+  });
+}

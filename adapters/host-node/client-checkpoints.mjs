@@ -1315,11 +1315,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
           !Array.isArray(target.physicalBindings) || target.physicalBindings.length === 0) {
         fail('InvalidEffectTargetContinuation');
       }
-      target = JSON.parse(canonicalValueJson(target));
+      target = JSON.parse(canonicalValueJson(target, {dataKeys: true}));
       const scope = effectTargetReadScope({runDefinitionCid, unitId,
         authorityScopeCid, principalId: ownerPrincipal, inventoryCid, target});
       // Bind the exact provider data retained and shown for this approval.
-      const scopeCid = `sha256:${hex(canonicalValueJson(scope))}`;
+      const scopeCid = `sha256:${hex(canonicalValueJson(scope, {dataKeys: true}))}`;
       const read = await createLocalAuthorizationGate({
         accountConfiguration: effectTarget.accountConfiguration,
         context: effectTarget.context, ...decisionOptions, decide,
@@ -1334,7 +1334,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
             const reviewWire = canonicalValueJson({scope,
               configuration_cid: effectTargetGate.configurationCid,
-              context_cid: effectTargetGate.contextCid});
+              context_cid: effectTargetGate.contextCid}, {dataKeys: true});
             if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
             const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
               {name: 'review_projection', wire: reviewWire},

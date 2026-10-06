@@ -2,7 +2,30 @@
 fn vector_input_recheck_owner(
   id : Int,
   pooling? : Bool = false,
+  object_names? : Bool = false,
 ) -> @lower.BoundPrepared {
+  let name = String::make(130, 'x')
+  let unused_schema = if object_names {
+    let object = "{\"type\":\"object\",\"nullable\":false," +
+      "\"fields\":{\"" +
+      name +
+      "\":{\"type\":\"number\",\"nullable\":false}}}"
+    "\"aa_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":112," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}},\"zz_unused\":" +
+    object
+  } else {
+    "\"zz_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":257," +
+    "\"items\":{\"type\":\"number\",\"nullable\":false}}"
+  }
+  let unused_values = if object_names {
+    "\"aa_unused\":[" +
+    Array::make(112, "1").join(",") +
+    "],\"zz_unused\":{\"" +
+    name +
+    "\":2}"
+  } else {
+    "\"zz_unused\":[" + Array::make(257, "1").join(",") + "]"
+  }
   let group_schema = if pooling {
     "\"group\":{\"type\":\"number\",\"nullable\":false},"
   } else {
@@ -21,14 +44,14 @@ fn vector_input_recheck_owner(
         group_schema +
         "\"id\":{\"type\":\"number\",\"nullable\":false}," +
         "\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false}," +
-        "\"zz_unused\":{\"type\":\"array\",\"nullable\":false,\"max_items\":257," +
-        "\"items\":{\"type\":\"number\",\"nullable\":false}}},\"rows\":[{" +
+        unused_schema +
+        "},\"rows\":[{" +
         group_value +
         "\"id\":" +
         id.to_string() +
-        ",\"embedding\":[1,2],\"zz_unused\":[" +
-        Array::make(257, "1").join(",") +
-        "]}]},\"as\":\"rows\"}" +
+        ",\"embedding\":[1,2]," +
+        unused_values +
+        "}]},\"as\":\"rows\"}" +
         keyed +
         "]",
       ),

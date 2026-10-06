@@ -84,7 +84,7 @@ export function observationUnits(action, output, status) {
     assert(result.counts.passed >= action.minimumUnits, 'Zero/incomplete executed action');
     return result.counts.passed;
   }
-  if (action.id === 'model') {
+  if (action.id === 'model' || action.id === 'events-model') {
     const match = /^Checked (\d+) theorems, expected claim types and axiom dependencies$/mu.exec(output);
     assert(match && Number(match[1]) === action.minimumUnits, 'Missing typed theorem/axiom result');
     assert(!/sorryAx/u.test(output));
