@@ -50,8 +50,16 @@ const retainedCancelBeforeConsumer =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CANCEL_BEFORE_CONSUMER === '1';
 const retainedProducerHolderRecreation =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_PRODUCER_HOLDER_RECREATION === '1';
+const retainedHandoffInterruption = process.env.ACTQL_TEST_RESIDENT_RETAINED_HANDOFF_INTERRUPTION;
+if (retainedHandoffInterruption !== undefined &&
+  !['receiver-committed', 'consumer-borrowed'].includes(retainedHandoffInterruption)) {
+  throw new Error('unknown retained handoff interruption');
+}
+if (retainedHandoffInterruption !== undefined && retainedProducerHolderRecreation) {
+  throw new Error('select one holder interruption boundary');
+}
 if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
-  retainedProducerHolderRecreation) && !retainedConsumerMode) {
+  retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined) && !retainedConsumerMode) {
   throw new Error('retained fault selection requires the retained consumer case');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
@@ -888,8 +896,40 @@ try {
         '--retained-route-capability-cid', routeCapabilityCid,
         '--retained-consumer-engine-bytes', '67108864',
         ...(retainedProducerHolderRecreation
-          ? ['--holder-kill-at', 'completed-producer'] : [])]);
+          ? ['--holder-kill-at', 'completed-producer'] : []),
+        ...(retainedHandoffInterruption === undefined ? [] : [
+          '--holder-kill-at', `retained-${retainedHandoffInterruption}`,
+          '--holder-pause-at', `retained-${retainedHandoffInterruption}`,
+          '--holder-pause-ms', '2000',
+        ])]);
       currentSite = site;
+      const retainedJournalRows = namespace => {
+        const database = new DatabaseSync(join(root, 'site-transfer.sqlite3'), {readOnly: true});
+        try {
+          database.exec('PRAGMA busy_timeout = 5000');
+          return database.prepare('SELECT record_key, revision, CAST(body AS TEXT) AS body ' +
+            'FROM actql_records WHERE namespace=? ORDER BY record_key').all(namespace)
+            .map(row => ({...row}));
+        } finally { database.close(); }
+      };
+      const waitForHandoffInterruption = async () => {
+        const point = `retained-${retainedHandoffInterruption}`;
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-paused' &&
+          line.point === point), 'durable retained interruption checkpoint');
+        const allocations = retainedJournalRows('remote_transfer_destination_allocation');
+        assert.ok(allocations.length > 0);
+        assert.ok(allocations.every(row => ['sealed', 'reused'].includes(row.body.split('\n')[3])));
+        const readers = retainedJournalRows('remote_transfer_destination_reader');
+        await writeFile(join(root, `retained-${retainedHandoffInterruption}-snapshot.json`),
+          JSON.stringify({allocations, readers}), {mode: 0o600});
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+          line.point === point), 'retained holder physical interruption');
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+          'retained holder physical exit');
+        assert.equal((await entries()).length, 1, 'consumer has not started at the interrupted boundary');
+        return {allocations, readers};
+      };
+      let interruptedReceiver;
       const producerDispatch = dispatchFor('retained-producer', 1);
       await ensureOutputReceiver(producerDispatch);
       let cancellationRequested = false;
@@ -960,8 +1000,20 @@ try {
           line.request_cid === siteControl.identity(producerDispatch)));
         assert.equal((await entries()).length, 1, 'holder recreation cannot reacquire Source');
       }
-      let result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
-        'physical retained input transfer');
+      const physicalTransfer = within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+        'physical retained input transfer').catch(error => error);
+      if (retainedHandoffInterruption === 'receiver-committed') {
+        interruptedReceiver = await waitForHandoffInterruption();
+        assert.deepEqual(interruptedReceiver.readers, []);
+      }
+      let result = await physicalTransfer;
+      if (result instanceof Error) throw result;
+      if (retainedHandoffInterruption === 'receiver-committed') {
+        assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
+          interruptedReceiver.allocations, 'committed receiver allocations are not rewritten');
+        assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+      }
       if (retainedCoordinatorReconstruction) {
         assert.equal(gateway.pending(), 0);
         const origin = gateway.origin;
@@ -1085,8 +1137,33 @@ try {
       } else {
         assert.equal(prepareTaskStart(consumerDispatch, 1), true,
           'checked dependency proof admits only the saved consumer intent');
-        await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
-          dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
+        const consumerDelivery = within(gateway.dispatch({dispatch: consumerDispatch,
+          inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
+        'retained consumer actual holder relay').catch(error => error);
+        if (retainedHandoffInterruption === 'consumer-borrowed') {
+          interruptedReceiver = await waitForHandoffInterruption();
+          assert.equal(interruptedReceiver.readers.length, 1);
+          assert.equal(interruptedReceiver.readers[0].revision, 0);
+          assert.equal(interruptedReceiver.readers[0].body.split('\n')[3], issued.cid);
+          assert.equal(interruptedReceiver.readers[0].body.split('\n')[4], 'active');
+          // The accepted consumer has not entered execution. Stop its old
+          // transport waiter before reconstructing the completed producer;
+          // otherwise FIFO delivery keeps offering it to an absent holder.
+          // Its original intent and active borrow remain in the Site journal.
+          assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
+          const interruptedDelivery = await consumerDelivery;
+          assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
+          const replay = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
+            'recreate original holder and committed receiver');
+          assert.deepEqual(runHost.retainedInputResultFacts(replay), runHost.retainedInputResultFacts(result));
+          assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
+            interruptedReceiver.allocations, 'committed handoff is not physically retransferred');
+          await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+            dispatchEnvelope: consumerEnvelope}), 'same accepted consumer with original borrow');
+        } else {
+          const delivered = await consumerDelivery;
+          if (delivered instanceof Error) throw delivered;
+        }
         const terminal = await settledQuery(consumerDispatch, 'retained consumer');
         assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
         const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
@@ -1152,6 +1229,13 @@ try {
         line.request_cid === siteControl.identity(producerDispatch));
       assert.ok(acceptedProducer, 'original producer admission was observed');
       assert.equal(acquisitions[0].attempt, acceptedProducer.attempt);
+      if (retainedHandoffInterruption === 'consumer-borrowed') {
+        const returned = retainedJournalRows('remote_transfer_destination_reader');
+        assert.equal(returned.length, 1, 'no second reader identity is created');
+        assert.equal(returned[0].record_key, interruptedReceiver.readers[0].record_key);
+        assert.equal(returned[0].revision, 1, 'original borrow is returned exactly once');
+        assert.equal(returned[0].body.split('\n')[4], 'released');
+      }
       const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'),
         {readOnly: true});
       try {
@@ -1182,7 +1266,10 @@ try {
         checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
-        producerHolderRecreated: retainedProducerHolderRecreation,
+        producerHolderRecreated: retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined,
+        retainedHandoffInterruption: retainedHandoffInterruption ?? null,
+        committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined,
+        originalBorrowReturnedOnce: retainedHandoffInterruption === 'consumer-borrowed',
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,
         publicCloudAcceptance: false}));

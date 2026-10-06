@@ -2530,6 +2530,11 @@ fn serve_holder_output(
                       claimant,
                       current_time,
                       executor_entry,
+                      borrow_observe=() => {
+                        holder_checkpoint(resources)(
+                          "retained-consumer-borrowed",
+                        )
+                      },
                     ) {
                     Ok(completed) => {
                       consumer_process_hold.val = None
@@ -2810,6 +2815,9 @@ fn serve_holder_output(
                 }
               }
               if completed {
+                // Durable receiver receipt precedes this interruption point;
+                // neither a result report nor a consumer start is implied.
+                holder_checkpoint(resources)("retained-receiver-committed")
                 match handoff.result() {
                   Ok(result) =>
                     match
@@ -3451,7 +3459,18 @@ fn run_holder(
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
       serve_holder_output(
-        resources,
+        // These deterministic interruption points target the original holder.
+        // The reconstructed holder must resume the same custody, not be
+        // repeatedly killed at the same historical boundary.
+        if saved_completion &&
+          (
+            resources.kill_at == "retained-receiver-committed" ||
+            resources.kill_at == "retained-consumer-borrowed"
+          ) {
+          { ..resources, kill_at: "none", pause_at: "none", }
+        } else {
+          resources
+        },
         environment,
         executed,
         run_admission(matches),
