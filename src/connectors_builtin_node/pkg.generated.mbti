@@ -2154,6 +2154,8 @@ pub fn strategy_remote_dispatch_reply_json(@remote_site_protocol.DispatchRecord)
 
 pub fn strategy_remote_dispatch_response_admit_json(String, @remote_site_protocol.DispatchRequest, Bool) -> @remote_site_protocol.RemoteDispatchResponse raise NodeHostFailure
 
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(@remote_site_protocol.RemoteDispatchResponse) -> Bool
+
 pub fn strategy_remote_dispatch_response_evidence(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteExecutionEvidence?
 
 pub fn strategy_remote_dispatch_response_measurement(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteManagedOutputMeasurement?
