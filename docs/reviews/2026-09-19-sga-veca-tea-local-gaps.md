@@ -298,6 +298,26 @@ Existing portable predicate resource and stop fixtures remain the boundary
 evidence for the shared MATCH kernels. These cases do not certify every
 selector, projection or missing-property variant.
 
+### Immutable schema admission facts (2026-10-07)
+
+The common Relation Schema owner retains required-column and qualification
+facts already established during construction. Per-cell retained input, row
+measurement and wire readers now use constant-time fact access instead of
+rescanning all scoped fields. Presence remains independent of nullability;
+no caller array or restored serialized assertion may supply these facts.
+
+The wide 257-column corpus covers qualification/conditional combinations and
+detached array mutation. Existing bounded presence, input/snapshot and fixed
+schema CID regressions pass. The ordinary Graph-to-sparse-Relation Host fixture
+retains and reloads raw absence/NULL/long Text, reads producer/two-consumer
+Results and confirms stop before reclamation in filter/derive cancellation.
+Its Graph identity JSON cells now use the existing normative typed envelope in
+the independent public and snapshot expectations.
+
+General name lookup and binding preparation remain distinct residuals. See the
+[schema-facts record](2026-10-07-local-schema-admission-facts.md) for executed
+evidence and unverified performance/target/distribution coverage.
+
 ## Status interpretation (2026-09-28)
 
 This document contains chronological investigation notes as well as later
