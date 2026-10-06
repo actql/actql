@@ -25,7 +25,7 @@ import {fileURLToPath} from 'node:url';
 // The latest `main` before the Salesforce Effect moved to the installed row
 // Effect. Re-pin it to such a `main` when the standard runtime changes; the
 // runtime check below is never relaxed.
-export const PREVIOUS_VERSION = 'c42f1647823cd27115963270aba82623c5dbffab';
+export const PREVIOUS_VERSION = '1e611bdaffd775d569772f09c148e667351d7f53';
 
 const repository = fileURLToPath(new URL('../../../../../', import.meta.url));
 const tooling = [
