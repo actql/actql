@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-frontier-admission-types-c19ec6988e7c",
+  "kind": "change",
+  "revision": "c19ec6988e7cbf298953030bff4625f3aeeca492",
+  "parents": [
+    "be30c8fdf2b3133219f7becc74c5667619806c70"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "be30c8fdf2b3133219f7becc74c5667619806c70",
+          "digest": "608aa8b5d858a1c604127a9a1ae08e297f1360fb33c50faeb60c8b10620f3391",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8a61318eb57e661583f82dae2b1b0414702988df11b231c78f2ed123d4e2c64a",
+      "afterMode": "100644",
+      "reason": "Include the actual SDK frontier/admission TypeScript consumers in the existing client-types command so loss of public admission fields fails verification; runtime/protocol semantics and existing checks remain unchanged."
+    }
+  ]
+}

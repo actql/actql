@@ -439,7 +439,11 @@ exhaustion are not author errors. Inaccessible and absent installed Source alias
 share unresolved coverage; an independent public violation remains visible.
 
 `getCheckRequirementFrontier(outcome)` retains the known public parameter
-Requirements of this exact completed SDK response. `equalCheckRequirementFrontiers(a, b)`
+Requirements of this exact completed SDK response. Each typed requirement also
+retains its optional `facts.admission` as `CheckParameterAdmission`, including
+the checked contract, constraints and supplying role. This is the same disclosed
+condition shape returned by `getCheckParameterAdmission`; it adds no validation
+or execution permission. `equalCheckRequirementFrontiers(a, b)`
 compares their bound scope, opaque context reference, reason schema, typed
 obligation set and outstanding coverage. Requirement order, duplicates, fact-key
 order and optional presentation locations do not establish progress. Changed
