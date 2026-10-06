@@ -79,8 +79,19 @@ async function publicCheck(t, entrance) {
     }};
   }
   const handler = createClientHttpHandler(configuration);
+  let acknowledgeChunk, receivedChunks = 0;
   const server = createServer({key, cert}, (request, response) => {
-    if (request.url.endsWith('/check')) counts.exchanges++;
+    if (request.url.endsWith('/check')) {
+      counts.exchanges++;
+      const original = request[Symbol.asyncIterator].bind(request);
+      request[Symbol.asyncIterator] = async function* () {
+        for await (const chunk of original()) {
+          receivedChunks++;
+          acknowledgeChunk?.();
+          yield chunk;
+        }
+      };
+    }
     return handler(request, response);
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -91,7 +102,8 @@ async function publicCheck(t, entrance) {
   const endpoint = `https://127.0.0.1:${server.address().port}/`;
   const client = await connect({mode: 'remote', endpoint, token: 'reader-token'});
   t.after(() => client.close());
-  const send = chunks => new Promise((resolve, reject) => {
+  const send = (chunks, {split = false} = {}) => new Promise((resolve, reject) => {
+    receivedChunks = 0;
     const request = httpsRequest(new URL('actql/client/0.1/check', endpoint), {
       method: 'POST', ca: cert, headers: {'content-type': 'application/json',
         authorization: 'Bearer reader-token'}, signal: AbortSignal.timeout(5000),
@@ -100,14 +112,23 @@ async function publicCheck(t, entrance) {
       response.on('data', chunk => received.push(chunk));
       response.on('error', reject);
       response.on('end', () => {
-        try { resolve({status: response.statusCode,
+        try { resolve({status: response.statusCode, receivedChunks,
           body: JSON.parse(Buffer.concat(received).toString('utf8'))}); }
         catch (error) { reject(error); }
       });
     });
     request.on('error', reject);
-    for (const chunk of chunks) request.write(chunk);
-    request.end();
+    (async () => {
+      for (const chunk of chunks) {
+        if (split) await new Promise(resolve => {
+          acknowledgeChunk = resolve;
+          request.write(chunk);
+        });
+        else request.write(chunk);
+      }
+      acknowledgeChunk = undefined;
+      request.end();
+    })().catch(reject);
   });
   return {client, counts, body, send,
     post: text => send([Buffer.from(JSON.stringify(body(text)))]), connection};
@@ -130,7 +151,8 @@ test('HTTPS: malformed UTF-8 check bytes never enter analysis', async t => {
   }
   // The same stream may split an admitted non-BMP scalar between body chunks.
   const split = await send([prefix, Buffer.from([0xf0, 0x9f]),
-    Buffer.from([0x98, 0x80]), suffix]);
+    Buffer.from([0x98, 0x80]), suffix], {split: true});
+  assert.equal(split.receivedChunks, 4);
   assert.equal(split.body.report?.verdict, 'verified', '[check-mutation:split-wire-scalar]');
   assert.equal(split.status, 200);
   assert.deepEqual(split.body.report.inputs.map(({document_id, byte_length}) =>
