@@ -1081,13 +1081,15 @@ pub fn seal_publication_contract(
   if max_nodes < 2 {
     return Err(InvalidLimits)
   }
+  // Captured values and typed provider outcomes contain opaque JSON keys.
+  // The closed structural schema is still checked below.
   let body = match
     parse_contract_wire(
       body_wire,
       max_wire_bytes,
       max_nodes - 1,
       max_depth,
-      data_keys=name == "captured_run",
+      data_keys=name == "captured_run" || name == "effect_row_outcome_receipt",
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1152,7 +1154,7 @@ pub fn admit_publication_contract(
       max_wire_bytes,
       max_nodes,
       max_depth,
-      data_keys=name == "captured_run",
+      data_keys=name == "captured_run" || name == "effect_row_outcome_receipt",
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

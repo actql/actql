@@ -58,12 +58,12 @@ function continuation(facts, stage) {
       stage.preview),
     ...(facts.targetReads === undefined ? {} : {
       target_read_binding: facts.targetReads.captureBinding()}),
-    provider});
+    provider}, {dataKeys: true});
 }
 
 function checkContinuation(facts, stage) {
   const expected = continuation(facts, stage);
-  if (canonicalValueJson(facts.continuation) !== expected) {
+  if (canonicalValueJson(facts.continuation, {dataKeys: true}) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
 }
