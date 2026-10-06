@@ -175,6 +175,8 @@ pub fn operation_scalar_demand(
     AppendRequirement(_)
     | NormalizeRequirement(_)
     | DeltaRequirement(_)
+    | UnionRequirement(_)
+    | SubtractionRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
     | MatchRequirement(_)

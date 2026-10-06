@@ -7830,13 +7830,194 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "union_graphs",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_composition_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/union.mbt",
+        "symbol": "start_union_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
+        },
+        {
+          "role": "union_positive_work_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union cancellation after positive work keeps shared input custody"
+        },
+        {
+          "role": "union_host_cleanup_failure_retry_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "union_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union reserves independent workspace before the first fold"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "in_flight_cancel": "union_host_delivered_cancel_cleanup",
+          "cleanup": "union_host_cleanup_failure_retry_custody"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+            "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "union_workspace_exact_one_short_before_fold",
+            "one_short_limit": "union_workspace_exact_one_short_before_fold"
+          }
+        }
+      },
+      "environment_tests": [
+        {
+          "role": "union_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph union stops after positive work through the installed Local Host without publishing output"
+        }
+      ]
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "subtract_graphs",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_composition_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/union.mbt",
+        "symbol": "start_subtraction_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "subtract_empty_work_exact_one_short_and_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction empty occurrences have independent work seven and one short rejection"
+        },
+        {
+          "role": "subtract_positive_work_cancel_input_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction cancellation after positive work preserves borrowed input custody"
+        },
+        {
+          "role": "subtract_snapshot_source_revocation_reload_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction snapshot reload restores retained nodes after independent edge removal"
+        },
+        {
+          "role": "subtract_host_cleanup_failure_retry_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "subtract_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction reserves independent workspace before the first fold"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+          "one_short_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+          "in_flight_cancel": "subtract_host_delivered_cancel_cleanup",
+          "cleanup": "subtract_empty_work_exact_one_short_and_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+            "one_short_limit": "subtract_empty_work_exact_one_short_and_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "subtract_workspace_exact_one_short_before_fold",
+            "one_short_limit": "subtract_workspace_exact_one_short_before_fold"
+          }
+        }
+      },
+      "environment_tests": [
+        {
+          "role": "subtract_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph subtraction stops after positive work through the installed Local Host without publishing output"
+        }
+      ]
     },
     {
       "inventory": "families",

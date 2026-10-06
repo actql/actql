@@ -5305,6 +5305,28 @@
       }
     },
     {
+      "requirement_id": "actql.language/structural-graphs.union-identity-compatible-definitions",
+      "statement_sha256": "73346e604197ebfd1437d7f1d1f4630c38c280297fec243425e1228e4333519d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/structural-graphs.union-shared-edge-endpoint-integrity",
+      "statement_sha256": "0dd0bc8a41330ba2cb34cc1162530414684e9552650c8139156c27aa94ffdbff",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "structural-graphs",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/structural-graphs.subtraction-entity-and-property-laws",
       "statement_sha256": "dc94a7f2294ef13ac7677ac283ac9c86843c973e6f10eb8aae9ad7cda095cc63",
       "status": "pending",

@@ -221,3 +221,64 @@ saved fields. The existing Native constructor delegates to its actual execution
 Site. Authority, current lifetime and both Transfer grants remain separate
 checks. Across asynchronous Cloud persistence and delivery, the caller must
 retain its existing Owner revision fence and revalidate before sending.
+
+The resident consumer execution entry reads the exact saved envelope and
+rebuilds its admitted Run before calling a trusted retained-input restoration
+port. That port must reissue the checked edge from this preparation and admit
+the saved binding against the current original producer observation and the
+actual committed Transfer record/receipt. Reusing an input tied to a different
+preparation fails the existing capture-owner check; equal rows or schema do not
+replace that check. This restoration creates neither a borrow nor a reservation.
+
+The existing pinned borrow must name the exact consumer dispatch occurrence.
+Pre-admission refusal keeps it with the caller. The Runtime rechecks the original
+Run lifetime and live input custody at its exclusive start boundary, preserves
+the exact claim and performs Compute through the existing retained executor.
+After capture, its output cleanup returns that borrow; an unconfirmed Runtime
+close retains the same Runtime for retry. A guard refusal before capture cannot
+return a borrow that the Runtime never acquired. The entry does not deliver a
+poll operation, publish a Result, reclaim either holding or complete Run release.
+
+## Internal producer Transfer planning
+
+An internal acquisition task has no public Result definition or publication
+attempt. Its immutable `actql-remote-retained-input-intent/0.1` is issued from
+an available original producer and its checked consumer edge. It names the
+consumer input port and task, both logical fragments, producer output port and
+schema, and exact original completion/managed-subject identities. Existing
+Transfer/grant owners supply the separate movement policy. Protocol construction
+or JSON admission alone does not establish that checked edge or authorize I/O.
+
+`actql-remote-poll-retained-input-plan/0.1` carries the original canonical
+producer dispatch and this intent. It is distinct from public Output planning,
+physical handoff and consumer dispatch. The receiving Host compares the intent
+against its admitted checked producer, then derives the existing Direct Transfer
+request from the Runtime's actual held physical manifest. It does not open a
+payload reader, allocate a receiver or start Compute during planning. Current
+Site identity/generation/bundle, authority, lifetime and both grants must pass
+the existing retained-input preflight before returning the plan.
+
+The resulting `actql-remote-retained-input-plan/0.1` binds that intent and the
+original dispatch to canonical managed subject, execution evidence, physical
+manifest and Transfer request bodies and their identities. Readmission verifies
+all nested originals and their cross-bindings, including the exact Transfer
+occurrence, source material, schema/view/codec, counts and policy. This initial
+profile uses one independent receiver on the same original Site generation;
+it does not authorize generation migration. Physical handoff must revalidate
+current Owners, rather than treating a historical plan as permission to send.
+
+The wire schemas, bounds and fixed preimages are owned by
+`spec/contracts/actql-remote-retained-input-wire.json` and
+`spec/fixtures/remote-retained-input-wire-vectors.json`. String values preserve
+original Unicode and newline bytes; Int64 policy values use canonical decimal
+strings. Structural schema admission is followed by Int64-range, exact
+canonical identity and semantic cross-binding checks. The Coordinator must
+save the exact admitted intent/plan through its existing durable state and
+revision fence before delivering a handoff. Failed or uncertain persistence
+must send nothing. Retrying uses the same saved originals and occurrence, never
+refreshed expiry, regenerated materials or another attempt.
+
+Native callers without an installed checked producer planning port reject this
+operation explicitly and retain the producer responsibility. Wire recognition
+and a Native planning/handoff caller do not establish ordinary resident holder
+routing, durable Cloud delivery, Result publication or both-task Run release.

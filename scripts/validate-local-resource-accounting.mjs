@@ -2147,6 +2147,11 @@ export function validateResourceAccounting({
       if (structuralRole && !boundaryRoles.has(structuralRole)) {
         fail(`${label}: structural Graph cumulative-work evidence is missing`);
       }
+      if (route.operation === 'union_graphs' &&
+        (!boundaryRoles.has('union_positive_work_cancel_cleanup') ||
+          !boundaryRoles.has('union_host_cleanup_failure_retry_custody'))) {
+        fail(`${label}: union positive-work cancellation and cleanup evidence is missing`);
+      }
     }
     if (route.family === 'VecAExpression') {
       const required = [
