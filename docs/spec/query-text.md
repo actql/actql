@@ -111,8 +111,9 @@ star that would otherwise appear to be an identity projection. The selected
 [GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
 also permits expression/STRUCT receivers. Those broader receivers remain
 unconnected coverage; they are not reinterpreted as Relation ranges.
-Existing restrictions on direct Graph star and unqualified JOIN star remain
-explicit implementation gaps, not restrictions of the selected reference.
+Direct Graph star and FULL JOIN chains retain explicit implementation gaps,
+not restrictions of the selected reference. Supported INNER/LEFT/RIGHT/CROSS
+joins expand unqualified star from their complete current visible row.
 
 `SELECT * REPLACE (expression AS column, ...)`, also following a supported
 range star and EXCEPT list, changes selected values/types while retaining the
@@ -246,6 +247,16 @@ publication. A selected expression is evaluated once; resolving an alias must
 not duplicate its evaluation, failures or resource accounting. Unqualified
 joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
+
+For the supported shared INNER/LEFT/RIGHT JOIN scope, USING columns lead an
+unqualified star in the authored USING order, followed by remaining left then
+right columns. INNER/LEFT use the left key; RIGHT uses the preserved right
+key. Qualified input ranges keep their own original column names/order and
+values, including nullable unmatched-side keys. Duplicate USING names are
+refused under ordinary case-insensitive field lookup. Star/EXCEPT/REPLACE and
+later projections still produce unique Named Result fields; duplicate public
+names are refused rather than silently renamed or discarded. All expansion
+uses existing slot/type/NULL/identity checks, not schema or evidence inference.
 
 `RIGHT [OUTER] JOIN` uses the existing common LEFT JOIN after exchanging
 input ports and equality-key sides. Projection keeps the original SQL range
