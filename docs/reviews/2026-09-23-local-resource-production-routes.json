@@ -4945,6 +4945,20 @@
           "fixture": "array Text admission has exact limits transfer and stopped cleanup"
         },
         {
+          "role": "group_string_cursor_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/string_aggregate_cursor_wbtest.mbt",
+          "fixture": "string aggregation has independent UTF8 work capacity and buffer limits"
+        },
+        {
+          "role": "group_string_cursor_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/string_aggregate_cursor_wbtest.mbt",
+          "fixture": "string aggregation cancellation closes delimiter item charge and building phases"
+        },
+        {
           "role": "group_stepped_output_cleanup",
           "suite": "moon:execution_relation",
           "targets": [
@@ -5588,6 +5602,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-property-name-retention.test.mjs",
           "fixture": "public retained raw Text array aggregation preserves data and post-progress custody"
+        },
+        {
+          "role": "group_string_cursor_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained string aggregation preserves delimiters data and post-progress custody"
         }
       ],
       "path_assurance": {

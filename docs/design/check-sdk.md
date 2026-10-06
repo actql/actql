@@ -1393,3 +1393,20 @@ The current Graph contracts and their identities are used without old aliases,
 fallbacks or reinterpretation of stored Run identities. This boundary completes
 only the rejected Run-observation part of X6; durable write/cancellation/Delivery
 contracts and their other diagnostic obligations remain separate.
+
+### Catalog representation and presentation
+
+The public check catalog owns the existing closed Reason schema and current
+safe default/conditional English templates. The existing outcome generator
+consumes that schema, and Host wire generation verifies generated SDK metadata,
+types and reference documentation. The catalog does not inspect input, resolve
+names, check expressions or decide verdicts. Typed causes and disclosure remain
+at the existing common projection before serialization.
+
+Catalog revision, public facts schema identity and translation revision are
+separate. Source/Program/Run/Result identities are unchanged by presentation.
+SDK metadata exposes immutable condition, disclosure, location-role, severity
+and family data without authorization or action claims. Unknown codes retain
+safe fallback; malformed known transported facts still reject through the
+existing wire/SDK admission. No legacy compiler catalog or operation outcome
+is relabelled as this public check catalog.

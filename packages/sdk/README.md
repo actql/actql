@@ -1084,3 +1084,19 @@ The current Graph contracts and their identities are used without old aliases,
 fallbacks or reinterpretation of stored Run identities. This boundary completes
 only the rejected Run-observation part of X6; durable write/cancellation/Delivery
 contracts and their other diagnostic obligations remain separate.
+
+### Public check Reason catalog
+
+`getCheckReasonCatalogInfo()` identifies the public check catalog revision and
+its facts schema separately from translation revisions. `getCheckReasonCatalogEntry(code)`
+returns immutable semantic-condition, disclosure, original-location-role and
+presentation metadata for a known code; unknown codes return undefined.
+Severity and family describe presentation, never the check verdict, action
+permission, Run outcome or a retry policy. The existing checker/disclosure
+projection emits facts before the generated SDK advice selects a template.
+
+The catalog's closed Reason schema feeds the existing outcome/wire generator,
+which also checks generated SDK metadata/types and the [reference catalog](../../docs/reference/check-reasons.md).
+Literal scenario expectations remain independent tests. This public catalog is
+separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
+does not claim a legacy compiler catalog body or complete diagnostics coverage.

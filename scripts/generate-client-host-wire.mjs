@@ -1,3 +1,4 @@
+import {generateCheckReasonCatalog} from './generate-check-reason-catalog.mjs';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {join, resolve} from 'node:path';
@@ -117,6 +118,7 @@ export function buildClientHostWire(registry, protocol) {
 }
 
 async function main() {
+  generateCheckReasonCatalog(process.argv.includes('--write'));
   const registry = JSON.parse(await readFile(join(root, source), 'utf8'));
   const protocol = JSON.parse(await readFile(join(root, runStateSource),
     'utf8'));

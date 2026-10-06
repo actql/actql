@@ -299,28 +299,21 @@ fn[R] aggregate_direct_start_finish(
         @lower.group_aggregate_delimiter(s.aggregate) is Some(delimiter) else {
         return Err(InvalidRows)
       }
-      let delimiter_bytes = if values.length() > 1 {
-        match @scalar.admit_utf8_length64(delimiter, maximum) {
-          Ok(bytes) => bytes
-          Err(_) => return Err(RowLimit)
-        }
-      } else {
-        0L
+      let state = match
+        start_aggregate_string(
+          values,
+          delimiter,
+          maximum,
+          s.control,
+          s.workspace,
+        ) {
+        Ok(state) => state
+        Err(issue) => return Err(issue)
       }
-      if !reserve_slots(s.workspace, values.length()) {
-        return Err(RowLimit)
-      }
-      let state = start_aggregate_string(
-        values,
-        delimiter,
-        delimiter_bytes,
-        maximum,
-        s.control,
-      )
       return aggregate_direct_finish_with(
         s,
         () => advance_aggregate_string(state),
-        () => state.closed = true,
+        () => close_aggregate_string(state),
       )
     }
     _ => ()
