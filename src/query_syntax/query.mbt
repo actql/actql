@@ -927,6 +927,7 @@ fn QueryParser::projections(
   let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
+    let receiver = self.range_star_receiver()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
       let except_columns : Array[NamePart] = []
@@ -950,7 +951,7 @@ fn QueryParser::projections(
         }
       }
       {
-        expression: None,
+        expression: receiver,
         aggregate: None,
         analytic: None,
         name: None,
@@ -1022,6 +1023,53 @@ fn QueryParser::projections(
     ignore(self.advance())
   }
   (values, embedded)
+}
+
+///|
+// Keep the star receiver as an ordinary source Reference tree. Quotation and
+// location stay attached to its names; no source text is printed or reparsed.
+fn QueryParser::range_star_receiver(
+  self : QueryParser,
+) -> Expression? raise QueryAbort {
+  let mut scan = self.index
+  while true {
+    self.spend(1)
+    match self.source.tokens[scan].value {
+      Word(value) if ["NULL", "TRUE", "FALSE"].contains(ascii_upper(value)) =>
+        return None
+      Word(_) | QuotedName(_) => ()
+      _ => return None
+    }
+    if self.source.tokens[scan + 1].value != Symbol(46) {
+      return None
+    }
+    if self.source.tokens[scan + 2].value == Symbol(42) {
+      break
+    }
+    scan += 2
+  }
+  let start = self.peek().start
+  if self.expression_nodes >= self.limits.expression.max_nodes ||
+    self.limits.expression.max_depth < 1 {
+    raise QueryAbort("Expression node limit", start)
+  }
+  self.expression_nodes += 1
+  let names = []
+  let mut end = start
+  while true {
+    names.push(self.name())
+    end = self.source.tokens[self.index - 1].end
+    ignore(self.advance()) // The already inspected dot.
+    if self.peek().value == Symbol(42) {
+      break
+    }
+  }
+  Some({
+    source: self.source,
+    nodes: [{ kind: Reference(names), start, end, }],
+    root: 0,
+    work: 1,
+  })
 }
 
 ///|

@@ -97,10 +97,22 @@ star. They do not restore a removed column or range alias. In SQL GROUP
 queries, the retained star columns must be grouped; excluded columns need not
 be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
 its final order. CTE and DATA relations use their current declared columns.
-Existing restrictions on direct Graph star and unsupported JOIN star remain
-explicit implementation gaps. Qualified or expression star and REPLACE are
-separate unconnected coverage; this exclusion connection does not establish
-their execution support or restrict their adopted GoogleSQL meanings.
+`alias.*`, including an EXCEPT list, expands an existing Relation range alias
+in its declared column order. The receiver is a source Reference with ordinary
+alias quotation/name resolution, not a string interpreted as a schema. SQL,
+Pipe, CTE and JOIN ranges share the same physical-slot scope. SET/DROP/RENAME
+retain the bound range's original values; Pipe AS replaces that range. SELECT
+materialization ends its input range scope, while a deferred query ORDER may
+still consume the admitted SELECT input snapshot before that materialization.
+SQL GROUP ordinals count the expanded and excluded range columns, and every
+retained star column must be grouped. LEFT JOIN nullability belongs to the
+common joined schema. A missing or displaced range is refused, including a
+star that would otherwise appear to be an identity projection. The selected
+[GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
+also permits expression/STRUCT receivers. Those broader receivers and REPLACE
+remain unconnected coverage; they are not reinterpreted as Relation ranges.
+Existing restrictions on direct Graph star and unqualified JOIN star remain
+explicit implementation gaps, not restrictions of the selected reference.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
