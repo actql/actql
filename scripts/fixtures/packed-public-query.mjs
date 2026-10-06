@@ -332,7 +332,7 @@ if (scopedOrderOnly) {
 // declared analytic envelope, including when the full corpus combines profiles.
 for (const {name: profileName, capacity: analyticCapacity, inputs: profileInputs}
   of publicQueryProfiles(scopeInputs)) {
-const scopeInputs = analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses, refusals: analyticPartitionExpressionRefusals, executionFailures: analyticPartitionExpressionExecutionFailures} : profileInputs;
+const scopeInputs = profileInputs;
 if (analyticFrameParameterOnly) assert.deepEqual(analyticCapacity, analyticFrameParameterCapacity);
 const suffix = profileName === 'standard' ? '' : `-${profileName}`;
 const localDirectory = resolve(`local-state${suffix}`);

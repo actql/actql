@@ -77,6 +77,20 @@ independent fixtures/profile consumers/identity vectors passed 20/20 Node
 partition/ORDER slot sharing and existing property/order callers. Both failures
 are retained, not represented as successful invocations.
 
+The first ordinary five-package pack at
+`86cf235d3abb89c6ee4fd5f830750ecfc8aeeadd` has receipt
+`public-query-evidence-7vNVPf`. Command 008 (`acceptance.mjs`) passed all
+11 normal, 8 preparation-refusal and 1 execution-failure cases on both Local
+and HTTPS. The overall invocation nevertheless failed: command 009 started
+the unrelated String restart campaign and could not find
+`retained-string-results.json`. Its failure logs are retained. The driver
+repair includes this selection in the existing post-acceptance return and
+restores the per-profile input binding; it does not weaken or change any
+product expectation. Focused registration tests guard both selection boundaries.
+This failed overall receipt is not presented as a successful final campaign.
+The repaired driver/fixture/profile checks passed 11/11 Node tests through
+`scripts/local-checks.mjs` (`run-cDD93i`, `focused-test-01pDR2`).
+
 Manifest, metadata, spec-family and canonical-vector freshness checks passed;
 changed-file formatting and diff checks are retained. Full Core, Wasm/native,
 proof, performance, complete packed corpus and Cloud are not run locally.

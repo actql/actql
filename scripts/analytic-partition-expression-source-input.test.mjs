@@ -35,7 +35,10 @@ test('partition expressions enter the ordinary packed corpus and existing narrow
     ['executionFailures', 'analyticPartitionExpressionExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }
-  assert.ok(fixture.includes('analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses'));
+  assert.equal(fixture.split('analyticPartitionExpressionOnly ? {successes: analyticPartitionExpressionSuccesses').length - 1, 1);
+  assert.match(fixture, /of publicQueryProfiles\(scopeInputs\)\) \{\s*const scopeInputs = profileInputs;/);
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_ANALYTIC_PARTITION_EXPRESSION_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/analytic-partition-expression-source-input.mjs', 'analytic-partition-expression-source-input.mjs']"));
+  const afterAcceptance = driver.slice(driver.indexOf("if (process.argv.includes('--having-object-property-only')) return;"));
+  assert.match(afterAcceptance, /if \(plannerSelectionOnly[^;]*process\.argv\.includes\('--analytic-partition-expression-only'\)[^;]*\) return;/);
 });
