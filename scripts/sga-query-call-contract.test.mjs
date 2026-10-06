@@ -52,10 +52,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
-  // Preserve the pre-ALL normative inputs for every historical vector below.
+  // Preserve main's complete pre-ALL normative closure.
   const body = {...currentBody,
-    query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
-    query_text_rules_sha256: '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
+    query_text_grammar_sha256: '1d1e8ed2ce6628d2e370b57cd1812606c570f4255c166de53fcc99cb3dc30905',
+    query_text_rules_sha256: 'dc5657fec9433f934687f3d030f88010bc2840354498a599aaff6fb09387d08a'};
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
   // role, combined with the adopted Frontend text rules. Retain both
@@ -207,13 +207,14 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}),
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
-  const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
-  assert.equal(currentBody.query_text_grammar_sha256,
-    'f845678d92e798b30cb3083efca014c96b8f389e14858f080984c7e71c2e68d8');
-  assert.equal(currentBody.query_text_rules_sha256,
-    'd37eaa128b5204b5845877af41601df7ccbc803522be01894ba240addf7625df');
-  const currentExpected = 'sha256:83dada5a89e2b221799c9b5c8aadc712aac474c5bb7ce70f2516c17b628d25c6';
+  // The SELECT ALL predecessor remains bound to its own complete preimage.
+  const priorAllBody = {"version":"actql-grammar-manifest/0.1","source_grammar_cid":"sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae","operations":["analytic","append","apply_graph_delta","asof_join","assert_rows","calendar_bucket","calendar_series","components","cross_join","dedupe_events","dedupe_rows","degree","derive","distinct","drop","edge_rows","events","except","filter","graft_graph","graph","graph_bounds","graph_diff","graphs_equal","group","infer","intersect","interval_join","join","json_pick","lag","match_edges","match_nodes","mean_graphs","merge_rankings","nearest","nest","node_rows","normalize_graph","normalize_vectors","pivot","pool_vectors","property_graph","reach","rename","row_window","score_vectors","search_candidates","select","sequence","serialize","session","shortest_path","sort","subgraph","subtract_graphs","take","text_rank","time_series","to_events","to_vectors","top_k","top_k_by","traverse","union_graphs","unnest","unpivot","values","vectors","watermark_events","watermark_rows","window_events","window_group"],"expression_contract_cid":"sha256:e14e1d9434909f1d0a68dc0441a6260c07476d662d237517d548de4dff0ac50f","expression_text_grammar_sha256":"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7","expression_text_rules_sha256":"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2","structural_text_grammar_sha256":"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56","structural_text_rules_sha256":"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762","query_text_grammar_sha256":"f845678d92e798b30cb3083efca014c96b8f389e14858f080984c7e71c2e68d8","query_text_rules_sha256":"d37eaa128b5204b5845877af41601df7ccbc803522be01894ba240addf7625df"};
+  assert.equal(cid(priorAllBody), 'sha256:83dada5a89e2b221799c9b5c8aadc712aac474c5bb7ce70f2516c17b628d25c6');
+  const currentExpected = 'sha256:1c3aaf05a32d93786cccab80b36e627ea43cc1b62a26479f3a9e1e8266fe9194';
+  assert.equal(currentBody.query_text_grammar_sha256, '17d70ad596f0d54e9a4dbeaec396212e999a869de2ead91a2260d1f2b3cc7759');
+  assert.equal(currentBody.query_text_rules_sha256, '935db546d0186de2f1de2327ec56dad434e128e8163ad4bd86d5b15e47de4a72');
   assert.equal(cid(currentBody), currentExpected);
+  const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
   assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
