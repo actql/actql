@@ -54,6 +54,8 @@ async function runVectorRecordBoundary(t, score) {
   });
   let cancelling = false;
   let prefixComplete = false;
+  let prefixWork = 0;
+  let prefixProgress = 0;
   let work = 0;
   let dispatches = 0;
   let advances = 0;
@@ -78,10 +80,14 @@ async function runVectorRecordBoundary(t, score) {
       if (!cancelling || detail.task !== 1) return;
       trace.push({...detail});
       if (!prefixComplete) {
-        // Three input fields and one commit complete the existing bridge.
-        assert.equal(detail.work, '4');
-        assert.equal(detail.progress, '1');
-        prefixComplete = true;
+        // Stepped bridge: scalar 3 + Vector 260 + Array 262 = 525;
+        // append start 1 + append (28+257+259+1) = 546. Total 1071.
+        // The 256-poll callbacks end with 47; only that tail completes a row.
+        assert.equal(Number(detail.work), Math.min(256, 1071 - prefixWork));
+        prefixWork += Number(detail.work);
+        prefixProgress += Number(detail.progress);
+        assert.equal(prefixProgress, prefixWork === 1071 ? 1 : 0);
+        prefixComplete = prefixWork === 1071;
         return;
       }
       assert.equal(detail.work, '256');
