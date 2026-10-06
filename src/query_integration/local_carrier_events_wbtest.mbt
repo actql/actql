@@ -1198,20 +1198,24 @@ test "Events projection production entrypoint enforces value and width limits" {
     projection_input,
     2,
     { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
+    26,
     1000,
     [external],
-    control_work_limit=Some(26),
+    control_work_limit=Some(134),
   ).unwrap()
   let mut exact_done = false
-  for _ in 0..<40 {
+  // Each row initializes/scans/verifies six cells, makes fourteen binary
+  // name probes, starts the row cursor, then takes 34 row admission polls.
+  // Work = 2*(6+6+14+6+1+34) = 134. Matched cells and recheck custody
+  // reserve 6+13 slots, and the seven-slot scalar row cursor peaks at 26.
+  for _ in 0..<150 {
     if exact_done {
       break
     }
     match @local_bridge.advance_events_to_rows(exact, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(output, work~, ..) => {
-        assert_eq(work, 26L)
+        assert_eq(work, 134L)
         assert_eq(@execution.completed_row_count(output), 2)
         assert_true(
           @execution.completed_output_matches_inputs(output, [external]),
@@ -1231,20 +1235,20 @@ test "Events projection production entrypoint enforces value and width limits" {
     projection_input,
     2,
     { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
+    26,
     1000,
     [external],
-    control_work_limit=Some(25),
+    control_work_limit=Some(133),
   ).unwrap()
   let mut work_failed = false
-  for _ in 0..<40 {
+  for _ in 0..<150 {
     if work_failed {
       break
     }
     match @local_bridge.advance_events_to_rows(one_short_work, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
-        assert_eq(work, 25L)
+        assert_eq(work, 133L)
         work_failed = true
       }
       _ => abort("one-short Events projection did not reject work")
@@ -1267,34 +1271,36 @@ test "Events projection production entrypoint enforces value and width limits" {
   assert_true(
     one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
   )
-  let one_short_value = @local_bridge.start_events_to_rows(
-    @bounded.control(),
-    task_test_completion(owner),
-    sequence,
-    2,
-    projection_input,
-    2,
-    { max_nodes: 13, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
-    1000,
-    [external],
-  ).unwrap()
-  let mut value_failed = false
-  for _ in 0..<40 {
-    if value_failed {
-      break
+  for (nodes, workspace) in [(13, 26), (14, 25)] {
+    let one_short_value = @local_bridge.start_events_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      2,
+      projection_input,
+      2,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      workspace,
+      1000,
+      [external],
+    ).unwrap()
+    let mut value_failed = false
+    for _ in 0..<150 {
+      if value_failed {
+        break
+      }
+      match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Failed(
+          @local_bridge.RelationOutput(@execution.CaptureLimit),
+          ..
+        ) => value_failed = true
+        _ => abort("one-short Events projection did not reject output")
+      }
     }
-    match @local_bridge.advance_events_to_rows(one_short_value, 1).unwrap() {
-      @local_bridge.Continue(..) => ()
-      @local_bridge.Failed(
-        @local_bridge.RelationOutput(@execution.CaptureLimit),
-        ..
-      ) => value_failed = true
-      _ => abort("one-short Events projection did not reject output")
-    }
+    assert_true(value_failed)
+    assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
   }
-  assert_true(value_failed)
-  assert_eq(@local_bridge.cleanup_events_to_rows(one_short_value), Ok(true))
   let control = @bounded.control()
   let cancelled = @local_bridge.start_events_to_rows(
     control,
@@ -1304,7 +1310,7 @@ test "Events projection production entrypoint enforces value and width limits" {
     projection_input,
     2,
     { max_nodes: 14, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
+    26,
     1000,
     [external],
   ).unwrap()
@@ -1416,12 +1422,13 @@ test "Events to rows scans once and enforces projection limits" {
   let mut polls = 0
   while !terminal {
     polls += 1
-    assert_true(polls < 25)
+    assert_true(polls < 75)
     match @local_bridge.advance_events_to_rows(projection, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(rows, work~, ..) => {
-        // Six source probes, six required-field checks, one output append.
-        assert_eq(work, 13L)
+        // Six init/source/verify polls, fourteen binary name probes, one
+        // cursor start and 33 row polls (five numbers and one Text).
+        assert_eq(work, 66L)
         assert_eq(@execution.completed_row_count(rows), 1)
         assert_true(@execution.completed_cell(rows, 0, 0) is Some(Number(1.0)))
         assert_true(@execution.completed_cell(rows, 0, 2) is Some(Number(7.0)))
@@ -1453,11 +1460,11 @@ test "Events to rows scans once and enforces projection limits" {
     @records.producer_read_view(events_input).unwrap(),
     1,
     { max_nodes: 6, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
+    26,
     1000,
   ).unwrap()
   let mut value_failed = false
-  for _ in 0..<25 {
+  for _ in 0..<75 {
     if value_failed {
       break
     }
@@ -1481,7 +1488,7 @@ test "Events to rows scans once and enforces projection limits" {
     @records.producer_read_view(events_input).unwrap(),
     1,
     { max_nodes: 7, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    6,
+    26,
     1000,
   ).unwrap()
   assert_true(

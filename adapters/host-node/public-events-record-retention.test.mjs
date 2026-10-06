@@ -21,6 +21,7 @@ const projectionClock = 'a'.repeat(513);
 const projectionRows = Array.from({length: 61}, (_, index) =>
   ({[projectionClock]: 12, event_id: index + 1, payload: 'a'}));
 const cases = {
+  projection: {projection: true, task: 2, row: baseRow},
   watermark: {step: {watermark_events: {watermark_ms: 10, policy: 'mark'}},
     row: {...baseRow, watermark_ms: 10, late: false, watermark_decision: 'keep'}},
   window: {step: {window_events: {kind: 'fixed', size: 10}},
@@ -54,8 +55,9 @@ function program(id, kind) {
       results: {r: {from: 'out', fields: Object.keys(schema)}}},
     {id: 'bridge', inputs: {rows: {result: {stage: 'values', result: 'r'}}}, steps: [
       {to_events: {id: 'event_id', time: clock}, as: 'source'},
-      {from: 'source', ...cases[kind].step, as: 'computed'},
-      {from: 'computed', events: true, as: 'out'},
+      ...(cases[kind].projection ? [] :
+        [{from: 'source', ...cases[kind].step, as: 'computed'}]),
+      {from: cases[kind].projection ? 'source' : 'computed', events: true, as: 'out'},
     ], results: {r: {from: 'out', fields}}},
     ...['consumer_a', 'consumer_b'].map(id => ({id,
       inputs: {rows: {result: {stage: 'bridge', result: 'r'}}},
@@ -104,8 +106,18 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
       if (step !== 'local_compute_advanced') return;
       advances++;
       if (!cancelling) trace.push({...detail});
-      if (!cancelling || detail.task !== 1) return;
+      if (!cancelling || detail.task !== (cases[kind].task ?? 1)) return;
       trace.push({...detail});
+      if (cases[kind].projection) {
+        // Normal planning separates this projection from the Carrier producer.
+        // Its first quantum lies inside the Array recheck: setup 21 + two
+        // scalar loads 6 + Text load 132 precede the 262-poll Array load.
+        assert.equal(detail.work, '256');
+        assert.equal(detail.progress, '0');
+        barrier.resolve();
+        await released.promise;
+        return;
+      }
       if (cancelBridge) {
         // Poll 256 is inside the unused Array's contract recheck. The
         // independent bridge fixture pins this before any record is appended.
@@ -125,9 +137,8 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
         prefixComplete = true;
         return;
       }
-      // The four-field bridge has completed. Text emission takes 130 polls,
-      // and the Array takes 260. Poll 256 is inside record value emission,
-      // before commit; no fixed sleep determines the cancellation boundary.
+      // The four-field input bridge has completed. Operator poll 256 is
+      // inside record emission. No fixed sleep selects the boundary.
       // For name_session the core fixture derives 126 initialization polls
       // and 18 per loaded record. Clock polls start at 130 + 18*record.
       // Poll 256 is the first fragment in record seven, before any emission.
@@ -250,3 +261,5 @@ test('public retained session rejects aggregate projection text without publicat
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection_limit_session'));
 test('public retained Events bridge stops during unused Array recheck',
   {timeout: 45_000}, t => runEventsRecordBoundary(t, 'watermark', {cancelBridge: true}));
+test('public retained Events projection stops inside unused Array admission',
+  {timeout: 45_000}, t => runEventsRecordBoundary(t, 'projection'));
