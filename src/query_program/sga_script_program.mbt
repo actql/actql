@@ -38,6 +38,7 @@ fn lower_script_graph_calls(
   steps : Array[@builder.Node],
   reserved : Array[String],
   known? : Array[Input] = [],
+  graphs? : Array[ScriptGraph] = [],
 ) -> ScriptGraph raise Abort {
   if @query.cte_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
@@ -49,6 +50,12 @@ fn lower_script_graph_calls(
   for index in 0..<@query.operation_count(query) {
     guard @query.operation_at(query, index) is Some(GraphCall(call)) else {
       break
+    }
+    if call.operation == "union_graphs" {
+      current = lower_script_graph_union(
+        construction, query, call, current, graphs, known, limits, steps, reserved,
+      )
+      continue
     }
     if call.operation == "subgraph" {
       current = lower_script_subgraph(

@@ -639,7 +639,14 @@ test('baseline preimages and changed normative pins independently determine the 
     'sha256:59d7c9a31639edee1087c0ba2e8dc6e2067e4730c4c7bfc14f41cebd065e0c90');
   // Retain the membership main Run with its own normative closure.
   assert.equal(vector('sha256:77be4cfc88fac604780c3c9e46ee859cfab715d2b5853716adf070da0daf9997', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:901e7a8071ad802be11cb882398a56ba6ed5fde6eb23bf2b7d0dea00a5a5fd0a');
-  assert.equal(current.run.run_definition_cid, 'sha256:ece7fab74dc234941183508fd3a3d2e9dcd78424b02497d600645eac7bb38dd2');
+  // Graph union author Run retains its pre-typed-JSON foundational laws.
+  assert.equal(vector('sha256:8cef04355f736983a0fcb4ce73551596ce04f370be0ab9c1d4400f81263842ae',
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    'sha256:6b74c71135148ba3f6eff9ee0cc6e6ec786658242c1dc9cf874dc5cb66f3bd3f');
+  // Preserve the preceding main Run with its own normative grammar.
+  assert.equal(vector('sha256:f22e790ab1d2de10a0076de625968ec2e67372bacd26490f053f45ab44e578cf', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:ece7fab74dc234941183508fd3a3d2e9dcd78424b02497d600645eac7bb38dd2');
+  assert.equal(current.run.run_definition_cid, 'sha256:2c13b6251fa9d7e123b70ae858ac0faf9676300b705dcfbfae355246d1a6c7a5');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
