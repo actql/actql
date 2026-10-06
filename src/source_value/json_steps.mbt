@@ -1,6 +1,8 @@
 ///|
 /// Resumable admission in the existing source owner. Input Unicode/byte
 /// preflight and grammar transitions report their work in the executing poll.
+/// Data-key mode preserves keys for typed payload readers; their domain
+/// admission still follows. The default identifier-key normalization is intact.
 struct JsonParse {
   document : JsonDocument
   mut preflight_offset : Int
@@ -27,12 +29,15 @@ pub fn start_json_parse(
   source : String,
   limits : ParseLimits,
   source_path? : String = "<memory>",
+  data_keys? : Bool = false,
 ) -> Result[JsonParse, ParseError] {
   if !valid_limits(limits) {
     return Err(input_error(InvalidLimits, source_path, Unavailable))
   }
   Ok({
-    document: JsonDocument::make(Parser::make(source, source_path, limits)),
+    document: JsonDocument::make(
+      Parser::make(source, source_path, limits, normalize_text=!data_keys),
+    ),
     preflight_offset: 0,
     preflight_bytes: 0,
     preflight_done: false,

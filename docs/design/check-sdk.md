@@ -752,6 +752,19 @@ problem codes as unknown within their received branch; malformed envelopes or
 unsupported variants have no explanation. It does not infer outcomes from
 problem codes, messages, severity or HTTP status.
 
+Public Local and HTTPS ingress use the existing connection authorization decision
+before checking. If that owner does not authorize disclosure of this checking
+context, ingress obtains the common `check_unavailable` projection without
+invoking analysis or Source read-decision owners. No input, scope, context binding,
+verdict, reason list or partial report is exposed. The admitted check service
+provides its internal `unavailable()` projection from the same MoonBit bridge;
+a missing or malformed producer is a Host contract failure, not a fabricated
+report. Authentication and request validation still precede this decision.
+Individual inaccessible or failed Source owners only hide their own aliases;
+under an authorized checking context, safe violations and protected unresolved
+coverage remain together in the bound report. Earlier reports retain their
+original context after connection authorization changes.
+
 Analysis-budget exhaustion can be a completed/undetermined report. The separate
 reserved reporting budget can fail to construct that envelope, producing
 failed/`check_report_unbounded` without a partial report. The safe explanation
@@ -1124,3 +1137,14 @@ explanation. The verdict continues to come from the existing classification.
 The current flattened checker location does not retain an authored/generated
 origin kind; this projection omits its location instead of treating a decoded
 expression range or generated Program path as the original SQL position.
+
+### Binding JSON admission explanations
+
+The public projector retains the existing JSON parser's closed issue family as
+`binding_json_invalid` with `facts.document` and `facts.issue`. Declaration and
+supplied-value inputs use distinct submitted identities. Duplicate names and
+string values remain private input data, not diagnostic facts. An original
+structured pointer is optional: a preserving path read cannot replace the
+primary parser's issue, and a mismatch leaves the reason unlocated. Budgets
+remain `analysis_budget_exhausted`; other admission/decode failures keep their
+generic reasons. SDK explanations are advisory and never change the verdict.

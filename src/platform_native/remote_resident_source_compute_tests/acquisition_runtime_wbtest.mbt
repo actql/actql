@@ -6,8 +6,14 @@
 fn acquisition_runtime_case(
   through_consumer : Bool,
   through_resident? : Bool = false,
+  through_consumer_holder? : Bool = false,
+  cancel_consumer_before_start? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
+  consumer_start_expiry? : Bool = false,
+  producer_cleanup_at_handoff? : Bool = false,
+  cleanup_after_preparation? : Bool = false,
+  cancel_producer_before_handoff? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -112,55 +118,55 @@ fn acquisition_runtime_case(
     )
     is Err(@resident.ForeignInput),
   )
+  let environment = @host.admit_client_check_environment(
+    resident_effect_source_environment,
+    "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let wire = @host.issue_client_task_run_materials(
+    prepared,
+    compilation,
+    materials.admission,
+    definition,
+    environment,
+    resident_effect_source_environment,
+    resident_compute_document,
+    None,
+  ).unwrap()
+  let envelope = @remote.remote_poll_dispatch_materials_json(
+    dispatch, binding, wire,
+  ).unwrap()
+  journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
+  journal.accept(dispatch).unwrap() |> ignore
+  let admission : @resident.ResidentRunAdmission = {
+    source: Some((source.source_ref, source.source_contract_cid)),
+    expressions: { text_time: false, veca: false, },
+    operations: {
+      rela: true,
+      sga: false,
+      tea: false,
+      calendar: false,
+      text_rank: false,
+    },
+    manifests: @host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      10000,
+      1000,
+      20,
+    ).unwrap(),
+    limits: {
+      preparation: @host.client_standard_program_preparation_limits(),
+      sequence: @host.client_standard_values_sequence_limits(),
+      max_sequence_steps: 1000,
+      max_sequence_work: 1000,
+      max_evidence_bytes: 1000000,
+      max_evidence_nodes: 100000,
+      max_evidence_depth: 100,
+    },
+  }
   let (runtime, completion) = if through_resident {
-    let environment = @host.admit_client_check_environment(
-      resident_effect_source_environment,
-      "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    ).unwrap()
-    let wire = @host.issue_client_task_run_materials(
-      prepared,
-      compilation,
-      materials.admission,
-      definition,
-      environment,
-      resident_effect_source_environment,
-      resident_compute_document,
-      None,
-    ).unwrap()
-    let envelope = @remote.remote_poll_dispatch_materials_json(
-      dispatch, binding, wire,
-    ).unwrap()
-    journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
-    journal.accept(dispatch).unwrap() |> ignore
-    let admission : @resident.ResidentRunAdmission = {
-      source: Some((source.source_ref, source.source_contract_cid)),
-      expressions: { text_time: false, veca: false, },
-      operations: {
-        rela: true,
-        sga: false,
-        tea: false,
-        calendar: false,
-        text_rank: false,
-      },
-      manifests: @host.admit_client_compilation_manifests(
-        @environment.compiler_grammar_manifest_wire(),
-        @environment.compiler_barrier_contract_manifest_wire(),
-        10000,
-        1000,
-        20,
-      ).unwrap(),
-      limits: {
-        preparation: @host.client_standard_program_preparation_limits(),
-        sequence: @host.client_standard_values_sequence_limits(),
-        max_sequence_steps: 1000,
-        max_sequence_work: 1000,
-        max_evidence_bytes: 1000000,
-        max_evidence_nodes: 100000,
-        max_evidence_depth: 100,
-      },
-    }
     let executed = match
       @resident.execute_resident_attempt(
         journal,
@@ -284,11 +290,13 @@ fn acquisition_runtime_case(
   if through_consumer {
     acquisition_runtime_transfer_consumer(
       materials,
+      admission,
       configuration,
       compilation,
       caller,
       selected,
       runtime,
+      journal,
       dispatch,
       producer,
       fields[1],
@@ -296,35 +304,46 @@ fn acquisition_runtime_case(
       sqlite,
       root_path,
       name,
+      through_consumer_holder~,
+      cancel_consumer_before_start~,
       cancel_receiver~,
       deny_after_admission~,
+      consumer_start_expiry~,
+      producer_cleanup_at_handoff~,
+      cleanup_after_preparation~,
+      cancel_producer_before_handoff~,
     )
-    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_eq(
+      @host.client_retained_input_producer_available(producer),
+      !producer_cleanup_at_handoff,
+    )
     assert_eq(acquisitions.val, 1)
     assert_eq(captures.val, 1)
     assert_eq(entries.val, 1)
   }
-  let reader = runtime.open_output_reader(dispatch, fields[1], 128).unwrap()
-  assert_false(runtime.release(dispatch).unwrap())
-  let bytes : Array[Byte] = []
-  while true {
-    let chunk = reader.next().unwrap()
-    for byte in chunk.bytes {
-      bytes.push(byte)
+  if !producer_cleanup_at_handoff {
+    let reader = runtime.open_output_reader(dispatch, fields[1], 128).unwrap()
+    assert_false(runtime.release(dispatch).unwrap())
+    let bytes : Array[Byte] = []
+    while true {
+      let chunk = reader.next().unwrap()
+      for byte in chunk.bytes {
+        bytes.push(byte)
+      }
+      if chunk.eof {
+        break
+      }
     }
-    if chunk.eof {
-      break
-    }
+    // Database insertion order is 3, 1, 2; the read-only acquisition preserves
+    // that source order. The consumer's later filter yields only id 3.
+    assert_eq(
+      @utf8.decode(Bytes::from_array(bytes)),
+      "[{\"id\":3},{\"id\":1},{\"id\":2}]",
+    )
+    assert_true(reader.finish().unwrap())
+    assert_true(runtime.release(dispatch).unwrap())
+    assert_false(runtime.release(dispatch).unwrap())
   }
-  // Database insertion order is 3, 1, 2; the read-only acquisition preserves
-  // that source order. The consumer's later filter yields only id 3.
-  assert_eq(
-    @utf8.decode(Bytes::from_array(bytes)),
-    "[{\"id\":3},{\"id\":1},{\"id\":2}]",
-  )
-  assert_true(reader.finish().unwrap())
-  assert_true(runtime.release(dispatch).unwrap())
-  assert_false(runtime.release(dispatch).unwrap())
   assert_false(@host.client_retained_input_producer_available(producer))
   let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
     journal.require(dispatch).unwrap(),
@@ -372,5 +391,61 @@ test "resident retained handoff rechecks grants after receiver admission before 
     true,
     through_resident=true,
     deny_after_admission=true,
+  )
+}
+
+///|
+test "resident consumer expiry at the exclusive start boundary keeps caller borrow for cleanup" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    consumer_start_expiry=true,
+  )
+}
+
+///|
+test "retained plan handoff refuses producer cleanup during admission before receiver IO" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    producer_cleanup_at_handoff=true,
+  )
+}
+
+///|
+test "retained plan physical advance refuses producer cleanup during authorization before receiver IO" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    producer_cleanup_at_handoff=true,
+    cleanup_after_preparation=true,
+  )
+}
+
+///|
+test "durable producer cancellation withholds retained handoff before consumer start" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    cancel_producer_before_handoff=true,
+  )
+}
+
+///|
+test "original producer holder owns one consumer borrow through formal cleanup" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    through_consumer_holder=true,
+  )
+}
+
+///|
+test "producer holder retains independent holdings when consumer is cancelled before its start" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    through_consumer_holder=true,
+    cancel_consumer_before_start=true,
   )
 }

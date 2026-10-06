@@ -78,15 +78,15 @@ fn delivery_test_root() -> (
 test "serialization profiles have independent fixed identities" {
   assert_eq(
     result_serialization_contract_cid("json", 4096, 16, 4).unwrap(),
-    "sha256:f8a9922a194323d7b0f33733eb29753a6b68b48becee913cedb30a23a97cedf8",
+    "sha256:f23fea019c655e7d23cc4636c1c766436ab3002aa24e00348aa8539735b848db",
   )
   assert_eq(
     result_serialization_contract_cid("jsonl", 4096, 16, 4).unwrap(),
-    "sha256:2b15824ab044228057826503eb186f7608e2fc05a1564bb18f057d6eb7bb5041",
+    "sha256:61035606b44ad7f4dc24127825bcc46636f40ce5e06881cf9c97996dcb3bde84",
   )
   assert_eq(
     result_serialization_contract_cid("csv", 4096, 16, 4).unwrap(),
-    "sha256:13bb11256c3044cca8911b72af055d0792c237efeae46dda72ec618652041c0a",
+    "sha256:8bd0190f95dc6ae0aedea29755c907fd94ecdb677709b124b0f104fa339e9fd2",
   )
   assert_true(
     result_serialization_contract_cid("other", 4096, 16, 4)
@@ -293,7 +293,7 @@ test "read grant and attempt bind an exact committed Result" {
   assert_true(
     publication_contract_json(attempt).contains(
       "\"serialization_contract_cid\":\"" +
-      "sha256:f8a9922a194323d7b0f33733eb29753a6b68b48becee913cedb30a23a97cedf8" +
+      "sha256:f23fea019c655e7d23cc4636c1c766436ab3002aa24e00348aa8539735b848db" +
       "\"",
     ),
   )

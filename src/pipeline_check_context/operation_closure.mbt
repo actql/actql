@@ -65,6 +65,8 @@ pub fn close_program_operations(
           SubgraphExecution(v) => v.site
           GraphNormalizeExecution(v) => v.site
           GraphDeltaExecution(v) => v.site
+          GraphUnionExecution(v) => v.site
+          GraphSubtractionExecution(v) => v.site
           VectorExecution(v) => v.site
           NearestExecution(v) => v.site
           PoolExecution(v) => v.site

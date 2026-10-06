@@ -383,10 +383,10 @@ export function releaseCompletedRunPreparedPayloads(storedResults, control) {
   return releaseCompletedResultOwner(storedResults, control, false);
 }
 
-// Relinquish only process-local payload custody after a durable continuation
-// has been recorded. The exact captured computation remains recoverable in
-// the Store; this is neither final publication nor retirement. A later Host
-// recovers a new owner from that capture before applying or retiring it.
+// Relinquish process-local payload custody without selecting a new durable
+// capture outcome. A retained capture remains recoverable by a later Host;
+// an already selected terminal release continues with its original mode.
+// Durable retention, transfer and retirement remain with the enclosing owner.
 export async function suspendCompletedEffectfulComputation({
   execution, store, storedResults, control, computation, preview,
 }) {
@@ -395,6 +395,12 @@ export async function suspendCompletedEffectfulComputation({
       issued.store !== store || issued.storedResults !== storedResults ||
       issued.control !== control || issued.preview !== preview) {
     fail('InvalidCompletedEffectfulRunOwner');
+  }
+  // Publication can select terminal release and then fail while releasing
+  // its prepared handles. Continue that owner's exact selected operation;
+  // a later cleanup visit must not change it back to capture retention.
+  if (completedResultOwners.get(storedResults)?.retainCapture === false) {
+    return releaseCompletedResultOwner(storedResults, control, false);
   }
   await confirmCompletedEffectfulApplySources({store, control,
     computation, preview});

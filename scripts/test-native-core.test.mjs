@@ -4,6 +4,7 @@ import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
   readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
 
@@ -159,4 +160,21 @@ test('relative caller roots resolve before changing the child working directory'
   assert.ok(path?.startsWith(join(f.root, 'relative-sqlite', 'native-')));
   assert.equal(existsSync(path), false);
   f.verifyExternal();
+});
+
+// Check the actual native owner with strict C declarations. Feature selection
+// belongs to the source, not a developer's compiler wrapper.
+test('native journal inspection declares required interfaces', () => {
+  const home = process.env.MOON_HOME;
+  assert.ok(home, 'MOON_HOME must select the pinned MoonBit installation');
+  const include = join(home, 'include');
+  assert.ok(existsSync(join(include, 'moonbit.h')), 'pinned moonbit.h is required');
+  const source = fileURLToPath(new URL(
+    '../src/platform_native/remote_journal/inspection_stub.c', import.meta.url));
+  const result = spawnSync('cc', ['-std=c11', '-fsyntax-only',
+    '-Werror=implicit-function-declaration', '-Werror=int-conversion',
+    '-I', include, source], {encoding: 'utf8', timeout: 10_000});
+  assert.ifError(result.error);
+  assert.equal(result.signal, null, result.stderr);
+  assert.equal(result.status, 0, result.stderr);
 });

@@ -54,19 +54,36 @@ test "typed Object name recheck steps before visiting the child" {
 }
 
 ///|
-test "runtime JSON names retain the canonical identifier refusal" {
+test "Object identifier refusal stays separate from opaque JSON member data" {
   let contract = @contract.primitive(@contract.JsonType, nullable=false)
   for name in ["e\u{0301}", "a\rb", "a\r\nb"] {
-    // Whitebox forgery, not a demonstrated public Run violation: real Object
-    // construction rejects these names before exposing its immutable value.
+    // The declared Object builder owns identifier admission. The same keys
+    // inside JsonData belong to the opaque data domain and must remain exact.
     let value = Object({ values: [(name, Number(1.0))], })
     let limits : Limits = { max_nodes: 2, max_depth: 1, max_text_bytes: 100, }
     assert_true(object_value([(name, Number(1.0))]) is None)
     assert_true(recheck_runtime_value(value, contract, limits) is None)
     let cursor = start_recheck_runtime_value(value, contract, limits).unwrap()
-    assert_true(advance_recheck_runtime_value(cursor) is RecheckContinue)
     assert_true(advance_recheck_runtime_value(cursor) is RecheckFailed)
     assert_true(cursor.stack.is_empty())
+    let json = JsonData(value)
+    let (_, nodes, bytes) = recheck_runtime_value_usage(json, contract, limits).unwrap()
+    assert_eq(nodes, 2)
+    assert_eq(bytes, @utf8.encode(name).length())
+    let json_cursor = start_recheck_runtime_value(json, contract, limits).unwrap()
+    for _ in 0..<4 {
+      assert_true(advance_recheck_runtime_value(json_cursor) is RecheckContinue)
+    }
+    guard advance_recheck_runtime_value(json_cursor)
+      is RecheckComplete(checked, actual_nodes, actual_bytes) else {
+      abort("opaque JSON recheck must complete without normalizing keys")
+    }
+    assert_eq(actual_nodes, nodes)
+    assert_eq(actual_bytes, bytes)
+    guard checked.value is JsonData(Object(fields)) else {
+      abort("opaque JSON member data must retain its domain")
+    }
+    assert_eq(fields.values[0].0, name)
   }
 }
 
