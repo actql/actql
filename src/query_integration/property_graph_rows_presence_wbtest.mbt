@@ -105,13 +105,14 @@ fn property_rows_resource_boundary(
   let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
   let completion = task_test_completion(owner)
   // Independent one-row ledger: key collection + sort initialization = 2.
-  // Rechecking each typed identity takes 8 nodes, 11 container/child frames
-  // and the final empty-stack poll = 20. Empty labels cost 3; scalar key = 2.
+  // Rechecking each typed identity takes 8 nodes, 11 container/child frames,
+  // four TextUnits polls (definition 1, 71-unit domain 2, kind 1), and the
+  // final empty-stack poll = 24. Empty labels cost 3; scalar key = 2.
   // Scan + schema matching + verification + append cost 3+6+3+1 for nodes,
-  // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
+  // 5+15+5+1 for edges. Thus work is 44 / 105, not sampled from a product run.
   // Workspace is four ordering slots per row plus schema width (3 / 5).
   // An explicit definition checks each candidate once before producing it.
-  let exact_work = (if edge { 93 } else { 40 }) +
+  let exact_work = (if edge { 105 } else { 44 }) +
     (if labelled { 10 } else if selected { 1 } else { 0 })
   let exact_slots = if edge { 9 } else { 7 }
   for viewed in [false, true] {
@@ -214,6 +215,39 @@ fn property_rows_resource_boundary(
 ///|
 test "node rows admit exact work and workspace and reclaim every private phase" {
   property_rows_resource_boundary(false)
+}
+
+///|
+test "Graph row identity recheck has independent JSON Text frame costs" {
+  // Fixed independent full identity: eight value nodes, root/child frames
+  // 5+2+2+2, Text chunks 1+2+1, and one final empty-stack poll = 24.
+  // Field names total 32 bytes, data Text 1+71+6 = 78; total Text is 110.
+  let identity = @admitted.admit(
+    @value_contract.primitive(@value_contract.JsonType, nullable=false),
+    input_cursor(
+      "{\"definition\":\"N\",\"domain\":\"sha256:" +
+      String::make(64, '0') +
+      "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}",
+    ),
+    { max_nodes: 8, max_text_bytes: 110, max_depth: 20, },
+  ).unwrap()
+  let cursor = @admitted.start_recheck_runtime_value(
+    identity.value,
+    identity.contract,
+    { max_nodes: 8, max_text_bytes: 110, max_depth: 20, },
+  ).unwrap()
+  for _ in 0..<23 {
+    assert_true(
+      @admitted.advance_recheck_runtime_value(cursor)
+      is @admitted.RecheckContinue,
+    )
+  }
+  guard @admitted.advance_recheck_runtime_value(cursor)
+    is @admitted.RecheckComplete(_, nodes, bytes) else {
+    fail("typed identity did not complete at its independent frame boundary")
+  }
+  assert_eq(nodes, 8)
+  assert_eq(bytes, 110)
 }
 
 ///|

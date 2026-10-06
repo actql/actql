@@ -6045,3 +6045,12 @@ not changed here. Common value leaves, constructor preparation, Events
 comparison/session identity, intermediate aggregate bytes and whole-Run
 accounting remain separate. Full-target, packed and CI completion are not
 claimed. See the [projection evidence](2026-10-06-local-records-row-projection.md).
+
+The four parent Graph projection work failures above are now explained by
+four previously uncounted JSON data-Text polls per full typed identity.
+Independent identity evidence fixes recheck work 24, nodes eight and Text
+bytes 110; old projection control boundaries are 44/43 for nodes and
+105/104 for edges. Exact/one-short and every-phase cancellation passed in
+the focused eight-case candidate selection. This is a work-premise repair,
+not stepped Graph materialization or final integration evidence. See the
+[Graph projection record](2026-10-06-local-graph-projection-steps.md).
