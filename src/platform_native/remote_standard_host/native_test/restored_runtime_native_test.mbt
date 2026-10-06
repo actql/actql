@@ -345,6 +345,21 @@ test "native restored runtime owns capacity cleanup and exact retry without exec
   let runtime = restored_runtime(
     bundles, journal, site, name, budget, executions,
   )
+  let observer = @journal.open_journal(
+    @sqlite.load_library(
+      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+    ).unwrap(),
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
+    "/" +
+    name +
+    ".sqlite3",
+    1048576L,
+    @remote.create_site_dispatch_journal(
+      @site.create_site("site", 1, bundle_cid, 4, 4, 1000L, 1000L).unwrap(),
+      "actql-remote-site/0.1",
+    ).unwrap(),
+  ).unwrap()
+  let strict_refused = Ref(false)
   assert_true(
     runtime.restore_completed(request, binding, () => true, recovered => {
       let restored = @standard.restore_native_remote_standard_output(
@@ -353,12 +368,15 @@ test "native restored runtime owns capacity cleanup and exact retry without exec
         10L,
         () => true,
       )
-      // Another authorized observer progresses cleanup during physical I/O.
+      // A second connection/control progresses cleanup during physical I/O.
+      // It cannot update Runtime's cached record through an in-process alias.
       // Use the existing transition owner, never direct journal mutation.
-      let record = journal.require(request).unwrap()
-      journal
+      let record = observer.require(request).unwrap()
+      observer
       .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
       .unwrap()
+      strict_refused.val = journal.require(request)
+        is Err(@journal.Protocol(@remote.StateCollision))
       match restored {
         @standard.NativeRestoredOutput(@runtime.NativeRemoteOutputReady(output)) =>
           @runtime.RestoredCompletedOutput(output)
@@ -372,6 +390,7 @@ test "native restored runtime owns capacity cleanup and exact retry without exec
       @runtime.CleanupPending("restoration-transition")
     ),
   )
+  assert_true(strict_refused.val)
   assert_true(
     runtime.observed_completion(request)
     is Err(@runtime.OutputReaderUnavailable),
@@ -387,6 +406,7 @@ test "native restored runtime owns capacity cleanup and exact retry without exec
   )
   assert_eq(@site.site_status(site)[6], 0L)
   assert_eq(executions.val, 0)
+  assert_true(observer.close())
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

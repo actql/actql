@@ -77,6 +77,14 @@ pub fn Journal::observation(
 }
 
 ///|
+pub fn Journal::require_completed_cleanup(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::recover_after(
   _self : Journal,
   after_key : String,

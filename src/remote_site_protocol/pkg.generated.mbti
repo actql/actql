@@ -402,6 +402,8 @@ pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[Di
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
 
+pub fn refresh_remote_completed_cleanup_observation(DispatchRecord, DurableDispatchRecord) -> Result[Unit, DispatchIssue]
+
 pub fn register_remote_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String, String) -> Result[RemoteEvidenceIssuer, DispatchIssue]
 
 pub fn register_remote_execution_capability(@execution_site.ExecutionSite, String, String, String, String, String) -> Result[RemoteExecutionCapability, DispatchIssue]

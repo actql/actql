@@ -289,7 +289,8 @@ fn NativeRemoteRuntime::advance_completed_restoration(
         // Reconstruct the original cleanup handle, not a readable output.
         owner.restoration_cleanup = Some(cleanup)
         ignore(@remote.remote_runtime_custody_acquire_output(owner.custody))
-        let latest = match self.journal.require(owner.request) {
+        let latest = match
+          self.journal.require_completed_cleanup(owner.request) {
           Ok(value) => value
           Err(issue) => return CompletedRuntimePending(Journal(issue))
         }
@@ -316,7 +317,7 @@ fn NativeRemoteRuntime::advance_completed_restoration(
   }
   // Physical I/O can overlap another observer's durable cleanup transition.
   // Re-read after the callback; a cached pre-I/O revision is not current.
-  let latest = match self.journal.require(owner.request) {
+  let latest = match self.journal.require_completed_cleanup(owner.request) {
     Ok(value) => value
     Err(issue) => return CompletedRuntimePending(Journal(issue))
   }

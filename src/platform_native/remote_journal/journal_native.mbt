@@ -544,6 +544,47 @@ pub fn Journal::observation(
 }
 
 ///|
+/// Read the current cleanup observation of an already-owned completion after
+/// physical I/O. Normal require/reconstruction remains strict; this port cannot
+/// refresh execution, material identity, force loss or terminal cleanup.
+pub fn Journal::require_completed_cleanup(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let value = match self.database.read("site_dispatch", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(MissingDispatch)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let durable = match @remote.admit_durable_dispatch_record(value.body) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if value.revision !=
+    @remote.durable_dispatch_record_revision(durable).to_int64() ||
+    @remote.durable_dispatch_record_request_identity(durable) !=
+    @remote.dispatch_request_identity(request) {
+    return Err(StateCollision)
+  }
+  let cached = match
+    @remote.restore_historical_dispatch(self.control, request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match @remote.refresh_remote_completed_cleanup_observation(cached, durable) {
+    Ok(_) => Ok(cached)
+    Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
 /// Restores the next durable dispatch after the supplied journal cursor.
 /// Returning one record at a time keeps restart recovery bounded.
 pub fn Journal::recover_after(

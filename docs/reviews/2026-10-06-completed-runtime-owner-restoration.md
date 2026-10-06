@@ -36,6 +36,12 @@ same callback for retry.
 
 Journal state is read again after physical restoration. A release transition
 committed during I/O cannot be overwritten by a cached success projection.
+An independent SQLite connection exposed that normal reconstruction refuses
+refreshing a nonzero cached record. The explicit completed-cleanup observation
+port accepts only higher nonterminal cleanup revisions with unchanged original
+NativeSettled execution, evidence, material and authority. Normal reconstruction
+remains strict; regressed, foreign, changed-material and terminal snapshots are
+refused. The Native test uses separate connections and in-memory controls.
 `confirm_remote_runtime_completed_cleanup_restoration` binds the original
 request, subject, evidence and measurement, checks the current NativeSettled
 record and reconstructed resource handles, and permits cleanup-only handoff.
