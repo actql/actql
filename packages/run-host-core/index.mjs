@@ -2059,6 +2059,71 @@ export function openResultDeliveryControl() {
   });
 }
 
+function admittedTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  const compiled = requireHandle(taskCompilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (typeof authority !== 'string' || !Array.isArray(durableWires) ||
+      durableWires.some(wire => typeof wire !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskProgress');
+  }
+  checkRunBinding(prepared, admission, definition);
+  return checked(owner.clientValuesHostInspectTaskProgress(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), authority, durableWires),
+  'RunHostTaskProgressRejected');
+}
+
+function taskProgressSnapshot(value) {
+  const scopes = owner.clientValuesHostTaskProgressScopes(value);
+  const next = owner.clientValuesHostTaskProgressNext(value);
+  return Object.freeze({
+    nextTask: next < 0 ? undefined : next,
+    executionComplete: owner.clientValuesHostTaskProgressExecutionComplete(value),
+    cleanupComplete: owner.clientValuesHostTaskProgressCleanupComplete(value),
+    resultTasks: Object.freeze(owner.clientValuesHostTaskProgressResultTasks(value)),
+    tasks: Object.freeze(owner.clientValuesHostTaskProgressFields(value).map((row, index) =>
+      Object.freeze({ordinal: Number(row[0]), taskKey: row[1], execution: row[2],
+        cleanup: row[3], revision: Number(row[4]), dispatchCid: row[5] || undefined,
+        executionScope: Object.freeze(scopes[index])}))),
+  });
+}
+
+/** Inspect checked task readiness. A snapshot grants no start or input custody. */
+export function inspectTaskProgress(prepared, compilation, admission, definition,
+  authority, durableWires) {
+  return taskProgressSnapshot(admittedTaskProgress(prepared, compilation,
+    admission, definition, authority, durableWires));
+}
+
+/** Project the unpublished whole Run without committing, starting or releasing it. */
+export function projectTaskSiteRun(prepared, compilation, admission, definition,
+  authority, durableWires, observedAt, cancellationRequested = false,
+  claimedTaskKeys = []) {
+  if (typeof observedAt !== 'string' || typeof cancellationRequested !== 'boolean' ||
+      !Array.isArray(claimedTaskKeys) ||
+      claimedTaskKeys.some(key => typeof key !== 'string')) {
+    throw new TypeError('InvalidRunHostTaskRunProjection');
+  }
+  const value = admittedTaskProgress(prepared, compilation, admission,
+    definition, authority, durableWires);
+  const projected = checked(owner.clientValuesHostProjectRemoteTaskRun(
+    value, observedAt, cancellationRequested, claimedTaskKeys),
+  'RunHostTaskRunProjectionRejected');
+  const fields = owner.clientValuesHostRemoteTaskRunFields(projected);
+  const work = owner.clientValuesHostRemoteTaskRunWork(projected);
+  const progress = taskProgressSnapshot(value);
+  const next = Number(fields[2]);
+  return Object.freeze({...progress, stateWire: fields[0], execution: fields[1],
+    nextTask: next < 0 ? undefined : next, publicationReady: fields[3] === '1',
+    tasks: Object.freeze(progress.tasks.map((task, index) =>
+      Object.freeze({...task, nextWork: work[index]}))),
+  });
+}
+
 /** Project an admitted durable Site record bound to this checked Run. */
 export function projectSiteRun(prepared, compilation, admission, definition,
   authority, durableWire, observedAt, cancellationRequested = false,
