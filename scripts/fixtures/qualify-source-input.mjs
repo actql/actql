@@ -80,7 +80,7 @@ export const qualifySuccesses = [
     + 'UNION ALL SELECT 3 AS id, @c AS payload; '
     + 'SELECT 1 / (id - 1) AS objects, ROW_NUMBER() OVER (ORDER BY id) AS n FROM objects '
     + 'QUALIFY objects.id > 1 AND objects.payload.score > 5 ORDER BY n', {
-    hostProfile: 'analytic-property', sourceReadCount: 0,
+    hostProfile: 'analytic-property', sourceReadCount: 0, sourceReadSessionCount: 0,
     parameterDeclarations: Object.fromEntries(['a', 'b', 'c'].map(name => [name,
       {type: 'object', nullable: true, fields: {score: number}}])),
     parameters: {a: {score: 10}, b: {score: 20}, c: null},
