@@ -758,25 +758,26 @@ fn events_to_rows_step(
           return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
+        let row_workspace = state.row_workspace -
+          (match state.source {
+            GraphRows(source) => source.label_reserved
+            _ => 0
+          })
         let started = if @schema.all_fields_required(state.schema) {
-          @execution.start_admitted_output_row(output, state.row_workspace, column => {
+          @execution.start_admitted_output_row(output, row_workspace, column => {
             state.record_cells
             .get(column)
             .bind(value => value)
             .map(value => value.value)
           })
         } else {
-          @execution.start_admitted_presence_output_row(
-            output,
-            state.row_workspace,
-            column => {
-              state.record_cells
-              .get(column)
-              .map(cell => {
-                @execution.relation_cell(cell.map(checked => checked.value))
-              })
-            },
-          )
+          @execution.start_admitted_presence_output_row(output, row_workspace, column => {
+            state.record_cells
+            .get(column)
+            .map(cell => {
+              @execution.relation_cell(cell.map(checked => checked.value))
+            })
+          })
         }
         match started {
           Ok(row) => {
@@ -801,6 +802,9 @@ fn events_to_rows_step(
             @execution.cleanup_admitted_output_row(row) |> ignore
             state.output_row = None
             state.record_cells = []
+            if state.source is GraphRows(source) {
+              source.label_reserved = 0
+            }
             state.record += 1
             state.phase = BeginRecord
             progress += 1
@@ -874,7 +878,15 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
   }
   state.pending_graph_field = None
   if state.source is GraphRows(source) {
-    source.label_values.clear()
+    if source.label_recheck is Some(recheck) {
+      @value.cancel_recheck_runtime_value(recheck)
+      source.label_recheck = None
+    }
+    if source.label_builder is Some(builder) {
+      @value.cancel_array_value(builder) |> ignore
+      source.label_builder = None
+    }
+    source.label_reserved = 0
     if source.order is Some(sort) {
       @sort.cleanup(sort) |> ignore
     }
@@ -972,6 +984,9 @@ fn start_storage_to_rows(
       return Err(RelationOutput(@execution.CaptureLimit))
     }
     max_entries - width - limits.max_depth - 3
+  }
+  if source is GraphRows(graph) {
+    graph.label_workspace = row_workspace
   }
   let state : EventsToRowsState = {
     available,
