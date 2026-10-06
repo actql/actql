@@ -45,6 +45,13 @@ export function buildClientHostWire(registry, protocol) {
     throw new Error('MissingRunStateSchema');
   }
   schemas.run_state = project(protocol.artifact_schemas.run_state);
+  const runVersion = schemas.run_state.properties?.version?.const;
+  const runStatuses = schemas.run_state.properties?.status?.enum;
+  if (typeof runVersion !== 'string' || !Array.isArray(runStatuses) ||
+      !runStatuses.length || runStatuses.some(value => typeof value !== 'string') ||
+      new Set(runStatuses).size !== runStatuses.length) {
+    throw new Error('InvalidRunStateDiscriminants');
+  }
   if (protocol?.artifact_schemas?.check_outcome === undefined) {
     throw new Error('MissingCheckOutcomeSchema');
   }
@@ -72,6 +79,8 @@ export function buildClientHostWire(registry, protocol) {
     `export const checkOutcomeProtocol = Object.freeze({version: ${JSON.stringify(checkVersion)}, ` +
     `reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, ` +
     `outcomes: Object.freeze(${JSON.stringify(checkVariants)})});\n` +
+    `export const runStateProtocol = Object.freeze({version: ${JSON.stringify(runVersion)}, ` +
+    `statuses: Object.freeze(${JSON.stringify(runStatuses)})});\n` +
     structuralValidatorSource() +
     `export const clientHostOperations = Object.freeze(` +
     `Object.keys(operationKeys));\n` +
@@ -91,6 +100,8 @@ export function buildClientHostWire(registry, protocol) {
     `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
     `reasonSchemaCid: string; outcomeSchemaCid: string; ` +
     `outcomes: readonly (${checkVariants.map(value => JSON.stringify(value)).join(' | ')})[]}>;\n` +
+    `export declare const runStateProtocol: Readonly<{version: ${JSON.stringify(runVersion)}; ` +
+    `statuses: readonly (${runStatuses.map(value => JSON.stringify(value)).join(' | ')})[]}>;\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
     `export type WireValueContractShape = ${typeOf(schemas.value_contract)};\n` +
