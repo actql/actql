@@ -17,7 +17,8 @@ const expected = ['a', 'b'].map(suffix => ({
 }));
 
 function program(id, direct = false, outputScan = false, identityScan = false, memberScan = false,
-  objectNameScan = false, fieldNameScan = false, inputNameScan = false) {
+  objectNameScan = false, fieldNameScan = false, inputNameScan = false, jsonNameScan = false) {
+  objectNameScan ||= jsonNameScan;
   const named = fieldNameScan || inputNameScan;
   const groupName = named ? longFieldName : 'group';
   const selectedFields = named ? [groupName, 'embedding', 'member_count'] : fields;
@@ -33,7 +34,7 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
     [groupName]: {type: outputScan || memberScan || objectNameScan || named ? 'number' : 'string', nullable: false},
     embedding: {type: 'vector', dimensions, nullable: false},
     ...(objectNameScan ? {aa_unused: {type: 'array', nullable: false, max_items: 112,
-      items: {type: 'number', nullable: false}}, zz_unused: objectSchema} : {}),
+      items: {type: 'number', nullable: false}}, ...(jsonNameScan ? {} : {zz_unused: objectSchema})} : {}),
     ...(direct && !memberScan && !objectNameScan ? {[unusedName]: {type: 'array', nullable: false, max_items: unusedItems,
       items: {type: 'number', nullable: false}}} : {}),
   };
@@ -45,12 +46,14 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
       [groupName]: outputScan || memberScan || objectNameScan || named ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
       ...(objectNameScan ? {aa_unused: Array.from({length: 112}, () => 1),
-        zz_unused: {[objectName]: 2}} : {}),
+        ...(jsonNameScan ? {} : {zz_unused: {[objectName]: 2}})} : {}),
       ...(direct && !memberScan && !objectNameScan ? {[unusedName]: Array.from({length: unusedItems}, () => 1)} : {}),
-    }))}, as: 'out'}, ...(direct ? [
-      {from: 'out', assert_rows: {unique_by: memberScan ? ['id', 'code'] : ['id']}, as: 'keyed'},
+    }))}, as: 'out'}, ...(jsonNameScan ? [{derive: {zz_unused: {
+      typed_literal: {type: 'json', value: JSON.stringify({['x'.repeat(509) + 'é\r\n']: 2})},
+    }}, as: 'json_out'}] : []), ...(direct ? [
+      {from: jsonNameScan ? 'json_out' : 'out', assert_rows: {unique_by: memberScan ? ['id', 'code'] : ['id']}, as: 'keyed'},
     ] : [])], results: {r: {from: direct ? 'keyed' : 'out',
-      fields: Object.keys(schema)}}},
+      fields: Object.keys(schema).concat(jsonNameScan ? ['zz_unused'] : [])}}},
     {id: 'bridge', inputs: {rows: {result: {stage: 'values', result: 'r'}}},
       steps: direct ? [
         {pool_vectors: {vector: 'embedding', by: [groupName], method: 'sum'}, as: 'pooled'},
@@ -72,7 +75,8 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
 
 async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
   identityScan = false, memberScan = false, objectNameScan = false, fieldNameScan = false,
-  inputNameScan = false} = {}) {
+  inputNameScan = false, jsonNameScan = false} = {}) {
+    objectNameScan ||= jsonNameScan;
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -88,7 +92,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = inputNameScan ? 'public-pool-input-name' : fieldNameScan ? 'public-pool-field-name' : objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
+    const fixtureId = jsonNameScan ? 'public-pool-json-name' : inputNameScan ? 'public-pool-input-name' : fieldNameScan ? 'public-pool-field-name' : objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
     const expectedRows = fieldNameScan || inputNameScan ? [{[longFieldName]: 1, embedding: [1, 2], member_count: 1}] : memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
       member_count: 1}] : outputScan ? [{group: 1,
@@ -180,7 +184,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
-      objectNameScan, fieldNameScan, inputNameScan));
+      objectNameScan, fieldNameScan, inputNameScan, jsonNameScan));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
@@ -201,7 +205,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
 
     cancelling = true;
     const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
-      objectNameScan, fieldNameScan, inputNameScan)),
+      objectNameScan, fieldNameScan, inputNameScan, jsonNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
@@ -249,6 +253,9 @@ test('public retained Pool publishes and cancels inside composite member encodin
 
 test('public retained Pool publishes and cancels inside typed Object name admission',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, objectNameScan: true}));
+
+test('public retained Pool publishes and cancels inside opaque JSON name admission',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, jsonNameScan: true}));
 
 test('public retained Pool publishes and cancels inside retained field binding',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, fieldNameScan: true}));

@@ -11,6 +11,7 @@ import {gitTree, hash} from './inputs.mjs';
 import {isolatedContract, isolatedExperimentDigest, isolatedExperimentPaths, matchesIsolatedContract} from './isolated-contract.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, imageRuntime} from './isolated-runtime.mjs';
+import {historicalIsolatedFixture} from './historical-isolated-fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const tree = gitTree(root, isolatedContract.reviewRevision);
@@ -18,6 +19,7 @@ const originalBytes = gunzipSync(readFileSync(join(root,
   'docs/reviews/evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz')), {maxOutputLength: 8 * 1024 * 1024});
 assert.equal(hash(originalBytes), '52d9e7931fe6a3b14d2b00a51094f4f83f4161363440360ab22b207d33afb6aa');
 const original = JSON.parse(originalBytes);
+const originalConsumer = await historicalIsolatedFixture(root, original.revision);
 
 test('the reviewed current experiment matches actual Git and every experiment file in the retained real image', () => {
   assert.equal(isolatedExperimentDigest(tree), isolatedContract.experimentDigest);
@@ -33,8 +35,10 @@ test('the reviewed current experiment matches actual Git and every experiment fi
   const originalTree = gitTree(root, original.revision);
   assert.equal(original.authority, 'local-physical-acceptance');
   assert.equal(original.reuseAuthorized, false);
-  assert(checkIsolatedInputs({runtime: original.prepared.runtime, manifest: original.prepared.manifest, tree: originalTree, local: true}));
-  assert(checkIsolatedResult({payload: original.answer.payload, manifest: original.prepared.manifest, before: snapshotFromGit(originalTree)}));
+  assert(originalConsumer.checkIsolatedInputs({runtime: original.prepared.runtime, manifest: original.prepared.manifest, tree: originalTree, local: true}));
+  assert(originalConsumer.checkIsolatedResult({payload: original.answer.payload, manifest: original.prepared.manifest, before: originalConsumer.snapshotFromGit(originalTree)}));
+  assert.throws(() => checkIsolatedInputs({runtime: original.prepared.runtime,
+    manifest: original.prepared.manifest, tree: originalTree, local: true}), /Wrong reviewed source cohort/u);
   assert.deepEqual(original.answer.payload.report.results.map(entry => entry.id).sort(), [...mutationIds].sort());
   // The actual local kernel/image remain outside the Actions contract.
   assert.equal(matchesIsolatedContract(original.prepared.manifest), false);
