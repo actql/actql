@@ -361,6 +361,25 @@ fn derive_row_counts(
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
       GraphNormalize(_) => graph_input
+      GraphUnion(inputs~, ..) => {
+        let mut nodes = Some(count(0L, true))
+        let mut edges = Some(count(0L, true))
+        for target in inputs {
+          spend(b, step.source, 1)
+          let operand = graph_count_at(target, graphs)
+          nodes = sum_counts(
+            step.source,
+            nodes,
+            operand.bind(value => value.nodes),
+          )
+          edges = sum_counts(
+            step.source,
+            edges,
+            operand.bind(value => value.edges),
+          )
+        }
+        Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
+      }
       PropertyGraphConstruction(inputs~, checked~) => {
         let node_count = @graph.property_construction_node_count(checked)
         let mut nodes = Some(count(0L, true))

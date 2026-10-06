@@ -26,6 +26,7 @@ priv enum PoolPhase {
   InitializeGroups
   InitializeIdentities
   ReadField
+  RecheckField
   MatchGroup
   MatchIdentity
   ValidateGroups
@@ -45,6 +46,7 @@ priv enum PoolPhase {
   FinishComponent
   BuildOutput
   CommitOutput
+  AppendOutput
   Finish
 }
 
@@ -55,7 +57,9 @@ priv struct PoolState {
   output_vectors : @carrier.Vectors
   prepared : @lower.PreparedVector
   value_limits : @value.Limits
+  mut input_recheck : (@schema.FieldName, @value.RecheckCursor)?
   mut output : @records.OutputBuilder?
+  mut output_append : @records.RecordAppend?
   reduction : @numeric.PoolMethod
   dimensions : Int
   group_count : Int
@@ -92,6 +96,7 @@ priv struct PoolState {
   mut run_end : Int
   mut merge_index : Int
   mut compare_index : Int
+  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut duplicate_index : Int
   mut group_start : Int
@@ -106,7 +111,11 @@ priv struct PoolState {
 }
 
 ///|
+/// Retain a private state alias for ownership fixtures; the Session remains
+/// the sole execution and cleanup authority.
+#warnings("-unused_field")
 struct PoolExecution {
+  state : PoolState
   session : @bounded.Session[PoolState, @records.Completed, PoolIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
@@ -164,6 +173,8 @@ fn pool_workspace(
   groups : Int,
   identities : Int,
   output_fields : Int,
+  recheck_slots? : Int = 0,
+  append_slots? : Int = 0,
 ) -> Int? {
   guard pool_checked_add(groups, identities) is Some(keys) &&
     pool_checked_add(keys, 2) is Some(record_width) &&
@@ -171,7 +182,9 @@ fn pool_workspace(
     pool_checked_multiply(ordered, 2) is Some(sort_slots) &&
     pool_checked_add(output_fields, dimensions) is Some(output_slots) &&
     pool_checked_add(sort_slots, output_slots) is Some(first) &&
-    pool_checked_add(first, keys) is Some(total) else {
+    pool_checked_add(first, keys) is Some(second) &&
+    pool_checked_add(second, recheck_slots) is Some(third) &&
+    pool_checked_add(third, append_slots) is Some(total) else {
     return None
   }
   Some(total)
@@ -226,20 +239,9 @@ fn pool_record_field_at(
         Ok(value) => Some(value)
         Err(_) => None
       }
-    Relation(input) => {
-      guard @schema.field_at(@execution.producer_read_schema(input), field)
-        is Some(expected) &&
-        @execution.producer_read_checked_cell(
-          input,
-          record,
-          field,
-          state.value_limits,
-        )
-        is Some(checked) else {
-        return None
-      }
-      Some((expected.name, checked))
-    }
+    // Relation cells are staged by load_pool_field and rechecked before
+    // binding. Do not restore whole-value validation to this accessor.
+    Relation(_) => None
   }
 }
 
@@ -267,10 +269,33 @@ fn begin_pool_record(state : PoolState) -> Result[Unit, PoolIssue] {
 
 ///|
 fn load_pool_field(state : PoolState) -> Result[Unit, PoolIssue] {
+  if state.source is Relation(input) {
+    guard relation_cell_recheck(
+        input,
+        state.record,
+        state.field,
+        state.value_limits,
+      )
+      is Some(pending) else {
+      return Err(InvalidPoolRecord(state.record))
+    }
+    state.input_recheck = Some(pending)
+    state.phase = RecheckField
+    return Ok(())
+  }
   guard pool_record_field_at(state, state.record, state.field)
     is Some((name, checked)) else {
     return Err(InvalidPoolRecord(state.record))
   }
+  bind_pool_field(state, name, checked)
+}
+
+///|
+fn bind_pool_field(
+  state : PoolState,
+  name : @schema.FieldName,
+  checked : @value.CheckedValue,
+) -> Result[Unit, PoolIssue] {
   if @schema.reference_name(name) == state.component_name {
     if state.source_vector is Some(_) {
       return Err(InvalidPoolVector(state.record))
@@ -352,9 +377,10 @@ fn validate_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.group_values[state.group_probe] is Some(value) else {
     return Err(InvalidPoolGroup(state.record))
   }
-  match @value.compare_key_values(value, value) {
-    Ok(_) => ()
-    Err(issue) => return Err(PoolKeyOrder(issue))
+  match compare_pool_values(state, value, value) {
+    Ok(None) => return Ok(())
+    Ok(Some(_)) => ()
+    Err(issue) => return Err(issue)
   }
   state.collected_groups.push(value)
   state.group_probe += 1
@@ -370,9 +396,10 @@ fn validate_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.identity_values[state.identity_probe] is Some(value) else {
     return Err(InvalidPoolIdentity(state.record))
   }
-  match @value.compare_key_values(value, value) {
-    Ok(_) => ()
-    Err(issue) => return Err(PoolKeyOrder(issue))
+  match compare_pool_values(state, value, value) {
+    Ok(None) => return Ok(())
+    Ok(Some(_)) => ()
+    Err(issue) => return Err(issue)
   }
   if !state.encode_member_identity {
     state.collected_identities.push(value)
@@ -532,11 +559,32 @@ fn emit_pool_merge(state : PoolState, take_left : Bool) -> Unit {
 }
 
 ///|
+/// Resume one typed comparison unit without copying the borrowed key values.
+/// The phase and key indices stay fixed until the common cursor completes.
 fn compare_pool_values(
+  state : PoolState,
   left : @value.CheckedValue,
   right : @value.CheckedValue,
-) -> Result[Int, PoolIssue] {
-  @value.compare_key_values(left, right).map_err(issue => PoolKeyOrder(issue))
+) -> Result[Int?, PoolIssue] {
+  let active = match state.key_comparison {
+    Some(value) => value
+    None => {
+      let value = match @value.start_bounded_key_comparison(left, right) {
+        Ok(value) => value
+        Err(issue) => return Err(PoolKeyOrder(issue))
+      }
+      state.key_comparison = Some(value)
+      value
+    }
+  }
+  match @value.advance_bounded_key_comparison(active, 1) {
+    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+    Err(issue) => Err(PoolKeyOrder(issue))
+  }
 }
 
 ///|
@@ -556,10 +604,12 @@ fn compare_pool_group(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.left_index].groups[state.compare_index],
       state.records[state.right_index].groups[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison < 0 {
@@ -588,10 +638,12 @@ fn compare_pool_identity(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.left_index].identities[state.compare_index],
       state.records[state.right_index].identities[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison < 0 {
@@ -661,10 +713,12 @@ fn check_pool_duplicate(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.duplicate_index - 1].identities[state.compare_index],
       state.records[state.duplicate_index].identities[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison == 0 {
@@ -694,10 +748,12 @@ fn find_pool_group_end(state : PoolState) -> Result[Unit, PoolIssue] {
   }
   let comparison = match
     compare_pool_values(
+      state,
       state.records[state.group_start].groups[state.compare_index],
       state.records[state.group_end].groups[state.compare_index],
     ) {
-    Ok(value) => value
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(())
     Err(issue) => return Err(issue)
   }
   if comparison == 0 {
@@ -821,14 +877,10 @@ fn build_pool_output_field(state : PoolState) -> Result[Unit, PoolIssue] {
 ///|
 fn commit_pool_output(state : PoolState) -> Result[Unit, PoolIssue] {
   guard state.output is Some(output) else { return Err(InvalidPoolKernel) }
-  match @records.append_record(output, state.output_fields) {
-    Ok(_) => {
-      state.output_fields = []
-      state.pooled_vector = None
-      state.group_start = state.group_end
-      state.group_end = state.group_start + 1
-      state.compare_index = 0
-      state.phase = FindGroupEnd
+  match @records.start_record_append(output, state.output_fields) {
+    Ok(cursor) => {
+      state.output_append = Some(cursor)
+      state.phase = AppendOutput
       Ok(())
     }
     Err(issue) => Err(PoolOutput(issue))
@@ -889,6 +941,28 @@ fn pool_step(
             Ok(_) => ()
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
+        }
+      }
+      RecheckField => {
+        used += 1
+        guard state.input_recheck is Some((name, cursor)) else {
+          return @bounded.Failed(InvalidPoolKernel, progress, used)
+        }
+        match @value.advance_recheck_runtime_value(cursor) {
+          @value.RecheckContinue => ()
+          @value.RecheckComplete(checked, _, _) => {
+            state.input_recheck = None
+            match bind_pool_field(state, name, checked) {
+              Ok(_) => ()
+              Err(issue) => return @bounded.Failed(issue, progress, used)
+            }
+          }
+          @value.RecheckFailed =>
+            return @bounded.Failed(
+              InvalidPoolRecord(state.record),
+              progress,
+              used,
+            )
         }
       }
       MatchGroup => {
@@ -1057,8 +1131,29 @@ fn pool_step(
       CommitOutput => {
         used += 1
         match commit_pool_output(state) {
-          Ok(_) => progress += 1
+          Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      AppendOutput => {
+        used += 1
+        guard state.output_append is Some(cursor) else {
+          return @bounded.Failed(InvalidPoolKernel, progress, used)
+        }
+        match @records.advance_record_append(cursor) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.output_append = None
+            state.output_fields = []
+            state.pooled_vector = None
+            state.group_start = state.group_end
+            state.group_end = state.group_start + 1
+            state.compare_index = 0
+            state.phase = FindGroupEnd
+            progress += 1
+          }
+          Err(issue) =>
+            return @bounded.Failed(PoolOutput(issue), progress, used)
         }
       }
       Finish => {
@@ -1079,6 +1174,15 @@ fn pool_step(
 
 ///|
 fn cleanup_pool_state(state : PoolState) -> Bool {
+  if state.output_append is Some(cursor) {
+    @records.cleanup_record_append(cursor) |> ignore
+    state.output_append = None
+  }
+  if state.input_recheck is Some((_, cursor)) {
+    @value.cancel_recheck_runtime_value(cursor)
+    state.input_recheck = None
+  }
+  state.current_field = None
   if state.output_vector is Some(builder) {
     @value.cancel_vector_value(builder) |> ignore
     state.output_vector = None
@@ -1098,6 +1202,7 @@ fn cleanup_pool_state(state : PoolState) -> Bool {
   state.source_vector = None
   state.pooled_vector = None
   state.fold = None
+  state.key_comparison = None
   true
 }
 
@@ -1147,8 +1252,19 @@ fn start_pool_carrier_source(
     component.contract is Some(component_contract) &&
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
+    @storage.append_workspace_slots(
+      output_fields,
+      @carrier.vector_identity_count(output_vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) &&
     pool_workspace(
-      records, dimensions, group_count, identity_count, output_fields,
+      records,
+      dimensions,
+      group_count,
+      identity_count,
+      output_fields,
+      append_slots~,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1186,7 +1302,9 @@ fn start_pool_carrier_source(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    input_recheck: None,
     output: Some(output),
+    output_append: None,
     reduction,
     dimensions,
     group_count,
@@ -1225,6 +1343,7 @@ fn start_pool_carrier_source(
     run_end: 0,
     merge_index: 0,
     compare_index: 0,
+    key_comparison: None,
     copy_index: 0,
     duplicate_index: 1,
     group_start: 0,
@@ -1241,6 +1360,7 @@ fn start_pool_carrier_source(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,
@@ -1405,12 +1525,21 @@ pub fn start_relation_pool(
     component.contract is Some(component_contract) &&
     @carrier.lookup(output_rows, @schema.Unqualified("member_count"))
     is @carrier.Present({ contract: Some(member_count_contract), .. }) &&
+    pool_checked_add(limits.max_value_depth, 10) is Some(recheck_slots) &&
+    @storage.append_workspace_slots(
+      output_fields,
+      @carrier.vector_identity_count(output_vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) &&
     pool_workspace(
       @execution.producer_read_row_count(input),
       dimensions,
       group_count,
       workspace_identities,
       output_fields,
+      recheck_slots~,
+      append_slots~,
     )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
@@ -1457,7 +1586,9 @@ pub fn start_relation_pool(
       max_depth: limits.max_value_depth,
       max_text_bytes: limits.max_value_bytes,
     },
+    input_recheck: None,
     output: Some(output),
+    output_append: None,
     reduction,
     dimensions,
     group_count,
@@ -1494,6 +1625,7 @@ pub fn start_relation_pool(
     run_end: 0,
     merge_index: 0,
     compare_index: 0,
+    key_comparison: None,
     copy_index: 0,
     duplicate_index: 1,
     group_start: 0,
@@ -1510,6 +1642,7 @@ pub fn start_relation_pool(
     control, state, pool_step, cleanup_pool_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,

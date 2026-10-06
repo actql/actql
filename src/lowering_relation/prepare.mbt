@@ -67,6 +67,7 @@ pub enum Payload {
   GraphEqualityRows(@graph.CheckedPropertyEquality)
   GraphNormalizeValue(@graph.CheckedNormalize)
   GraphDeltaValue(@graph.CheckedDelta)
+  GraphUnionValue(@graph.CheckedUnion)
   GraphComponentsRows(@graph.CheckedComponents)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
@@ -225,6 +226,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphDegreeRows(_) => "SGA.degree_metrics"
     GraphEqualityRows(_) => "SGA.equal"
     GraphNormalizeValue(_) => "SGA.normalize"
+    GraphUnionValue(_) => "SGA.union_structural"
     GraphDeltaValue(value) =>
       match @graph.delta_operation(value) {
         Difference => "SGA.diff"
@@ -310,6 +312,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
     GraphNormalize(value) => Some(GraphNormalizeValue(value))
     GraphDelta(checked~, ..) => Some(GraphDeltaValue(checked))
+    GraphUnion(checked~, ..) => Some(GraphUnionValue(checked))
     GraphComponents(value) => Some(GraphComponentsRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
@@ -440,6 +443,8 @@ pub fn prepare(
       GraphBoundsRows(_) => ("graph_bounds", 1)
       GraphDegreeRows(_) => ("degree", 1)
       GraphEqualityRows(_) => ("graphs_equal", 2)
+      GraphUnionValue(value) =>
+        ("union_graphs", @graph.union_input_count(value))
       GraphNormalizeValue(_) => ("normalize_graph", 1)
       GraphDeltaValue(value) =>
         (
@@ -674,6 +679,7 @@ pub fn prepare(
       GraphSubgraphValue(_) => None
       GraphNormalizeValue(_) => None
       GraphDeltaValue(_) => None
+      GraphUnionValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None

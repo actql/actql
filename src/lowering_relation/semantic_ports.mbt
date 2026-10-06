@@ -123,6 +123,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphDegreeRows(_) => operation(node) == "SGA.degree_metrics"
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphNormalizeValue(_) => operation(node) == "SGA.normalize"
+    GraphUnionValue(checked) =>
+      operation(node) == "SGA.union_structural" &&
+      node.input_targets.length() == @graph.union_input_count(checked)
     GraphComponentsRows(_) => operation(node) == "SGA.components"
     GraphDeltaValue(checked) =>
       match @graph.delta_operation(checked) {
@@ -241,6 +244,10 @@ pub fn node_prefers_fused_without_relation_consumer(
 /// registered and tested.
 pub fn node_can_split_carrier_transform(node : PreparedNode) -> Bool {
   (node.payload is GraphNormalizeValue(_) && operation(node) == "SGA.normalize") ||
+  (
+    node.payload is GraphUnionValue(_) &&
+    operation(node) == "SGA.union_structural"
+  ) ||
   (
     node.payload is GraphDeltaValue(checked) &&
     operation(node) == "SGA.apply_delta" &&

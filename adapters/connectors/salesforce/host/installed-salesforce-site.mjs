@@ -847,21 +847,40 @@ export function releaseSalesforceSite(site) {
 }
 
 function handOverSiteRelease(site, primary, errors) {
+  // Capture the previous owner before wrapping or replacing its metadata.
+  const earlier = primary?.cleanupHandle;
+  const earlierOwned = earlier !== undefined || primary?.cleanupPending === true;
+  const earlierErrors = primary?.cleanupErrors ?? [];
+  const earlierStatus = () => {
+    try {
+      return typeof earlier?.status === 'function' ? earlier.status() : undefined;
+    } catch (error) {
+      // An unavailable observation cannot replace the primary failure or
+      // confirm release. Keep the retry owner and the observation failure.
+      if (!errors.includes(error)) errors.push(error);
+      return undefined;
+    }
+  };
   const failure = primary !== null && typeof primary === 'object' &&
     Object.isExtensible(primary) ? primary
     : Object.assign(new Error('SalesforceSiteOwnerFailed', {cause: primary}),
       {code: primary?.code ?? 'SalesforceSiteOwnerFailed',
         primaryFailure: primary});
-  if (site.cleanupPending() !== true) return failure;
-  const earlier = failure.cleanupHandle;
+  if (site.cleanupPending() !== true && !earlierOwned) return failure;
   const status = () => {
-    const before = earlier?.status();
+    const before = earlierStatus();
     return Object.freeze({
-      pending: site.cleanupPending() === true || before?.pending === true,
-      errors: Object.freeze([...(before?.errors ?? []), ...errors])});
+      // Only the previous owner can confirm its own release. A missing or
+      // incomplete handle must not turn an outstanding duty into success.
+      pending: site.cleanupPending() === true ||
+        earlierOwned && before?.pending !== false,
+      errors: Object.freeze([...(before?.errors ?? earlierErrors), ...errors])});
   };
   const handle = Object.freeze({status, async retry() {
-    if (earlier !== undefined) await earlier.retry();
+    if (earlierStatus()?.pending !== false &&
+        typeof earlier?.retry === 'function') {
+      try { await earlier.retry(); } catch (error) { errors.push(error); }
+    }
     if (site.cleanupPending() === true) {
       try { site.close(); } catch (error) { errors.push(error); }
     }
@@ -870,7 +889,7 @@ function handOverSiteRelease(site, primary, errors) {
     failure.cleanupErrors = current.errors;
     return current;
   }});
-  failure.cleanupPending = true;
+  failure.cleanupPending = status().pending;
   failure.cleanupErrors = status().errors;
   failure.cleanupHandle = handle;
   return failure;

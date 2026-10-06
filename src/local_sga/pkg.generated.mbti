@@ -4,7 +4,10 @@ package "actql/actql/local_sga"
 import {
   "actql/actql/bounded_execution",
   "actql/actql/bounded_graph_diff",
+  "actql/actql/carrier_contract",
+  "actql/actql/exact_binary64",
   "actql/actql/execution_relation",
+  "actql/actql/graph_typing",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_runtime",
@@ -38,6 +41,8 @@ pub fn advance_subgraph(SubgraphExecution, Int) -> Result[SubgraphPoll, Subgraph
 
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
 
+pub fn advance_union(UnionExecution, Int) -> Result[UnionPoll, UnionIssue]
+
 pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
 
 pub fn cleanup_delta_apply(DeltaApplyExecution) -> Result[Bool, DeltaApplyIssue]
@@ -61,6 +66,8 @@ pub fn cleanup_property_equality(PropertyEqualityExecution) -> Result[Bool, Prop
 pub fn cleanup_subgraph(SubgraphExecution) -> Result[Bool, SubgraphIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
+
+pub fn cleanup_union(UnionExecution) -> Result[Bool, UnionIssue]
 
 pub fn components_cleanup_pending(ComponentsExecution) -> Bool
 
@@ -152,6 +159,8 @@ pub fn start_traverse(@bounded_execution.Control, @execution_relation.Completion
 
 pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], max_paths? : Int) -> Result[TraverseExecution, TraverseIssue]
 
+pub fn start_union_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[UnionExecution, UnionIssue]
+
 pub fn subgraph_cleanup_pending(SubgraphExecution) -> Bool
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
@@ -165,6 +174,12 @@ pub fn traverse_private_workspace_usage(TraverseExecution) -> (Int, Int)
 pub fn traverse_stopped(TraverseExecution) -> Bool
 
 pub fn traverse_value_item_attempts(TraverseExecution) -> Int
+
+pub fn union_cleanup_pending(UnionExecution) -> Bool
+
+pub fn union_order_workspace_bytes(@graph_typing.CheckedUnion, @managed_graph_storage.Limits) -> Int?
+
+pub fn union_workspace_slots(@carrier_contract.Graph, @managed_graph_storage.Limits, Int) -> Int?
 
 // Errors
 
@@ -399,6 +414,36 @@ pub enum TraversePoll {
   TraverseFailed(TraverseIssue, progress~ : Int64, work~ : Int64)
   TraverseStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
+
+type UnionExecution
+
+pub(all) enum UnionIssue {
+  InvalidUnionFold
+  UnionInputUnavailable
+  UnionEndpointConflict
+  UnionFoldWorkLimit
+  UnionFoldWorkspaceLimit
+  UnionFoldProperty(UnionPropertyIssue)
+  UnionFoldStorage(@managed_graph_storage.Issue)
+  UnionOutput(@managed_graph_runtime.Issue)
+  UnionExecutionIssue(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum UnionPoll {
+  UnionContinue(progress~ : Int64, work~ : Int64)
+  UnionComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
+  UnionFailed(UnionIssue, progress~ : Int64, work~ : Int64)
+  UnionStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+pub(all) enum UnionPropertyIssue {
+  InvalidUnionProperty
+  UnionPropertyConflict
+  UnionPropertyLimit
+  UnionPropertyComparison(@value_admission.CompleteEqualityIssue)
+  UnionPropertyOrder(@value_admission.CompleteOrderIssue)
+  UnionPropertyArithmetic(@exact_binary64.Issue)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

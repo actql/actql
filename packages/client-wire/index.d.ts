@@ -44,6 +44,7 @@ export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 export type WireCheckOutcome = WireCheckOutcomeShape;
 export type {WireCheckLocationShape as WireCheckLocation} from './client-host.generated.js';
 export declare const checkReasonSchemaCid: string;
+export declare const checkOutcomeSchemaCid: string;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
   'aql-yaml' | 'aql-text' | 'sql';
 export const clientSourceFormats: readonly ClientSourceFormat[];

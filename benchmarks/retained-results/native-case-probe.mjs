@@ -121,6 +121,7 @@ try {
       host: 'native',
       ownerCorrespondence: admitted.ownerCorrespondence,
       physicalPhases: admitted.physicalPhases,
+      preparation: admitted.preparation,
       physicalPhaseEvents: execution.physicalPhaseEvents,
       acquisitionChoice: admitted.acquisitionChoice,
       result: admitted.record,

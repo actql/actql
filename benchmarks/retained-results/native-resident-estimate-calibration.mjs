@@ -8,11 +8,14 @@ import {tmpdir} from 'node:os';
 import {resolve, join, sep} from 'node:path';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
+import {performance} from 'node:perf_hooks';
 import {retainedCase, workloads} from './fixtures.mjs';
 import {nativeCostObservation} from './native-cost-observation.mjs';
-import {nativeResidentEstimateArguments} from './native-resident-estimates.mjs';
+import {nativeResidentCalibrationBasis, deriveNativeResidentRates,
+  admitNativeResidentEstimateProfile} from './native-resident-estimate-profile.mjs';
 
 const exec = promisify(execFile);
+const calibrationStart = performance.now();
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const [outputPath, ...extra] = process.argv.slice(2);
@@ -32,14 +35,8 @@ const binary = join(root, '_build/native/release/build/cmd/native_retained_case_
 const binaryDigest = digest(await readFile(binary));
 const directory = await mkdtemp(join(tmpdir(), 'actql-resident-calibration-'));
 const observations = [];
-const basis = {version: 'actql-native-resident-estimate-observation/0.1', revision, binaryDigest,
-  trainingCaseId: training.id, targetCaseId: target.id,
-  trainingSourceDefinitionSha256: digest(training.createSourceSql),
-  targetSourceDefinitionSha256: digest(target.createSourceSql),
-  trainingProgramSha256: digest(JSON.stringify(training.program())),
-  targetProgramSha256: digest(JSON.stringify(target.program())),
-  acceptanceEligible: false,
-  method: 'three predeclared alternating Native training rounds; median matched task/release cost rounded up to milliseconds'};
+const basis = nativeResidentCalibrationBasis({trainingFixture: training, targetFixture: target,
+  revision, binaryDigest});
 const expected = {
   local: ['local', 'local', 'local'], fresh: ['duckdb', 'duckdb', 'duckdb'],
   resident: ['resident', 'resident', 'resident'], mixed: ['local', 'resident', 'resident'],
@@ -56,6 +53,7 @@ const runProbe = async (fixture, leg, round, rates, resident) => {
     '--phase-observer=true', '--resident-policy=' + Boolean(resident),
     '--local-task-ms=' + rates.local.join(','), '--native-task-ms=' + rates.fresh.join(','),
     ...(resident ? ['--resident-estimates=' + profilePath] : [])];
+  const probeStart = performance.now();
   const {stdout} = await exec(process.execPath, args, {cwd: root,
     timeout: fixture.limits.timeoutMs + 30000, maxBuffer: 2 * 1024 * 1024});
   const observation = JSON.parse(stdout.trim().split('\n').at(-1));
@@ -66,7 +64,8 @@ const runProbe = async (fixture, leg, round, rates, resident) => {
   if (leg !== 'ordinary') assert.deepEqual(cost.tasks.map(item => item.realization), expected[leg],
     'ResidentCalibrationTrainingChoiceMismatch');
   await unchanged();
-  return {round, leg, command: [process.execPath, ...args], observation, cost};
+  return {round, leg, command: [process.execPath, ...args], observation, cost,
+    probeProcessCycleMilliseconds: performance.now() - probeStart};
 };
 try {
   for (let round = 0; round < 3; round++) {
@@ -83,52 +82,15 @@ try {
       console.log(JSON.stringify({event: 'training', round, leg, cost: item.cost}));
     }
   }
-  const rate = values => {
-    assert.equal(values.length, 3, 'IncompleteResidentCalibrationRounds');
-    assert(values.every(value => Number.isSafeInteger(value) && value >= 0), 'InvalidCalibrationDuration');
-    const value = String(Math.max(1, Math.ceil([...values].sort((a, b) => a - b)[1] / 1000)));
-    assert(BigInt(value) <= 2147483647n, 'CalibrationDurationOverflow');
-    return value;
-  };
-  const samples = leg => observations.filter(item => item.leg === leg).map(item => item.cost);
-  const tasks = leg => Array.from({length: 3}, (_, index) => rate(samples(leg)
-    .map(item => item.tasks[index].estimatedMicroseconds)));
-  // This fixture's checked stage references use only producers 0 and 1.
-  // Verify the independent Program structure instead of filling unobserved
-  // producer slots with zero or a convenient invented import duration.
-  const stages = training.program().stages;
-  const producers = [...new Set(stages.slice(1).flatMap(stage => Object.values(stage.inputs)
-    .map(input => stages.findIndex(candidate => candidate.id === input.result.stage))))].sort();
-  assert.deepEqual(producers, [0, 1], 'ResidentCalibrationProducerDomainChanged');
-  const measuredResident = {
-    preparationMilliseconds: rate(samples('resident').map(item => item.preparationMicroseconds)),
-    cleanupMilliseconds: rate(samples('resident').map(item => item.sharedCleanupMicroseconds)),
-    taskMilliseconds: tasks('resident'),
-    importMilliseconds: [0, 1, 2, 3].map(producer => producers.includes(producer)
-      ? rate(samples(producer === 0 ? 'resident' : 'mixed').map(item => {
-        const imports = item.imports.filter(value => value.producer === producer);
-        assert.equal(imports.length, 1, 'MissingActualCalibrationImport');
-        return imports[0].microseconds;
-      })) : null),
-  };
-  nativeResidentEstimateArguments(measuredResident, 3);
-  const rates = {local: tasks('local'), fresh: tasks('fresh')};
+  const {rates, residentEstimates: measuredResident} = deriveNativeResidentRates(observations, training);
   const estimateSource = digest(JSON.stringify({...basis, observations}));
   const ordinary = await runProbe(target, 'ordinary', 3, rates, measuredResident);
-  const offers = ordinary.observation.ownerCorrespondence.observations.candidates[0].body[5]
-    .flatMap(candidate => candidate[5].filter(Boolean));
-  for (const offer of offers) {
-    const expectedTaskRate = offer[9] !== null ? measuredResident.taskMilliseconds :
-      offer[1] === 'local' ? rates.local : rates.fresh;
-    assert.equal(offer[8][0][1], expectedTaskRate[offer[0] - 1], 'MeasuredRateNotInActualOffer');
-    if (offer[9] !== null) {
-      assert.equal(offer[9][1].lines[0].milliseconds, measuredResident.preparationMilliseconds);
-      assert.equal(offer[9][2].lines[0].milliseconds, measuredResident.cleanupMilliseconds);
-      assert.deepEqual(offer[9][3].map(item => item[0].lines[0].milliseconds), measuredResident.importMilliseconds);
-    }
-  }
-  await writeFile(destination, JSON.stringify({...basis, status: 'completed', observations,
-    rates, residentEstimates: measuredResident, estimateSource, ordinary}, null, 2));
+  const profile = {...basis, status: 'completed', observations,
+    rates, residentEstimates: measuredResident, estimateSource, ordinary,
+    calibrationProcessMilliseconds: performance.now() - calibrationStart};
+  admitNativeResidentEstimateProfile({profile, trainingFixture: training, targetFixture: target,
+    revision, binaryDigest});
+  await writeFile(destination, JSON.stringify(profile, null, 2));
   console.log(JSON.stringify({event: 'finished', revision, binaryDigest, estimateSource,
     rates, residentEstimates: measuredResident, selected: ordinary.cost.tasks.map(item => item.realization),
     outputPath: destination}));

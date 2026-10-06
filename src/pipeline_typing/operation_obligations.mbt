@@ -30,6 +30,7 @@ pub(all) enum OperationObligation {
   PropertyEqualityRequirement(@graph.PropertyEqualityObligation)
   NormalizeRequirement(@graph.NormalizeObligation)
   DeltaRequirement(@graph.DeltaObligation)
+  UnionRequirement(@graph.UnionObligation)
   ComponentsRequirement(@graph.ComponentsObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
@@ -65,6 +66,7 @@ priv enum ObligationOwner {
   PropertyEqualityOwner(@graph.CheckedPropertyEquality)
   NormalizeOwner(@graph.CheckedNormalize)
   DeltaOwner(@graph.CheckedDelta)
+  UnionOwner(@graph.CheckedUnion)
   ComponentsOwner(@graph.CheckedComponents)
   SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
@@ -115,6 +117,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     PropertyEqualityOwner(c) => @graph.property_equality_source(c)
     NormalizeOwner(c) => @graph.normalize_source(c)
     DeltaOwner(c) => @graph.delta_source(c)
+    UnionOwner(c) => @graph.union_source(c)
     ComponentsOwner(c) => @graph.components_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
@@ -235,6 +238,16 @@ pub fn operation_obligations_graph_delta(
 }
 
 ///|
+pub fn operation_obligations_graph_union(
+  v : OperationObligations,
+) -> @graph.CheckedUnion? {
+  match v.owner {
+    UnionOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 pub fn operation_obligations_graph_components(
   v : OperationObligations,
 ) -> @graph.CheckedComponents? {
@@ -278,6 +291,7 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     PropertyEqualityOwner(c) => @graph.property_equality_pending_count(c)
     NormalizeOwner(c) => @graph.normalize_pending_count(c)
     DeltaOwner(c) => @graph.delta_pending_count(c)
+    UnionOwner(c) => @graph.union_pending_count(c)
     ComponentsOwner(c) => @graph.components_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
@@ -347,6 +361,8 @@ pub fn operation_obligations_at(
       @graph.normalize_pending_at(c, index).map(x => NormalizeRequirement(x))
     DeltaOwner(c) =>
       @graph.delta_pending_at(c, index).map(x => DeltaRequirement(x))
+    UnionOwner(c) =>
+      @graph.union_pending_at(c, index).map(x => UnionRequirement(x))
     ComponentsOwner(c) =>
       @graph.components_pending_at(c, index).map(x => ComponentsRequirement(x))
     SubgraphOwner(c) =>
@@ -401,6 +417,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphEquality(..)
     | GraphNormalize(_)
     | GraphDelta(..)
+    | GraphUnion(..)
     | GraphComponents(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
@@ -443,6 +460,7 @@ pub fn operation_obligation_group_at(
         { scope: Body, owner: PropertyEqualityOwner(c), }
       GraphNormalize(c) => { scope: Body, owner: NormalizeOwner(c), }
       GraphDelta(checked=c, ..) => { scope: Body, owner: DeltaOwner(c), }
+      GraphUnion(checked=c, ..) => { scope: Body, owner: UnionOwner(c), }
       GraphComponents(c) => { scope: Body, owner: ComponentsOwner(c), }
       Subgraph(checked=c, ..) =>
         if index == 0 {
