@@ -40,6 +40,7 @@ const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md')
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/named-window-source-input.mjs', 'named-window-source-input.mjs'],
   ['scripts/fixtures/qualify-source-input.mjs', 'qualify-source-input.mjs'],
   ['scripts/fixtures/star-replace-source-input.mjs', 'star-replace-source-input.mjs'],
   ['scripts/fixtures/qualified-star-source-input.mjs', 'qualified-star-source-input.mjs'],
@@ -304,6 +305,9 @@ if (process.argv.includes('--star-replace-only')) {
 if (process.argv.includes('--qualify-only')) {
   runtimeEnvironment.ACTQL_TEST_QUALIFY_ONLY = '1';
 }
+if (process.argv.includes('--named-window-only')) {
+  runtimeEnvironment.ACTQL_TEST_NAMED_WINDOW_ONLY = '1';
+}
 if (process.argv.includes('--select-all-only')) {
   runtimeEnvironment.ACTQL_TEST_SELECT_ALL_ONLY = '1';
 }
@@ -411,6 +415,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--rep
   '--qualified-star-only',
   '--star-replace-only',
   '--qualify-only',
+  '--named-window-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -460,6 +465,7 @@ if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--qualified-star-only')) return;
 if (process.argv.includes('--star-replace-only')) return;
 if (process.argv.includes('--qualify-only')) return;
+if (process.argv.includes('--named-window-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--order-aggregate-expression-only') || process.argv.includes('--select-aggregate-expression-only') || process.argv.includes('--having-aggregate-only') || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||

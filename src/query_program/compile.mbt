@@ -1462,6 +1462,13 @@ fn lower_analytic(
   derives : Array[(String, @builder.Node)],
 ) -> @builder.Node raise Abort {
   let call = projections[0].analytic.unwrap()
+  if projections.any(projection => {
+      projection.analytic
+      .map(call => call.window.reference is Some(_))
+      .unwrap_or(false)
+    }) {
+    raise Abort(UnsupportedAnalytic)
+  }
   let partitions : Array[@builder.Node] = []
   for expression in call.window.partition_by {
     let field = analytic_partition_field(

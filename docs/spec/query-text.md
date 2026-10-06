@@ -223,9 +223,31 @@ QUALIFY use the same supported inline OVER signatures and common analytic
 contract as SELECT; their private output slots are omitted from Result fields.
 Window calls need not appear in SELECT. Group aggregates inside the condition
 use the ordinary grouped input and aggregate checking rather than a separate
-query evaluator. Named WINDOW declarations and broader OVER signatures remain
-existing profile gaps. This follows the selected
+query evaluator. Broader OVER signatures remain existing profile gaps. This follows the selected
 [GoogleSQL QUALIFY clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#qualify_clause).
+
+SQL `WINDOW name AS specification, ...` declares query-local window
+specifications. `OVER name` and `OVER (name ...clauses...)` resolve against
+that SELECT's declarations and lower to the same ordinary analytic operation
+as an inline specification. Declarations can inherit only earlier declarations;
+name lookup is case-insensitive, including backtick names. Duplicates, unknown
+references, forward references and cycles are refused without falling back to
+a Relation or DATA producer. CTEs, derived tables and set operands each have
+their own window scope. The specifications do not create execution slots,
+acquire data, or add a storage boundary.
+
+Inheriting a window forbids a new PARTITION BY; an inherited ORDER BY cannot
+be replaced or repeated. A specification that inherits a frame cannot add
+ORDER BY or another frame. Plain aliases retain the inherited frame. Names
+inside partition/order/frame expressions continue to use SELECT's input
+snapshot, never its output aliases. Missing ordering, frame and signature
+support remains subject to the current common analytic contract; naming a
+window does not add RANGE, unbounded frames or default aggregate frames.
+Unused declarations are checked for declaration conflicts but do not execute
+their expressions. These rules follow
+[GoogleSQL named windows](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls#rules_for_using_a_named_window_in_the_window_specification)
+and the selected resolver's declaration flattening. Parsed operation snapshots
+copy mutable window/aggregate lists and cannot mutate the admitted syntax owner.
 
 QUALIFY resolves SELECT aliases to their evaluated slots before same-name
 inputs. Qualified input references retain their input meaning. A scalar alias
