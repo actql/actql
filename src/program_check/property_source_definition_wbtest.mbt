@@ -59,7 +59,7 @@ test "current Graph keeps original Source declaration and selected Catalog owner
   // preimage; no compiler output was used to produce this expected identity.
   assert_eq(
     source_graph_domain(program, 0),
-    "sha256:4e99c7ad4487c68499e66d81ddef818b42053f8b6f439ca65dcfcd975a850cc3",
+    "sha256:db66c7759db184a8b1ddd4352cb6a3306dad611a01c3084636294b789fcc28d7",
   )
 }
 

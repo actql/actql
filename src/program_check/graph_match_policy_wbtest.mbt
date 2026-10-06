@@ -2,7 +2,7 @@
 test "current Graph matches preserve original Source policy and typed selector provenance" {
   // Independently hash the authored constructor and fixed SourceView body
   // preimage. The two producer occurrences remain ordered, even when shared.
-  let domain = "sha256:e95f67084a112ecd81cf96752d7dcffc731922c81ee7946fcf8ab2ef11a5b4a5"
+  let domain = "sha256:615881778171766fa880dd151f9e06edc4013804ac235910c5c7a9253518a2cf"
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"

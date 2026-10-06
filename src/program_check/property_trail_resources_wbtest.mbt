@@ -2,7 +2,7 @@
 // Independently SHA-256 the canonical constructor + VALUES producer preimage.
 // This is an authored selector identity, not a CID copied from compiler output.
 fn current_trail_guarantee_identity() -> String {
-  "{\"definition\":\"N\",\"domain\":\"sha256:3c07a675d79b8ca20df7ccce6bf1282b0ac34059bfbbaec8a8cd102f5027a5c3\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  "{\"definition\":\"N\",\"domain\":\"sha256:3a3f0589273c01c0a3b0a12f763fc65e96199bda9bcf9fc1e22afd3344dd812c\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
 }
 
 ///|
@@ -72,7 +72,7 @@ test "current TRAIL retains producer resource scopes and runtime checks through 
       }
       assert_eq(
         @carrier.graph_domain(@carrier.graph_definition(graph)),
-        "sha256:3c07a675d79b8ca20df7ccce6bf1282b0ac34059bfbbaec8a8cd102f5027a5c3",
+        "sha256:3a3f0589273c01c0a3b0a12f763fc65e96199bda9bcf9fc1e22afd3344dd812c",
       )
       for
         (scope, suffix) in [

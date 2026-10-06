@@ -110,7 +110,7 @@ test "keyed constructor uses one canonical bridge without tuple expansion" {
       "\"nodes\":[{\"definition\":\"N\",\"input\":0,\"keys\":[1],\"properties\":[]}]",
     ),
   )
-  assert_false(wire.contains("BRIDGE.rows.to_graph\""))
+  assert_false(wire.contains("BRIDGE.rows.to_property_graph\""))
   assert_false(wire.contains("REL.join"))
   assert_false(wire.contains("REL.distinct"))
 }
