@@ -152,6 +152,7 @@ pub fn poll(
     Ok(Some(@remote.Dispatch(dispatch))) =>
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
     Ok(Some(@remote.RetainedPlan(_)))
+    | Ok(Some(@remote.RetainedTransfer(_)))
     | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
@@ -359,6 +360,25 @@ pub fn acknowledge_retained_input_plan(
     client.post_json(
       url,
       @utf8.encode(@remote.remote_retained_input_plan_json(plan)),
+    ) {
+    Ok(value) if value.status == 200 => Ok(())
+    Ok(value) => Err(HttpStatus(value.status))
+    Err(issue) => Err(Http(issue))
+  }
+}
+
+///|
+/// Transport acknowledgment only. It does not release receiver custody or
+/// authorize consumer execution; retry posts the exact same result bytes.
+pub fn acknowledge_retained_input_result(
+  client : @http.Client,
+  url : String,
+  result : @remote.RemoteRetainedInputResult,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  match
+    client.post_json(
+      url,
+      @utf8.encode(@remote.remote_retained_input_result_json(result)),
     ) {
     Ok(value) if value.status == 200 => Ok(())
     Ok(value) => Err(HttpStatus(value.status))

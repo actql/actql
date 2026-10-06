@@ -5,7 +5,8 @@ import type {DeliveryContractView, PublicationContract,
   RunAdmission, RunDefinition, CheckEnvironment, RetainedTaskInputEdge,
   TaskCompilation, RetainedInputProducer, RetainedTaskInput,
   RetainedInputCurrent, RetainedInputLimits, RetainedInputIntent,
-  RetainedInputPlan, RetainedInputPlanCurrent, RetainedInputTransferPolicy} from '@actql/run-host-core';
+  RetainedInputPlan, RetainedInputPlanCurrent, RetainedInputTransferPolicy,
+  RetainedInputResult} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   issuePublicationRecord, validatePublicationRecordTransition,
   issueSourceFreeRunMaterials, prepareRetainedTaskInputEdge,
@@ -14,7 +15,8 @@ import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, prepareRetainedInputIntent, admitRetainedInputIntent,
   retainedInputIntentFacts, retainedInputPlanEnvelope, admitRetainedInputPlan,
-  validateRetainedInputPlan, retainedInputPlanFacts} from
+  validateRetainedInputPlan, retainedInputPlanFacts, retainedInputTransferEnvelope,
+  admitRetainedInputResult, retainedInputResultFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -136,3 +138,17 @@ issuePublicationAttempt({cid: 'sha256:x', wire: '{}', token: {}},
 issueUnpublishedRunStateWire(prepared, compilation, admission, definition,
   // @ts-expect-error Run state observations must name each physical fact.
   '2026-09-27T00:00:00.000Z', true);
+
+
+declare const inputResult: RetainedInputResult;
+retainedInputTransferEnvelope(inputPlan);
+admitRetainedInputResult(inputPlan, {cid: 'c', wire: 'w'});
+retainedInputResultFacts(inputResult);
+// @ts-expect-error Historical evidence is not a current handoff plan.
+retainedInputTransferEnvelope(inputResult);
+// @ts-expect-error An intent is not an admitted physical plan.
+admitRetainedInputResult(inputIntent, {cid: 'c', wire: 'w'});
+// @ts-expect-error Canonical facts are not an owned result.
+retainedInputResultFacts(retainedInputResultFacts(inputResult));
+// @ts-expect-error Committed historical evidence is not a current input binding.
+validateRetainedTaskInput(inputResult);

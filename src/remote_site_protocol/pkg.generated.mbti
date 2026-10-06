@@ -70,9 +70,13 @@ pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, Di
 
 pub fn admit_remote_poll_retained_input_plan_json(String) -> Result[RemotePollRetainedInput, DispatchIssue]
 
+pub fn admit_remote_poll_retained_input_transfer_json(String) -> Result[RemotePollRetainedTransfer, DispatchIssue]
+
 pub fn admit_remote_retained_input_intent_json(String, String, DispatchRequest) -> Result[RemoteRetainedInputIntent, DispatchIssue]
 
 pub fn admit_remote_retained_input_plan_json(String, String, RemoteRetainedInputIntent, Int, Int, Int64) -> Result[RemoteRetainedInputPlan, DispatchIssue]
+
+pub fn admit_remote_retained_input_result_json(String, String, RemoteRetainedInputPlan) -> Result[RemoteRetainedInputResult, DispatchIssue]
 
 pub fn admit_remote_source_observation_json(String, DispatchRequest) -> Result[RemoteSourceObservation, DispatchIssue]
 
@@ -374,6 +378,8 @@ pub fn prepare_remote_retained_input_intent(DispatchRequest, RemoteRetainedInput
 
 pub fn prepare_remote_retained_input_plan(RemoteRetainedInputIntent, RemoteManagedOutputSubject, RemoteExecutionEvidence, @remote_transfer.RemoteTransferRequest) -> Result[RemoteRetainedInputPlan, DispatchIssue]
 
+pub fn prepare_remote_retained_input_result(RemoteRetainedInputPlan, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt) -> Result[RemoteRetainedInputResult, DispatchIssue]
+
 pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
 
 pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
@@ -536,6 +542,8 @@ pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_retained_input_plan(RemotePollOperation) -> Bool
 
+pub fn remote_poll_operation_is_retained_input_transfer(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
 
 pub fn remote_poll_output_intent(RemotePollOutput) -> RemoteOutputIntent
@@ -554,6 +562,12 @@ pub fn remote_poll_retained_input_intent(RemotePollRetainedInput) -> RemoteRetai
 
 pub fn remote_poll_retained_input_plan_json(RemoteRetainedInputIntent) -> Result[String, DispatchIssue]
 
+pub fn remote_poll_retained_input_transfer_json(RemoteRetainedInputPlan) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_retained_transfer_intent(RemotePollRetainedTransfer) -> RemoteRetainedInputIntent
+
+pub fn remote_poll_retained_transfer_plan(RemotePollRetainedTransfer) -> RemoteRetainedInputPlan
+
 pub fn remote_retained_input_intent_identity(RemoteRetainedInputIntent) -> String
 
 pub fn remote_retained_input_intent_json(RemoteRetainedInputIntent) -> String
@@ -567,6 +581,16 @@ pub fn remote_retained_input_plan_identity(RemoteRetainedInputPlan) -> String
 pub fn remote_retained_input_plan_json(RemoteRetainedInputPlan) -> String
 
 pub fn remote_retained_input_plan_transfer(RemoteRetainedInputPlan) -> @remote_transfer.RemoteTransferRequest
+
+pub fn remote_retained_input_result_identity(RemoteRetainedInputResult) -> String
+
+pub fn remote_retained_input_result_json(RemoteRetainedInputResult) -> String
+
+pub fn remote_retained_input_result_plan(RemoteRetainedInputResult) -> RemoteRetainedInputPlan
+
+pub fn remote_retained_input_result_receipt(RemoteRetainedInputResult) -> @remote_transfer.RemoteTransferDestinationReceipt
+
+pub fn remote_retained_input_result_record(RemoteRetainedInputResult) -> @remote_transfer.RemoteTransferRecord
 
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
 
@@ -834,6 +858,7 @@ pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Plan(RemotePollOutput)
   RetainedPlan(RemotePollRetainedInput)
+  RetainedTransfer(RemotePollRetainedTransfer)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)
@@ -845,6 +870,11 @@ type RemotePollOutput
 pub struct RemotePollRetainedInput {
   request : DispatchRequest
   intent : RemoteRetainedInputIntent
+}
+
+pub struct RemotePollRetainedTransfer {
+  intent : RemoteRetainedInputIntent
+  plan : RemoteRetainedInputPlan
 }
 
 pub struct RemoteRetainedInputIntent {
@@ -876,6 +906,14 @@ pub struct RemoteRetainedInputPlan {
   subject : RemoteManagedOutputSubject
   evidence : RemoteExecutionEvidence
   transfer : @remote_transfer.RemoteTransferRequest
+  body : String
+  cid : String
+}
+
+pub struct RemoteRetainedInputResult {
+  plan : RemoteRetainedInputPlan
+  record : @remote_transfer.RemoteTransferRecord
+  receipt : @remote_transfer.RemoteTransferDestinationReceipt
   body : String
   cid : String
 }
