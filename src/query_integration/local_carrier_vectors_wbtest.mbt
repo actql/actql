@@ -4889,15 +4889,15 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
   // recheck 2*257+3=517, then group/candidate/policy/store 4: 532.
   // Three scratch entries + duplicate/rank checks 4 + fusion 4 +
   // fused scratch 1 + output/finish 30 = 42. Total control work: 574.
-  // One record: 17 slots. Input ports 6, fixed width 45, row scope 6,
-  // depth-two recheck scope 4: 78. Unused array nodes remain validated.
+  // One record: 17 slots. Input ports 6, fixed width 49, row scope 6,
+  // depth-two recheck scope 4: 82. Unused array nodes remain validated.
   for
     (work, slots, nodes, quantum, succeeds) in [
-      (574, 78, 258, 1, true),
-      (574, 78, 258, 7, true),
-      (574, 78, 258, 256, true),
-      (573, 78, 258, 1, false),
-      (574, 78, 257, 1, false),
+      (574, 82, 258, 1, true),
+      (574, 82, 258, 7, true),
+      (574, 82, 258, 256, true),
+      (573, 82, 258, 1, false),
+      (574, 82, 257, 1, false),
     ] {
     let execution = @local_veca.start_ranking(
       @bounded.control(),
@@ -4974,7 +4974,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
       inputs,
       10,
       { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-      77,
+      81,
       1000,
       10000,
     )
@@ -4989,7 +4989,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
     inputs,
     10,
     { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-    78,
+    82,
     1000,
     10000,
     control_work_limit=Some(574),
@@ -5071,7 +5071,7 @@ test "ranking yields within long group and tie comparisons" {
     // Independently count four 1066-unit input rows, record sorts 1048+2590,
     // duplicate checks 1033, candidate folds 3600, output sort 1032, and
     // two emitted rows plus finalization 626. Total control work is 14193.
-    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+44) + 7 + 12 = 156.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+48) + 7 + 12 = 160.
     for
       (quantum, control_limit) in [
         (1, 14193),
@@ -5087,7 +5087,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        156,
+        160,
         1000,
         10000,
         control_work_limit=Some(control_limit),
@@ -5157,7 +5157,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        155,
+        159,
         1000,
         10000,
       )
@@ -5172,7 +5172,7 @@ test "ranking yields within long group and tie comparisons" {
       inputs,
       10,
       limits,
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5270,7 +5270,7 @@ test "ranking output rows keep independent logical value limits" {
         max_depth: 10,
         max_work: logical_work,
       },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5366,7 +5366,7 @@ test "ranking output recheck and charge retain custody until stopped" {
       inputs,
       10,
       { max_nodes: 12, max_text_bytes: 1064, max_depth: 10, max_work: 1076, },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5452,7 +5452,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(236),
@@ -5484,7 +5484,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(235),
@@ -5516,7 +5516,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      136,
+      140,
       1000,
       10000,
     )
@@ -5563,15 +5563,15 @@ test "registered ranking provider enforces exact work and workspace" {
   // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
   // four two-input folds cost 16;
   // four output visits, two four-field rows, and finalization cost 61.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+44) + 6 + 12 = 137 slots.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+48) + 6 + 12 = 141 slots.
   // Fixed state, row scope and depth-bounded recheck frames remain reserved.
   for
     (work, slots, outcome, quantum) in [
-      (236, 137, "complete", 1),
-      (236, 137, "complete", 7),
-      (236, 137, "complete", 256),
-      (235, 137, "work", 1),
-      (236, 136, "workspace", 1),
+      (236, 141, "complete", 1),
+      (236, 141, "complete", 7),
+      (236, 141, "complete", 256),
+      (235, 141, "work", 1),
+      (236, 140, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
@@ -6269,7 +6269,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(83, 72),
+      direct_relation_pool_limits(95, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6338,13 +6338,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 72 work units and 83 workspace slots,
+  // The same Relation kernel requires 72 work units and 95 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (71, 83, false),
-      (72, 82, false),
-      (72, 83, true),
+      (71, 95, false),
+      (72, 94, false),
+      (72, 95, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -6392,7 +6392,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 82 {
+      if workspace == 94 {
         0L
       } else if stopping {
         1L
@@ -6411,7 +6411,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(83, 72),
+    direct_relation_pool_limits(95, 72),
     4096L,
     capacity,
   )
@@ -6448,15 +6448,18 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
-  // The Relation recheck adds twenty slots, append snapshot/map and depth
-  // stacks add 8+6+1+30=45: 18+20+45=83.
+  // The Relation recheck adds twenty slots. Current retained append reserves
+  // fixed/name custody 16, three fields' snapshot/bucket/link slots 9,
+  // one identity slot and depth-ten stacks 30: 56, not the former 45.
+  // This fixture's stale pre-name-binding premise omitted those eleven slots.
+  // Pool name matching adds one position slot: 18+20+56+1=95 before reads.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(82, 1000),
+      direct_relation_pool_limits(94, 1000),
       4096L,
       fn() { true },
     )
@@ -6469,7 +6472,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(83, 1000),
+    direct_relation_pool_limits(95, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -6497,7 +6500,7 @@ test "relation pool enforces exact work and workspace boundaries" {
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(83, ceiling),
+      direct_relation_pool_limits(95, ceiling),
       4096L,
       fn() { true },
     ).unwrap()

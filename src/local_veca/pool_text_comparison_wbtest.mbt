@@ -88,7 +88,7 @@ test "pool charges every long key comparison independent of quantum" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=80),
       8192L,
       fn() { true },
       exact,
@@ -144,14 +144,14 @@ test "pool long keys enforce exact control and structural workspace limits" {
   // Two sort buffers of two four-slot records, five output slots,
   // and two collected key slots: 16 + 5 + 2 = 23. Pending append adds
   // fixed 16, three slots for each of three fields (9), one identity (1),
-  // and three depth-ten stacks (30): 56. Total workspace: 79.
+  // and three depth-ten stacks (30): 56. One name offset makes workspace 80.
   assert_true(
     start_pool_with_control_work_limit(
       @bounded.control(),
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=78),
+      limits(work=10000, workspace=79),
       8192L,
       fn() { true },
       1167,
@@ -164,7 +164,7 @@ test "pool long keys enforce exact control and structural workspace limits" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=80),
       8192L,
       fn() { true },
       1166,
@@ -205,7 +205,7 @@ test "pool retains borrowed keys through scan cancellation and cleanup" {
       sequence(owner),
       0,
       input,
-      limits(work=10000, workspace=79),
+      limits(work=10000, workspace=80),
       8192L,
       fn() { true },
       1167,
