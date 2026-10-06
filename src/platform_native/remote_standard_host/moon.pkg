@@ -17,6 +17,7 @@ import {
   "actql/actql/platform_native/remote_client" @client,
   "actql/actql/platform_native/remote_journal" @journal,
   "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/platform_native/retained_task_file" @retained_file,
   "actql/actql/platform_native/remote_transfer_client" @transfer_client,
   "actql/actql/platform_native/remote_transfer_journal" @transfer_journal,
   "actql/actql/platform_native/runtime_bundle" @bundle,
@@ -36,3 +37,7 @@ import {
   "actql/actql/client_local_host" @local_host,
   "actql/actql/query_planning" @planning,
 } for "wbtest"
+
+options(
+  targets: { "retained_output_native_wbtest.mbt": [ "native" ] },
+)

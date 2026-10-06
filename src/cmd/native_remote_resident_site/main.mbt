@@ -92,6 +92,7 @@ fn source_configuration(
     Err(_) => stop("failed to load configured DuckDB library")
   }
   Some({
+    retained_output_root: optional(matches, "retained-input-root"),
     source_ref: required(matches, "source-ref"),
     source_contract_cid: required(matches, "source-contract-cid"),
     library,
