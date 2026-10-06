@@ -74,3 +74,45 @@ Full Core, other targets, all packed/proof/performance and hosted required
 coverage are not established by these focused checks. Duplicate public output
 names remain subject to the current Result contract; no new renaming policy is
 introduced. No merge or manual CI retry is performed.
+
+
+## Fixed-source public execution
+
+Runtime source: `5fc9c6de046d6ffe39b80bfe1e201c197cbc3f6b`.
+The guarded normal producer and narrow public consumer completed successfully
+in `run-03grah`:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-analytic-output-scope-pack-zwxhvY
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-analytic-output-scope-pack-zwxhvY node scripts/test-packed-public-query.mjs --analytic-output-scope-only
+```
+
+Embedded Local and HTTPS each passed all 7 normal cases and 3 preparation
+refusals. The independent JSON control and authored source agree on values,
+ordered columns, types and nullability. Alias ordering gives ids `3,4,1,2`;
+qualified input ordering gives `1,3,4,2`. Star publishes only input columns
+plus the explicitly selected result, with no private output/sort column.
+The empty result remains described as a non-nullable number column. Same-ID
+resend, attach and reread preserve Run and Source counters; preparation failures
+preserve admission and provider I/O zero. No expectation or ceiling changed to
+obtain these successes.
+
+Receipt:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-WBrno9/summary.json`
+(`passed`, complete, no evidence errors, successful artifacts removed).
+Protected local archive: `review-artifacts/b-analytic-output-scope-2026-10-06/`.
+
+| Package | SHA-256 |
+| --- | --- |
+| client-wire | `68e1aa6b3539f5833630693a5a10e084f61a2ab7f4e2e4f978722a33ce6e9e90` |
+| sdk | `a17d3678138d9e6c41625f26e279811f7d264fdc7f7653be71877abffec25a36` |
+| run-host-core | `570d18449a1aa46afe9215ed174ffefe716fe0d042190188d6572fdbb8d52805` |
+| local-node | `87110b1a6c6c4bb32d6299e663346c4051acca8ab5d971ab6956365ae75b9ac6` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Producer and consumer verify the exact runtime SHA, clean tracked/untracked
+build inputs and actual package digests. The receipt's `source.dirty:true`
+reflects untracked local review evidence outside build inputs; it is not a
+fully pristine-worktree claim. No adapter overlay, Program patch or manifest
+edit was used. This evidence-only update changes the report after the tested
+runtime commit; submitted-HEAD CI is separate and recorded in the PR body.
