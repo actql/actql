@@ -725,3 +725,43 @@ opens another read after checking availability, it starts from the beginning;
 it does not append to or resume the interrupted iterator. Read interruption or
 cleanup uncertainty proves neither Run failure, Result publication nor resource
 release.
+
+
+`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?})`
+formats the validated public check observation for terminal output, HTML display,
+or structured agent data. Text is the default. It delegates summaries to the
+existing explanation helpers and preserves the Owner verdict, scope, completeness
+and context. Requirements, limits and protected unresolved boundaries stay distinct
+from violations. Unknown reasons have generic explanations; malformed known facts,
+wrong schema identities and unknown outcomes return `undefined`.
+
+HTML escapes markup. All formats escape untrusted control and bidirectional marks;
+agent JSON also escapes markup delimiters while preserving string data on parse.
+The output contains disclosed typed facts and locations, never original input text,
+parameter values, private causes, provider debug links, executable actions or input access. It performs no
+transport, checking, edit, submission or retry. Render HTML as this complete
+fragment; do not reinterpret its escaped strings as markup.
+
+Locations require the exact SDK response's original input association. Copied
+reports still display safe explanations but omit positions. For a current editor,
+pass `currentInputs` explicitly: missing, edited or stale revisions omit positions.
+An absent option displays coordinates of the submitted revision only, never an
+assumed latest editor buffer. Text locations include original UTF-8 offsets and,
+when representable, the existing UTF-16 range. Structured pointers remain separate.
+This is display plumbing, not an LSP document-session owner or a fix applicator.
+
+The default output limit is 65,536 UTF-8 bytes; `maxBytes` must be an integer from
+1,024 through 1,048,576. Whole entries are retained in report order until the bound
+is reached. `omittedEntries` in JSON and an explicit omission line in text/HTML
+report the remaining count. Truncation never changes the observation or claims
+complete diagnostic display. If even the observation cannot fit, return
+`undefined`; callers retain the original typed outcome for another display.
+
+
+```js
+import {formatCheckOutcome} from '@actql/sdk';
+const outcome = await client.check(text, {format: 'sql'});
+const display = formatCheckOutcome(outcome, {format: 'text'});
+if (display === undefined) throw new Error('CheckDisplayUnavailable');
+console.log(display);
+```

@@ -28,6 +28,14 @@ export type CheckExplanationOptions = Readonly<{locale?: string}>;
 /** The selected translation revision, separate from reason/outcome schema identity. */
 export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
   Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+/** Display formats for an admitted public observation; no execution or edit authority. */
+export type CheckFormatOptions = CheckExplanationOptions & Readonly<{
+  format?: 'text' | 'html' | 'json';
+  maxBytes?: number;
+  currentInputs?: readonly CheckInput[];
+}>;
+/** Undefined for malformed protocol data/options or a budget too small for the observation. */
+export declare function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions): string | undefined;
 export declare function explainCheckOutcome(outcome: unknown,
   options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (

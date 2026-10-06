@@ -9,7 +9,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
-import {localizeCheck} from './check-presentation.mjs';
+import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
@@ -304,6 +304,98 @@ export function explainCheckOutcome(outcome, options) {
     ['The scope and checking context needed for a safe public report are unavailable.',
       'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
   return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
+}
+
+
+// Presentation formats consume the disclosed report, never internal causes.
+// Escape untrusted controls and bidi marks without changing source identity.
+const checkDisplayString = value => JSON.stringify(value).replace(
+  /[\u007f-\u009f\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/gu,
+  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+const checkHtml = value => value.replace(/[&<>"']/gu, character =>
+  ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[character]);
+const checkAgentJson = value => JSON.stringify(value).replace(
+  /[<>&\u007f-\u009f\u061c\u200e\u200f\u2028-\u202e\u2066-\u2069]/gu,
+  character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+
+/** Format a validated public observation without granting actions or input access. */
+export function formatCheckOutcome(outcome, options) {
+  let snapshot;
+  try {
+    if (!validCheckOutcome(outcome)) return undefined;
+    snapshot = JSON.parse(JSON.stringify(outcome));
+    if (!validCheckOutcome(snapshot)) return undefined;
+  } catch { return undefined; }
+  let format, maxBytes, currentInputs, locale;
+  try {
+    format = options?.format ?? 'text';
+    maxBytes = options?.maxBytes ?? 65536;
+    currentInputs = options?.currentInputs;
+  } catch { return undefined; }
+  try { locale = options?.locale; } catch { locale = 'en'; }
+  if (!['text', 'html', 'json'].includes(format) || !Number.isSafeInteger(maxBytes) ||
+      maxBytes < 1024 || maxBytes > 1048576) return undefined;
+  const presentation = getCheckPresentationInfo({locale});
+  const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
+  const report = snapshot.outcome === 'completed' ? snapshot.report : snapshot.partial_report;
+  const rows = report === undefined ? [] : [
+    ...report.reasons.map(reason => ({kind: 'violation', reason})),
+    ...report.requirements.map(reason => ({kind: 'requirement', reason})),
+    ...report.coverage.limits.map(reason => ({kind: 'limit', reason})),
+    ...report.coverage.unresolved.map(({reason, boundary}) =>
+      ({kind: 'unresolved', reason: {code: reason}, boundary})),
+  ];
+  const entries = [];
+  const model = () => ({observation, presentation, entries, omittedEntries: rows.length - entries.length});
+  const line = entry => entry.kind + ': ' + checkDisplayString(entry.code) + ' ' + entry.summary +
+    (entry.hint === undefined ? '' : ' ' + entry.hint) +
+    (entry.facts === undefined ? '' : ' facts=' + checkDisplayString(entry.facts)) +
+    (entry.boundary === undefined ? '' : ' boundary=' + checkDisplayString(entry.boundary)) +
+    (entry.location === undefined ? '' : ' location=' + checkDisplayString(entry.location));
+  const render = () => {
+    if (format === 'json') return checkAgentJson(model());
+    const heading = observation.outcome +
+      (observation.report === undefined ? '' : '/' + observation.report.verdict +
+        ' (' + observation.report.completeness + ')') + ': ' + observation.summary;
+    const binding = observation.report === undefined ?
+      'Correlation: ' + checkDisplayString(observation.correlationRef) :
+      'Scope: ' + observation.report.scope.kind + '; context_ref: ' + checkDisplayString(observation.report.contextRef);
+    const omitted = rows.length - entries.length;
+    const suffix = omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '';
+    if (format === 'html') return '<section><h2>' + checkHtml(heading) + '</h2><p>' +
+      checkHtml(observation.hint) + '</p><p>' + checkHtml(binding) + '</p><ol>' + entries.map(entry => '<li>' +
+        checkHtml(line(entry)) + '</li>').join('') + '</ol><p>' + checkHtml(suffix) + '</p></section>';
+    return [heading, observation.hint, binding, ...entries.map(line), suffix].filter(Boolean).join('\n');
+  };
+  let output = render();
+  if (utf8.encode(output).length > maxBytes) return undefined;
+  for (const row of rows) {
+    const explanation = explainCheckReason(row.reason, {locale: presentation.locale});
+    const {kind: explanationKind, ...display} = explanation;
+    const entry = {kind: row.kind, code: row.reason.code, ...display, explanationKind};
+    if (explanation.kind === 'known' && row.reason.facts !== undefined) entry.facts = row.reason.facts;
+    if (row.boundary !== undefined) entry.boundary = row.boundary;
+    try {
+      const location = row.reason.location;
+      const current = currentInputs === undefined ? undefined :
+        Array.isArray(currentInputs) ? currentInputs.find(input => input?.documentId === location?.document_id) : undefined;
+      // An explicitly supplied current-input set never silently uses older input.
+      const resolved = currentInputs !== undefined && current === undefined ? undefined :
+        resolveCheckLocation(outcome, location, current);
+      if (resolved) {
+        entry.location = {kind: resolved.kind, documentId: resolved.document_id, revision: resolved.revision,
+          ...(resolved.kind === 'structured' ? {pointer: resolved.pointer} :
+            {startByte: resolved.start_byte, endByte: resolved.end_byte, precision: resolved.precision})};
+        const range = resolved.kind === 'text' && resolveCheckTextRange(outcome, location, current);
+        if (range) Object.assign(entry.location, {positionEncoding: range.positionEncoding, range: range.range});
+      }
+    } catch { /* Missing or malformed editor input cannot hide safe explanations. */ }
+    entries.push(entry);
+    const candidate = render();
+    if (utf8.encode(candidate).length > maxBytes) { entries.pop(); break; }
+    output = candidate;
+  }
+  return output;
 }
 
 // Reason presentation does not decide the report's verdict or outcome branch.
