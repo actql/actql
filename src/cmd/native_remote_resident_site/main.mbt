@@ -2418,7 +2418,30 @@ fn serve_holder_output(
         serving = false
       }
       InputInvalid => report("holder-input-invalid", [])
-      InputLine(line) =>
+      InputLine(line) => {
+        // Fixed routing facts only: never emit the frame body, credentials
+        // or an arbitrary malformed prefix. Receipt is not completion.
+        let operation = if line.has_prefix("release ") {
+          "release"
+        } else if line.has_prefix("consumer ") {
+          "consumer"
+        } else if line.has_prefix("retained-plan ") {
+          "retained-plan"
+        } else if line.has_prefix("retained-current ") {
+          "retained-current"
+        } else if line.has_prefix("retained-transfer ") {
+          "retained-transfer"
+        } else if line.has_prefix("plan ") {
+          "plan"
+        } else if line.has_prefix("output ") {
+          "output"
+        } else {
+          "unrecognized"
+        }
+        report("holder-input-frame", [
+          ("operation", operation),
+          ("holder_request_cid", identity),
+        ])
         if line.has_prefix("release ") {
           let target = line.unsafe_substring(start=8, end=line.length())
           if consumer.val is Some(owner) &&
@@ -3041,6 +3064,7 @@ fn serve_holder_output(
         } else {
           report("holder-input-invalid", [])
         }
+      }
     }
   }
   // Saving is the only retried operation: neither delivery nor Compute.
