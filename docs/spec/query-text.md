@@ -82,6 +82,19 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`search_value [NOT] IN UNNEST(array_expression)` follows the selected
+[GoogleSQL IN syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator).
+The array expression lowers directly to the existing `in`/`not_in` second
+operand; it is not wrapped as one scalar list item or expanded into OR/equality
+comparisons. Declared ARRAY parameters (including grouping) use ordinary checking and
+binding. The current common Expression admission only accepts literal lists
+or whole parameters at this operand: visible ARRAY columns and other
+ARRAY-valued expressions remain an explicit coverage gap and are rejected
+before Run admission. They are not invalid GoogleSQL. Common membership rules retain NULL-array/empty-set behavior, nullable item equality, demand of
+both operands, and bounded per-item work. No row expansion, acquisition or new
+UNNEST execution owner is introduced. This predicate form does not add FROM
+UNNEST, subquery membership, STRUCT comparison or ARRAY constructor syntax.
+
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no

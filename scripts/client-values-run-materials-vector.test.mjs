@@ -625,7 +625,10 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector('sha256:8ccb3fc5856a12a6f195f60959e446ff0c46bd67cee78c5065b344cc5d2f5446', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:d60f040f1285fd7f1e792c0b70da904e0c906d6549fcd53caa305f6cfda82c08');
   // Preserve the standalone UNNEST main Run under its original grammar.
   assert.equal(vector('sha256:dee0db72375546136e83760f9f72991315716410bb0c9b6cb66451f944bd13b7', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:bb55c1bd750ef5d854aa6ad64256b3385cf7d489b9ad94a8b9dd1508b9a406cc');
-  assert.equal(current.run.run_definition_cid, 'sha256:41ab991390341493877830470d3fcbaeeb4963f92a2a5c22ad3d748d4444f2b4');
+  // Preserve both parent Runs under their own normative grammars.
+  assert.equal(vector('sha256:c167311c84628c57bdf5e63eb6da51645ea491243dfa3adb8158eb3cc11523ad', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:41ab991390341493877830470d3fcbaeeb4963f92a2a5c22ad3d748d4444f2b4');
+  assert.equal(vector('sha256:d3504b9552c1a015ec86398455e57433604ad7833aee7854bc2297c14a0e0c7e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:5a40a8a95b995d744805ca5e33d98c035a47dafca9ba82c348132068ee3a9615');
+  assert.equal(current.run.run_definition_cid, 'sha256:901e7a8071ad802be11cb882398a56ba6ed5fde6eb23bf2b7d0dea00a5a5fd0a');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
