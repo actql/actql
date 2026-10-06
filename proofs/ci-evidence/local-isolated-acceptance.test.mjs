@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync, writeFileSync, chmodSync, symlinkSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {checkoutTree, checkBuilder, checkOwnedPreparation} from './local-isolated-acceptance.mjs';
+import {checkoutTree, checkBuilder, checkOwnedPreparation, localEngine} from './local-isolated-acceptance.mjs';
 import {checkLocalImageDefinition, checkImageDefinition, isolatedEnvironment,
   localIsolatedRunArguments, isolatedRunArguments} from './isolation.mjs';
 import {prepareIsolatedMutation, executeIsolatedMutation, prepareLocalIsolatedMutation} from './isolated-execution.mjs';
@@ -86,4 +86,14 @@ test('preparer cleanup cannot remove a different owner or image', () => {
     const changed = structuredClone(container); alter(changed);
     assert.throws(() => checkOwnedPreparation(changed, {cid, imageId, owner}));
   }
+});
+
+
+test('a named Docker launcher is preserved rather than replaced by its multicall target', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'local-isolated-launcher-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const target = join(directory, 'docker-tools'), launcher = join(directory, 'docker');
+  writeFileSync(target, 'multicall target'); symlinkSync(target, launcher);
+  assert.equal(localEngine(launcher), launcher);
+  assert.throws(() => localEngine('docker')); assert.throws(() => localEngine(directory));
 });

@@ -4,8 +4,8 @@
 import assert from 'node:assert/strict';
 import {spawnSync, execFileSync} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
-import {mkdirSync, mkdtempSync, readFileSync, writeFileSync, lstatSync, realpathSync} from 'node:fs';
-import {join, resolve} from 'node:path';
+import {mkdirSync, mkdtempSync, readFileSync, writeFileSync, lstatSync, statSync, realpathSync} from 'node:fs';
+import {join, resolve, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash} from './inputs.mjs';
 import {checkIsolatedInputs} from './isolated-runtime.mjs';
@@ -39,6 +39,13 @@ export function checkoutTree(directory, descriptor) {
     assert.equal(object, entry.object, 'Checkout differs from the declared Git blob');
     return bytes;
   }};
+}
+
+// Preserve the named launcher: multicall engines (including OrbStack) select
+// their Docker behavior from argv[0]. Resolve only to check its regular target.
+export function localEngine(path) {
+  assert(typeof path === 'string' && isAbsolute(path) && statSync(path).isFile(), 'Use an explicit regular Docker launcher');
+  return resolve(path);
 }
 
 export function checkBuilder(image, imageId) {
@@ -137,8 +144,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       assert(['--engine', '--builder-image', '--moon-home'].includes(args[i]) && !options[args[i]], 'Invalid/duplicate option');
       options[args[i]] = args[i + 1];
     }
-    const engine = realpathSync(options['--engine']), moonHome = realpathSync(options['--moon-home']);
-    assert(lstatSync(engine).isFile() && lstatSync(moonHome).isDirectory());
+    const engine = localEngine(options['--engine']), moonHome = realpathSync(options['--moon-home']);
+    assert(lstatSync(moonHome).isDirectory());
     mkdirSync(join(root, '_build'), {recursive: true});
     process.exitCode = await runLocalCheck({root, heavy: true, timeoutSeconds: 1200, graceSeconds: 10,
       steps: [{name: 'local isolated Session physical acceptance', command: process.execPath,
