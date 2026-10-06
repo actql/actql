@@ -956,6 +956,7 @@ fn QueryParser::aggregate_head(self : QueryParser) -> Bool {
     Word(name) =>
       [
         "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "ARRAY_AGG", "STRING_AGG",
+        "VAR_POP", "VAR_SAMP", "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
       ].contains(upper_ascii(name)) &&
       self.source.tokens.get(self.index + 1).map(token => token.value) ==
       Some(Symbol(40))

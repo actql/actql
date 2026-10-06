@@ -40,7 +40,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const expressionRules = '<a id="expression-text"></a>' + language
     .split('<a id="expression-text"></a>')[1]
     .split('<a id="predicates"></a>')[0];
-  const body = {
+  const currentBody = {
     version: 'actql-grammar-manifest/0.1',
     source_grammar_cid: cid(program),
     operations,
@@ -52,6 +52,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
+  const body = {...currentBody, query_text_rules_sha256:
+    '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
   // role, combined with the adopted Frontend text rules. Retain both
@@ -144,10 +146,14 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     source_grammar_cid: 'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351'}),
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
+  // Statistical signatures change only the normative text rules.
+  const currentExpected = 'sha256:cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d';
+  assert.equal(currentBody.query_text_rules_sha256, 'ae044114d8ced801e803b2857da3f5055ad91308c341741fe64cdb6ab700d0b7');
+  assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
-  assert.deepEqual(pinned, body);
-  assert.equal(grammar_manifest_cid, expected);
+  assert.deepEqual(pinned, currentBody);
+  assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...body, [field]: '0'.repeat(64)}), expected);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
   }
 });

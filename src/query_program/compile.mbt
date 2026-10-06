@@ -1023,6 +1023,10 @@ fn lower_aggregate_resolved(
     "AVG" => "avg"
     "MIN" => "min"
     "MAX" => "max"
+    "VAR_POP" => "var_pop"
+    "VAR_SAMP" | "VARIANCE" => "var_samp"
+    "STDDEV_POP" => "stddev_pop"
+    "STDDEV_SAMP" | "STDDEV" => "stddev_samp"
     "ARRAY_AGG" => "array_agg"
     "STRING_AGG" => "string_agg"
     _ => raise Abort(UnsupportedAggregate)
@@ -1192,9 +1196,10 @@ fn lower_analytic_call(
       if call.window.frame is None {
         raise Abort(UnsupportedAnalytic)
       }
-      if !["COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX"].contains(
-          aggregate.function_name,
-        ) {
+      if ![
+          "COUNT", "COUNTIF", "SUM", "AVG", "MIN", "MAX", "VAR_POP", "VAR_SAMP",
+          "VARIANCE", "STDDEV_POP", "STDDEV_SAMP", "STDDEV",
+        ].contains(aggregate.function_name) {
         raise Abort(UnsupportedAnalytic)
       }
       lower_aggregate_resolved(
