@@ -11183,6 +11183,20 @@
           ],
           "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
           "fixture": "node rows admit exact work and workspace and reclaim every private phase"
+        },
+        {
+          "role": "graph_projection_fragment_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_row_steps_wbtest.mbt",
+          "fixture": "Graph presence projection fragments long names and nested values under one row owner"
+        },
+        {
+          "role": "graph_projection_presence_charge",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_presence_output_steps_wbtest.mbt",
+          "fixture": "presence row cursor yields inside nested cells and charges immutable sharing"
         }
       ],
       "environment_tests": [
@@ -11194,6 +11208,13 @@
           ],
           "path": "scripts/property-graph-surface-checker.test.mjs",
           "fixture": "node_rows Host in-flight cancellation reclaims private Relation without publishing"
+        },
+        {
+          "role": "graph_projection_public_store",
+          "suite": "node:property_graph_public_host",
+          "targets": ["node"],
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "fixture": "presence selection sort and take survives Relation Store and public Named Results through local"
         }
       ],
       "path_assurance": {
@@ -11216,7 +11237,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows and the shared AdmittedOutputRow cursor for dense and conditional output. Indexed cell initialization, ASCII-folded name fragments, cell recheck and logical charge now yield separately. Exact/one-short and every-phase cleanup evidence executes both wrappers. Shared presence fixtures cover omission versus NULL and nested-cell measurement. This is not a claim that Graph label construction or all selector scans are stepped. See docs/reviews/2026-10-06-local-graph-projection-steps.md."
     },
     {
       "inventory": "families",
@@ -11246,6 +11267,20 @@
           ],
           "path": "src/query_integration/property_graph_rows_presence_wbtest.mbt",
           "fixture": "edge rows admit exact work and workspace and reclaim every private phase"
+        },
+        {
+          "role": "graph_projection_fragment_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_row_steps_wbtest.mbt",
+          "fixture": "Graph presence projection fragments long names and nested values under one row owner"
+        },
+        {
+          "role": "graph_projection_presence_charge",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/admitted_presence_output_steps_wbtest.mbt",
+          "fixture": "presence row cursor yields inside nested cells and charges immutable sharing"
         }
       ],
       "environment_tests": [
@@ -11257,6 +11292,13 @@
           ],
           "path": "scripts/property-graph-surface-checker.test.mjs",
           "fixture": "edge_rows Host in-flight cancellation reclaims private Relation without publishing"
+        },
+        {
+          "role": "graph_projection_public_store",
+          "suite": "node:property_graph_public_host",
+          "targets": ["node"],
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "fixture": "presence selection sort and take survives Relation Store and public Named Results through local"
         }
       ],
       "path_assurance": {
@@ -11279,7 +11321,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows. The exact/one-short kernel fixture executes both wrappers; the installed Host cancellation traverses the same bounded kernel. This entry records that common resource/cleanup owner once, not two distinct proven Host paths."
+      "notes": "Stored and viewed Graph wrappers both enter start_storage_to_rows and the shared AdmittedOutputRow cursor for dense and conditional output. Indexed cell initialization, ASCII-folded name fragments, cell recheck and logical charge now yield separately. Exact/one-short and every-phase cleanup evidence executes both wrappers. Shared presence fixtures cover omission versus NULL and nested-cell measurement. This is not a claim that Graph label construction or all selector scans are stepped. See docs/reviews/2026-10-06-local-graph-projection-steps.md."
     },
     {
       "inventory": "families",
@@ -11368,7 +11410,7 @@
         "path": "src/local_bridge/events.mbt",
         "symbol": "start_events_to_rows"
       },
-      "notes": "Required Events record rows use fragmented reference matching and the shared AdmittedOutputRow cursor. Large Text/Array and long-name fixtures independently fix cumulative control, logical output and workspace limits. Conditional Graph rows retain their separate presence owner; this does not claim that owner is stepped.",
+      "notes": "Required Events record rows use fragmented reference matching and the shared AdmittedOutputRow cursor. Large Text/Array and long-name fixtures independently fix cumulative control, logical output and workspace limits. Conditional Graph rows now use the same row owner with explicit presence, not a separate atomic append. Graph label construction and selector scans remain distinct residual boundaries.",
       "boundary_tests": [
         {
           "role": "record_projection_value_limits",

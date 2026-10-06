@@ -81,7 +81,6 @@ priv struct EventsToRowsState {
   mut source_field : Int
   mut verified_column : Int
   mut matched_count : Int
-  mut matched : Map[String, @value.CheckedValue]
   mut control_work_remaining : Int?
   mut pending_graph_field : (@schema.FieldName, @value.Value)?
   mut graph_column : Int
@@ -553,13 +552,8 @@ fn events_to_rows_step(
           state.source_field = 0
           state.verified_column = 0
           state.matched_count = 0
-          state.matched = Map([])
           state.record_cells = []
-          state.phase = if state.source is GraphRows(_) {
-            ScanFields
-          } else {
-            InitializeRecordCells
-          }
+          state.phase = InitializeRecordCells
         } else {
           state.phase = FinishRelation
         }
@@ -593,6 +587,7 @@ fn events_to_rows_step(
                 Ok(GraphField(name, value)) => {
                   state.pending_graph_field = Some((name, value))
                   state.graph_column = 0
+                  state.name_offset = 0
                   state.source_field += 1
                   state.phase = MatchGraphField
                   continue
@@ -680,8 +675,21 @@ fn events_to_rows_step(
           return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
-        if @carrier.property_name_identity(@schema.reference_name(name)) ==
-          @carrier.property_name_identity(@schema.reference_name(expected.name)) {
+        guard name is @schema.Unqualified(actual_name) &&
+          expected.name is @schema.Unqualified(expected_name) else {
+          return @bounded.Failed(InvalidRecord(state.record), progress, used)
+        }
+        let (comparison, offset, _) = @carrier.compare_property_name_fragment(
+          actual_name,
+          expected_name,
+          state.name_offset,
+          64,
+        )
+        state.name_offset = offset
+        if comparison is None {
+          continue
+        }
+        if comparison == Some(0) {
           guard @value.start_recheck_runtime_value(raw, expected.contract, {
               max_nodes: state.value_limits.max_nodes,
               max_text_bytes: state.value_limits.max_text_bytes,
@@ -709,10 +717,7 @@ fn events_to_rows_step(
           @value.RecheckFailed =>
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           @value.RecheckComplete(checked, _, _) => {
-            let key = @schema.reference_name(
-              @schema.field_at(state.schema, state.graph_column).unwrap().name,
-            )
-            if state.matched.contains(key) {
+            if state.record_cells[state.graph_column] is Some(_) {
               return @bounded.Failed(
                 InvalidRecord(state.record),
                 progress,
@@ -720,7 +725,7 @@ fn events_to_rows_step(
               )
             }
             state.matched_count += 1
-            state.matched[key] = checked
+            state.record_cells[state.graph_column] = Some(checked)
             state.graph_recheck = None
             state.pending_graph_field = None
             state.phase = ScanFields
@@ -737,11 +742,7 @@ fn events_to_rows_step(
             is Some(expected) else {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
-          let present = if state.source is GraphRows(_) {
-            state.matched.contains(@schema.reference_name(expected.name))
-          } else {
-            state.record_cells[state.verified_column] is Some(_)
-          }
+          let present = state.record_cells[state.verified_column] is Some(_)
           if expected.presence == @schema.Required && !present {
             return @bounded.Failed(InvalidRecord(state.record), progress, used)
           }
@@ -757,69 +758,33 @@ fn events_to_rows_step(
           return @bounded.Failed(ControlWorkLimit, progress, used)
         }
         used += 1
-        if @schema.all_fields_required(state.schema) &&
-          !(state.source is GraphRows(_)) {
-          match
-            @execution.start_admitted_output_row(output, state.row_workspace, column => {
+        let started = if @schema.all_fields_required(state.schema) {
+          @execution.start_admitted_output_row(output, state.row_workspace, column => {
+            state.record_cells
+            .get(column)
+            .bind(value => value)
+            .map(value => value.value)
+          })
+        } else {
+          @execution.start_admitted_presence_output_row(
+            output,
+            state.row_workspace,
+            column => {
               state.record_cells
               .get(column)
-              .bind(value => value)
-              .map(value => value.value)
-            }) {
-            Ok(row) => {
-              state.output_row = Some(row)
-              state.phase = AppendRelationRow
-            }
-            Err(issue) =>
-              return @bounded.Failed(relation_row_issue(issue), progress, used)
-          }
-          continue
-        }
-        let appended = if @schema.all_fields_required(state.schema) {
-          // Graph field-role matching retains its current owner. Its case-fold
-          // semantics and conditional presence are a separate cursor boundary.
-          @execution.append_admitted_output_cells(
-            output,
-            @schema.field_count(state.schema),
-            column => {
-              @schema.field_at(state.schema, column).bind(field => {
-                state.matched.get(@schema.reference_name(field.name))
+              .map(cell => {
+                @execution.relation_cell(cell.map(checked => checked.value))
               })
             },
           )
-        } else {
-          let cells = Array::makei(@schema.field_count(state.schema), column => {
-            if state.source is GraphRows(_) {
-              state.matched.get(
-                @schema.reference_name(
-                  @schema.field_at(state.schema, column).unwrap().name,
-                ),
-              )
-            } else {
-              state.record_cells.get(column).bind(value => value)
-            }
-          })
-          let row = match
-            @execution.admit_relation_row(
-              state.schema,
-              cells,
-              state.value_limits,
-            ) {
-            Ok(row) => row
-            Err(issue) =>
-              return @bounded.Failed(Presence(issue), progress, used)
-          }
-          @execution.append_admitted_output_presence(output, row)
         }
-        match appended {
-          Err(issue) =>
-            return @bounded.Failed(RelationOutput(issue), progress, used)
-          Ok(_) => {
-            state.matched = Map([])
-            state.record += 1
-            state.phase = BeginRecord
-            progress += 1
+        match started {
+          Ok(row) => {
+            state.output_row = Some(row)
+            state.phase = AppendRelationRow
           }
+          Err(issue) =>
+            return @bounded.Failed(relation_row_issue(issue), progress, used)
         }
       }
       AppendRelationRow => {
@@ -836,7 +801,6 @@ fn events_to_rows_step(
             @execution.cleanup_admitted_output_row(row) |> ignore
             state.output_row = None
             state.record_cells = []
-            state.matched = Map([])
             state.record += 1
             state.phase = BeginRecord
             progress += 1
@@ -921,7 +885,6 @@ fn cleanup_events_to_rows_state(state : EventsToRowsState) -> Bool {
     @execution.cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.matched = Map([])
   if state.owned is Some(owned) {
     @records.discard_completed(owned) |> ignore
     state.owned = None
@@ -999,10 +962,9 @@ fn start_storage_to_rows(
     }
   }
   // Keep matched cells and borrowed name/recheck custody within the existing
-  // admission workspace. Conditional Graph output keeps its presence owner.
+  // admission workspace, including conditional Graph presence cells.
   let width = @schema.field_count(schema)
-  let row_workspace = if @schema.all_fields_required(schema) &&
-    !(source is GraphRows(_)) {
+  let row_workspace = {
     if limits.max_depth > 2147483644 ||
       width > max_entries ||
       limits.max_depth + 3 > max_entries - width {
@@ -1010,8 +972,6 @@ fn start_storage_to_rows(
       return Err(RelationOutput(@execution.CaptureLimit))
     }
     max_entries - width - limits.max_depth - 3
-  } else {
-    0
   }
   let state : EventsToRowsState = {
     available,
@@ -1033,7 +993,6 @@ fn start_storage_to_rows(
     source_field: 0,
     verified_column: 0,
     matched_count: 0,
-    matched: Map([]),
     control_work_remaining: control_work_limit,
     pending_graph_field: None,
     graph_column: 0,
