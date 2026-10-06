@@ -151,7 +151,8 @@ pub fn poll(
     Ok(None) => Ok(None)
     Ok(Some(@remote.Dispatch(dispatch))) =>
       Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
-    Ok(Some(@remote.Plan(_)))
+    Ok(Some(@remote.RetainedPlan(_)))
+    | Ok(Some(@remote.Plan(_)))
     | Ok(Some(@remote.Output(_)))
     | Ok(Some(@remote.Query(_)))
     | Ok(Some(@remote.Cancel(_)))

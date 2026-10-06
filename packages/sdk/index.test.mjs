@@ -1423,3 +1423,25 @@ test('expression required types expose safe localized advice without executable 
     assert.equal(Object.hasOwn(explainCheckReason(reason), 'next'), false);
   }
 });
+
+test('check refuses lossy numeric serialization before credentials or exchange', async t => {
+  let credentials = 0, exchanges = 0;
+  mock.method(globalThis, 'fetch', async (url) => {
+    if (url.pathname.endsWith('/connect')) return Response.json(profile);
+    exchanges++;
+    throw new Error('UnexpectedCheckExchange');
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect({...options, token: async () => {
+    credentials++;
+    return 'scoped-token';
+  }});
+  credentials = 0;
+  for (const value of [NaN, Infinity, -Infinity, -0]) {
+    await assert.rejects(client.check('SELECT @x AS n', {format: 'sql',
+      parameterDeclarations: {x: {type: 'json'}}, parameters: {x: {nested: [value]}}}),
+    {code: 'InvalidCheckRequest'});
+    assert.equal(credentials, 0, '[check-mutation:numeric-before-credentials]');
+    assert.equal(exchanges, 0);
+  }
+});

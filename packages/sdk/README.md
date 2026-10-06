@@ -422,6 +422,12 @@ authorize another operation. Location helpers still require the exact SDK
 response and its original submitted snapshot. Explanations are immutable, safe
 English text; they do not expose private causes or inspect error messages.
 
+Before credentials or transport, `check` rejects non-finite numbers and negative
+zero in supplied parameters or declarations (including nested values) with
+`InvalidCheckRequest`. JSON serialization must not replace these numbers with
+`null` or zero and check a different input. This is request admission, not an
+`invalid`, `verified` or `undetermined` checker verdict.
+
 A completed check may be invalid or undetermined. Its verdict is always bound to
 scope/context and does not start or authorize a Run. Wrong supplied types expose
 expected/actual types without values. Missing declared values expose Requirements
