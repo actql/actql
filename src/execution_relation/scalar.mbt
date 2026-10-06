@@ -69,6 +69,24 @@ pub fn unary(
       match value {
         Null => Ok(Null)
         Number(n) => finite(-n)
+        Captured(@admitted.Decimal(decimal)) => {
+          let coefficient = decimal.coefficient
+          let negated = if coefficient == "0" {
+            "0"
+          } else if coefficient.has_prefix("-") {
+            coefficient[1:].to_owned()
+          } else {
+            "-" + coefficient
+          }
+          match @admitted.decimal_from_coefficient(
+            negated,
+            decimal.precision,
+            decimal.scale,
+          ) {
+            Some(result) => Ok(Captured(result))
+            _ => Err(InvalidOperand)
+          }
+        }
         Boolean(_) | Text(_) | Captured(_) => Err(InvalidOperand)
       }
   }
