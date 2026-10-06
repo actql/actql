@@ -6022,3 +6022,26 @@ leaf scans, Events comparisons/session identity or whole-Run accounting.
 Inventory totals do not increase. Full-target, packed and CI acceptance
 remain unverified for this component. See the
 [Bridge evidence](2026-10-06-local-rows-records-bridge.md).
+
+### Events/Vectors-to-Relation required-record projection
+
+The inverse record Bridge initializes pending cells and matches borrowed
+FieldNames in charged fragments, then uses the existing AdmittedOutputRow
+cursor for value recheck and logical output measurement. Its input and
+unfinished output remain under existing owners until stop and once-only
+cleanup. Vectors delegates to the same record projection owner.
+
+Independent large Text/Array limits fix control 820, logical work 8362 and
+workspace 24; long-name limits fix 60, 544 and 23. Quanta preserve results
+and charges. Ordinary public Host evidence reads three explicit Named Results,
+reuses requests without Compute and delivers cancellation inside the unused
+Array recheck of the normally selected projection task, using real Store.
+The gate requires value/name/stop evidence and actual shared cursor connections.
+
+Graph presence caller work-boundary failures also reproduce on unchanged
+parent production code and remain known failures, not passing evidence.
+Graph case-fold matching and conditional/required Graph output append are
+not changed here. Common value leaves, constructor preparation, Events
+comparison/session identity, intermediate aggregate bytes and whole-Run
+accounting remain separate. Full-target, packed and CI completion are not
+claimed. See the [projection evidence](2026-10-06-local-records-row-projection.md).

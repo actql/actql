@@ -48,6 +48,43 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('record projections require value, name, stop and public Store evidence', () => {
+  for (const operation of ['events', 'vectors']) {
+    for (const role of ['record_projection_value_limits',
+      'record_projection_stop_cleanup', 'record_projection_name_limits']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'record_projection_public_store');
+  }), /Bridge events: record projection public Store fixture is missing/u);
+});
+
+test('record projections reject missing production cursor and cleanup connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [marker, message] of [
+    ['@schema.compare_reference_fragment(', 'stepped record projection is missing'],
+    ['@execution.start_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.advance_admitted_output_row(', 'stepped record projection is missing'],
+    ['@execution.cleanup_admitted_output_row(', 'record projection cleanup custody is missing'],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replaceAll(marker, 'missing_cursor_connection(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['events', 'vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
 test('record Bridges require in-value limits, stop and public Store evidence', () => {
   for (const operation of ['to_events', 'to_vectors']) {
     for (const role of ['bridge_record_value_limits', 'bridge_record_value_stop_cleanup']) {

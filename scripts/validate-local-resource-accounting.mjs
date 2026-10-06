@@ -2284,6 +2284,42 @@ export function validateResourceAccounting({
       !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
       fail(`${label}: Events projection boundary fixture is missing`);
     }
+    if (route.family === 'Bridge' &&
+      ['events', 'vectors'].includes(route.operation)) {
+      for (const role of ['record_projection_value_limits',
+        'record_projection_stop_cleanup', 'record_projection_name_limits']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root,
+        'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn events_to_rows_step(');
+      const issueStart = bridge.indexOf('fn relation_row_issue(');
+      const cleanupStart = bridge.indexOf('fn cleanup_events_to_rows_state(');
+      const ownerStart = bridge.indexOf('fn start_storage_to_rows(');
+      const projection = stepStart >= 0 && issueStart > stepStart
+        ? bridge.slice(stepStart, issueStart) : '';
+      const cleanup = cleanupStart >= 0 && ownerStart > cleanupStart
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      for (const marker of ['InitializeRecordCells =>', 'MatchRecordName =>',
+        '@schema.compare_reference_fragment(', 'state.record_cells[column]',
+        '@execution.start_admitted_output_row(',
+        '@execution.advance_admitted_output_row(']) {
+        if (!projection.includes(marker)) fail(`${label}: stepped record projection is missing`);
+      }
+      if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
+        !cleanup.includes('state.record_cells = []')) {
+        fail(`${label}: record projection cleanup custody is missing`);
+      }
+      if (route.operation === 'vectors' &&
+        !fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8')
+          .includes('start_records_to_rows(')) {
+        fail(`${label}: shared record projection connection is missing`);
+      }
+      if (route.operation === 'events' &&
+        !environmentRoles.has('record_projection_public_store')) {
+        fail(`${label}: record projection public Store fixture is missing`);
+      }
+    }
     if (route.family === 'Bridge' && route.operation === 'graph' &&
       (!boundaryRoles.has('graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup') ||
         !boundaryRoles.has('graph_bridge_two_consumer_lifetime'))) {

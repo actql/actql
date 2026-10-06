@@ -2703,20 +2703,23 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(10),
+    control_work_limit=Some(50),
   ).unwrap()
   let mut exact_done = false
-  for _ in 0..<20 {
+  // Two init/source/verify polls, three binary name probes, one cursor
+  // start and fifteen row polls: 2*(2+2+3+2+1+15) = 50. Workspace is
+  // two matched slots, thirteen recheck custody slots and three row slots.
+  for _ in 0..<60 {
     if exact_done {
       break
     }
     match @local_bridge.advance_vectors_to_rows(exact, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Complete(output, work~, ..) => {
-        assert_eq(work, 10L)
+        assert_eq(work, 50L)
         assert_eq(@execution.completed_row_count(output), 2)
         assert_true(
           @execution.completed_output_matches_inputs(output, [external]),
@@ -2736,20 +2739,20 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
-    control_work_limit=Some(9),
+    control_work_limit=Some(49),
   ).unwrap()
   let mut work_failed = false
-  for _ in 0..<20 {
+  for _ in 0..<60 {
     if work_failed {
       break
     }
     match @local_bridge.advance_vectors_to_rows(one_short_work, 1).unwrap() {
       @local_bridge.Continue(..) => ()
       @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
-        assert_eq(work, 9L)
+        assert_eq(work, 49L)
         work_failed = true
       }
       _ => abort("one-short Vectors projection did not reject work")
@@ -2772,34 +2775,36 @@ test "Vectors projection production entrypoint enforces value and width limits" 
   assert_true(
     one_short_width is Err(@local_bridge.Completion(@execution.Limit)),
   )
-  let one_short_value = @local_bridge.start_vectors_to_rows(
-    @bounded.control(),
-    task_test_completion(owner),
-    sequence,
-    1,
-    projection_input,
-    2,
-    { max_nodes: 9, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
-    1000,
-    [external],
-  ).unwrap()
-  let mut value_failed = false
-  for _ in 0..<20 {
-    if value_failed {
-      break
+  for (nodes, workspace) in [(9, 18), (10, 17)] {
+    let one_short_value = @local_bridge.start_vectors_to_rows(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      projection_input,
+      2,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
+      workspace,
+      1000,
+      [external],
+    ).unwrap()
+    let mut value_failed = false
+    for _ in 0..<60 {
+      if value_failed {
+        break
+      }
+      match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Failed(
+          @local_bridge.RelationOutput(@execution.CaptureLimit),
+          ..
+        ) => value_failed = true
+        _ => abort("one-short Vectors projection did not reject output")
+      }
     }
-    match @local_bridge.advance_vectors_to_rows(one_short_value, 1).unwrap() {
-      @local_bridge.Continue(..) => ()
-      @local_bridge.Failed(
-        @local_bridge.RelationOutput(@execution.CaptureLimit),
-        ..
-      ) => value_failed = true
-      _ => abort("one-short Vectors projection did not reject output")
-    }
+    assert_true(value_failed)
+    assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   }
-  assert_true(value_failed)
-  assert_eq(@local_bridge.cleanup_vectors_to_rows(one_short_value), Ok(true))
   let control = @bounded.control()
   let cancelled = @local_bridge.start_vectors_to_rows(
     control,
@@ -2809,7 +2814,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     projection_input,
     2,
     { max_nodes: 10, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    2,
+    18,
     1000,
     [external],
   ).unwrap()
