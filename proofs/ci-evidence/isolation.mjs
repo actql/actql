@@ -20,6 +20,9 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/isolated-contract.mjs',
   'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
 const child = isolatedSourceFiles[0];
+// OrbStack's amd64 execution exposes this actual libuv setting. Bind it only
+// in the local diagnostic; never erase it or expand the Actions environment.
+export const localIsolatedEnvironment = Object.freeze({...isolatedEnvironment, UV_USE_IO_URING: '0'});
 // The pinned Moon runner writes its selected workspace's own database and
 // all_pkgs.json. Installed core contributes prebuilt .mi/.core inputs, not the
 // build owner's database or bundle metadata. Keep those four files physically
@@ -173,15 +176,17 @@ export function localIsolatedRunArguments({imageId, cidFile, owner}) {
 }
 
 function runArguments({imageId, cidFile, owner, label}) {
-  return ['run', '--rm', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
+  return ['run', '--rm', '--platform=linux/amd64', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
     '--security-opt=no-new-privileges', '--user=1000:1000', '--hostname=actql-session',
     '--label', `${label}=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
     '--tmpfs', '/workspace:rw,nosuid,nodev,mode=1777', '--workdir=/workspace',
     '--entrypoint=/runtime/node', imageId, `/source/${child}`];
 }
 
-export function scratchDockerfile() {
-  return ['FROM scratch', 'COPY root/ /', ...Object.entries(isolatedEnvironment).map(([name, value]) => `ENV ${name}=${value}`),
+export function scratchDockerfile() { return dockerfile(isolatedEnvironment); }
+export function localScratchDockerfile() { return dockerfile(localIsolatedEnvironment); }
+function dockerfile(environment) {
+  return ['FROM scratch', 'COPY root/ /', ...Object.entries(environment).map(([name, value]) => `ENV ${name}=${value}`),
     'USER 1000:1000', 'WORKDIR /workspace', `ENTRYPOINT ["/runtime/node", "/source/${child}"]`, ''].join('\n');
 }
 
@@ -190,16 +195,16 @@ export function scratchDockerfile() {
 // volumes before running any command from that image. Never print ENV values.
 export function checkImageDefinition({image, imageId, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^[0-9]+:[0-9]+:[0-9]+$/u.test(owner), 'Invalid image identity/owner');
-  return imageDefinition({image, imageId, owner, label: 'org.actql.ci.owner'});
+  return imageDefinition({image, imageId, owner, label: 'org.actql.ci.owner', environment: isolatedEnvironment});
 }
 
 export function checkLocalImageDefinition({image, imageId, owner}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid local image identity/owner');
   assert(!image.Config?.Labels?.['org.actql.ci.owner'], 'Local image cannot carry Actions authority');
-  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner'});
+  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner', environment: localIsolatedEnvironment});
 }
 
-function imageDefinition({image, imageId, owner, label}) {
+function imageDefinition({image, imageId, owner, label, environment}) {
   assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
   const config = image.Config;
   assert(config?.Labels?.[label] === owner, 'Wrong built image owner');
@@ -207,7 +212,7 @@ function imageDefinition({image, imageId, owner, label}) {
   // replaces its value. Order is not a dependency when all names are unique;
   // exact sorted entries still reject extra, missing, duplicate or changed ENV.
   assert(Array.isArray(config.Env) && config.Env.every(value => typeof value === 'string') &&
-    encode([...config.Env].sort()) === encode(Object.entries(isolatedEnvironment).map(([name, value]) => `${name}=${value}`).sort()),
+    encode([...config.Env].sort()) === encode(Object.entries(environment).map(([name, value]) => `${name}=${value}`).sort()),
   'Unexpected built image environment');
   assert(config.User === '1000:1000' && config.WorkingDir === '/workspace', 'Changed image user/workdir');
   assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${child}`]), 'Changed image entrypoint');

@@ -122,7 +122,7 @@ function worker(options) {
   assert.equal(prepared.owner, owner);
   assert(/^\/out\/isolated-build-[A-Za-z0-9]+$/u.test(prepared.context), 'Unexpected owned context');
   prepared.context = join(directory, prepared.context.slice('/out/'.length));
-  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree});
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true});
   const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine});
   assert.equal(git(['rev-parse', 'HEAD']), options.revision);
   assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '');

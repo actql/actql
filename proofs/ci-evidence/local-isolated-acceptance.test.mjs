@@ -5,13 +5,14 @@ import {mkdtempSync, writeFileSync, chmodSync, symlinkSync, rmSync} from 'node:f
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {checkoutTree, checkBuilder, checkOwnedPreparation, localEngine} from './local-isolated-acceptance.mjs';
-import {checkLocalImageDefinition, checkImageDefinition, isolatedEnvironment,
+import {checkLocalImageDefinition, checkImageDefinition, localIsolatedEnvironment,
   localIsolatedRunArguments, isolatedRunArguments} from './isolation.mjs';
+import {imageRuntime} from './isolated-runtime.mjs';
 import {prepareIsolatedMutation, executeIsolatedMutation, prepareLocalIsolatedMutation} from './isolated-execution.mjs';
 
 const owner = `local-${'a'.repeat(32)}`, imageId = `sha256:${'b'.repeat(64)}`;
 const image = () => ({Id: imageId, Os: 'linux', Architecture: 'amd64', Config: {
-  Labels: {'org.actql.local.owner': owner}, Env: Object.entries(isolatedEnvironment).map(([k, v]) => `${k}=${v}`),
+  Labels: {'org.actql.local.owner': owner}, Env: Object.entries(localIsolatedEnvironment).map(([k, v]) => `${k}=${v}`),
   User: '1000:1000', WorkingDir: '/workspace', Entrypoint: ['/runtime/node', '/source/proofs/ci-evidence/isolated-mutations.mjs'],
   Cmd: null, Volumes: null, OnBuild: null}});
 
@@ -96,4 +97,15 @@ test('a named Docker launcher is preserved rather than replaced by its multicall
   writeFileSync(target, 'multicall target'); symlinkSync(target, launcher);
   assert.equal(localEngine(launcher), launcher);
   assert.throws(() => localEngine('docker')); assert.throws(() => localEngine(directory));
+});
+
+
+test('local environment inputs never enter the Actions runtime authority', () => {
+  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', localDiagnostic: true};
+  assert.throws(() => imageRuntime(manifest), /authority/u);
+  assert.equal(localIsolatedEnvironment.UV_USE_IO_URING, '0');
+  const changed = image(); changed.Config.Env = changed.Config.Env.filter(entry => !entry.startsWith('UV_USE_IO_URING='));
+  assert.throws(() => checkLocalImageDefinition({image: changed, imageId, owner}));
+  const altered = image(); altered.Config.Env = altered.Config.Env.map(entry => entry === 'UV_USE_IO_URING=0' ? 'UV_USE_IO_URING=1' : entry);
+  assert.throws(() => checkLocalImageDefinition({image: altered, imageId, owner}));
 });

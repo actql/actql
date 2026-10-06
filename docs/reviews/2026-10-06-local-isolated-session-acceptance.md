@@ -57,6 +57,12 @@ The record is exclusively created, carries `authority: local-physical-acceptance
 and `reuseAuthorized: false`. The outer bounded wrapper retains its own receipt.
 Preparation/inspection/build/execution/cleanup costs are recorded independently.
 
+The local profile explicitly binds `UV_USE_IO_URING=0`, observed in OrbStack's
+amd64 execution. This field is present in the Dockerfile, image config, manifest
+and actual child observation. Missing/changed fields fail locally, and the CI
+input consumer rejects the `localDiagnostic` marker; its original environment
+contract is unchanged. No injected value is erased or treated as irrelevant.
+
 Local kernel/CPU/emulation and builder distributions remain actual observed
 inputs. A local pass does not clear runtime residuals, qualify an authenticated
 main origin, issue a reuse certificate or establish hosted CI/net savings.

@@ -8,8 +8,8 @@ import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
-  isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
+  isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, localScratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 
@@ -24,7 +24,7 @@ const command = (program, args, options = {}) => {
 const ciExecution = {engine: '/usr/bin/docker', label: 'org.actql.ci.owner', arguments: isolatedRunArguments, checkImage: checkImageDefinition};
 const localExecution = engine => {
   assert(typeof engine === 'string' && engine.startsWith('/') && !engine.includes('\0'), 'Use an explicit Docker executable');
-  return {engine, label: 'org.actql.local.owner', arguments: localIsolatedRunArguments, checkImage: checkLocalImageDefinition};
+  return {engine, local: true, label: 'org.actql.local.owner', arguments: localIsolatedRunArguments, checkImage: checkLocalImageDefinition};
 };
 
 // Static executables need no copied loader. Require an actual ELF64 x86-64
@@ -51,10 +51,10 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
 export function prepareLocalIsolatedMutation({root, tree, owner, directory}) {
   assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
-  return prepare({root, tree, directory, owner});
+  return prepare({root, tree, directory, owner, local: true});
 }
 
-function prepare({root, tree, directory, owner}) {
+function prepare({root, tree, directory, owner, local = false}) {
   const start = performance.now(), context = mkdtempSync(join(directory, 'isolated-build-'));
   const imageRoot = join(context, 'root'); mkdirSync(imageRoot);
   const source = stageMutationSource({tree, destination: imageRoot});
@@ -87,12 +87,13 @@ function prepare({root, tree, directory, owner}) {
   }
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});
   const probe = join(imageRoot, 'runtime/actql-write-probe'); writeFileSync(probe, '', {flag: 'wx', mode: 0o666}); chmodSync(probe, 0o666);
-  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', environment: isolatedEnvironment,
-    dockerfile: scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
+  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', ...(local ? {localDiagnostic: true} : {}),
+    environment: local ? localIsolatedEnvironment : isolatedEnvironment,
+    dockerfile: local ? localScratchDockerfile() : scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
     sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')),
     experimentDigest: isolatedExperimentDigest(tree),
     hostImage: process.env.ImageVersion ?? 'unrecorded'};
-  const runtime = imageRuntime(manifest); checkIsolatedInputs({runtime, manifest, tree});
+  const runtime = imageRuntime(manifest, {local}); checkIsolatedInputs({runtime, manifest, tree, local});
   mkdirSync(join(imageRoot, 'control')); writeFileSync(join(imageRoot, 'control/inputs.json'), jsonBytes(manifest), {flag: 'wx'});
   writeFileSync(join(context, 'Dockerfile'), manifest.dockerfile, {flag: 'wx'});
   return {owner, context, runtime, manifest, sourceBytes: source.bytes,
@@ -112,7 +113,7 @@ export function executeLocalIsolatedMutation({root, tree, prepared, engine}) {
 
 function execute({root, tree, prepared, execution}) {
   const docker = args => command(execution.engine, args);
-  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree});
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true});
   // Both observations cover the physically staged cohort. The existing
   // collector checks the full tracked checkout independently on every action.
   const before = checkMutationCheckout({root, tree}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
