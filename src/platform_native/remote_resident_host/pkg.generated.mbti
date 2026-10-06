@@ -52,6 +52,8 @@ pub fn open_resident_source_compute(@run_publication_host.PreparedClientProgram,
 
 pub fn plan_resident_output(ResidentExecuted, @remote_journal.Journal, String, String, Int, @remote_site_protocol.RemotePollOutput) -> Result[@remote_site_protocol.RemoteOutputPlan, ResidentOutputIssue]
 
+pub fn plan_resident_retained_input_transfer(@remote_runtime.NativeRemoteRuntime, @run_publication_host.ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite) -> Result[@remote_site_protocol.RemoteRetainedInputPlan, ResidentRetainedTransferIssue]
+
 pub fn prepare_resident_effect_source_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String, String) -> Result[@query_planning.QueryRequirement, ResidentSourceIssue]
 
 pub fn prepare_resident_retained_transfer(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite, @remote_transfer_journal.Journal, @filesystem.Root, Int, Int64, Int64) -> Result[ResidentRetainedTransfer, ResidentRetainedTransferIssue]
