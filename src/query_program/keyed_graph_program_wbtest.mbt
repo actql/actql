@@ -72,7 +72,7 @@ test "keyed source node labels are membership and NODE_ID is the full identity s
     variable: { value: "a", quoted: false, },
     prefix: "",
     fields: ["id", "entity_type"],
-    kind: PropertyNode("identity_slot"),
+    kind: NodeIdentity("identity_slot"),
     hops: 0,
     label_field: None,
   }

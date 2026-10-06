@@ -937,3 +937,82 @@ omit both the original input and all rejected Host payload fields. Input stays
 in memory through a weak association to the error; retaining the error retains
 that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
+
+
+### Bounded known Requirement enumeration
+
+A completed check may include `report.omissions: {requirements: true}` when the
+reserved reporting budget omits known input requirements. Its verdict and
+bound-input scope still account for the full originally submitted input; the
+flag is not a new analysis limit or a verified partial report. Safe violations
+and protected coverage remain in the report. No omitted count is exposed.
+Absence of the flag means this known Requirement enumeration was not truncated.
+
+`explainCheckOutcome` retains that flag separately from operation completeness.
+Text/HTML displays mark Host omissions; JSON retains the typed flag. Renderer
+`omittedEntries` counts only disclosed entries that its own display budget
+omits, and cannot estimate Host omissions. `getCheckRequirementFrontier` refuses
+truncated enumeration, so a check supplementation session stops rather than
+mistaking a prefix for a complete admission frontier. A valid old report remains
+bound to its original input/context; no more checking or supplementation is
+performed by presentation.
+
+### Passive operation diagnostic formats
+
+`formatSubmission`, `formatCancellation`, `formatReadFailure` and
+`formatEffectUncertainty` render only the original SDK-owned observations used
+by their corresponding explanation helpers. They offer `text`, `html` and
+agent `json` formats, locale selection and a 1,024..1,048,576 UTF-8 byte budget
+(default 65,536). Copies and forged errors/responses have no formatting custody.
+The renderer captures the retained observation before reading display options.
+Locale, wording, severity or edits to an enumerable error never change its facts.
+
+All original lookup references, returned-row counts, unknown outcomes, unresolved
+Effect names and physical-stop/control revisions remain intact. JSON carries the
+whole explanation and independent operation translation revision; text/HTML
+retain those same facts as escaped data. Markup, terminal controls and bidi marks
+are escaped without changing parsed JSON values or semantic identities. No raw
+cause, input, credential or provider message is included. References are data,
+not executable instructions or durable permission.
+
+If the complete observation cannot fit the requested output budget, return
+undefined rather than a success-looking prefix or a reduced unresolved-Effect
+set. Existing explanation helpers remain available independently. Formatting
+performs no lookup, cancel, resend, new read, Compute or provider call. It cannot
+establish durable cancellation-operation reconciliation, Delivery opening or
+receipt-backed completion, or complete template scope; those still require
+facts from their existing authoritative owners. No wire schema, identity,
+persistence or execution path changes are introduced by presentation.
+
+## Rejected Run observations
+
+`status`, `wait` and `reconcile` use the existing registered Run state validator
+before and after detaching the received value. A valid observation retains its
+original facts even if a Local transport reuses an object. A rejected state still
+throws `InvalidHostRunState` for a rejected decoded state, or the existing
+`InvalidHostResponse` for decoding/wire-bound failure;
+`explainRunObservationFailure(error)` distinguishes
+an unknown state under the current version (`uninterpretable/unknown_state`),
+a usable mismatched version (`protocol_failure/contract_mismatch`), and malformed
+known facts or unreadable payload (`protocol_failure/malformed_response`).
+The generated `runStateProtocol` vocabulary comes from the registered schema;
+it neither admits replies nor changes a Run Owner's transitions.
+
+The original SDK error privately retains only safe typed classification, the
+operation name and a read-only `status` candidate bound to the attached Run's
+original reference. A rejected response contributes no state, revision, Effect,
+publication, physical-stop or cleanup fact. Unknown provider text and raw causes
+are omitted from the protocol error. Explanation/locale edits confer no write
+retry, cancellation, Compute restart or reconciliation authority. Status lookup
+continues to enforce current Host authorization; the retained reference grants
+no access. Copies, serialized or forged errors have no explanation custody.
+Credential and transport refusals retain their existing separate behavior and
+are not labelled as received malformed state observations. No automatic lookup
+or additional operation is performed by presentation.
+
+This SDK weak association lasts only while its original error remains reachable;
+there is no timed retention guarantee or new Host persistence/retrieval API.
+The current Graph contracts and their identities are used without old aliases,
+fallbacks or reinterpretation of stored Run identities. This boundary completes
+only the rejected Run-observation part of X6; durable write/cancellation/Delivery
+contracts and their other diagnostic obligations remain separate.

@@ -1,3 +1,5 @@
+import './operation-formats.test.mjs';
+import './run-observation-protocol.test.mjs';
 import './operation-diagnostic-locales.test.mjs';
 import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
@@ -16,14 +18,14 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
 
 test('check presentation revisions are immutable and separate from schema identity', () => {
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.6`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-07.${locale}.7`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
@@ -426,7 +428,12 @@ test('bounded control reads cover attach, status and error responses',
     operationReply = Response.json(admission);
     const execution = await client.attach(ref);
     operationReply = oversizedControl(cancelled);
-    await assert.rejects(execution.status(), {code: 'InvalidHostResponse'});
+    await assert.rejects(execution.status(), error => {
+      assert.equal(error.code, 'InvalidHostResponse');
+      assert.equal(explainRunObservationFailure(error)?.problem, 'malformed_response');
+      assert.deepEqual(explainRunObservationFailure(error)?.next, {operation: 'status', ref});
+      return true;
+    });
     operationReply = new Response(oversizedControl(cancelled).body,
       {status: 503});
     await assert.rejects(client.start({version: 'actql/0.1'},

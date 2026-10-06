@@ -1,5 +1,6 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
+export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
 export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
@@ -314,6 +315,9 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
@@ -459,6 +463,9 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
