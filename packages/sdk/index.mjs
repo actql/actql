@@ -229,6 +229,11 @@ export function resolveCheckLocation(outcome, location, currentInput) {
 
 // Coordinates describe this submitted revision, never a newer editor buffer.
 export function resolveCheckTextRange(outcome, location, currentInput) {
+  return resolveCheckTextRangeEncoding(outcome, location, 'utf-16', currentInput);
+}
+
+export function resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput) {
+  if (!['utf-8', 'utf-16', 'utf-32'].includes(encoding)) return undefined;
   const resolved = resolveCheckLocation(outcome, location, currentInput);
   if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
   const text = resolved.input.text;
@@ -250,12 +255,53 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
       width++;
     }
     if (scalar === 13 || scalar === 10) { line++; character = 0; }
-    else character += units;
+    else character += encoding === 'utf-8' ? width : encoding === 'utf-16' ? units : 1;
     byte += width;
     at += units;
   }
-  return start && Object.freeze({...resolved, positionEncoding: 'utf-16',
+  return start && Object.freeze({...resolved, positionEncoding: encoding,
     range: Object.freeze({start, end})});
+}
+
+// A session owns one current unsaved buffer; replies retain their SDK input custody.
+export function createCheckDocumentSession(client, options) {
+  const {text, version, positionEncoding = 'utf-16'} = options ?? {};
+  const validDocument = (text, version) => typeof text === 'string' && text.isWellFormed() &&
+    Number.isInteger(version) && version >= -2147483648 && version <= 2147483647;
+  if (typeof client?.check !== 'function' || !validDocument(text, version) ||
+      !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
+  let current = {text, version}, checker = client, issued = 0n;
+  const observations = new WeakMap();
+  return Object.freeze({
+    update(text, version) {
+      if (!current) fail('CheckDocumentClosed');
+      if (!validDocument(text, version) || version <= current.version) fail('InvalidCheckDocument');
+      current = {text, version};
+    },
+    async check(options) {
+      if (!current) fail('CheckDocumentClosed');
+      const submitted = current, ticket = ++issued;
+      // Call the existing SDK before yielding so it also detaches supplied bindings.
+      const outcome = await checker.check(submitted.text, options);
+      const input = getCheckInput(outcome, 'source');
+      const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
+      observations.set(observation, {ticket, input: input?.kind === 'text' &&
+        input.text === submitted.text ? input : undefined});
+      return observation;
+    },
+    resolveTextRange(observation, location) {
+      const record = observations.get(observation);
+      if (!current || !record?.input || record.ticket !== issued ||
+          observation.version !== current.version || record.input.text !== current.text ||
+          location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
+      return resolveCheckTextRangeEncoding(observation.outcome, location,
+        positionEncoding, record.input);
+    },
+    close() {
+      current = undefined;
+      checker = undefined;
+    },
+  });
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
