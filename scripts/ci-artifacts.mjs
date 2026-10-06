@@ -55,7 +55,8 @@ function observationMap(value) {
 function workload(row) {
   return {...pick(row, ['name', 'site', 'anchor', 'original', 'minimal', 'history', 'localMinimal', 'finalCandidates', 'killed']),
     finalObservations: (row.finalObservations ?? []).map(withoutOccurrence),
-    replay: observationMap(row.replay), healthy: observationMap(row.healthy)};
+    replay: observationMap(row.replay), healthy: observationMap(row.healthy),
+    postRestore: observationMap(row.postRestore?.observations)};
 }
 function phaseRow(campaign, row, phase, target, value, receipts, reason = null) {
   const measured = duration(value);
@@ -65,7 +66,7 @@ function phaseRow(campaign, row, phase, target, value, receipts, reason = null) 
 }
 function phaseReceipts(executions, phase, target) {
   const suffix = phase === 'search' ? /-search-/u : phase === 'shrink' ? /-shrink-/u : /-(?:fixed|minimal|replay)-/u;
-  return executions.filter(e => e.receipt?.target === target && (phase === 'healthy' || suffix.test(e.path ?? '')))
+  return executions.filter(e => e.receipt?.target === target && (['healthy', 'post-restore'].includes(phase) || suffix.test(e.path ?? '')))
     .map(e => ({path: e.path, digest: e.digest}));
 }
 export function projectCampaign(report, kind, expectedInventory = {}) {
@@ -82,9 +83,12 @@ export function projectCampaign(report, kind, expectedInventory = {}) {
     const capacityExecutions = (report.executions ?? []).filter(e => e.path?.includes(`-capacity-${row.name}-`));
     const mutated = row.executions ?? capacityExecutions.filter(e => !e.path.includes('-restored-'));
     const healthy = row.healthyExecutions ?? capacityExecutions.filter(e => e.path.includes('-restored-'));
-    if (kind !== 'capacity') receipts.push(...mutated, ...healthy);
+    const postRestore = row.postRestore?.executions ?? [];
+    if (kind !== 'capacity') receipts.push(...mutated, ...healthy, ...postRestore);
     const actualTargets = Object.keys(row.replay ?? {}).sort(), actualHealthy = Object.keys(row.healthy ?? {}).sort();
-    const matched = fingerprint(actualTargets) === fingerprint([...expectedTargets].sort()) && fingerprint(actualHealthy) === fingerprint([...expectedTargets].sort());
+    const actualPostRestore = Object.keys(row.postRestore?.observations ?? {}).sort();
+    const matched = fingerprint(actualTargets) === fingerprint([...expectedTargets].sort()) && fingerprint(actualHealthy) === fingerprint([...expectedTargets].sort()) &&
+      (kind === 'capacity' || fingerprint(actualPostRestore) === fingerprint([...expectedTargets].sort()));
     targetComplete &&= matched;
     const timing = row.timing ?? row.timings ?? {};
     if (kind !== 'fixed') for (const phase of ['search', 'shrink']) {
@@ -98,13 +102,22 @@ export function projectCampaign(report, kind, expectedInventory = {}) {
           !expectedTargets.includes(target) || !(target in (phase === 'healthy' ? row.healthy ?? {} : row.replay ?? {})) ? 'target-mismatch' : null));
       }
     }
+    // A pristine replay and a new owner's replay of restored mutable bytes
+    // are different obligations. Missing restoration is unknown, not zero.
+    if (kind !== 'capacity') for (const target of new Set([...expectedTargets, ...Object.keys(timing.postRestoreReplayMs ?? {})])) {
+      phases.push(phaseRow(campaign, row, 'post-restore', target, timing.postRestoreReplayMs?.[target],
+        phaseReceipts(postRestore, 'post-restore', target),
+        !expectedTargets.includes(target) || !(target in (row.postRestore?.observations ?? {})) ? 'target-mismatch' : null));
+    }
     mutations.push({name: row.name, site: row.site, anchor: row.anchor ?? null,
       originalDigest: row.originalDigest ?? null, mutatedDigest: row.mutatedDigest ?? null,
-      targets: actualTargets, healthyTargets: actualHealthy, targetMatch: matched,
+      targets: actualTargets, healthyTargets: actualHealthy,
+      postRestoreTargets: kind === 'capacity' ? null : actualPostRestore, targetMatch: matched,
       workloadSha256: fingerprint(workload(row)), minimaSha256: fingerprint(row.minimal ?? null),
       shrinkHistorySha256: fingerprint(row.history ?? null), finalCandidateCount: row.finalCandidates?.length ?? null,
       attemptedCandidateCount: row.history ? sum(row.history.map(x => x.attempted ?? 0)) : null,
-      oracleSha256: fingerprint({replay: observationMap(row.replay), healthy: observationMap(row.healthy), final: (row.finalObservations ?? []).map(withoutOccurrence)}),
+      oracleSha256: fingerprint({replay: observationMap(row.replay), healthy: observationMap(row.healthy),
+        postRestore: observationMap(row.postRestore?.observations), final: (row.finalObservations ?? []).map(withoutOccurrence)}),
       enclosingDuration: kind === 'capacity' ? duration(row.durationMs) : null});
   }
   if (kind === 'capacity') {

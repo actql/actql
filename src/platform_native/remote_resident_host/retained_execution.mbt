@@ -44,10 +44,7 @@ pub fn execute_resident_retained_attempt(
   execution : ResidentExecution,
   admission : ResidentRunAdmission,
   configuration : ResidentSourceComputeConfiguration,
-  restore_input : (
-    @host.ClientRunMaterials,
-    @remote.RemoteInputBinding,
-  ) -> Result[
+  restore_input : (@host.ClientRunMaterials, @remote.RemoteInputBinding) -> Result[
     @output.NativeRemoteRetainedTaskInput,
     @output.NativeRemoteRetainedTaskInputIssue,
   ],
@@ -86,7 +83,8 @@ pub fn execute_resident_retained_attempt(
   }
   let rebuilt = match rebuild_materials(admission, request, materials) {
     Ok(value) => value
-    Err(refusal) => return Err(retained_execution_failed(Host(Refused(refusal))))
+    Err(refusal) =>
+      return Err(retained_execution_failed(Host(Refused(refusal))))
   }
   guard rebuilt.compilation is @host.Tasks(compilation) &&
     admission.source is Some((source_ref, source_contract_cid)) &&
@@ -114,14 +112,22 @@ pub fn execute_resident_retained_attempt(
   // The original Run lifetime and the independent live input custody are
   // checked again at Runtime's exclusive start boundary, not from saved JSON.
   let accepted_run_current = @resident.check_resident_materials_current(
-      rebuilt, current_time(),
+      rebuilt,
+      current_time(),
     )
     is Ok(_)
   let compute_failure : Ref[ResidentSourceComputeIssue?] = Ref(None)
   let executor = match
     install_resident_retained_compute_executor(
-      rebuilt, configuration, input, material, request, codec, input_limits,
-      current, execution.limits.output,
+      rebuilt,
+      configuration,
+      input,
+      material,
+      request,
+      codec,
+      input_limits,
+      current,
+      execution.limits.output,
       observe_failure=issue => compute_failure.val = Some(issue),
     ) {
     Ok(value) => value
@@ -153,7 +159,8 @@ pub fn execute_resident_retained_attempt(
       execution.budgets,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(retained_execution_failed(Compute(Source(Standard(issue)))))
+    Err(issue) =>
+      return Err(retained_execution_failed(Compute(Source(Standard(issue)))))
   }
   match
     runtime.guard_executor_start(() => {
@@ -167,27 +174,44 @@ pub fn execute_resident_retained_attempt(
     }) {
     Ok(_) => ()
     Err(issue) =>
-      return retained_execution_failed_after_runtime(runtime, Host(Runtime(issue)))
+      return retained_execution_failed_after_runtime(
+        runtime,
+        Host(Runtime(issue)),
+      )
   }
   match runtime.claim_starts_as(claimant) {
     Ok(_) => ()
     Err(issue) =>
-      return retained_execution_failed_after_runtime(runtime, Host(Runtime(issue)))
+      return retained_execution_failed_after_runtime(
+        runtime,
+        Host(Runtime(issue)),
+      )
   }
   match executor_entry {
     Some(observer) =>
       match runtime.observe_executor_entry(observer) {
         Ok(_) => ()
         Err(issue) =>
-          return retained_execution_failed_after_runtime(runtime, Host(Runtime(issue)))
+          return retained_execution_failed_after_runtime(
+            runtime,
+            Host(Runtime(issue)),
+          )
       }
     None => ()
   }
   match runtime.start(request, binding) {
     Ok(completion) =>
-      Ok({ runtime, completion, request, result_definition_cid: Some(result_definition_cid), })
+      Ok({
+        runtime,
+        completion,
+        request,
+        result_definition_cid: Some(result_definition_cid),
+      })
     Err(@runtime.StartAuthorizationRejected) =>
-      retained_execution_failed_after_runtime(runtime, Host(Refused(@resident.NotCurrent)))
+      retained_execution_failed_after_runtime(
+        runtime,
+        Host(Refused(@resident.NotCurrent)),
+      )
     Err(issue) =>
       retained_execution_failed_after_runtime(
         runtime,

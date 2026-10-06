@@ -176,22 +176,15 @@ for (const failure of ['none', 'read', 'commit']) {
     assert.deepEqual(stopped, []);
     settle({decision: 'unavailable'});
     await new Promise(setImmediate);
-    if (path === 'execute') {
-      await dispatch.drain();
-      assert.deepEqual(stopped, [null]);
-      assert.equal(dispatch.operation(ref), undefined);
-      assert.equal(custody.cleanupPending(), false);
-      assert.equal(calls.dispose, 1);
-    } else {
-      // The independent recovered-capture release remains owned too. This
-      // test supplies no real captured owner, so it must refuse that release.
-      await assert.rejects(dispatch.drain(), error =>
-        error.code === 'ClientDispatchCleanupPending' &&
-        error.failures[0].cleanup.code === 'InvalidCompletedEffectfulRunOwner');
-      assert.deepEqual(stopped, []);
-      assert.equal(custody.cleanupPending(), true);
-      assert.equal(calls.dispose, 0);
-    }
+    // Captured and recovered Result custody both survive the callback. This
+    // isolated fixture has no real captured owner, so neither path may claim
+    // its payload release succeeded. The real Host fixture covers completion.
+    await assert.rejects(dispatch.drain(), error =>
+      error.code === 'ClientDispatchCleanupPending' &&
+      error.failures[0].cleanup.code === 'InvalidCompletedEffectfulRunOwner');
+    assert.deepEqual(stopped, []);
+    assert.equal(custody.cleanupPending(), true);
+    assert.equal(calls.dispose, 0);
     assert.equal(gate.cleanupPending(), false);
     assert.equal(calls.close, 1);
     assert.equal(calls.read, failure === 'read' ? 2 : 1,

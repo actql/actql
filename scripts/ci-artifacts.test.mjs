@@ -14,7 +14,9 @@ const row = name => ({name, site: 'src/site.mbt', anchor: {kind: 'wrong'}, origi
   localMinimal: true, killed: true, history: [{attempted: 3, accepted: 1}], finalCandidates: [{rows: []}],
   replay: {js: {id: '1', kind: 'failed'}, wasm: {id: '2', kind: 'failed'}, native: {id: '3', kind: 'failed'}},
   healthy: {js: {id: '4', kind: 'complete'}, wasm: {id: '5', kind: 'complete'}, native: {id: '6', kind: 'complete'}},
-  timing: {searchMs: 2, shrinkMs: 3, mutatedReplayMs: {js: 5, wasm: 7, native: 11}, restoredReplayMs: {js: 13, wasm: 17, native: 19}}, executions: [], healthyExecutions: []});
+  postRestore: {observations: {js: {id: '7', kind: 'complete'}, wasm: {id: '8', kind: 'complete'}, native: {id: '9', kind: 'complete'}}, executions: []},
+  timing: {searchMs: 2, shrinkMs: 3, mutatedReplayMs: {js: 5, wasm: 7, native: 11}, restoredReplayMs: {js: 13, wasm: 17, native: 19},
+    postRestoreReplayMs: {js: 23, wasm: 29, native: 31}}, executions: [], healthyExecutions: []});
 const campaign = () => ({version: 'actql-relation-pipeline-mutations/0.1', mode: 'explore', revision: source, source: {digest: 'b'.repeat(64)}, explorationTarget: 'js', seed: 7, results: [row('one'), row('two')]});
 const inventory = {fixed: ['one', 'two'], fresh: ['one', 'two'], targets: ['js', 'wasm', 'native']};
 function fakeZip(entries) {
@@ -34,11 +36,12 @@ const withFixture = async samples => analyzeArtifactSelection(select(samples), '
 
 test('hand-authored phase sums keep targets and fixed/fresh boundaries', () => {
   const fresh = projectCampaign(campaign(), 'fresh', inventory);
-  assert.equal(fresh.phases.length, 16);
+  assert.equal(fresh.phases.length, 22);
   assert.equal(fresh.aggregates.find(x => x.phase === 'search').actionMilliseconds, 4);
   assert.equal(fresh.aggregates.find(x => x.phase === 'mutated' && x.target === 'native').actionMilliseconds, 22);
   assert.equal(fresh.aggregates.find(x => x.phase === 'healthy' && x.target === 'wasm').actionMilliseconds, 34);
-  assert.equal(projectCampaign(campaign(), 'fixed', inventory).phases.length, 12);
+  assert.equal(fresh.aggregates.find(x => x.phase === 'post-restore' && x.target === 'native').actionMilliseconds, 62);
+  assert.equal(projectCampaign(campaign(), 'fixed', inventory).phases.length, 18);
   assert.equal(fresh.mutations[0].attemptedCandidateCount, 3);
 });
 test('missing, negative, string and non-finite duration never become zero', () => {
@@ -182,9 +185,12 @@ function completeFixture() {
     inputPath: 'input.json', inputDigest: sha('{}'), logPath: 'log.log', logDigest: sha('log'), artifacts: {}};
   const data = campaign(); data.results = [row('one')];
   data.results[0].replay = {js: {kind: 'failed'}}; data.results[0].healthy = {js: {kind: 'complete'}};
+  data.results[0].postRestore.observations = {js: {kind: 'complete'}};
   data.results[0].timing.mutatedReplayMs = {js: 5}; data.results[0].timing.restoredReplayMs = {js: 13};
-  const executions = ['search', 'shrink', 'minimal', 'restored'].map(phase => ({path: `one-${phase}-js.json`, digest: hash(receipt), receipt}));
-  data.results[0].executions = executions.slice(0, 3); data.results[0].healthyExecutions = executions.slice(3);
+  data.results[0].timing.postRestoreReplayMs = {js: 23};
+  const executions = ['search', 'shrink', 'minimal', 'restored', 'post-restore'].map(phase => ({path: `one-${phase}-js.json`, digest: hash(receipt), receipt}));
+  data.results[0].executions = executions.slice(0, 3); data.results[0].healthyExecutions = executions.slice(3, 4);
+  data.results[0].postRestore.executions = executions.slice(4);
   const sample = selected(); sample.reports = {fresh: 'report.json'}; sample.expectedInventory = {fresh: ['one'], targets: ['js']};
   const entries = () => ({
     'report.json': data, ...Object.fromEntries(executions.map(e => [e.path, e.receipt])), 'sources.json': {sources: {a: 'b'}},
@@ -206,6 +212,33 @@ test('complete selected evidence requires each phase receipt and all completenes
   delete data.results[0].healthy.js; assert.equal((await check()).complete, false); data.results[0].healthy.js = {kind: 'complete'};
   delete data.results[0].timing.searchMs; assert.equal((await check()).complete, false);
 });
+
+test('post-restoration duration, observations and verified receipts are independently required', async () => {
+  for (const change of [
+    data => { delete data.results[0].postRestore; },
+    data => { delete data.results[0].timing.postRestoreReplayMs; },
+    data => { data.results[0].timing.postRestoreReplayMs.js = -1; },
+    data => { data.results[0].postRestore.observations = {native: {kind: 'complete'}}; },
+    data => { data.results[0].postRestore.executions = []; },
+    data => { data.results[0].postRestore.executions[0].digest = 'f'.repeat(64); },
+  ]) {
+    const f = completeFixture(); assert.equal((await f.check()).complete, true);
+    change(f.data);
+    const report = await f.check(), sample = report.samples[0];
+    assert.equal(report.complete, false);
+    assert.equal(sample.selectedEvidenceComplete, false);
+  }
+});
+
+test('changed restoration observations affect the workload while occurrence-only changes do not', () => {
+  const original = campaign(), baseline = projectCampaign(original, 'fresh', inventory);
+  const occurrence = structuredClone(original); occurrence.results[0].postRestore.observations.js.id = 'new-owner-observation';
+  assert.equal(projectCampaign(occurrence, 'fresh', inventory).workloadSha256, baseline.workloadSha256);
+  const altered = structuredClone(original); altered.results[0].postRestore.observations.js.kind = 'failed';
+  const result = projectCampaign(altered, 'fresh', inventory);
+  assert.notEqual(result.workloadSha256, baseline.workloadSha256);
+  assert.notEqual(result.mutations[0].oracleSha256, baseline.mutations[0].oracleSha256);
+});
 test('optional wall-clock evidence must match the selected immutable attempt identity', async () => {
   const sample = selected(), selection = select([sample]);
   selection.timingEvidence = {repository: 'actql/actql', runs: [{id: 10, attempts: [{number: 1, headSha: 'f'.repeat(40)}]}]};
@@ -219,17 +252,17 @@ function emptyReceipt(execution) {
 }
 
 test('each required phase receipt needs observations even when the other phases are nonempty', async () => {
-  for (const emptyIndexes of [[0, 1, 2, 3], [0], [1], [2], [3]]) {
+  for (const emptyIndexes of [[0, 1, 2, 3, 4], [0], [1], [2], [3], [4]]) {
     const {executions, check} = completeFixture();
     const valid = await check();
     assert.equal(valid.complete, true);
     assert.equal(valid.samples[0].selectedEvidenceComplete, true);
-    assert.equal(valid.samples[0].receipts.caseObservations, 4);
+    assert.equal(valid.samples[0].receipts.caseObservations, 5);
     for (const index of emptyIndexes) emptyReceipt(executions[index]);
     const report = await check(), sample = report.samples[0];
     assert.equal(report.complete, false);
     assert.equal(sample.selectedEvidenceComplete, false);
-    assert.equal(sample.receipts.caseObservations, 4 - emptyIndexes.length);
+    assert.equal(sample.receipts.caseObservations, 5 - emptyIndexes.length);
     assert.deepEqual(sample.receipts.errors, emptyIndexes.map(index => ({
       path: executions[index].path, reason: 'empty-receipt-cases',
     })));
@@ -247,7 +280,7 @@ test('a nonempty receipt in the same phase cannot mask an empty receipt', async 
   assert.equal((await check()).complete, true);
   emptyReceipt(extra);
   const report = await check(), sample = report.samples[0];
-  assert.equal(sample.receipts.caseObservations, 4);
+  assert.equal(sample.receipts.caseObservations, 5);
   assert.equal(report.complete, false);
   assert.equal(sample.selectedEvidenceComplete, false);
   assert.deepEqual(sample.receipts.errors, [{path: extra.path, reason: 'empty-receipt-cases'}]);
@@ -288,7 +321,7 @@ test('offline CLI exits nonzero for all-empty or one-empty phase receipts with r
   const directory = await mkdtemp(join(tmpdir(), 'ci-artifact-empty-cases-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
   const script = fileURLToPath(new URL('./ci-evidence.mjs', import.meta.url));
-  for (const emptyIndexes of [[], [0, 1, 2, 3], [1]]) {
+  for (const emptyIndexes of [[], [0, 1, 2, 3, 4], [1], [4]]) {
     const {sample, executions, entries} = completeFixture();
     for (const index of emptyIndexes) emptyReceipt(executions[index]);
     const archive = storedZip(entries());
@@ -303,7 +336,7 @@ test('offline CLI exits nonzero for all-empty or one-empty phase receipts with r
     const report = JSON.parse(result.stdout), evidence = report.samples[0];
     assert.equal(report.complete, emptyIndexes.length === 0);
     assert.equal(evidence.selectedEvidenceComplete, emptyIndexes.length === 0);
-    assert.equal(evidence.receipts.caseObservations, 4 - emptyIndexes.length);
+    assert.equal(evidence.receipts.caseObservations, 5 - emptyIndexes.length);
     assert.deepEqual(evidence.receipts.errors, emptyIndexes.map(index => ({
       path: executions[index].path, reason: 'empty-receipt-cases',
     })));

@@ -1,4 +1,5 @@
 // Generated from the registered Client–Host machine contract.
+export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
@@ -343,6 +344,20 @@ export type WireCheckOutcomeShape = Readonly<{
   revision: string;
   pointer: string;
 }>;
+  fixes?: readonly Readonly<{
+  code: "close_block_comment";
+  applicability: "requires_review";
+  risk: "syntax_structure";
+  target: Readonly<{
+  document_id: "source";
+  revision: string;
+}>;
+  edits: readonly Readonly<{
+  start_byte: number;
+  end_byte: number;
+  replacement: "*/";
+}>[];
+}>[];
   facts?: Readonly<{
   parameter: string;
 }> | Readonly<{
@@ -367,6 +382,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -385,6 +403,20 @@ export type WireCheckOutcomeShape = Readonly<{
   revision: string;
   pointer: string;
 }>;
+  fixes?: readonly Readonly<{
+  code: "close_block_comment";
+  applicability: "requires_review";
+  risk: "syntax_structure";
+  target: Readonly<{
+  document_id: "source";
+  revision: string;
+}>;
+  edits: readonly Readonly<{
+  start_byte: number;
+  end_byte: number;
+  replacement: "*/";
+}>[];
+}>[];
   facts: Readonly<{
   parameter: string;
 }> | Readonly<{
@@ -409,6 +441,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -418,7 +453,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -454,6 +489,20 @@ export type WireCheckOutcomeShape = Readonly<{
   revision: string;
   pointer: string;
 }>;
+  fixes?: readonly Readonly<{
+  code: "close_block_comment";
+  applicability: "requires_review";
+  risk: "syntax_structure";
+  target: Readonly<{
+  document_id: "source";
+  revision: string;
+}>;
+  edits: readonly Readonly<{
+  start_byte: number;
+  end_byte: number;
+  replacement: "*/";
+}>[];
+}>[];
   facts?: Readonly<{
   parameter: string;
 }> | Readonly<{
@@ -478,6 +527,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -496,6 +548,20 @@ export type WireCheckOutcomeShape = Readonly<{
   revision: string;
   pointer: string;
 }>;
+  fixes?: readonly Readonly<{
+  code: "close_block_comment";
+  applicability: "requires_review";
+  risk: "syntax_structure";
+  target: Readonly<{
+  document_id: "source";
+  revision: string;
+}>;
+  edits: readonly Readonly<{
+  start_byte: number;
+  end_byte: number;
+  replacement: "*/";
+}>[];
+}>[];
   facts: Readonly<{
   parameter: string;
 }> | Readonly<{
@@ -520,6 +586,9 @@ export type WireCheckOutcomeShape = Readonly<{
   operation: "subgraph";
   issue: "invalid_node_selector";
 }> | Readonly<{
+  document: "parameters" | "parameter_declarations";
+  issue: "invalid_unicode" | "unexpected_end" | "unexpected_token" | "invalid_string" | "invalid_escape" | "invalid_number" | "number_out_of_range" | "negative_zero" | "expected_colon" | "expected_array_separator" | "expected_object_separator" | "duplicate_key" | "trailing_content";
+}> | Readonly<{
   issue: "unexpected_end" | "unexpected_token" | "invalid_escape" | "invalid_scalar" | "empty_identifier" | "unterminated_comment" | "invalid_number" | "invalid_parameter" | "unknown_reference" | "invalid_arguments" | "expected_boolean" | "invalid_bounds";
 }>;
 }>[];
@@ -533,7 +602,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -542,7 +611,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+  reason_schema_cid: "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
@@ -557,4 +626,18 @@ export type WireCheckLocationShape = Readonly<{
   document_id: "parameter_declarations" | "parameters";
   revision: string;
   pointer: string;
+}>;
+export type WireCheckFixShape = Readonly<{
+  code: "close_block_comment";
+  applicability: "requires_review";
+  risk: "syntax_structure";
+  target: Readonly<{
+  document_id: "source";
+  revision: string;
+}>;
+  edits: readonly Readonly<{
+  start_byte: number;
+  end_byte: number;
+  replacement: "*/";
+}>[];
 }>;

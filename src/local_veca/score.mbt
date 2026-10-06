@@ -62,6 +62,7 @@ priv enum ScorePhase {
   ScoreBeginRecord
   ScoreInitializeIdentities
   ScoreReadField
+  ScoreMatchComponent
   ScoreMatchIdentity
   ScoreValidateIdentities
   ScoreFoldComponents
@@ -75,6 +76,7 @@ priv enum ScorePhase {
   ScoreReadEmitFields
   ScoreAppendValue
   ScoreCommitRecord
+  ScoreAppendRecord
   ScoreFinish
 }
 
@@ -88,7 +90,10 @@ priv struct ScoreState {
   metric : @numeric.Metric
   dimensions : Int
   identity_count : Int
-  component_name : String
+  component_name : @schema.FieldName
+  mut name_offset : Int
+  mut key_comparison : @value.BoundedKeyComparison?
+  mut output_append : @records.RecordAppend?
   mut query : Array[Double]
   mut phase : ScorePhase
   mut record : Int
@@ -119,7 +124,10 @@ priv struct ScoreState {
 }
 
 ///|
+/// Private observation only; Session retains execution and cleanup authority.
+#warnings("-unused_field")
 struct ScoreExecution {
+  state : ScoreState
   session : @bounded.Session[ScoreState, @records.Completed, ScoreIssue]
   mut token : @bounded.Token?
   max_noninterruptible_value_nodes : Int
@@ -174,6 +182,7 @@ fn score_workspace(
   dimensions : Int,
   identities : Int,
   output_fields : Int,
+  append_slots : Int,
 ) -> Int? {
   guard checked_add(identities, 2) is Some(score_slots) &&
     checked_multiply(records, score_slots) is Some(scored) &&
@@ -182,7 +191,10 @@ fn score_workspace(
     checked_add(dimensions, scored) is Some(first) &&
     checked_add(first, retained) is Some(second) &&
     checked_add(second, output_fields) is Some(third) &&
-    checked_add(third, identities) is Some(total) else {
+    checked_add(third, identities) is Some(fourth) &&
+    checked_add(fourth, append_slots) is Some(fifth) &&
+    // Name position, append handle, key handle and six borrowed key slots.
+    checked_add(fifth, 9) is Some(total) else {
     return None
   }
   Some(total)
@@ -232,14 +244,32 @@ fn load_score_field(state : ScoreState) -> Result[Unit, ScoreIssue] {
     is Some((name, checked)) else {
     return Err(InvalidScoreRecord(state.record))
   }
-  if @schema.reference_name(name) == state.component_name {
+  state.current_field = Some((name, checked))
+  state.name_offset = 0
+  state.identity_probe = 0
+  state.phase = ScoreMatchComponent
+  match_score_component(state)
+}
+
+///|
+fn match_score_component(state : ScoreState) -> Result[Unit, ScoreIssue] {
+  guard state.current_field is Some((name, checked)) else {
+    return Err(InvalidScoreRecord(state.record))
+  }
+  let (order, offset, _) = @schema.compare_reference_fragment(
+    name,
+    state.component_name,
+    state.name_offset,
+    64,
+  )
+  state.name_offset = offset
+  guard order is Some(comparison) else { return Ok(()) }
+  if comparison == 0 {
     if state.source_vector is Some(_) {
       return Err(InvalidScoreRecord(state.record))
     }
     state.source_vector = Some(checked)
   }
-  state.current_field = Some((name, checked))
-  state.identity_probe = 0
   state.phase = ScoreMatchIdentity
   Ok(())
 }
@@ -251,7 +281,15 @@ fn match_score_identity(state : ScoreState) -> Result[Unit, ScoreIssue] {
     is Some(identity) else {
     return Err(InvalidScoreRecord(state.record))
   }
-  if @schema.reference_name(name) == @schema.reference_name(identity.name) {
+  let (order, offset, _) = @schema.compare_reference_fragment(
+    name,
+    identity.name,
+    state.name_offset,
+    64,
+  )
+  state.name_offset = offset
+  guard order is Some(comparison) else { return Ok(()) }
+  if comparison == 0 {
     if state.identity_values[state.identity_probe] is Some(_) {
       return Err(InvalidScoreIdentity(state.record))
     }
@@ -284,10 +322,11 @@ fn validate_score_identity(state : ScoreState) -> Result[Unit, ScoreIssue] {
   guard state.identity_values[state.identity_probe] is Some(value) else {
     return Err(InvalidScoreIdentity(state.record))
   }
-  match @value.compare_key_values(value, value) {
-    Ok(_) => ()
-    Err(issue) => return Err(ScoreKeyOrder(issue))
+  let result = match advance_score_key(state, value, value) {
+    Ok(result) => result
+    Err(issue) => return Err(issue)
   }
+  guard result is Some(_) else { return Ok(()) }
   state.collected_identities.push(value)
   state.identity_probe += 1
   if state.identity_probe >= state.identity_count {
@@ -296,6 +335,33 @@ fn validate_score_identity(state : ScoreState) -> Result[Unit, ScoreIssue] {
     state.phase = ScoreFoldComponents
   }
   Ok(())
+}
+
+///|
+fn advance_score_key(
+  state : ScoreState,
+  left : @value.CheckedValue,
+  right : @value.CheckedValue,
+) -> Result[Int?, ScoreIssue] {
+  let cursor = match state.key_comparison {
+    Some(cursor) => cursor
+    None => {
+      let cursor = match @value.start_bounded_key_comparison(left, right) {
+        Ok(cursor) => cursor
+        Err(issue) => return Err(ScoreKeyOrder(issue))
+      }
+      state.key_comparison = Some(cursor)
+      cursor
+    }
+  }
+  return match @value.advance_bounded_key_comparison(cursor, 1) {
+    Err(issue) => Err(ScoreKeyOrder(issue))
+    Ok(@value.KeyComparisonContinue(..)) => Ok(None)
+    Ok(@value.KeyComparisonComplete(order~, ..)) => {
+      state.key_comparison = None
+      Ok(Some(order))
+    }
+  }
 }
 
 ///|
@@ -378,6 +444,9 @@ fn emit_score_merge(state : ScoreState, take_left : Bool) -> Unit {
   }
   state.scratch[state.merge_index] = Some(selected)
   state.merge_index += 1
+  // A decided tie returns to the merge owner, which checks exhausted sides
+  // before reading the next pair. Never reuse a completed comparison.
+  state.phase = ScoreMerge
   if state.merge_index >= state.run_end {
     state.run_start = state.run_end
     state.phase = ScorePrepareMerge
@@ -414,14 +483,16 @@ fn compare_score_tie(state : ScoreState) -> Result[Unit, ScoreIssue] {
     emit_score_merge(state, true)
     return Ok(())
   }
-  let comparison = match
-    @value.compare_key_values(
+  let result = match
+    advance_score_key(
+      state,
       left.identities[state.tie_index],
       right.identities[state.tie_index],
     ) {
     Ok(value) => value
-    Err(issue) => return Err(ScoreKeyOrder(issue))
+    Err(issue) => return Err(issue)
   }
+  guard result is Some(comparison) else { return Ok(()) }
   if comparison < 0 {
     emit_score_merge(state, true)
   } else if comparison > 0 {
@@ -468,11 +539,10 @@ fn append_score_value(state : ScoreState) -> Result[Unit, ScoreIssue] {
 ///|
 fn commit_score_record(state : ScoreState) -> Result[Unit, ScoreIssue] {
   guard state.output is Some(output) else { return Err(InvalidScoreKernel) }
-  match @records.append_record(output, state.emit_fields) {
-    Ok(_) => {
-      state.emit_fields = []
-      state.emit_index += 1
-      state.phase = ScoreBeginEmit
+  match @records.start_record_append(output, state.emit_fields) {
+    Ok(cursor) => {
+      state.output_append = Some(cursor)
+      state.phase = ScoreAppendRecord
       Ok(())
     }
     Err(issue) => Err(ScoreOutput(issue))
@@ -554,6 +624,13 @@ fn score_step(
       ScoreMatchIdentity => {
         used += 1
         match match_score_identity(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      ScoreMatchComponent => {
+        used += 1
+        match match_score_component(state) {
           Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
@@ -657,8 +734,26 @@ fn score_step(
       ScoreCommitRecord => {
         used += 1
         match commit_score_record(state) {
-          Ok(_) => progress += 1
+          Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      ScoreAppendRecord => {
+        used += 1
+        guard state.output_append is Some(cursor) else {
+          return @bounded.Failed(InvalidScoreKernel, progress, used)
+        }
+        match @records.advance_record_append(cursor) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.output_append = None
+            state.emit_fields = []
+            state.emit_index += 1
+            state.phase = ScoreBeginEmit
+            progress += 1
+          }
+          Err(issue) =>
+            return @bounded.Failed(ScoreOutput(issue), progress, used)
         }
       }
       ScoreFinish => {
@@ -680,6 +775,13 @@ fn score_step(
 
 ///|
 fn cleanup_score_state(state : ScoreState) -> Bool {
+  if state.output_append is Some(cursor) {
+    @records.cleanup_record_append(cursor) |> ignore
+    state.output_append = None
+  }
+  state.current_field = None
+  state.key_comparison = None
+  state.name_offset = 0
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
@@ -741,7 +843,15 @@ fn start_score_source(
     @carrier.vector_records(output_vectors),
   )
   guard identity_count > 0 &&
-    score_workspace(records, dimensions, identity_count, output_fields)
+    @storage.append_workspace_slots(
+      output_fields,
+      @carrier.vector_identity_count(output_vectors),
+      limits.max_value_depth,
+    )
+    is Some(append_slots) &&
+    score_workspace(
+      records, dimensions, identity_count, output_fields, append_slots,
+    )
     is Some(workspace) &&
     workspace <= limits.max_workspace_slots else {
     return Err(ScoreWorkspaceLimit)
@@ -777,9 +887,10 @@ fn start_score_source(
     metric: numeric_metric,
     dimensions,
     identity_count,
-    component_name: @schema.reference_name(
-      @carrier.vector_components(vectors).name,
-    ),
+    component_name: @carrier.vector_components(vectors).name,
+    name_offset: 0,
+    key_comparison: None,
+    output_append: None,
     query: [],
     phase: ScoreValidateQuery,
     record: 0,
@@ -812,6 +923,7 @@ fn start_score_source(
     control, state, score_step, cleanup_score_state, @records.discard_completed,
   )
   Ok({
+    state,
     session,
     token: Some(token),
     max_noninterruptible_value_nodes: limits.max_value_nodes,

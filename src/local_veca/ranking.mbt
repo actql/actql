@@ -45,6 +45,7 @@ priv enum RankingPhase {
   InitializeTieValues
   ReadField
   RecheckField
+  MatchField
   ValidateGroup
   ValidateCandidate
   ValidateTie
@@ -94,6 +95,9 @@ priv struct RankingState {
   score_maximum : Double?
   value_limits : @value.Limits
   mut input_recheck : @value.RecheckCursor?
+  mut pending_field : (@schema.FieldName, @value.CheckedValue)?
+  mut name_probe : Int
+  name_offset : Ref[Int]
   input_value_units : Ref[Int]
   mut comparison : RankingComparisonCursor?
   comparison_units : Ref[Int]
@@ -251,6 +255,7 @@ struct RankingExecution {
   output_row_units : Ref[Int]
   input_value_units : Ref[Int]
   max_noninterruptible_value_nodes : Int
+  name_offset : Ref[Int]
   max_noninterruptible_value_bytes : Int
 }
 
@@ -314,7 +319,8 @@ fn ranking_workspace(
   guard ranking_checked_add(by, tie) is Some(key_width) &&
     ranking_checked_add(key_width, 8) is Some(record_width) &&
     ranking_checked_add(key_width, 5) is Some(output_width) &&
-    ranking_checked_add(key_width, 44) is Some(fixed_width) &&
+    // One borrowed name/value pair, probe and offset remain owned across yields.
+    ranking_checked_add(key_width, 48) is Some(fixed_width) &&
     ranking_checked_add(max_value_depth, 2) is Some(recheck_frames) &&
     ranking_checked_add(by, 5) is Some(row_slots) &&
     ranking_checked_multiply(rows, record_width) is Some(records) &&
@@ -346,6 +352,9 @@ fn ranking_input_available(state : RankingState) -> RankingIssue? {
 ///|
 fn begin_ranking_record(state : RankingState) -> Unit {
   state.field = 0
+  state.pending_field = None
+  state.name_probe = 0
+  state.name_offset.val = 0
   state.group_values = []
   state.candidate_value = None
   state.tie_values = []
@@ -378,35 +387,11 @@ fn bind_ranking_field(
   guard @schema.field_at(schema, state.field) is Some(field) else {
     return Err(InvalidRankingRecord(state.input, state.row))
   }
-  let name = @schema.reference_name(field.name)
-  for index, expected in state.by {
-    if name == expected {
-      state.group_values[index] = Some(value)
-    }
-  }
-  if name == state.candidate_name {
-    state.candidate_value = Some(value)
-  }
-  for index, expected in state.tie {
-    if name == expected {
-      state.tie_values[index] = Some(value)
-    }
-  }
-  if state.score_name is Some(expected) && name == expected {
-    guard value.value is @value.Number(number) else {
-      return Err(InvalidRankingRecord(state.input, state.row))
-    }
-    state.score_value = Some(number)
-  }
-  if state.rank_name is Some(expected) && name == expected {
-    guard value.value is @value.Number(number) else {
-      return Err(InvalidRankingRecord(state.input, state.row))
-    }
-    state.rank_value = Some(number)
-  }
-  state.field += 1
-  state.phase = ReadField
-  Ok(())
+  state.pending_field = Some((field.name, value))
+  state.name_probe = 0
+  state.name_offset.val = 0
+  state.phase = MatchField
+  match_ranking_field(state)
 }
 
 ///|
@@ -933,6 +918,8 @@ fn append_ranking_output_field(
   state.output_values.push(value)
   state.output_field_slots.val += 1
   state.output_field += 1
+  state.name_probe = -3
+  state.name_offset.val = 0
   state.phase = ReadOutputField
 }
 
@@ -944,25 +931,49 @@ fn read_ranking_output_field(
   guard @schema.field_at(state.output_schema, state.output_field) is Some(field) else {
     return Err(InvalidRankingKernel)
   }
-  let name = @schema.reference_name(field.name)
-  let value = if name == state.candidate_name {
-    Some(row.candidate.value)
-  } else if name == "score" {
-    @value.checked_number_value(row.score, field.contract).map(value => {
-      value.value
-    })
-  } else if name == "rank" {
-    @value.checked_number_value(state.emit_rank.to_double(), field.contract).map(value => {
-        value.value
-      },
+  let mut remaining = 64
+  for _ in 0..<3 {
+    let expected = match state.name_probe {
+      -3 => state.candidate_name
+      -2 => "score"
+      -1 => "rank"
+      _ => return Err(InvalidRankingKernel)
+    }
+    let (equal, spent) = ranking_name_equal_budget(
+      state,
+      field.name,
+      @schema.Unqualified(expected),
+      remaining,
     )
-  } else {
-    state.output_group_index = 0
-    state.phase = ResolveOutputGroup
-    return Ok(())
+    remaining -= spent
+    guard equal is Some(equal) else { return Ok(()) }
+    if equal {
+      let value = match state.name_probe {
+        -3 => Some(row.candidate.value)
+        -2 =>
+          @value.checked_number_value(row.score, field.contract).map(value => {
+            value.value
+          })
+        _ =>
+          @value.checked_number_value(
+            state.emit_rank.to_double(),
+            field.contract,
+          ).map(value => value.value)
+      }
+      guard value is Some(value) else { return Err(InvalidRankingKernel) }
+      append_ranking_output_field(state, value)
+      return Ok(())
+    }
+    state.name_probe += 1
+    if state.name_probe == 0 {
+      state.output_group_index = 0
+      state.phase = ResolveOutputGroup
+      return Ok(())
+    }
+    if remaining == 0 {
+      return Ok(())
+    }
   }
-  guard value is Some(value) else { return Err(InvalidRankingKernel) }
-  append_ranking_output_field(state, value)
   Ok(())
 }
 
@@ -975,8 +986,15 @@ fn resolve_ranking_output_group(
     return Err(InvalidRankingKernel)
   }
   let index = state.output_group_index
+  let (equal, _) = ranking_name_equal_budget(
+    state,
+    field.name,
+    @schema.Unqualified(state.by[index]),
+    64,
+  )
+  guard equal is Some(equal) else { return Ok(()) }
   state.output_group_index += 1
-  if @schema.reference_name(field.name) == state.by[index] {
+  if equal {
     guard state.fused[state.emit_index].group.get(index) is Some(value) else {
       return Err(InvalidRankingKernel)
     }
@@ -1092,6 +1110,13 @@ fn ranking_step(
               progress,
               used,
             )
+        }
+      }
+      MatchField => {
+        used += 1
+        match match_ranking_field(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
       ValidateTie =>
@@ -1266,6 +1291,8 @@ fn ranking_step(
           match begin_ranking_result(state) {
             Ok(Some(true)) => {
               state.output_field = 0
+              state.name_probe = -3
+              state.name_offset.val = 0
               state.output_values = []
               state.output_field_slots.val = 0
               state.phase = ReadOutputField
@@ -1373,6 +1400,9 @@ fn cleanup_ranking_state(state : RankingState) -> Bool {
     state.input_recheck = None
   }
   state.input_value_units.val = 0
+  state.pending_field = None
+  state.name_probe = 0
+  state.name_offset.val = 0
   if state.output_row is Some(row) {
     if !@execution.cleanup_admitted_output_row(row) {
       return false
@@ -1641,6 +1671,9 @@ pub fn start_ranking_inputs(
     },
     comparison: None,
     input_recheck: None,
+    pending_field: None,
+    name_probe: 0,
+    name_offset: Ref(0),
     input_value_units: Ref(0),
     comparison_units: Ref(0),
     phase: BeginRecord,
@@ -1707,6 +1740,7 @@ pub fn start_ranking_inputs(
     comparison_units: state.comparison_units,
     output_row_units: state.output_row_units,
     input_value_units: state.input_value_units,
+    name_offset: state.name_offset,
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
@@ -1777,6 +1811,13 @@ pub fn ranking_output_row_units(value : RankingExecution) -> Int {
 /// Charged input-value recheck polls, cleared only by stopped cleanup.
 pub fn ranking_input_value_units(value : RankingExecution) -> Int {
   value.input_value_units.val
+}
+
+///|
+/// Read-only fixture observation of retained reference matching, cleared by
+/// stopped cleanup. This is not input admission or completion evidence.
+pub fn ranking_name_offset(value : RankingExecution) -> Int {
+  value.name_offset.val
 }
 
 ///|

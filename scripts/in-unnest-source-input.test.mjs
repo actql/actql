@@ -36,6 +36,6 @@ test('normal packed acceptance registers the array predicate and its bounded nar
   assert.ok(fixture.includes('inUnnestOnly ? {successes: inUnnestSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_IN_UNNEST_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/in-unnest-source-input.mjs', 'in-unnest-source-input.mjs']"));
-  assert.ok(driver.includes("const narrowPublicQuery = process.argv.some(flag => ['--in-unnest-only'"));
+  assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--in-unnest-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--in-unnest-only')) return;"));
 });
