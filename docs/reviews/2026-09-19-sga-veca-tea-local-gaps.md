@@ -5952,6 +5952,28 @@ full-target/packed campaigns remain residuals. See the
 [name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
 boundaries, the atomic-drain negative and actual versus unverified checks.
 
+### Events kernel record emission
+
+Watermark, fixed/sliding window, dedupe and Events/Relation session retain
+the shared RecordAppend cursor across charged advances. Window also copies
+one membership field per poll. The same append reservation includes caller
+scratch, dynamic contract/identity continuations and the next retained row;
+control is cumulative and progress follows commit. Cancellation retains
+input and provisional output until Session stop and once-only cleanup.
+
+Independent long-Text boundaries fix control/workspace 62/80, 62/79, 68/70
+and 99/90, each with typed one-short rejection across quanta 1, 7 and 256.
+Ordinary installed Host evidence uses actual retained Store, three explicit
+Named Results, two consumers, request reuse and an awaited cancellation
+barrier inside unused record values. Existing semantic/window arithmetic
+fixtures remain intact; scheduling and scratch premises are explicit.
+
+This closes record emission, not operator name matching, key/Text comparison,
+session ID construction, constructor/Bridge append paths or all retained
+Local execution. Aggregate intermediate bytes, whole-Run physical accounting
+and unexecuted full-target/packed/CI campaigns remain distinct. See the
+[Events emission evidence](2026-10-06-local-events-record-emission.md).
+
 ### Nearest input role-name matching
 
 Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16
