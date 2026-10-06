@@ -11,3 +11,10 @@ import {
   "actql/actql/physical_cost" @cost,
   "actql/actql/numeric_reduction" @numeric,
 }
+
+import {
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+} for "wbtest"
