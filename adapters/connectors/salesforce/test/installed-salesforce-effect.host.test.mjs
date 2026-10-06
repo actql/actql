@@ -1157,7 +1157,16 @@ for (const boundary of ['pre-send-abort', 'refresh-io', 'published']) {
         await failure.cleanupHandle.retry();
         assert.equal(state.releases, completed, 'completed payloads are not released twice');
       }
-      const remaining = await host.close();
+      let remaining;
+      try { remaining = await host.close(); }
+      catch (error) {
+        t.diagnostic(JSON.stringify({boundary, blockedCleanup,
+          code: error.code, pending: error.cleanupHandle?.status(),
+          failures: error.cleanupErrors?.map(item => ({owner: item.owner,
+            code: item.error?.code, message: item.error?.message,
+            stack: item.error?.stack}))}));
+        throw error;
+      }
       if (remaining !== undefined) {
         assert.equal(remaining.storeCleanupPending, false);
         assert.deepEqual(remaining.pendingRetention, []);
