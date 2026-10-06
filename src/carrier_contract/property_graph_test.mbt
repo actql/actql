@@ -20,6 +20,120 @@ fn property_fixture(
   ).unwrap()
 }
 
+/// The Graph-named migration surface must be representation-compatible with
+/// the historical PropertyGraph entry points. This intentionally compares
+/// independent construction results through public accessors rather than
+/// relying on an implementation equality.
+test "Graph aliases preserve PropertyGraph results and rejection" {
+  let number = @value.primitive(NumberType, nullable=false)
+  let empty = rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let old_node = property_node_definition(
+    "N",
+    [number],
+    empty,
+    ["Node"],
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  let new_node = graph_node_definition(
+    "N",
+    [number],
+    empty,
+    ["Node"],
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  let old_edge = property_edge_definition(
+    property_node_definition(
+      "E",
+      [number],
+      empty,
+      [],
+      max_fields=10,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  let new_edge = graph_edge_definition(
+    graph_node_definition(
+      "E",
+      [number],
+      empty,
+      [],
+      max_fields=10,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  let domain = "sha256:" + "1".repeat(64)
+  guard property_graph(
+      domain,
+      [old_node],
+      [old_edge],
+      max_definitions=3,
+      max_contract_work=1000,
+    ).unwrap()
+    is GraphValue(old_graph) else {
+    fail("historical constructor")
+  }
+  guard graph(
+      domain,
+      [new_node],
+      [new_edge],
+      max_definitions=3,
+      max_contract_work=1000,
+    ).unwrap()
+    is GraphValue(new_graph) else {
+    fail("canonical constructor")
+  }
+  let old_definition = graph_property_definition(old_graph)
+  let new_definition = graph_definition(new_graph)
+  assert_eq(property_graph_domain(old_definition), graph_domain(new_definition))
+  assert_eq(
+    property_graph_node_count(old_definition),
+    graph_node_count(new_definition),
+  )
+  assert_eq(
+    property_graph_edge_count(old_definition),
+    graph_edge_count(new_definition),
+  )
+  assert_eq(
+    property_definition_name(property_graph_node_at(old_definition, 0).unwrap()),
+    property_definition_name(graph_node_at(new_definition, 0).unwrap()),
+  )
+  assert_eq(
+    property_edge_endpoints(property_graph_edge_at(old_definition, 0).unwrap()),
+    property_edge_endpoints(graph_edge_at(new_definition, 0).unwrap()),
+  )
+  assert_true(
+    property_graph(
+      "/tmp/not-a-domain",
+      [old_node],
+      [old_edge],
+      max_definitions=2,
+      max_contract_work=1000,
+    )
+    is Err(InvalidDomain),
+  )
+  assert_true(
+    graph(
+      "/tmp/not-a-domain",
+      [new_node],
+      [new_edge],
+      max_definitions=2,
+      max_contract_work=1000,
+    )
+    is Err(InvalidDomain),
+  )
+}
+
 ///|
 test "Property Graph metadata retains heterogeneous definition-scoped composite keys" {
   let number = @value.primitive(NumberType, nullable=true)
