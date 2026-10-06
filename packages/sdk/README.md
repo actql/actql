@@ -547,8 +547,9 @@ keep their existing SDK input snapshots through weak associations. Session
 observation associations are also weak and do not retain an independent history.
 `close()` drops the current buffer and Client reference and invalidates all editor
 positions; it neither cancels outstanding checks nor closes the shared Client.
-No extra Host persistence, retrieval API, public input hash or retention period
-is introduced. This is an SDK document adapter, not a full LSP server or a fix
+The session has no additional buffer byte cap or timed retention; explicit check
+calls still use the existing SDK/Host request admission bounds. No extra Host
+persistence, retrieval API, public input hash or retention period is introduced. This is an SDK document adapter, not a full LSP server or a fix
 application mechanism.
 Nested object/array type failures identify the declared child type and the
 existing binder's path, with JSON pointer escaping for field names. Supplied
