@@ -7,6 +7,7 @@ priv enum UnionPropertyPhase {
   OrderItem
   CompareItem
   SortItem
+  CompareItemOrder
   EmitItems
   FinishProperty
 }
@@ -41,6 +42,7 @@ priv struct UnionProperty {
   mut recheck : @value.RecheckCursor?
   mut equality : @value.CompleteEquality?
   mut order : @value.CompleteOrder?
+  mut comparison : @value.BoundedKeyComparison?
   mut array : @value.ArrayBuilder?
   mut terminal : Bool
 }
@@ -100,6 +102,7 @@ fn start_union_property(
     recheck: None,
     equality: None,
     order: None,
+    comparison: None,
     array: None,
     terminal: false,
   })
@@ -119,6 +122,7 @@ fn cleanup_union_property(value : UnionProperty) -> Unit {
   value.recheck = None
   value.equality = None
   value.order = None
+  value.comparison = None
   value.array = None
   value.candidate = None
   value.candidate_order = ""
@@ -400,19 +404,41 @@ fn advance_union_property(
       }
       SortItem => {
         let index = value.comparison_index
-        if index > 0 &&
-          @canonical.compare_utf16(
-            value.items[index].order,
-            value.items[index - 1].order,
-          ) <
-          0 {
-          let previous = value.items[index - 1]
-          value.items[index - 1] = value.items[index]
-          value.items[index] = previous
-          value.comparison_index -= 1
+        if index > 0 {
+          value.comparison = Some(
+            @value.start_bounded_token_comparison(
+              value.items[index].order,
+              value.items[index - 1].order,
+            ),
+          )
+          value.phase = CompareItemOrder
         } else {
           value.index += 1
           value.phase = ReadItem
+        }
+      }
+      CompareItemOrder => {
+        guard value.comparison is Some(comparison) else {
+          return union_property_failed(value, InvalidUnionProperty, work)
+        }
+        match @value.advance_bounded_key_comparison(comparison, 1) {
+          Err(_) =>
+            return union_property_failed(value, InvalidUnionProperty, work)
+          Ok(@value.KeyComparisonContinue(..)) => ()
+          Ok(@value.KeyComparisonComplete(order~, ..)) => {
+            value.comparison = None
+            if order < 0 {
+              let index = value.comparison_index
+              let previous = value.items[index - 1]
+              value.items[index - 1] = value.items[index]
+              value.items[index] = previous
+              value.comparison_index -= 1
+              value.phase = SortItem
+            } else {
+              value.index += 1
+              value.phase = ReadItem
+            }
+          }
         }
       }
       EmitItems => {

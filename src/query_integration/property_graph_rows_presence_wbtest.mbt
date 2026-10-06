@@ -106,12 +106,13 @@ fn property_rows_resource_boundary(
   let completion = task_test_completion(owner)
   // Independent one-row ledger: key collection + sort initialization = 2.
   // Rechecking each typed identity takes 8 nodes, 11 container/child frames
-  // and the final empty-stack poll = 20. Empty labels cost 3; scalar key = 2.
+  // and the final empty-stack poll = 20, plus four TextUnits polls
+  // (definition 1, domain 2, key type 1) = 24. Empty labels cost 3; scalar key = 2.
   // Scan + schema matching + verification + append cost 3+6+3+1 for nodes,
-  // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
+  // 5+15+5+1 for edges. Thus work is 44 / 105, not sampled from a product run.
   // Workspace is four ordering slots per row plus schema width (3 / 5).
   // An explicit definition checks each candidate once before producing it.
-  let exact_work = (if edge { 93 } else { 40 }) +
+  let exact_work = (if edge { 105 } else { 44 }) +
     (if labelled { 10 } else if selected { 1 } else { 0 })
   let exact_slots = if edge { 9 } else { 7 }
   for viewed in [false, true] {
@@ -380,7 +381,7 @@ fn property_rows_project_identity(
     // including when other columns in the retained input are absent.
     assert_true(
       @execution.completed_cell(projected, row, 0)
-      is Some(@execution.Captured(@admitted.Object(_))),
+      is Some(@execution.Captured(@admitted.JsonData(@admitted.Object(_)))),
     )
     let wire = @execution.completed_output_row_wire(
       projected, row, 10000, 1000, 20,
@@ -735,13 +736,13 @@ test "edge rows preserve parallel identities endpoints and composite raw key com
       assert_eq(
         @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap(),
         "{\"dst\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"edge_key\":" +
         edge_key.to_string() +
         ",\"id\":" +
-        edge_identity +
+        property_graph_expected_json_wire(edge_identity) +
         ",\"labels\":[\"R\"],\"src\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"tenant\":\"a\"}",
       )
     }

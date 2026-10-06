@@ -530,9 +530,7 @@ export async function startHttpsOutboundSiteGateway({
         return;
       }
       if (matched.operation === 'cancel' &&
-          !([3, 4, 5].includes(projected.state[0]) &&
-            projected.state[2] === 2 && projected.state[3] === 0 &&
-            projected.state[4] === 0)) {
+          !control.responseCanRetireCancellationDelivery(admitted)) {
         // Ordinary status (even after an offer) cannot prove that the Site
         // saved Cancel. Admit the observation, but keep offering the exact
         // cancellation until the common owner admits terminal execution and

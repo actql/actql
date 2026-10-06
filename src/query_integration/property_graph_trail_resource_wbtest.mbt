@@ -70,11 +70,11 @@ test "current path variants retain independent exact work workspace and every pr
     domain +
     "\",\"key\":[\"a\",1],\"key_types\":[{\"kind\":\"string\"},{\"kind\":\"number\"}]}"
   let expected = "{\"edge_ids\":[],\"end_id\":" +
-    identity +
+    property_graph_expected_json_wire(identity) +
     ",\"hop_count\":0,\"node_ids\":[" +
-    identity +
+    property_graph_expected_json_wire(identity) +
     "],\"start_id\":" +
-    identity +
+    property_graph_expected_json_wire(identity) +
     "}"
   // One real, nonempty zero-hop path: initialize/resolve/collect (3),
   // scalar fields (3), one node-array append (1), two array finalizations (2),
