@@ -4390,6 +4390,11 @@ for (const entrance of ['local', 'http']) {
         '[check-mutation:admission-public-disclosure]');
       assert.deepEqual(requirement.facts.admission, expected, '[check-mutation:admission-public-facts]');
       assert.deepEqual(sdk.getCheckParameterAdmission(outcome, 'x'), expected);
+      const frontier = sdk.getCheckRequirementFrontier(outcome);
+      assert.deepEqual(frontier.requirements[0].facts.admission, expected,
+        '[check-mutation:frontier-admission-facts]');
+      assert.ok(Object.isFrozen(frontier.requirements[0].facts.admission));
+      assert.equal(frontier.contextRef, outcome.report.context_ref);
       assert.ok(Object.isFrozen(sdk.getCheckParameterAdmission(outcome, 'x')));
       assert.equal(sdk.getCheckParameterAdmission(outcome, 'unknown'), undefined);
       assert.equal(sdk.getCheckParameterAdmission(structuredClone(outcome), 'x'), undefined,
