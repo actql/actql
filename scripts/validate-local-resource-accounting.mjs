@@ -480,6 +480,7 @@ export function validateResourceAccounting({
         'moon:value_admission': 'value_admission',
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
+        'moon:relation_schema': 'relation_schema',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
@@ -1385,7 +1386,9 @@ export function validateResourceAccounting({
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
         'pool_field_binding_typed_role', 'pool_qualified_name_limits',
         'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
-        'pool_qualified_name_wire_unicode']) {
+        'pool_qualified_name_wire_unicode', 'pool_name_match_common',
+        'pool_name_match_limits', 'pool_name_match_stop',
+        'pool_name_match_wide', 'pool_name_match_public_barrier']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('pool_output_public_store')) {
@@ -1402,6 +1405,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('pool_field_binding_public_store')) {
         fail(`${label}: Pool field binding public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_name_match_public_store')) {
+        fail(`${label}: Pool name matching public Store fixture is missing`);
       }
       for (const role of ['pool_relation_input_limits_stop_cleanup',
         'pool_relation_input_shared_vector']) {
