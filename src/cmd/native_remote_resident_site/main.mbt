@@ -1549,7 +1549,37 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               unsettled.push(current)
             }
           }
-          Ok(None) => ()
+          Ok(None) =>
+            if @env.now() >= current.next_report_ms {
+              // A live producer keeps its input until the consumer finishes.
+              // Report its durable progress without treating child exit,
+              // execution settlement, or resource release as equivalent facts.
+              current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+              match fresh_journal(environment) {
+                Some(journal) => {
+                  match
+                    @client.acknowledge_status(
+                      journal,
+                      client,
+                      observation_url,
+                      current.request,
+                    ) {
+                    Ok(_) => ()
+                    Err(issue) =>
+                      report("observation-pending", [
+                        ("attempt", current.attempt),
+                        ("reason", client_code(issue)),
+                      ])
+                  }
+                  ignore(journal.close())
+                }
+                None =>
+                  report("observation-pending", [
+                    ("attempt", current.attempt),
+                    ("reason", "journal-open"),
+                  ])
+              }
+            }
           Err(_) => ()
         }
       None => ()
