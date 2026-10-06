@@ -2877,10 +2877,15 @@ fn compile_steps(
           }
           let expression = projection.expression.unwrap()
           if !references.any(path => {
-              // A qualified input that resolves in the authored range does
-              // not demand a SELECT alias with the same first component.
+              // A qualified input receiver keeps its range meaning even
+              // when followed by nested property access. The common lowerer
+              // resolves that two-part prefix before a one-part alias.
               !(path.length() > 1 &&
-              pipe_slot(path, input_scope.visible, input_scope.ranges)
+              pipe_slot(
+                path[:2].to_owned(),
+                input_scope.visible,
+                input_scope.ranges,
+              )
               is Some(_)) &&
               same_name(path[0], name)
             }) {

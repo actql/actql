@@ -75,6 +75,17 @@ export const qualifySuccesses = [
     columns: [column('records'), column('n')],
     expected: [{records: 1, n: 2}, {records: 0.5, n: 3}, {records: 0.5, n: 4}],
   }),
+  success('qualified-object-does-not-demand-alias',
+    'DATA objects = SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload '
+    + 'UNION ALL SELECT 3 AS id, @c AS payload; '
+    + 'SELECT 1 / (id - 1) AS objects, ROW_NUMBER() OVER (ORDER BY id) AS n FROM objects '
+    + 'QUALIFY objects.id > 1 AND objects.payload.score > 5 ORDER BY n', {
+    hostProfile: 'analytic-property', sourceReadCount: 0,
+    parameterDeclarations: Object.fromEntries(['a', 'b', 'c'].map(name => [name,
+      {type: 'object', nullable: true, fields: {score: number}}])),
+    parameters: {a: {score: 10}, b: {score: 20}, c: null},
+    columns: [column('objects'), column('n')], expected: [{objects: 1, n: 2}],
+  }),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
 ];
 export const qualifyRefusals = [
