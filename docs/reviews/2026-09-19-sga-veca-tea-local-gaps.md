@@ -5909,3 +5909,19 @@ assembly, JSON normalization, legacy drains, runtime buffer assembly,
 aggregate intermediate bytes or whole-Run physical accounting. See the
 [field-binding evidence](2026-10-06-local-record-field-binding.md) for actual
 executed checks and unverified target/packed/public coverage.
+
+### Borrowed qualified record-name emission
+
+Stepped record append now passes the virtual qualification prefix and spelling
+to the existing String emitter without constructing a complete reference name.
+The shared writer preserves escaping, bytes/nodes/depth, hash, surrogate-pair
+handling and exclusive unfinished-output custody. Construction work, append
+workspace and poll counts remain unchanged; limit and cleanup fixtures retain
+independently derived 143/142 bytes, 6/5 work and 28/27 workspace.
+
+Focused common/consumer JS and existing installed retained Host regressions
+are recorded in the [qualified-name evidence](2026-10-06-local-qualified-name-emission.md).
+The Host regression has unqualified published fields and is not a new qualified
+public Program acceptance claim. Preparation/input/output name matching, legacy
+drains, JSON normalization, runtime buffer assembly, aggregate intermediate
+bytes, whole-Run accounting and unexecuted packed/target campaigns remain open.

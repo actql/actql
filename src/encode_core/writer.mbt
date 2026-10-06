@@ -272,10 +272,13 @@ fn quoted_contents(
   text : String,
   start : Int,
   end : Int,
+  prefix? : String = "",
 ) -> Int raise EncodeFailure {
   let mut i = start
   while i < end {
-    let unit = text[i].to_int()
+    let source = if i < prefix.length() { prefix } else { text }
+    let offset = if i < prefix.length() { 0 } else { prefix.length() }
+    let unit = source[i - offset].to_int()
     if unit >= 32 && unit < 128 && unit != 34 && unit != 92 {
       // Bounded ASCII spans avoid a builder append and buffer reservation for
       // every ordinary character. Inspect at most one byte beyond the current
@@ -287,14 +290,15 @@ fn quoted_contents(
       }
       let bound = Int::min(256, capacity)
       let start = i
-      while i < end && i - start <= bound {
-        let next = text[i].to_int()
+      let source_end = offset + source.length()
+      while i < end && i < source_end && i - start <= bound {
+        let next = source[i - offset].to_int()
         if next < 32 || next >= 128 || next == 34 || next == 92 {
           break
         }
         i += 1
       }
-      ascii_span(w, text, start, i)
+      ascii_span(w, source, start - offset, i - offset)
       continue
     }
     match unit {
@@ -313,10 +317,14 @@ fn quoted_contents(
       }
       _ => {
         let scalar = if unit >= 0xd800 && unit <= 0xdbff {
-          if i + 1 >= text.length() {
+          if i + 1 >= prefix.length() + text.length() {
             fail(w, InvalidUnicode)
           }
-          let low = text[i + 1].to_int()
+          let low = if i + 1 < prefix.length() {
+            prefix[i + 1].to_int()
+          } else {
+            text[i + 1 - prefix.length()].to_int()
+          }
           if low < 0xdc00 || low > 0xdfff {
             fail(w, InvalidUnicode)
           }
@@ -500,6 +508,7 @@ pub fn string_value(w : Writer, value : String) -> Unit raise EncodeFailure {
 /// second buffer or a separately finalizable document.
 struct StringEmitCursor {
   writer : Writer
+  prefix : String
   text : String
   mut position : Int
   mut done : Bool
@@ -510,10 +519,26 @@ pub fn start_string_value(
   w : Writer,
   text : String,
 ) -> StringEmitCursor raise EncodeFailure {
+  start_prefixed_string_value(w, "", text)
+}
+
+///|
+/// Borrow both spelling segments without concatenating them. This emits one
+/// logical String, including a surrogate pair crossing the segment boundary.
+/// No normalization, second document or extra construction node is introduced.
+pub fn start_prefixed_string_value(
+  w : Writer,
+  prefix : String,
+  text : String,
+) -> StringEmitCursor raise EncodeFailure {
+  active(w)
+  if text.length() > 2147483647 - prefix.length() {
+    fail(w, OutputLimit)
+  }
   value_start(w)
   ascii(w, "\"")
   w.string_active = true
-  { writer: w, text, position: 0, done: false, }
+  { writer: w, prefix, text, position: 0, done: false, }
 }
 
 ///|
@@ -530,10 +555,16 @@ pub fn advance_string_value(
   if !w.string_active {
     fail(w, InvalidStructure)
   }
-  let end = cursor.position +
-    Int::min(64, cursor.text.length() - cursor.position)
-  cursor.position = quoted_contents(w, cursor.text, cursor.position, end)
-  if cursor.position == cursor.text.length() {
+  let length = cursor.prefix.length() + cursor.text.length()
+  let end = cursor.position + Int::min(64, length - cursor.position)
+  cursor.position = quoted_contents(
+    w,
+    cursor.text,
+    cursor.position,
+    end,
+    prefix=cursor.prefix,
+  )
+  if cursor.position == length {
     ascii(w, "\"")
     w.string_active = false
     cursor.done = true
