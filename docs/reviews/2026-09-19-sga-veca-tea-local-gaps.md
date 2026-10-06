@@ -320,6 +320,16 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
+whole-Text sizing and final join with the same finisher's scalar phases and
+existing exact-capacity StringBuilder. Original byte/control totals, raw data,
+unused-delimiter demand and empty-group NULL remain unchanged. Real retained
+Host producer/two-consumer reads and post-progress custody are required evidence,
+alongside exact work/capacity/workspace and four-phase stop fixtures. See the
+[string aggregation record](2026-10-07-local-string-aggregate-cursor.md).
+Initial row-map/name preparation, VM allocation costs and Native stop latency
+are not closed by this algorithmic unit; no all-Local completion is asserted.
+
 The 2026-10-07 raw Text follow-up connects Object child conversion and
 array_agg to the existing resumed Value recheck owner, preserves original byte
 charges/data spelling, and uses the existing ArrayBuilder without a final

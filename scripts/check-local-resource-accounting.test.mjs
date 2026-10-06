@@ -3810,6 +3810,16 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
   }), /RelA derive: ordinary derive Host timer evidence is missing/);
 });
 
+test('string aggregation assurance requires limits stop and public evidence', () => {
+  for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
+    ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {
+    assert.match(run(undefined, routes => {
+      const group=routes.routes.find(entry=>entry.family==='RelA'&&entry.operation==='group');
+      group[kind]=group[kind].filter(entry=>entry.role!==role);
+    }), /(?:group_string_cursor_(?:limits|stop)|string cursor public) fixture is missing/u);
+  }
+});
+
 test('raw Text conversion assurance requires common and public evidence', () => {
   for (const [operation,kind,role] of [
     ['derive','boundary_tests','derive_raw_text_child_limits'],
