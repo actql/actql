@@ -263,6 +263,19 @@ pub fn salesforce_single_write_request_value(
 }
 
 ///|
+/// The record the request selects as JSON, or none for a create.
+#export_name("salesforceSingleWriteRequestTargetJson")
+pub fn salesforce_single_write_request_target_json(
+  request : @catalog.SingleWriteRequest,
+) -> String? {
+  match request.target {
+    RecordId(text) | ExternalText(text) => Some(text.to_json().stringify())
+    ExternalInt(number) => Some(number.to_json().stringify())
+    NoWriteTarget => None
+  }
+}
+
+///|
 #export_name("salesforceSingleWriteRequestOrgId")
 pub fn salesforce_single_write_request_org_id(
   request : @catalog.SingleWriteRequest,

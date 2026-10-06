@@ -125,7 +125,10 @@ fn complete_diff(preparation : Preparation, quantum : Int) -> Delta raise {
 ///|
 fn delta_wire(value : @value.CheckedValue) -> String raise {
   let writer = @encode.writer(100000, 10000, 100)
-  @value.emit_checked_wire_value(value, writer) catch {
+  guard @value.json_payload(value.value) is Some(payload) else {
+    fail("Delta lost its JSON contract")
+  }
+  @value.emit_wire_value(payload, writer) catch {
     _ => fail("wire")
   }
   @encode.finish(writer) catch {

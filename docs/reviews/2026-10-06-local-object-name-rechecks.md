@@ -3,8 +3,8 @@
 ## Scope and ownership
 
 This component starts from #563 at
-`cc3255411d5882163cecb3bac710c3c1578d2e26`. That dependency is still open;
-the PR must retain its parent base until the parent reaches main.
+`cc3255411d5882163cecb3bac710c3c1578d2e26`. The parent is now adopted in
+main; this component incorporates that main baseline by a normal merge.
 
 The common runtime recheck previously compared and measured a whole declared
 Object name inside one field poll. It now retains an ObjectName continuation
@@ -20,12 +20,17 @@ The production connection is the existing Relation Pool input recheck owner:
 load_pool_field -> relation_cell_recheck -> advance_recheck_runtime_value ->
 bind_pool_field. No new provider, scheduler, ledger or cleanup state is added.
 
-Runtime JSON Object names also regain the synchronous owner's canonical
-identifier check. Their normalization remains synchronous: this is a refusal
-consistency fix, not completion of long JSON name interruptibility. The
-noncanonical-name counterexample for this part forges a package-private
-FrozenArray; public Object constructors already reject those names. It is not
-evidence of a public Run accepting a noncanonical identifier.
+The integration preserves the current opaque JSON domain. Declared Object
+constructors reject noncanonical identifiers, and an unwrapped Object is not
+a typed JSON value. Inside JsonData, exact member names are data: the shared
+synchronous and stepped rechecks both preserve decomposed Unicode, CR and CRLF.
+An identifier normalization check must not be applied to those JSON keys.
+Long opaque JSON name scanning remains a separate interruptibility obligation.
+
+The existing complete-order fixture now accounts for the new declared-name
+phases independently: root, two field visits, six 64-unit name fragments,
+Number and terminal give 11 recheck polls; the unchanged emitter costs 13.
+The total is 24 for quantum 1, 7 and 256. Node/byte limits remain unchanged.
 
 ## Independent boundaries and public path
 
@@ -96,7 +101,7 @@ node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
 
 ## Remaining obligations
 
-Long runtime JSON identifier normalization, Carrier field/schema lookup and Map
+Long opaque JSON member-name scanning, Carrier field/schema lookup and Map
 hashing, legacy synchronous drains, runtime buffer assembly and aggregate
 intermediate-byte custody remain separate boundaries. This unit is not a
 whole-Run physical Ledger/latency proof or full retained-path completion.

@@ -3,8 +3,8 @@
 ## Completion unit and dependency
 
 This component starts at #585,
-`feb175d059b17b0176106564f05f9157009a4db2`. That parent is unmerged;
-the eventual destination remains main. It closes record emission in
+`feb175d059b17b0176106564f05f9157009a4db2`. That parent is now adopted;
+the base and final merge destination are main. It closes record emission in
 watermark, fixed/sliding window, dedupe and Events/Relation session. It
 does not claim completion of every retained Local execution boundary.
 

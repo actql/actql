@@ -3,8 +3,9 @@
 ## Scope and ownership
 
 This component starts at #581,
-`e217a5840377068a9172277f94f1ff12476f4ae2`. The parent is unmerged;
-the eventual destination remains main. It closes Pool input role matching
+`e217a5840377068a9172277f94f1ff12476f4ae2`. The parent was adopted
+on main as `eecdf3932eefbde2c77756484302c949d5fb6e25`; this follow-up
+now targets main. It closes Pool input role matching
 and output group-name search, not every retained Local boundary.
 
 Pool previously flattened each reference name and compared the complete

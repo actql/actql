@@ -1315,10 +1315,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
           !Array.isArray(target.physicalBindings) || target.physicalBindings.length === 0) {
         fail('InvalidEffectTargetContinuation');
       }
-      target = JSON.parse(canonicalJson(target));
+      target = JSON.parse(canonicalValueJson(target, {dataKeys: true}));
       const scope = effectTargetReadScope({runDefinitionCid, unitId,
         authorityScopeCid, principalId: ownerPrincipal, inventoryCid, target});
-      const scopeCid = contentCid(scope);
+      // Bind the exact provider data retained and shown for this approval.
+      const scopeCid = `sha256:${hex(canonicalValueJson(scope, {dataKeys: true}))}`;
       const read = await createLocalAuthorizationGate({
         accountConfiguration: effectTarget.accountConfiguration,
         context: effectTarget.context, ...decisionOptions, decide,
@@ -1331,9 +1332,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
             await beforeDefer();
             const wire = await continuation();
             if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
-            const reviewWire = canonicalJson({scope,
+            const reviewWire = canonicalValueJson({scope,
               configuration_cid: effectTargetGate.configurationCid,
-              context_cid: effectTargetGate.contextCid});
+              context_cid: effectTargetGate.contextCid}, {dataKeys: true});
             if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
             const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
               {name: 'review_projection', wire: reviewWire},
@@ -1369,6 +1370,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
         current: options => effectTargetGate.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
         close: () => read.close(),
+        cleanup: () => read.cleanup(),
+        cleanupPending: () => read.cleanupPending(),
       });
     },
     async effectTargetContinuation(view) {
@@ -1435,7 +1438,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       declaredResults = Object.freeze([...declaredResults]);
       const common = {accountConfig, accountConfiguration,
-        principal: ownerPrincipal, decide,
+        principal: ownerPrincipal, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities === undefined
           ? authorities.map(item => item.reviewerId)
           : [...answeringAuthorities]};
@@ -1475,12 +1478,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
             commit.configurationCid !== gate.configurationCid) {
           fail('EffectCheckpointConfigurationChanged');
         }
+        const scopes = [read, commit].map(owner => ({owner, closeAttempted: false,
+          released: false}));
+        const cleanupPending = () => scopes.some(scope => !scope.released);
+        const close = () => {
+          let failure;
+          for (const scope of scopes) {
+            if (scope.released) continue;
+            try {
+              const recover = scope.closeAttempted;
+              scope.closeAttempted = true;
+              const result = recover ? scope.owner.cleanup() : scope.owner.close();
+              scope.released = result !== false && scope.owner.cleanupPending() === false;
+            } catch (error) { failure ??= error; }
+          }
+          if (failure !== undefined) throw failure;
+          return !cleanupPending();
+        };
         return Object.freeze({
           authorize: (boundary, ...args) => boundary === 'acquisition' && targetReads !== undefined
             ? targetReads.authorize(...args)
             : (boundary === 'effect_commit' ? commit : read).authorize(boundary, ...args),
           resume: (...args) => commit.resume(...args),
-          close() { read.close(); commit.close(); },
+          close, cleanup: close, cleanupPending,
         });
       } catch (error) {
         read.close();

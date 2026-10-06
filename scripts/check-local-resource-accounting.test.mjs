@@ -249,6 +249,63 @@ test('Set requires nested comparison boundary evidence for both operations', () 
   }
 });
 
+test('Score and Normalize require stepped record limits, scans and public Store evidence', () => {
+  for (const prefix of ['normalize', 'score']) {
+    const operation = prefix === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const suffixes = ['record_limits', 'record_stop', 'role_stop', 'unused_stop',
+      ...(prefix === 'score' ? ['key_stop_order'] : [])];
+    for (const suffix of suffixes) {
+      const role = `${prefix}_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} stepped fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_record_public_store`);
+    }), new RegExp(`VecA ${operation}: stepped record public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests.find(item => item.role === `${prefix}_record_public_store`)
+        .suite = 'node:embedded_pool_keys';
+    }), /environment evidence must name an executable suite/u);
+  }
+});
+
+test('Score and Normalize public record evidence requires its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+      "import './public-vector-record-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  for (const operation of ['score_vectors', 'normalize_vectors']) {
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: vector record public fixture is not suite-connected`));
+  }
+});
+
+test('Score and Normalize cannot replace the shared stepped append with an atomic call', () => {
+  for (const kernel of ['normalize', 'score']) {
+    const file = join(root, `src/local_veca/${kernel}.mbt`);
+    const operation = kernel === 'score' ? 'score_vectors' : 'normalize_vectors';
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text: sourceTemplate[file].text.replace(
+        '@records.start_record_append(', '@records.append_record(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.includes(
+      `VecA ${operation}: stepped record/name/key production connection is missing`));
+  }
+});
+
 test('DISTINCT requires nested comparison limits, stop and public Store evidence', () => {
   for (const suffix of ['quantum_order', 'stop_cleanup', 'workspace', 'work', 'public_barrier']) {
     const role = `distinct_nested_compare_${suffix}`;
@@ -369,6 +426,35 @@ test('nearest public key evidence requires an actual suite connection', () => {
     'VecA nearest: nearest key public fixture is not suite-connected'));
 });
 
+test('nearest requires borrowed-name limits, qualification and public Store evidence', () => {
+  for (const role of ['nearest_name_limits_stop_cleanup',
+    'nearest_name_public_barrier', 'nearest_name_qualification']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_name_public_store');
+  }), /VecA nearest: nearest name public Store fixture is missing/u);
+});
+
+test('nearest cannot replace borrowed-name admission by flattened spelling', () => {
+  const file = join(root, 'src/local_veca/nearest.mbt');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace('compare_reference_fragment(', 'reference_name(')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest borrowed-name production boundary is missing'));
+});
+
 test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
   for (const [operation, prefix, publicName] of [
     ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],
@@ -412,7 +498,7 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_record_contract_pair_limits', 'pool_record_contract_binding',
     'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
     'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
-    'pool_object_name_shared_limits', 'pool_json_name_canonical_refusal',
+    'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
     'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
     'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
     'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -548,6 +634,26 @@ test('ranking input requires unused-value limits, shared scans and public custod
   }
 });
 
+test('ranking name matching requires shared scans, exact limits and public custody', () => {
+  for (const role of ['ranking_name_match_common', 'ranking_name_match_limits_stop',
+    'ranking_name_match_wide_overlap', 'ranking_name_match_public_barrier']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_name_match_public_store');
+  }), /VecA merge_rankings: ranking name matching public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.boundary_tests.find(item => item.role === 'ranking_name_match_common')
+      .suite = 'moon:local_veca';
+  }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
+});
+
 test('ranking public evidence requires an actual suite connection', () => {
   const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
   const sources = Object.freeze({...sourceTemplate,
@@ -635,7 +741,36 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 62 production routes mapped, 7 typed pre-execution refusals \(not execution success\), 62 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 64 production routes mapped, 5 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.boundary_tests = route.boundary_tests.filter(value => value.role !== 'subtract_empty_work_exact_one_short_and_cleanup');
+  }), /SGA subtract_graphs: structural Graph cumulative-work evidence is missing/);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'subtract_graphs');
+    route.dispatch.marker = '@sga.uninstalled_subtraction(';
+  }), /SGA subtract_graphs: dispatch marker does not reach production source/);
+});
+
+test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
+  const roleNames = ['union_empty_work_exact_one_short_active_cancel_cleanup',
+    'union_positive_work_cancel_cleanup', 'union_host_cleanup_failure_retry_custody'];
+  for (const removed of roleNames) {
+    const result = run(undefined, routes => {
+      const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'union_graphs');
+      route.boundary_tests = route.boundary_tests.filter(value => value.role !== removed);
+    });
+    assert.match(result, removed === roleNames[0]
+      ? /SGA union_graphs: structural Graph cumulative-work evidence is missing/
+      : /SGA union_graphs: union positive-work cancellation and cleanup evidence is missing/);
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'union_graphs');
+    route.dispatch.marker = '@sga.uninstalled_union(';
+  }), /SGA union_graphs: dispatch marker does not reach production source/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1591,7 +1726,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 114 |',
+    '| Path-scoped work/workspace assurance | 116 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -3645,4 +3780,21 @@ test('resource snapshots are explicit per-run source bytes rather than validatio
     rmSync(directory, {recursive: true, force: true});
   }
   assert.equal(existsSync(directory), false);
+});
+
+
+test('union cannot claim its logical workspace assurance without the independent boundary', () => {
+  assert.match(run(undefined, routes => {
+    const union = routes.routes.find(route => route.operation === 'union_graphs');
+    union.boundary_tests = union.boundary_tests.filter(item =>
+      item.role !== 'union_workspace_exact_one_short_before_fold');
+  }), /SGA union_graphs: entrypoint operation workspace lacks an executable fixture/);
+});
+
+test('subtraction cannot claim workspace assurance without its own boundary', () => {
+  assert.match(run(undefined, routes => {
+    const subtract = routes.routes.find(route => route.operation === 'subtract_graphs');
+    subtract.boundary_tests = subtract.boundary_tests.filter(item =>
+      item.role !== 'subtract_workspace_exact_one_short_before_fold');
+  }), /SGA subtract_graphs: entrypoint operation workspace lacks an executable fixture/);
 });

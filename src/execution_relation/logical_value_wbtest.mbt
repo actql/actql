@@ -18,11 +18,11 @@ test "logical measures match independent typed wire vectors" {
   for
     (value, weight, bytes) in [
       (Null, 1L, 4),
-      (logical_literal("{}"), 1L, 2),
-      (logical_literal("{\"x\":1}"), 3L, 7),
-      (logical_literal("[1,\"é\"]"), 5L, 8),
+      (logical_literal("{}"), 1L, 12),
+      (logical_literal("{\"x\":1}"), 3L, 17),
+      (logical_literal("[1,\"é\"]"), 5L, 18),
       (Text("a\n"), 3L, 5),
-      (logical_literal("{\"a\":[true,null]}"), 5L, 17),
+      (logical_literal("{\"a\":[true,null]}"), 5L, 27),
       (Text("😀"), 5L, 6),
     ] {
     let got = measure_logical_value(value, weight, bytes, 100, 100).unwrap()
@@ -75,8 +75,8 @@ test "logical measurement has independent host limits and large safe work allowa
     is Err(InvalidMeasureLimits),
   )
   let shared = logical_literal("{\"x\":1}")
-  let first = measure_logical_value(shared, 3L, 7, 100, 100).unwrap()
-  let second = measure_logical_value(shared, 3L, 7, 100, 100).unwrap()
+  let first = measure_logical_value(shared, 3L, 17, 100, 100).unwrap()
+  let second = measure_logical_value(shared, 3L, 17, 100, 100).unwrap()
   assert_eq(first.weight + second.weight, 6L)
-  assert_eq(first.wire_bytes + second.wire_bytes, 14)
+  assert_eq(first.wire_bytes + second.wire_bytes, 34)
 }

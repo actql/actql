@@ -775,12 +775,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 62 |
-| Typed pre-execution refusals (not execution success) | 7 |
-| Operation-specific boundary records | 62 |
-| Four-role lifecycle assurance | 62 |
-| Full route work/workspace assurance | 62 |
-| Path-scoped work/workspace assurance | 114 |
+| Executable production routes | 64 |
+| Typed pre-execution refusals (not execution success) | 5 |
+| Operation-specific boundary records | 64 |
+| Four-role lifecycle assurance | 64 |
+| Full route work/workspace assurance | 64 |
+| Path-scoped work/workspace assurance | 116 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -3456,15 +3456,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 28/40 |
-| `lowering` | 28/40 |
-| `kernel` | 28/40 |
-| `managed` | 28/40 |
-| `standard_host` | 26/40 |
-| `consumer_lifetime` | 26/40 |
-| `resources` | 33/40 |
-| `cancellation` | 33/40 |
-| `publication` | 26/40 |
+| `checker` | 30/40 |
+| `lowering` | 30/40 |
+| `kernel` | 30/40 |
+| `managed` | 30/40 |
+| `standard_host` | 27/40 |
+| `consumer_lifetime` | 27/40 |
+| `resources` | 35/40 |
+| `cancellation` | 35/40 |
+| `publication` | 27/40 |
 | `three_targets` | 20/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
@@ -5882,9 +5882,10 @@ The Relation Pool fixture fixes control 313/312 and workspace 55/54. Ordinary
 installed Host evidence uses real retained output, three explicit Named Results,
 request reuse, and cancellation inside the name at poll 256 before collection.
 
-Runtime JSON name validation regains the synchronous owner's NFC/LF refusal,
-but its long-name normalization is still synchronous. This closes declared
-Object matching/byte scans, not every name/Map/schema boundary. Legacy drains,
+Opaque JSON member names retain exact data spelling in both recheck paths;
+declared Object identifiers still require canonical admission. Long opaque
+JSON name scanning remains synchronous. This closes declared Object
+matching/byte scans, not every name/Map/schema boundary. Legacy drains,
 runtime buffer assembly, whole-Run physical accounting and unexecuted
 target/packed campaigns remain distinct. See the
 [Object-name evidence](2026-10-06-local-object-name-rechecks.md).
@@ -6066,3 +6067,75 @@ This supersedes the atomic Graph append residual above, not the synchronous
 label construction, selector, ordering-key or JSON object-name boundaries.
 The route checker requires the new evidence and shared cursor connections;
 removing them or restoring atomic output fails its mutation checks.
+
+### Nearest input role-name matching
+
+Nearest now borrows identity/component FieldNames and scans at most 64 UTF-16
+pairs per poll. Typed identity qualification remains distinct from reference
+spelling. Existing key comparison and admitted output-row owners are reused;
+no alternate execution lane is added. The extra cursor position is reserved
+before reads, and pending fields remain owned until confirmed stop and cleanup.
+
+Current short-name boundaries are Carrier control 52/51 with workspace 32/31,
+and depth-ten Relation control 66/65 with workspace 52/51. Long 513-unit names
+add 32 control polls across two ports: Carrier 84/83, Relation 98/97 with
+depth-two workspace 44/43. The long Text identity fixture remains 1517/1516
+control, now 45/44 workspace; unused 257-item Relation Array admission remains
+1104/1103 control, now 44/43 workspace. Earlier figures above describe their
+original revisions, not current limits. The typed Relation caller's old
+Carrier-only premise is corrected to include its existing input rechecks.
+
+Ordinary retained Host evidence reads exactly three expected Named Results,
+checks request reuse without another dispatch, and delivers cancellation at
+component name offset 192. Inputs stay retained before stop confirmation;
+partial Results are unavailable and snapshots are reclaimed afterward.
+Qualification, independent budgets and both name-phase cancellation boundaries
+are registered in the production-route gate. This is not a whole-Local or
+whole-Run completion claim. See the
+[Nearest evidence](2026-10-06-local-nearest-name-matching.md) for commands,
+verified source SHA, payload digests, preserved failures and residuals.
+
+### Ranking algorithmic reference-name matching
+
+Ranking input binding now retains its borrowed current field, role probe and
+raw UTF-16 offset across advances. The shared fragment scans at most 64 pairs;
+input binding also caps probes at eight without losing overlapping group/tie
+roles. Output candidate/score/rank precedence and one-group-per-poll search
+remain unchanged. Four new fixed slots are reserved before reads; cancellation
+preserves input/current-field custody until confirmed stop and single cleanup.
+
+Independent current boundaries are 81/80 control and 90/89 workspace for a
+513-unit group/candidate, 199/198 and 122/121 for nine groups, 88/87 and 93/92
+for weighted overlapping roles, and 321/320 and 82/81 for the public Host
+name-matching barrier. Existing short-role caller work is unchanged, while
+workspace gains four slots. Historical figures above remain historical.
+
+Actual Host evidence includes retained publication, three explicitly read
+Named Results, two consumers, request reuse without another dispatch and
+cancellation during the input name scan. This closes algorithmic name matching,
+not preparation/schema lookup, per-poll input-availability loops, normalization,
+legacy drains, final runtime assembly, aggregate intermediate bytes or
+whole-Run accounting. See the [Ranking name-matching evidence](2026-10-06-local-ranking-name-matching.md)
+for independent budgets, negative evidence and executed/unverified checks.
+
+### Score and Normalize stepped record emission (2026-10-06)
+
+Score and Normalize now use the shared stepped record append instead of a
+synchronous append after bounded numerical computation. This includes Vector
+wire output and unused nested columns. Reference names are scanned in borrowed
+UTF-16 fragments; Score typed identity validation and ties retain the existing
+bounded key cursor. A decided tie returns to merge-side exhaustion checks.
+
+Current two-dimensional control limits are Normalize 35/34 and Score 50/49;
+workspace is respectively 67/66 and 79/78. For one 256-dimensional record,
+control limits are 804/803 and 821/820, workspace 327/326 and 338/337, and
+logical construction work 272/271 and 276/275. These supersede historical
+pre-stepped append figures only for the affected current implementations.
+
+Ordinary installed Host evidence covers real retained output, three explicit
+Named Results, two consumers, repeated-request reuse and cancellation during
+unfinished record emission. The route checker requires the executed boundary
+fixtures and their actual public suite connection; full boundary completion is
+still not asserted. Broader physical accounting, remaining execution scans and
+unexecuted packed/target campaigns are not closed by this change. See the
+[record-emission evidence](2026-10-06-local-vector-record-emission.md).

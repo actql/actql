@@ -427,7 +427,7 @@ fn property_rows_project_identity(
     // including when other columns in the retained input are absent.
     assert_true(
       @execution.completed_cell(projected, row, 0)
-      is Some(@execution.Captured(@admitted.Object(_))),
+      is Some(@execution.Captured(@admitted.JsonData(@admitted.Object(_)))),
     )
     let wire = @execution.completed_output_row_wire(
       projected, row, 10000, 1000, 20,
@@ -782,13 +782,13 @@ test "edge rows preserve parallel identities endpoints and composite raw key com
       assert_eq(
         @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap(),
         "{\"dst\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"edge_key\":" +
         edge_key.to_string() +
         ",\"id\":" +
-        edge_identity +
+        property_graph_expected_json_wire(edge_identity) +
         ",\"labels\":[\"R\"],\"src\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"tenant\":\"a\"}",
       )
     }
