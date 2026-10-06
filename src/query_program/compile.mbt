@@ -4137,7 +4137,11 @@ fn compile_join_steps(
     let (select, tail, output, joined) = joined_projection(
       construction,
       projected,
-      order_expressions,
+      if distinct {
+        []
+      } else {
+        order_expressions
+      },
       predicate,
       part,
       left_qualifier,
@@ -4217,18 +4221,32 @@ fn compile_join_steps(
         ]),
       )
     }
+    let ordered_from = if distinct {
+      append_distinct_join_order(
+        construction,
+        steps,
+        order_expressions,
+        projected,
+        visible_names,
+        part,
+        left_qualifier,
+        right_qualifier,
+        left_fields,
+        right_fields,
+        limits.max_expression_work,
+        step_bindings,
+      )
+    } else {
+      join_step_binding(step_bindings, "aql_join_output")
+    }
     let final_from = append_join_order_steps(
       construction,
       query,
       steps,
       order_fields,
       visible_names,
-      output.length(),
-      if distinct {
-        join_step_binding(step_bindings, "aql_join_unique")
-      } else {
-        join_step_binding(step_bindings, "aql_join_output")
-      },
+      output.length() + (if distinct { order_expressions.length() } else { 0 }),
+      ordered_from,
       next,
       result_tail=retained.map(results => (limits, results)),
       step_bindings~,
@@ -5728,7 +5746,16 @@ fn join_order_projection(
         }
         if selected is None {
           if distinct {
-            raise Abort(UnsupportedOrdering)
+            for path in join_reference_paths(expression) {
+              if order_reference_identity(path, prefix => {
+                  distinct_join_order_slot(
+                    prefix, projections, visible_names, input_slot,
+                  )
+                })
+                is None {
+                raise Abort(UnsupportedOrdering)
+              }
+            }
           }
           for (name, value) in order_expressions {
             if same_expression(expression, value) {
@@ -5749,6 +5776,92 @@ fn join_order_projection(
     _ => ()
   }
   (projections, visible_names, order_fields, order_expressions, next)
+}
+
+///|
+// DISTINCT preserves projected values, not the operand ranges. An input
+// reference survives only when that exact input column was directly selected.
+fn distinct_join_order_slot(
+  path : Array[@query.NamePart],
+  projections : Array[@query.Projection],
+  names : Array[String],
+  input_slot : (Array[@query.NamePart]) -> String?,
+) -> String? {
+  match order_output_slot(path, names.map(name => (name, name))) {
+    Some(slot) => return Some(slot)
+    None => ()
+  }
+  guard input_slot(path) is Some(identity) else { return None }
+  for index in 0..<projections.length() {
+    let expression = projections[index].expression.unwrap()
+    let mut root = @query.expression_root(expression)
+    while @query.expression_node(expression, root).unwrap().kind
+          is Parenthesized(child) {
+      root = child
+    }
+    if @query.expression_node(expression, root).unwrap().kind
+      is Reference(selected) &&
+      input_slot(selected) == Some(identity) {
+      return Some(names[index])
+    }
+  }
+  None
+}
+
+///|
+// ORDER helpers are ordinary derivations of the already DISTINCT output.
+// They cannot influence duplicate equality or recover a dropped input value.
+fn append_distinct_join_order(
+  construction : Construction,
+  steps : Array[@builder.Node],
+  expressions : Array[(String, @query.Expression)],
+  projections : Array[@query.Projection],
+  names : Array[String],
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
+  left_fields : Array[String],
+  right_fields : Array[String],
+  max_work : Int,
+  bindings : Map[String, String],
+) -> String raise Abort {
+  let from = join_step_binding(bindings, "aql_join_unique")
+  if expressions.is_empty() {
+    return from
+  }
+  let input_slot = fn(path : Array[@query.NamePart]) -> String? {
+    let resolved = Some(
+      join_projection_field(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+      ),
+    ) catch {
+      Abort(_) => None
+    }
+    resolved.map(field => field.0 + "." + field.1)
+  }
+  let derivations : Array[(String, @builder.Node)] = []
+  for (name, expression) in expressions {
+    let value = match
+      @expression.append_with_properties(
+        expression,
+        path => distinct_join_order_slot(path, projections, names, input_slot),
+        construction.builder,
+        max_work,
+      ) {
+      Ok(value) => value
+      Err(error) => raise Abort(Expression(error))
+    }
+    derivations.push((name, value))
+  }
+  let output = join_step_binding(bindings, "aql_join_order_derived")
+  steps.push(
+    construction.object([
+      ("from", construction.text(from)),
+      ("derive", construction.object(derivations)),
+      ("as", construction.text(output)),
+    ]),
+  )
+  output
 }
 
 ///|
@@ -5934,7 +6047,11 @@ fn compile_join_query(
     let (select, computed_steps, output, joined) = joined_projection(
       construction,
       projected,
-      order_expressions,
+      if distinct {
+        []
+      } else {
+        order_expressions
+      },
       predicate,
       part,
       left_qualifier,
@@ -5955,6 +6072,24 @@ fn compile_join_query(
         ]),
       )
     }
+    let ordered_from = if distinct {
+      append_distinct_join_order(
+        construction,
+        computed_steps,
+        order_expressions,
+        projected,
+        visible_names,
+        part,
+        left_qualifier,
+        right_qualifier,
+        left_fields,
+        right_fields,
+        limits.max_expression_work,
+        Map([]),
+      )
+    } else {
+      "aql_join_output"
+    }
     let retained : Array[RetainedResult] = []
     let result_from = append_join_order_steps(
       construction,
@@ -5962,12 +6097,8 @@ fn compile_join_query(
       computed_steps,
       order_fields,
       visible_names,
-      output.length(),
-      if distinct {
-        "aql_join_unique"
-      } else {
-        "aql_join_output"
-      },
+      output.length() + (if distinct { order_expressions.length() } else { 0 }),
+      ordered_from,
       next,
       result_tail=Some((limits, retained)),
     )

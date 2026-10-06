@@ -58,6 +58,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/group-ordinal-source-input.mjs', 'group-ordinal-source-input.mjs'],
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
+  ['scripts/fixtures/distinct-join-order-source-input.mjs', 'distinct-join-order-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
   ['scripts/fixtures/boolean-cast-source-input.mjs', 'boolean-cast-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
@@ -172,6 +173,9 @@ if (process.argv.includes('--graph-property-predicate-only')) {
 }
 if (process.argv.includes('--grouped-in-only')) {
   runtimeEnvironment.ACTQL_TEST_GROUPED_IN_ONLY = '1';
+}
+if (process.argv.includes('--distinct-join-order-only')) {
+  runtimeEnvironment.ACTQL_TEST_DISTINCT_JOIN_ORDER_ONLY = '1';
 }
 if (process.argv.includes('--distinct-order-only')) {
   runtimeEnvironment.ACTQL_TEST_DISTINCT_ORDER_ONLY = '1';
@@ -370,7 +374,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--boolean-cast-only', '--g
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
-  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
+  '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-join-order-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
   '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
@@ -423,7 +427,7 @@ if (!process.argv.some(flag => ['--graph-delta-source-only', '--json-literal-sou
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--group-property-only',
-  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
+  '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-join-order-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
   '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
@@ -449,6 +453,7 @@ if (process.argv.includes('--limit-parameter-only') ||
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
     process.argv.includes('--group-property-only') ||
+    process.argv.includes('--distinct-join-order-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||
     process.argv.includes('--computed-object-property-only') ||
