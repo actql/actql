@@ -39,8 +39,5 @@ import {
 } for "wbtest"
 
 options(
-  targets: {
-    "retained_output_native_wbtest.mbt": [ "native" ],
-    "restored_output_native_wbtest.mbt": [ "native" ],
-  },
+  targets: { "retained_output_native_wbtest.mbt": [ "native" ] },
 )

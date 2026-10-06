@@ -149,6 +149,8 @@ pub fn restore_native_remote_retained_task_input(@remote_site_protocol.RemoteInp
 
 pub fn restore_native_remote_standard_output(@remote_journal.RecoveredSiteDispatch, String, Int64, () -> Bool) -> NativeRemoteOutputRestoration
 
+pub fn restore_native_remote_standard_runtime_output(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, Int64, () -> Bool) -> @remote_runtime.NativeCompletedRuntimeRestoration
+
 pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardInputFailure) -> Bool
 
 pub fn retry_native_remote_standard_payload_failure_cleanup(NativeRemoteStandardPayloadFailure) -> Bool

@@ -162,3 +162,29 @@ pub fn restore_native_remote_standard_output(
       restored_output_refused("output-restore-source", release)
   }
 }
+
+///|
+/// Join the physical restoration port to the existing Runtime, which owns
+/// capacity and formal release. Pending requires retaining this same Runtime.
+pub fn restore_native_remote_standard_runtime_output(
+  runtime : @runtime.NativeRemoteRuntime,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  root_path : String,
+  max_bytes : Int64,
+  current : () -> Bool,
+) -> @runtime.NativeCompletedRuntimeRestoration {
+  runtime.restore_completed(request, binding, current, recovered => {
+    match
+      restore_native_remote_standard_output(
+        recovered, root_path, max_bytes, current,
+      ) {
+      NativeRestoredOutput(@runtime.NativeRemoteOutputReady(output)) =>
+        @runtime.RestoredCompletedOutput(output)
+      NativeRestoredOutput(@runtime.NativeRemoteExecutionFailed(_)) =>
+        @runtime.CompletedOutputUnavailable("output-restore-facts", () => false)
+      NativeOutputRestorationPending(code, cleanup) =>
+        @runtime.CompletedOutputUnavailable(code, cleanup)
+    }
+  })
+}

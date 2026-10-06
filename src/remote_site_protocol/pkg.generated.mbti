@@ -104,8 +104,10 @@ pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssu
 
 pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
 
- pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
- pub fn confirm_remote_runtime_completed_restoration(DispatchRecord, RemoteRuntimeCustody) -> Bool
+pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
+pub fn confirm_remote_runtime_completed_restoration(DispatchRecord, RemoteRuntimeCustody) -> Bool
+pub fn confirm_remote_runtime_completed_cleanup_restoration(DispatchRecord, RemoteRuntimeCustody, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
+
 
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 
@@ -400,6 +402,8 @@ pub fn prepare_remote_source_observation(DispatchRequest, Int, @run_publication.
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
+
+pub fn refresh_remote_completed_cleanup_observation(DispatchRecord, DurableDispatchRecord) -> Result[Unit, DispatchIssue]
 
 pub fn register_remote_evidence_issuer(@execution_site.ExecutionSite, String, String, String, String, String, String) -> Result[RemoteEvidenceIssuer, DispatchIssue]
 
