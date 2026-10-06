@@ -11,11 +11,15 @@ import {leanRecords, applicationVersion} from './applications.mjs';
 import {leanInput} from './check.mjs';
 import {storedArchive as zip} from './archive-fixture.mjs';
 import {sealAcceptance, checkAcceptance, readAcceptance, readyActions, acceptanceName} from './acceptance.mjs';
+import {checkCostObservation} from './costs.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
-function fixture(event = 'push') {
-  const catalog = readCatalog(); catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
-  catalog.actions.forEach(action => { action.dependencies = []; });
+function fixture(event = 'push', fullCatalog = false) {
+  const catalog = readCatalog();
+  if (!fullCatalog) {
+    catalog.actions = catalog.actions.filter(action => ['model', 'mutations-js'].includes(action.id));
+    catalog.actions.forEach(action => { action.dependencies = []; });
+  }
   const context = {repository: 'actql/actql', repositoryId: 1, headRepositoryId: 1, workflowId: 2,
     candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40), runId: 3, runAttempt: 4, ancestors: []};
   const origin = {...context, testedRevision: context.candidateRevision, workflowPath: '.github/workflows/ci.yml',
@@ -26,20 +30,26 @@ function fixture(event = 'push') {
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => [`src/${path}/moon.pkg`, '']),
     ['src/example/moon.pkg', ''], ['src/example/value.mbt', 'numeric deterministic fixture'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
+    files.set(`proofs/events-bridge/${name}`, name);
+  for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');
   const tree = {entries: new Map([...files].map(([path]) => [path, {kind: 'blob', mode: '100644'}])), read: path => Buffer.from(files.get(path))};
-  const required = [], applications = [], receiptDigests = [], members = new Map();
+  const required = [], applications = [], receiptDigests = [], members = new Map(), receipts = [];
+  const runtime = {profile: 'controlled-test-runtime', unresolved: []};
   const scientificDigest = 'e'.repeat(64), sourceArtifact = {id: 6, digest: 'f'.repeat(64)};
   const result = {version: 'actql-verification-family-result/0.1', context, protectedRevision: '0'.repeat(40),
-    catalogDigest: hash(encode(catalog)), requiredActions: catalog.actions.map(action => action.id), applications: []};
+    catalogDigest: hash(encode(catalog)), requiredActions: catalog.actions.map(action => action.id), applications: [], sourceArtifactBytes: 1};
   for (const action of catalog.actions) {
-    const inputs = actionInputs({tree, revision: context.candidateRevision, action, runtime: {profile: 'controlled-test-runtime', unresolved: []}});
+    const inputs = actionInputs({tree, revision: context.candidateRevision, action, runtime});
     // The deterministic JS observation fixture records all thirteen identities.
-    const output = action.id === 'model' ? 'Checked 14 theorems, expected claim types and axiom dependencies\n' :
+    const output = action.kind === 'formal-model' ? `Checked ${action.minimumUnits} theorems, expected claim types and axiom dependencies\n` :
+      action.id !== 'mutations-js' ? `Total tests: ${action.minimumUnits}, passed: ${action.minimumUnits}, failed: 0.\n` :
       ['stale-token-reuse', 'zero-quantum', 'terminal-resume', 'cleanup-changed-as-complete', 'cumulative-as-delta',
         'reset-budget-history', 'accept-backward-work', 'adapter-terminal-resume', 'premature-cleanup-success',
         'cleanup-retry-reruns-callback', 'actual-set-path-reaches-adapter', 'actual-nest-path-reaches-adapter', 'nest-parent-child-ports-swapped']
         .map(id => `${id}: detected by replacement tests`).join('\n');
     const receipt = sealReceipt({origin, action, inputs, output, status: 0, milliseconds: 10});
+    receipts.push(receipt);
     const bytes = canonicalReceipt(receipt), receiptDigest = hash(bytes);
     members.set(`receipts/${action.id}.json`, bytes);
     const records = leanRecords(action, inputs, {receipt}, context, 'fresh');
@@ -51,14 +61,28 @@ function fixture(event = 'push') {
       scopeDigest: hash(encode({profile: action.profile, premises: action.premises})), checkerResult: 'accepted'});
   }
   const comparison = {context, reuseAuthorized: false, baseline: {baseSha: '0'.repeat(40)},
+    costs: {checkpointMilliseconds: 0, transferMilliseconds: 0, inspectionMilliseconds: 0, totalMilliseconds: 0},
     actions: catalog.actions.map(action => ({actionId: action.id, status: action.id === 'mutations-js' ? 'closed-inputs-match' : 'same-inputs-open'}))};
   const observations = catalog.actions.map(action => ({actionId: action.id,
     status: action.id === 'mutations-js' ? 'scientific-match' : 'counts-match', scientificDigest, originScientificDigest: scientificDigest}));
   const leanOutput = Buffer.from('independent tiny fixture certificate output, no Lean executed locally');
   const lean = {accepted: true, theoremCount: 5, toolchain: 'fixture', inputDigest: hash(leanInput(required, applications)), outputDigest: hash(leanOutput)};
   const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context,
+    milliseconds: 0,
     catalogDigest: result.catalogDigest, receiptDigests, lean,
     comparisonDigest: hash(jsonBytes(comparison)), comparisonObservationsDigest: hash(jsonBytes(observations))};
+  const state = {context, origin, runtime};
+  const acquisition = {context, milliseconds: 0, actions: receipts.map(receipt => ({actionId: receipt.action.id,
+    acquisition: 'fresh', candidateActionKey: receipt.inputs.key}))};
+  const collectionBytes = jsonBytes({runtimeObservation: {milliseconds: 1, entries: 1, bytes: 1, inputDigest: hash(encode(runtime))},
+    isolatedPreparationMilliseconds: 1, stagedSourceBytes: 1, comparison: comparison.costs, acquisitionMilliseconds: 0});
+  const isolatedExecution = {owner: '3:4:5', costs: {preparationMilliseconds: 1, buildMilliseconds: 2,
+    executionMilliseconds: 3, inspectionMilliseconds: 2, closeMilliseconds: 2}};
+  certificate.collectionCostsDigest = hash(collectionBytes); certificate.acquisitionDigest = hash(jsonBytes(acquisition));
+  result.acquisition = acquisition;
+  result.costObservation = checkCostObservation({collectionBytes, certificate, state, catalog, acquisition, comparison, receipts, isolatedExecution});
+  members.set('collection-costs.json', collectionBytes); members.set('context.json', jsonBytes(state));
+  members.set('acquisition-plan.json', jsonBytes(acquisition)); members.set('isolated-execution.json', jsonBytes(isolatedExecution));
   members.set('checked.json', jsonBytes(certificate)); members.set('lean-output.log', leanOutput);
   members.set('comparison-plan.json', jsonBytes(comparison)); members.set('comparison-observations.json', jsonBytes(observations));
   result.lean = lean; result.comparison = {baseline: comparison.baseline, confirmation: {status: 'confirmed'}, reuseAuthorized: false,
@@ -66,7 +90,7 @@ function fixture(event = 'push') {
   const report = sealAcceptance({result, observations, owner: {runId: 3, runAttempt: 4, jobId: 7}, event, branch: 'main',
     sourceArtifact, certificateDigest: hash(members.get('checked.json'))});
   return {catalog, context, sourceArtifact, report, members,
-    sourceZip: {read: async path => { assert(members.has(path), 'Missing actual source member'); return members.get(path); }}};
+    sourceZip: {compressedBytes: 1, read: async path => { assert(members.has(path), 'Missing actual source member'); return members.get(path); }}};
 }
 
 test('final applicability binds actual source receipts, scientific observations and the executed certificate', async () => {
@@ -94,6 +118,56 @@ test('manual acceptance preserves actual receipt triggers and cannot relabel a p
   await assert.rejects(checkAcceptance(push));
 });
 
+test('main applicability reconstructs costs for all 30 obligations and rejects omitted Bridge costs or receipts', async () => {
+  // Controlled admission fixture: this executes the actual cost/acceptance
+  // consumers, not the MoonBit commands or the Lean kernel.
+  const f = fixture('workflow_dispatch', true);
+  assert.equal((await checkAcceptance(f)).length, 1);
+  assert.equal(f.report.result.costObservation.actions.length, 30);
+  assert.equal(f.report.result.costObservation.knownProducerMilliseconds, 301);
+  for (const id of ['events-model', 'events-connection-js', 'events-connection-wasm', 'events-connection-native']) {
+    const absentCost = fixture('workflow_dispatch', true);
+    absentCost.report.result.costObservation.actions = absentCost.report.result.costObservation.actions.filter(row => row.actionId !== id);
+    await assert.rejects(checkAcceptance(absentCost), /Wrong accepted cost correspondence/u);
+    const absentReceipt = fixture('workflow_dispatch', true);
+    absentReceipt.members.delete(`receipts/${id}.json`);
+    await assert.rejects(checkAcceptance(absentReceipt), /Missing actual source member/u);
+  }
+});
+
+test('main acceptance rejects missing or substituted costs and historical costs presented as current execution', async () => {
+  const changes = [
+    [f => f.members.delete('collection-costs.json'), /Missing actual source member/u],
+    [f => f.members.set('collection-costs.json', Buffer.from('{}\n')), /Changed collection cost bytes/u],
+    [f => f.members.delete('isolated-execution.json'), /Missing actual source member/u],
+    [f => { const value = JSON.parse(f.members.get('isolated-execution.json')); value.owner = '3:5:5';
+      f.members.set('isolated-execution.json', jsonBytes(value)); }, /Wrong isolated cost owner/u],
+    [f => { const value = JSON.parse(f.members.get('acquisition-plan.json')); value.milliseconds++;
+      f.members.set('acquisition-plan.json', jsonBytes(value)); }, /Wrong accepted acquisition cost binding/u],
+    [f => { f.report.result.costObservation.knownProducerMilliseconds++; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.producerOwner.jobId++; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.actions[1].currentMilliseconds = null; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.actions[1].observation = 'reused-not-executed'; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.netRunnerSavingsMilliseconds = 10; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.residual = []; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.sourceArtifactBytes++; }, /Wrong accepted source archive byte observation/u],
+  ];
+  for (const [change, expected] of changes) {
+    const f = fixture(); change(f);
+    await assert.rejects(checkAcceptance(f), expected);
+  }
+  // Even resealing the outer certificate does not turn malformed source costs
+  // into a valid current observation. This fixture does not execute mutations.
+  const f = fixture(), value = JSON.parse(f.members.get('collection-costs.json'));
+  value.runtimeObservation.milliseconds = -1;
+  f.members.set('collection-costs.json', jsonBytes(value));
+  const certificate = JSON.parse(f.members.get('checked.json'));
+  certificate.collectionCostsDigest = hash(f.members.get('collection-costs.json'));
+  f.members.set('checked.json', jsonBytes(certificate));
+  f.report.certificateDigest = hash(f.members.get('checked.json'));
+  await assert.rejects(checkAcceptance(f), /Invalid cost observation/u);
+});
+
 test('only a fresh main comparison qualifies; recovered partial comparison and prior PR acceptance do not', () => {
   for (const change of [
     report => report.event = 'pull_request',
@@ -113,6 +187,7 @@ for (const event of ['push', 'workflow_dispatch']) test(`actual ${event} accepta
   const sourceBytes = zip([...f.members]), sourceDigest = hash(sourceBytes);
   await writeFile(sourceArchive, sourceBytes);
   f.sourceArtifact.digest = sourceDigest; f.report.sourceArtifact.digest = sourceDigest;
+  f.report.result.sourceArtifactBytes = sourceBytes.length;
   f.report.result.applications.forEach(entry => { entry.archiveDigest = sourceDigest; });
   const bytes = zip([['verified-family.json', jsonBytes(f.report)]]); await writeFile(archive, bytes);
   const run = {id: 3, run_attempt: 4, head_sha: f.context.candidateRevision, workflow_id: 2, path: '.github/workflows/ci.yml',

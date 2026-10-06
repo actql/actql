@@ -312,3 +312,30 @@ are retained. The earlier first/later receipt outage regression remains; final
 availability never promotes an incomplete comparison or invalid origin into
 reuse permission. Optional comparison ZIPs live outside the uploaded receipts;
 only actually adopted originals are retained inside the candidate archive.
+
+## Cost correspondence at final acceptance
+
+The executed certificate binds `collection-costs.json` by
+`collectionCostsDigest`, in addition to the existing acquisition-plan digest.
+The final consumer reconstructs `costObservation` from these fixed bytes,
+original receipts, the current context and the actual isolated execution when
+fresh. Main applicability reconstructs the same record from the source ZIP;
+missing records, changed bindings, invalid durations, wrong owners or relabeled
+fresh/reused observations reject. Old-format cost records are not accepted.
+The consumer's policy bytes participate in action inputs, so earlier originals
+cannot be adopted under a changed consumer contract.
+
+Preparation is already included in the isolated mutation receipt. Its exclusive
+duration subtracts preparation once before the partial producer sum. Comparison
+subphases remain nested inside comparison total, and consumer verification
+encloses its own replay/hashing work. Reused work has null current units/time;
+historical receipt time is never counted as candidate execution. Source archive
+size is checked against actual ZIP bytes and final API metadata.
+
+`knownProducerMilliseconds` is a partial, sequential phase sum, not wall time or
+total runner time. Source/input construction, hashing, writes and precollection
+verification are explicitly unmeasured here. Completed producer/check job spans
+and archive transfers remain necessary for a net comparison.
+`netRunnerSavingsMilliseconds` therefore remains null with mandatory residuals;
+cost correspondence alone neither authorizes reuse nor proves savings.
+See [the cost correspondence review](../../docs/reviews/2026-10-06-session-evidence-cost-correspondence.md).

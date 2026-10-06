@@ -115,13 +115,22 @@ async function archiveFixture(t) {
   }
   const observations = compareFreshObservations({plan: comparison, context, runtime, actionRuntimes, tree, receipts,
     mutationResult: {...report, sourceRestored: true, revision}, acquisitions: acquisition.actions});
+  // Controlled cost observations accompany the existing controlled API/image
+  // facts. They do not establish physical execution or runner savings.
+  const collection = {runtimeObservation: {milliseconds: 2, entries: 0, bytes: 0,
+    inputDigest: hash(encode(runtime))}, isolatedPreparationMilliseconds: 1,
+    stagedSourceBytes: manifest.root.entries.filter(entry => entry.kind === 'file' && entry.path.startsWith('source/'))
+      .reduce((total, entry) => total + entry.bytes, 0),
+    comparison: comparison.costs, acquisitionMilliseconds: acquisition.milliseconds};
+  members.set('collection-costs.json', jsonBytes(collection));
   let output;
   // Real Git identities and all thirty obligations use the same kernel proof.
   // Bound this local fixture explicitly; production keeps its existing 30s limit.
   const lean = checkPlan(required, applications, {timeout: 60000, onOutput: value => {output = Buffer.from(value);}});
   const certificate = {version: 'actql-verification-family-certificate/0.1', mode: 'scoped-execution', context,
     catalogDigest: hash(encode(catalog)), receiptDigests, lean, comparisonDigest: hash(jsonBytes(comparison)),
-    comparisonObservationsDigest: hash(jsonBytes(observations)), acquisitionDigest: hash(jsonBytes(acquisition))};
+    comparisonObservationsDigest: hash(jsonBytes(observations)), acquisitionDigest: hash(jsonBytes(acquisition)),
+    collectionCostsDigest: hash(jsonBytes(collection)), milliseconds: 13};
   members.set('checked.json', jsonBytes(certificate)); members.set('lean-output.log', output);
   members.set('comparison-observations.json', jsonBytes(observations)); members.set('acquisition-plan.json', jsonBytes(acquisition));
   const archive = join(directory, 'source.zip'), bytes = storedArchive(members);
@@ -151,6 +160,9 @@ test('real ZIP consumer reconstructs actual Git and the executed complete certif
   assert(result.applications.every(value => value.acquisition === 'fresh'));
   assert.equal(result.lean.accepted, true); assert.equal(result.comparison.confirmation.status, 'not-compared');
   assert.equal(result.comparison.reuseAuthorized, false);
+  assert.equal(result.sourceArtifactBytes, f.original.length);
+  assert.equal(result.costObservation.actions.length, 30);
+  assert.deepEqual(result.costObservation.producerOwner, {runId: 3, runAttempt: 4, jobId: 5});
   assert(f.requests.filter(path => path === '/actions/runs/3').length >= 3);
   const {acceptanceInputs, ...acceptedResult} = result;
   const acceptance = sealAcceptance({result: acceptedResult, observations: acceptanceInputs.observations, event: 'workflow_dispatch', branch: 'main',
