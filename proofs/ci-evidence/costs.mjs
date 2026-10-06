@@ -83,7 +83,9 @@ export function checkCostObservation({collectionBytes, certificate, state, catal
     acquisitionMilliseconds: collection.acquisitionMilliseconds,
     checkerMilliseconds: certificate.milliseconds,
   };
-  return {version: costVersion, context: state.context, collectionCostsDigest: hash(collectionBytes),
+  return {version: costVersion, context: state.context,
+    producerOwner: {runId: state.origin.runId, runAttempt: state.origin.runAttempt, jobId: state.origin.jobId},
+    collectionCostsDigest: hash(collectionBytes),
     stagedSourceBytes: collection.stagedSourceBytes, producerPhases,
     comparisonSubphases: {...collection.comparison}, actions,
     knownProducerMilliseconds: sum([...Object.values(producerPhases),

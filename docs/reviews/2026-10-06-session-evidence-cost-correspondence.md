@@ -15,7 +15,9 @@ It does not qualify origins or broaden evidence reuse.
   missing/unmeasured costs instead of reporting zero-cost reuse.
 - `proofs/ci-evidence/inputs.mjs`: bind the new production consumer's bytes as
   reviewed policy inputs; no source selection or runtime closure changes.
-- Existing read-only timing evidence remains the source of completed job spans.
+- `scripts/ci-timing.mjs`, its existing evidence/artifact consumers and focused
+  tooling regressions: retain distinct job-duration totals per run/attempt,
+  separately from overlapping wall spans, partial/unknown execution and outcomes.
   Phase sums do not establish total runner savings or parallel wall time.
 
 #412 source selection/image/guards and #568 Bridge admission are separate.
@@ -42,6 +44,8 @@ acquisition digest still fixes `acquisition-plan.json`. `costObservation` is
 reconstructed, not accepted from a carried report. It includes the following:
 
 - Current fresh units/duration and exact original receipt digest/run/attempt.
+- The authenticated current producer job owner, separately from the final
+  report owner, for selecting their enclosing API job intervals.
 - Null current units/duration for reused work, with historical origin values
   in separate fields. No current isolated-execution record may accompany reuse.
 - Runtime collection, preparation, comparison total, acquisition and checker
@@ -73,3 +77,26 @@ Completion of the overall goal still requires real image acceptance, compatible
 successful main originals, ordinary PR reuse, relevant-input fresh execution
 and positive net runner savings including producer/final job spans and transfers.
 Controlled cost fixtures are not physical execution or economic evidence.
+
+## Enclosing runner observations
+
+The existing live `scripts/ci-evidence.mjs` and offline artifact timing paths
+consume `ci-timing.mjs` without a new dispatcher or framework. Each attempt now
+retains its independently observed job intervals and `runnerConsumption`:
+distinct completed job seconds, known partial seconds, unknown/skipped counts,
+successful-sample status and a separate job wall span. Parallel intervals are
+summed only as runner consumption, never as wall time. No step or phase sum is
+added to its enclosing job duration.
+
+An incomplete/mismatched API inventory, running job, invalid timestamp, missing
+runner or no observed step execution leaves the total unknown. This includes
+billing failures reported with synthetic job timestamps and zero steps.
+Failed/cancelled jobs retain actual measured consumption when available but
+cannot be successful samples. Retries remain separate run/attempt observations.
+The projection adds no API calls and does not alter outcomes or reuse readiness.
+
+For a real fresh/reused comparison, select the source/applicability owners from
+authenticated archives, retain their job spans and the complete attempt total,
+and use the Session cost record only to explain subphases. Equal obligations and
+inputs plus comparable execution conditions remain required independently of
+timing. No economic result is inferred from controlled examples or failed runs.

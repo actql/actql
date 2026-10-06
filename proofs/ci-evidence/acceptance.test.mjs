@@ -140,6 +140,7 @@ test('main acceptance rejects missing or substituted costs and historical costs 
     [f => { const value = JSON.parse(f.members.get('acquisition-plan.json')); value.milliseconds++;
       f.members.set('acquisition-plan.json', jsonBytes(value)); }, /Wrong accepted acquisition cost binding/u],
     [f => { f.report.result.costObservation.knownProducerMilliseconds++; }, /Wrong accepted cost correspondence/u],
+    [f => { f.report.result.costObservation.producerOwner.jobId++; }, /Wrong accepted cost correspondence/u],
     [f => { f.report.result.costObservation.actions[1].currentMilliseconds = null; }, /Wrong accepted cost correspondence/u],
     [f => { f.report.result.costObservation.actions[1].observation = 'reused-not-executed'; }, /Wrong accepted cost correspondence/u],
     [f => { f.report.result.costObservation.netRunnerSavingsMilliseconds = 10; }, /Wrong accepted cost correspondence/u],

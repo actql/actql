@@ -46,6 +46,24 @@ time and observed pre-start intervals. Missing wall-clock evidence stays absent.
 Parallel job durations, phase action sums, enclosing capacity durations and queue
 time are never conflated. Compiler/hash/I/O splits and build counts are unknown.
 
+The live timing projection also retains `runnerConsumption` for each explicit
+run/attempt. `totalJobSeconds` sums distinct job intervals once; overlapping
+jobs still consume separate runner time. `observedJobWallSpan` is retained
+separately. Neither steps nor artifact phase sums are added to the total.
+Setup, transfer and final verification inside the jobs are already included.
+Missing/invalid times, incomplete inventories, unobserved runner allocation or
+no executed steps leave the total null. `knownJobSeconds` remains a partial
+observation. Failed/cancelled attempts may retain measured consumption but
+cannot become successful samples; retries stay separate.
+
+These are observed job seconds, not billed minutes or a causal savings verdict.
+For Session reuse, select the actual producer and final-check owners from
+authenticated source/applicability evidence and retain the complete attempt
+total as well. The partial Session cost record explains subphases; it must not
+be added to job totals. A claimed reuse saving still needs equal inputs and
+obligations, qualified originals, comparable execution conditions and measured
+fresh/reused attempts. The read-only timing report never authorizes reuse.
+
 ## Custody and storage boundaries
 
 One ZIP reader serves both timing and storage projections. It rejects traversal,

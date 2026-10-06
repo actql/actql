@@ -49,6 +49,7 @@ test('fresh preparation is counted once and nested comparison costs are not summ
   assert.equal(result.actions[1].currentMilliseconds, 17);
   assert.equal(result.actions[1].exclusiveMilliseconds, 14);
   assert.equal(result.netRunnerSavingsMilliseconds, null);
+  assert.deepEqual(result.producerOwner, {runId: 30, runAttempt: 1, jobId: 4});
   assert(result.residual.length > 0);
   request.receipts.forEach((receipt, index) => assert(canonicalReceipt(receipt).equals(originals[index])));
 });
