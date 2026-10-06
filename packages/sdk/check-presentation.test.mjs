@@ -35,6 +35,8 @@ test('packed SDK public exports and browser bundle include their presentation mo
     assert.equal(typeof sdk.connect, 'function');
     assert.equal(host.connectInProcess, sdk.connectInProcess);
     assert.equal(typeof host.canonicalJson, 'function');
+    assert.equal(sdk.getCheckReasonCatalogInfo().revision, '2026-10-07.1');
+    assert.equal(sdk.getCheckReasonCatalogEntry('parameter_value_required').family, 'requirement');
     for (const name of ['formatSubmission', 'formatCancellation',
       'formatReadFailure', 'formatEffectUncertainty']) {
       assert.equal(typeof sdk[name], 'function');
@@ -42,7 +44,8 @@ test('packed SDK public exports and browser bundle include their presentation mo
     }
   `]);
   for (const name of ['check-presentation.mjs', 'operation-presentation.mjs',
-    'operation-formats.mjs', 'json-value-wire.generated.mjs']) {
+    'operation-formats.mjs', 'json-value-wire.generated.mjs',
+    'check-reason-catalog.generated.js', 'check-reason-catalog.generated.d.ts']) {
     assert.equal(packages[1].files.filter(file => file.path === name).length, 1);
   }
   assert.equal(packages[1].files.some(file => file.path.endsWith('.test.mjs')), false);
@@ -54,6 +57,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
     'node_modules/@actql/client-wire/index.mjs',
     'node_modules/@actql/client-wire/publication.generated.js',
     'node_modules/@actql/sdk/check-presentation.mjs',
+    'node_modules/@actql/sdk/check-reason-catalog.generated.js',
     'node_modules/@actql/sdk/checkpoints.mjs',
     'node_modules/@actql/sdk/index.mjs',
     'node_modules/@actql/sdk/json-value-wire.generated.mjs',
@@ -77,6 +81,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/client-wire/index.mjs',
     'packages/client-wire/publication.generated.js',
     'packages/sdk/check-presentation.mjs',
+    'packages/sdk/check-reason-catalog.generated.js',
     'packages/sdk/checkpoints.mjs',
     'packages/sdk/index.mjs',
     'packages/sdk/json-value-wire.generated.mjs',
