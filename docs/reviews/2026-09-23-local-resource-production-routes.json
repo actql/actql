@@ -10671,6 +10671,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
           "fixture": "runtime JSON recheck yields within nested data Text without normalization"
+        },
+        {
+          "role": "ranking_name_match_common",
+          "suite": "moon:relation_schema",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/relation_schema/reference_steps_wbtest.mbt",
+          "fixture": "reference spelling fragments retain raw UTF16 and virtual qualification"
+        },
+        {
+          "role": "ranking_name_match_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching retains input and output scan custody"
+        },
+        {
+          "role": "ranking_name_match_wide_overlap",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching bounds wide and overlapping role lists"
+        },
+        {
+          "role": "ranking_name_match_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking public name barrier has independent work workspace and stop custody"
         }
       ],
       "environment_tests": [
@@ -10708,6 +10736,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
           "fixture": "public retained ranking publishes and cancels inside unused array recheck"
+        },
+        {
+          "role": "ranking_name_match_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside reference name matching"
         }
       ],
       "path_assurance": {

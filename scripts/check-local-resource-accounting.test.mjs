@@ -360,6 +360,26 @@ test('ranking input requires unused-value limits, shared scans and public custod
   }
 });
 
+test('ranking name matching requires shared scans, exact limits and public custody', () => {
+  for (const role of ['ranking_name_match_common', 'ranking_name_match_limits_stop',
+    'ranking_name_match_wide_overlap', 'ranking_name_match_public_barrier']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_name_match_public_store');
+  }), /VecA merge_rankings: ranking name matching public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.operation === 'merge_rankings');
+    route.boundary_tests.find(item => item.role === 'ranking_name_match_common')
+      .suite = 'moon:local_veca';
+  }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
+});
+
 test('ranking public evidence requires an actual suite connection', () => {
   const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
   const sources = Object.freeze({...sourceTemplate,

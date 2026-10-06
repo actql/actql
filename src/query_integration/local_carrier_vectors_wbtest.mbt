@@ -4889,15 +4889,15 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
   // recheck 2*257+3=517, then group/candidate/policy/store 4: 532.
   // Three scratch entries + duplicate/rank checks 4 + fusion 4 +
   // fused scratch 1 + output/finish 30 = 42. Total control work: 574.
-  // One record: 17 slots. Input ports 6, fixed width 45, row scope 6,
-  // depth-two recheck scope 4: 78. Unused array nodes remain validated.
+  // One record: 17 slots. Input ports 6, fixed width 49, row scope 6,
+  // depth-two recheck scope 4: 82. Unused array nodes remain validated.
   for
     (work, slots, nodes, quantum, succeeds) in [
-      (574, 78, 258, 1, true),
-      (574, 78, 258, 7, true),
-      (574, 78, 258, 256, true),
-      (573, 78, 258, 1, false),
-      (574, 78, 257, 1, false),
+      (574, 82, 258, 1, true),
+      (574, 82, 258, 7, true),
+      (574, 82, 258, 256, true),
+      (573, 82, 258, 1, false),
+      (574, 82, 257, 1, false),
     ] {
     let execution = @local_veca.start_ranking(
       @bounded.control(),
@@ -4974,7 +4974,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
       inputs,
       10,
       { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-      77,
+      81,
       1000,
       10000,
     )
@@ -4989,7 +4989,7 @@ test "ranking input recheck yields inside unused arrays with exact limits" {
     inputs,
     10,
     { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
-    78,
+    82,
     1000,
     10000,
     control_work_limit=Some(574),
@@ -5071,7 +5071,7 @@ test "ranking yields within long group and tie comparisons" {
     // Independently count four 1066-unit input rows, record sorts 1048+2590,
     // duplicate checks 1033, candidate folds 3600, output sort 1032, and
     // two emitted rows plus finalization 626. Total control work is 14193.
-    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+44) + 7 + 12 = 156.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+48) + 7 + 12 = 160.
     for
       (quantum, control_limit) in [
         (1, 14193),
@@ -5087,7 +5087,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        156,
+        160,
         1000,
         10000,
         control_work_limit=Some(control_limit),
@@ -5157,7 +5157,7 @@ test "ranking yields within long group and tie comparisons" {
         inputs,
         10,
         limits,
-        155,
+        159,
         1000,
         10000,
       )
@@ -5172,7 +5172,7 @@ test "ranking yields within long group and tie comparisons" {
       inputs,
       10,
       limits,
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5270,7 +5270,7 @@ test "ranking output rows keep independent logical value limits" {
         max_depth: 10,
         max_work: logical_work,
       },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5366,7 +5366,7 @@ test "ranking output recheck and charge retain custody until stopped" {
       inputs,
       10,
       { max_nodes: 12, max_text_bytes: 1064, max_depth: 10, max_work: 1076, },
-      156,
+      160,
       1000,
       10000,
       control_work_limit=Some(14193),
@@ -5452,7 +5452,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(236),
@@ -5484,7 +5484,7 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    137,
+    141,
     1000,
     10000,
     control_work_limit=Some(235),
@@ -5516,7 +5516,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      136,
+      140,
       1000,
       10000,
     )
@@ -5563,15 +5563,15 @@ test "registered ranking provider enforces exact work and workspace" {
   // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
   // four two-input folds cost 16;
   // four output visits, two four-field rows, and finalization cost 61.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+44) + 6 + 12 = 137 slots.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+48) + 6 + 12 = 141 slots.
   // Fixed state, row scope and depth-bounded recheck frames remain reserved.
   for
     (work, slots, outcome, quantum) in [
-      (236, 137, "complete", 1),
-      (236, 137, "complete", 7),
-      (236, 137, "complete", 256),
-      (235, 137, "work", 1),
-      (236, 136, "workspace", 1),
+      (236, 141, "complete", 1),
+      (236, 141, "complete", 7),
+      (236, 141, "complete", 256),
+      (235, 141, "work", 1),
+      (236, 140, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
