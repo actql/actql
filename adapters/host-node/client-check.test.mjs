@@ -4070,3 +4070,24 @@ for (const entrance of ['local', 'http']) {
     });
   }
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: lexical fix replies reject preceding pins and malformed proposals`, async t => {
+    for (const mutate of [
+      outcome => {
+        outcome.reason_schema_cid = 'sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6';
+        outcome.outcome_schema_cid = 'sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2';
+      },
+      outcome => {outcome.report.reasons[0].fixes[0].edits[0].start_byte = 15;},
+      outcome => {outcome.report.reasons[0].fixes[0].target.revision = 'rev:' + '0'.repeat(64);},
+      outcome => {outcome.report.reasons[0].location.precision = 'approximate';},
+    ]) {
+      const client = await contextClient(t, entrance, absentEnvironment, {
+        mutateCheckReply: outcome => {mutate(outcome); return outcome;},
+      });
+      let refusal;
+      try {await client.check('SELECT 1 AS n /*', {format: 'sql'});} catch (error) {refusal = error.code;}
+      assert.equal(refusal, 'InvalidHostCheckOutcome', '[check-mutation:fix-reply-validation]');
+    }
+  });
+}
