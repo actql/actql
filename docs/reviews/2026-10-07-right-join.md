@@ -55,3 +55,39 @@ packed execution success. Exact source SHA/digests and result follow below.
 
 No full Core, proof, performance, Cloud campaign, manual CI retry or merge is
 performed here. Other Frontend/common-capacity obligations remain separate.
+
+## Public normal-package result
+
+Normal five-package source: `f57db80706b211d431a3ba6503cb82c6f6ddfa80`.
+Both Embedded Local and public HTTPS passed 12/12 successes and 5/5 refusals
+with unchanged input/oracles and Host limits. The existing helper checked
+Named Result rows and describe column contracts/order, one Source acquisition,
+no added I/O on reads/attach/request retransmission, same Run on identical
+request replay, and refusal before Run admission/provider I/O.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-right-join-20261007-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-right-join-20261007-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+npm_config_offline=true npm_config_include=optional \
+node scripts/test-packed-public-query.mjs --right-join-only
+```
+
+Pinned MoonBit/Node PATH and MOON_HOME were used by the producer. Evidence:
+`worktrees/.codex-scratch/public-query-evidence-ip0hbe`, with passed/complete
+summary and captured Local/HTTPS output. The successful harness removed its
+external installation after preserving logs/source/tarball evidence. Producer
+directory retains all five tarballs and `packed-client-packages.json`.
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `fb29996f1d058d505ab2ea2220e53370f91cf3e945816cf9c85711f22f6006ef` |
+| sdk | `2dc2a4e12609945cf747a4c897bf1527a8597ef43fcfc5434966166f39623c09` |
+| run-host-core | `b84dfbd73d4a91818c1465a928e447b59d1d16a273a5f27479a6faa41582c1d3` |
+| local-node | `27945416daecc79c64c34077c303c18d9dce7248c722f3a44a0e5141200b2514` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Submitted-HEAD CI/content review remain distinct. The later evidence-only
+commit is not another runtime build. Keep Draft; final destination is main,
+with no unmerged feature dependency. No universal JOIN/backend conformance or
+closure of the unrelated #680 capacity reproduction is claimed.
