@@ -400,3 +400,11 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+
+/** The caller-owned declaration contract/rules, not complete Program verification. */
+export type CheckParameterAdmission = NonNullable<Extract<NonNullable<
+  Extract<CheckOutcome, {outcome: 'completed'}>['report']['requirements'][number]['facts']>,
+  {admission?: unknown}>['admission']>;
+/** Undefined without original check custody, a disclosed Requirement or typed conditions. */
+export declare function getCheckParameterAdmission(outcome: unknown,
+  parameter: string): CheckParameterAdmission | undefined;
