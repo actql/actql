@@ -1171,3 +1171,20 @@ is rechecked after rendering so an input accessor cannot edit the buffer during
 rendering and publish a stale position. On such a change, the same safe observation
 is formatted with all positions omitted. Formatting performs no Host lookup,
 check, execution, cancellation or edit and retains no additional source buffer.
+
+### Operation explanation locales
+
+Submission, cancellation, read-failure and Effect-uncertainty helpers select
+wording only after retrieving their SDK-owned immutable observation. Operation
+translation identity is exposed separately from check translation and wire
+identity. English fallback remains safe for unknown selections or failed locale
+access. Translation changes only summary/hint text; original references,
+revisions, physical stop, cleanup, Effect identities and yielded counts remain
+unchanged. A locale callback cannot replace this custody with mutable public
+properties, and a copied result still has no custody.
+
+No Host schema, execution Owner, retry permission, persistence, additional input
+retention or automatic I/O is introduced. Existing delivery and cancellation
+certainty limits remain in force; localized presentation does not establish a
+successful Run, an accepted cancellation operation identity, physical release or
+authoritative reconciliation support.

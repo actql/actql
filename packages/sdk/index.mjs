@@ -12,6 +12,8 @@ import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './ch
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
+import {localizeOperation} from './operation-presentation.mjs';
+export {getOperationPresentationInfo} from './operation-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
@@ -122,16 +124,16 @@ export function getSubmissionInput(result) {
 
 // Local observation of this SDK read only. Lookup rechecks current authority;
 // this explanation proves neither publication nor execution nor resource release.
-export function explainReadFailure(result) {
-  return readExplanations.get(result);
+export function explainReadFailure(result, options) {
+  return localizeOperation(readExplanations.get(result), 'read', options);
 }
 
-export function explainSubmission(result) {
-  return submissionExplanations.get(result);
+export function explainSubmission(result, options) {
+  return localizeOperation(submissionExplanations.get(result), 'submission', options);
 }
 
-export function explainEffectUncertainty(state) {
-  return effectUncertainties.get(state);
+export function explainEffectUncertainty(state, options) {
+  return localizeOperation(effectUncertainties.get(state), 'effect', options);
 }
 
 const retainEffectUncertainty = (state, ref) => {
@@ -158,8 +160,8 @@ const retainEffectUncertainty = (state, ref) => {
   return state;
 };
 
-export function explainCancellation(result) {
-  return cancellationExplanations.get(result);
+export function explainCancellation(result, options) {
+  return localizeOperation(cancellationExplanations.get(result), 'cancellation', options);
 }
 
 const retainCancellationExplanation = (result, context, observation, revision) => {
