@@ -566,7 +566,17 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('62486297e7a17f9d8dd18bc0ff18e0e2ee79cb188f4bb1de45ba6a4e30fc2c28'),
     pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid,
     pin('1773a59d9141adb5702a4cd73e240f6422137222cbf6f543cbcee38bda0570d2'));
-  assert.equal(current.run.run_definition_cid, 'sha256:bd021612e8bbdac5e59ac025d8f7aa113172838bea3d309b335b21dd342686d0');
+  // Retain current main's LIMIT grammar with its original pre-typed closure.
+  assert.equal(vector(pin('a2fb073e8a80ea2647ac70c61b567c4ba00e692119e5bed3e389622b2920bfa7'),
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    pin('fd116ad92f5970ff13c332f184638f4486e2ff78aa13e3fbc341d28a9110c142'));
+  assert.equal(vector(pin('2b32c93b38b2741b740f0f960b99995b4551cbfbb3c5a4ca9058e9c897082f75'),
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    pin('5634ddf170543faa4ad615006ade5a7a1dd268c6d9f077d707458bd210b1cc04'));
+  assert.equal(vector(pin('2d6fb316b24bfb65561a2a09c78fb33581d7691480480829e7c8a7ea51896580'),
+    pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid,
+    pin('bd021612e8bbdac5e59ac025d8f7aa113172838bea3d309b335b21dd342686d0'));
+  assert.equal(current.run.run_definition_cid, 'sha256:72401cebfc4164aab0fcf562c80062be79017714465c0cacb017cd30b4949adb');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

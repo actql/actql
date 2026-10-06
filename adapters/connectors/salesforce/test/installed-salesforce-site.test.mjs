@@ -4,6 +4,7 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
+import './installed-salesforce-site-cleanup.test.mjs';
 import {DatabaseSync} from 'node:sqlite';
 import * as commonMoon from
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -15,6 +16,9 @@ import {createLocalAuthorizationGate} from
   '../../../host-node/local-account-config.mjs';
 import {retainSalesforceSiteCleanup} from
   '../host/installed-salesforce-site.mjs';
+import {INSTALLED_SALESFORCE_SOURCE_VERSION,
+  publishInstalledSalesforceSource} from
+  '../host/installed-salesforce-source.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {createInstalledHostShutdown} from
   '../../../host-node/installed-host-cleanup.mjs';
@@ -873,3 +877,59 @@ test('a failed Site owner keeps its primary failure and hands over the release',
     assert.equal(wrapped.cleanupPending, true);
     assert.equal((await wrapped.cleanupHandle.retry()).pending, false);
   });
+
+for (const closeFailures of [0, 1]) {
+  test(`installed publication retains a frozen abort owner with ${closeFailures} journal close failures`,
+    async t => {
+      const setup = await installed(t);
+      let pending = true;
+      let retries = 0;
+      const primary = Object.freeze(Object.assign(new Error('FrozenAbort'), {
+        cleanupPending: true,
+        cleanupHandle: Object.freeze({
+          status: () => ({pending, errors: []}),
+          async retry() { retries++; pending = false; },
+        }),
+      }));
+      const close = DatabaseSync.prototype.close;
+      let closes = 0;
+      let secrets = 0;
+      let failure;
+      const seen = setup.org.seen.length;
+      DatabaseSync.prototype.close = function() {
+        if (++closes <= closeFailures) throw new Error('InjectedSqliteCloseFailure');
+        return close.call(this);
+      };
+      try {
+        await assert.rejects(publishInstalledSalesforceSource({
+          version: INSTALLED_SALESFORCE_SOURCE_VERSION,
+          accountConfigurationWire: configuration([
+            accountEntry('records-read', 'allow', {
+              connection: `salesforce:${setup.org.orgId}`,
+              resource: 'Test_Record__c', operation: 'read'})]),
+          connectorId: 'crm-main', resources: ['Test_Record__c'],
+          publicationPath: join(setup.root, 'publication.json'),
+          siteProfilePath: setup.path,
+        }, {root: setup.root, principalId: 'principal-a', moon: commonMoon,
+          providerMoon: salesforceMoon, runtimeBundleCid: cid('b'),
+          resolveSecret: async () => { secrets++; throw new Error('UnexpectedSecretRead'); },
+          signal: AbortSignal.abort(primary)}), error => {
+          failure = error;
+          assert.equal(error.primaryFailure, primary);
+          assert.equal(error.cleanupPending, true);
+          return true;
+        });
+        assert.equal(closes, 1);
+        assert.equal(secrets, 0);
+        assert.equal(setup.org.seen.length, seen);
+        assert.equal((await failure.cleanupHandle.retry()).pending, false);
+        assert.equal(pending, false);
+        assert.equal(retries, 1);
+        assert.equal(closes, closeFailures + 1);
+      } finally {
+        DatabaseSync.prototype.close = close;
+        // Release the real journal even when a regression assertion fails.
+        await failure?.cleanupHandle?.retry().catch(() => {});
+      }
+    });
+}

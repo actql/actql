@@ -130,11 +130,16 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
     flight = closeOnce().catch(error => {
       // stop/drain/retire/checkpoint failures also leave an owned shutdown.
       // The caller may retry without reopening either installed adapter.
-      if (error.cleanupHandle === undefined) {
-        error.cleanupHandle = Object.freeze({status, retry: close});
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : Object.assign(new Error('InstalledHostCleanupPending', {cause: error}),
+          {code: error?.code ?? 'InstalledHostCleanupPending',
+            primaryFailure: error});
+      if (failure.cleanupHandle === undefined) {
+        failure.cleanupHandle = Object.freeze({status, retry: close});
       }
-      error.cleanupPending = status().pending.length > 0;
-      throw error;
+      failure.cleanupPending = status().pending.length > 0;
+      throw failure;
     }).finally(() => { flight = undefined; });
     return flight;
   }
