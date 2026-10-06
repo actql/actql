@@ -1,5 +1,5 @@
 import {explainCheckFailure, getCheckFailureInput, ClientError,
-  type CheckFailureExplanation} from './index.mjs';
+  type CheckFailureExplanation} from '@actql/sdk';
 import {checkOutcomeProtocol} from '@actql/client-wire';
 const error: unknown = new ClientError('InvalidHostCheckOutcome');
 const explanation: CheckFailureExplanation | undefined = explainCheckFailure(error, {locale: 'ja'});
