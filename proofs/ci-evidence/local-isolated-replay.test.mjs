@@ -2,14 +2,13 @@
 // consumer. This neither invents Actions provenance nor executes a new campaign.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {gunzipSync} from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {gitTree, hash} from './inputs.mjs';
-import {mutationSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments} from './isolation.mjs';
+import {checkLocalImageDefinition, localIsolatedRunArguments} from './isolation.mjs';
 import {checkIsolatedInputs, checkIsolatedResult, snapshotFromGit} from './isolated-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -37,11 +36,14 @@ test('the immutable real local image original is accepted by the shared consumer
   assert.equal(original.answer.payload.report.results.length, 13);
   assert.throws(() => checkIsolatedInputs({runtime: original.prepared.runtime,
     manifest: original.prepared.manifest, tree}), /authority/u);
-  // Subsequent evidence-only changes do not change the physically read inputs.
-  const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
-  const current = gitTree(root, revision), paths = mutationSourcePaths(tree);
-  assert.deepEqual(mutationSourcePaths(current), paths);
-  for (const path of paths) assert.deepEqual(current.entries.get(path), tree.entries.get(path), `Changed physical input: ${path}`);
+});
+
+test('the historical real image cannot be applied after a product input changes', () => {
+  const path = 'src/bounded_execution/session.mbt';
+  const changed = {entries: tree.entries, read: input => input === path ? Buffer.concat([tree.read(input), Buffer.from('\n// changed candidate input\n')]) : tree.read(input)};
+  assert.throws(() => checkIsolatedInputs({runtime: original.prepared.runtime,
+    manifest: original.prepared.manifest, tree: changed, local: true}), /Wrong reviewed source cohort/u);
+  assert(consume(original)); // The original remains valid for its actual source.
 });
 
 test('tampering with the real original cannot substitute compile failure, missing observations or failed restoration', () => {
