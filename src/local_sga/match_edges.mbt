@@ -724,6 +724,7 @@ fn start_match_edges_read(
   let scratch_slots = Ref(0)
   let type_probes = Ref(0)
   let port_result = match source {
+    Accumulated(_) => return Err(InvalidMatchEdgesKernel)
     Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,

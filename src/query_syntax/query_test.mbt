@@ -229,14 +229,14 @@ test "LIMIT and OFFSET admit only exact safe integers" {
   ).unwrap()
   match operation_at(query, operation_count(query) - 1) {
     Some(Limit(count, offset)) => {
-      assert_eq(count, 9007199254740991L)
-      assert_eq(offset, 9007199254740991L)
+      assert_true(count is Integer(9007199254740991L))
+      assert_true(offset is Integer(9007199254740991L))
     }
     _ => fail("expected admitted LIMIT")
   }
   for
     text in [
-      "SELECT id FROM orders LIMIT 0", "SELECT id FROM orders LIMIT @n", "SELECT id FROM orders LIMIT 9007199254740992",
+      "SELECT id FROM orders LIMIT 0", "SELECT id FROM orders LIMIT 9007199254740992",
       "SELECT id FROM orders LIMIT 1 OFFSET 9007199254740992", "SELECT id FROM orders LIMIT 1.5",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
@@ -255,7 +255,9 @@ test "SQL set operators keep explicit multiplicity and final ordering" {
   assert_eq(relation(part.right), [{ value: "right_rows", quoted: false, }])
   assert_eq(final_operation_count(parsed), 2)
   assert_true(final_operation_at(parsed, 0) is Some(Order(_)))
-  assert_true(final_operation_at(parsed, 1) is Some(Limit(4L, 0L)))
+  assert_true(
+    final_operation_at(parsed, 1) is Some(Limit(Integer(4L), Integer(0L))),
+  )
   let named = parse_query(
     "SELECT a, b FROM left_rows INTERSECT DISTINCT BY NAME SELECT b, a FROM left_rows",
     query_limits(),

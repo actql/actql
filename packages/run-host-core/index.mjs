@@ -2,6 +2,9 @@ import * as owner from './dist/client_values_host_abi.js';
 
 const retainedInputEdges = new WeakMap();
 const retainedInputProducers = new WeakMap();
+const retainedInputIntents = new WeakMap();
+const retainedInputPlans = new WeakMap();
+const retainedInputResults = new WeakMap();
 const retainedTaskInputs = new WeakMap();
 import {publicationAction} from './publication-action.mjs';
 
@@ -1021,6 +1024,153 @@ export function retainedInputProducerFacts(producer) {
   return Object.freeze({dispatch: Object.freeze({cid: dispatchCid, wire: dispatchWire}),
     evidence: Object.freeze({cid: evidenceCid, wire: evidenceWire}),
     subject: Object.freeze({cid: subjectCid, wire: subjectWire})});
+}
+
+const retainedPlanPolicyKeys = ['destinationGrantCid', 'routeCapabilityCid',
+  'sourceGrantCid', 'transferAttempt', 'transferExpiresUnixMs', 'transferMaxBytes'];
+const retainedPlanCurrentKeys = ['siteBindingCurrent', 'authority', 'nowUnixMs', 'authorized'];
+const retainedPlanLimitKeys = ['maxChunks', 'maxManifestBytes', 'maxReferencedBytes'];
+const retainedInt64Maximum = 9223372036854775807n;
+const exactRetainedFields = (value, keys) => value !== null &&
+  typeof value === 'object' && !Array.isArray(value) &&
+  Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const retainedWire = value => exactRetainedFields(value, ['cid', 'wire']) &&
+  typeof value.cid === 'string' && typeof value.wire === 'string';
+
+/** The checked producer supplies every edge and completion field. */
+export function prepareRetainedInputIntent(producer, policy) {
+  const owned = requireHandle(retainedInputProducers, producer);
+  if (!exactRetainedFields(policy, retainedPlanPolicyKeys) ||
+      retainedPlanPolicyKeys.slice(0, 4).some(key => typeof policy[key] !== 'string') ||
+      ['transferExpiresUnixMs', 'transferMaxBytes'].some(key =>
+        typeof policy[key] !== 'bigint' || policy[key] < 1n ||
+        policy[key] > retainedInt64Maximum)) {
+    throw new TypeError('InvalidRunHostRetainedInputPolicy');
+  }
+  const value = checked(owner.clientValuesHostPrepareRetainedInputIntent(owned,
+    policy.destinationGrantCid, policy.routeCapabilityCid, policy.sourceGrantCid,
+    policy.transferAttempt, policy.transferExpiresUnixMs, policy.transferMaxBytes),
+  'RunHostRetainedInputIntentRejected');
+  return handle(retainedInputIntents, {producer: owned, value}, 'retained-input-intent');
+}
+
+/** Restore original saved bytes, not another intent or refreshed lifetime. */
+export function admitRetainedInputIntent(producer, saved) {
+  const owned = requireHandle(retainedInputProducers, producer);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputIntentWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputIntent(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputIntentRejected');
+  return handle(retainedInputIntents, {producer: owned, value}, 'retained-input-intent');
+}
+
+/** Historical projection only; it is not current delivery permission. */
+export function retainedInputIntentFacts(intent) {
+  const values = owner.clientValuesHostRetainedInputIntentFacts(
+    requireHandle(retainedInputIntents, intent).value);
+  if (!Array.isArray(values) || values.length !== 2 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputIntentProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1]});
+}
+
+/** Checked original poll envelope, before the Native physical manifest exists. */
+export function retainedInputPlanEnvelope(intent) {
+  const owned = requireHandle(retainedInputIntents, intent);
+  return checked(owner.clientValuesHostRetainedInputPlanEnvelope(
+    owned.producer, owned.value), 'RunHostRetainedInputIntentRejected');
+}
+
+/** Current trusted scope is required even when restoring a saved Native plan. */
+export function admitRetainedInputPlan(intent, saved, current, limits) {
+  const owned = requireHandle(retainedInputIntents, intent);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputPlanWire');
+  if (!exactRetainedFields(current, retainedPlanCurrentKeys) ||
+      retainedPlanCurrentKeys.some(key => typeof current[key] !== 'function')) {
+    throw new TypeError('InvalidRunHostRetainedPlanCurrent');
+  }
+  if (!exactRetainedFields(limits, retainedPlanLimitKeys) ||
+      ['maxChunks', 'maxManifestBytes'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 1 || limits[key] > 2147483647) ||
+      typeof limits.maxReferencedBytes !== 'bigint' || limits.maxReferencedBytes < 1n ||
+      limits.maxReferencedBytes > retainedInt64Maximum) {
+    throw new TypeError('InvalidRunHostRetainedPlanLimits');
+  }
+  // Capture ports, not their first successful answers. Every validation reads
+  // current trusted state; changing an object's properties cannot swap ports.
+  const {siteBindingCurrent, authority, nowUnixMs, authorized} = current;
+  const booleanResult = (value, code) => {
+    if (typeof value !== 'boolean') throw new TypeError(code);
+    return value;
+  };
+  const value = checked(owner.clientValuesHostAdmitRetainedInputPlan(
+    owned.producer, owned.value, saved.wire, saved.cid,
+    (key, generation, bundle) => booleanResult(
+      siteBindingCurrent(key, Number(generation), bundle), 'InvalidRunHostRetainedSiteCurrent'),
+    () => {
+      const value = authority();
+      if (typeof value !== 'string') throw new TypeError('InvalidRunHostRetainedAuthority');
+      return value;
+    },
+    () => {
+      const value = nowUnixMs();
+      if (typeof value !== 'bigint' || value < 0n || value > retainedInt64Maximum) {
+        throw new TypeError('InvalidRunHostRetainedClock');
+      }
+      return value;
+    },
+    (dispatchCid, requestWire) => booleanResult(authorized(dispatchCid, requestWire),
+      'InvalidRunHostRetainedAuthorization'),
+    limits.maxChunks, limits.maxManifestBytes, limits.maxReferencedBytes),
+  'RunHostRetainedInputPlanRejected');
+  return handle(retainedInputPlans, value, 'retained-input-plan');
+}
+
+/** Revalidate after persistence and immediately before delivery. */
+export function validateRetainedInputPlan(plan) {
+  checked(owner.clientValuesHostValidateRetainedInputPlan(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Immutable originals only; no reservation, borrow, payload or start claim. */
+export function retainedInputPlanFacts(plan) {
+  const values = checked(owner.clientValuesHostRetainedInputPlanFacts(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+  if (!Array.isArray(values) || values.length !== 6 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputPlanProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1],
+    transfer: Object.freeze({cid: values[2], wire: values[3]}),
+    manifest: Object.freeze({cid: values[4], wire: values[5]})});
+}
+
+/** Revalidate the original checked plan against live Owners before delivery. */
+export function retainedInputTransferEnvelope(plan) {
+  return checked(owner.clientValuesHostRetainedInputTransferEnvelope(
+    requireHandle(retainedInputPlans, plan)), 'RunHostRetainedInputPlanRejected');
+}
+
+/** Historical committed receipt, never current custody or consumer authority. */
+export function admitRetainedInputResult(plan, saved) {
+  const owned = requireHandle(retainedInputPlans, plan);
+  if (!retainedWire(saved)) throw new TypeError('InvalidRunHostRetainedInputResultWire');
+  const value = checked(owner.clientValuesHostAdmitRetainedInputResult(
+    owned, saved.wire, saved.cid), 'RunHostRetainedInputResultRejected');
+  return handle(retainedInputResults, value, 'retained-input-result');
+}
+
+/** These immutable facts must be persisted and joined to current trusted Owners. */
+export function retainedInputResultFacts(result) {
+  const values = checked(owner.clientValuesHostRetainedInputResultFacts(
+    requireHandle(retainedInputResults, result)), 'RunHostRetainedInputResultRejected');
+  if (!Array.isArray(values) || values.length !== 7 ||
+      !values.every(value => typeof value === 'string')) {
+    throw new Error('InvalidRunHostRetainedInputResultProjection');
+  }
+  return Object.freeze({cid: values[0], wire: values[1], planCid: values[2],
+    transferReply: Object.freeze({requestCid: values[3], wire: values[4]}),
+    receipt: Object.freeze({cid: values[5], wire: values[6]})});
 }
 
 const retainedCurrentKeys = ['readTransfer', 'siteBindingCurrent', 'authority',

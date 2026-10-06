@@ -4,12 +4,16 @@
 priv enum GraphReadSource {
   Stored(@graph.ProducerRead)
   Viewed(@lifecycle.ProducerView)
+  // A private intermediate of a multi-input kernel. No producer reference or
+  // external read permission is minted from this storage.
+  Accumulated(@storage.Storage)
 }
 
 ///|
 fn graph_read_available(source : GraphReadSource) -> Bool {
   match source {
     Stored(read) => @graph.producer_read_available(read)
+    Accumulated(storage) => @storage.available(storage)
     Viewed(view) =>
       @lifecycle.producer_read_reference_available(
         @lifecycle.producer_view_read_reference(view),
@@ -21,6 +25,7 @@ fn graph_read_available(source : GraphReadSource) -> Bool {
 fn graph_read_node_count(source : GraphReadSource) -> Int? {
   match source {
     Stored(read) => @graph.producer_read_storage(read).map(@storage.node_count)
+    Accumulated(storage) => Some(@storage.node_count(storage))
     Viewed(view) => @lifecycle.producer_view_node_count(view)
   }
 }
@@ -29,6 +34,7 @@ fn graph_read_node_count(source : GraphReadSource) -> Int? {
 fn graph_read_edge_count(source : GraphReadSource) -> Int? {
   match source {
     Stored(read) => @graph.producer_read_storage(read).map(@storage.edge_count)
+    Accumulated(storage) => Some(@storage.edge_count(storage))
     Viewed(view) => @lifecycle.producer_view_edge_count(view)
   }
 }
@@ -39,6 +45,7 @@ fn graph_read_node_identity(
   node : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.node_identity(storage, node)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.node_identity(storage, node)
@@ -55,6 +62,7 @@ fn graph_read_node_property(
   property : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.node_property(storage, node, property)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.node_property(storage, node, property)
@@ -70,6 +78,8 @@ fn graph_read_node_index(
   identity : @value.CheckedValue,
 ) -> Result[Int?, Unit] {
   match source {
+    Accumulated(storage) =>
+      @storage.node_index(storage, identity).map_err(_ => ())
     Stored(read) =>
       match @graph.producer_read_storage(read) {
         Some(storage) => @storage.node_index(storage, identity).map_err(_ => ())
@@ -86,6 +96,7 @@ fn graph_read_edge_endpoints(
   edge : Int,
 ) -> (Int, Int)? {
   match source {
+    Accumulated(storage) => @storage.edge_endpoints(storage, edge)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_endpoints(storage, edge)
@@ -101,6 +112,7 @@ fn graph_read_edge_identity(
   edge : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.edge_identity(storage, edge)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_identity(storage, edge)
@@ -116,6 +128,7 @@ fn graph_read_node_identity_order_key(
   node : Int,
 ) -> String? {
   match source {
+    Accumulated(storage) => @storage.node_identity_order_key(storage, node)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.node_identity_order_key(storage, node)
@@ -131,6 +144,7 @@ fn graph_read_edge_identity_order_key(
   edge : Int,
 ) -> String? {
   match source {
+    Accumulated(storage) => @storage.edge_identity_order_key(storage, edge)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_identity_order_key(storage, edge)
@@ -143,6 +157,7 @@ fn graph_read_edge_identity_order_key(
 ///|
 fn graph_read_edge_definition(source : GraphReadSource, edge : Int) -> Int? {
   match source {
+    Accumulated(storage) => @storage.edge_definition_index(storage, edge)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_definition_index(storage, edge)
@@ -155,6 +170,7 @@ fn graph_read_edge_definition(source : GraphReadSource, edge : Int) -> Int? {
 ///|
 fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
   match source {
+    Accumulated(storage) => @storage.node_definition_index(storage, node)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.node_definition_index(storage, node)
@@ -169,6 +185,12 @@ fn graph_read_property_definition(
   source : GraphReadSource,
 ) -> @carrier.PropertyGraphDefinition? {
   match source {
+    Accumulated(storage) =>
+      match @storage.carrier(storage) {
+        @carrier.GraphValue(graph) =>
+          Some(@carrier.graph_property_definition(graph))
+        _ => None
+      }
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         match @storage.carrier(storage) {
@@ -189,6 +211,7 @@ fn graph_read_node_key_component(
   component : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.node_typed_key_at(storage, node, component)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.node_typed_key_at(storage, node, component)
@@ -205,6 +228,7 @@ fn graph_read_edge_key_component(
   component : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.edge_typed_key_at(storage, edge, component)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_typed_key_at(storage, edge, component)
@@ -235,6 +259,7 @@ fn graph_read_edge_property(
   property : Int,
 ) -> @value.CheckedValue? {
   match source {
+    Accumulated(storage) => @storage.edge_property(storage, edge, property)
     Stored(read) =>
       @graph.producer_read_storage(read).bind(storage => {
         @storage.edge_property(storage, edge, property)

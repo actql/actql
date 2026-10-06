@@ -43,8 +43,10 @@ const domain = producer => cid({constructor,
   version: 'actql-property-graph-definition/0.1'});
 const sourceDomain = domain(sourceProducer);
 const jsonDomain = domain({body: {values: nodeValues}, dependencies: []});
-const identity = (domain, definition) => ({definition, domain, key: [1],
-  key_types: [{kind: 'number'}]});
+// This helper spells a non-null public JSON cell. SQL NULL bounds markers
+// below remain null; constructor provenance is not a typed Result cell.
+const identity = (domain, definition) => ({$json: {definition, domain, key: [1],
+  key_types: [{kind: 'number'}]}});
 const columns = {
   degree: [{name: 'degree', contract: number}, {name: 'node', contract: identityContract}],
   graph_bounds: [{name: 'actual', contract: number},

@@ -11,10 +11,12 @@ priv enum CheckFinding {
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
   FrameViolation
+  ExpressionTypeViolation(String)
   OperationScalarViolation(String, String, (String, String)?)
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
+  SuppliedParseViolation(String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -184,12 +186,23 @@ fn check_source_findings(
   let (supplied, supplied_admitted) = match
     client_program_input("json", parameters) {
     Ok((_, supplied)) => (supplied, true)
-    Err(SuppliedSyntax({ issue, .. })) => {
+    Err(SuppliedSyntax(error)) => {
+      let issue = error.issue
       findings.push(
         if check_parse_budget(issue) {
           Limit("analysis_budget_exhausted")
         } else {
-          Violation("supplied_parameters_invalid")
+          SuppliedParseViolation(
+            if parameters is Some(body) {
+              check_parse_original_pointer(body, error, {
+                max_input_bytes: 65536,
+                max_nodes: 8192,
+                max_depth: 64,
+              })
+            } else {
+              None
+            },
+          )
         },
       )
       (None, false)
@@ -375,10 +388,12 @@ fn check_source_findings(
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -516,16 +531,28 @@ fn check_declarations(
       max_depth: 32,
     }) {
     Ok(node) => node
-    Err({ issue, .. }) =>
+    Err(error) => {
+      let issue = error.issue
       return Err({
         kind: if check_parse_budget(issue) {
           Budget
         } else {
           Invalid
         },
-        pointer: None,
+        // The parser owns this original structural path, not a SQL range.
+        // A preflight/unknown path stays absent; budgets produce no violation.
+        pointer: if check_parse_budget(issue) {
+          None
+        } else {
+          check_parse_original_pointer(body, error, {
+            max_input_bytes: 1048576,
+            max_nodes: 16384,
+            max_depth: 32,
+          })
+        },
         finding: None,
       })
+    }
   }
   let cursor = match
     @decode.admit(node, {
@@ -677,6 +704,14 @@ fn check_program_finding(
     return finding
   }
   if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.kind is Operation(Expression(TypeMismatch(expected))) &&
+    ["number", "boolean", "string"].contains(expected) {
+    // These are the checker's closed required-type tags, not formatted messages.
+    // The flattened location has no authored/generated kind, so omit SQL bytes.
+    return ExpressionTypeViolation(expected)
+  }
+  if @program_check.diagnostic_cause(diagnostic)
     is Closure(Operations(Frames(InvalidFrame(_)))) {
     // The existing closure Owner proves the bound frame violation. Its
     // requirement index is not an authored span or a public input pointer.
@@ -768,10 +803,12 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -817,11 +854,13 @@ fn write_check_report(
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       FrameViolation => Some("query_frame_invalid")
+      ExpressionTypeViolation(_) => Some("expression_type_mismatch")
       OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
         Some("parameter_default_type_mismatch")
+      SuppliedParseViolation(_) => Some("supplied_parameters_invalid")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
@@ -1058,6 +1097,17 @@ fn write_check_report(
         }
       }
     }
+    if code == "supplied_parameters_invalid" {
+      for finding in findings {
+        if finding is SuppliedParseViolation(Some(pointer)) &&
+          documents.parameters_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameters", revision, pointer,
+          )
+          break
+        }
+      }
+    }
     if code == "supplied_value_invalid" {
       for finding in findings {
         if finding is SuppliedViolation(pointer) {
@@ -1078,6 +1128,18 @@ fn write_check_report(
           write_check_structured_location(
             writer, "parameter_declarations", revision, pointer,
           )
+          break
+        }
+      }
+    }
+    if code == "expression_type_mismatch" {
+      for finding in findings {
+        if finding is ExpressionTypeViolation(expected) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "expected_type")
+          @encode.string_value(writer, expected)
+          @encode.end_object(writer)
           break
         }
       }
@@ -1391,6 +1453,35 @@ fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
     pointer += "/" + token
   }
   Some(pointer)
+}
+
+///|
+/// Canonical parser paths contain admitted keys. Reuse the existing preserving
+/// reader solely for original-path material after an authoritative failure.
+/// A different failure, budget or unknown path cannot supply a location.
+fn check_parse_original_pointer(
+  body : String,
+  original : @source.ParseError,
+  limits : @source.ParseLimits,
+) -> String? {
+  guard !check_parse_budget(original.issue) && original.path is Some(_) else {
+    return None
+  }
+  match
+    @source.parse_json_bytes_preserving(
+      @utf8.encode(body),
+      limits,
+      source_path=original.source_path,
+    ) {
+    Err(preserved) => {
+      guard preserved.issue == original.issue &&
+        preserved.location == original.location else {
+        return None
+      }
+      preserved.path.bind(check_supplied_pointer)
+    }
+    Ok(_) => None
+  }
 }
 
 ///|

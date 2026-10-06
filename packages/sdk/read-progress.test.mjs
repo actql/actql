@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
-import {connect} from './index.mjs';
+import {connect, explainReadFailure} from './index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'),
@@ -154,7 +154,45 @@ test('yielded progress preserves independent cleanup uncertainty', async t => {
     cancel() { throw cleanupError; },
   })));
   const reader = f.result.batches();
-  await assert.rejects(Array.fromAsync(reader), error =>
-    error.code === 'InvalidResultStream' && error.rowsYielded === 0 &&
-    error.cleanupError === cleanupError && error.attemptId === reader.attemptId);
+  let failure;
+  await assert.rejects(Array.fromAsync(reader), error => {
+    failure = error;
+    return error.code === 'InvalidResultStream' && error.rowsYielded === 0 &&
+      error.cleanupError === cleanupError && error.attemptId === reader.attemptId;
+  });
+  assert.deepEqual(explainReadFailure(failure), {
+    observation: 'read_incomplete', cleanup: 'unknown',
+    attemptId: reader.attemptId, rowsYielded: 0,
+    summary: 'This read stopped after returning 0 rows.',
+    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
+    next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId: reader.attemptId,
+      lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope'}},
+  });
 });
+
+for (const operation of ['rows', 'batches']) {
+  test(`${operation} retains cleanup uncertainty after early return`, async t => {
+    const cleanupError = new Error('private cleanup failure');
+    const f = await result(t, () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"value":1}\n{"value":2}\n{"value":3}\n'));
+      },
+      cancel() { throw cleanupError; },
+    })));
+    const reader = f.result[operation]({maxBatchRows: 1});
+    const iterator = reader[Symbol.asyncIterator]();
+    await iterator.next();
+    let failure;
+    await assert.rejects(iterator.return(), error => {
+      failure = error;
+      return error.code === 'ResultReadCleanupUnknown';
+    });
+    const explanation = explainReadFailure(failure);
+    assert.equal(explanation.observation, 'cleanup_unknown');
+    assert.equal(explanation.rowsYielded, 1);
+    assert.equal(explanation.attemptId, reader.attemptId);
+    assert.equal(explanation.next.operation, 'deliveryAttempt');
+    assert.deepEqual(explanation.next.ref, ref);
+    assert.equal(f.reads.length, 1);
+  });
+}

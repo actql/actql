@@ -197,6 +197,7 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
     "UPPER" => ("upper", 1, 1)
     "TRIM" => ("trim", 1, 1)
     "COALESCE" => ("coalesce", 1, 2147483647)
+    "IFNULL" => ("coalesce", 2, 2)
     "IF" => ("if", 3, 3)
     "NULLIF" => ("nullif", 2, 2)
     "CONCAT" => ("concat_strict", 1, 2147483647)
@@ -319,6 +320,14 @@ fn append_resolved(
           literal = Some(raw)
           lowering.form("literal", raw)
         }
+        JsonLiteral(text) =>
+          lowering.form(
+            "typed_literal",
+            lowering.object([
+              ("type", lowering.add(String("json"))),
+              ("value", lowering.add(String(text))),
+            ]),
+          )
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>

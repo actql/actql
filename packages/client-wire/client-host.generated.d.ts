@@ -356,6 +356,8 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
   parameter: string;
   domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
 }> | Readonly<{
@@ -396,6 +398,8 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
   parameter: string;
   domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
 }> | Readonly<{
@@ -414,7 +418,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -463,6 +467,8 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
   parameter: string;
   domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
 }> | Readonly<{
@@ -503,6 +509,8 @@ export type WireCheckOutcomeShape = Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
 }> | Readonly<{
+  expected_type: "number" | "boolean" | "string";
+}> | Readonly<{
   parameter: string;
   domain: "positive_safe_integer" | "nonnegative_safe_integer" | "unit_fraction" | "finite_number" | "duration" | "positive_milliseconds" | "signed_milliseconds" | "timestamp";
 }> | Readonly<{
@@ -525,7 +533,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -534,7 +542,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f";
+  reason_schema_cid: "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{
