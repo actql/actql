@@ -160,3 +160,55 @@ logs were retained. The logical recovered size was 8,213,487 bytes. Exact paths,
 digests and retained copies are recorded in protected local evidence
 `review-artifacts/b-resume-2026-10-07/cleanup.json`. Current incremental builds,
 borrowed dependencies, toolchains, Stores and all original receipts were kept.
+
+## QUALIFY integration and current public acceptance
+
+Main advanced to `8a9d39eddff6240868517daaf645d2a5d8e43ed7` (#680) before
+packing. Ordinary merge `2a9c769d749de56030cfc227531e2c95f46fcb7c` resolved
+one conflict in `compile_steps`' Group branch: retain main's collection of
+QUALIFY aggregate calls, then classify ORDER-only calls after expansion of
+the selected projections. Do not restore the old two-argument classifier or
+append the same ORDER calls twice. Main's strategy changes and identity pins
+were adopted intact; no capacity or expected-value change was made by B.
+
+Focused JS passed 17/17: star aggregate snapshot, QUALIFY, star replacement and
+JOIN-star files (`focused-test-Nx6h7n`). The existing QUALIFY grouping regression
+includes a hidden COUNT used after HAVING, and the full independent star
+Program still checks the original SUM input. `git diff --check` passed.
+
+Normal prepack produced all five packages at that exact merged SHA, using the
+pinned toolchain and the existing private offline cache. The normal manifest
+and digest checks were retained. External Embedded Local and public HTTPS each
+completed all 18 unchanged successes and all 8 unchanged pre-admission
+refusals via `--star-replace-only`. The existing helper checked exact named rows,
+full type/nullability/column order, NULL/duplicate behavior, stream completion,
+hidden-column absence, source once, request replay, Result re-read and attach.
+The refusal boundary checked zero admission and provider acquisition.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-star-order-integrated-2a9c769d7-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-star-order-integrated-2a9c769d7-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+npm_config_offline=true npm_config_include=optional \
+node scripts/test-packed-public-query.mjs --star-replace-only
+```
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-Jb2TeT`, source
+`2a9c769d749de56030cfc227531e2c95f46fcb7c`, passed and complete, no evidence
+errors, artifacts removed after preservation. The runner also passed its 11
+profile-selector checks and README Local/HTTPS/SDK-asset smoke checks.
+Protected untracked review evidence explains the source dirty flag; tracked
+build inputs were clean at the producer and consumer checks.
+
+| Package | Integrated SHA-256 |
+|---|---|
+| client-wire | `0212e9f37cde525589a0e8d48b62151e73ce53153ef75948974cb9f672659523` |
+| sdk | `fe085d7d7e2cce344c2c4daf18f33ca477dcee9189e96552816cf9eee6b10972` |
+| run-host-core | `c899c6334e82b66b38f68861add3dc462478c06c40ad109690063e8f3e2c6bf1` |
+| local-node | `e06eb3d2ecc8335efe2a7e54c7bcb0d5dfc92b62d50874328ba28fe79977029d` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The following report commit changes no runtime or acceptance inputs. This is
+limited local/public execution evidence, not a full Core, Wasm/Native or CI
+success claim. Submitted-HEAD automatic CI and content review remain separate;
+no merge or manual rerun is performed.
