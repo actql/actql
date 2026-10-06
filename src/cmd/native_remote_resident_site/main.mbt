@@ -1196,6 +1196,67 @@ fn accepted_request(
 }
 
 ///|
+/// Select the original completed producer from the existing saved envelope
+/// and checked retained intent. This only joins the existing waiting queue;
+/// the holder must acquire and recheck the physical slot before restoration.
+/// A status-only receiver query never calls this operation.
+fn queue_completed_retained_holder(
+  journal : @journal.Journal,
+  admission : @resident_host.ResidentRunAdmission,
+  delegation : @resident.ResidentSiteDelegation,
+  generation : Int,
+  queue : @resident.ResidentAcceptedQueue,
+  intent : @remote.RemoteRetainedInputIntent,
+  at : String,
+) -> Bool {
+  let request = @remote.remote_retained_input_intent_request(intent)
+  if @resident.check_resident_dispatch_delegation(
+      delegation, request, generation,
+    )
+    is Err(_) ||
+    !(journal.cancellation_requested(request) is Ok(false)) {
+    return false
+  }
+  // This checks the original Run, checked edge, Source, producer completion
+  // and exact intent against the saved journal, without physical acquisition.
+  if @resident_host.prepare_resident_retained_producer_context(
+      journal, admission, intent, at,
+    )
+    is Err(_) {
+    return false
+  }
+  let saved = match journal.observation(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  guard @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+    @journal.recovered_site_dispatch_measurement(saved) is Some(measurement) &&
+    @journal.recovered_site_dispatch_file_custody(saved) is Some(_) else {
+    return false
+  }
+  if @remote.restore_remote_runtime_completed_custody(
+      @journal.recovered_site_dispatch_record(saved),
+      evidence,
+      subject,
+      measurement,
+    )
+    is Err(_) {
+    return false
+  }
+  let attempt = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  // Do not let another queued start hide unaccounted completed custody. The
+  // existing queue remains the only dispatch selection owner.
+  if queue.length() > 0 && !queue.contains(attempt) {
+    return false
+  }
+  queue.reserve(attempt) is Ok(_)
+}
+
+///|
 fn replay_output_reports(
   environment : ControlEnvironment,
   client : @http.Client,
@@ -1845,7 +1906,21 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             } else {
               report("retained-plan-unavailable", [("request_cid", identity)])
             }
-          _ => report("retained-plan-unavailable", [("request_cid", identity)])
+          _ => {
+            if holder is None &&
+              queue_completed_retained_holder(
+                journal,
+                admission,
+                site_delegation,
+                generation,
+                queue,
+                intent,
+                start_timestamp(matches),
+              ) {
+              report("retained-holder-queued", [("request_cid", identity)])
+            }
+            report("retained-plan-unavailable", [("request_cid", identity)])
+          }
         }
       }
       Ok(Some(@remote.RetainedTransfer(input))) => {
@@ -1868,8 +1943,21 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                 current.channel.send("retained-transfer " + body).to_string(),
               ),
             ])
-          _ =>
+          _ => {
+            if holder is None &&
+              queue_completed_retained_holder(
+                journal,
+                admission,
+                site_delegation,
+                generation,
+                queue,
+                intent,
+                start_timestamp(matches),
+              ) {
+              report("retained-holder-queued", [("request_cid", identity)])
+            }
             report("retained-transfer-unavailable", [("request_cid", identity)])
+          }
         }
       }
       Ok(Some(@remote.RetainedCurrent(query))) => {
@@ -3326,6 +3414,11 @@ fn run_holder(
         ("request_cid", executed.completion.dispatch_request_cid),
         ("revision", executed.completion.revision.to_string()),
       ])
+      if !saved_completion && executed.result_definition_cid is None {
+        // Deterministic interruption after the original completed producer is
+        // durable. A restored holder never repeats this acquisition boundary.
+        holder_checkpoint(resources)("completed-producer")
+      }
       // The output stays owned by this holder's runtime until the
       // Coordinator releases it; the holder serves its output meanwhile.
       serve_holder_output(
