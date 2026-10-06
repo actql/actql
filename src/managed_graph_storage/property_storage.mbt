@@ -6,28 +6,28 @@ fn emit_property_key_type(
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
-  match contract.shape {
-    @contract.Number => {
+  match @carrier.property_key_descriptor(contract) {
+    Some(@carrier.NumberKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "number")
     }
-    @contract.Text(_) => {
+    Some(@carrier.TextKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "string")
     }
-    @contract.Boolean => {
+    Some(@carrier.BooleanKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "boolean")
     }
-    @contract.Date => {
+    Some(@carrier.DateKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "date")
     }
-    @contract.Timestamp => {
+    Some(@carrier.TimestampKey) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "timestamp")
     }
-    @contract.Decimal(precision~, scale~) => {
+    Some(@carrier.DecimalKey(precision~, scale~)) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "decimal")
       @encode.key(out, "precision")
@@ -35,13 +35,13 @@ fn emit_property_key_type(
       @encode.key(out, "scale")
       @encode.number_value(out, scale.to_double())
     }
-    @contract.ResourceRef(resource_kind~) => {
+    Some(@carrier.ResourceKey(resource_kind~)) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "resource_ref")
       @encode.key(out, "resource_kind")
       @encode.string_value(out, resource_kind)
     }
-    @contract.ArtifactRef(media_type~) => {
+    Some(@carrier.ArtifactKey(media_type~)) => {
       @encode.key(out, "kind")
       @encode.string_value(out, "artifact_ref")
       @encode.key(out, "media_type")

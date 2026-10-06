@@ -11,6 +11,7 @@ priv enum CheckFinding {
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
   FrameViolation
+  ExpressionTypeViolation(String)
   OperationScalarViolation(String, String, (String, String)?)
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
@@ -375,6 +376,7 @@ fn check_source_findings(
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
@@ -677,6 +679,14 @@ fn check_program_finding(
     return finding
   }
   if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.kind is Operation(Expression(TypeMismatch(expected))) &&
+    ["number", "boolean", "string"].contains(expected) {
+    // These are the checker's closed required-type tags, not formatted messages.
+    // The flattened location has no authored/generated kind, so omit SQL bytes.
+    return ExpressionTypeViolation(expected)
+  }
+  if @program_check.diagnostic_cause(diagnostic)
     is Closure(Operations(Frames(InvalidFrame(_)))) {
     // The existing closure Owner proves the bound frame violation. Its
     // requirement index is not an authored span or a public input pointer.
@@ -768,6 +778,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
       | FrameViolation
+      | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
@@ -817,6 +828,7 @@ fn write_check_report(
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
       FrameViolation => Some("query_frame_invalid")
+      ExpressionTypeViolation(_) => Some("expression_type_mismatch")
       OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
@@ -1078,6 +1090,18 @@ fn write_check_report(
           write_check_structured_location(
             writer, "parameter_declarations", revision, pointer,
           )
+          break
+        }
+      }
+    }
+    if code == "expression_type_mismatch" {
+      for finding in findings {
+        if finding is ExpressionTypeViolation(expected) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "expected_type")
+          @encode.string_value(writer, expected)
+          @encode.end_object(writer)
           break
         }
       }

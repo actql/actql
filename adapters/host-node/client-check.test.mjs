@@ -1491,7 +1491,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.3'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.4'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2846,6 +2846,7 @@ for (const entrance of ['local', 'http']) {
       ['c4bdfd21416f02aa13a2ac1d7614ef398dec7b31', 'sha256:16c81ff351a5c3d1fa56757c3c9936a68fd7014c81137e8efa1c54988a61c961'],
       ['5d52b3a970984f3cdad554b9030a0c25fa8ac887', 'sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6'],
       ['7f4a8167a0e6492b61478c805a77f3f583b0cd2f', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+      ['39939e32f8b81812204f4b62affb318b4dcd1077', 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'],
       ['b40f973ca636895d7dccac79c4c678371d912887', 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'],
       ['47fd48576a1c4f48ebd0ce949e821e302a420cba', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
     ]) {
@@ -3049,11 +3050,10 @@ for (const entrance of ['local', 'http']) {
 }
 
 for (const entrance of ['local', 'http']) {
-  test(`${entrance}: literal-only LIMIT syntax does not invent scalar domain facts`, async t => {
+  test(`${entrance}: malformed LIMIT operand does not invent scalar domain facts`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment,
       {aliases: [alias], readOutcome: 'allow'});
-    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET @offset', {format: 'sql',
-      parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset: -1}});
+    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET (', {format: 'sql'});
     assert.equal(outcome.report.verdict, 'invalid');
     assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
       [{code: 'query_syntax_invalid'}]);
@@ -3061,6 +3061,23 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
       {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
     assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
+  });
+
+  test(`${entrance}: admitted LIMIT parameters retain scalar facts and input location`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const source = 'SELECT id FROM records ORDER BY id LIMIT 2 OFFSET @offset';
+    const options = {format: 'sql',
+      parameterDeclarations: {offset: {type: 'number', nullable: false}}};
+    const invalid = await client.check(source, {...options, parameters: {offset: -1}});
+    assert.equal(invalid.report.verdict, 'invalid');
+    assert.deepEqual(invalid.report.reasons.map(({code, facts}) => ({code, facts})),
+      [{code: 'operation_parameter_invalid',
+        facts: {parameter: 'offset', domain: 'nonnegative_safe_integer'}}]);
+    assert.deepEqual({...invalid.report.reasons[0].location, revision: 'submitted'},
+      {kind: 'structured', document_id: 'parameters', revision: 'submitted', pointer: '/offset'});
+    const valid = await client.check(source, {...options, parameters: {offset: 0}});
+    assert.equal(valid.report.verdict, 'verified', JSON.stringify(valid));
   });
 
   test(`${entrance}: protected scalar demands retain only independent public violations`, async t => {
@@ -3104,6 +3121,100 @@ for (const entrance of ['local', 'http']) {
       {parameter: 'before', domain: 'positive_safe_integer', value: 'private-value'}]) {
       mutation = value => ({...value, report: {...value.report,
         reasons: [{...value.report.reasons[0], facts}]}});
+      await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: expression type rejections explain only owned expected domains`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    const cases = [
+      ["SELECT SQRT('private-expression-text') AS n", 'number'],
+      ['SELECT SQRT(TRUE) AS n', 'number'],
+      ['SELECT LOWER(1) AS n', 'string'],
+      ['SELECT NOT 1 AS n', 'boolean'],
+      ['SELECT IF(1, 2, 3) AS n', 'boolean'],
+    ];
+    for (const format of ['sql', 'aql-text']) for (const [text, expected] of cases) {
+      const result = await client.check(text, {format});
+      assert.equal(result.outcome, 'completed');
+      assert.equal(result.report.verdict, 'invalid', JSON.stringify({text, result}));
+      assert.deepEqual(result.report.reasons, [{code: 'expression_type_mismatch',
+        facts: {expected_type: expected}}], '[check-mutation:expression-type-reason]');
+      assert.equal(result.report.reasons[0].location, undefined);
+      assert.deepEqual(result.report.coverage, {limits: [], unresolved: []});
+      assert.deepEqual(result.report.requirements, []);
+      assert.equal(getCheckInput(result, 'source').text, text);
+      assert.equal(JSON.stringify(result).includes('private-expression-text'), false);
+      assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
+        summary: `An expression argument must have ${expected} type.`,
+        hint: `Use an expression with ${expected} type for the rejected argument.`},
+      '[check-mutation:expression-type-explanation]');
+    }
+    for (const text of ['SELECT SQRT(1) AS n', "SELECT LOWER('X') AS n",
+      'SELECT NOT FALSE AS n', 'SELECT IF(TRUE, 2, 3) AS n']) {
+      const result = await client.check(text, {format: 'sql'});
+      assert.equal(result.report.verdict, 'verified');
+      assert.deepEqual(result.report.reasons, []);
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unsupported expression functions remain limits beside type diagnostics`, async t => {
+    const client = await contextClient(t, entrance, absentEnvironment);
+    for (const text of ['SELECT ABS(TRUE) AS n', 'SELECT ABS(1) AS n']) {
+      const result = await client.check(text, {format: 'sql'});
+      assert.equal(result.report.verdict, 'undetermined');
+      assert.deepEqual(result.report.reasons, []);
+      assert.deepEqual(result.report.coverage, {limits: [{code: 'implementation_limit'}], unresolved: []});
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: expression type facts retain protected-source equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const text of ["SELECT SQRT('private-expression-text') AS n",
+      "SELECT SQRT('private-expression-text') AS n FROM records"]) {
+      const results = await Promise.all(clients.map(client => client.check(text, {format: 'sql'})));
+      assert.deepEqual(results[0], results[1], '[check-mutation:expression-type-disclosure]');
+      assert.deepEqual(results[0], results[2], '[check-mutation:expression-type-disclosure]');
+      const report = results[0].report;
+      assert.equal(report.verdict, text.endsWith('records') ? 'undetermined' : 'invalid');
+      assert.deepEqual(report.reasons, text.endsWith('records') ? [] :
+        [{code: 'expression_type_mismatch', facts: {expected_type: 'number'}}]);
+      assert.deepEqual(report.coverage, {limits: [], unresolved: text.endsWith('records')
+        ? [{boundary: 'source_resolution', reason: 'unresolved_protected'}] : []});
+      assert.equal(JSON.stringify(results).includes('private-expression-text'), false);
+    }
+    for (const client of clients) {
+      const result = await client.check("SELECT SQRT('private-expression-text') AS n FROM records", {format: 'sql',
+        parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'private-parameter-value'}});
+      assert.equal(result.report.verdict, 'invalid');
+      assert.deepEqual(result.report.reasons.map(({code, facts}) => ({code, facts})),
+        [{code: 'supplied_value_type_mismatch', facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'}}]);
+      assert.equal(result.report.reasons[0].location.pointer, '/minimum');
+      assert.deepEqual(result.report.coverage.unresolved,
+        [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+    }
+  });
+
+  test(`${entrance}: SDK rejects malformed expression type facts from an actual check reply`, async t => {
+    let mutation = value => value;
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {mutateCheckTransportReply: value => mutation(value)});
+    const check = () => client.check("SELECT SQRT('private-expression-text') AS n", {format: 'sql'});
+    assert.deepEqual((await check()).report.reasons, [{code: 'expression_type_mismatch', facts: {expected_type: 'number'}}]);
+    for (const facts of [undefined, {}, {expected_type: 'private-field'},
+      {expected_type: 'number', actual_value: 'secret'}, {expected_type: 'number', parameter: 'private'}]) {
+      mutation = value => ({...value, report: {...value.report,
+        reasons: [{code: 'expression_type_mismatch', facts}]}});
       await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
     }
   });

@@ -1,20 +1,20 @@
 // Shared harness for tests against the real HTTPS mTLS Remote Site agent
 // (`https-agent-fixture.mjs` in a child process): test certificates, the
 // signed runtime bundle, Site configuration and dispatch requests.
-import {execFileSync, fork} from 'node:child_process';
+import {fork} from 'node:child_process';
 import {once} from 'node:events';
-import {readFile, writeFile} from 'node:fs/promises';
+import {writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {
   createHash,
   generateKeyPairSync,
-  X509Certificate,
 } from 'node:crypto';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {queryRemoteDispatch} from '../host-node/remote-site-client.mjs';
 import {signRemoteRuntimeBundle} from './remote-bundle-signature.mjs';
+export {certificates} from './https-test-certificates.mjs';
 
 const runtime = runtimeCore(moon);
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -25,69 +25,6 @@ const dispatchBudget = runtime.remoteSiteControl.prepareBudget({
 const dispatchBudgetCid = runtime.remoteSiteControl.budgetIdentity(
   dispatchBudget,
 );
-
-function openssl(root, ...arguments_) {
-  execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
-}
-
-function issueCertificate(root, name, subject, extensionFile) {
-  openssl(root, 'genrsa', '-out', `${name}.key`, '2048');
-  openssl(
-    root,
-    'req',
-    '-new',
-    '-key', `${name}.key`,
-    '-out', `${name}.csr`,
-    '-subj', subject,
-  );
-  openssl(
-    root,
-    'x509',
-    '-req',
-    '-in', `${name}.csr`,
-    '-CA', 'ca.crt',
-    '-CAkey', 'ca.key',
-    '-CAcreateserial',
-    '-out', `${name}.crt`,
-    '-days', '1',
-    ...(extensionFile === undefined ? [] : ['-extfile', extensionFile]),
-  );
-}
-
-export async function certificates(root) {
-  openssl(root, 'genrsa', '-out', 'ca.key', '2048');
-  openssl(
-    root,
-    'req',
-    '-x509',
-    '-new',
-    '-key', 'ca.key',
-    '-out', 'ca.crt',
-    '-subj', '/CN=ActQL Remote Test CA',
-    '-days', '1',
-  );
-  await writeFile(
-    join(root, 'site.ext'),
-    'subjectAltName=DNS:localhost,IP:127.0.0.1\n',
-  );
-  issueCertificate(root, 'site', '/CN=localhost', 'site.ext');
-  issueCertificate(root, 'coordinator', '/CN=coordinator-a');
-  issueCertificate(root, 'foreign', '/CN=foreign-coordinator');
-  const read = name => readFile(join(root, name));
-  const coordinatorCertificate = await read('coordinator.crt');
-  return Object.freeze({
-    ca: await read('ca.crt'),
-    siteKey: await read('site.key'),
-    siteCertificate: await read('site.crt'),
-    coordinatorKey: await read('coordinator.key'),
-    coordinatorCertificate,
-    coordinatorFingerprint: new X509Certificate(
-      coordinatorCertificate,
-    ).fingerprint256,
-    foreignKey: await read('foreign.key'),
-    foreignCertificate: await read('foreign.crt'),
-  });
-}
 
 export const remoteDispatch = (
   dispatchId = 'dispatch-a',

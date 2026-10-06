@@ -8,6 +8,7 @@ fn acquisition_runtime_case(
   through_resident? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
+  consumer_start_expiry? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
     return
@@ -289,6 +290,7 @@ fn acquisition_runtime_case(
       caller,
       selected,
       runtime,
+      journal,
       dispatch,
       producer,
       fields[1],
@@ -298,6 +300,7 @@ fn acquisition_runtime_case(
       name,
       cancel_receiver~,
       deny_after_admission~,
+      consumer_start_expiry~,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     assert_eq(acquisitions.val, 1)
@@ -372,5 +375,14 @@ test "resident retained handoff rechecks grants after receiver admission before 
     true,
     through_resident=true,
     deny_after_admission=true,
+  )
+}
+
+///|
+test "resident consumer expiry at the exclusive start boundary keeps caller borrow for cleanup" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    consumer_start_expiry=true,
   )
 }

@@ -68,6 +68,12 @@ pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, Dispatc
 
 pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
+pub fn admit_remote_poll_retained_input_plan_json(String) -> Result[RemotePollRetainedInput, DispatchIssue]
+
+pub fn admit_remote_retained_input_intent_json(String, String, DispatchRequest) -> Result[RemoteRetainedInputIntent, DispatchIssue]
+
+pub fn admit_remote_retained_input_plan_json(String, String, RemoteRetainedInputIntent, Int, Int, Int64) -> Result[RemoteRetainedInputPlan, DispatchIssue]
+
 pub fn admit_remote_source_observation_json(String, DispatchRequest) -> Result[RemoteSourceObservation, DispatchIssue]
 
 pub fn advance_durable_coordinator_output_record(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
@@ -362,6 +368,10 @@ pub fn prepare_remote_output_report_custody(RemotePollOutput, @publication_paylo
 
 pub fn prepare_remote_output_result(RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> Result[RemoteOutputResult, DispatchIssue]
 
+pub fn prepare_remote_retained_input_intent(DispatchRequest, RemoteRetainedInputIntentProjection) -> Result[RemoteRetainedInputIntent, DispatchIssue]
+
+pub fn prepare_remote_retained_input_plan(RemoteRetainedInputIntent, RemoteManagedOutputSubject, RemoteExecutionEvidence, @remote_transfer.RemoteTransferRequest) -> Result[RemoteRetainedInputPlan, DispatchIssue]
+
 pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
 
 pub fn prepare_remote_runtime_failure(DispatchRecord, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
@@ -520,6 +530,8 @@ pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
 
+pub fn remote_poll_operation_is_retained_input_plan(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_request(RemotePollOperation) -> DispatchRequest
 
 pub fn remote_poll_output_intent(RemotePollOutput) -> RemoteOutputIntent
@@ -533,6 +545,24 @@ pub fn remote_poll_output_request(RemotePollOutput) -> DispatchRequest
 pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_release_json(DispatchRequest) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_retained_input_intent(RemotePollRetainedInput) -> RemoteRetainedInputIntent
+
+pub fn remote_poll_retained_input_plan_json(RemoteRetainedInputIntent) -> Result[String, DispatchIssue]
+
+pub fn remote_retained_input_intent_identity(RemoteRetainedInputIntent) -> String
+
+pub fn remote_retained_input_intent_json(RemoteRetainedInputIntent) -> String
+
+pub fn remote_retained_input_intent_projection(RemoteRetainedInputIntent) -> RemoteRetainedInputIntentProjection
+
+pub fn remote_retained_input_intent_request(RemoteRetainedInputIntent) -> DispatchRequest
+
+pub fn remote_retained_input_plan_identity(RemoteRetainedInputPlan) -> String
+
+pub fn remote_retained_input_plan_json(RemoteRetainedInputPlan) -> String
+
+pub fn remote_retained_input_plan_transfer(RemoteRetainedInputPlan) -> @remote_transfer.RemoteTransferRequest
 
 pub fn remote_runtime_admission_code(RemoteRuntimeAdmission) -> Int
 
@@ -799,6 +829,7 @@ type RemotePollDispatch
 pub(all) enum RemotePollOperation {
   Dispatch(RemotePollDispatch)
   Plan(RemotePollOutput)
+  RetainedPlan(RemotePollRetainedInput)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)
@@ -806,6 +837,44 @@ pub(all) enum RemotePollOperation {
 }
 
 type RemotePollOutput
+
+pub struct RemotePollRetainedInput {
+  request : DispatchRequest
+  intent : RemoteRetainedInputIntent
+}
+
+pub struct RemoteRetainedInputIntent {
+  request : DispatchRequest
+  projection : RemoteRetainedInputIntentProjection
+  body : String
+  cid : String
+}
+
+pub(all) struct RemoteRetainedInputIntentProjection {
+  consumer_input_port : String
+  consumer_logical_cid : String
+  consumer_task_key : String
+  destination_grant_cid : String
+  producer_evidence_cid : String
+  producer_logical_cid : String
+  producer_output_port : String
+  producer_schema_cid : String
+  producer_subject_cid : String
+  route_capability_cid : String
+  source_grant_cid : String
+  transfer_attempt : String
+  transfer_expires_unix_ms : Int64
+  transfer_max_bytes : Int64
+}
+
+pub struct RemoteRetainedInputPlan {
+  intent : RemoteRetainedInputIntent
+  subject : RemoteManagedOutputSubject
+  evidence : RemoteExecutionEvidence
+  transfer : @remote_transfer.RemoteTransferRequest
+  body : String
+  cid : String
+}
 
 pub(all) enum RemoteRuntimeAction {
   RuntimeAwaitStop
