@@ -1,8 +1,8 @@
 ///|
 // Resolve the existing producer argument, not a string-valued Graph name.
 // Admission, identity/domain compatibility and bounded comparison remain
-// obligations of the common Graph equality checker and execution owner.
-fn lower_script_graph_equality(
+// obligations of the common Graph comparison checker and execution owner.
+fn lower_script_graph_pair_rows(
   construction : Construction,
   query : @query.Query,
   call : @query.SgaCall,
@@ -11,6 +11,11 @@ fn lower_script_graph_equality(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> Input raise Abort {
+  let fields = match call.operation {
+    "graphs_equal" => ["equal"]
+    "graph_diff" => ["delta"]
+    _ => raise Abort(UnsupportedGraph)
+  }
   guard call.arguments is [("with", Producer(name))] else {
     raise Abort(UnsupportedGraph)
   }
@@ -29,7 +34,7 @@ fn lower_script_graph_equality(
     construction.object([
       ("from", construction.text(left)),
       (
-        "graphs_equal",
+        call.operation,
         construction.object([("with", construction.text(right.producer))]),
       ),
       ("as", construction.text(output)),
@@ -39,7 +44,7 @@ fn lower_script_graph_equality(
     relation: @query.relation(query),
     name: output,
     source: StepReference,
-    visible_fields: ["equal"],
+    visible_fields: fields,
     graph_bindings: [],
   }
 }
