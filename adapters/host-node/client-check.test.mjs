@@ -3363,6 +3363,74 @@ const invalidParsedBindings = [
 ];
 
 for (const entrance of ['local', 'http']) {
+  test(`${entrance}: session formats use negotiated coordinates and omit stale positions`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    for (const [encoding, character] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const shown = JSON.parse(session.format(observation, {format: 'json'}));
+      assert.deepEqual(shown.entries[0].location,
+        {kind: 'text', documentId: 'source', revision: observation.outcome.report.inputs[0].revision,
+          startByte: 19, endByte: 19, precision: 'exact', positionEncoding: encoding,
+          range: {start: {line: 0, character}, end: {line: 0, character}}},
+        '[check-mutation:session-format-public-encoding]');
+      for (const format of ['text', 'html']) {
+        const output = session.format(observation, {format});
+        assert.ok(output.includes(encoding));
+        assert.equal(format === 'html' ? output.includes('&quot;character&quot;:' + character)
+          : output.includes('"character":' + character), true);
+      }
+      const copied = JSON.parse(session.format({...observation}, {format: 'json'}));
+      assert.equal(Object.hasOwn(copied.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-copy]');
+      session.update('\ufeff/*😀*/SELECT (', 2);
+      const stale = JSON.parse(session.format(observation, {format: 'json'}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-current]');
+      assert.deepEqual(stale.observation, shown.observation);
+      session.close();
+    }
+  });
+
+  test(`${entrance}: session formats retain binding JSON facts and protected equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const fixture of invalidParsedBindings) {
+      const displays = [];
+      for (const client of clients) {
+        const session = sdk.createCheckDocumentSession(client,
+          {text: 'SELECT @payload AS n FROM records', version: 1, positionEncoding: 'utf-8'});
+        const observation = await session.check({format: 'sql', ...fixture.options('a/~e\u0301😀')});
+        const display = JSON.parse(session.format(observation, {format: 'json'}));
+        const reason = observation.outcome.report.reasons[0];
+        assert.deepEqual(display.entries[0].facts,
+          {document: fixture.document, issue: 'invalid_unicode'},
+          '[check-mutation:session-format-public-facts]');
+        assert.deepEqual(display.entries[0].location,
+          {kind: 'structured', documentId: fixture.document, revision: reason.location.revision,
+            pointer: fixture.prefix + 'a~1~0e\u0301😀/1'},
+          '[check-mutation:session-format-public-pointer]');
+        const formats = ['text', 'html', 'json'].map(format => session.format(observation, {format}));
+        for (const formatted of formats) assert.doesNotMatch(formatted,
+          /\\ud800|\\udfff|records\.duckdb/u, '[check-mutation:session-format-public-private-value]');
+        displays.push(formats);
+        session.close();
+        const closed = JSON.parse(session.format(observation, {format: 'json'}));
+        assert.equal(Object.hasOwn(closed.entries[0], 'location'), false,
+          '[check-mutation:session-format-public-close]');
+        assert.deepEqual(closed.entries[0].facts, display.entries[0].facts);
+      }
+      assert.deepEqual(displays[0], displays[1], '[check-mutation:session-format-public-disclosure]');
+      assert.deepEqual(displays[0], displays[2], '[check-mutation:session-format-public-disclosure]');
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
   for (const fixture of invalidParsedBindings) {
     test(`${entrance}: JSON parser location survives ${fixture.document} failure`, async t => {
       const client = await contextClient(t, entrance, sourceEnvironment);
