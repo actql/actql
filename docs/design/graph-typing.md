@@ -5,8 +5,13 @@ Conditional query identity propagation is described in
 
 `graph_typing` currently checks `normalize_graph`, `degree`, `components` and
 `graph_bounds`, plus binary `graphs_equal` and `graph_diff` through dedicated
-closed-contract checkers. Structural `graft_graph`, `union_graphs` and
-`subtract_graphs` use the same pair admission and pipeline operand resolution.
+closed-contract checkers. Structural `graft_graph` and `subtract_graphs` use
+pair admission and pipeline operand resolution. `union_graphs` retains an
+ordered multi-input check with named definition/property alignment, exact
+identity-bearing definition spelling and key descriptors, and one operation-wide
+resource scope. Each input occurrence remains distinct even when its immutable
+storage is shared. Endpoint collisions and property strategy failures are
+runtime obligations; an accepted Plan is not evidence of successful composition.
 The normative owner is [Graph operations](../spec/language.md#graph-operations).
 This is not the complete SGA operation family or an evaluator.
 
@@ -526,7 +531,11 @@ accumulator object. These are future execution checks, not admitted backend
 resource contracts or evidence that the numerical evaluator has run. Profile
 selection remains a separate static check.
 
-## Structural graph composition
+## Historical structural graph typing
+
+This section describes the historical tuple-profile checker. It is not the
+current Property Graph execution contract or an external AoA dependency. The
+current named-definition union boundary is specified below.
 
 Binary structural operations retain both input occurrences, including repeated
 references to one input. They require compatible complete identity/property
@@ -593,6 +602,54 @@ Node/edge upper bounds include repeated occurrences; an unknown bound prevents
 a sum claim on that axis. Scalar syntax remains supported, and subtraction and
 graft remain binary. This implements existing Language and operation-binding
 rules; it does not implement their runtime strategies or lowering.
+
+## Current named-definition union
+
+The current checker admits one domain and the same named node/edge definition
+sets. Definition/property declaration order may differ; checked folds preserve
+the left declarations and retain right definition/field indexes by name. Raw
+definition spelling and each ordered key's identity descriptor must match
+exactly. Case-insensitive name resolution does not merge `N` and `n` identities;
+Artifact media-type differences do not authorize rekeying. Label/property sets,
+key-column correspondence and endpoint definition metadata must agree. Property
+types, nullable and extents use the existing joins, widened where a strategy's
+result requires it. This restricted admission is not a new identity law.
+
+Inputs are ordered occurrences, including repeated references. The runtime
+applies the declared left fold without reassociation or elision: three inputs
+with shared numeric value 2 produce 6 under `number_sum`. One-sided records are
+copied with their typed keys and properties; shared records use checked field
+alignment and the selected property strategy. Default `exact_equal` admits
+equal NULLs. Numeric/set strategies reject invalid shared operands instead of
+converting them to NULL. Same-edge identities must have exactly equal typed
+source and destination identities; conflicting endpoints fail with no output.
+Different edge identities sharing endpoints remain parallel edges.
+
+The existing bounded session owns private fold state and borrows each input
+view by exact occurrence. Cumulative work and admitted row/value traffic span
+all folds; prior and successor private generations overlap until successor
+completion. Stop/failure never publishes the staged Graph or reclaims borrowed
+inputs. The existing output, Store, snapshot and Relation owners retain their
+own completion/cleanup responsibilities.
+
+The installed provider's `UnionPolicy` separates transient cursor slot ceilings
+and execution-byte reservation from ordinary Graph input/value quotas. The Node
+installation reserves its configured union workspace before task selection;
+invalid or overflowing capacity is rejected. These installed ceilings and the
+logical cursor inventory are not a physical heap theorem or a Graph-wide bound.
+Hosts supplying no union policy retain their explicit Graph workspace limit,
+including typed failure when it cannot accommodate the cursor.
+
+The resource census includes the checked input/fold arrays and per-definition
+field-index correspondence; the bounded-session `UnionState` and its ordered
+borrowed input array; the fold cursor and staged key/property arrays; each
+property cursor, set-item record and retained canonical-order string; nested
+value recheck/equality/order cursors and the provisional array/record builders.
+Both the predecessor accumulator and the unpublished successor Store remain
+live during a fold. They are not credited as released before confirmed cleanup.
+The independently derived 2344-byte eleven-candidate Relation-construction
+component excludes these configuration and execution allocations. Its source
+premises still require separate review; it is not a union or Graph heap bound.
 
 ## Graph Delta typing
 
@@ -753,10 +810,21 @@ does not refine the schema. A single selected definition retains its declared
 properties and typed key aliases; no data-driven promotion is needed. Label
 refinement uses the same finite union and presence owner. Direct publication of
 Conditional columns and row-predicate presence refinement remain unsupported.
-The existing Relation checker also refuses ordinary filter operations on an
-input that still carries Conditional fields, even when that filter only names a
-Required field. Select the guaranteed columns first, then apply ordinary
-filter/rename/projection. This does not prove presence of the discarded fields.
+The existing Relation checker permits filter, derive, sort and take while
+retaining unreferenced Conditional fields. Every expression/key reference must
+still be schema-guaranteed present, including references in unevaluated
+branches; `IS NOT NULL` does not establish that guarantee. Filter, sort and take
+preserve the input schema and each surviving row's value/presence association.
+Derive preserves untouched fields and makes only its computed bindings present.
+Keyed DISTINCT projects its guaranteed keys before deduplication. Complete-row
+DISTINCT instead includes every field's presence in row equality, so omission
+and explicit NULL remain distinct. GROUP admits the complete sparse input but
+requires guaranteed group keys and all aggregate argument/filter/order
+references; its output follows the existing aggregate schema rather than
+carrying undeclared input fields. These paths use the existing Relation and
+Store owners described in [Row presence](relation-schema.md#row-presence).
+Other conditional-input consumers remain explicitly unsupported; projecting
+guaranteed columns first does not prove presence of discarded fields.
 The existing row kernel, completion port, retention and cleanup owners carry
 the resulting Relation. This is not a separate Graph Relation or runtime.
 

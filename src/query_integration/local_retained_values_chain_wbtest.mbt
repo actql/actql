@@ -133,89 +133,106 @@ fn retained_values_chain_source() -> String {
 ///|
 test "source-free scalar chain uses independent exact work and workspace limits" {
   // Three one-column rows and filter true have no data-dependent search.
-  // Values: one name + three (begin/cell/commit) + finish = 11.
+  // Values: one name + three (begin/cell/row-charge) + finish = 20.
+  // Row-charge is start/name/scalar-value/commit = four steps, replacing
+  // the old synchronous one-step commit. Its three extra steps per row
+  // account for the complete change from 11 to 20, not resume overhead.
   // Filter: six input steps + three retained roots + three seven-step
   // rows (begin/snapshot/two literal steps/build/check/commit) + finish = 31.
   // Select: six input steps + three four-step output rows + finish = 19.
-  // Two exact child handoffs give 11 + 31 + 19 + 2 = 63, independently
+  // Two exact child handoffs give 20 + 31 + 19 + 2 = 72, independently
   // of the execution meter. Each child's control charges fit this ceiling.
   // Filter workspace peaks at three metadata entries + three input roots
   // + one snapshot + two predicate slots = 9; Values and Select need less.
   let defaults = dispatch_test_limits()
+  let values_work = 1 + 3 * (1 + 1 + (1 + 1 + 1 + 1)) + 1
+  let filter_work = 6 + 3 + 3 * 7 + 1
+  let select_work = 6 + 3 * 4 + 1
+  let exact = values_work + filter_work + select_work + 2
+  assert_eq(exact, 72)
   let registry = search_registry()
   let generated = task_test_generated(
     zero_input_request_owner(
       retained_values_chain_source().replace(old="id >= 2", new="true"),
     ),
   )
-  for
-    (max_work, max_entries, expected) in [
-      (63, 9, "complete"),
-      (62, 9, "work"),
-      (63, 8, "workspace"),
-    ] {
-    let limits : @execution.SequenceExecutionLimits = {
-      ..defaults.local_execution,
-      max_work,
-      rows: { ..defaults.local_execution.rows, operation_entries: max_entries, },
-    }
-    let installed = @local_connector.prepare_local_compute_module(
-      registry,
-      @connector.capability_registration_at(registry, 0).unwrap(),
-      [generated],
-      limits,
-      defaults.guards,
-      defaults.candidate_work,
-      1,
-    ).unwrap()
-    let provider = @local_connector.local_module_managed_provider(
-      installed, generated,
-    ).unwrap()
-    let active = @local_connector.start_managed_provider_with_inputs_and_execution(
-      provider,
-      generated,
-      [],
-      100,
-      10000,
-      limits,
-    ).unwrap()
-    let mut outcome = ""
-    let mut work = 0L
-    for _ in 0..<100 {
-      if outcome != "" {
-        break
+  for quantum in [1, 7, 256] {
+    for
+      (max_work, max_entries, expected) in [
+        (exact, 9, "complete"),
+        (exact - 1, 9, "work"),
+        (exact, 8, "workspace"),
+      ] {
+      let limits : @execution.SequenceExecutionLimits = {
+        ..defaults.local_execution,
+        max_work,
+        rows: {
+          ..defaults.local_execution.rows,
+          operation_entries: max_entries,
+        },
       }
-      match @local_connector.advance_managed_provider(active, 1).unwrap() {
-        @local_connector.Continue(work=charged, ..) => {
-          assert_true(charged <= 1L)
-          work += charged
+      let installed = @local_connector.prepare_local_compute_module(
+        registry,
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        [generated],
+        limits,
+        defaults.guards,
+        defaults.candidate_work,
+        1,
+      ).unwrap()
+      let provider = @local_connector.local_module_managed_provider(
+        installed, generated,
+      ).unwrap()
+      let active = @local_connector.start_managed_provider_with_inputs_and_execution(
+        provider,
+        generated,
+        [],
+        100,
+        10000,
+        limits,
+      ).unwrap()
+      let mut outcome = ""
+      let mut work = 0L
+      for _ in 0..<100 {
+        if outcome != "" {
+          break
         }
-        @local_connector.Complete(output, work=charged, ..) => {
-          work += charged
-          assert_eq(work, 63L)
-          assert_eq(@execution.completed_row_count(output), 3)
-          for row, value in [3.0, 1.0, 2.0] {
-            guard @execution.completed_cell(output, row, 0)
-              is Some(Number(actual)) else {
-              fail("scalar chain output has the wrong value type")
-            }
-            assert_eq(actual, value)
+        match
+          @local_connector.advance_managed_provider(active, quantum).unwrap() {
+          @local_connector.Continue(work=charged, ..) => {
+            assert_true(charged <= quantum.to_int64())
+            work += charged
           }
-          outcome = "complete"
+          @local_connector.Complete(output, work=charged, ..) => {
+            work += charged
+            assert_true(charged <= quantum.to_int64())
+            assert_eq(work, exact.to_int64())
+            assert_eq(@execution.completed_row_count(output), 3)
+            for row, value in [3.0, 1.0, 2.0] {
+              guard @execution.completed_cell(output, row, 0)
+                is Some(Number(actual)) else {
+                fail("scalar chain output has the wrong value type")
+              }
+              assert_eq(actual, value)
+            }
+            outcome = "complete"
+          }
+          @local_connector.Failed(
+            @connector.Execution(@execution.InputLimit),
+            ..
+          ) => outcome = "work"
+          @local_connector.Failed(
+            @connector.Execution(@execution.Rows(_, @execution.RowLimit)),
+            ..
+          ) => outcome = "workspace"
+          _ => fail("scalar chain failed for an unrelated reason")
         }
-        @local_connector.Failed(@connector.Execution(@execution.InputLimit), ..) =>
-          outcome = "work"
-        @local_connector.Failed(
-          @connector.Execution(@execution.Rows(_, @execution.RowLimit)),
-          ..
-        ) => outcome = "workspace"
-        _ => fail("scalar chain failed for an unrelated reason")
       }
+      assert_eq(outcome, expected)
+      assert_true(@local_connector.managed_provider_stopped(active))
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
     }
-    assert_eq(outcome, expected)
-    assert_true(@local_connector.managed_provider_stopped(active))
-    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
-    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
   }
 }
 

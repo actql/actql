@@ -6,6 +6,8 @@
   },
   "production_routes": "docs/reviews/2026-09-23-local-resource-production-routes.json",
   "assured_production_paths": [
+    {"family": "SGA", "operation": "subtract_graphs", "path": "entrypoint"},
+    {"family": "SGA", "operation": "union_graphs", "path": "entrypoint"},
     {"family": "RelA", "operation": "filter", "path": "entrypoint"},
     {"family": "RelA", "operation": "filter", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "filter", "path": "ordinary_entrypoint"},
@@ -209,6 +211,10 @@
         "src/local_sga/match_edges.mbt",
         "src/local_sga/traverse_paths.mbt",
         "src/local_sga/delta_diff.mbt",
+        "src/local_sga/union.mbt",
+        "src/local_sga/union_fold.mbt",
+        "src/local_sga/union_property.mbt",
+        "src/managed_graph_storage/property_snapshot_steps.mbt",
         "src/managed_graph_storage/property_storage.mbt",
         "src/managed_graph_runtime/output.mbt"
       ],
@@ -269,9 +275,44 @@
           "facets": ["cleanup_owner"],
           "path": "src/query_integration/property_graph_diff_provider_wbtest.mbt",
           "fixture": "Graph diff provider refuses Delta row and value capacity without publishing or reclaiming inputs"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "facets": ["charged_bounded_work", "cleanup_owner"],
+          "path": "src/local_sga/union_fold_wbtest.mbt",
+          "fixture": "union fold rejects endpoint collision after positive work without exposing output or reclaiming inputs"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/managed_graph_storage/property_snapshot_steps_wbtest.mbt",
+          "fixture": "typed record append has independent construction work and an exact one short boundary"
+        },
+        {
+          "facets": ["charged_bounded_work"],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction empty occurrences have independent work seven and one short rejection"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction cancellation after positive work preserves borrowed input custody"
+        },
+        {
+          "facets": ["finite_stop_observation", "cleanup_owner"],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
         }
       ],
-      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff logical work/workspace/cancellation boundaries. Diff route registration is not a physical-byte or total-Graph-heap theorem. Blocked Graph consumers have no current resource-completeness claim."
+      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence and current diff/union/subtraction logical work/workspace/cancellation boundaries. Composition retains checked fold/alignment arrays, borrowed input occurrences, private record/set cursors and overlapping predecessor/successor Stores in the existing reservation and cleanup scope. Subtraction adds a boolean fold mode and an endpoint-closure phase reusing the Builder's existing node-identity map; it creates no separate closure set. The shared Host fixture covers cleanup false/error/retry without early reservation or borrowed-input disposal. Route registration and configured cursor/workspace ceilings are not a physical-byte or total-Graph-heap theorem; full allocation correspondence remains unverified. Blocked Graph consumers have no current resource-completeness claim."
     },
     "tea_events": {
       "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",
@@ -343,7 +384,11 @@
         "src/local_veca/score.mbt",
         "src/local_veca/nearest.mbt",
         "src/local_veca/pool.mbt",
-        "src/local_veca/ranking.mbt"
+        "src/local_veca/ranking.mbt",
+        "src/managed_record_storage/append_steps.mbt",
+        "src/managed_record_storage/identity_steps.mbt",
+        "src/value_contract/equality_steps.mbt",
+        "src/managed_record_runtime/output.mbt"
       ],
       "evidence": [
         {

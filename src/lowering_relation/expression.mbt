@@ -563,6 +563,8 @@ fn lower_expression_measured(
       | GraphEqualityRows(_)
       | GraphNormalizeValue(_)
       | GraphDeltaValue(_)
+      | GraphUnionValue(_)
+      | GraphSubtractionValue(_)
       | GraphComponentsRows(_)
       | PropertyGraphConstructionValue(_)
       | VectorValue(_)

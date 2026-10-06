@@ -21,6 +21,8 @@ pub(all) enum OperationExecutionCheck {
   SubgraphExecution(SubgraphExecutionCheck)
   GraphNormalizeExecution(GraphNormalizeCheck)
   GraphDeltaExecution(GraphDeltaCheck)
+  GraphUnionExecution(GraphUnionCheck)
+  GraphSubtractionExecution(GraphSubtractionCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -118,6 +120,25 @@ pub fn operation_execution_phase(
         | PreserveSubgraphPolicy => BeforeOperationOutput
       }
     GraphNormalizeExecution(_) => BeforeOperationInputUse
+    GraphSubtractionExecution(v) =>
+      match v.rule {
+        @graph.AdmitSubtractionInputs | @graph.ResolveSubtractionResources =>
+          BeforeOperationInputUse
+        @graph.PreserveSubtractionIdentities
+        | @graph.CheckSubtractionEdgeEndpoints
+        | @graph.ApplySubtractionPropertyStrategies
+        | @graph.InduceSubtractionEndpoints
+        | @graph.CanonicalSubtractionOrder => BeforeOperationOutput
+      }
+    GraphUnionExecution(v) =>
+      match v.rule {
+        @graph.AdmitUnionInputs | @graph.ResolveUnionResources =>
+          BeforeOperationInputUse
+        @graph.PreserveUnionIdentities
+        | @graph.CheckUnionEdgeEndpoints
+        | @graph.ApplyUnionPropertyStrategies
+        | @graph.CanonicalUnionOrder => BeforeOperationOutput
+      }
     GraphDeltaExecution(v) =>
       match v.rule {
         AdmitGraphOperands
@@ -317,6 +338,8 @@ pub fn operation_execution_failure(
     | SubgraphExecution(_)
     | GraphNormalizeExecution(_)
     | GraphDeltaExecution(_)
+    | GraphUnionExecution(_)
+    | GraphSubtractionExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

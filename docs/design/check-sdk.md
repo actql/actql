@@ -709,6 +709,37 @@ Editor session/version custody remains with the editor integration: it associate
 the submitted snapshot with its open buffer and compares current identity,
 revision and text before rendering there. A reopened session cannot replace that
 association. The helper is explicitly UTF-16, not an LSP server or edit applicator.
+The public `operation_parameter_invalid` reason projects the existing scalar
+Owner's demand into closed parameter/domain facts. It explains positive or
+nonnegative safe integers, unit fractions, finite numbers, durations,
+positive/signed milliseconds and timestamps. It does not evaluate a value again
+or claim which individual condition within that domain failed. Unsupported
+safe-integer minima and names without an original admitted caller binding retain
+the generic proven-invalid fallback.
+The initial admitted binder supplies the input origin. A submitted value has a
+`parameters` pointer; a selected default has a `parameter_declarations` pointer.
+Exact pointers use the existing admitted source cursors and preserving original
+key reader. Missing origins omit location. SQL token ranges and internal
+requirement indexes are not reconstructed. The SDK resolves that pointer only
+against the response's retained original input/revision; copied responses and
+changed revisions acquire no position or edit authority.
+The Host retains these existing bounded bindings/cursors during this check and
+releases the extra reference when findings projection returns; it adds no durable
+input storage or retention period. The existing request byte limits, parameter
+count, node/depth/text admission limits, and report budget still apply. English
+and Japanese presentation revisions change independently of schema identity.
+
+The public `query_frame_invalid` reason carries closed
+`facts.issue: "invalid_bounds"` only when the common checker returns the typed
+`Closure(Operations(Frames(InvalidFrame(_))))` cause. The checker closes the
+parameter-bound interval; the Frontend and SDK do not repeat that check.
+Its internal requirement index is neither an authored span nor an original
+input JSON pointer, so this projection omits a position. Source visibility
+still precedes checking: a protected dependency produces the existing generic
+unresolved boundary, while an independently public supplied-value violation
+remains visible. The coordinated reason and outcome schema identities change;
+the existing diagnostics contract is unchanged.
+
 `explainCheckReason` provides safe English summaries/hints; unknown codes have an
 explicit generic explanation and confer no retry or execution permission.
 
@@ -1002,6 +1033,18 @@ list. No input custody or persistence behavior changes.
 
 ### SDK custody of received check values
 
+Known reason locations also retain their original input domain. Syntax and
+undeclared-reference locations belong to the submitted source text. Supplied
+value/type/constraint locations belong to the supplied parameters document;
+declaration errors and missing-value Requirements belong to the declaration
+document. Existing default-type and unused-Parameter locations retain their
+declaration domain. A matching revision and an existing pointer in another
+submitted document do not satisfy this contract. Both complete and partial
+reports enforce these restrictions through the registered reason schema and
+the generated validator before SDK input association. When the owner cannot
+establish a location it remains absent; safe future code-only reasons retain
+the generic location contract until their domain is defined.
+
 A public Local Host port may reuse its response objects. The SDK detaches the
 validated check value, validates that owned value and only then associates the
 call's immutable submitted input and freezes the observation. This matches the
@@ -1016,3 +1059,68 @@ An uncloneable response or an invalid copied shape fails the existing transport
 contract check before any association. This changes neither the checker verdict
 nor the Host's scope/context or disclosure projection. No new source hash,
 persistence, retrieval API, compatibility route or execution state is added.
+
+### Reporting Problem references and outcome identity
+
+A failed check carries an opaque `correlation_ref` for its reporting attempt,
+including when the reserved report budget cannot produce a complete envelope.
+The Host allocates that reference independently of input bytes, context,
+authorization and protected Source inventories, before asynchronous checking.
+The existing projection preserves it through checker/reporting failure; the
+Host's invalid-producer fallback retains the same attempt reference. It is not
+a source revision, context reference, retry identity or retrieval permission.
+The SDK's safe failed-outcome explanation exposes it as `correlationRef`, even
+for a transport copy with no original-input custody. It confers no action.
+
+Every check outcome also carries `outcome_schema_cid`, separately from
+`reason_schema_cid`. The reason contract can remain unchanged when an outcome
+field changes. Consumers therefore validate both current pins, including empty
+verified reports, partial reports and unavailable outcomes. The outcome CID is
+the ordinary registered schema body's identity. Its schema constrains the wire
+CID syntax, and the generated consumer guard compares the value with the
+registered expected CID; the CID preimage does not contain its own constant.
+Missing/foreign pins fail contract validation. No old execution or adapter
+path supplies a successful fallback.
+
+### Check explanation locales
+
+`explainCheckOutcome` and `explainCheckReason` accept optional presentation
+options with `locale`. English is the safe default; `ja` and `ja-JP` select
+the current Japanese translations. Unknown locale selections and exceptions
+while reading the locale select English. Missing or malformed translation
+entries use the existing safe English words. No remote catalog, callback or
+template interpolation is accepted.
+
+`getCheckPresentationInfo` exposes the selected locale and its immutable
+translation revision, separately from reason/outcome schema CIDs and report
+context/revisions. Changes to message words advance that translation revision
+separately from semantic schema identities. Translation data only replaces
+summary and hint. The
+schema-admitted outcome selects its own branch and verdict; optional reports,
+Problem references, unknown/known code classification, source position custody
+and Requirement frontiers retain their existing meanings. A malformed outcome
+remains uninterpretable even when a translation is available.
+The renderer captures its observation fields before reading application-owned
+locale options. A synchronous locale getter cannot substitute another verdict,
+scope/context, partial report, Problem code or correlation in a copied value's
+explanation. This is an immutable presentation snapshot, not input custody or
+a claim that the application-owned copy itself cannot change.
+
+Rendering performs no check, execution, cancellation, recovery or other I/O.
+The hints confer no action permission and contain no submitted values, raw
+causes or hidden Source inventory. Original inputs remain only in the existing
+per-call association; a copy or stale revision cannot resolve a position.
+This SDK presentation addition does not change wire contracts or identities,
+Host retention or Owner boundaries. It establishes the selected check locale
+path, not complete CLI/IDE/agent rendering or cumulative diagnostics coverage.
+
+
+Expression argument types are explanations of existing common-checker
+rejections. `expression_type_mismatch` exposes one closed `expected_type`
+(`number`, `boolean`, or `string`) when the typed Owner cause retains that
+required-type tag. It does not expose the actual value, private identifier or
+arbitrary type-description text. An unrecognized tag retains the generic
+explanation. The verdict continues to come from the existing classification.
+The current flattened checker location does not retain an authored/generated
+origin kind; this projection omits its location instead of treating a decoded
+expression range or generated Program path as the original SQL position.

@@ -1,0 +1,38 @@
+{
+  "version": "actql-provider-construction-source-review/0.1",
+  "currentRecipeDigest": "bc1b9a7460e864c1787dd8140f9caf76bb983c94c136109cf41e30bd18c72580",
+  "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
+  "historicalSourcePremises": {
+    "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
+    "src/execution_relation/generated_sequence.mbt": "1a2df7350b1227ede42556733faf8ecd22abd77919b946ce47848f196d5aec69"
+  },
+  "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
+  "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
+  "selectedDigest": "7662c1e802515661034647ae045a03bccfdd69f25d88710ae467f644c14a3b9a",
+  "managedDigest": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
+  "generatedVariants": [
+    {"revision": "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa", "digest": "689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3", "additionalExclusions": []},
+    {"revision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0", "digest": "7a18f31821151781fd8c370863923dc0106c388ab37d9f2be98adfbe03b03f40", "additionalExclusions": ["GraphUnionStep"]},
+    {"revision": "cec9df396e18bff4b206c80130bdb607fa29b84a", "digest": "68ad70b2a67cb422c4826e2f1312532c364fc3744070a43a374930d2497f4f93", "additionalExclusions": ["GraphUnionStep", "GraphSubtractionStep"]}
+  ],
+  "wrapperDigests": {
+    "managed_provider": "97c7881276b3a72486a9095b5c320496b231e97ef7aef148f6e3a45f8e52128b",
+    "managed_provider_with_inputs": "05787bfa023bb449803474bb51ad5f68a91ae5d9d5bdf536e20d6cee24ad5438",
+    "managed_provider_with_numeric": "6e0874df3465c9ec6b0fcba89e3f2a38be09ed117746d522dd2120ec272c0cb9"
+  },
+  "selectedFactoryOutsideAcceptsDigest": "989e69dea3f181b35dadd08d62c417247d86c33776afab06d419630f10890a4c",
+  "constructionCaptureInputs": ["limits", "measurement", "family"],
+  "changedResponsibilities": [
+    "accepts allocates used_by_later during callback execution, excluded from construction-only bytes",
+    "completed Array owner, backing, output references, generations and release overlap require separate lifetime correspondence",
+    "Waiting and Settling join validated per-poll work extraction; their poll objects are not constructor allocations"
+  ],
+  "nativeCensus": {
+    "sourceRevision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",
+    "receipt": "run-I6XlmY",
+    "outputDigest": "f3fdc315b9a5bfc65b0f4308566a72c94c77d6f6b6cac83ed756fc21241de925",
+    "indexedBytes": 1184,
+    "scalarDynamicCallbacks": 20,
+    "scalarPayloadBytesObserved": false
+  }
+}

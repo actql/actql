@@ -538,3 +538,129 @@ test('independent unused Parameter fixture requires closed facts and original de
     assert.equal(validCheckOutcome(changed), false);
   }
 });
+
+test('independent known reasons retain their original input domains', () => {
+  // Authored independently: SELECT; {minimum: {type: 'number'}};
+  // {minimum: 'wrong'}. Revisions are literal opaque fixture identities.
+  const fixture = JSON.parse(readFileSync(new URL(
+    './fixtures/check-location-domains.json', import.meta.url), 'utf8'));
+  for (const {reason, allowedDocuments} of fixture.cases) {
+    const requirement = reason.code === 'parameter_value_required';
+    const report = {context_ref: 'ctx:independent-location-domain',
+      scope: {kind: 'bound_input'}, inputs: fixture.inputs,
+      verdict: requirement ? 'undetermined' : 'invalid',
+      reasons: requirement ? [] : [reason], requirements: requirement ? [reason] : [],
+      coverage: {limits: requirement ? [{code: 'bound_values_missing'}] : [], unresolved: []}};
+    const outcome = report => ({version: 'actql-check-outcome/0.1',
+      reason_schema_cid: fixture.reason_schema_cid, outcome_schema_cid: fixture.outcome_schema_cid, outcome: 'completed', report});
+    assert.equal(validCheckOutcome(outcome(report)), true, 'Unavailable positions remain optional.');
+    for (const document of fixture.inputs) {
+      const location = {kind: document.kind, document_id: document.document_id,
+        revision: document.revision, ...(document.kind === 'text'
+          ? {start_byte: 6, end_byte: 6, precision: 'exact'} : {pointer: '/minimum'})};
+      const located = {...reason, location};
+      const locatedReport = {...report, reasons: requirement ? [] : [located],
+        requirements: requirement ? [located] : []};
+      const expected = allowedDocuments.includes(document.document_id);
+      const complete = outcome(locatedReport);
+      const partial = {version: complete.version, reason_schema_cid: complete.reason_schema_cid, outcome_schema_cid: complete.outcome_schema_cid,
+        outcome: 'failed', correlation_ref: 'corr:fixture', problem: {code: 'check_internal'}, partial_report: locatedReport};
+      assert.equal(validCheckOutcome(complete), expected,
+        `${reason.code}: ${document.document_id} completed`);
+      assert.equal(validCheckOutcome(partial), expected,
+        `${reason.code}: ${document.document_id} partial`);
+    }
+  }
+});
+
+test('independent frame reasons reject malformed facts and foreign locations', () => {
+  const reason = JSON.parse(readFileSync(new URL('./fixtures/check-frame-reason.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = value => ({...original, report: {...original.report, verdict: 'invalid', reasons: [value]}});
+  assert.equal(validCheckOutcome(outcome(reason)), true);
+  for (const invalid of [
+    {code: reason.code}, {...reason, facts: {}},
+    {...reason, facts: {issue: 'reversed_preceding'}},
+    {...reason, facts: {issue: 'invalid_bounds', requirement_index: 0}},
+    {...reason, facts: {issue: 'expected_boolean'}},
+    {...reason, location: {kind: 'structured', document_id: 'parameters',
+      revision: original.report.inputs[0].revision, pointer: ''}},
+    {code: 'future_frame_reason', facts: reason.facts},
+  ]) assert.equal(validCheckOutcome(outcome(invalid)), false);
+  assert.equal(validCheckOutcome(outcome({code: 'future_frame_reason'})), true);
+});
+
+test('independent check envelopes require outcome identity and safe Problem correlation', () => {
+  for (const name of ['check-reporting-failure.json', 'check-outcome-pins.verified.json']) {
+    const original = JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8'));
+    assert.equal(validCheckOutcome(original), true);
+    for (const change of [
+      value => { delete value.outcome_schema_cid; },
+      value => { value.outcome_schema_cid = 'sha256:' + '0'.repeat(64); },
+      value => { value.outcome_schema_cid = value.reason_schema_cid; },
+      value => { value.outcome_schema_cid = 'sha256:3022a1bfadaab076c2fb116ccdca5de59451dd349fb6df6cc3adcd7905675cb0'; },
+    ]) {
+      const changed = structuredClone(original); change(changed);
+      assert.equal(validCheckOutcome(changed), false);
+    }
+    if (original.outcome === 'failed') {
+      for (const correlation of [undefined, '', 'a'.repeat(129), 'private value\n']) {
+        const changed = {...original, correlation_ref: correlation};
+        if (correlation === undefined) delete changed.correlation_ref;
+        assert.equal(validCheckOutcome(changed), false);
+      }
+      assert.equal(validCheckOutcome({...original, report: {verdict: 'verified'}}), false);
+    } else {
+      assert.equal(validCheckOutcome({...original, correlation_ref: 'corr:unrelated'}), false);
+    }
+  }
+});
+
+test('independent operation parameter reasons retain closed domains and input locations', () => {
+  const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-operation-parameter-reasons.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  for (const reason of reasons) {
+    assert.equal(validCheckOutcome(outcome(reason)), true);
+    for (const invalid of [{code: reason.code}, {...reason, facts: {}},
+      {...reason, facts: {...reason.facts, domain: 'private_provider_domain'}},
+      {...reason, facts: {...reason.facts, value: 0}},
+      {...reason, facts: {...reason.facts, requirement_index: 0}},
+      {code: 'parameter_undeclared', facts: reason.facts},
+      {code: 'future_operation_parameter', facts: reason.facts},
+      {...reason, location: {kind: 'text', document_id: 'source',
+        revision: original.report.inputs[0].revision, start_byte: 0, end_byte: 1, precision: 'exact'}}]) {
+      assert.equal(validCheckOutcome(outcome(invalid)), false);
+    }
+  }
+  assert.equal(validCheckOutcome(outcome({code: 'future_operation_parameter'})), true);
+  for (const prior of [
+    {reason_schema_cid: 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'},
+    {outcome_schema_cid: 'sha256:506730273187b8d1bb3b7a5bd1a446eaffe3007da615c637bd461743e4e0a1b6'},
+  ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});
+
+test('independent expression type reasons reject values and foreign fact families', () => {
+  const reasons = JSON.parse(readFileSync(new URL('./fixtures/check-expression-types.json', import.meta.url), 'utf8'));
+  const original = JSON.parse(readFileSync(new URL('./fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+  const outcome = reason => ({...original, report: {...original.report, verdict: 'invalid', reasons: [reason]}});
+  for (const reason of reasons) {
+    assert.equal(validCheckOutcome(outcome(reason)), true);
+    for (const facts of [undefined, {}, {expected_type: 'private_field'},
+      {expected_type: 'array'}, {...reason.facts, parameter: 'private_parameter'},
+      {...reason.facts, actual_value: 'private-value'}, {...reason.facts, actual_type: 'string'}]) {
+      assert.equal(validCheckOutcome(outcome({...reason, facts})), false);
+    }
+    assert.equal(validCheckOutcome(outcome({code: 'parameter_value_required', facts: reason.facts})), false);
+    assert.equal(validCheckOutcome(outcome({code: 'future_expression_type', facts: reason.facts})), false);
+    assert.equal(validCheckOutcome(outcome({...reason, location: {kind: 'structured', document_id: 'source',
+      revision: original.report.inputs[0].revision, pointer: '/stages/0/steps/0'}})), false);
+    assert.equal(validCheckOutcome(outcome({...reason, location: {kind: 'text', document_id: 'parameters',
+      revision: original.report.inputs[0].revision, start_byte: 0, end_byte: 1, precision: 'exact'}})), false);
+  }
+  assert.equal(validCheckOutcome(outcome({code: 'future_expression_type'})), true);
+  for (const prior of [
+    {reason_schema_cid: 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'},
+    {outcome_schema_cid: 'sha256:e82160288635a2047646ae956dbba116224b1c64b03231b6c4245d43a6cecc5c'},
+  ]) assert.equal(validCheckOutcome({...outcome(reasons[0]), ...prior}), false);
+});

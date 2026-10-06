@@ -212,8 +212,8 @@
     }
   ],
   "chainReferences": [
+    "completed",
     "children",
-    "previous",
     "current",
     "position",
     "pending",
@@ -239,7 +239,7 @@
   "included": [
     {
       "id": "retained-parent-core",
-      "objects": "ten Refs, execution record, five callbacks and start_next environment; mutable reported_work records; children array and backing",
+      "objects": "ten Refs, execution record, five callbacks and start_next environment; mutable reported_work records; children array and backing; completed Array owner and fixed count-slot backing; nullable output references",
       "phases": [
         "startup",
         "advance",
@@ -249,8 +249,8 @@
         "cleanup-complete",
         "retained-owner-after-cleanup"
       ],
-      "basis": "source/ABI core recipe with explicit Ref layout premise; backing slots from the input step-count contract",
-      "status": "core-only conditional upper model; all-phase implementation correspondence pending"
+      "basis": "source/ABI core recipe with explicit Ref layout premise; backing slots from the input step-count contract; completed backing is fixed at the input step count, shares child-owned output payloads, and is reset only after all reverse child cleanup succeeds",
+      "status": "current-source core-only conditional upper model; completed-output Native identity/generation and all-phase implementation correspondence pending"
     },
     {
       "id": "selected-step-context",
@@ -309,13 +309,13 @@
     },
     {
       "id": "retirement-and-custody",
-      "objects": "parent execution and captured Refs still reachable through LocalManagedDispatchOperations after cleanup; accepted output and its upstream holdings",
+      "objects": "parent execution and captured Refs still reachable through LocalManagedDispatchOperations after cleanup; accepted output and its upstream holdings; stored CompletedOutput occurrences and their original CompletedSequence.result_identity anchors until reverse cleanup; empty replacement owner overlaps the old completed container",
       "phases": [
         "cleanup-pending",
         "cleanup-complete",
         "retained-owner-after-cleanup"
       ],
-      "basis": "cleanup does not destroy immutable callbacks; driver provider_execution is retained; ownership and reservation correspondence must be demonstrated",
+      "basis": "cleanup does not destroy immutable callbacks; driver provider_execution is retained; ownership and reservation correspondence must be demonstrated; the process-local completion identity is not a ledger holding generation; both remain distinct correspondence obligations",
       "status": "reservation retirement/custody correspondence pending; no physical-GC completion claim"
     }
   ],
@@ -327,8 +327,8 @@
   ],
   "admission": "a core-only model never discharges the entire parent premise, child bounds or total pipeline upper bound",
   "chainReferenceDeclarations": [
+    "let completed : Ref[Array[@execution.CompletedOutput?]] = Ref( Array::make(count, None), )",
     "let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])",
-    "let previous : Ref[@execution.CompletedOutput?] = Ref(None)",
     "let current : Ref[ManagedProviderExecution?] = Ref(Some(initial))",
     "let position = Ref(0)",
     "let pending = Ref(false)",

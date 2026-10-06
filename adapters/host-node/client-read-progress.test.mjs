@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, ClientError} from '../../packages/sdk/index.mjs';
+import {connect, ClientError, explainReadFailure} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -48,7 +48,7 @@ async function installed(t, entrance, fixture, invalidRow) {
     attach: () => ({ref, durability: 'volatile', revision: 1}),
     resultService: fixture.service, maxRowBytes: 1024,
   };
-  let client;
+  let client, endpoint = 'actql:embedded';
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(services);
     const port = invalidRow === undefined ? host : {
@@ -83,11 +83,39 @@ async function installed(t, entrance, fixture, invalidRow) {
       server.closeAllConnections();
       await new Promise(resolve => server.close(resolve));
     });
-    client = await connect({mode,
-      endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'scoped-token'});
+    endpoint = `https://127.0.0.1:${server.address().port}/`;
+    client = await connect({mode, endpoint, token: 'scoped-token'});
   }
   t.after(() => client.close());
-  return {result: (await client.attach(ref)).result('answer'), operations, settled};
+  return {result: (await client.attach(ref)).result('answer'), operations, settled, endpoint};
+}
+
+function assertReadExplanation(f, failure, attemptId, rowsYielded, observation = 'read_incomplete', cleanupUnknown = false) {
+  const operations = [...f.operations];
+  const quantity = `${rowsYielded} ${rowsYielded === 1 ? 'row' : 'rows'}`;
+  const expected = {observation, ...(cleanupUnknown ? {cleanup: 'unknown'} : {}), attemptId, rowsYielded,
+    summary: observation === 'cleanup_unknown'
+      ? `Reader cleanup could not be confirmed after returning ${quantity}.`
+      : `This read stopped after returning ${quantity}.`,
+    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
+    next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId,
+      lookupContext: {endpoint: f.endpoint, scopeRef: 'principal'}},
+  };
+  const explanation = explainReadFailure(failure);
+  assert.deepEqual(explanation, expected, '[check-mutation:read-explanation]');
+  assert.equal(Object.isFrozen(explanation), true);
+  assert.equal(Object.isFrozen(explanation.next), true);
+  assert.equal(Object.isFrozen(explanation.next.ref), true);
+  assert.equal(Object.isFrozen(explanation.next.lookupContext), true);
+  assert.equal(explainReadFailure({...failure}), undefined, '[check-mutation:read-explanation-custody]');
+  assert.equal(explainReadFailure(new ClientError(failure.code, {...failure})), undefined);
+  failure.code = 'Succeeded';
+  failure.message = 'Read completed successfully';
+  failure.rowsYielded = 0;
+  failure.attemptId = 'edited-read-attempt';
+  assert.deepEqual(explainReadFailure(failure), expected, '[check-mutation:read-explanation]');
+  assert.deepEqual(f.operations, operations);
+  assert.doesNotMatch(JSON.stringify(explanation), /private-result-fragment|private-delivery-secret|scoped-token/u);
 }
 
 // Literal malformed row shapes and expected counts are independent of decoding.
@@ -179,6 +207,7 @@ for (const entrance of ['local', 'https']) {
     const f = await installed(t, entrance, fixture);
     const reader = f.result.rows();
     const seen = [];
+    let failure;
     try {
       await assert.rejects(async () => {
         for await (const row of reader) {
@@ -186,8 +215,11 @@ for (const entrance of ['local', 'https']) {
           assert.equal(reader.rowsYielded(), seen.length);
           if (seen.length === 120) release();
         }
-      }, error => error instanceof ClientError && error.attemptId === reader.attemptId &&
-        error.rowsYielded === 120);
+      }, error => {
+        failure = error;
+        return error instanceof ClientError && error.attemptId === reader.attemptId &&
+          error.rowsYielded === 120;
+      });
     } finally { release(); }
     assert.deepEqual(seen, Array.from({length: 120}, (_, index) => ({value: index + 1})));
     assert.equal(reader.rowsYielded(), 120);
@@ -200,6 +232,8 @@ for (const entrance of ['local', 'https']) {
     assert.equal(fixture.state.grantUses, 1);
     assert.equal(fixture.state.readers, 1);
     assert.deepEqual(f.operations, ['connect', 'attach', 'read']);
+    assert.equal(failure.cleanupError !== undefined, entrance === 'https');
+    assertReadExplanation(f, failure, reader.attemptId, 120, 'read_incomplete', entrance === 'https');
   });
 
   test(`${entrance}: normal completion counts 121 rows through the same owner`, {timeout: 10000}, async t => {
@@ -263,6 +297,7 @@ for (const operation of ['rows', 'all']) {
     assert.equal(publicCause.stack, undefined);
     assert.equal(publicCause.cleanupHandle, undefined);
     assert.equal(returned.length, reader ? 121 : 0);
+    const failedAttemptId = failure.attemptId;
     if (reader) {
       assert.equal(reader.state(), 'prefix');
       assert.equal(reader.rowsYielded(), 121);
@@ -272,5 +307,80 @@ for (const operation of ['rows', 'all']) {
     assert.equal(fixture.state.grantUses, 1);
     assert.equal(fixture.state.readers, 1);
     assert.deepEqual(f.operations, ['connect', 'attach', 'read']);
+    assertReadExplanation(f, failure, failedAttemptId, reader ? 121 : 0);
   });
 }
+
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: batches count only rows returned before Delivery failure`, {timeout: 10000}, async t => {
+    let release;
+    const consumed = new Promise(resolve => { release = resolve; });
+    const rows = Array.from({length: 121}, (_, index) => `{"value":${index + 1}}`);
+    const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+      rows, maxBytes: 16384,
+      async readRows(accept) {
+        for (const row of rows.slice(0, 120)) await accept(row);
+        await consumed;
+        throw new Error('private-delivery-secret');
+      },
+    });
+    const f = await installed(t, entrance, fixture);
+    const reader = f.result.batches({maxBatchRows: 16});
+    const returned = [];
+    let failure;
+    try {
+      for await (const batch of reader) {
+        returned.push(...batch);
+        if (returned.length === 112) release();
+      }
+    } catch (error) { failure = error; }
+    finally { release(); }
+    await f.settled;
+    assert.ok(failure);
+    assert.equal(failure.rowsYielded, 112);
+    assert.equal(reader.rowsYielded(), 112);
+    assert.equal(reader.state(), 'prefix');
+    assert.deepEqual(returned, Array.from({length: 112}, (_, index) => ({value: index + 1})));
+    assert.equal(JSON.parse(fixture.state.record.wire).state, 'failed');
+    assert.equal(fixture.state.grantUses, 1);
+    assert.equal(fixture.state.admissions, 1);
+    assert.equal(failure.cleanupError !== undefined, entrance === 'https');
+    assertReadExplanation(f, failure, reader.attemptId, 112, 'read_incomplete', entrance === 'https');
+  });
+}
+
+test('https: early reader cleanup uncertainty retains its original lookup target', {timeout: 10000}, async t => {
+  const perform = globalThis.fetch;
+  t.mock.method(globalThis, 'fetch', async (...args) => {
+    const response = await perform(...args);
+    if (String(args[0]).endsWith('/read')) {
+      const getReader = response.body.getReader.bind(response.body);
+      response.body.getReader = (...options) => {
+        const reader = getReader(...options);
+        const cancel = reader.cancel.bind(reader);
+        reader.cancel = async (...values) => {
+          await cancel(...values);
+          throw new Error('private-delivery-secret');
+        };
+        return reader;
+      };
+    }
+    return response;
+  });
+  const fixture = createResultDeliveryFixture(resultAccess, openResultDeliveryControl(), {
+    rows: ['{"value":1}', '{"value":2}', '{"value":3}'], maxBytes: 4096,
+  });
+  const f = await installed(t, 'https', fixture);
+  const reader = f.result.rows();
+  const iterator = reader[Symbol.asyncIterator]();
+  assert.deepEqual(await iterator.next(), {value: {value: 1}, done: false});
+  let failure;
+  await assert.rejects(iterator.return(), error => {
+    failure = error;
+    return error.code === 'ResultReadCleanupUnknown';
+  });
+  assert.equal(reader.state(), 'prefix');
+  assert.equal(reader.rowsYielded(), 1);
+  assertReadExplanation(f, failure, reader.attemptId, 1, 'cleanup_unknown');
+});
