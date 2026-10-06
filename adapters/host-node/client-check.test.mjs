@@ -3333,6 +3333,12 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.equal(stale.observation.report.verdict, 'invalid');
     }
     assert.deepEqual(JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [input]})), json);
+    let reads = 0;
+    const changing = {...input, get text() { return ++reads <= 2 ? input.text : ' '.repeat(21); }};
+    const owned = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [changing]}));
+    assert.deepEqual(owned.entries[0].location.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}}, '[check-mutation:format-owned-input]');
+
     for (const format of ['text', 'html', 'json']) {
       const views = [];
       for (const configuration of [configurations.absent, configurations.denied]) {

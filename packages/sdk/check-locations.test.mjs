@@ -147,3 +147,15 @@ test('structured check pointers refuse stale revisions, changed inputs and copie
   assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
   assert.equal(resolveCheckLocation(outcome, {...location, revision: undefined}), undefined);
 });
+
+
+test('resolved check locations return the owned input after validating a matching current input', async t => {
+  const {outcome, location} = await checkedInput(t, 'é😀', 6);
+  const original = getCheckInput(outcome, 'source');
+  const current = {...original};
+  const resolved = resolveCheckTextRange(outcome, location, current);
+  assert.equal(resolved.input, original, '[check-mutation:location-owned-input]');
+  current.text = 'edited';
+  assert.equal(resolved.input.text, 'é😀');
+  assert.equal(Object.isFrozen(resolved.input), true);
+});

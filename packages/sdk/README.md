@@ -746,6 +746,8 @@ fragment; do not reinterpret its escaped strings as markup.
 Locations require the exact SDK response's original input association. Copied
 reports still display safe explanations but omit positions. For a current editor,
 pass `currentInputs` explicitly: missing, edited or stale revisions omit positions.
+Matching current inputs validate freshness; resolved locations use the SDK-owned
+immutable submitted snapshot, so later reads cannot switch to caller-mutated text.
 An absent option displays coordinates of the submitted revision only, never an
 assumed latest editor buffer. Text locations include original UTF-8 offsets and,
 when representable, the existing UTF-16 range. Structured pointers remain separate.

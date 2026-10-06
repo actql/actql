@@ -215,14 +215,14 @@ export function resolveCheckLocation(outcome, location, currentInput) {
         JSON.stringify(input.value) !== JSON.stringify(original.value))) return undefined;
   if (location.kind === 'structured') {
     if (!structuredNodeExists(original.value, location.pointer)) return undefined;
-    return Object.freeze({...location, input});
+    return Object.freeze({...location, input: original});
   }
   const bytes = utf8.encode(original.text);
   const boundary = at => Number.isSafeInteger(at) && at >= 0 && at <= bytes.length &&
     (at === bytes.length || (bytes[at] & 0xc0) !== 0x80);
   if (!boundary(location.start_byte) || !boundary(location.end_byte) ||
       location.start_byte > location.end_byte) return undefined;
-  return Object.freeze({...location, input,
+  return Object.freeze({...location, input: original,
     text: new TextDecoder('utf-8', {fatal: true, ignoreBOM: true})
       .decode(bytes.subarray(location.start_byte, location.end_byte))});
 }
