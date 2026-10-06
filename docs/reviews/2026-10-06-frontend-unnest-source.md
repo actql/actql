@@ -87,7 +87,8 @@ node scripts/check-actql-spec-family.mjs
 
 - Selected JS: 12/12, `run-rDEwK4`, `focused-test-v7Lfbf`.
 - Selected Node: 5/5, `run-0FkMs8`, `focused-test-1FV9Dz`.
-- Compilation, document metadata and canonical JSON freshness passed.
+- Compilation, document metadata, canonical JSON and spec-family freshness
+  passed; spec-family reports `conformance:false`, not overall conformance.
 - `moon info src/query_syntax` regenerated the public interface; changed
   MoonBit files were formatted.
 - A prior existing-build JSON preparation probe accepted the independent
@@ -95,7 +96,44 @@ node scripts/check-actql-spec-family.mjs
   previously built bridge, not a clean rebuild or public runtime execution;
   it is diagnostic evidence only.
 
-Fresh packed Local/HTTPS acceptance remains to be run on a clean committed
-revision. Full Core, Wasm/native, proof, performance and complete packed
-campaigns were not run locally. CI and content review are separate requirements;
-no merge is performed by B.
+## Fresh packed public acceptance
+
+Runtime/fixture revision: `fd6aa6885349cf427548db596a4a048f6c67b2ac`.
+All compiled inputs were committed before ordinary `prepack`; no adapter
+overlay, modified manifest, extra runtime owner or lowered-Program patch was
+used. Untracked review evidence is retained separately from compiled inputs.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-unnest-source-pack-IX9rKk
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-unnest-source-pack-IX9rKk \
+  node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+The commands ran sequentially under the shared heavy guard, `run-AWkkVx`.
+External Embedded Local and HTTPS each completed 8 successes (7 source cases
+and one independent JSON control) and 7 preparation refusals. The existing
+harness compared Named Result rows and describe columns/nullable contracts,
+checked attach and same-request resubmission, and observed no Source I/O.
+Preparation refusals left accepted Run and provider I/O counters unchanged.
+No test ceiling or expected row/schema was relaxed. The ordinary README
+quickstart and packed consumer's prerequisite profile checks also passed.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-3KM7N1/summary.json`,
+`008.result.json`, `008.stdout.log` and `008.stderr.log`. The receipt reports
+`status:passed`, `complete:true`; the consumer-owned temporary installation was
+removed after evidence capture. The retained manifest fixes these tarball
+SHA-256 digests:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `68e1aa6b3539f5833630693a5a10e084f61a2ab7f4e2e4f978722a33ce6e9e90` |
+| sdk | `490c059f055124c8f32771f214d6bbb1b0b4bf8dd71a6e58f63eb985401e6359` |
+| run-host-core | `6e51ac81bd4158b9d68000c5296a600bb014af224bf8d6a9c013ff8ab522e09d` |
+| local-node | `fced038f6eb5091e24946021c87f3f70507a0abad6abc484f6c1bd6528e14320` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Any subsequent report-only commit does not relabel this tested revision as a
+new-SHA execution. Full Core, Wasm/native, proof, performance and complete
+packed campaigns were not run locally. Direct star, array constructor literal,
+implicit/correlated expansion and complete ARRAY/STRUCT semantics remain open.
+CI and content review are separate requirements; no merge is performed by B.
