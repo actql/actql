@@ -13,6 +13,8 @@ import {effectTargetReadContinuation} from './effect-target-read-continuation.mj
 import {canonicalJson} from './local-account-config.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
+import {createInstalledEffectSite} from './installed-effect-site.mjs';
+import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const reviewer = generateKeyPairSync('ed25519');
@@ -26,7 +28,7 @@ const inventory = ['Account', 'Contact'].map((resource, index) => ({
   readTuple: {connection: 'crm', resource, operation: 'read'},
   physicalBinding: {version: 'fixture-target/0.1', resource, mapping: cid(String(index + 1))},
 }));
-async function fixture(t) {
+async function fixture(t, decisionOptions = {}) {
   const scratch = new URL('../../_build/client-effect-target-checkpoints/', import.meta.url);
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch.pathname, 'host-'));
@@ -40,6 +42,7 @@ async function fixture(t) {
         context: {principal: 'owner', contextCid: cid('5')}},
       contractControl: runtimeCore(moon).publicationControl, now: () => clock,
       authorization: {accountConfiguration: configuration, resumeAfterAnswer: false,
+        ...decisionOptions,
         reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
           principalId: 'reviewer', publicKey: pem(reviewer.publicKey)}],
         reviewReaders: ['reviewer'], hostKey: {keyId: 'host-key', privateKey: pem(host.privateKey)}}});
@@ -289,3 +292,40 @@ for (const variant of ['exact', 'legacy-ascii', 'legacy-nfc', 'legacy-decomposed
     assert.equal(resumed.sends, 0);
   });
 }
+
+test('pending target decision keeps dispatch custody after timeout and revocation', async t => {
+  let settle;
+  const pendingDecision = new Promise(resolve => { settle = resolve; });
+  let started;
+  const decisionStarted = new Promise(resolve => { started = resolve; });
+  let decisionSignal;
+  const f = await fixture(t, {decisionTimeoutMs: 5,
+    decide(_view, {signal}) { decisionSignal = signal; started(); return pendingDecision; }});
+  const checkpoints = await f.open();
+  const targetReads = await f.owner(checkpoints);
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured() { assert.fail('No capture before target approval'); },
+    prepareRecovered() { assert.fail('No repeated computation'); }});
+  const dispatch = installNodeClientDispatchOwner({});
+  const ref = {runDefinitionCid: cid('6')};
+  const stopped = [];
+  const operation = dispatch.track(ref, {observeStopped: outcome => stopped.push(outcome),
+    run: context => site.execute({...context, targetReads,
+      openComputation() { assert.fail('No computation before target approval'); }})});
+  t.after(async () => { settle({decision: 'deny'}); await new Promise(setImmediate);
+    await dispatch.drain(); });
+  await decisionStarted;
+  await assert.rejects(operation, {code: 'ExecutionAuthorizationDecisionFailed'});
+  assert.equal(decisionSignal.aborted, true, 'revocation is immediate');
+  assert.deepEqual(stopped, [], 'a timed-out callback still has physical custody');
+  assert.notEqual(dispatch.operation(ref), undefined);
+  assert.equal(targetReads.cleanupPending(), true);
+  await assert.rejects(dispatch.drain(), {code: 'ClientDispatchCleanupPending'});
+  assert.deepEqual(stopped, []);
+  settle({decision: 'deny'});
+  await new Promise(setImmediate);
+  await dispatch.drain();
+  assert.equal(targetReads.cleanupPending(), false);
+  assert.deepEqual(stopped, ['failed']);
+  assert.equal(dispatch.operation(ref), undefined);
+});

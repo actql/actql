@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import './effect-cleanup-composition.test.mjs';
+import './effect-authorization-cleanup.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
@@ -215,7 +217,7 @@ test('installed Effect releases its consumer pins before Compute reclamation', a
   assert.equal(await retained.cleanup(), true);
   assert.equal(await retained.cleanup(), true);
   assert.deepEqual(order, ['pins-release', 'compute-close', 'compute-cleanup',
-    'stage-dispose', 'compute-cleanup']);
+    'stage-dispose']);
 });
 
 for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
