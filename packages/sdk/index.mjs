@@ -92,7 +92,7 @@ export function getCheckRequirementFrontier(outcome) {
   const report = outcome.report;
   // These are the currently exposed typed Requirements. Unknown obligations
   // cannot supply a structural admission condition for supplementation.
-  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  if (report.omissions?.requirements || report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
   const frontier = freezeInput({contextRef: report.context_ref,
     reasonSchemaCid: outcome.reason_schema_cid,
     scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
@@ -431,7 +431,8 @@ export function createCheckDocumentSession(client, options) {
 export function explainCheckOutcome(outcome, options) {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = (report, completeness) => ({completeness,
-    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref,
+    ...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})});
   if (outcome.outcome === 'completed') {
     const explanations = {
       invalid: ['The report establishes an input violation in its checking scope.',
@@ -532,7 +533,11 @@ export function formatCheckOutcome(outcome, options) {
       'Correlation: ' + checkDisplayString(observation.correlationRef) :
       'Scope: ' + observation.report.scope.kind + '; context_ref: ' + checkDisplayString(observation.report.contextRef);
     const omitted = rows.length - entries.length;
-    const suffix = omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '';
+    const suffix = [omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '',
+      report?.omissions?.requirements ? localizeCheck('omissions.requirements',
+        ['The Host omitted some known input requirements; no omitted count is exposed.',
+          'The verdict still covers the original scope; this requirement list is not a complete supplementation frontier.'],
+        {locale: presentation.locale}).join(' ') : ''].filter(Boolean).join(' ');
     if (format === 'html') return '<section><h2>' + checkHtml(heading) + '</h2><p>' +
       checkHtml(observation.hint) + '</p><p>' + checkHtml(binding) + '</p><ol>' + entries.map(entry => '<li>' +
         checkHtml(line(entry)) + '</li>').join('') + '</ol><p>' + checkHtml(suffix) + '</p></section>';

@@ -717,3 +717,17 @@ test('independent binding JSON reasons require owned documents and closed parser
     }
   }
 });
+
+
+test('Requirement omissions are closed, non-verifying and reject preceding outcome pins', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/check-requirement-omissions.invalid.json', import.meta.url), 'utf8'));
+  assert.equal(validCheckOutcome(fixture), true);
+  for (const omissions of [{requirements: false}, {requirements: true, count: 512}, {requirements: true, reasons: true}]) {
+    assert.equal(validCheckOutcome({...fixture, report: {...fixture.report, omissions}}), false);
+  }
+  assert.equal(validCheckOutcome({...fixture, report: {...fixture.report, verdict: 'verified', reasons: [],
+    coverage: {limits: [], unresolved: []}}}), false);
+  assert.equal(validCheckOutcome({...fixture, outcome_schema_cid:
+    'sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c'}), false,
+  '[check-mutation:omissions-old-pin]');
+});

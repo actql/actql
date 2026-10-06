@@ -1210,6 +1210,7 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   sdkConnectInProcess = connectInProcess,
   localAuthenticate = () => owner,
   maxRequestBytes = 65536,
+  reportContextOverflow = false,
   mutateCheckReply,
   mutateCheckTransportReply, mutateUnavailable,
   profiles = [false, false, true, true, false, false, false]} = {}) {
@@ -1221,12 +1222,16 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
   if (authorization) t.after(() => authorization.close());
   if (closed) authorization.close();
-  const observedMoon = observations ? {...moon,
+  const observedMoon = observations || reportContextOverflow ? {...moon,
     clientProgramCheckSource: (...args) => {
-      observations.analysis++; return moon.clientProgramCheckSource(...args);
+      if (observations) observations.analysis++;
+      // A reporting-capacity fault at the existing producer: even its minimal
+      // original binding cannot fit the reserved envelope. No second checker.
+      if (reportContextOverflow) args[6] = 'ctx:' + 'x'.repeat(65536);
+      return moon.clientProgramCheckSource(...args);
     },
     clientProgramCheckUnavailable: (...args) => {
-      observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
+      if (observations) observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
     },
   } : moon;
   const check = installNodeClientCheck({moon: observedMoon, environment: admitted, contextKey,
@@ -1521,7 +1526,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.6'});
+        {locale: 'ja', translationRevision: '2026-10-07.ja.7'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -1632,7 +1637,7 @@ for (const entrance of ['local', 'http']) {
   });
 
   test(`${entrance}: check Problems retain opaque attempt correlation`, async t => {
-    const client = await contextClient(t, entrance, absentEnvironment);
+    const client = await contextClient(t, entrance, absentEnvironment, {reportContextOverflow: true});
     const parameterDeclarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
     const options = {format: 'sql', parameterDeclarations, parameters: {}};
@@ -1662,6 +1667,7 @@ for (const entrance of ['local', 'http']) {
     for (const failed of [false, true]) {
       for (const mutation of ['missing', 'different']) {
         const client = await contextClient(t, entrance, absentEnvironment, {
+          reportContextOverflow: failed,
           mutateCheckTransportReply(outcome) {
             assert.equal(outcome.outcome, failed ? 'failed' : 'completed');
             assert.equal(outcome.reason_schema_cid, checkReasonSchemaCid);
@@ -1685,9 +1691,9 @@ for (const entrance of ['local', 'http']) {
 
   test(`${entrance}: check outcome explanations preserve reporting boundaries`, async t => {
     const client = await contextClient(t, entrance, absentEnvironment,
-      {maxRequestBytes: 262144});
-    // Independent input count: the declarations fit input/analysis bounds,
-    // while 512 missing-value explanations exceed the reserved report budget.
+      {maxRequestBytes: 262144, reportContextOverflow: true});
+    // The separately reserved minimal envelope is deliberately unavailable.
+    // Analysis still runs once through the existing checker.
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
     const unbounded = await client.check('SELECT 1 AS n', {format: 'sql',
@@ -1705,6 +1711,7 @@ for (const entrance of ['local', 'http']) {
       hint: 'Ask the checking-context owner to review reporting capacity for the original checking scope.'},
     '[check-mutation:check-outcome-explanation]');
 
+    const ordinaryCases = await contextClient(t, entrance, absentEnvironment);
     for (const [text, options, verdict, summary, hint] of [
       ['SELECT 1 AS n', {}, 'verified',
         'The report verifies only its bound checking scope and context.',
@@ -1717,7 +1724,7 @@ for (const entrance of ['local', 'http']) {
         'The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
     ]) {
-      const outcome = await client.check(text, {format: 'sql', ...options});
+      const outcome = await ordinaryCases.check(text, {format: 'sql', ...options});
       assert.equal(outcome.outcome, 'completed');
       assert.equal(outcome.report.verdict, verdict);
       const expected = {outcome: 'completed', summary, hint,
@@ -1733,7 +1740,8 @@ for (const entrance of ['local', 'http']) {
     }
     const overBudget = `/*${'é'.repeat(32758)}*/SELECT 1 AS n`;
     assert.equal(Buffer.byteLength(overBudget), 65533);
-    const analysis = await client.check(overBudget + '    ', {format: 'sql'});
+    const ordinary = await contextClient(t, entrance, absentEnvironment, {maxRequestBytes: 262144});
+    const analysis = await ordinary.check(overBudget + '    ', {format: 'sql'});
     assert.equal(analysis.outcome, 'completed');
     assert.equal(analysis.report.verdict, 'undetermined');
     assert.deepEqual(analysis.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
@@ -4251,5 +4259,90 @@ for (const entrance of ['local', 'http']) {
       }
       assert.notEqual(references[0], references[1]);
     }
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: bounded Requirement enumeration preserves verdict, scope and protected coverage`, async t => {
+    const observations = {authorization: 0, analysis: 0, unavailable: 0, sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment, {observations});
+    const parameterDeclarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
+      [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
+    const expected = Array.from({length: 128}, (_, i) => ({code: 'parameter_value_required',
+      facts: {parameter: `p${String(i).padStart(3, '0')}`, expected_type: 'number'}}));
+    const options = {format: 'sql', parameterDeclarations, parameters: {}};
+    for (const [text, verdict, reasons] of [
+      ['SELECT 1 AS n', 'undetermined', []],
+      ['SELECT (', 'invalid', [{code: 'query_syntax_invalid'}]],
+    ]) {
+      const before = observations.analysis;
+      const outcome = await client.check(text, options);
+      assert.equal(outcome.outcome, 'completed', '[check-mutation:omissions-public-outcome]');
+      assert.equal(outcome.report.verdict, verdict, '[check-mutation:omissions-public-verdict]');
+      assert.deepEqual(outcome.report.scope, {kind: 'bound_input'});
+      assert.deepEqual(outcome.report.omissions, {requirements: true}, '[check-mutation:omissions-public-summary]');
+      assert.deepEqual(outcome.report.reasons.map(({location, ...reason}) => reason), reasons);
+      assert.deepEqual(outcome.report.requirements.map(({location, ...reason}) => reason), expected,
+        '[check-mutation:omissions-public-prefix]');
+      assert.deepEqual(outcome.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: []});
+      assert.equal(observations.analysis, before + 1, '[check-mutation:omissions-public-once]');
+      assert.ok(Buffer.byteLength(JSON.stringify(outcome)) <= 65536);
+      assert.equal(getCheckInput(outcome, 'source').text, text);
+      const view = sdk.explainCheckOutcome(outcome);
+      assert.deepEqual(view.report.omissions, {requirements: true});
+      assert.equal(view.report.completeness, 'complete');
+      assert.equal(sdk.getCheckRequirementFrontier(outcome), undefined, '[check-mutation:omissions-public-frontier]');
+      assert.equal(sdk.equalCheckRequirementFrontiers(outcome, outcome), undefined);
+      for (const locale of ['en', 'ja']) {
+        const json = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', locale, maxBytes: 1024}));
+        assert.equal(json.observation.report.verdict, verdict);
+        assert.deepEqual(json.observation.report.omissions, {requirements: true});
+        const textView = sdk.formatCheckOutcome(outcome, {locale, maxBytes: 1024});
+        assert.match(textView, locale === 'ja' ? /省略しました/ : /Host omitted/);
+      }
+      if (verdict === 'invalid') {
+        const location = outcome.report.reasons[0].location;
+        const resolved = resolveCheckLocation(outcome, location);
+        assert.deepEqual({kind: resolved.kind, startByte: resolved.start_byte,
+          endByte: resolved.end_byte, originalText: resolved.input.text, span: resolved.text},
+          {kind: 'text', startByte: 8, endByte: 8, originalText: text, span: ''});
+      }
+    }
+    const absent = await contextClient(t, entrance, sourceEnvironment);
+    const denied = await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'});
+    const protectedText = 'SELECT id FROM records';
+    const protectedOutcomes = [];
+    for (const boundary of [absent, denied]) {
+      const outcome = await boundary.check(protectedText, options);
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'undetermined');
+      assert.deepEqual(outcome.report.omissions, {requirements: true});
+      assert.deepEqual(outcome.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      protectedOutcomes.push(outcome);
+    }
+    assert.deepEqual(protectedOutcomes[0], protectedOutcomes[1], '[check-mutation:omissions-public-disclosure]');
+    const session = sdk.createCheckSupplementationSession(client, {maxAttempts: 3});
+    const result = await session.check('SELECT 1 AS n', options);
+    assert.deepEqual(result.decision, {kind: 'stop', reason: 'frontier_unavailable'});
+    const after = observations.analysis;
+    await assert.rejects(session.check('SELECT 1 AS n', options), {code: 'CheckSupplementationStopped'});
+    assert.equal(observations.analysis, after);
+  });
+
+  test(`${entrance}: Requirement byte pressure reduces only enumeration within a reserved budget`, async t => {
+    const observations = {authorization: 0, analysis: 0, unavailable: 0, sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment, {observations});
+    const names = Array.from({length: 128}, (_, i) => `p${String(i).padStart(3, '0')}_${'x'.repeat(235)}`);
+    const parameterDeclarations = Object.fromEntries(names.map(name => [name, {type: 'number'}]));
+    const outcome = await client.check('SELECT 1 AS n', {format: 'sql', parameterDeclarations, parameters: {}});
+    assert.equal(outcome.outcome, 'completed');
+    assert.equal(outcome.report.verdict, 'undetermined');
+    assert.deepEqual(outcome.report.omissions, {requirements: true});
+    assert.deepEqual(outcome.report.requirements.map(reason => reason.facts.parameter), names.slice(0, 64),
+      '[check-mutation:omissions-public-byte-prefix]');
+    assert.ok(Buffer.byteLength(JSON.stringify(outcome)) <= 65536);
+    assert.equal(observations.analysis, 1);
+    assert.deepEqual(outcome.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: []});
   });
 }

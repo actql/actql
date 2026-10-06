@@ -1239,3 +1239,33 @@ This SDK presentation extension changes neither response schemas nor their
 registered CIDs and pins. The generated vocabulary follows the current schema;
 preceding incompatible SDK/Host contracts still reject explicitly. The English
 and Japanese translation revisions advance independently of wire identities.
+
+
+### Reserved reporting and Requirement enumeration
+
+Checking completion is separate from enumeration completion. The existing
+public bridge computes verdict, scope and protected coverage from all projected
+findings. It emits at most 128 known parameter Requirements and can reduce that
+prefix through at most nine independently bounded encoding attempts (128, 64,
+32, 16, 8, 4, 2, 1, 0). Each attempt uses the existing 65,536-byte, 4,096-node,
+depth-16 reporting writer; it does not repeat analysis, parser work or Source
+authorization. Disclosable violations and original document/context bindings
+are never dropped to make a prefix fit. If even that bound report cannot be
+encoded, the separately reserved Problem envelope still returns
+`check_report_unbounded` without a partial report.
+
+The closed public report optionally carries `omissions: {requirements: true}`
+when this enumeration excludes already-public known input obligations. The
+summary contains no count and is independent of inaccessible Source details.
+It cannot accompany `verified`; missing values preserve bound-input scope and
+undetermined, unless an independent public violation establishes invalidity.
+An invalid report retains its disclosed violation. This changes only the
+`actql-check-outcome/0.1` schema body/CID and its dependent pins, generated wire
+and consumers; reason schema/catalog meaning and legacy diagnostics remain
+separate. Mixed outcome identities reject explicitly, without an adapter.
+
+SDK explanation retains the typed omissions summary independently of completed
+or partial reporting. Renderer omissions describe only the disclosed report,
+not the Host's omitted obligations. A truncated Requirement enumeration cannot
+establish a comparable supplementation frontier. Display locale/wording never
+changes the original scope, verdict, input revision or action permission.
