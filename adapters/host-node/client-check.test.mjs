@@ -3349,7 +3349,9 @@ for (const entrance of ['local', 'http']) {
     ];
     const invalid = entrance === 'local'
       ? [NaN, Infinity, -Infinity, -0, new Number(NaN), new Number(-0),
-        {toJSON: () => Infinity}, {toJSON: () => -0}]
+        {toJSON: () => Infinity}, {toJSON: () => -0},
+        Object.assign(new Number(1), {valueOf: () => NaN}),
+        Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]
       : ['-0', '1e309', '-1e309'];
     for (const value of invalid) {
       for (const fixture of fixtures(entrance === 'local' ? value : 'numeric-token')) {

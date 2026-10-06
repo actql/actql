@@ -672,6 +672,10 @@ test('check request snapshots refuse lossy numbers and detach without normalizat
     Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
     assert.throws(() => snapshotCheckRequest({parameters: {x: {nested: [value]}}}), TypeError);
   }
+  let coerced = 0;
+  const number = Object.assign(new Number(1), {valueOf: () => {coerced++; return 3.5;}});
+  assert.deepEqual(snapshotCheckRequest({parameters: {x: number}}), {parameters: {x: 3.5}});
+  assert.equal(coerced, 1);
   const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
     parameters: {'e\u0301/~': [0, null, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]}};
   const copy = snapshotCheckRequest(input);
