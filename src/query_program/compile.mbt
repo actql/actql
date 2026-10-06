@@ -3630,6 +3630,18 @@ pub fn compile(
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
   }
+  if @query.join_part_count(query) > 0 &&
+    join_requires_group_scope(query) &&
+    context.captured_stage is Some(_) {
+    // The Host requested a capture boundary. Reuse the script's existing
+    // producer binding for raw/shared sources and derived-table CTEs, rather
+    // than sending captured inputs to the Values-only standalone JOIN path.
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+    )
+  }
   if @query.cte_count(query) > 0 {
     return compile_cte_query(query, context, limits)
   }

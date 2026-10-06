@@ -44,6 +44,13 @@ No CTE validation, source predicate, assert, Effect, Model original-wire,
 cancellation, capacity derivation, physical strategy, runtime owner or Ledger
 cleanup implementation changes here.
 
+The public Host supplies a captured-source Context. Such grouped JOIN queries
+reuse `compile_query_script(single_query_script(query), ...)` before standalone
+CTE/Values routing. This retains the existing Host capture boundary and its
+shared producer binding. It does not add a capture owner or rewrite any WHERE.
+Source_frontend tests cover Sql and Text formats, one installed source
+declaration, both self-JOIN ports and an ordinary derived right input.
+
 D's published #465 changes were inspected at
 `de3abafc012ca3682d68d63d001e365a2e6cc393`; they were subsequently adopted
 through current main. They contain no overlapping Frontend JOIN edit. The
@@ -78,3 +85,23 @@ stable Run identity and no extra acquisition/acceptance after read/attach/resend
 Validation results and final-SHA package digests are recorded separately in the
 PR body and external evidence. No full Core, all-target, full packed, proof,
 performance or Cloud campaign is claimed by this unit.
+
+## Retained intermediate failure
+
+At clean SHA `5e96a5b7d93ff0eccc7b8d35ee8abcb9819576b7`, normal packing and the
+first fourteen Local cases passed, including the exact original single-JOIN
+counterexample. The following raw shared-Source self-JOIN was refused with
+`ClientProgramUnsupported`; later cases and HTTPS were not reached.
+
+The public `source_frontend.lower` calls `compile`, not the script compiler,
+for a query without DATA. The scoped standalone JOIN path is Values-only and
+refuses the Host's `captured_stage: Some(...)` Context. This additional routing
+gap is addressed by the captured-source dispatch above. It was an input
+preparation refusal, not an accepted Run execution failure.
+
+Logs and normal package identities are retained at
+`worktrees/.codex-scratch/public-query-evidence-PG8MGj` relative to the workspace
+and `/private/tmp/actql-b-single-join-group-pack-hoZdaD/packed-client-packages.json`.
+The harness saved evidence and removed only that run's installation/Stores.
+An initial Source_frontend regression lacked an explicit enum array type and
+failed compilation (`run-xZeTO0`); it is not product counterexample evidence.
