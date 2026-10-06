@@ -719,6 +719,7 @@ priv struct RunningHolder {
   attempt : String
   request : @remote.DispatchRequest
   mut next_report_ms : UInt64
+  mut reported_revision : Int?
 }
 
 ///|
@@ -1549,7 +1550,48 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
               unsettled.push(current)
             }
           }
-          Ok(None) => ()
+          Ok(None) =>
+            if @env.now() >= current.next_report_ms {
+              // A live producer keeps its input until the consumer finishes.
+              // Report its durable progress without treating child exit,
+              // execution settlement, or resource release as equivalent facts.
+              current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+              match fresh_journal(environment) {
+                Some(journal) => {
+                  match journal.require(current.request) {
+                    Ok(record) =>
+                      if current.reported_revision !=
+                        Some(@remote.dispatch_record_revision(record)) {
+                        match
+                          @client.acknowledge_status(
+                            journal,
+                            client,
+                            observation_url,
+                            current.request,
+                          ) {
+                          Ok(Some(observed)) =>
+                            current.reported_revision = Some(
+                              @remote.dispatch_record_revision(observed),
+                            )
+                          Ok(None) => ()
+                          Err(issue) =>
+                            report("observation-pending", [
+                              ("attempt", current.attempt),
+                              ("reason", client_code(issue)),
+                            ])
+                        }
+                      }
+                    Err(_) => ()
+                  }
+                  ignore(journal.close())
+                }
+                None =>
+                  report("observation-pending", [
+                    ("attempt", current.attempt),
+                    ("reason", "journal-open"),
+                  ])
+              }
+            }
           Err(_) => ()
         }
       None => ()
@@ -1655,6 +1697,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                         attempt,
                         request,
                         next_report_ms: 0,
+                        reported_revision: None,
                       })
                       report("holder-started", [
                         ("attempt", attempt),
