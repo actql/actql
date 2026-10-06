@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:61ac74bece5a60e17222391356ace098c82686c4a702a87daef353602db627fe",
+  "artifact_registry_cid": "sha256:6395eaae6b580e40a296a2d8af966f4ae15b61ab1a5c6708e05509b4b2f61d3e",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10668,7 +10668,7 @@
     "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:30e187b2bcfd91b2a993e3b509b7d52cc6785d7d2f285c18c72dcaadf9315705",
+    "executable_plan": "sha256:816633ab2b1d432fd1738a99b08eaa46577f08e3d2b7b1b2509212ebc45f87bb",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -10692,7 +10692,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:8f308beba1e134bb0bbf013f961015a39301ab05dc24d54c0fbfbcddde6eeafa",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:2c209c193fd390ddeae115bf8f9eee9bb37e58729f82e517aac19b16913edc38",
+    "plan_document": "sha256:4d5a7153c991c9624c15dc0236462c229372a57534797a8f51e145857cd3e7d5",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e",
     "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
@@ -34492,246 +34492,144 @@
                         }
                       },
                       "match_nodes": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "fields"
-                            ],
-                            "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "ids": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {}
-                              },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              }
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "fields",
+                          "definition"
+                        ],
+                        "properties": {
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             },
+                            "uniqueItems": true,
+                            "minItems": 1
+                          },
+                          "ids": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {}
+                          },
+                          "where": {
                             "oneOf": [
                               {
-                                "required": [
-                                  "ids"
-                                ],
-                                "not": {
-                                  "required": [
-                                    "where"
-                                  ]
-                                }
+                                "type": "string"
                               },
                               {
-                                "required": [
-                                  "where"
-                                ],
-                                "not": {
-                                  "required": [
-                                    "ids"
-                                  ]
-                                }
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 1
                               }
                             ]
                           },
-                          {
+                          "definition": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "bindings": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "fields",
-                              "definition"
-                            ],
                             "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "ids": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {}
-                              },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              },
-                              "definition": {
+                              "identity": {
                                 "type": "string",
                                 "minLength": 1
-                              },
-                              "label": {
-                                "type": "string",
-                                "minLength": 1
-                              },
-                              "bindings": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "identity": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                }
                               }
-                            },
-                            "oneOf": [
-                              {
-                                "required": [
-                                  "ids"
-                                ],
-                                "not": {
-                                  "required": [
-                                    "where"
-                                  ]
-                                }
-                              },
-                              {
-                                "required": [
-                                  "where"
-                                ],
-                                "not": {
-                                  "required": [
-                                    "ids"
-                                  ]
-                                }
-                              }
-                            ]
+                            }
+                          }
+                        },
+                        "oneOf": [
+                          {
+                            "required": [
+                              "ids"
+                            ],
+                            "not": {
+                              "required": [
+                                "where"
+                              ]
+                            }
+                          },
+                          {
+                            "required": [
+                              "where"
+                            ],
+                            "not": {
+                              "required": [
+                                "ids"
+                              ]
+                            }
                           }
                         ]
                       },
                       "match_edges": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "fields"
-                            ],
-                            "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              }
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "fields",
+                          "definition"
+                        ],
+                        "properties": {
+                          "fields": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "uniqueItems": true,
+                            "minItems": 1
+                          },
+                          "types": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
                             }
                           },
-                          {
+                          "where": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 1
+                              }
+                            ]
+                          },
+                          "definition": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "label": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "bindings": {
                             "type": "object",
                             "additionalProperties": false,
-                            "required": [
-                              "fields",
-                              "definition"
-                            ],
                             "properties": {
-                              "fields": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "uniqueItems": true,
-                                "minItems": 1
-                              },
-                              "types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              },
-                              "definition": {
+                              "identity": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "label": {
+                              "source": {
                                 "type": "string",
                                 "minLength": 1
                               },
-                              "bindings": {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "properties": {
-                                  "identity": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "source": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "target": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  }
-                                }
+                              "target": {
+                                "type": "string",
+                                "minLength": 1
                               }
                             }
                           }
-                        ]
+                        }
                       },
                       "subgraph": {
                         "type": "object",
@@ -34835,470 +34733,255 @@
                         }
                       },
                       "traverse": {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "start",
-                              "emit"
-                            ],
-                            "properties": {
-                              "start": {
-                                "oneOf": [
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "ids"
-                                    ],
-                                    "properties": {
-                                      "ids": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "items": {}
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "from",
-                                      "id"
-                                    ],
-                                    "properties": {
-                                      "from": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "where"
-                                    ],
-                                    "properties": {
-                                      "where": {
-                                        "oneOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "minProperties": 1,
-                                            "maxProperties": 1
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "emit": {
-                                "enum": [
-                                  "nodes",
-                                  "paths"
-                                ]
-                              },
-                              "max_output_rows": {
-                                "oneOf": [
-                                  {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 9007199254740991
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "$param"
-                                    ],
-                                    "properties": {
-                                      "$param": {
-                                        "type": "string",
-                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "direction": {
-                                "enum": [
-                                  "in",
-                                  "out",
-                                  "both"
-                                ]
-                              },
-                              "edge_types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "min_hops": {
-                                "type": "integer",
-                                "minimum": 0
-                              },
-                              "max_hops": {
-                                "type": "integer",
-                                "minimum": 1
-                              },
-                              "hops": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "direction"
-                                  ],
-                                  "properties": {
-                                    "direction": {
-                                      "enum": [
-                                        "in",
-                                        "out",
-                                        "both"
-                                      ]
-                                    },
-                                    "edge_types": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "edge_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    },
-                                    "node_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    }
-                                  }
-                                }
-                              }
-                            },
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "start",
+                          "emit",
+                          "path_mode"
+                        ],
+                        "properties": {
+                          "start": {
                             "oneOf": [
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "hops"
+                                  "ids"
                                 ],
-                                "not": {
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "direction"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "edge_types"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "min_hops"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "max_hops"
-                                      ]
-                                    }
-                                  ]
+                                "properties": {
+                                  "ids": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {}
+                                  }
                                 }
                               },
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "direction",
-                                  "min_hops",
-                                  "max_hops"
+                                  "from",
+                                  "id"
                                 ],
-                                "not": {
-                                  "required": [
-                                    "hops"
-                                  ]
+                                "properties": {
+                                  "from": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": [
+                                  "where"
+                                ],
+                                "properties": {
+                                  "where": {
+                                    "oneOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "object",
+                                        "minProperties": 1,
+                                        "maxProperties": 1
+                                      }
+                                    ]
+                                  }
                                 }
                               }
                             ]
                           },
-                          {
-                            "type": "object",
-                            "additionalProperties": false,
-                            "required": [
-                              "start",
-                              "emit",
-                              "path_mode"
-                            ],
-                            "properties": {
-                              "start": {
-                                "oneOf": [
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "ids"
-                                    ],
-                                    "properties": {
-                                      "ids": {
-                                        "type": "array",
-                                        "minItems": 1,
-                                        "items": {}
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "from",
-                                      "id"
-                                    ],
-                                    "properties": {
-                                      "from": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "id": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "where"
-                                    ],
-                                    "properties": {
-                                      "where": {
-                                        "oneOf": [
-                                          {
-                                            "type": "string"
-                                          },
-                                          {
-                                            "type": "object",
-                                            "minProperties": 1,
-                                            "maxProperties": 1
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "emit": {
-                                "enum": [
-                                  "nodes",
-                                  "paths"
-                                ]
-                              },
-                              "max_output_rows": {
-                                "oneOf": [
-                                  {
-                                    "type": "integer",
-                                    "minimum": 1,
-                                    "maximum": 9007199254740991
-                                  },
-                                  {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "required": [
-                                      "$param"
-                                    ],
-                                    "properties": {
-                                      "$param": {
-                                        "type": "string",
-                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                      }
-                                    }
-                                  }
-                                ]
-                              },
-                              "direction": {
-                                "enum": [
-                                  "in",
-                                  "out",
-                                  "both"
-                                ]
-                              },
-                              "edge_types": {
-                                "type": "array",
-                                "items": {
-                                  "type": "string",
-                                  "minLength": 1
-                                }
-                              },
-                              "min_hops": {
-                                "type": "integer",
-                                "minimum": 0
-                              },
-                              "max_hops": {
-                                "type": "integer",
-                                "minimum": 1
-                              },
-                              "hops": {
-                                "type": "array",
-                                "minItems": 1,
-                                "items": {
-                                  "type": "object",
-                                  "additionalProperties": false,
-                                  "required": [
-                                    "direction"
-                                  ],
-                                  "properties": {
-                                    "direction": {
-                                      "enum": [
-                                        "in",
-                                        "out",
-                                        "both"
-                                      ]
-                                    },
-                                    "edge_types": {
-                                      "type": "array",
-                                      "items": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    },
-                                    "edge_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    },
-                                    "node_where": {
-                                      "oneOf": [
-                                        {
-                                          "type": "string"
-                                        },
-                                        {
-                                          "type": "object",
-                                          "minProperties": 1,
-                                          "maxProperties": 1
-                                        }
-                                      ]
-                                    }
-                                  }
-                                }
-                              },
-                              "path_mode": {
-                                "enum": [
-                                  "walk",
-                                  "trail",
-                                  "acyclic"
-                                ]
-                              },
-                              "edge_where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              },
-                              "node_where": {
-                                "oneOf": [
-                                  {
-                                    "type": "string"
-                                  },
-                                  {
-                                    "type": "object",
-                                    "minProperties": 1,
-                                    "maxProperties": 1
-                                  }
-                                ]
-                              }
-                            },
+                          "emit": {
+                            "enum": [
+                              "nodes",
+                              "paths"
+                            ]
+                          },
+                          "max_output_rows": {
                             "oneOf": [
                               {
-                                "required": [
-                                  "hops"
-                                ],
-                                "not": {
-                                  "anyOf": [
-                                    {
-                                      "required": [
-                                        "direction"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "edge_types"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "min_hops"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "max_hops"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "edge_where"
-                                      ]
-                                    },
-                                    {
-                                      "required": [
-                                        "node_where"
-                                      ]
-                                    }
-                                  ]
-                                }
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 9007199254740991
                               },
                               {
+                                "type": "object",
+                                "additionalProperties": false,
                                 "required": [
-                                  "direction",
-                                  "min_hops",
-                                  "max_hops"
+                                  "$param"
                                 ],
-                                "not": {
-                                  "required": [
-                                    "hops"
-                                  ]
+                                "properties": {
+                                  "$param": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                  }
                                 }
                               }
                             ]
+                          },
+                          "direction": {
+                            "enum": [
+                              "in",
+                              "out",
+                              "both"
+                            ]
+                          },
+                          "edge_types": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "min_hops": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "max_hops": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "hops": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "direction"
+                              ],
+                              "properties": {
+                                "direction": {
+                                  "enum": [
+                                    "in",
+                                    "out",
+                                    "both"
+                                  ]
+                                },
+                                "edge_types": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "edge_where": {
+                                  "oneOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "object",
+                                      "minProperties": 1,
+                                      "maxProperties": 1
+                                    }
+                                  ]
+                                },
+                                "node_where": {
+                                  "oneOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "object",
+                                      "minProperties": 1,
+                                      "maxProperties": 1
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "path_mode": {
+                            "enum": [
+                              "walk",
+                              "trail",
+                              "acyclic"
+                            ]
+                          },
+                          "edge_where": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 1
+                              }
+                            ]
+                          },
+                          "node_where": {
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "minProperties": 1,
+                                "maxProperties": 1
+                              }
+                            ]
+                          }
+                        },
+                        "oneOf": [
+                          {
+                            "required": [
+                              "hops"
+                            ],
+                            "not": {
+                              "anyOf": [
+                                {
+                                  "required": [
+                                    "direction"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "edge_types"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "min_hops"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "max_hops"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "edge_where"
+                                  ]
+                                },
+                                {
+                                  "required": [
+                                    "node_where"
+                                  ]
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "required": [
+                              "direction",
+                              "min_hops",
+                              "max_hops"
+                            ],
+                            "not": {
+                              "required": [
+                                "hops"
+                              ]
+                            }
                           }
                         ]
                       },
@@ -64240,246 +63923,144 @@
                             }
                           },
                           "match_nodes": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "fields"
-                                ],
-                                "properties": {
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true,
-                                    "minItems": 1
-                                  },
-                                  "ids": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {}
-                                  },
-                                  "where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  }
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "fields",
+                              "definition"
+                            ],
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
                                 },
+                                "uniqueItems": true,
+                                "minItems": 1
+                              },
+                              "ids": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {}
+                              },
+                              "where": {
                                 "oneOf": [
                                   {
-                                    "required": [
-                                      "ids"
-                                    ],
-                                    "not": {
-                                      "required": [
-                                        "where"
-                                      ]
-                                    }
+                                    "type": "string"
                                   },
                                   {
-                                    "required": [
-                                      "where"
-                                    ],
-                                    "not": {
-                                      "required": [
-                                        "ids"
-                                      ]
-                                    }
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
                                   }
                                 ]
                               },
-                              {
+                              "definition": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "label": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bindings": {
                                 "type": "object",
                                 "additionalProperties": false,
-                                "required": [
-                                  "fields",
-                                  "definition"
-                                ],
                                 "properties": {
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true,
-                                    "minItems": 1
-                                  },
-                                  "ids": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {}
-                                  },
-                                  "where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  },
-                                  "definition": {
+                                  "identity": {
                                     "type": "string",
                                     "minLength": 1
-                                  },
-                                  "label": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "bindings": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                      "identity": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
                                   }
-                                },
-                                "oneOf": [
-                                  {
-                                    "required": [
-                                      "ids"
-                                    ],
-                                    "not": {
-                                      "required": [
-                                        "where"
-                                      ]
-                                    }
-                                  },
-                                  {
-                                    "required": [
-                                      "where"
-                                    ],
-                                    "not": {
-                                      "required": [
-                                        "ids"
-                                      ]
-                                    }
-                                  }
-                                ]
+                                }
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "ids"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "where"
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "where"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "ids"
+                                  ]
+                                }
                               }
                             ]
                           },
                           "match_edges": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "fields"
-                                ],
-                                "properties": {
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true,
-                                    "minItems": 1
-                                  },
-                                  "types": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
-                                  },
-                                  "where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  }
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "fields",
+                              "definition"
+                            ],
+                            "properties": {
+                              "fields": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "uniqueItems": true,
+                                "minItems": 1
+                              },
+                              "types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
                                 }
                               },
-                              {
+                              "where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              },
+                              "definition": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "label": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "bindings": {
                                 "type": "object",
                                 "additionalProperties": false,
-                                "required": [
-                                  "fields",
-                                  "definition"
-                                ],
                                 "properties": {
-                                  "fields": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    },
-                                    "uniqueItems": true,
-                                    "minItems": 1
-                                  },
-                                  "types": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
-                                  },
-                                  "where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  },
-                                  "definition": {
+                                  "identity": {
                                     "type": "string",
                                     "minLength": 1
                                   },
-                                  "label": {
+                                  "source": {
                                     "type": "string",
                                     "minLength": 1
                                   },
-                                  "bindings": {
-                                    "type": "object",
-                                    "additionalProperties": false,
-                                    "properties": {
-                                      "identity": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "source": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      },
-                                      "target": {
-                                        "type": "string",
-                                        "minLength": 1
-                                      }
-                                    }
+                                  "target": {
+                                    "type": "string",
+                                    "minLength": 1
                                   }
                                 }
                               }
-                            ]
+                            }
                           },
                           "subgraph": {
                             "type": "object",
@@ -64583,470 +64164,255 @@
                             }
                           },
                           "traverse": {
-                            "oneOf": [
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "start",
-                                  "emit"
-                                ],
-                                "properties": {
-                                  "start": {
-                                    "oneOf": [
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "ids"
-                                        ],
-                                        "properties": {
-                                          "ids": {
-                                            "type": "array",
-                                            "minItems": 1,
-                                            "items": {}
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "from",
-                                          "id"
-                                        ],
-                                        "properties": {
-                                          "from": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          },
-                                          "id": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "where"
-                                        ],
-                                        "properties": {
-                                          "where": {
-                                            "oneOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "object",
-                                                "minProperties": 1,
-                                                "maxProperties": 1
-                                              }
-                                            ]
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  "emit": {
-                                    "enum": [
-                                      "nodes",
-                                      "paths"
-                                    ]
-                                  },
-                                  "max_output_rows": {
-                                    "oneOf": [
-                                      {
-                                        "type": "integer",
-                                        "minimum": 1,
-                                        "maximum": 9007199254740991
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "$param"
-                                        ],
-                                        "properties": {
-                                          "$param": {
-                                            "type": "string",
-                                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  "direction": {
-                                    "enum": [
-                                      "in",
-                                      "out",
-                                      "both"
-                                    ]
-                                  },
-                                  "edge_types": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
-                                  },
-                                  "min_hops": {
-                                    "type": "integer",
-                                    "minimum": 0
-                                  },
-                                  "max_hops": {
-                                    "type": "integer",
-                                    "minimum": 1
-                                  },
-                                  "hops": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "required": [
-                                        "direction"
-                                      ],
-                                      "properties": {
-                                        "direction": {
-                                          "enum": [
-                                            "in",
-                                            "out",
-                                            "both"
-                                          ]
-                                        },
-                                        "edge_types": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        },
-                                        "edge_where": {
-                                          "oneOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "object",
-                                              "minProperties": 1,
-                                              "maxProperties": 1
-                                            }
-                                          ]
-                                        },
-                                        "node_where": {
-                                          "oneOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "object",
-                                              "minProperties": 1,
-                                              "maxProperties": 1
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "start",
+                              "emit",
+                              "path_mode"
+                            ],
+                            "properties": {
+                              "start": {
                                 "oneOf": [
                                   {
+                                    "type": "object",
+                                    "additionalProperties": false,
                                     "required": [
-                                      "hops"
+                                      "ids"
                                     ],
-                                    "not": {
-                                      "anyOf": [
-                                        {
-                                          "required": [
-                                            "direction"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "edge_types"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "min_hops"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "max_hops"
-                                          ]
-                                        }
-                                      ]
+                                    "properties": {
+                                      "ids": {
+                                        "type": "array",
+                                        "minItems": 1,
+                                        "items": {}
+                                      }
                                     }
                                   },
                                   {
+                                    "type": "object",
+                                    "additionalProperties": false,
                                     "required": [
-                                      "direction",
-                                      "min_hops",
-                                      "max_hops"
+                                      "from",
+                                      "id"
                                     ],
-                                    "not": {
-                                      "required": [
-                                        "hops"
-                                      ]
+                                    "properties": {
+                                      "from": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      },
+                                      "id": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "where"
+                                    ],
+                                    "properties": {
+                                      "where": {
+                                        "oneOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "object",
+                                            "minProperties": 1,
+                                            "maxProperties": 1
+                                          }
+                                        ]
+                                      }
                                     }
                                   }
                                 ]
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": false,
-                                "required": [
-                                  "start",
-                                  "emit",
-                                  "path_mode"
-                                ],
-                                "properties": {
-                                  "start": {
-                                    "oneOf": [
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "ids"
-                                        ],
-                                        "properties": {
-                                          "ids": {
-                                            "type": "array",
-                                            "minItems": 1,
-                                            "items": {}
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "from",
-                                          "id"
-                                        ],
-                                        "properties": {
-                                          "from": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          },
-                                          "id": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        }
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "where"
-                                        ],
-                                        "properties": {
-                                          "where": {
-                                            "oneOf": [
-                                              {
-                                                "type": "string"
-                                              },
-                                              {
-                                                "type": "object",
-                                                "minProperties": 1,
-                                                "maxProperties": 1
-                                              }
-                                            ]
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  "emit": {
-                                    "enum": [
-                                      "nodes",
-                                      "paths"
-                                    ]
-                                  },
-                                  "max_output_rows": {
-                                    "oneOf": [
-                                      {
-                                        "type": "integer",
-                                        "minimum": 1,
-                                        "maximum": 9007199254740991
-                                      },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": false,
-                                        "required": [
-                                          "$param"
-                                        ],
-                                        "properties": {
-                                          "$param": {
-                                            "type": "string",
-                                            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
-                                          }
-                                        }
-                                      }
-                                    ]
-                                  },
-                                  "direction": {
-                                    "enum": [
-                                      "in",
-                                      "out",
-                                      "both"
-                                    ]
-                                  },
-                                  "edge_types": {
-                                    "type": "array",
-                                    "items": {
-                                      "type": "string",
-                                      "minLength": 1
-                                    }
-                                  },
-                                  "min_hops": {
-                                    "type": "integer",
-                                    "minimum": 0
-                                  },
-                                  "max_hops": {
-                                    "type": "integer",
-                                    "minimum": 1
-                                  },
-                                  "hops": {
-                                    "type": "array",
-                                    "minItems": 1,
-                                    "items": {
-                                      "type": "object",
-                                      "additionalProperties": false,
-                                      "required": [
-                                        "direction"
-                                      ],
-                                      "properties": {
-                                        "direction": {
-                                          "enum": [
-                                            "in",
-                                            "out",
-                                            "both"
-                                          ]
-                                        },
-                                        "edge_types": {
-                                          "type": "array",
-                                          "items": {
-                                            "type": "string",
-                                            "minLength": 1
-                                          }
-                                        },
-                                        "edge_where": {
-                                          "oneOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "object",
-                                              "minProperties": 1,
-                                              "maxProperties": 1
-                                            }
-                                          ]
-                                        },
-                                        "node_where": {
-                                          "oneOf": [
-                                            {
-                                              "type": "string"
-                                            },
-                                            {
-                                              "type": "object",
-                                              "minProperties": 1,
-                                              "maxProperties": 1
-                                            }
-                                          ]
-                                        }
-                                      }
-                                    }
-                                  },
-                                  "path_mode": {
-                                    "enum": [
-                                      "walk",
-                                      "trail",
-                                      "acyclic"
-                                    ]
-                                  },
-                                  "edge_where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  },
-                                  "node_where": {
-                                    "oneOf": [
-                                      {
-                                        "type": "string"
-                                      },
-                                      {
-                                        "type": "object",
-                                        "minProperties": 1,
-                                        "maxProperties": 1
-                                      }
-                                    ]
-                                  }
-                                },
+                              "emit": {
+                                "enum": [
+                                  "nodes",
+                                  "paths"
+                                ]
+                              },
+                              "max_output_rows": {
                                 "oneOf": [
                                   {
-                                    "required": [
-                                      "hops"
-                                    ],
-                                    "not": {
-                                      "anyOf": [
-                                        {
-                                          "required": [
-                                            "direction"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "edge_types"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "min_hops"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "max_hops"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "edge_where"
-                                          ]
-                                        },
-                                        {
-                                          "required": [
-                                            "node_where"
-                                          ]
-                                        }
-                                      ]
-                                    }
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 9007199254740991
                                   },
                                   {
+                                    "type": "object",
+                                    "additionalProperties": false,
                                     "required": [
-                                      "direction",
-                                      "min_hops",
-                                      "max_hops"
+                                      "$param"
                                     ],
-                                    "not": {
-                                      "required": [
-                                        "hops"
-                                      ]
+                                    "properties": {
+                                      "$param": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                                      }
                                     }
                                   }
                                 ]
+                              },
+                              "direction": {
+                                "enum": [
+                                  "in",
+                                  "out",
+                                  "both"
+                                ]
+                              },
+                              "edge_types": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              },
+                              "min_hops": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "max_hops": {
+                                "type": "integer",
+                                "minimum": 1
+                              },
+                              "hops": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "direction"
+                                  ],
+                                  "properties": {
+                                    "direction": {
+                                      "enum": [
+                                        "in",
+                                        "out",
+                                        "both"
+                                      ]
+                                    },
+                                    "edge_types": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string",
+                                        "minLength": 1
+                                      }
+                                    },
+                                    "edge_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    },
+                                    "node_where": {
+                                      "oneOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "object",
+                                          "minProperties": 1,
+                                          "maxProperties": 1
+                                        }
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "path_mode": {
+                                "enum": [
+                                  "walk",
+                                  "trail",
+                                  "acyclic"
+                                ]
+                              },
+                              "edge_where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              },
+                              "node_where": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "minProperties": 1,
+                                    "maxProperties": 1
+                                  }
+                                ]
+                              }
+                            },
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "hops"
+                                ],
+                                "not": {
+                                  "anyOf": [
+                                    {
+                                      "required": [
+                                        "direction"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "edge_types"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "min_hops"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "max_hops"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "edge_where"
+                                      ]
+                                    },
+                                    {
+                                      "required": [
+                                        "node_where"
+                                      ]
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "direction",
+                                  "min_hops",
+                                  "max_hops"
+                                ],
+                                "not": {
+                                  "required": [
+                                    "hops"
+                                  ]
+                                }
                               }
                             ]
                           },
