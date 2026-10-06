@@ -74,6 +74,8 @@ pub fn ranking_max_noninterruptible_value_bytes(RankingExecution) -> Int
 
 pub fn ranking_max_noninterruptible_value_nodes(RankingExecution) -> Int
 
+pub fn ranking_name_offset(RankingExecution) -> Int
+
 pub fn ranking_output_field_slots(RankingExecution) -> Int
 
 pub fn ranking_output_row_units(RankingExecution) -> Int

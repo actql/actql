@@ -106,8 +106,8 @@ fn emit_bound_value(
           }
           pending.push(ObjectRest(entries, fields, 0, escaped, false))
         }
-        // Ordinary Parameter declaration admission excludes vector and Ref.
-        @value.Vector(_) | @value.Reference(_) =>
+        // Ordinary Parameter declarations exclude opaque JSON, vector and Ref.
+        @value.Vector(_) | @value.Reference(_) | @value.JsonData(_) =>
           abort("invalid bound Parameter domain")
       }
     } else {

@@ -7830,13 +7830,194 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "union_graphs",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_composition_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/union.mbt",
+        "symbol": "start_union_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
+        },
+        {
+          "role": "union_positive_work_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union cancellation after positive work keeps shared input custody"
+        },
+        {
+          "role": "union_host_cleanup_failure_retry_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "union_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union reserves independent workspace before the first fold"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "in_flight_cancel": "union_host_delivered_cancel_cleanup",
+          "cleanup": "union_host_cleanup_failure_retry_custody"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+            "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "union_workspace_exact_one_short_before_fold",
+            "one_short_limit": "union_workspace_exact_one_short_before_fold"
+          }
+        }
+      },
+      "environment_tests": [
+        {
+          "role": "union_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph union stops after positive work through the installed Local Host without publishing output"
+        }
+      ]
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "subtract_graphs",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_composition_views("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/union.mbt",
+        "symbol": "start_subtraction_views"
+      },
+      "boundary_tests": [
+        {
+          "role": "subtract_empty_work_exact_one_short_and_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction empty occurrences have independent work seven and one short rejection"
+        },
+        {
+          "role": "subtract_positive_work_cancel_input_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction cancellation after positive work preserves borrowed input custody"
+        },
+        {
+          "role": "subtract_snapshot_source_revocation_reload_cleanup",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction snapshot reload restores retained nodes after independent edge removal"
+        },
+        {
+          "role": "subtract_host_cleanup_failure_retry_custody",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
+          "fixture": "Host subtraction keeps both borrowed occurrences and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "subtract_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_subtraction_wbtest.mbt",
+          "fixture": "property Graph subtraction reserves independent workspace before the first fold"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+          "one_short_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+          "in_flight_cancel": "subtract_host_delivered_cancel_cleanup",
+          "cleanup": "subtract_empty_work_exact_one_short_and_cleanup"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "subtract_empty_work_exact_one_short_and_cleanup",
+            "one_short_limit": "subtract_empty_work_exact_one_short_and_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "subtract_workspace_exact_one_short_before_fold",
+            "one_short_limit": "subtract_workspace_exact_one_short_before_fold"
+          }
+        }
+      },
+      "environment_tests": [
+        {
+          "role": "subtract_host_delivered_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": [
+            "node"
+          ],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "Graph subtraction stops after positive work through the installed Local Host without publishing output"
+        }
+      ]
     },
     {
       "inventory": "families",
@@ -9409,6 +9590,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/normalize_wbtest.mbt",
           "fixture": "normalize observes cancellation between component work units"
+        },
+        {
+          "role": "normalize_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "normalize_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "normalize_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "normalize_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
         }
       ],
       "environment_tests": [
@@ -9418,6 +9627,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-normalize"
+        },
+        {
+          "role": "normalize_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Normalize publishes and cancels inside provisional record emission"
         },
         {
           "role": "installed_retained_vectors_named_results",
@@ -9510,6 +9726,41 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/score_wbtest.mbt",
           "fixture": "score observes cancellation between bounded work units"
+        },
+        {
+          "role": "score_record_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score record emission has independent cumulative boundaries"
+        },
+        {
+          "role": "score_record_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score keep provisional record custody until confirmed stop"
+        },
+        {
+          "role": "score_role_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score reference names yield before consuming long roles"
+        },
+        {
+          "role": "score_unused_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Normalize and Score yield while emitting an unused nested Array column"
+        },
+        {
+          "role": "score_key_stop_order",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/vector_record_steps_wbtest.mbt",
+          "fixture": "Score typed Text identity validation and ties keep bounded cursors"
         }
       ],
       "environment_tests": [
@@ -9519,6 +9770,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-score"
+        },
+        {
+          "role": "score_record_public_store",
+          "suite": "node:embedded_vector_records",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-vector-record-retention.test.mjs",
+          "fixture": "public retained Score publishes and cancels inside provisional record emission"
         }
       ],
       "path_assurance": {
@@ -10051,11 +10309,11 @@
           "fixture": "typed Object name recheck steps before visiting the child"
         },
         {
-          "role": "pool_json_name_canonical_refusal",
+          "role": "pool_object_identifier_json_data_separation",
           "suite": "moon:value_admission",
           "targets": ["js", "wasm", "native"],
           "path": "src/value_admission/recheck_object_names_wbtest.mbt",
-          "fixture": "runtime JSON names retain the canonical identifier refusal"
+          "fixture": "Object identifier refusal stays separate from opaque JSON member data"
         },
         {
           "role": "pool_output_record_limits",
@@ -10518,6 +10776,34 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/value_admission/recheck_nested_steps_wbtest.mbt",
           "fixture": "runtime JSON recheck yields within nested data Text without normalization"
+        },
+        {
+          "role": "ranking_name_match_common",
+          "suite": "moon:relation_schema",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/relation_schema/reference_steps_wbtest.mbt",
+          "fixture": "reference spelling fragments retain raw UTF16 and virtual qualification"
+        },
+        {
+          "role": "ranking_name_match_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching retains input and output scan custody"
+        },
+        {
+          "role": "ranking_name_match_wide_overlap",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking reference matching bounds wide and overlapping role lists"
+        },
+        {
+          "role": "ranking_name_match_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/ranking_name_matching_wbtest.mbt",
+          "fixture": "ranking public name barrier has independent work workspace and stop custody"
         }
       ],
       "environment_tests": [
@@ -10555,6 +10841,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
           "fixture": "public retained ranking publishes and cancels inside unused array recheck"
+        },
+        {
+          "role": "ranking_name_match_public_store",
+          "suite": "node:embedded_ranking_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-ranking-key-retention.test.mjs",
+          "fixture": "public retained ranking publishes and cancels inside reference name matching"
         }
       ],
       "path_assurance": {

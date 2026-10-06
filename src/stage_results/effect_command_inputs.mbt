@@ -280,11 +280,16 @@ pub fn bind_effect_command_inputs(
       } else {
         let literal = @decode.lookup(wrapper, "literal").unwrap()
         let (checked, used_nodes, used_text) = match
-          @value.admit_usage(contract, literal, {
-            max_nodes: Int::min(nodes.val, work.val),
-            max_depth: limits.max_depth,
-            max_text_bytes: text.val,
-          }) {
+          @value.admit_usage(
+            contract,
+            literal,
+            {
+              max_nodes: Int::min(nodes.val, work.val),
+              max_depth: limits.max_depth,
+              max_text_bytes: text.val,
+            },
+            authored_fields=true,
+          ) {
           Ok(value) => value
           Err(@value.ValueIssue(@value.BudgetExceeded, ..)) =>
             return Err(command_input_issue(WorkLimit, header))

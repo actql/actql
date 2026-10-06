@@ -917,6 +917,8 @@ export function validateResourceAccounting({
           'adapters/host-node/public-nearest-key-retention.test.mjs',
         'node:embedded_ranking_keys':
           'adapters/host-node/public-ranking-key-retention.test.mjs',
+        'node:embedded_vector_records':
+          'adapters/host-node/public-vector-record-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -925,6 +927,12 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:embedded_vector_records' &&
+          !fs.readFileSync(path.join(root,
+            'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+            .includes("import './public-vector-record-retention.test.mjs';")) {
+        fail(`${label}: vector record public fixture is not suite-connected`);
+      }
       if (item.suite === 'node:embedded_distinct_values' &&
           !fs.readFileSync(path.join(root,
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
@@ -1380,7 +1388,7 @@ export function validateResourceAccounting({
         'pool_record_contract_pair_limits', 'pool_record_contract_binding',
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
         'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
-        'pool_object_name_shared_limits', 'pool_json_name_canonical_refusal',
+        'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
         'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
         'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -1480,6 +1488,14 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('ranking_input_public_store')) {
         fail(`${label}: ranking input public Store fixture is missing`);
+      }
+      for (const role of ['ranking_name_match_common',
+        'ranking_name_match_limits_stop', 'ranking_name_match_wide_overlap',
+        'ranking_name_match_public_barrier']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_name_match_public_store')) {
+        fail(`${label}: ranking name matching public Store fixture is missing`);
       }
     }
     const sharedRules = route.shared_resource_rule ?? {};
@@ -1926,6 +1942,47 @@ export function validateResourceAccounting({
       !boundaryRoles.has('subgraph_false_edge_work_workspace_exact_one_short')) {
       fail(`${label}: false-edge work/workspace fixture is missing`);
     }
+    if (route.family === 'VecA' &&
+        ['normalize_vectors', 'score_vectors'].includes(route.operation)) {
+      const prefix = route.operation === 'normalize_vectors' ? 'normalize' : 'score';
+      const expected = [
+        ['record_limits', 'Normalize and Score record emission has independent cumulative boundaries'],
+        ['record_stop', 'Normalize and Score keep provisional record custody until confirmed stop'],
+        ['role_stop', 'Normalize and Score reference names yield before consuming long roles'],
+        ['unused_stop', 'Normalize and Score yield while emitting an unused nested Array column'],
+        ...(prefix === 'score' ? [
+          ['key_stop_order', 'Score typed Text identity validation and ties keep bounded cursors'],
+        ] : []),
+      ];
+      for (const [suffix, fixture] of expected) {
+        const role = `${prefix}_${suffix}`;
+        const item = (route.boundary_tests ?? []).find(item => item.role === role);
+        if (item?.path !== 'src/local_veca/vector_record_steps_wbtest.mbt' ||
+            item?.fixture !== fixture || item?.suite !== 'moon:local_veca') {
+          fail(`${label}: ${role} stepped fixture is missing`);
+        }
+      }
+      const publicEvidence = (route.environment_tests ?? []).find(item =>
+        item.role === `${prefix}_record_public_store`);
+      const labelName = prefix === 'score' ? 'Score' : 'Normalize';
+      if (publicEvidence?.suite !== 'node:embedded_vector_records' ||
+          publicEvidence?.fixture !==
+            `public retained ${labelName} publishes and cancels inside provisional record emission`) {
+        fail(`${label}: stepped record public Store fixture is missing`);
+      }
+      const kernel = fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8');
+      if (!kernel.includes('@records.start_record_append(') ||
+          !kernel.includes('@records.advance_record_append(') ||
+          !kernel.includes('@records.cleanup_record_append(') ||
+          kernel.includes('@records.append_record(') ||
+          !kernel.includes('@storage.append_workspace_slots(') ||
+          !kernel.includes('@schema.compare_reference_fragment(') ||
+          (prefix === 'score' &&
+            (!kernel.includes('@value.start_bounded_key_comparison(') ||
+             !kernel.includes('@value.advance_bounded_key_comparison(')))) {
+        fail(`${label}: stepped record/name/key production connection is missing`);
+      }
+    }
     if (route.family === 'VecA' && route.operation === 'normalize_vectors') {
       for (const role of [
         'normalize_control_work_exact_one_short',
@@ -2184,6 +2241,11 @@ export function validateResourceAccounting({
       }[route.operation];
       if (structuralRole && !boundaryRoles.has(structuralRole)) {
         fail(`${label}: structural Graph cumulative-work evidence is missing`);
+      }
+      if (route.operation === 'union_graphs' &&
+        (!boundaryRoles.has('union_positive_work_cancel_cleanup') ||
+          !boundaryRoles.has('union_host_cleanup_failure_retry_custody'))) {
+        fail(`${label}: union positive-work cancellation and cleanup evidence is missing`);
       }
     }
     if (route.family === 'VecAExpression') {

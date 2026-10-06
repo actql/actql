@@ -56,7 +56,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
   ).unwrap()
   let mut terminal = false
   let mut charged = 0L
-  for _ in 0..<80 {
+  for _ in 0..<128 {
     if !terminal {
       match @local_veca.advance_nearest(active, 1).unwrap() {
         @local_veca.NearestContinue(work~, ..) => {

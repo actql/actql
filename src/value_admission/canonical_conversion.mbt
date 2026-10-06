@@ -22,6 +22,7 @@ priv enum CanonicalConversionFrame {
   )
   ArrayAppend(ArrayBuilder)
   ObjectAppend(ObjectBuilder, String)
+  JsonEnd
 }
 
 ///|
@@ -35,6 +36,7 @@ struct CanonicalConversion {
   mut value : Value?
   mut failed : Bool
   mut cancelled : Bool
+  wire : Bool
 }
 
 ///|
@@ -49,6 +51,7 @@ pub fn start_canonical_conversion(
   value : @identity.CanonicalValue,
   limits : Limits,
   contract? : @contract.Contract? = None,
+  wire? : Bool = false,
 ) -> CanonicalConversion? {
   if limits.max_nodes < 1 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return None
@@ -61,6 +64,7 @@ pub fn start_canonical_conversion(
     value: None,
     failed: false,
     cancelled: false,
+    wire,
   })
 }
 
@@ -128,14 +132,27 @@ fn conversion_frame(
         return false
       }
       cursor.nodes += 1
-      let expected = match expected {
-        Some(contract) =>
-          if contract.shape is @contract.Json {
-            None
-          } else {
-            Some(contract)
+      if expected is Some(contract) && contract.shape is @contract.Json {
+        if value is @identity.Null {
+          if !contract.nullable {
+            return false
           }
-        None => None
+          cursor.value = Some(Null)
+          return true
+        }
+        let payload = if cursor.wire {
+          guard @identity.object_field_count(value) == Some(1) &&
+            @identity.object_field(value, "$json") is Some(payload) else {
+            return false
+          }
+          payload
+        } else {
+          value
+        }
+        cursor.nodes -= 1
+        cursor.pending.push(JsonEnd)
+        cursor.pending.push(Visit(payload, depth, None))
+        return true
       }
       if !(value is @identity.Array(_)) &&
         !(value is @identity.Object(_)) &&
@@ -159,7 +176,7 @@ fn conversion_frame(
           if !conversion_text(cursor, text) {
             return false
           }
-          // Admission already normalized and validated this immutable text.
+          // Admission already validated this immutable data text.
           cursor.value = Some(Text(text))
         }
         @identity.Array(items) => {
@@ -219,7 +236,7 @@ fn conversion_frame(
                 _ => return false
               }
           }
-          guard prepare_object_value(count) is Some(builder) else {
+          guard prepare_object_value(count, data_keys=true) is Some(builder) else {
             return false
           }
           cursor.value = None
@@ -302,6 +319,11 @@ fn conversion_frame(
       cursor.value = None
       append_object_field(builder, name, value)
     }
+    JsonEnd => {
+      guard cursor.value is Some(payload) else { return false }
+      cursor.value = Some(JsonData(payload))
+      true
+    }
   }
 }
 
@@ -339,7 +361,7 @@ pub fn cancel_canonical_conversion(cursor : CanonicalConversion) -> Unit {
       ObjectNext(_, builder, _, _, _) | ObjectAppend(builder, _) =>
         cancel_object_value(builder) |> ignore
       VectorNext(_, builder, _) => cancel_vector_value(builder) |> ignore
-      Visit(_, _, _) => ()
+      Visit(_, _, _) | JsonEnd => ()
     }
   }
   cursor.pending.clear()

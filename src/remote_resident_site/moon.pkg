@@ -2,6 +2,11 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/remote_site_protocol" @remote,
+  "actql/actql/remote_transfer" @transfer,
   "actql/actql/run_publication" @publication,
   "actql/actql/run_publication_host" @host,
 }
+
+import {
+  "actql/actql/physical_manifest" @manifest,
+} for "test"

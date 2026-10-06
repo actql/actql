@@ -80,7 +80,7 @@ fn Parser::parse_string(
     if unit == 0x22 {
       ignore(self.advance_scalar(path))
       let text = output.to_string()
-      let decoded = if key && self.normalize_text {
+      let decoded = if key && self.normalize_key() {
         match @canonical.normalize_nfc_lf(text) {
           Ok(value) => value
           Err(_) => self.fail(InvalidUnicodeEscape, path)
@@ -181,6 +181,9 @@ fn Parser::parse_number(
     }
   }
   let number = self.read_binary64(start_offset, path)
+  if self.literal_json {
+    self.check_json_number_precision(start_offset, number, path)
+  }
   { value: Number(number), span: self.span(start), }
 }
 

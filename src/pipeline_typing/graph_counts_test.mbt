@@ -67,7 +67,7 @@ test "explicit empty keyed node universe excludes edges without importing edge c
 
 ///|
 test "unsupported structural counts cannot propagate invented extents into current MATCH" {
-  for name in ["union_graphs", "graft_graph", "subtract_graphs"] {
+  for name in ["graft_graph"] {
     let issue = @pipeline_typing.check_carriers(
       cursor(
         "[" +
@@ -83,5 +83,68 @@ test "unsupported structural counts cannot propagate invented extents into curre
     ).unwrap_err()
     assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
     assert_eq(issue.path, [Index(3), Key(name)])
+  }
+}
+
+///|
+test "supported union structural counts include repeated occurrences without inventing exact extents" {
+  for n in [0, 3] {
+    let pipeline = graph_count_checked(
+      @pipeline_typing.check_carriers(
+        cursor(
+          "[" +
+          keyed_graph_count_prefix(n, 3) +
+          ",{\"from\":\"g\",\"union_graphs\":{\"with\":\"g\"},\"as\":\"combined\"}" +
+          ",{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}" +
+          ",{\"from\":\"combined\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"element\"},\"fields\":[\"element\"]}}]",
+        ),
+        [],
+        None,
+        None,
+        limits(),
+      ),
+    )
+    let result = @pipeline_typing.graph_count(pipeline, Step(3)).unwrap()
+    let nodes = 2L * n.to_int64()
+    let edges = if n == 0 { 0L } else { 6L }
+    assert_eq(result.nodes.unwrap().upper, nodes)
+    assert_eq(result.edges.unwrap().upper, edges)
+    assert_eq(result.nodes.unwrap().exact, n == 0)
+    assert_eq(result.edges.unwrap().exact, n == 0)
+    assert_true(@pipeline_typing.row_count(pipeline, Step(3)) is None)
+    assert_count(pipeline, 4, nodes, n == 0)
+    assert_count(pipeline, 5, edges, n == 0)
+  }
+}
+
+///|
+test "subtraction structural counts retain left upper bounds rather than assuming self annihilation" {
+  for n in [0, 3] {
+    let pipeline = graph_count_checked(
+      @pipeline_typing.check_carriers(
+        cursor(
+          "[" +
+          keyed_graph_count_prefix(n, 3) +
+          ",{\"from\":\"g\",\"subtract_graphs\":{\"with\":\"g\"},\"as\":\"remaining\"}" +
+          ",{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}" +
+          ",{\"from\":\"remaining\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"element\"},\"fields\":[\"element\"]}}]",
+        ),
+        [],
+        None,
+        None,
+        limits(),
+      ),
+    )
+    // Shared records can be retained by explicit transformation maps. Count
+    // propagation remains conservative and never borrows a union input sum.
+    let result = @pipeline_typing.graph_count(pipeline, Step(3)).unwrap()
+    let edges = if n == 0 { 0L } else { 3L }
+    assert_eq(result.nodes.unwrap().upper, n.to_int64())
+    assert_eq(result.edges.unwrap().upper, edges)
+    assert_eq(result.nodes.unwrap().exact, n == 0)
+    assert_eq(result.edges.unwrap().exact, n == 0)
+    assert_true(@pipeline_typing.row_count(pipeline, Step(3)) is None)
+    assert_count(pipeline, 4, n.to_int64(), n == 0)
+    assert_count(pipeline, 5, edges, n == 0)
   }
 }

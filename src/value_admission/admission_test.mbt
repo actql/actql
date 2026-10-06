@@ -145,7 +145,7 @@ test "wide closed objects use shared declaration views and preserve UTF16 orderi
     "BudgetExceeded",
   )
   match accept(simple("json"), "{\"\\ue000\":1,\"😀\":2}").value {
-    @value_admission.Object(fields) =>
+    @value_admission.JsonData(@value_admission.Object(fields)) =>
       assert_eq(@value_admission.elements(fields).map(e => e.0), [
         "😀", "\ue000",
       ])
@@ -241,8 +241,13 @@ test "finite numbers and generic JSON reject noncanonical numeric values" {
       )
     }
     for n in [0.0, 5.0e-324, 1.7976931348623157e308] {
-      match
-        @value_admission.admit(c, raw(@source.Number(n)), limits()).unwrap().value {
+      let value = @value_admission.admit(c, raw(@source.Number(n)), limits()).unwrap().value
+      let payload = if c.shape is @contract.Json {
+        @value_admission.json_payload(value).unwrap()
+      } else {
+        value
+      }
+      match payload {
         @value_admission.Number(actual) =>
           assert_eq(actual.reinterpret_as_uint64(), n.reinterpret_as_uint64())
         _ => assert_true(false)
@@ -644,7 +649,7 @@ test "returned arrays and source mutations cannot modify checked values" {
     _ => assert_true(false)
   }
   match value.value {
-    @value_admission.Object(fields) => {
+    @value_admission.JsonData(@value_admission.Object(fields)) => {
       let copy = @value_admission.elements(fields)
       match copy[0].1 {
         @value_admission.Array(items) => {
@@ -666,7 +671,7 @@ test "generic JSON validates every descendant without treating business tags as 
   let c = simple("json")
   assert_true(
     accept(c, "{\"identity_cid\":\"business data\",\"$decimal\":\"text\"}").value
-    is @value_admission.Object(_),
+    is @value_admission.JsonData(@value_admission.Object(_)),
   )
   let span = parsed("null").span
   for value in [@source.Number(-0.0)] {
@@ -675,11 +680,23 @@ test "generic JSON validates every descendant without treating business tags as 
   }
   let fields : Array[@source.Field] = [
     { key: "e\u0301", key_span: span, value: { value: @source.Null, span, }, },
+    { key: "é", key_span: span, value: { value: @source.Bool(true), span, }, },
   ]
-  assert_eq(
-    outcome(@value_admission.admit(c, raw(@source.Object(fields)), limits())),
-    "NonCanonicalText",
-  )
+  let admitted = @value_admission.admit(
+    c,
+    raw(@source.Object(fields)),
+    limits(),
+  ).unwrap()
+  guard admitted.value
+    is @value_admission.JsonData(@value_admission.Object(entries)) else {
+    fail("expected an exact JSON payload")
+  }
+  let exact = @value_admission.elements(entries)
+  assert_eq(exact.length(), 2)
+  assert_eq(exact[0].0, "e\u0301")
+  assert_true(exact[0].1 is @value_admission.Null)
+  assert_eq(exact[1].0, "é")
+  assert_true(exact[1].1 is @value_admission.Boolean(true))
 }
 
 ///|
