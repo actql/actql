@@ -148,17 +148,20 @@ export const validClientConnection = validConnectionShape;
 // Preserve ordinary JSON serialization, but never replace source numbers.
 export function snapshotCheckRequest(value) {
   return JSON.parse(JSON.stringify(value, (_key, item) => {
-    let number = item;
+    let number = item, boxed = false;
     if (item !== null && typeof item === 'object') {
-      // JSON also unwraps boxed Numbers, including across realms.
-      try { number = Number.prototype.valueOf.call(item); }
+      // Brand-check without invoking user coercion, including across realms.
+      try { Number.prototype.valueOf.call(item); boxed = true; }
       catch { /* Ordinary objects retain their JSON serialization. */ }
     }
+    // JSON unwraps Number objects with ToNumber, including custom coercion.
+    // Return that primitive so serialization cannot coerce it again unchecked.
+    if (boxed) number = +item;
     if (typeof number === 'number' &&
         (!Number.isFinite(number) || Object.is(number, -0))) {
       throw new TypeError('UnrepresentableCheckNumber');
     }
-    return item;
+    return boxed ? number : item;
   }));
 }
 

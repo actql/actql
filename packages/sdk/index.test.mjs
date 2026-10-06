@@ -1438,7 +1438,9 @@ test('check refuses lossy numeric serialization before credentials or exchange',
   }});
   credentials = 0;
   for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
-    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0}]) {
+    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
+    Object.assign(new Number(1), {valueOf: () => NaN}),
+    Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
     await assert.rejects(client.check('SELECT @x AS n', {format: 'sql',
       parameterDeclarations: {x: {type: 'json'}}, parameters: {x: {nested: [value]}}}),
     {code: 'InvalidCheckRequest'});

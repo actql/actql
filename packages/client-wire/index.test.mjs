@@ -667,7 +667,9 @@ test('independent expression type reasons reject values and foreign fact familie
 
 test('check request snapshots refuse lossy numbers and detach without normalization', () => {
   for (const value of [NaN, Infinity, -Infinity, -0, new Number(NaN),
-    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0}]) {
+    new Number(-0), {toJSON: () => Infinity}, {toJSON: () => -0},
+    Object.assign(new Number(1), {valueOf: () => NaN}),
+    Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
     assert.throws(() => snapshotCheckRequest({parameters: {x: {nested: [value]}}}), TypeError);
   }
   const input = {input: {text: '/*😀*/\r\nSELECT @x AS n', format: 'sql'},
