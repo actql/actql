@@ -3402,3 +3402,33 @@ test('local: raw check input custody precedes asynchronous authentication', asyn
     [{document_id: 'source', byte_length: 14}, {document_id: 'parameter_declarations', byte_length: 23},
       {document_id: 'parameters', byte_length: 7}]);
 });
+
+test('local: check snapshots cannot erase or introduce unexpected request fields', async t => {
+  let raw, checked = 0;
+  await contextClient(t, 'local', sourceEnvironment, {
+    mutateCheckReply: outcome => {checked++; return outcome;},
+    sdkConnectInProcess: async (options, port) => {
+      raw = body => port.perform('check', body).then(value => value,
+        error => ({code: error.code}));
+      return connectInProcess(options, port);
+    },
+  });
+  const request = () => ({connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+    input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null});
+  for (const value of [undefined, () => null, Symbol('unknown')]) {
+    for (const domain of ['request', 'input']) {
+      const body = request();
+      (domain === 'request' ? body : body.input).extra = value;
+      const result = await raw(body);
+      assert.equal(result.code, 'InvalidClientRequest', '[check-mutation:host-check-request-shape]');
+      assert.deepEqual(result, {code: 'InvalidClientRequest'});
+      assert.equal(checked, 0);
+    }
+  }
+  const body = request();
+  Object.defineProperty(body, 'toJSON', {value: () => ({...body, extra: true})});
+  const result = await raw(body);
+  assert.equal(result.code, 'InvalidClientRequest', '[check-mutation:host-check-request-shape]');
+  assert.deepEqual(result, {code: 'InvalidClientRequest'});
+  assert.equal(checked, 0);
+});

@@ -177,12 +177,13 @@ export function createClientHttpHandler({
         invalid('ClientAuthenticationDenied');
       }
       let body = await boundedJson(request, maxRequestBytes);
+      if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
       if (operation === 'check') {
         // JSON.parse retains -0 and can overflow a numeric token to infinity.
         try { body = snapshotCheckRequest(body); }
         catch { invalid('InvalidClientRequest'); }
       }
-      if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
+      if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
       const connection = Object.freeze({...body.connection,
         consentRefs: Object.freeze([...body.connection.consentRefs]),
         runners: Object.freeze([...body.connection.runners])});

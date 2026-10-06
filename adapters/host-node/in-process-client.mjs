@@ -53,14 +53,17 @@ export function createNodeInProcessClientHost({
   }
   return Object.freeze({async perform(operation, body, signal) {
     try {
+      const validationBody = operation === 'read'
+        ? {...body, format: 'jsonl'} : body;
+      if (!validClientBody(operation, validationBody)) {
+        fail('InvalidClientRequest');
+      }
       if (operation === 'check') {
         // Own the JSON request before awaiting caller-installed authentication.
         try { body = snapshotCheckRequest(body); }
         catch { fail('InvalidClientRequest'); }
       }
-      const validationBody = operation === 'read'
-        ? {...body, format: 'jsonl'} : body;
-      if (!validClientBody(operation, validationBody)) {
+      if (operation === 'check' && !validClientBody(operation, body)) {
         fail('InvalidClientRequest');
       }
       let principalId;
