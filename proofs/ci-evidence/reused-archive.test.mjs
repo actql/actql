@@ -24,10 +24,14 @@ const second = '19f7b920fce6840524c7302138e46f65d623e46d';
 
 test('real nested original/acceptance ZIPs satisfy the mixed final consumer and remain mandatory once reused', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-reused-archive-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   const historical = join(directory, 'fresh-main');
+  let added = false;
+  t.after(async () => {
+    if (added) execFileSync('git', ['worktree', 'remove', historical], {cwd: root});
+    await rm(directory, {recursive: true, force: true});
+  });
   execFileSync('git', ['worktree', 'add', '--detach', '--quiet', historical, second], {cwd: root});
-  t.after(() => execFileSync('git', ['worktree', 'remove', historical], {cwd: root}));
+  added = true;
 
   const runs = new Map(), jobs = new Map(), artifacts = new Map(), archives = new Map();
   const request = async path => {
@@ -81,7 +85,7 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
   const b = await archiveFixture(t, {repository: historical, revision: second, runId: 13, attempt: 1,
     jobId: 15, artifactId: 16, closed: true, requestFor: request, comparisonFor: compare(historical)});
   register(b, 17);
-  const accepted = await verifyCurrentFamily(b.options);
+  const accepted = await verifyCurrentFamily({...b.options, token: 'controlled-fixture-only'});
   assert.equal(accepted.comparison.confirmation.status, 'confirmed');
   assert(accepted.applications.every(application => application.acquisition === 'fresh'));
   const {acceptanceInputs, ...result} = accepted;
