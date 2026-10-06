@@ -696,6 +696,23 @@ This is lookup in the original input snapshot, not a query/declaration parser
 or a second checker. It changes no wire schema, reason identity or historical
 `actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
 A copied/externally parsed report has no association.
+The same response custody also holds its detached check request for explicit
+revision-bound fix rechecks. `getCheckFixes` exposes proposals only from a completed
+owned response. The initial `close_block_comment` proposal comes from the existing
+typed lexer issue and original byte length: an exact EOF insertion of `*/`, with
+review required and syntax-structure risk. No parser, checker, public source hash,
+Host persistence or retrieval API is added.
+An open document session validates selected proposal identity, current version,
+target revision, byte boundaries and non-overlapping edits before staging a single
+document. It brackets the candidate check with original-request context checks,
+rejects observed context/permission changes and any concurrent session change,
+then commits the whole edit and rechecked observation synchronously. Checks are
+observations rather than an authorization lease. Failed checks leave the buffer
+unchanged; remaining invalidity is returned as the actual recheck verdict.
+The closed reason/outcome schemas, generated guards/types, pins and independent
+fixtures change together; the preceding schemas are explicitly incompatible.
+Native wire generation currently selects connection/admission/request schemas,
+not check reports, and therefore has no changed check-response projection.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16

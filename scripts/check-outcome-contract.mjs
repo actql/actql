@@ -29,6 +29,19 @@ const location = {oneOf: [
       document_id: {enum: ['parameter_declarations', 'parameters']}, revision,
       pointer: {type: 'string', maxLength: 4096, pattern: '^(?:/(?:[^~]|~[01])*)*$'}}},
 ]};
+// One source-only lexical proposal. Review and rechecking remain required.
+const fix = {type: 'object', additionalProperties: false,
+  required: ['code', 'applicability', 'risk', 'target', 'edits'],
+  properties: {code: {const: 'close_block_comment'},
+    applicability: {const: 'requires_review'}, risk: {const: 'syntax_structure'},
+    target: {type: 'object', additionalProperties: false,
+      required: ['document_id', 'revision'],
+      properties: {document_id: {const: 'source'}, revision}},
+    edits: {type: 'array', minItems: 1, maxItems: 1, items: {
+      type: 'object', additionalProperties: false,
+      required: ['start_byte', 'end_byte', 'replacement'],
+      properties: {start_byte: integer, end_byte: integer,
+        replacement: {const: '*/'}}}}}};
 // This registered facts schema is separate from outcome and presentation identity.
 // Known facts are closed; future codes have only a safe code-only representation.
 const parameterName = {type: 'string', minLength: 1, maxLength: 256};
@@ -51,6 +64,7 @@ export const checkReasonSchema = {
   title: 'actql-check-reason-0.1',
   type: 'object', additionalProperties: false,
   required: ['code'], properties: {code, location,
+    fixes: {type: 'array', minItems: 1, maxItems: 1, items: fix},
     facts: {oneOf: [
       {type: 'object', additionalProperties: false, required: ['parameter'], properties: {parameter: parameterName}},
       {type: 'object', additionalProperties: false,
@@ -77,6 +91,10 @@ export const checkReasonSchema = {
         properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
     ]}},
   allOf: [
+    {if: {required: ['fixes']}, then: {required: ['facts', 'location'],
+      properties: {code: {const: 'query_lexical_invalid'},
+        facts: {properties: {issue: {const: 'unterminated_comment'}}},
+        location: {properties: {kind: {const: 'text'}, precision: {const: 'exact'}}}}}},
     // Known locations retain the input domain described by their reason.
     // Position remains optional when the existing owner cannot establish it.
     {if: {properties: {code: {enum: ['query_syntax_invalid', 'parameter_undeclared']}}},
