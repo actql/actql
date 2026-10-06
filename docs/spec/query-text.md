@@ -185,6 +185,26 @@ that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
 
+The statistical aggregate entry points `VAR_POP`, `VAR_SAMP`, `STDDEV_POP`,
+`STDDEV_SAMP`, `VARIANCE` (alias of `VAR_SAMP`) and `STDDEV` (alias of
+`STDDEV_SAMP`) lower to the existing common aggregate functions. They work in
+SQL SELECT, Pipe AGGREGATE and the existing explicit ROWS-frame OVER profile.
+Arguments retain ordinary input scope and expression demand; there is no
+Frontend variance evaluator. NULL observations are excluded. Population
+variance/deviation returns zero for one non-NULL observation and typed NULL
+for none; sample functions return typed NULL for fewer than two. Output is
+nullable number, including on empty input. These cardinality rules and aliases
+follow [GoogleSQL statistical aggregates](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/statistical_aggregate_functions).
+
+This connection uses the common finite binary64 number contract and its pinned
+canonical observation order and rounded arithmetic, defined in the language's
+statistical aggregate section. It does not add NUMERIC/BIGNUMERIC coercion,
+NaN/infinity results, default analytic frames or DISTINCT support. The current
+common checker rejects statistical DISTINCT; GoogleSQL's broader signatures
+remain coverage gaps. Common expression failures propagate without a partial
+successful Result. No authored WHERE, grouping, HAVING, order, parameter or
+LIMIT/OFFSET is removed to admit a statistical call.
+
 `JSON` followed by a STRING literal constructs a typed JSON value in ordinary
 SQL and Pipe expressions. The STRING chunks use the decoding rules above;
 their concatenated text is passed unchanged to the common

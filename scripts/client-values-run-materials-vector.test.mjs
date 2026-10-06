@@ -628,7 +628,18 @@ test('baseline preimages and changed normative pins independently determine the 
   // Preserve both parent Runs under their own normative grammars.
   assert.equal(vector('sha256:c167311c84628c57bdf5e63eb6da51645ea491243dfa3adb8158eb3cc11523ad', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:41ab991390341493877830470d3fcbaeeb4963f92a2a5c22ad3d748d4444f2b4');
   assert.equal(vector('sha256:d3504b9552c1a015ec86398455e57433604ad7833aee7854bc2297c14a0e0c7e', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:5a40a8a95b995d744805ca5e33d98c035a47dafca9ba82c348132068ee3a9615');
-  assert.equal(current.run.run_definition_cid, 'sha256:901e7a8071ad802be11cb882398a56ba6ed5fde6eb23bf2b7d0dea00a5a5fd0a');
+  // Retain the statistics author Run under its pre-typed-JSON laws.
+  assert.equal(vector('sha256:33b5a9ea6214ae40f224b7f105632b933b6394dbd6d3f337cbdae20c9c1608ed',
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    'sha256:cd459a94b139de3909f0b0376bdfb42fe2885fe9d7959fe67d2d0bd75ce18176');
+  assert.equal(vector('sha256:cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d',
+    pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'),
+    mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
+    'sha256:59d7c9a31639edee1087c0ba2e8dc6e2067e4730c4c7bfc14f41cebd065e0c90');
+  // Retain the membership main Run with its own normative closure.
+  assert.equal(vector('sha256:77be4cfc88fac604780c3c9e46ee859cfab715d2b5853716adf070da0daf9997', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:901e7a8071ad802be11cb882398a56ba6ed5fde6eb23bf2b7d0dea00a5a5fd0a');
+  assert.equal(current.run.run_definition_cid, 'sha256:ece7fab74dc234941183508fd3a3d2e9dcd78424b02497d600645eac7bb38dd2');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
