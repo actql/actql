@@ -167,18 +167,18 @@ test('real ZIP consumer reconstructs actual Git and the executed complete certif
 
   // Rebind transport to changed real ZIP bytes: deeper semantic validation
   // must refuse even when the independent API digest matches that new archive.
-  for (const change of [
-    members => members.delete('receipts/events-connection-native.json'),
-    members => members.set('lean-output.log', Buffer.from('changed actual certificate output')),
-    members => {
+  for (const [change, refusal] of [
+    [members => members.delete('receipts/events-connection-native.json'), /Artifact ZIP member not found/u],
+    [members => members.set('lean-output.log', Buffer.from('changed actual certificate output')), /Changed Lean output/u],
+    [members => {
       const state = JSON.parse(members.get('context.json'));
       state.actionRuntimes['mutations-js'].unresolved = [];
       members.set('context.json', jsonBytes(state));
-    },
+    }, /Wrong isolated runtime inputs or erased residual/u],
   ]) {
     const members = new Map(f.members); change(members);
     const bytes = storedArchive(members), digest = hash(bytes);
     await writeFile(f.options.archive, bytes); f.artifact.digest = `sha256:${digest}`; f.artifact.size_in_bytes = bytes.length;
-    await assert.rejects(verifyCurrentFamily({...f.options, expectedDigest: digest}));
+    await assert.rejects(verifyCurrentFamily({...f.options, expectedDigest: digest}), refusal);
   }
 });
