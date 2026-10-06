@@ -118,11 +118,12 @@ const cidPattern = /^sha256:[0-9a-f]{64}$/u;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 const pendingCid = `sha256:${'0'.repeat(64)}`;
-// Data values (row values, targets, outcomes) keep their exact text: they
-// are compared and stored through the value encoder. The configuration
-// encoder, which normalizes text, serves only identity preimages here.
+// Data values (row values, targets, outcomes) keep their exact strings and
+// JSON keys through the shared value encoder's explicit data mode. The
+// configuration encoder serves only structural identity preimages here.
 const sameValue = (left, right) =>
-  canonicalValueJson(left) === canonicalValueJson(right);
+  canonicalValueJson(left, {dataKeys: true}) ===
+    canonicalValueJson(right, {dataKeys: true});
 
 const exportLimits = output => [output.maxResultFields,
   output.maxResultMappingWork, output.maxResultOrderWork,
@@ -496,7 +497,7 @@ export async function createInstalledRowEffect({moon, mappings,
     }
     const recorded = ledger.recordAdmittedRowOutcome({claim,
       preview: applyPreview, memberIndex, previewRowIndex: rowIndex,
-      outcomeWire: canonicalValueJson(outcome)});
+      outcomeWire: canonicalValueJson(outcome, {dataKeys: true})});
     const terminal = ledger.commitAdmittedRowOutcome({claim,
       preview: applyPreview, memberIndex, previewRowIndex: rowIndex});
     return Object.freeze({outcomeReceipt: recorded.receipt,

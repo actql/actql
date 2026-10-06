@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, createHmac, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -3987,5 +3987,111 @@ for (const entrance of ['local', 'http']) {
     assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
     assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
     reopened.close();
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  for (const [property, transition] of [
+    ['document_id', 'close'], ['kind', 'edit'], ['start_byte', 'edit'],
+    ['end_byte', 'edit'], ['document_id', 'newer-check'],
+  ]) {
+    test(`${entrance}: session range rejects ${transition} from a ${property} accessor`, async t => {
+      const client = await contextClient(t, entrance, absentEnvironment);
+      const text = '\ufeff/*😀*/SELECT (';
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      t.after(() => session.close());
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: 15}, end: {line: 0, character: 15}});
+      let changed = false, newer;
+      const changingLocation = {...location};
+      Object.defineProperty(changingLocation, property, {enumerable: true, get() {
+        if (!changed) {
+          changed = true;
+          if (transition === 'edit') session.update('SELECT 1 AS n', 2);
+          else if (transition === 'close') session.close();
+          else newer = session.check({format: 'sql'});
+        }
+        return location[property];
+      }});
+      const resolved = session.resolveTextRange(observation, changingLocation);
+      if (newer) await newer;
+      assert.equal(changed, true);
+      assert.equal(session.resolveTextRange(observation, location), undefined);
+      assert.equal(getCheckInput(observation.outcome, 'source').text, text);
+      assert.equal(observation.outcome.report.verdict, 'invalid');
+      assert.equal(resolved, undefined, '[check-mutation:document-public-range-callback]');
+    });
+  }
+}
+
+// Independent context oracle: literal public fixture selections and registered
+// manifests, with an ordinary sorted JSON encoder. No product canonicalizer,
+// compiler accessor or returned reference constructs the expected preimage.
+const contextGrammar = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-grammar-0.1.json'), 'utf8'));
+const contextBarriers = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-barrier-contracts-0.1.json'), 'utf8'));
+const contextProtocols = JSON.parse(await readFile(join(repository,
+  'spec/contracts/actql-protocol-schemas.json'), 'utf8'));
+const contextJSON = value => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(contextJSON).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(key =>
+    JSON.stringify(key) + ':' + contextJSON(value[key])).join(',') + '}';
+};
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: context references bind both schemas through ordinary and fallback input`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    const base = {version: 'actql-check-context/0.1', audience: owner,
+      disclosure_policy: 'actql-check-disclosure/0.1', projection: 'actql-check-outcome/0.1',
+      scope: 'bound_input', compiler: {compiler_version: 'actql-moonbit-0.0.1',
+        grammar_manifest_cid: contextGrammar.grammar_manifest_cid,
+        barrier_contract_manifest_cid: contextBarriers.barrier_contract_manifest_cid},
+      reason_schema_cid: contextProtocols.artifact_schema_cids.check_reason,
+      outcome_schema_cid: contextProtocols.artifact_schema_cids.check_outcome,
+      checking_context: {host_policy_profile: sourceEnvironment.host_policy_profile,
+        model_task_contract_cids: [], profiles: {text_time: false, veca: false,
+          rela: true, sga: true, tea: false, calendar: false, text_rank: false,
+          property_graph: false, property_graph_law_cid: null, model_tasks: true,
+          numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}},
+      visible_aliases: []};
+    const hash = value => 'ctx:' + createHmac('sha256', new Uint8Array(32).fill(7))
+      .update(contextJSON(value)).digest('hex');
+    for (const parameterDeclarations of [undefined,
+      {'é': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+      const references = [];
+      for (const text of ["SELECT 'café' AS label", "SELECT 'cafe\u0301' AS label"]) {
+        const input = {text, format: 'sql',
+          ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
+        const preimage = {...base, ...(parameterDeclarations === undefined
+          ? {source: {format: 'sql', text}, parameter_declarations: null, parameters: null}
+          : {received: JSON.stringify({input, parameters: null})})};
+        const {outcome_schema_cid, ...precedingProjection} = preimage;
+        assert.notEqual(hash(preimage), hash(precedingProjection));
+        const outcomes = [];
+        for (const client of clients) {
+          const outcome = await client.check(text, {format: 'sql', parameterDeclarations});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.context_ref, hash(preimage),
+            '[check-mutation:context-schema-public]');
+          assert.equal(getCheckInput(outcome, 'source').text, text);
+          assert.deepEqual(await client.check(text, {format: 'sql', parameterDeclarations}), outcome);
+          outcomes.push(outcome);
+        }
+        assert.deepEqual(outcomes[0], outcomes[1]);
+        assert.deepEqual(outcomes[0], outcomes[2]);
+        references.push(outcomes[0].report.context_ref);
+      }
+      assert.notEqual(references[0], references[1]);
+    }
   });
 }

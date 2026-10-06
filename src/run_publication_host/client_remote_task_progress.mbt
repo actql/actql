@@ -2,6 +2,8 @@
 /// Checked task observations restored from the trusted Coordinator's durable
 /// records. This is a snapshot, not a scheduler, ledger, start claim or borrow.
 pub struct ClientRemoteTaskProgress {
+  prepared : PreparedClientProgram
+  authority : String
   definition : @publication.PublicationContract
   result_names : Array[String]
   completed : Array[Bool]
@@ -9,6 +11,7 @@ pub struct ClientRemoteTaskProgress {
   requests : Array[@remote.DispatchRequest?]
   observations : Array[@remote.CoordinatorExecutionObservation?]
   next_task : Int?
+  dependency_ready_task : Int?
   execution_complete : Bool
   cleanup_complete : Bool
   result_tasks : Array[Int]
@@ -147,6 +150,8 @@ pub fn inspect_client_remote_task_progress(
     result_tasks.push(task)
   }
   Ok({
+    prepared,
+    authority,
     definition,
     result_names: client_task_run_binding_result_names(binding),
     completed,
@@ -154,6 +159,7 @@ pub fn inspect_client_remote_task_progress(
     requests,
     observations,
     next_task,
+    dependency_ready_task: candidate,
     execution_complete,
     cleanup_complete,
     result_tasks,

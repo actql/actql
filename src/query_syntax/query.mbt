@@ -1153,6 +1153,8 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let distinct = self.has("DISTINCT")
   if distinct {
     self.keyword("DISTINCT")
+  } else if self.has("ALL") {
+    self.keyword("ALL")
   }
   let projections = self.projections()
   let (relation, source_alias, ctes) = if self.has("FROM") {
@@ -1626,6 +1628,8 @@ fn QueryParser::pipe_tail(
       let distinct = self.has("DISTINCT")
       if distinct {
         self.keyword("DISTINCT")
+      } else if self.has("ALL") {
+        self.keyword("ALL")
       }
       let projections = self.projections()
       if projections.any(projection => projection.analytic is Some(_)) {

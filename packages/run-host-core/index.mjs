@@ -2099,6 +2099,27 @@ export function inspectTaskProgress(prepared, compilation, admission, definition
     admission, definition, authority, durableWires));
 }
 
+/** Prepare a checked task claim. The Host must commit it before any send. */
+export function prepareTaskPhysicalStart(prepared, compilation, admission, definition,
+  authority, durableWires, requested, retained, claim) {
+  const keys = ['taskKey', 'dispatchCid', 'definitionCid', 'reserved',
+    'unstarted', 'authorized', 'cancelled', 'failed'];
+  if (claim === null || typeof claim !== 'object' || Array.isArray(claim) ||
+      Object.keys(claim).sort().join('\0') !== keys.sort().join('\0') ||
+      [claim.taskKey, claim.dispatchCid, claim.definitionCid].some(value => typeof value !== 'string') ||
+      [claim.reserved, claim.unstarted, claim.authorized, claim.cancelled, claim.failed]
+        .some(value => typeof value !== 'boolean')) {
+    throw new TypeError('InvalidRunHostTaskStart');
+  }
+  const progress = admittedTaskProgress(prepared, compilation, admission, definition,
+    authority, durableWires);
+  return checked(owner.clientValuesHostPrepareRemoteTaskPhysicalStart(
+    progress, claim.taskKey, claim.dispatchCid, requireHandle(requests, requested),
+    requireHandle(requests, retained), claim.definitionCid, claim.reserved,
+    claim.unstarted, claim.authorized, claim.cancelled, claim.failed),
+  'RunHostTaskStartRejected');
+}
+
 /** Project the unpublished whole Run without committing, starting or releasing it. */
 export function projectTaskSiteRun(prepared, compilation, admission, definition,
   authority, durableWires, observedAt, cancellationRequested = false,

@@ -18,7 +18,8 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
   retainedInputResultFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
-  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun}
+  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
+  prepareTaskPhysicalStart}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -856,4 +857,81 @@ test('checked whole Run projection distinguishes recovered custody from normal R
   assert.notDeepEqual(state.tasks.map(task => task.cleanup), ['released', 'released']);
   // Formal recovery can discharge its owner, but never proves normal release
   // or resolves an unrelated historical Run such as the #88 recovery ledger.
+});
+
+
+const taskStartFixture = () => {
+  const original = run();
+  const producer = coordinatorProducerFixture(original);
+  const request = prepareTaskRequest(original.prepared, original.compilation,
+    producer.authority, 'original-request');
+  const keys = taskKeys(original.prepared, original.compilation);
+  const claim = {taskKey: keys[0], dispatchCid: producer.issued.cid,
+    definitionCid: privateRunDefinition(original.definition).cid,
+    reserved: true, unstarted: true, authorized: true, cancelled: false, failed: false};
+  const start = (records = [producer], changes = {}, requested = request, retained = request) =>
+    prepareTaskPhysicalStart(original.prepared, original.compilation, original.admission,
+      original.definition, producer.authority, records.map(value => value.current().durableRecordWire),
+      requested, retained, {...claim, ...changes});
+  return {original, producer, request, keys, claim, start};
+};
+
+test('checked task physical start requires exact saved intent and retains exclusive claim responsibility', () => {
+  const {producer, start} = taskStartFixture();
+  const before = producer.current().durableRecordWire;
+  assert.equal(start([]), false, 'no missing intent may authorize a start');
+  assert.equal(start(), true, 'the unobserved original intent is eligible for one Host CAS claim');
+  for (const changes of [{reserved: false}, {unstarted: false}, {cancelled: true}, {failed: true}]) {
+    assert.equal(start([producer], changes), false);
+  }
+  assert.throws(() => start([producer], {authorized: false}), {code: 'RunHostTaskStartRejected'});
+  assert.equal(producer.current().durableRecordWire, before,
+    'eligibility never commits a claim, starts execution or changes custody');
+});
+
+test('checked task physical start rejects foreign task dispatch Run and matching foreign request pairs', () => {
+  const {original, producer, keys, start} = taskStartFixture();
+  for (const changes of [{taskKey: 'foreign-task'}, {dispatchCid: cid('f')},
+    {definitionCid: cid('f')}]) {
+    assert.throws(() => start([producer], changes), {code: 'RunHostTaskStartRejected'});
+  }
+  const changed = run(document.replace('id > 2', 'id > 1'));
+  const foreign = prepareTaskRequest(changed.prepared, changed.compilation,
+    producer.authority, 'original-request');
+  assert.throws(() => start([producer], {}, foreign, foreign), {code: 'RunHostTaskStartRejected'});
+  const otherRequest = prepareTaskRequest(original.prepared, original.compilation,
+    producer.authority, 'another-request');
+  assert.throws(() => start([producer], {}, otherRequest), {code: 'RunHostTaskStartRejected'});
+  const otherScope = prepareTaskRequest(original.prepared, original.compilation,
+    cid('f'), 'original-request');
+  assert.throws(() => start([producer], {}, otherScope, otherScope), {code: 'RunHostTaskStartRejected'});
+  assert.equal(start([], {taskKey: keys[1]}), false);
+});
+
+test('checked task physical start never treats historical Accepted running or unknown as unstarted', () => {
+  for (const state of [[1, 0, 0, 0, 0], [2, 0, 0, 0, 0], [6, 0, 3, 0, 0]]) {
+    const {producer, start} = taskStartFixture();
+    producer.observe(state, 1, false);
+    assert.equal(start(), false, 'observation overrides an erroneous Host unstarted assertion');
+  }
+});
+
+test('checked task physical start uses producer proof for the exact dependent consumer', () => {
+  const {original, producer, keys, start} = taskStartFixture();
+  const fixture = retainedTransferFixture(original);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'),
+    issueConsumer(original, fixture, input));
+  const changes = {taskKey: keys[1], dispatchCid: consumer.issued.cid};
+  assert.equal(start([producer, consumer], changes), false, 'unsettled producer prevents consumer start');
+  producer.observe([3, 2, 0, 1, 0], 1, false);
+  assert.equal(start([producer, consumer], changes), false, 'settlement without admitted proof is insufficient');
+  producer.observe([3, 2, 0, 1, 0], 2);
+  assert.equal(start([producer, consumer], changes), true);
+  assert.equal(start([producer, consumer], {...changes, unstarted: false}), false);
+  assert.equal(start([producer, consumer], {...changes, cancelled: true}), false);
+  consumer.observe([1, 0, 0, 0, 0], 1, false);
+  assert.equal(start([producer, consumer], changes), false);
 });
