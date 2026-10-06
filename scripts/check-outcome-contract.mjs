@@ -36,6 +36,9 @@ const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object
   'date', 'timestamp', 'decimal', 'json', 'vector', 'resource_ref', 'artifact_ref']};
 const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
   'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
+const jsonIssues = ['invalid_unicode', 'unexpected_end', 'unexpected_token', 'invalid_string',
+  'invalid_escape', 'invalid_number', 'number_out_of_range', 'negative_zero', 'expected_colon',
+  'expected_array_separator', 'expected_object_separator', 'duplicate_key', 'trailing_content'];
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
 const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
@@ -68,6 +71,8 @@ export const checkReasonSchema = {
         properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'subgraph'}, issue: {enum: subgraphIssues}}},
+      {type: 'object', additionalProperties: false, required: ['document', 'issue'],
+        properties: {document: {enum: ['parameters', 'parameter_declarations']}, issue: {enum: jsonIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
         properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
     ]}},
@@ -112,6 +117,14 @@ export const checkReasonSchema = {
       then: {required: ['facts'], properties: {facts: {required: ['domain']},
         location: {properties: {kind: {const: 'structured'},
           document_id: {enum: ['parameters', 'parameter_declarations']}}}}}},
+    {if: {properties: {code: {const: 'binding_json_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {type: 'object', additionalProperties: false,
+        required: ['document', 'issue'], properties: {document: {enum: ['parameters', 'parameter_declarations']},
+          issue: {enum: jsonIssues}}}, location: {properties: {kind: {const: 'structured'}}}},
+        allOf: ['parameters', 'parameter_declarations'].map(document => ({
+          if: {properties: {facts: {properties: {document: {const: document}}}}},
+          then: {properties: {location: {properties: {document_id: {const: document}}}}},
+        }))}},
     {if: {properties: {code: {const: 'query_lexical_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['issue'], properties: {issue: {enum: lexicalIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
@@ -128,7 +141,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };

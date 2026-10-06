@@ -1330,7 +1330,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:72e6689430ce640c2b682f2ae2f117dd3a1bf1b9d55b9174a4c472bd4deee38c -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:a767c5d2b30ff5c360a6cf802857647362c6d6bb60c9ae8f362d69ad24753a88 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
@@ -1804,7 +1804,10 @@ differ, but their structured facts MUST agree.
 
 ### Public check outcome
 
-<!-- requirement-block: check-outcome.expression-type-facts check-outcome.expression-type-owned-cause check-outcome.expression-type-generic-fallback check-outcome.expression-type-authored-position check-outcome.operation-domain-facts check-outcome.operation-domain-owned-cause check-outcome.operation-domain-input-origin check-outcome.check-must-not-be-relabelled check-outcome.frame-reason-facts check-outcome.frame-reason-owned-cause check-outcome.frame-index-is-not-authored-location check-outcome.exactly-one-outcome check-outcome.verdict-must-carry-scope-and-context check-outcome.verdict-must-agree-with-evidence check-outcome.partial-report-must-not-verify check-outcome.unavailable-must-omit-report-fields check-outcome.unavailable-must-not-depend-on-sources check-outcome.absent-and-inaccessible-must-match check-outcome.hidden-source-must-not-hide-violations check-outcome.limits-must-not-be-invalid check-outcome.context-ref-must-bind-the-checked-input check-outcome.context-ref-must-keep-values-exact check-outcome.context-ref-must-not-hash-values -->
+<!-- requirement-block: check-outcome.binding-json-facts check-outcome.binding-json-owned-issue check-outcome.binding-json-original-pointer check-outcome.expression-type-facts check-outcome.expression-type-owned-cause check-outcome.expression-type-generic-fallback check-outcome.expression-type-authored-position check-outcome.operation-domain-facts check-outcome.operation-domain-owned-cause check-outcome.operation-domain-input-origin check-outcome.check-must-not-be-relabelled check-outcome.frame-reason-facts check-outcome.frame-reason-owned-cause check-outcome.frame-index-is-not-authored-location check-outcome.exactly-one-outcome check-outcome.verdict-must-carry-scope-and-context check-outcome.verdict-must-agree-with-evidence check-outcome.partial-report-must-not-verify check-outcome.unavailable-must-omit-report-fields check-outcome.unavailable-must-not-depend-on-sources check-outcome.absent-and-inaccessible-must-match check-outcome.hidden-source-must-not-hide-violations check-outcome.limits-must-not-be-invalid check-outcome.context-ref-must-bind-the-checked-input check-outcome.context-ref-must-keep-values-exact check-outcome.context-ref-must-not-hash-values -->
+The registered `binding_json_invalid` reason MUST carry closed `facts.document` (`parameters` or `parameter_declarations`) and `facts.issue` from the JSON admission issue schema; budget exhaustion is a checking limit, never this input violation.
+Its issue MUST come from the existing authoritative JSON parser failure, without exposing duplicate member names, string values, parser messages or private causes; unknown issue families retain the defined generic reason without fabricated facts.
+Its optional structured location MUST refer to that submitted input and its immutable revision; preserving-path recovery cannot replace the authoritative issue, and uncertain paths are omitted rather than reported as text ranges.
 A known `expression_type_mismatch` Reason MUST carry only the closed
 `expected_type` fact `number`, `boolean` or `string`. It MUST derive this fact
 from the existing typed expression checker's required-type tag, never from
@@ -1929,8 +1932,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:e072e415a6ee3c6a2c0f90fd1dd28205172e8ea3d23cdd74a3d6c07a825e682b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9

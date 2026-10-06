@@ -1061,8 +1061,11 @@ for (const [entrance, open] of Object.entries(entrances)) {
           assert.deepEqual(withoutContext(outcomes[index]).report, {
             context_ref: '<ctx>', scope: {kind: 'bound_input'},
             verdict: invalid ? 'invalid' : 'verified',
-            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            reasons: invalid ? [{code: 'binding_json_invalid'}] : [],
             coverage: {limits: [], unresolved: []}});
+          if (invalid) assert.deepEqual(outcomes[index].report.reasons, [{code: 'binding_json_invalid',
+            facts: {document: 'parameter_declarations', issue: 'duplicate_key'}}],
+          '[check-mutation:json-parser-fallback-facts]');
           assert.deepEqual(await run(texts[index]), outcomes[index]);
         }
         assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
@@ -1518,7 +1521,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.4'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.5'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2879,6 +2882,7 @@ for (const entrance of ['local', 'http']) {
       ['39939e32f8b81812204f4b62affb318b4dcd1077', 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'],
       ['b40f973ca636895d7dccac79c4c678371d912887', 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'],
       ['47fd48576a1c4f48ebd0ce949e821e302a420cba', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+      ['11f43a5ff151dfe6c0a5f243298dbec50eeefefe', 'sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace'],
     ]) {
       const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
         {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
@@ -2894,6 +2898,10 @@ for (const entrance of ['local', 'http']) {
       if (previousSource.includes("'./check-presentation.mjs'")) {
         previousSource = previousSource.replaceAll("'./check-presentation.mjs'",
           JSON.stringify(moduleUrl(historical('packages/sdk/check-presentation.mjs'))));
+      }
+      if (previousSource.includes("'./json-value-wire.generated.mjs'")) {
+        previousSource = previousSource.replaceAll("'./json-value-wire.generated.mjs'",
+          JSON.stringify(moduleUrl(historical('packages/sdk/json-value-wire.generated.mjs'))));
       }
       const previous = await import(moduleUrl(previousSource
         .replace("'@actql/client-wire'", JSON.stringify(wire))
@@ -3344,11 +3352,11 @@ for (const entrance of ['local', 'http']) {
 // Parser failures carry original structural paths even when no decoded cursor
 // can be admitted. These are caller input paths, never serialized SQL spans.
 const invalidParsedBindings = [
-  {document: 'parameters', code: 'supplied_parameters_invalid',
+  {document: 'parameters', code: 'binding_json_invalid',
     options: key => ({parameterDeclarations: {payload: {type: 'number'}},
       parameters: {payload: {[key]: ['safe', '\ud800']}}}),
     prefix: '/payload/'},
-  {document: 'parameter_declarations', code: 'parameter_declarations_invalid',
+  {document: 'parameter_declarations', code: 'binding_json_invalid',
     options: key => ({parameterDeclarations: {payload: {type: 'number',
       default: {[key]: ['safe', '\udfff']}}}}),
     prefix: '/payload/default/'},
@@ -3367,8 +3375,12 @@ for (const entrance of ['local', 'http']) {
         assert.ok(input);
         const location = {kind: 'structured', document_id: fixture.document,
           revision: input.revision, pointer: fixture.prefix + token + '/1'};
-        assert.deepEqual(result.report.reasons, [{code: fixture.code, location}],
+        assert.deepEqual(result.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'}, location}],
           '[check-mutation:json-parser-location]');
+        assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
+          summary: 'The binding JSON contains invalid Unicode text.',
+          hint: 'Use valid Unicode scalar values in member names and string values.'},
+        '[check-mutation:json-parser-explanation]');
         assert.equal(resolveCheckLocation(result, location).input, input);
         assert.equal(resolveCheckTextRange(result, location), undefined);
         assert.equal(resolveCheckLocation(result, location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
@@ -3382,7 +3394,7 @@ for (const entrance of ['local', 'http']) {
           parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}
         : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
       const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
-      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code}]);
+      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'duplicate_key'}}]);
       // A malformed member name has the parser's known enclosing root path,
       // not a fabricated location at a member that could not be decoded.
       const options = fixture.document === 'parameters'
@@ -3390,7 +3402,7 @@ for (const entrance of ['local', 'http']) {
         : {parameterDeclarations: {'\ud800': {type: 'number'}}};
       const root = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
       const input = getCheckInput(root, fixture.document);
-      assert.deepEqual(root.report.reasons, [{code: fixture.code,
+      assert.deepEqual(root.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'},
         location: {kind: 'structured', document_id: fixture.document,
           revision: input.revision, pointer: ''}}]);
     });
@@ -3429,7 +3441,7 @@ for (const entrance of ['local', 'http']) {
     ]) {
       const result = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
       assert.equal(result.outcome, 'completed');
-      assert.equal(result.report.verdict, 'undetermined');
+      assert.equal(result.report.verdict, 'undetermined', '[check-mutation:json-parser-budget]');
       assert.deepEqual(result.report.reasons, []);
       assert.deepEqual(result.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
     }
@@ -3834,3 +3846,66 @@ test('local: check snapshots cannot erase or introduce unexpected request fields
   assert.deepEqual(result, {code: 'InvalidClientRequest'});
   assert.equal(checked, 0);
 });
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unsaved document sessions bind current revisions and reply order`, async t => {
+    let hold = false;
+    const waiting = [];
+    let arrived;
+    const client = await contextClient(t, entrance, absentEnvironment, {
+      mutateCheckReply: outcome => hold ? new Promise(resolve => {
+        waiting.push(() => resolve(outcome));
+        arrived?.();
+      }) : outcome,
+    });
+    const waitFor = count => waiting.length >= count ? Promise.resolve() :
+      new Promise(resolve => {arrived = () => {if (waiting.length >= count) resolve();};});
+    // Independent source bytes include BOM, a non-BMP scalar and unchanged CRLF.
+    for (const [encoding, eof] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: eof}, end: {line: 0, character: eof}},
+        '[check-mutation:document-public-encoding]');
+      assert.equal(getCheckInput(observation.outcome, 'source').text, '\ufeff/*😀*/SELECT (');
+      session.close();
+    }
+    const session = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    hold = true;
+    const first = session.check({format: 'sql'});
+    const second = session.check({format: 'sql', parameters: {x: 'private-second-binding'}});
+    await waitFor(2);
+    waiting[1](); const newer = await second;
+    waiting[0](); const older = await first;
+    const location = newer.outcome.report.reasons[0].location;
+    assert.equal(newer.outcome.report.verdict, 'invalid');
+    assert.deepEqual(session.resolveTextRange(newer, location)?.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
+    assert.equal(session.resolveTextRange(older, older.outcome.report.reasons[0].location), undefined,
+      '[check-mutation:document-public-order]');
+    assert.equal(session.resolveTextRange({...newer}, location), undefined,
+      '[check-mutation:document-public-copy]');
+    session.update('SELECT 1 AS n', 2);
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-current]');
+    const closing = session.check({format: 'sql'});
+    await waitFor(3); session.close(); waiting[2](); const closed = await closing;
+    assert.equal(closed.outcome.report.verdict, 'verified');
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-close]');
+    hold = false;
+    const reopened = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    assert.equal(reopened.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-session]');
+    const current = await reopened.check({format: 'sql'});
+    assert.ok(reopened.resolveTextRange(current, current.outcome.report.reasons[0].location));
+    assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
+    assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
+    reopened.close();
+  });
+}

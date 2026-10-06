@@ -354,6 +354,20 @@ export function createInstalledEffectSite({environmentWire,
         throw error;
       }
       custody.attach(stage);
+      // Capture has transferred the prepared Result handles to this owner.
+      // Register their cleanup before validation or any fallible apply work.
+      // Until a terminal outcome selects retirement, release local handles
+      // only. Existing Host owners still decide durable retention/retirement
+      // and transfer; cleanup does not reclassify the application failure.
+      let releaseMode = 'retain';
+      const storedResults = stage?.storedResults;
+      if (storedResults !== undefined) {
+        custody.requireRelease(() => releaseMode === 'retire'
+          ? releaseCompletedRunPreparedPayloads(storedResults, facts.control)
+          : suspendCompletedEffectfulComputation({execution,
+            store: facts.store, storedResults, control: facts.control,
+            computation: stage.computation, preview: stage.preview}));
+      }
       ownedStage(stage, 'InvalidInstalledEffectCapture');
       if (stage.publication.execution !== execution ||
           stage.publication.store !== facts.store ||
@@ -389,19 +403,8 @@ export function createInstalledEffectSite({environmentWire,
           catch (completionError) {
             if (completionError?.code === 'EffectRunNoUncertainSend') {
               if (terminalPreSendRefusal(error, options)) {
-                custody.requireRelease(() =>
-                  releaseCompletedRunPreparedPayloads(
-                    stage.storedResults, facts.control));
+                releaseMode = 'retire';
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
-              }
-              if (error instanceof ExecutionAuthorizationError) {
-                // An unavailable decision grants no send and no terminal
-                // outcome. Keep the durable capture, but attach its live
-                // payload release to this same cleanup owner before leaving.
-                custody.requireRelease(() => suspendCompletedEffectfulComputation({
-                  execution, store: facts.store, storedResults: stage.storedResults,
-                  control: facts.control, computation: stage.computation,
-                  preview: stage.preview}));
               }
               throw error;
             }
@@ -413,9 +416,10 @@ export function createInstalledEffectSite({environmentWire,
             store: facts.store, storedResults: stage.storedResults,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
-        } else if (result.status === 'failed') {
-          custody.requireRelease(() => releaseCompletedRunPreparedPayloads(
-            stage.storedResults, facts.control));
+        } else if (result.status === 'failed' || result.status === 'published') {
+          // An idempotent publication may already have released this owner.
+          // Retry with the same terminal mode, never switch back to retain.
+          releaseMode = 'retire';
         }
         recordUnknown(facts, result, stage);
         return finishStatus(result);

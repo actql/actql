@@ -230,6 +230,11 @@ export function resolveCheckLocation(outcome, location, currentInput) {
 
 // Coordinates describe this submitted revision, never a newer editor buffer.
 export function resolveCheckTextRange(outcome, location, currentInput) {
+  return resolveCheckTextRangeEncoding(outcome, location, 'utf-16', currentInput);
+}
+
+export function resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput) {
+  if (!['utf-8', 'utf-16', 'utf-32'].includes(encoding)) return undefined;
   const resolved = resolveCheckLocation(outcome, location, currentInput);
   if (resolved?.kind !== 'text' || !resolved.input.text.isWellFormed()) return undefined;
   const text = resolved.input.text;
@@ -251,12 +256,53 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
       width++;
     }
     if (scalar === 13 || scalar === 10) { line++; character = 0; }
-    else character += units;
+    else character += encoding === 'utf-8' ? width : encoding === 'utf-16' ? units : 1;
     byte += width;
     at += units;
   }
-  return start && Object.freeze({...resolved, positionEncoding: 'utf-16',
+  return start && Object.freeze({...resolved, positionEncoding: encoding,
     range: Object.freeze({start, end})});
+}
+
+// A session owns one current unsaved buffer; replies retain their SDK input custody.
+export function createCheckDocumentSession(client, options) {
+  const {text, version, positionEncoding = 'utf-16'} = options ?? {};
+  const validDocument = (text, version) => typeof text === 'string' && text.isWellFormed() &&
+    Number.isInteger(version) && version >= -2147483648 && version <= 2147483647;
+  if (typeof client?.check !== 'function' || !validDocument(text, version) ||
+      !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
+  let current = {text, version}, checker = client, issued = 0n;
+  const observations = new WeakMap();
+  return Object.freeze({
+    update(text, version) {
+      if (!current) fail('CheckDocumentClosed');
+      if (!validDocument(text, version) || version <= current.version) fail('InvalidCheckDocument');
+      current = {text, version};
+    },
+    async check(options) {
+      if (!current) fail('CheckDocumentClosed');
+      const submitted = current, ticket = ++issued;
+      // Call the existing SDK before yielding so it also detaches supplied bindings.
+      const outcome = await checker.check(submitted.text, options);
+      const input = getCheckInput(outcome, 'source');
+      const observation = Object.freeze({outcome, version: submitted.version, positionEncoding});
+      observations.set(observation, {ticket, input: input?.kind === 'text' &&
+        input.text === submitted.text ? input : undefined});
+      return observation;
+    },
+    resolveTextRange(observation, location) {
+      const record = observations.get(observation);
+      if (!current || !record?.input || record.ticket !== issued ||
+          observation.version !== current.version || record.input.text !== current.text ||
+          location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
+      return resolveCheckTextRangeEncoding(observation.outcome, location,
+        positionEncoding, record.input);
+    },
+    close() {
+      current = undefined;
+      checker = undefined;
+    },
+  });
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
@@ -476,6 +522,28 @@ export function explainCheckReason(reason, options) {
     invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
   };
   const issue = reason?.facts?.issue;
+  const jsonExplanations = {
+    invalid_unicode: ['The binding JSON contains invalid Unicode text.', 'Use valid Unicode scalar values in member names and string values.'],
+    unexpected_end: ['The binding JSON ends before a value is complete.', 'Complete the JSON value and its closing delimiters.'],
+    unexpected_token: ['The binding JSON contains an unexpected token.', 'Use a token allowed by JSON at the reported input location.'],
+    invalid_string: ['A binding JSON string is invalid.', 'Quote the string and escape control characters using JSON syntax.'],
+    invalid_escape: ['A binding JSON escape is invalid.', 'Use an escape sequence allowed by JSON.'],
+    invalid_number: ['A binding JSON number has invalid spelling.', 'Use a valid JSON number, including a complete exponent when present.'],
+    number_out_of_range: ['A binding JSON number is outside the admitted numeric range.', 'Use a number within the selected input numeric contract.'],
+    negative_zero: ['The binding JSON contains inadmissible negative zero.', 'Use an admitted numeric value; negative zero is not admitted.'],
+    expected_colon: ['A binding JSON member is missing its colon.', 'Separate the member name and value with a colon.'],
+    expected_array_separator: ['Binding JSON array elements are not separated correctly.', 'Use commas between array elements and a closing bracket.'],
+    expected_object_separator: ['Binding JSON object members are not separated correctly.', 'Use commas between object members and a closing brace.'],
+    duplicate_key: ['Two binding JSON member names compare equal under the admitted key rules.', 'Choose distinct member names under the input normalization rules.'],
+    trailing_content: ['Unexpected content follows the binding JSON value.', 'Submit one complete JSON value without trailing content.'],
+  };
+  if (reason?.code === 'binding_json_invalid' &&
+      ['parameters', 'parameter_declarations'].includes(reason?.facts?.document) &&
+      typeof issue === 'string' && Object.hasOwn(jsonExplanations, issue)) {
+    const [summary, hint] = localizeCheck(`binding_json.${issue}`, jsonExplanations[issue], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
     const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);

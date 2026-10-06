@@ -17,7 +17,7 @@ test('check presentation revisions are immutable and separate from schema identi
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.4`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.5`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
@@ -1446,5 +1446,20 @@ test('check refuses lossy numeric serialization before credentials or exchange',
     {code: 'InvalidCheckRequest'});
     assert.equal(credentials, 0, '[check-mutation:numeric-before-credentials]');
     assert.equal(exchanges, 0);
+  }
+});
+
+test('binding JSON explanations keep parser facts distinct from budgets and unknown reasons', () => {
+  for (const document of ['parameters', 'parameter_declarations']) {
+    assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue: 'invalid_unicode'}}),
+      {kind: 'known', summary: 'The binding JSON contains invalid Unicode text.',
+        hint: 'Use valid Unicode scalar values in member names and string values.'});
+    assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue: 'duplicate_key'}}),
+      {kind: 'known', summary: 'Two binding JSON member names compare equal under the admitted key rules.',
+        hint: 'Choose distinct member names under the input normalization rules.'});
+    for (const issue of ['depth_limit', 'future_json_issue', 'private-parser-message']) {
+      assert.deepEqual(explainCheckReason({code: 'binding_json_invalid', facts: {document, issue}}),
+        {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+    }
   }
 });
