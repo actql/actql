@@ -1,3 +1,6 @@
+// Calls selecting zero test only storage-owned custody, without enclosing
+// kernel scratch. Explicit caller-scratch cases retain their separate charge.
+
 ///|
 fn append_step_limits(slots : Int, work : Int, bytes : Int) -> Limits {
   {
@@ -25,11 +28,13 @@ test "record append keeps exact wire accounting across Text chunk yields" {
       (28, 1000, 143, Some(ValueLimit)),
     ] {
     let builder = prepare(relation(), append_step_limits(slots, work, bytes)).unwrap()
-    let cursor = start_append(builder, fields).unwrap()
+    let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
     assert_true(builder_append_pending(builder))
     assert_eq(builder_workspace_slots(builder), 25)
     assert_true(finish(builder) is Err(Closed))
-    assert_true(start_append(builder, fields) is Err(Closed))
+    assert_true(
+      start_append(builder, fields, external_workspace_slots=0) is Err(Closed),
+    )
     assert_eq(append(builder, fields), Err(Closed))
     let mut terminal = false
     let mut polls = 0
@@ -85,6 +90,7 @@ test "record append cancellation retains prior rows until builder cleanup" {
   let cursor = start_append(
     builder,
     relation_record(Array::make(130, "a").join("")),
+    external_workspace_slots=0,
   ).unwrap()
   // Validate fields and required presence, then enter a long Text emission.
   for _ in 0..<10 {
@@ -110,7 +116,11 @@ test "record append cancellation retains prior rows until builder cleanup" {
 test "stepped record append preserves identity uniqueness and field admission" {
   let builder = prepare(events(), limits()).unwrap()
   for duplicate in [false, true] {
-    let cursor = start_append(builder, event_record("a", 1.0, "é")).unwrap()
+    let cursor = start_append(
+      builder,
+      event_record("a", 1.0, "é"),
+      external_workspace_slots=0,
+    ).unwrap()
     let mut terminal = false
     for _ in 0..<60 {
       if !terminal {
@@ -141,7 +151,7 @@ test "stepped record append preserves identity uniqueness and field admission" {
       [relation_record("x")[0], relation_record("y")[0]],
     ] {
     let builder = prepare(relation(), limits()).unwrap()
-    let cursor = start_append(builder, fields).unwrap()
+    let cursor = start_append(builder, fields, external_workspace_slots=0).unwrap()
     let mut rejected = false
     for _ in 0..<20 {
       if !rejected {

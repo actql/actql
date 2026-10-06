@@ -26,10 +26,11 @@ test "Pool output Vector encoding yields with exact work and confirmed stop" {
   let read = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Two-dimensional fixture is 61. Each additional dimension adds one input
   // validation, three fold phases and one output wire poll: 5*255.
-  // Total 61+1275=1336. Workspace 15+255+56 append+1 name offset: 327.
+  // Total 61+1275=1336. Admission: 15+255+56 append+1 name offset=327.
+  // Completion retains one three-field record as well: 327+(3+2)=332.
   // Record wire has 267 nodes, key has two and width overhead four: 273.
   let limits = {
-    ..limits(workspace=327),
+    ..limits(workspace=332),
     max_value_nodes: 267,
     max_value_bytes: 2000,
     max_work: 2000,

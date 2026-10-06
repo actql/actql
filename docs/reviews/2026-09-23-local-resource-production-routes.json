@@ -10703,11 +10703,32 @@
           "fixture": "pool enforces cumulative one-record control work"
         },
         {
+          "role": "pool_caller_workspace_exact_one_short",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_caller_workspace_wbtest.mbt",
+          "fixture": "Pool keeps caller workspace reserved while retained output grows"
+        },
+        {
+          "role": "pool_caller_workspace_stop_cleanup",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_caller_workspace_wbtest.mbt",
+          "fixture": "Pool caller reservation stays owned until confirmed append stop"
+        },
+        {
+          "role": "pool_relation_caller_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_caller_workspace_wbtest.mbt",
+          "fixture": "Relation Pool retains caller reservation through exact output completion"
+        },
+        {
           "role": "pool_workspace_exact",
           "suite": "moon:local_veca",
           "targets": ["js", "wasm", "native"],
           "path": "src/local_veca/pool_wbtest.mbt",
-          "fixture": "pool completes at its exact structural workspace boundary"
+          "fixture": "pool completes at its exact retained-output workspace boundary"
         },
         {
           "role": "pool_workspace_one_short",

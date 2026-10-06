@@ -6278,7 +6278,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(95, 72),
+      direct_relation_pool_limits(100, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6347,11 +6347,11 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 72 work units and 95 workspace slots,
-  // independently itemized in the adjacent direct-kernel boundary fixture.
+  // The same Relation kernel requires 72 work units, 95 admission slots, and
+  // 100 completion slots, itemized in the adjacent direct-kernel fixture.
   for
     (work, workspace, stopping) in [
-      (71, 95, false),
+      (71, 100, false),
       (72, 94, false),
       (72, 95, true),
     ] {
@@ -6420,7 +6420,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(95, 72),
+    direct_relation_pool_limits(100, 72),
     4096L,
     capacity,
   )
@@ -6462,6 +6462,8 @@ test "relation pool enforces exact work and workspace boundaries" {
   // one identity slot and depth-ten stacks 30: 56, not the former 45.
   // This fixture's stale pre-name-binding premise omitted those eleven slots.
   // Pool name matching adds one position slot: 18+20+56+1=95 before reads.
+  // Completion keeps that conservative reservation while retaining the
+  // three-field output row (3+2), requiring 100 slots. Admission stays 95.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
@@ -6509,7 +6511,7 @@ test "relation pool enforces exact work and workspace boundaries" {
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(95, ceiling),
+      direct_relation_pool_limits(100, ceiling),
       4096L,
       fn() { true },
     ).unwrap()

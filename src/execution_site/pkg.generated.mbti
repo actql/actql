@@ -34,6 +34,8 @@ pub fn prepare_retained_site_holding_progress_step(RetainedSiteHoldingProgress) 
 
 pub fn prepare_retained_site_holding_step(Bool, Bool, Bool, Bool, Bool, Bool) -> RetainedSiteHoldingAction
 
+pub fn prepare_site_holding_restoration(ExecutionSite, Int64) -> SiteHoldingRestoration?
+
 pub fn record_failed_site_operation_settlement(FailedSiteOperationProgress) -> Bool
 
 pub fn record_failed_site_operation_stop(FailedSiteOperationProgress) -> Bool
@@ -158,6 +160,9 @@ pub(all) enum SiteCandidatePlanResult {
 type SiteCleanup
 
 type SiteHolding
+
+type SiteHoldingRestoration
+pub fn SiteHoldingRestoration::acquire(Self) -> SiteHolding?
 
 type SiteOperation
 

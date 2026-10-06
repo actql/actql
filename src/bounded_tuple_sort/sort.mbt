@@ -49,6 +49,8 @@ fn checked_multiply(left : Int, right : Int) -> Int? {
 }
 
 ///|
+/// Eagerly validate every key shape before returning. Bounded callers must use
+/// prepare_deferred so validation advances within the supplied work quantum.
 pub fn prepare(
   keys : Array[Array[String]],
   max_workspace_slots : Int,

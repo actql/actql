@@ -25,8 +25,10 @@ test "Relation Pool Object names retain independent limits and stop custody" {
   // 592-517+227+8+3=313. No allowance is inferred from a successful run.
   // Pool structural custody depends on records/roles, not unused field count:
   // the depth-three continuation/append plus one name offset total 67 slots.
+  // This admission reservation stays live while retaining the output row:
+  // three fields plus two links make completion 67+5=72.
   let limits = {
-    ..direct_relation_pool_limits(67, 313),
+    ..direct_relation_pool_limits(72, 313),
     max_value_depth: 3,
     max_value_nodes: 113,
   }

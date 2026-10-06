@@ -30,10 +30,12 @@ struct RecordAppend {
 }
 
 ///|
+/// Preserve the enclosing kernel's live scratch in the shared append reservation.
+/// Standalone callers without such scratch must explicitly select zero.
 pub fn start_record_append(
   output : OutputBuilder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
-  external_workspace_slots? : Int = 0,
+  external_workspace_slots~ : Int,
 ) -> Result[RecordAppend, Issue] {
   if !output.open {
     return Err(Closed)
