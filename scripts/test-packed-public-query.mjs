@@ -84,6 +84,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-delta-source-input.mjs', 'graph-delta-source-input.mjs'],
   ['scripts/fixtures/analytic-offset-source-input.mjs', 'analytic-offset-source-input.mjs'],
   ['scripts/fixtures/property-graph-equality-source-input.mjs', 'property-graph-equality-source-input.mjs'],
+  ['scripts/fixtures/property-graph-difference-source-input.mjs', 'property-graph-difference-source-input.mjs'],
   ['scripts/fixtures/graph-projection-property-source-input.mjs', 'graph-projection-property-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
@@ -203,6 +204,9 @@ if (process.argv.includes('--analytic-offset-only')) {
 }
 if (process.argv.includes('--graph-traverse-paths-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY = '1';
+}
+if (process.argv.includes('--graph-difference-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY = '1';
 }
 if (process.argv.includes('--graph-equality-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_EQUALITY_ONLY = '1';
@@ -365,7 +369,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--graph-delta-source-only'
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
   '--relation-data-only', '--acquired-data-only',
-  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-traverse-paths-only'].includes(flag));
+  '--data-set-strategy-only', '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
@@ -417,7 +421,7 @@ if (!process.argv.some(flag => ['--graph-delta-source-only', '--json-literal-sou
   '--group-property-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
-  '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-traverse-paths-only'].includes(flag))) {
+  '--property-graph-source-only', '--graph-rows-only', '--subgraph-only', '--graph-equality-only', '--graph-difference-only', '--graph-traverse-paths-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -463,6 +467,7 @@ if (process.argv.includes('--limit-parameter-only') ||
   process.argv.includes('--aggregate-property-only') ||
   process.argv.includes('--group-ordinal-only') ||
   process.argv.includes('--graph-equality-only') ||
+  process.argv.includes('--graph-difference-only') ||
   process.argv.includes('--graph-rows-only') ||
   process.argv.includes('--graph-traverse-paths-only')) return;
 if (!process.argv.includes('--property-graph-source-only')) {

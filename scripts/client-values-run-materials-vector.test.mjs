@@ -576,7 +576,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('2d6fb316b24bfb65561a2a09c78fb33581d7691480480829e7c8a7ea51896580'),
     pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid,
     pin('bd021612e8bbdac5e59ac025d8f7aa113172838bea3d309b335b21dd342686d0'));
-  assert.equal(current.run.run_definition_cid, 'sha256:72401cebfc4164aab0fcf562c80062be79017714465c0cacb017cd30b4949adb');
+  // Preserve main Graph-difference identities with their original pre-typed closure.
+  assert.equal(vector(pin('b43a9bd5a9e433dd164afd4760f583cee1d29e63e8eb65200dc9adbfd54bc095'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('aeaec36c0401892a5b3ccb6b09ded8f9d077a500e36eb9f4650c6cd14a97ea80'));
+  assert.equal(vector(pin('e36194fdba1c86643169c8f10888a05a39ecc0fea7e1189ac1dfaaf1f4ac01f0'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('c43c9af213d8c24dc132f500cadc213814f461912038b362a79dc2d116470d2f'));
+  assert.equal(vector(pin('33b5a9ea6214ae40f224b7f105632b933b6394dbd6d3f337cbdae20c9c1608ed'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('cd459a94b139de3909f0b0376bdfb42fe2885fe9d7959fe67d2d0bd75ce18176'));
+  assert.equal(vector(pin('d342a6bef23a6737a1d8c366eebafba2659a8495b7e22355fbe3e903f281dbf8'), pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid, pin('72401cebfc4164aab0fcf562c80062be79017714465c0cacb017cd30b4949adb'));
+  assert.equal(current.run.run_definition_cid, 'sha256:21f7d5c527334069ddb38f755a3b0f998dec86a9aee115b7cf905e86d36d7f25');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
