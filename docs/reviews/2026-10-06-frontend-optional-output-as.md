@@ -75,6 +75,41 @@ contracts, stream completion, replay/reattachment, Source reads and internal
 column exclusion. Refusals must leave admission/provider I/O unchanged;
 demanded division by zero must not publish a successful Result.
 
-Fresh-package execution is not yet verified at this source revision. Exact
-source SHA, tarball digests, receipts and terminal results will be appended
-without treating parser/checker success as public execution evidence.
+Runtime/fixture SHA: `2979d8192f4005a9408aa2b2479119315bc00082`.
+The later evidence-only commit does not represent a second package execution.
+Ordinary five-package prepack and the outside-checkout consumer pass under
+shared heavy guard `run-NNn0QW`: both exit 0, output complete, locks released.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-optional-as-pack-R9lY5H
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-optional-as-pack-R9lY5H node scripts/test-packed-public-query.mjs --optional-output-as-only
+```
+
+Embedded Local and HTTPS each passed all 12 successes, six typed preparation
+refusals, and one admitted execution failure. The opposite alias/input orders,
+analytic count, nullable EXTEND, CTE/set rows and empty Result schema all reached
+the public Named Result. Existing assertions compare complete describe columns
+and rows, then reattach/resend without admission or acquisition changes.
+Refusal paths preserve all counters and leave request lookup not_found. The
+admitted division failure denies both Result reading and description.
+
+Original evidence: `worktrees/.codex-scratch/public-query-evidence-sHHhaC`,
+summary passed/complete, command 008 exit 0. Success cleanup removed only its
+installation and Store; original receipts/logs remain. Protected copies are in
+`review-artifacts/b-optional-output-as-2026-10-06/`. The generic source
+observation reports dirty because protected untracked evidence exists; ordinary
+producer/consumer clean-input checks passed and tracked source was unchanged
+throughout the gate. No overlays, rewritten Programs or budget overrides were
+used.
+
+| Package | SHA-256 |
+|---|---|
+
+| client-wire | `68e1aa6b3539f5833630693a5a10e084f61a2ab7f4e2e4f978722a33ce6e9e90` |
+| sdk | `a17d3678138d9e6c41625f26e279811f7d264fdc7f7653be71877abffec25a36` |
+| run-host-core | `b84f242eb47ff8ece497cf1b5d12b1e3087736646d179c5e779e71a72b17fd01` |
+| local-node | `d4ccfe0e0d805b7b88f2751d1c5862b5bd21035ef42a60eb9b7f880b77d765cb` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+This is focused local package evidence, not CI success, Wasm/Native execution
+or complete GoogleSQL alias conformance. Exact submitted CI is separate.
