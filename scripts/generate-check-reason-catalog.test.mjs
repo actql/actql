@@ -21,6 +21,9 @@ test('catalog rejects malformed authoring and schema drift before generation', (
   assert.throws(() => validateCheckReasonCatalog(leaked));
   const malformed = structuredClone(catalog); malformed.entries[0].presentation.default.english = [''];
   assert.throws(() => validateCheckReasonCatalog(malformed));
+  const missingMatch = structuredClone(catalog);
+  delete missingMatch.entries.find(entry => entry.presentation.variants.length).presentation.variants[0].when;
+  assert.throws(() => validateCheckReasonCatalog(missingMatch));
   const changed = structuredClone(catalog); changed.reason_schema.required.push('severity');
   assert.throws(() => buildCheckReasonCatalog(changed, registry));
 });

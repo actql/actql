@@ -8,15 +8,17 @@ const keys = (value, required, optional = []) => {
   assert(Object.keys(value).every(key => [...required, ...optional].includes(key)));
 };
 const text = value => assert(typeof value === 'string' && value.length > 0 && value.length <= 2048);
-const presentation = value => {
-  keys(value, ['key', 'english'], ['when']); text(value.key);
+const presentation = (value, conditional = false) => {
+  keys(value, conditional ? ['key', 'english', 'when'] : ['key', 'english']); text(value.key);
   assert(Array.isArray(value.english) && value.english.length === 2);
   value.english.forEach(text);
-  if (value.when) {
+  if (conditional) {
+    keys(value.when, [], Object.keys(value.when));
     assert(Object.keys(value.when).length > 0);
     for (const [key, values] of Object.entries(value.when)) {
       assert(['issue', 'operation', 'document', 'constraint', 'domain', 'expected_type'].includes(key));
-      (Array.isArray(values) ? values : [values]).forEach(text);
+      const admitted = Array.isArray(values) ? values : [values];
+      assert(admitted.length > 0); admitted.forEach(text);
     }
   }
 };
@@ -46,7 +48,7 @@ export function validateCheckReasonCatalog(catalog) {
     keys(entry.presentation, ['variants'], ['default']);
     if (entry.presentation.default) presentation(entry.presentation.default);
     assert(Array.isArray(entry.presentation.variants));
-    entry.presentation.variants.forEach(presentation);
+    entry.presentation.variants.forEach(value => presentation(value, true));
     assert(entry.presentation.default || entry.presentation.variants.length);
     assert(Array.isArray(entry.examples) && entry.examples.length > 0);
     for (const example of entry.examples) { keys(example, ['file', 'scenario']); text(example.file); text(example.scenario); }
