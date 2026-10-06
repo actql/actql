@@ -150,11 +150,7 @@ fn JsonAdmission::step(admission : JsonAdmission) -> Unit raise Abort {
         }
         // Match ordinary admission's diagnostic precedence: all canonical
         // object names are validated before any child value is traversed.
-        if admission.data_keys {
-          ignore(text_size(name, child, budget))
-        } else {
-          cursor_key_text(name, child, budget)
-        }
+        cursor_key_text(name, child, budget, identifier=!admission.data_keys)
         admission.frames.push(ObjectNames(cursor, sort, index + 1, depth))
       } else {
         guard @decode.object_length(cursor) is Some(count) &&

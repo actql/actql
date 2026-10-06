@@ -133,8 +133,9 @@ fn cursor_key_text(
   name : String,
   child : @decode.Cursor,
   budget : Budget,
+  identifier? : Bool = true,
 ) -> Unit raise Abort {
-  ignore(text_size(name, child, budget, identifier=true)) catch {
+  ignore(text_size(name, child, budget, identifier~)) catch {
     Abort(ValueIssue(kind, ..)) =>
       raise Abort(
         ValueIssue(
@@ -191,13 +192,17 @@ pub fn admit_wire(
 /// Returns the admitted value, visited value nodes, and charged UTF-8 text bytes
 /// (including object keys). Callers can share a budget across separate values.
 /// Depth is checked per value, not a cumulative counter. No partial usage or
-/// admitted value is returned after failure.
+/// admitted value is returned after failure. Explicit authored fields retain
+/// the ordinary Object identifier rule after an Effect literal is typed;
+/// checked JSON payload keys remain data in either admission mode.
 pub fn admit_usage(
   contract : @contract.Contract,
   cursor : @decode.Cursor,
   limits : Limits,
+  authored_fields? : Bool = false,
 ) -> Result[(CheckedValue, Int, Int), Issue] {
-  let admission = match start_typed_admission(contract, cursor, limits) {
+  let admission = match
+    start_typed_admission(contract, cursor, limits, authored_fields~) {
     Ok(admission) => admission
     Err(issue) => return Err(issue)
   }

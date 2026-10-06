@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "effect-literal-key-vector-registration-8ab49d85",
+  "kind": "change",
+  "revision": "8ab49d85a0afe7aa082839098da4a17877a20a60",
+  "parents": [
+    "6313cfd73cb2fcf411945265b52a0294ae075d4c"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "6313cfd73cb2fcf411945265b52a0294ae075d4c",
+          "digest": "36b38ef31e5de1bd4a541107572280f97c2c08b59befc8227a8817d1de424bc0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dadf6e7235d6f79d8102608046aa94d71fb8141cd5bcb963bff4c514ef1915dc",
+      "afterMode": "100644",
+      "reason": "Register the independent raw Effect literal Stage and Program identity vectors in the existing canonical validation entry; retain every prior checker, fixed identity corpus and execution limit."
+    }
+  ]
+}
