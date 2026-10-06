@@ -15,6 +15,35 @@ fn make(
 }
 
 ///|
+test "indexed reference spelling borrows canonical flat and qualified names" {
+  let long = "x".repeat(256)
+  for
+    (entries, expected) in [
+      ([(@relation_schema.Unqualified(long), number())], [long]),
+      (
+        [
+          (@relation_schema.Qualified(@relation_schema.Right, long), number()),
+          (@relation_schema.Qualified(@relation_schema.Left, long), number()),
+        ],
+        ["left." + long, "right." + long],
+      ),
+    ] {
+    let schema = make(entries)
+    for index, name in expected {
+      assert_eq(
+        @relation_schema.field_reference_name_at(schema, index),
+        Some(name),
+      )
+    }
+    assert_true(@relation_schema.field_reference_name_at(schema, -1) is None)
+    assert_true(
+      @relation_schema.field_reference_name_at(schema, expected.length())
+      is None,
+    )
+  }
+}
+
+///|
 test "flat row adapter preserves all child contracts without admitting nullable or nonobject roots" {
   let child = @contract.array_contract(
     @contract.decimal_contract(38, 7, nullable=true).unwrap(),
