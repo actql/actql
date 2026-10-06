@@ -714,3 +714,78 @@ test "property Graph union retained snapshot matches independent bytes after sou
   }
   assert_true((snapshot.cleanup)().unwrap())
 }
+
+///|
+test "property Graph union reserves independent workspace before the first fold" {
+  let owner = equality_alignment_owner(equality_alignment_carrier(false, false))
+  let graph = @graphs.finish_output(
+    @graphs.prepare_output(
+      owner,
+      @pipeline.Input(0),
+      DeclaredNodes,
+      carrier_graph_storage_limits(),
+      4096L,
+      () => true,
+    ).unwrap(),
+  ).unwrap()
+  let receiver = union_receiver(owner)
+  let reads = [0, 1, 2].map(index => {
+    @graphs.prepare_producer_read(receiver, index, owner, graph).unwrap()
+  })
+  let views = reads.map(read => @graphs.producer_read_view(read).unwrap())
+  // One key and two properties, 100 value nodes and depth 100. The append
+  // owner's stacks/staging need 3200+800+1200+6+160 = 5366 slots. Union's
+  // sets/order/control and three occurrences add 1600+800+12+64 = 2476.
+  // Empty retained generations consume no additional record slots.
+  let append_slots = 3200 + 800 + 1200 + 6 + 160
+  let union_slots = 1600 + 800 + 12 + 64
+  let required = append_slots + union_slots
+  assert_eq(required, 7842)
+  for quantum in [1, 64] {
+    for slots in [required - 1, required] {
+      let limits = {
+        ..carrier_graph_storage_limits(),
+        max_value_nodes: 100,
+        max_value_depth: 100,
+        max_work: 13,
+        max_workspace_slots: slots,
+        max_input_rows: 100,
+      }
+      let active = @local_sga.start_union_views(
+        @bounded.control(),
+        prepared_sequence(receiver),
+        0,
+        views,
+        limits,
+        65536L,
+        () => true,
+      ).unwrap()
+      for _ in 0..<20 {
+        match @local_sga.advance_union(active, quantum).unwrap() {
+          @local_sga.UnionContinue(..) => assert_eq(slots, required)
+          @local_sga.UnionComplete(result, work~, ..) => {
+            assert_eq(slots, required)
+            assert_eq(work, 13L)
+            assert_true(@graphs.discard_completed(result))
+            break
+          }
+          @local_sga.UnionFailed(@local_sga.UnionFoldWorkspaceLimit, work~, ..) => {
+            assert_eq(slots, required - 1)
+            assert_eq(work, 1L)
+            break
+          }
+          _ => fail("unexpected union workspace boundary")
+        }
+      } nobreak {
+        fail("bounded union workspace fixture did not terminate")
+      }
+      assert_true(@local_sga.cleanup_union(active).unwrap())
+      assert_false(@local_sga.cleanup_union(active).unwrap())
+      assert_false(@local_sga.union_cleanup_pending(active))
+      for read in reads {
+        assert_true(@graphs.producer_read_available(read))
+      }
+    }
+  }
+  assert_true(@graphs.discard_completed(graph))
+}

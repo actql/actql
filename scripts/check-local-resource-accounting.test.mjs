@@ -3419,3 +3419,12 @@ test('resource snapshots are explicit per-run source bytes rather than validatio
   }
   assert.equal(existsSync(directory), false);
 });
+
+
+test('union cannot claim its logical workspace assurance without the independent boundary', () => {
+  assert.match(run(undefined, routes => {
+    const union = routes.routes.find(route => route.operation === 'union_graphs');
+    union.boundary_tests = union.boundary_tests.filter(item =>
+      item.role !== 'union_workspace_exact_one_short_before_fold');
+  }), /SGA union_graphs: entrypoint operation workspace lacks an executable fixture/);
+});

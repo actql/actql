@@ -7843,25 +7843,68 @@
         {
           "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_wbtest.mbt",
           "fixture": "property Graph union empty occurrences share one independent operation wide work budget"
         },
         {
           "role": "union_positive_work_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_wbtest.mbt",
           "fixture": "property Graph union cancellation after positive work keeps shared input custody"
         },
         {
           "role": "union_host_cleanup_failure_retry_custody",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "path": "src/query_integration/property_graph_union_custody_wbtest.mbt",
           "fixture": "Host union keeps repeated input holdings and cleanup reservation through false error and retry"
+        },
+        {
+          "role": "union_workspace_exact_one_short_before_fold",
+          "suite": "moon:query_integration",
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_union_wbtest.mbt",
+          "fixture": "property Graph union reserves independent workspace before the first fold"
         }
-      ]
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+          "in_flight_cancel": "union_positive_work_cancel_cleanup",
+          "cleanup": "union_host_cleanup_failure_retry_custody"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "union_empty_work_exact_one_short_active_cancel_cleanup",
+            "one_short_limit": "union_empty_work_exact_one_short_active_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "union_workspace_exact_one_short_before_fold",
+            "one_short_limit": "union_workspace_exact_one_short_before_fold"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
