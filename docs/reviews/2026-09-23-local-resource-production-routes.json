@@ -10878,6 +10878,20 @@
           "fixture": "Graph label output resumes Text and array construction with exact limits"
         },
         {
+          "role": "graph_projection_selection_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_order_comparison",
+          "suite": "moon:bounded_tuple_sort",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/bounded_tuple_sort/comparison_steps_wbtest.mbt",
+          "fixture": "tuple comparison yields within long prefixes and many equal components"
+        },
+        {
           "role": "graph_projection_presence_charge",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -10923,7 +10937,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers share indexed matching and AdmittedOutputRow admission/charging for dense and conditional output. Label Text now uses the existing bounded recheck; a reserved ArrayBuilder transfers without final copying. Label slots stay reserved through row commit and do not overlap row traversal reservations. Independent long/wide-label boundaries execute node and edge entrypoints; existing every-phase stop cases cover both wrappers. Presence remains distinct from NULL. Selectors, ordering keys and JSON object-name admission still have synchronous scans. See docs/reviews/2026-10-06-local-graph-label-output.md and docs/reviews/2026-10-06-local-graph-projection-steps.md."
+      "notes": "Stored and viewed Graph wrappers share stepped row matching, admission, charging and reserved label output. Definition/label selection retains each candidate and UTF-16 offset; the common tuple sorter retains component and character offsets. Production ordering-key getters reuse retained tokens rather than re-encoding identity. Independent label-selection and tuple-comparison fixtures cover exact work, workspace, quantum invariance and unfinished cleanup; public Local/real Store evidence remains separate from private-frame cancellation. Presence remains distinct from NULL. JSON object-name admission and other algorithms outside this owner remain residual work. See docs/reviews/2026-10-06-local-graph-selection-order.md."
     },
     {
       "inventory": "families",
@@ -10967,6 +10981,20 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
           "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_selection_limits",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_label_steps_wbtest.mbt",
+          "fixture": "Graph label output resumes Text and array construction with exact limits"
+        },
+        {
+          "role": "graph_projection_order_comparison",
+          "suite": "moon:bounded_tuple_sort",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/bounded_tuple_sort/comparison_steps_wbtest.mbt",
+          "fixture": "tuple comparison yields within long prefixes and many equal components"
         },
         {
           "role": "graph_projection_presence_charge",
@@ -11014,7 +11042,7 @@
           }
         }
       },
-      "notes": "Stored and viewed Graph wrappers share indexed matching and AdmittedOutputRow admission/charging for dense and conditional output. Label Text now uses the existing bounded recheck; a reserved ArrayBuilder transfers without final copying. Label slots stay reserved through row commit and do not overlap row traversal reservations. Independent long/wide-label boundaries execute node and edge entrypoints; existing every-phase stop cases cover both wrappers. Presence remains distinct from NULL. Selectors, ordering keys and JSON object-name admission still have synchronous scans. See docs/reviews/2026-10-06-local-graph-label-output.md and docs/reviews/2026-10-06-local-graph-projection-steps.md."
+      "notes": "Stored and viewed Graph wrappers share stepped row matching, admission, charging and reserved label output. Definition/label selection retains each candidate and UTF-16 offset; the common tuple sorter retains component and character offsets. Production ordering-key getters reuse retained tokens rather than re-encoding identity. Independent label-selection and tuple-comparison fixtures cover exact work, workspace, quantum invariance and unfinished cleanup; public Local/real Store evidence remains separate from private-frame cancellation. Presence remains distinct from NULL. JSON object-name admission and other algorithms outside this owner remain residual work. See docs/reviews/2026-10-06-local-graph-selection-order.md."
     },
     {
       "inventory": "families",

@@ -68,7 +68,8 @@ test('record projections require value, name, stop and public Store evidence', (
 test('Graph projections require fragment, presence and public Store evidence', () => {
   for (const operation of ['node_rows', 'edge_rows']) {
     for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
-      'graph_projection_label_limits']) {
+      'graph_projection_label_limits', 'graph_projection_selection_limits',
+      'graph_projection_order_comparison']) {
       assert.match(run(undefined, routes => {
         const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
         route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
@@ -89,6 +90,26 @@ test('Graph labels require staged Text, reserved arrays and cleanup connections'
     ['src/local_bridge/graph_rows.mbt', '@value.advance_recheck_runtime_value(', 'missing_advance(', 'stepped Graph labels are missing'],
     ['src/local_bridge/graph_rows.mbt', '@value.finish_array_value(', '@value.array_value(', 'Graph labels compute synchronously'],
     ['src/local_bridge/events.mbt', '@value.cancel_array_value(builder)', 'missing_cleanup(builder)', 'Graph label cleanup custody is missing'],
+  ]) {
+    const file = join(root, relative);
+    assert.ok(sourceTemplate[file]?.text.includes(marker));
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file], text:sourceTemplate[file].text.replaceAll(marker,replacement)}),
+    });
+    const result = validateResourceAccounting({root, manifest:manifestTemplate, routes:routesTemplate, sources});
+    for (const operation of ['node_rows', 'edge_rows']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: ${message}`));
+    }
+  }
+});
+
+test('Graph selection and ordering require retained comparison fragments', () => {
+  for (const [relative, marker, replacement, message] of [
+    ['src/local_bridge/graph_rows.mbt', 'source.selection_name_offset = offset', 'source.selection_name_offset = 0', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@canonical.compare_utf16_fragment(', 'missing_raw_compare(', 'stepped Graph selection is missing'],
+    ['src/local_bridge/graph_rows.mbt', '@carrier.compare_property_name_fragment(', '@carrier.property_name_identity(', 'Graph selection computes synchronously'],
+    ['src/bounded_tuple_sort/sort.mbt', 'value.comparison_offset = offset', 'value.comparison_offset = 0', 'stepped Graph order comparison is missing'],
+    ['src/bounded_tuple_sort/sort.mbt', '@canonical.compare_utf16_fragment(', '@canonical.compare_utf16(', 'Graph order comparison computes synchronously'],
   ]) {
     const file = join(root, relative);
     assert.ok(sourceTemplate[file]?.text.includes(marker));

@@ -481,6 +481,7 @@ export function validateResourceAccounting({
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
         'moon:relation_schema': 'relation_schema',
+        'moon:bounded_tuple_sort': 'bounded_tuple_sort',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
@@ -2329,7 +2330,8 @@ export function validateResourceAccounting({
     }
     if (route.family === 'Bridge' && ['node_rows', 'edge_rows'].includes(route.operation)) {
       for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
-        'graph_projection_label_limits']) {
+        'graph_projection_label_limits', 'graph_projection_selection_limits',
+        'graph_projection_order_comparison']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('graph_projection_public_store')) {
@@ -2361,6 +2363,23 @@ export function validateResourceAccounting({
         fail(`${label}: Graph projection cleanup custody is missing`);
       }
       const graph = fs.readFileSync(path.join(root, 'src/local_bridge/graph_rows.mbt'), 'utf8');
+      for (const marker of ['fn graph_definition_selected(',
+        'source.selection_name_offset = offset',
+        '@canonical.compare_utf16_fragment(', '@carrier.compare_property_name_fragment(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph selection is missing`);
+      }
+      if (graph.includes('@carrier.property_name_identity(')) {
+        fail(`${label}: Graph selection computes synchronously`);
+      }
+      const sorter = fs.readFileSync(path.join(root, 'src/bounded_tuple_sort/sort.mbt'), 'utf8');
+      if (!sorter.includes('@canonical.compare_utf16_fragment(') ||
+        !sorter.includes('value.comparison_component += 1') ||
+        !sorter.includes('value.comparison_offset = offset')) {
+        fail(`${label}: stepped Graph order comparison is missing`);
+      }
+      if (sorter.includes('compare_tuple(') || sorter.includes('@canonical.compare_utf16(')) {
+        fail(`${label}: Graph order comparison computes synchronously`);
+      }
       for (const marker of ['count > source.label_workspace', 'source.label_reserved = count',
         '@value.prepare_array_value(', '@value.start_recheck_runtime_text(',
         '@value.advance_recheck_runtime_value(', '@value.append_array_item(',

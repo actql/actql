@@ -6081,3 +6081,19 @@ as residuals, not selectors, identity ordering keys, JSON object-name scans,
 constructor preparation, Events comparisons or whole-Run accounting. No full
 Local completion or pristine packed campaign is claimed. See the
 [label-output record](2026-10-06-local-graph-label-output.md).
+
+Graph row selection now keeps each definition/label candidate and character
+offset across charged fragments, preserving raw definition equality and
+ASCII-folded label identity. Shared tuple sorting also retains component and
+character offsets, so long prefixes and wide equal keys no longer hide a full
+comparison inside one merge poll. Snapshot sort preparation uses the existing
+deferred shape-admission path. Real sorter consumers and Graph selection
+boundaries pass focused JS checks, and public Local/real Store cases remain
+covered; see the [selection/order record](2026-10-06-local-graph-selection-order.md).
+
+Earlier ordering-key acquisition residual wording is corrected: current
+production Storage and its managed view reuse indexed retained tokens rather
+than re-encoding identity. The unbounded part was tuple comparison, now split.
+This does not certify arbitrary custom view callbacks. Runtime JSON object-name
+admission, constructor preparation, Events comparison, intermediate aggregate
+bytes and whole-Run accounting remain. Full Local closure is not asserted.
