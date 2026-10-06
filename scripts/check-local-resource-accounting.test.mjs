@@ -48,6 +48,36 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('Events input-name matching requires limits, stop and public Store evidence', () => {
+  for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
+    for (const role of ['events_input_name_limits', 'events_input_name_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'TEA' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`TEA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'TEA' && r.operation === 'session');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'events_input_name_public_store');
+  }), /TEA session: Events input-name public Store fixture is missing/u);
+});
+
+test('Events input-name matching rejects a missing production cursor connection', () => {
+  for (const name of ['watermark', 'window', 'dedupe', 'session']) {
+    const file = join(root, `src/local_tea/${name}.mbt`);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace('event_name_equal(', 'atomic_name_equal(')}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    assert.ok(result.errors.some(message =>
+      message.includes('stepped input-name custody is missing')));
+  }
+});
+
 test('Events record emission requires limits, stop and public Store evidence', () => {
   for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
     for (const role of ['events_record_emission_limits', 'events_record_emission_stop_cleanup']) {

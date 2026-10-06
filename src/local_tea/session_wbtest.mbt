@@ -223,7 +223,7 @@ test "session scratch initialization advances within the resume quantum" {
       event_window_sequence(owner),
       0,
       input,
-      { ..event_window_limits(), max_workspace_slots: 51, },
+      { ..event_window_limits(), max_workspace_slots: 52, },
       4096L,
       fn() { live.val },
     )
@@ -235,7 +235,7 @@ test "session scratch initialization advances within the resume quantum" {
     event_window_sequence(owner),
     0,
     input,
-    { ..event_window_limits(), max_workspace_slots: 52, },
+    { ..event_window_limits(), max_workspace_slots: 53, },
     4096L,
     fn() { live.val },
   ).unwrap()
@@ -270,7 +270,7 @@ test "session scratch initialization advances within the resume quantum" {
     event_window_sequence(owner),
     0,
     stopped_input,
-    { ..event_window_limits(), max_workspace_slots: 52, },
+    { ..event_window_limits(), max_workspace_slots: 53, },
     4096L,
     fn() { live.val },
   ).unwrap()
@@ -297,8 +297,8 @@ test "session output workspace includes scratch and temporary fields" {
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // One record and one key retain 3 cells, 3 indices, and 4 metadata
   // slots. Borrowed output fields plus append handle add seven slots.
-  // Cursor 16+3*6+1+3*10=65, retained row eight: 10+7+65+8=90.
-  for (budget, accepted) in [(90, true), (89, false)] {
+  // Cursor 65, row eight, scratch ten, fields/handle seven, position one.
+  for (budget, accepted) in [(91, true), (90, false)] {
     let execution = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -443,8 +443,8 @@ test "empty session retains its metadata and finish limits" {
   let source = event_window_source(producer, [], live)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // No row scratch is needed. Three terms plus their metadata marker need
-  // four slots; completing the empty generation costs one finish unit.
-  for (workspace, work) in [(4, 1), (3, 1), (4, 0)] {
+  // four slots plus name position; empty completion costs one finish unit.
+  for (workspace, work) in [(5, 1), (4, 1), (5, 0)] {
     let started = start_session(
       @bounded.control(),
       event_window_sequence(owner),
@@ -455,7 +455,7 @@ test "empty session retains its metadata and finish limits" {
       fn() { live.val },
       control_work_limit=Some(work),
     )
-    if workspace == 3 {
+    if workspace == 4 {
       assert_true(started is Err(SessionWorkspaceLimit))
     } else if work == 0 {
       assert_true(started is Err(SessionControlWorkLimit))
@@ -477,7 +477,7 @@ test "empty session retains its metadata and finish limits" {
     event_window_sequence(owner),
     0,
     input,
-    { ..event_window_limits(), max_workspace_slots: 4, },
+    { ..event_window_limits(), max_workspace_slots: 5, },
     4096L,
     fn() { live.val },
     control_work_limit=Some(1),

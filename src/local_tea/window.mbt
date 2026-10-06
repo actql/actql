@@ -23,7 +23,7 @@ priv struct EventWindowState {
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   window : @lower.PreparedWindow
-  time_name : String
+  time_name : @schema.FieldName
   timestamp : Bool
   start_name : @schema.FieldName
   end_name : @schema.FieldName
@@ -35,6 +35,7 @@ priv struct EventWindowState {
   mut phase : EventWindowPhase
   mut record : Int
   mut field : Int
+  mut name_offset : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut emission : Array[(@schema.FieldName, @value.CheckedValue)]
   mut emission_field : Int
@@ -175,12 +176,13 @@ fn event_window_begin_record(
     None => return Err(InvalidEventWindowKernel)
   }
   guard field_count <= state.limits.max_fields_per_record - 2 &&
-    field_count <= (2147483647 - 4) / 2 &&
+    field_count <= (2147483647 - 5) / 2 &&
     current <= state.limits.max_workspace_slots &&
-    field_count + 2 <= state.limits.max_workspace_slots - current else {
+    field_count + 3 <= state.limits.max_workspace_slots - current else {
     return Err(EventWindowWorkspaceLimit)
   }
   state.field = 0
+  state.name_offset = 0
   state.fields = []
   state.emission = []
   state.time = None
@@ -193,17 +195,23 @@ fn event_window_begin_record(
 fn event_window_read_field(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
-  guard event_window_source_field(state.source, state.record, state.field)
-    is Some((name, checked)) else {
-    return Err(InvalidEventWindowRecord(state.record))
+  if state.fields.length() == state.field {
+    guard event_window_source_field(state.source, state.record, state.field)
+      is Some(value) else {
+      return Err(InvalidEventWindowRecord(state.record))
+    }
+    state.fields.push(value)
   }
-  if @schema.reference_name(name) == state.time_name {
+  let (name, checked) = state.fields[state.field]
+  let (equal, next) = event_name_equal(name, state.time_name, state.name_offset)
+  state.name_offset = next
+  guard equal is Some(equal) else { return Ok(()) }
+  if equal {
     if state.time is Some(_) {
       return Err(InvalidEventWindowRecord(state.record))
     }
     state.time = Some(checked)
   }
-  state.fields.push((name, checked))
   state.field += 1
   Ok(())
 }
@@ -273,7 +281,7 @@ fn event_window_build_membership(
         1
       },
       state.limits.max_value_depth,
-      state.fields.length() * 2 + 4,
+      state.fields.length() * 2 + 5,
     )
     is Some(needed) &&
     current <= state.limits.max_workspace_slots &&
@@ -327,7 +335,7 @@ fn event_window_commit_membership(
       state.emission,
       external_workspace_slots=state.fields.length() +
         state.emission.length() +
-        2,
+        3,
     ) {
     Err(issue) => Err(EventWindowOutput(issue))
     Ok(append) => {
@@ -476,6 +484,7 @@ fn cleanup_event_window_state(state : EventWindowState) -> Bool {
   state.emission = []
   state.emission_field = 0
   state.time = None
+  state.name_offset = 0
   state.coordinate = None
   true
 }
@@ -535,6 +544,7 @@ fn start_event_window_source(
   }
   guard size > 0L &&
     step_size > 0L &&
+    limits.max_workspace_slots >= 1 &&
     records <= limits.max_input_records &&
     event_window_output_bound(records, size, step_size) is Some(maximum) &&
     maximum <= limits.max_records &&
@@ -542,7 +552,7 @@ fn start_event_window_source(
     admitted_fields <= 2147483645 &&
     (
       maximum == 0 ||
-      admitted_fields + 2 <= limits.max_workspace_slots / maximum
+      admitted_fields + 2 <= (limits.max_workspace_slots - 1) / maximum
     ) &&
     event_window_output_contract(output_carrier, start_name)
     is Some(start_contract) &&
@@ -571,7 +581,7 @@ fn start_event_window_source(
     output: Some(output),
     limits,
     window,
-    time_name: @schema.reference_name(@carrier.event_time(events).name),
+    time_name: @carrier.event_time(events).name,
     timestamp: @carrier.event_clock_encoding(events) == @carrier.UtcTimestamp,
     start_name,
     end_name,
@@ -583,6 +593,7 @@ fn start_event_window_source(
     phase: BeginRecord,
     record: 0,
     field: 0,
+    name_offset: 0,
     fields: [],
     emission: [],
     emission_field: 0,
