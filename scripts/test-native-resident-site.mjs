@@ -48,7 +48,10 @@ const retainedCoordinatorReconstruction =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_COORDINATOR_RECONSTRUCTION === '1';
 const retainedCancelBeforeConsumer =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CANCEL_BEFORE_CONSUMER === '1';
-if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer) && !retainedConsumerMode) {
+const retainedProducerHolderRecreation =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_PRODUCER_HOLDER_RECREATION === '1';
+if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
+  retainedProducerHolderRecreation) && !retainedConsumerMode) {
   throw new Error('retained fault selection requires the retained consumer case');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
@@ -883,7 +886,9 @@ try {
         '--retained-source-grant-cid', sourceGrantCid,
         '--retained-destination-grant-cid', destinationGrantCid,
         '--retained-route-capability-cid', routeCapabilityCid,
-        '--retained-consumer-engine-bytes', '67108864']);
+        '--retained-consumer-engine-bytes', '67108864',
+        ...(retainedProducerHolderRecreation
+          ? ['--holder-kill-at', 'completed-producer'] : [])]);
       currentSite = site;
       const producerDispatch = dispatchFor('retained-producer', 1);
       await ensureOutputReceiver(producerDispatch);
@@ -908,6 +913,13 @@ try {
       await within(gateway.dispatch({dispatch: producerDispatch, inputBindingBody: bindingBody,
         dispatchEnvelope: materialsEnvelope(producerDispatch)}), 'retained producer');
       await settledQuery(producerDispatch, 'retained producer');
+      if (retainedProducerHolderRecreation) {
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+          line.point === 'completed-producer'), 'durable producer holder interruption');
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+          'original producer holder physical exit');
+        assert.equal((await entries()).length, 1);
+      }
       assert.equal(inspectProgress().nextTask, 1);
       assert.equal(inspectProgress().executionComplete, false,
         'producer completion is not checked Run completion');
@@ -941,6 +953,13 @@ try {
         intent, current, limits: {maxChunks: limits.maxChunks,
           maxManifestBytes: limits.maxManifestBytes,
           maxReferencedBytes: limits.maxReferencedBytes}}), 'retained input plan');
+      if (retainedProducerHolderRecreation) {
+        assert.ok(site.lines.some(line => line.kind === 'retained-holder-queued' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+        assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+          line.request_cid === siteControl.identity(producerDispatch)));
+        assert.equal((await entries()).length, 1, 'holder recreation cannot reacquire Source');
+      }
       let result = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
         'physical retained input transfer');
       if (retainedCoordinatorReconstruction) {
@@ -1133,6 +1152,15 @@ try {
         line.request_cid === siteControl.identity(producerDispatch));
       assert.ok(acceptedProducer, 'original producer admission was observed');
       assert.equal(acquisitions[0].attempt, acceptedProducer.attempt);
+      const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'),
+        {readOnly: true});
+      try {
+        const catalog = bundles.prepare('SELECT body FROM actql_records WHERE namespace=? AND record_key=?')
+          .get('runtime_bundle', 'catalog');
+        const holds = JSON.parse(Buffer.from(catalog.body).toString('utf8'))
+          .entries.flatMap(entry => entry.holds);
+        assert.deepEqual(holds, [], 'all original and recreated process/dispatch bundle holdings released');
+      } finally { bundles.close(); }
       const database = new DatabaseSync(journalPath, {readOnly: true});
       try {
         const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
@@ -1154,7 +1182,7 @@ try {
         checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
-        producerHolderRecreated: false,
+        producerHolderRecreated: retainedProducerHolderRecreation,
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,
         publicCloudAcceptance: false}));

@@ -65,6 +65,70 @@ fn admit_resident_completed_envelope(
 }
 
 ///|
+/// Select the saved start claimant for an original completed holder before
+/// acquiring its runtime component. The caller must already hold the actual
+/// exclusive slot. This does not release a holding or create another claim.
+pub fn resident_completed_holder_claimant(
+  journal : @journal.Journal,
+  admission : ResidentRunAdmission,
+  delegation : @resident.ResidentSiteDelegation,
+  site_generation : Int,
+  attempt_identity : String,
+  at : String,
+) -> Result[String?, ResidentHostIssue] {
+  let envelope = match journal.dispatch_envelope(attempt_identity) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(EnvelopeMissing)
+    Err(issue) => return Err(Journal(issue))
+  }
+  let dispatch = match @remote.admit_remote_poll_dispatch_json(envelope) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let request = @remote.remote_poll_dispatch_request(dispatch)
+  if @remote.dispatch_request_attempt_identity(request) != Ok(attempt_identity) {
+    return Err(EnvelopeMissing)
+  }
+  let record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  if @remote.dispatch_record_state_codes(record)[0] != 3 {
+    return Ok(None)
+  }
+  match admit_resident_completed_envelope(
+    admission, delegation, site_generation, attempt_identity, envelope, at,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if !(journal.cancellation_requested(request) is Ok(false)) {
+    return Err(Refused(@resident.NotCurrent))
+  }
+  let saved = match journal.observation(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  guard @journal.recovered_site_dispatch_evidence(saved) is Some(evidence) &&
+    @journal.recovered_site_dispatch_subject(saved) is Some(subject) &&
+    @journal.recovered_site_dispatch_measurement(saved) is Some(measurement) &&
+    @journal.recovered_site_dispatch_file_custody(saved) is Some(_) else {
+    return Err(Runtime(@runtime.CompletedRestorationPending))
+  }
+  match @remote.restore_remote_runtime_completed_custody(
+    record, evidence, subject, measurement,
+  ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match journal.start_claimant(request) {
+    Ok(Some(value)) => Ok(Some(value))
+    Ok(None) => Err(Runtime(@runtime.CompletedRestorationPending))
+    Err(issue) => Err(Journal(issue))
+  }
+}
+
+///|
 /// Rebuild the original checked producer from its saved envelope. The trusted
 /// holder port must inspect its actual exclusive slot; stored generation alone
 /// is not authority. Installation performs no Source I/O or executor entry.
