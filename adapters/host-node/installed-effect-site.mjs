@@ -8,7 +8,7 @@ import {completeCapturedEffectRun, completeRecoveredEffectRun,
 import {releaseCompletedRunPreparedPayloads,
   suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -51,7 +51,7 @@ function continuation(facts, stage) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
-  return canonicalJson({version: 'actql-installed-effect-continuation/0.1',
+  return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
     unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
@@ -63,7 +63,7 @@ function continuation(facts, stage) {
 
 function checkContinuation(facts, stage) {
   const expected = continuation(facts, stage);
-  if (canonicalJson(facts.continuation) !== expected) {
+  if (canonicalValueJson(facts.continuation) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
 }

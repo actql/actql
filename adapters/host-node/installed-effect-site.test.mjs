@@ -305,3 +305,62 @@ test('a failed capture read leaves no unobserved physical continuation',
     assert.equal(reads, 1);
     assert.equal(stopped, 1);
   });
+
+function continuationFixture() {
+  const original = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+  const binding = {version: 'actql-effect-target-read-binding/0.1',
+    submission: {input: {format: 'json', text: original}, parameters: {text: original}},
+    inventory_cid: cid('c'), targets: [{physicalBindings: [{text: original}]}]};
+  const provider = {wire: original};
+  const stop = new Error('StopBeforeEffectDispatch');
+  const moon = {clientProgramEffectCompilationUnitId: () => 'effect',
+    clientProgramEffectCompilationResultNames: () => ['answer']};
+  const control = {effectComputationPreviewSemanticCid: () => cid('a'),
+    effectComputationPreviewWire: () => '{}', runDefinitionRunId: () => 'run-a'};
+  const store = {}, computation = {}, storedResults = {}, preview = {};
+  const physical = {close() {}, cleanup: async () => true, cleanupPending: () => false};
+  const targetReads = {prepare: async () => ({status: 'ready'}),
+    enterComputation() {}, close() {}, captureBinding: () => structuredClone(binding)};
+  const stage = execution => ({preview, computation, storedResults,
+    apply: {moon, computation, preview}, receipt: {commonMoon: moon},
+    publication: {execution, store, control, computation, storedResults, preview},
+    scopes: [{}], continuationWire: JSON.stringify(provider), cleanupOwner: physical});
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured: () => stage(physical), prepareRecovered: () => stage(null)});
+  const facts = {moon, control, store, compilation: {}, ref: {runDefinitionCid: cid('b')},
+    targetReads, retainExecution() {}, openComputation: () => ({execution: physical, checkedHost: {}})};
+  return {site, facts, stop, provider, binding, stage,
+    recovered: {computation: {computation, storedResults, preview}}};
+}
+
+test('outer Effect commit continuation preserves target and provider data', async () => {
+  const f = continuationFixture();
+  let saved;
+  await assert.rejects(f.site.execute({...f.facts, effectAuthorization(options) {
+    saved = JSON.parse(options.continuationWire); throw f.stop;
+  }}), error => error === f.stop);
+  assert.deepEqual(saved.target_read_binding, f.binding);
+  assert.deepEqual(saved.provider, f.provider);
+});
+
+for (const changed of ['target binding', 'provider']) {
+  test(`outer Effect resume refuses normalization-distinct ${changed} before authorization`, async () => {
+    const f = continuationFixture();
+    const saved = {version: 'actql-installed-effect-continuation/0.1',
+      unit_id: 'effect', run_definition_cid: cid('b'), preview_cid: cid('a'),
+      target_read_binding: structuredClone(f.binding), provider: {...f.provider}};
+    if (changed === 'target binding') {
+      saved.target_read_binding.submission.parameters.text =
+        saved.target_read_binding.submission.parameters.text.normalize('NFC');
+    } else saved.provider.wire = saved.provider.wire.normalize('NFC');
+    let authorizations = 0, dispatchStarts = 0;
+    await assert.rejects(f.site.resume({...f.facts, compilation: undefined,
+      view: {runId: 'run-a', subject: {kind: 'run_unit', unit_id: 'effect'}},
+      retained: {resultNames: ['answer']}, continuation: saved, recoverCapture: async () => f.recovered,
+      checkpointJournal: {claimResume: () => ({action: 'claimed'})},
+      effectAuthorization() { authorizations++; throw f.stop; },
+      beginPhysicalWork() { dispatchStarts++; },
+    }), {code: 'InstalledEffectContinuationMismatch'});
+    assert.equal(authorizations, 0); assert.equal(dispatchStarts, 0);
+  });
+}

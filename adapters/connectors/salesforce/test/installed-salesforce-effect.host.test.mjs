@@ -405,6 +405,13 @@ test('the credential Site independently refuses a foreign target binding before 
     assert.throws(() => site.admitCheckpointEffectTargetRead(decisionFor(binding), binding),
       {code: 'SalesforceEffectTargetReadApprovalNotAdmitted'});
   }
+  const original = 'e\u0301\r\n' + JSON.stringify({nested: 'e\u0301'});
+  const exact = {...bindingFor(site), opaque: {text: original}};
+  for (const text of [original.normalize('NFC'), original.replace(/\r\n?/gu, '\n')]) {
+    const changed = {...exact, opaque: {text}};
+    assert.throws(() => site.admitCheckpointEffectTargetRead(decisionFor(exact), changed),
+      {code: 'SalesforceEffectTargetReadApprovalNotAdmitted'});
+  }
   assert.equal(fences, 0);
   const binding = bindingFor(site);
   const approved = site.admitCheckpointEffectTargetRead(decisionFor(binding), binding);
@@ -608,3 +615,50 @@ for (const targetRead of ['allow', 'delegate']) {
     }
   });
 }
+
+test('target and commit approvals retain original data through public Host restarts', async t => {
+  const x = await setup(t, {read: 'delegate'});
+  const text = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
+  const program = JSON.parse(x.program);
+  const values = program.stages[0].steps[0].values;
+  values.schema.original = {type: 'string', nullable: false};
+  for (const row of values.rows) row.original = text;
+  program.stages[0].results.rows.fields.push('original');
+  x.program = JSON.stringify(program);
+  const before = x.installation.org.seen.length;
+  let host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  let run = await (await host.as('owner-token')).aql(x.program,
+    {format: 'json', requestId: 'exact-target-and-commit'});
+  const ref = run.ref;
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
+  assert.equal(read.kind, 'read_access');
+  assert.equal(x.installation.org.seen.length, before);
+  await host.close();
+  await answer(t, x, read, 'approved', ref.authorityScopeCid);
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+  const [commit] = (await (await host.as('reviewer-token')).checkpoints()).items;
+  assert.equal(commit.kind, 'effect_set');
+  assert.equal(writesOf(x.installation.org).length, 0);
+  await host.close();
+  await answer(t, x, commit, 'approved', ref.authorityScopeCid);
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  await waitFor(async () => (await run.status()).status === 'succeeded');
+  const expected = ids.map(id => ({id, original: text}));
+  assert.deepEqual(await run.result('answer').all(), expected);
+  assert.equal(writesOf(x.installation.org).length, 2);
+  await host.close();
+  const calls = x.installation.org.seen.length;
+  host = await remoteHost(t, x.installation, x.directory,
+    {configuration: x.configuration});
+  run = await (await host.as('owner-token')).attach(ref);
+  assert.deepEqual(await run.result('answer').all(), expected);
+  assert.equal(x.installation.org.seen.length, calls);
+  await host.close();
+});

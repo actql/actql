@@ -8952,6 +8952,14 @@ pub fn strategy_remote_standard_input_failure_cleanup_retry(
 }
 
 ///|
+#export_name("strategyRemoteDispatchResponseCanRetireCancellationDelivery")
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(
+  response : @remote.RemoteDispatchResponse,
+) -> Bool {
+  @remote.remote_dispatch_response_can_retire_cancellation_delivery(response)
+}
+
+///|
 #export_name("strategyModule_duckdb_Registration")
 pub fn duckdb_registration(
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
