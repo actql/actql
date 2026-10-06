@@ -109,10 +109,24 @@ retained star column must be grouped. LEFT JOIN nullability belongs to the
 common joined schema. A missing or displaced range is refused, including a
 star that would otherwise appear to be an identity projection. The selected
 [GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
-also permits expression/STRUCT receivers. Those broader receivers and REPLACE
-remain unconnected coverage; they are not reinterpreted as Relation ranges.
+also permits expression/STRUCT receivers. Those broader receivers remain
+unconnected coverage; they are not reinterpreted as Relation ranges.
 Existing restrictions on direct Graph star and unqualified JOIN star remain
 explicit implementation gaps, not restrictions of the selected reference.
+
+`SELECT * REPLACE (expression AS column, ...)`, also following a supported
+range star and EXCEPT list, changes selected values/types while retaining the
+star's column names and order. Every target must occur exactly once in the
+retained star list; exclusions are applied before replacement, and duplicate
+targets are refused under ordinary field-name resolution. The expressions all
+see the same SELECT input snapshot, rather than earlier replacement values.
+Expansion yields ordinary projections and reuses their checker, GROUP/HAVING,
+analytic and ORDER semantics. A new output alias refers to its evaluated slot;
+qualified input references still denote the input snapshot where that scope is
+available. GROUP ordinals count the final expanded SELECT list. No replacement
+constructs type, identity, uniqueness or order evidence. The
+[GoogleSQL star REPLACE clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_replace)
+is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
@@ -142,8 +156,8 @@ references and clause scope are preserved. Replacement is literal,
 case-sensitive, non-overlapping and left-to-right; an empty search leaves the
 original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
 or line-ending normalization is implicit. The STRING overload is connected;
-BYTES and explicit collation remain separate coverage gaps. This function does
-not implement the independent SELECT star REPLACE clause.
+BYTES and explicit collation remain separate coverage gaps. The scalar function
+is independent of the SELECT star REPLACE clause described above.
 
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar

@@ -1615,6 +1615,7 @@ fn compile_steps(
     (@query.NamePart, Array[(String, String)]),
   ] = []
   let grouped_keys : Array[(@query.Expression, String)] = []
+  let mut sql_group_selected_projections : Array[@query.Projection] = []
   let having_values : Array[(@query.Expression, String)] = []
   let analytic_outputs : Array[(String, String)] = []
   let mut analytic_input_fields : Array[String]? = None
@@ -2089,6 +2090,9 @@ fn compile_steps(
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
+        let projections = expanded_replacement_projections(
+          query, projections, input_visible, input_ranges, max_work,
+        )
         let hidden_calls = match @query.operation_at(query, i + 1) {
           Some(Having(_, calls)) => calls.copy()
           _ => []
@@ -2109,6 +2113,13 @@ fn compile_steps(
           // adds aggregate slots. Every expanded value must still be grouped.
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
+          sql_group_selected_projections = expanded_replacement_projections(
+            query,
+            selected_projections(query),
+            input_visible,
+            input_ranges,
+            max_work,
+          )
         }
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
@@ -2302,7 +2313,11 @@ fn compile_steps(
             result_fields.push(name)
           }
         }
-        let selected = selected_projections(query)
+        let selected = if sql_group_projection {
+          sql_group_selected_projections
+        } else {
+          selected_projections(query)
+        }
         let select_calls : Array[(@query.AggregateCall, String)] = []
         let resolve_input = path => {
           if scoped {
@@ -2672,7 +2687,11 @@ fn compile_steps(
         if !grouped {
           raise Abort(UnsupportedHaving)
         }
-        let projections = selected_projections(query)
+        let projections = if sql_group_projection {
+          sql_group_selected_projections
+        } else {
+          selected_projections(query)
+        }
         let scope = if pipe_changed || pipe_rebound {
           Some({ visible: pipe_visible, ranges: pipe_ranges, })
         } else {
@@ -2784,6 +2803,21 @@ fn compile_steps(
         entries.push(("filter", value))
       }
       Analytic(projections) => {
+        let projections = expanded_replacement_projections(
+          query,
+          projections,
+          if sql_group_projection {
+            sql_group_input_columns
+          } else {
+            pipe_visible
+          },
+          if sql_group_projection {
+            sql_group_input_ranges
+          } else {
+            pipe_ranges
+          },
+          max_work,
+        )
         if projections.is_empty() {
           raise Abort(UnsupportedAnalytic)
         }
@@ -2879,6 +2913,13 @@ fn compile_steps(
         deferred = true
       }
       Select(projections, distinct) if pipe_changed || pipe_rebound => {
+        let projections = if sql_group_projection {
+          sql_group_selected_projections
+        } else {
+          expanded_replacement_projections(
+            query, projections, pipe_visible, pipe_ranges, max_work,
+          )
+        }
         let expression_scope = if sql_group_projection {
           sql_group_select_scope.unwrap()
         } else {
@@ -3095,6 +3136,7 @@ fn compile_steps(
         projections.length() == 1 &&
         projections[0].star == Some("*") &&
         projections[0].expression is None &&
+        projections[0].replacements.is_empty() &&
         projections[0].except_columns.is_empty() => {
         if entries.length() == 1 && entries[0].0 == "from" {
           entries.clear()
@@ -3110,6 +3152,17 @@ fn compile_steps(
         let input_scope : JoinChainScope = {
           visible: pipe_visible.copy(),
           ranges: pipe_ranges.copy(),
+        }
+        let projections = if sql_group_projection {
+          sql_group_selected_projections
+        } else {
+          expanded_replacement_projections(
+            query,
+            projections,
+            select_fields.map(field => (field, field)),
+            pipe_ranges,
+            max_work,
+          )
         }
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
