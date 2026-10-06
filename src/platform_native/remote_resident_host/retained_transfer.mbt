@@ -36,6 +36,9 @@ pub struct ResidentRetainedTransfer {
   mut source_finished : Bool
   mut receipt_cid : String?
   mut result : @remote.RemoteRetainedInputResult?
+  // One chosen consumer shares this exact handoff Owner. Reoffering its
+  // envelope cannot create aliases that return a still-live borrow.
+  mut consumer : ResidentRetainedConsumer?
   mut cleanup_material : @transfer_client.NativeRemoteDestinationMaterialUse?
   mut cleanup_started : Bool
   mut reclaimed : Bool
@@ -112,6 +115,7 @@ pub fn prepare_resident_retained_transfer(
     source_finished: false,
     receipt_cid: None,
     result: None,
+    consumer: None,
     cleanup_material: None,
     cleanup_started: false,
     reclaimed: false,

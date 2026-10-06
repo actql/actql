@@ -127,18 +127,41 @@ export declare function explainCancellation(result: unknown): CancellationExplan
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
-/** Zero-based UTF-16 coordinates for the original revision; no CRLF-interior position or edits. */
-export declare function resolveCheckTextRange(outcome: CheckOutcome,
-  location: WireCheckLocation, currentInput?: CheckInput):
-  (Extract<WireCheckLocation, {kind: 'text'}> & Readonly<{
+export type CheckPositionEncoding = 'utf-8' | 'utf-16' | 'utf-32';
+export type CheckTextRange<E extends CheckPositionEncoding = CheckPositionEncoding> =
+  Extract<WireCheckLocation, {kind: 'text'}> & Readonly<{
     input: CheckInput & Readonly<{kind: 'text'; text: string}>;
     text: string;
-    positionEncoding: 'utf-16';
+    positionEncoding: E;
     range: Readonly<{
       start: Readonly<{line: number; character: number}>;
       end: Readonly<{line: number; character: number}>;
     }>;
-  }>) | undefined;
+  }>;
+/** Zero-based UTF-16 coordinates for the original revision; no CRLF-interior position or edits. */
+export declare function resolveCheckTextRange(outcome: CheckOutcome,
+  location: WireCheckLocation, currentInput?: CheckInput): CheckTextRange<'utf-16'> | undefined;
+/** Use the already negotiated encoding; undefined for unsupported encodings or inexact boundaries. */
+export declare function resolveCheckTextRangeEncoding<E extends CheckPositionEncoding>(outcome: CheckOutcome,
+  location: WireCheckLocation, encoding: E, currentInput?: CheckInput): CheckTextRange<E> | undefined;
+export type CheckDocumentObservation = Readonly<{
+  outcome: CheckOutcome;
+  version: number;
+  positionEncoding: CheckPositionEncoding;
+}>;
+export interface CheckDocumentSession {
+  /** Full replacement with a strictly increasing signed 32-bit version, including undo/redo. */
+  update(text: string, version: number): void;
+  /** Explicit check of the buffer captured at invocation; no execution or automatic retries. */
+  check(options: Parameters<Client['check']>[1]): Promise<CheckDocumentObservation>;
+  /** Only the newest issued check of this still-open current version may supply editor coordinates. */
+  resolveTextRange(observation: CheckDocumentObservation, location: WireCheckLocation): CheckTextRange | undefined;
+  /** Invalidate editor coordinates and release the current buffer; does not close the shared Client. */
+  close(): void;
+}
+/** One open-buffer scope. Reopening requires a new session; UTF-16 is the default encoding. */
+export declare function createCheckDocumentSession(client: Pick<Client, 'check'>,
+  options: Readonly<{text: string; version: number; positionEncoding?: CheckPositionEncoding}>): CheckDocumentSession;
 export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>,
   options?: CheckExplanationOptions):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
