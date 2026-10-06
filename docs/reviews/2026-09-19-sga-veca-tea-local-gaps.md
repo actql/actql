@@ -5925,3 +5925,29 @@ The Host regression has unqualified published fields and is not a new qualified
 public Program acceptance claim. Preparation/input/output name matching, legacy
 drains, JSON normalization, runtime buffer assembly, aggregate intermediate
 bytes, whole-Run accounting and unexecuted packed/target campaigns remain open.
+
+### Pool algorithmic reference-name matching
+
+Pool now retains input component/group/identity and output group-name scans
+across advances, borrowing qualification rather than assembling reference
+Strings. Each fragment examines at most 64 UTF-16 pairs; output search also
+caps probe transitions at eight. The existing Session reserves one position
+slot before reads, retains current field/output custody until confirmed stop
+and clears it through single cleanup. Short-name work and wire rules remain
+unchanged; long/wide searches add cumulative, quantum-independent polls.
+
+Current independent control boundaries are 1195/1194 for the long Carrier
+name and 382/381 for the ordinary Relation input-name Host barrier, with
+72/71 and 67/66 workspace respectively. The previously registered scalar
+Relation caller's stale append premise is corrected separately: eleven slots
+from parent field binding plus this one slot give 95/94, while work stays
+72/71. Older figures above describe their original revisions, not current
+expectations. Real Host evidence covers three explicit Named Results, two
+consumers, repeated request reuse and cancellation during input name matching.
+
+This closes Pool's algorithmic name matching only. Preparation/schema lookup,
+JSON identifier normalization, legacy drains, runtime buffer assembly,
+aggregate intermediate bytes, whole-Run physical accounting and unexecuted
+full-target/packed campaigns remain residuals. See the
+[name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
+boundaries, the atomic-drain negative and actual versus unverified checks.

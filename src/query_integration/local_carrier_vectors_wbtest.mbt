@@ -6269,7 +6269,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(83, 72),
+      direct_relation_pool_limits(95, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -6338,13 +6338,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 72 work units and 83 workspace slots,
+  // The same Relation kernel requires 72 work units and 95 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (71, 83, false),
-      (72, 82, false),
-      (72, 83, true),
+      (71, 95, false),
+      (72, 94, false),
+      (72, 95, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -6392,7 +6392,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 82 {
+      if workspace == 94 {
         0L
       } else if stopping {
         1L
@@ -6411,7 +6411,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(83, 72),
+    direct_relation_pool_limits(95, 72),
     4096L,
     capacity,
   )
@@ -6448,15 +6448,18 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
-  // The Relation recheck adds twenty slots, append snapshot/map and depth
-  // stacks add 8+6+1+30=45: 18+20+45=83.
+  // The Relation recheck adds twenty slots. Current retained append reserves
+  // fixed/name custody 16, three fields' snapshot/bucket/link slots 9,
+  // one identity slot and depth-ten stacks 30: 56, not the former 45.
+  // This fixture's stale pre-name-binding premise omitted those eleven slots.
+  // Pool name matching adds one position slot: 18+20+56+1=95 before reads.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(82, 1000),
+      direct_relation_pool_limits(94, 1000),
       4096L,
       fn() { true },
     )
@@ -6469,7 +6472,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(83, 1000),
+    direct_relation_pool_limits(95, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -6497,7 +6500,7 @@ test "relation pool enforces exact work and workspace boundaries" {
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(83, ceiling),
+      direct_relation_pool_limits(95, ceiling),
       4096L,
       fn() { true },
     ).unwrap()

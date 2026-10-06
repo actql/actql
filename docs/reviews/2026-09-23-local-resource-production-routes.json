@@ -10295,6 +10295,41 @@
           "fixture": "prefixed string treats segment and poll boundaries as one scalar stream"
         },
         {
+          "role": "pool_name_match_common",
+          "suite": "moon:relation_schema",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/relation_schema/reference_steps_wbtest.mbt",
+          "fixture": "reference spelling fragments retain raw UTF16 and virtual qualification"
+        },
+        {
+          "role": "pool_name_match_limits",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_field_binding_wbtest.mbt",
+          "fixture": "Pool retained field binding keeps independent limits across quantum and stop"
+        },
+        {
+          "role": "pool_name_match_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_name_matching_wbtest.mbt",
+          "fixture": "Pool input and output name matching yield with owned stop custody"
+        },
+        {
+          "role": "pool_name_match_wide",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_name_matching_wbtest.mbt",
+          "fixture": "Pool wide output name search yields before scanning every group"
+        },
+        {
+          "role": "pool_name_match_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_field_binding_wbtest.mbt",
+          "fixture": "Relation Pool public input name matching has independent limits and stop barrier"
+        },
+        {
           "role": "pool_output_record_cleanup",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10435,6 +10470,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside retained field binding"
+        },
+        {
+          "role": "pool_name_match_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside input group name matching"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",

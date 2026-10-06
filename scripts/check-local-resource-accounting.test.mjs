@@ -230,13 +230,27 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
     'pool_field_binding_typed_role', 'pool_qualified_name_limits',
     'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
-    'pool_qualified_name_wire_unicode']) {
+    'pool_qualified_name_wire_unicode', 'pool_name_match_common',
+    'pool_name_match_limits', 'pool_name_match_stop',
+    'pool_name_match_wide', 'pool_name_match_public_barrier']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');
       route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
     }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
   }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item =>
+      item.role === 'pool_name_match_common').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_name_match_public_store');
+  }), /VecA pool_vectors: Pool name matching public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');

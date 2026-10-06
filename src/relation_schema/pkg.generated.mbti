@@ -11,6 +11,8 @@ pub fn all_fields_required(Schema) -> Bool
 
 pub fn as_object(Schema) -> @value_contract.Contract?
 
+pub fn compare_reference_fragment(FieldName, FieldName, Int, Int) -> (Int?, Int, Int)
+
 pub fn field_at(Schema, Int) -> Field?
 
 pub fn field_contract(Field) -> @value_contract.Contract
