@@ -103,3 +103,14 @@ test "QUALIFY refuses missing windows and unbound names at the intended boundary
     is Err(Expression({ issue: @expression.UnknownReference, .. })),
   )
 }
+
+///|
+test "QUALIFY scalar slot reuse expires before a later Pipe input scope" {
+  let text = checked_join_order(
+    "SELECT x + 1 AS x, ROW_NUMBER() OVER (ORDER BY x) AS n FROM t QUALIFY x > 1 |> SET x = -x |> SELECT x + 1 AS y |> ORDER BY y",
+  )
+  assert_eq(text.split("\"add\":").length() - 1, 2)
+  assert_true(
+    text.contains("\"add\":[{\"field\":\"aql_pipe_set_2\"},{\"literal\":1}]"),
+  )
+}
