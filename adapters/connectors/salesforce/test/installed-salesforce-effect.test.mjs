@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
+import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
@@ -834,7 +835,8 @@ test('an unknown row is never resent after a restart', async t => {
 // the Program only by Unicode normalization is refused before any send, and a
 // provider outcome is stored with its exact text. Each scenario wraps the
 // real driver in its own process (see row-effect-value-identity.child.mjs).
-for (const scenario of ['value', 'target', 'outcome']) {
+for (const scenario of ['value', 'target', 'outcome', 'outcome-keys',
+  'outcome-single-key']) {
   test(`installed row Effect keeps exact data values: ${scenario}`,
     async () => {
       const child = fileURLToPath(new URL(

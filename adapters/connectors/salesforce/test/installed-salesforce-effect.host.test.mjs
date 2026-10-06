@@ -627,7 +627,8 @@ for (const targetRead of ['allow', 'delegate']) {
   });
 }
 
-test('target and commit approvals retain original data through public Host restarts', async t => {
+for (const entrance of ['source', 'program']) {
+test(`target and commit approvals retain original data through public Host restarts: ${entrance}`, async t => {
   const x = await setup(t, {read: 'delegate'});
   const text = 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
   const program = JSON.parse(x.program);
@@ -639,8 +640,11 @@ test('target and commit approvals retain original data through public Host resta
   const before = x.installation.org.seen.length;
   let host = await remoteHost(t, x.installation, x.directory,
     {configuration: x.configuration});
-  let run = await (await host.as('owner-token')).aql(x.program,
-    {format: 'json', requestId: 'exact-target-and-commit'});
+  const client = await host.as('owner-token');
+  let run = entrance === 'program'
+    ? await client.start(program, {requestId: 'exact-target-and-commit'})
+    : await client.aql(x.program,
+      {format: 'json', requestId: 'exact-target-and-commit'});
   const ref = run.ref;
   await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
   const [read] = (await (await host.as('reviewer-token')).checkpoints()).items;
@@ -673,6 +677,7 @@ test('target and commit approvals retain original data through public Host resta
   assert.equal(x.installation.org.seen.length, calls);
   await host.close();
 });
+}
 
 // These are consuming combinations over one public Run, rather than sums of
 // isolated gate tests. Every wrapped method delegates to the original owner.
