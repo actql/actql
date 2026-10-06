@@ -348,6 +348,22 @@ pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[St
 
 pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
 
+pub fn client_remote_task_progress_cleanup_complete(ClientRemoteTaskProgress) -> Bool
+
+pub fn client_remote_task_progress_execution_complete(ClientRemoteTaskProgress) -> Bool
+
+pub fn client_remote_task_progress_fields(ClientRemoteTaskProgress) -> Array[Array[String]]
+
+pub fn client_remote_task_progress_next_task(ClientRemoteTaskProgress) -> Int?
+
+pub fn client_remote_task_progress_result_tasks(ClientRemoteTaskProgress) -> Array[Int]
+
+pub fn client_remote_task_progress_scopes(ClientRemoteTaskProgress) -> Array[Array[String]]
+
+pub fn client_remote_task_run_projection_fields(ClientRemoteTaskRunProjection) -> Array[String]
+
+pub fn client_remote_task_run_projection_work(ClientRemoteTaskRunProjection) -> Array[String]
+
 pub fn client_request_authority_scope_cid(ClientRequestIdentity) -> String
 
 pub fn client_request_caller_id(ClientRequestIdentity) -> String
@@ -525,6 +541,8 @@ pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowerin
 pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
+
+pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
@@ -716,11 +734,15 @@ pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Resu
 
 pub fn prepare_client_query_requirement(PreparedClientProgram, @execution_relation.GeneratedSequence, Int, Int, @query_planning.QueryLogicalGuards, @query_planning.QueryMaterialLimits) -> Result[@query_planning.QueryRequirement, ClientQueryRequirementIssue]
 
+pub fn prepare_client_remote_task_physical_start(ClientRemoteTaskProgress, String, String, ClientRequestIdentity, ClientRequestIdentity, String, Bool, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRemoteTaskStartIssue]
+
 pub fn prepare_client_request_identity(PreparedClientProgram, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_result_transformation(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultTransformation, ClientResultTransformationIssue]
 
 pub fn prepare_client_retained_input_edge(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue]
+
+pub fn prepare_client_retained_input_intent(ClientRetainedInputProducer, ClientRetainedInputTransferPolicy) -> Result[@remote_site_protocol.RemoteRetainedInputIntent, ClientRetainedTaskInputIssue]
 
 pub fn prepare_client_retained_input_producer(ClientRetainedInputEdge, @remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject) -> Result[ClientRetainedInputProducer, ClientRetainedInputIssue]
 
@@ -826,6 +848,8 @@ pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 
+pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
+
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
@@ -836,6 +860,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
+
 pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
@@ -843,6 +869,10 @@ pub fn start_captured_client_result_transformation(ClientResultTransformation, @
 pub fn[T] start_captured_managed_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
+
+pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
+
+pub fn validate_client_retained_input_plan(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent, @remote_site_protocol.RemoteRetainedInputPlan, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
 pub fn validate_client_retained_input_transfer_current(ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, ClientRetainedInputCurrent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -1405,6 +1435,53 @@ pub(all) enum ClientQueryRequirementIssue {
   Requirement(@query_planning.QueryRequirementIssue)
 }
 
+pub struct ClientRemoteTaskProgress {
+  prepared : PreparedClientProgram
+  authority : String
+  definition : @run_publication.PublicationContract
+  result_names : Array[String]
+  completed : Array[Bool]
+  keys : Array[String]
+  requests : Array[@remote_site_protocol.DispatchRequest?]
+  observations : Array[@remote_site_protocol.CoordinatorExecutionObservation?]
+  next_task : Int?
+  dependency_ready_task : Int?
+  execution_complete : Bool
+  cleanup_complete : Bool
+  result_tasks : Array[Int]
+}
+
+pub(all) enum ClientRemoteTaskProgressIssue {
+  Run(ClientTaskRunBindingIssue)
+  UnsupportedGraph
+  Fragment(ClientTaskFragmentIssue)
+  ForeignObservation
+  DuplicateTask
+  Protocol(@remote_site_protocol.DispatchIssue)
+}
+
+pub struct ClientRemoteTaskRunProjection {
+  progress : ClientRemoteTaskProgress
+  state_wire : String
+  execution : String
+  work : Array[String]
+  next_task : Int?
+  publication_ready : Bool
+}
+
+pub(all) enum ClientRemoteTaskRunProjectionIssue {
+  InvalidStartClaims
+  MissingRunId
+  State(@run_publication.RunStateIssue)
+}
+
+pub(all) enum ClientRemoteTaskStartIssue {
+  ForeignTask
+  ForeignDispatch
+  Request(ClientRequestIdentityIssue)
+  Start(ClientRunStartIssue)
+}
+
 type ClientRequestIdentity derive(Eq, @debug.Debug)
 
 pub(all) enum ClientRequestIdentityIssue {
@@ -1524,6 +1601,15 @@ pub struct ClientRetainedInputProducer {
   evidence : @remote_site_protocol.RemoteExecutionEvidence
   subject : @remote_site_protocol.RemoteManagedOutputSubject
   available : () -> Bool
+}
+
+pub(all) struct ClientRetainedInputTransferPolicy {
+  destination_grant_cid : String
+  route_capability_cid : String
+  source_grant_cid : String
+  transfer_attempt : String
+  transfer_expires_unix_ms : Int64
+  transfer_max_bytes : Int64
 }
 
 pub(all) enum ClientRetainedTaskDispatchIssue {

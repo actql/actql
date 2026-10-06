@@ -25,7 +25,9 @@ function normalized(value) {
 
 // Canonical JSON of the pinned Checkpoint artifacts: sorted keys, no
 // whitespace, NFC/LF object member names, preserved data strings, finite numbers.
-export function canonicalJson(value) {
+// Opaque JSON data opts into exact member names, like Core data_keys admission.
+// The default artifact/identifier domain and its identities remain unchanged.
+export function canonicalJson(value, {dataKeys = false} = {}) {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || Object.is(value, -0)) {
@@ -37,20 +39,24 @@ export function canonicalJson(value) {
     if (!wellFormed(value)) throw new TypeError('InvalidCanonicalText');
     return JSON.stringify(value);
   }
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (Array.isArray(value)) return `[${value.map(item =>
+    canonicalJson(item, {dataKeys})).join(',')}]`;
   if (typeof value !== 'object' ||
       Object.getPrototypeOf(value) !== Object.prototype) {
     throw new TypeError('InvalidCanonicalValue');
   }
   const entries = Object.entries(value)
     .filter(([, item]) => item !== undefined)
-    .map(([key, item]) => [normalized(key), item]);
+    .map(([key, item]) => {
+      if (!wellFormed(key)) throw new TypeError('InvalidCanonicalText');
+      return [dataKeys ? key : normalized(key), item];
+    });
   if (new Set(entries.map(([key]) => key)).size !== entries.length) {
     throw new TypeError('CanonicalKeyCollision');
   }
   entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
   return `{${entries.map(([key, item]) =>
-    `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;
+    `${JSON.stringify(key)}:${canonicalJson(item, {dataKeys})}`).join(',')}}`;
 }
 
 const hex = bytes => [...new Uint8Array(bytes)]

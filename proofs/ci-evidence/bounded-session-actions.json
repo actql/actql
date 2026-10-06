@@ -19,6 +19,23 @@
       "dependencies": []
     },
     {
+      "id": "events-model",
+      "kind": "formal-model",
+      "target": "model",
+      "command": [
+        "node",
+        "proofs/events-bridge/check.mjs"
+      ],
+      "package": null,
+      "minimumUnits": 16,
+      "profile": "local composition and concrete Events exact claim types and audited axioms",
+      "premises": [
+        "Lean kernel and permitted foundational axioms",
+        "semantic model is not implementation refinement"
+      ],
+      "dependencies": []
+    },
+    {
       "id": "session-js",
       "kind": "tested-refinement",
       "target": "js",
@@ -193,6 +210,38 @@
         "limited existing fixture domain; no whole-implementation capacity proof"
       ],
       "dependencies": []
+    },
+    {
+      "id": "events-connection-js",
+      "kind": "tested-refinement",
+      "target": "js",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/events_bridge_evidence_wbtest.mbt",
+        "--target",
+        "js",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "four authored cases; integer Number IDs; numeric or Timestamp clock; nullable Text payload",
+      "premises": [
+        "accepted counters are nonnegative representable and monotone",
+        "kernel work per resume is between zero and quantum",
+        "cleanup callback true means complete reclamation",
+        "unique admitted IDs, valid typed clocks and checked schema for the exact prepared occurrence",
+        "both stage-specific semantic preservation premises and intermediate admission are required",
+        "finite implementation correspondence is not a proof for arbitrary values or schemas",
+        "UTC parsing, numeric range and all semantic refusal correspondence remain local obligations",
+        "direct bounded Session cleanup returns change; managed completion Boolean is not inherited",
+        "kernel work charges, output allocation bounds and physical heap/GC remain unproved",
+        "provider material/view lifetime, two-consumer custody and public Host acceptance remain separate"
+      ],
+      "dependencies": [
+        "events-model",
+        "session-js"
+      ]
     },
     {
       "id": "session-wasm",
@@ -371,6 +420,38 @@
       "dependencies": []
     },
     {
+      "id": "events-connection-wasm",
+      "kind": "tested-refinement",
+      "target": "wasm",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/events_bridge_evidence_wbtest.mbt",
+        "--target",
+        "wasm",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "four authored cases; integer Number IDs; numeric or Timestamp clock; nullable Text payload",
+      "premises": [
+        "accepted counters are nonnegative representable and monotone",
+        "kernel work per resume is between zero and quantum",
+        "cleanup callback true means complete reclamation",
+        "unique admitted IDs, valid typed clocks and checked schema for the exact prepared occurrence",
+        "both stage-specific semantic preservation premises and intermediate admission are required",
+        "finite implementation correspondence is not a proof for arbitrary values or schemas",
+        "UTC parsing, numeric range and all semantic refusal correspondence remain local obligations",
+        "direct bounded Session cleanup returns change; managed completion Boolean is not inherited",
+        "kernel work charges, output allocation bounds and physical heap/GC remain unproved",
+        "provider material/view lifetime, two-consumer custody and public Host acceptance remain separate"
+      ],
+      "dependencies": [
+        "events-model",
+        "session-wasm"
+      ]
+    },
+    {
       "id": "session-native",
       "kind": "tested-refinement",
       "target": "native",
@@ -545,6 +626,38 @@
         "limited existing fixture domain; no whole-implementation capacity proof"
       ],
       "dependencies": []
+    },
+    {
+      "id": "events-connection-native",
+      "kind": "tested-refinement",
+      "target": "native",
+      "command": [
+        "moon",
+        "test",
+        "src/query_integration/events_bridge_evidence_wbtest.mbt",
+        "--target",
+        "native",
+        "--deny-warn"
+      ],
+      "package": "src/query_integration",
+      "minimumUnits": 1,
+      "profile": "four authored cases; integer Number IDs; numeric or Timestamp clock; nullable Text payload",
+      "premises": [
+        "accepted counters are nonnegative representable and monotone",
+        "kernel work per resume is between zero and quantum",
+        "cleanup callback true means complete reclamation",
+        "unique admitted IDs, valid typed clocks and checked schema for the exact prepared occurrence",
+        "both stage-specific semantic preservation premises and intermediate admission are required",
+        "finite implementation correspondence is not a proof for arbitrary values or schemas",
+        "UTC parsing, numeric range and all semantic refusal correspondence remain local obligations",
+        "direct bounded Session cleanup returns change; managed completion Boolean is not inherited",
+        "kernel work charges, output allocation bounds and physical heap/GC remain unproved",
+        "provider material/view lifetime, two-consumer custody and public Host acceptance remain separate"
+      ],
+      "dependencies": [
+        "events-model",
+        "session-native"
+      ]
     },
     {
       "id": "mutations-js",

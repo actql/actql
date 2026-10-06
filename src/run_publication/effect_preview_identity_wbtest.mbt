@@ -4,6 +4,63 @@ fn preview_identity_test_cid(digit : String) -> String {
 }
 
 ///|
+test "Preview identity and readmission retain exact nested JSON data" {
+  let a = preview_identity_test_cid("a")
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let payload =
+    #|{"j":{"$json":{"$json":null,"é":2,"line":"a\r\nb","é":1}}}
+  // Modify only the two data slots of the existing independently pinned
+  // structural fixture. The replacement is already in canonical key order.
+  let template = preview_identity_test_wire(
+    run,
+    authoring,
+    preview_identity_test_cid("4"),
+    "001000000000001",
+    a,
+    a,
+  ).replace_all(old="{\"Name\":\"After\"}", new=payload)
+  assert_eq(
+    canonical_effect_preview_draft_wire(template, 8192, 256, 12).unwrap(),
+    template,
+  )
+  let (wire, identity) = author_effect_preview_semantic_wire(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  // Independently authored actql-effect-preview-row/0.1 preimage, using
+  // payload above for after.value and intended_changes.value, was hashed
+  // with Python SHA-256. The complete before value remains {"Name":"Before"}.
+  assert_eq(
+    effect_preview_row_identity(identity, 0, 0),
+    Some(
+      "sha256:db3f111bc4fe1bcc48f9c65313c5f5bf3fe7797346aad1402d27cda61fe6e13e",
+    ),
+  )
+  assert_eq(
+    effect_preview_row_intended_value_wire(identity, 0, 0),
+    Some(payload),
+  )
+  let parsed = parse_effect_preview_shape(wire, 8192, 256, 12).unwrap()
+  assert_eq(@json.stringify_value(parsed, 8192, 256, 12), wire)
+  let readmitted = admit_effect_preview_identity(
+    wire, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  assert_eq(
+    effect_preview_row_intended_value_wire(readmitted, 0, 0),
+    Some(payload),
+  )
+  // Exact payload admission is not permission to change the closed protocol.
+  let invalid = template.replace_all(
+    old="\"effect_kind\":",
+    new="\"effect_kind\\r\":",
+  )
+  assert_true(
+    canonical_effect_preview_draft_wire(invalid, 8192, 256, 12) is Err(_),
+  )
+  assert_true(parse_effect_preview_shape(invalid, 8192, 256, 12) is Err(_))
+}
+
+///|
 fn preview_identity_test_canonical(wire : String) -> String {
   let parsed = @source.parse_json(wire, {
     max_input_bytes: 8192,
@@ -768,4 +825,96 @@ test "Effect Preview source and captured Artifact cannot be split" {
     admit_effect_preview_identity(without_source, cid, authoring, 8192, 256, 12)
     is Err(InvalidMember),
   )
+}
+
+///|
+test "Effect Outcome Receipt retains exact JSON keys through seal and readmission" {
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let preview = admit_effect_preview_identity(
+    preview_identity_test_wire(
+      preview_identity_test_cid("b"),
+      authoring,
+      preview_identity_test_cid("4"),
+      "001000000000001",
+      "sha256:099721c928770511d95faed4eaeef3fef768c4b573c714fc0af16c0b5439b5b6",
+      "sha256:2fe7f8e93988fcf4d7804e86b69a72d00e1c7bfd946c8fa29d6e91c706593409",
+    ),
+    preview_identity_test_cid("b"),
+    authoring,
+    8192,
+    256,
+    12,
+  ).unwrap()
+  let response = Bytes::from_array([0x7B, 0x7D])
+
+  let applied =
+    #|{"result":{"\n":1,"\r":2,"\r\n":3,"é":"decomposed","nested":[{"$json":{"é":1,"é":2}}],"é":"composed"},"state":"applied"}
+  let failed =
+    #|{"error":{"code":"Rejected","details":{"é\r\n":"é\r\nvalue"},"message":"é\r\nrejected"},"state":"failed"}
+  for outcome in [applied, failed] {
+    let receipt = issue_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      outcome,
+      8192,
+      8192,
+      256,
+      12,
+    ).unwrap()
+    let stored = @json.object_field(receipt.value, "typed_outcome").unwrap()
+    assert_eq(@json.stringify_value(stored, 8192, 256, 12), outcome)
+    let restored = admit_effect_row_outcome_receipt(
+      preview,
+      0,
+      0,
+      preview_identity_test_cid("5"),
+      preview_identity_test_cid("6"),
+      response,
+      201,
+      receipt.wire,
+      8192,
+      8192,
+      256,
+      12,
+    ).unwrap()
+    assert_eq(restored.wire, receipt.wire)
+    assert_eq(restored.identity, receipt.identity)
+    let restored_outcome = @json.object_field(restored.value, "typed_outcome").unwrap()
+    assert_eq(@json.stringify_value(restored_outcome, 8192, 256, 12), outcome)
+    if outcome == failed {
+      // A previous lossy seal kept the original typed_outcome_cid while
+      // rewriting its data key. Do not reconstruct or accept that mismatch.
+      let legacy_body = @json.stringify_value(
+        @json.object_without_field(receipt.value, "receipt_cid").unwrap(),
+        8192,
+        256,
+        12,
+      ).replace_all(old="é\\r\\n\":", new="é\\n\":")
+      let legacy = seal_publication_contract(
+        "effect_row_outcome_receipt", legacy_body, 8192, 256, 12,
+      ).unwrap()
+      assert_true(
+        admit_effect_row_outcome_receipt(
+          preview,
+          0,
+          0,
+          preview_identity_test_cid("5"),
+          preview_identity_test_cid("6"),
+          response,
+          201,
+          legacy.wire,
+          8192,
+          8192,
+          256,
+          12,
+        )
+        is Err(ForeignResponse),
+      )
+    }
+  }
 }

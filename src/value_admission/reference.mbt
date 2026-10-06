@@ -229,33 +229,6 @@ fn admit_reference_envelope(
 }
 
 ///|
-fn issue_reference_cursor_usage(
-  issuer : ReferenceIssuer,
-  contract : @contract.Contract,
-  cursor : @decode.Cursor,
-  limits : ReferenceLimits,
-) -> Result[(CheckedValue, Int, Int), ReferenceIssue] {
-  let admission = match
-    start_reference_admission(issuer, contract, cursor, limits) {
-    Ok(admission) => admission
-    Err(issue) => return Err(issue)
-  }
-  // Convenience callers drain the same stages. They do not advertise this
-  // complete traversal as one bounded execution poll.
-  while true {
-    match advance_reference_admission(admission) {
-      ReferenceAdmissionContinue => ()
-      ReferenceAdmissionComplete(checked, nodes, text) =>
-        return Ok((checked, nodes, text))
-      ReferenceAdmissionFailed(issue) => return Err(issue)
-      ReferenceAdmissionTerminal => return Err(InvalidWire)
-    }
-  } nobreak {
-    Err(InvalidWire)
-  }
-}
-
-///|
 /// Admit a Host-issued reference after independent canonical-envelope checks
 /// and issuer-owned evidence validation. This is intentionally separate from
 /// authored JSON value admission.

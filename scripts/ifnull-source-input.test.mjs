@@ -34,11 +34,13 @@ test('ordinary packed corpus includes IFNULL and its narrow selection excludes u
     ['executionFailures', 'ifnullExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }
-  assert.ok(fixture.includes('const scopeOnly = ifnullOnly ||'));
+  const scopeGate = fixture.match(/^const scopeOnly = (.+);$/mu);
+  assert.ok(scopeGate, 'the packed profile scope gate is present');
+  assert.ok(scopeGate[1].split(/\s*\|\|\s*/u).includes('ifnullOnly'));
   assert.ok(fixture.includes('ifnullOnly ? {successes: ifnullSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_IFNULL_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs']"));
-  assert.ok(driver.includes("const narrowPublicQuery = process.argv.some(flag => ['--ifnull-only'"));
+  assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--ifnull-only'/u);
   const afterCampaign = driver.slice(driver.indexOf('if (plannerSelectionOnly || twoSourceExampleOnly ||'));
   assert.ok(afterCampaign.includes("process.argv.includes('--ifnull-only')) return;"));
 });

@@ -35,6 +35,7 @@ struct TypedAdmission {
   mut terminal : Bool
   mut reference_issuer : ReferenceIssuer?
   mut reference_limits : ReferenceLimits?
+  wire : Bool
 }
 
 ///|
@@ -50,6 +51,7 @@ pub fn start_typed_admission(
   contract : @contract.Contract,
   root : @decode.Cursor,
   limits : Limits,
+  wire? : Bool = false,
 ) -> Result[TypedAdmission, Issue] {
   if limits.max_nodes < 0 || limits.max_depth < 0 || limits.max_text_bytes < 0 {
     return Err(
@@ -74,6 +76,7 @@ pub fn start_typed_admission(
     terminal: false,
     reference_issuer: None,
     reference_limits: None,
+    wire,
   })
 }
 
@@ -87,6 +90,7 @@ pub fn start_host_typed_admission(
   root : @decode.Cursor,
   limits : Limits,
   reference_limits : ReferenceLimits,
+  wire? : Bool = false,
 ) -> Result[TypedAdmission, Issue] {
   if reference_limits.max_bytes < 0 ||
     reference_limits.max_nodes < 1 ||
@@ -100,7 +104,7 @@ pub fn start_host_typed_admission(
       ),
     )
   }
-  let admission = match start_typed_admission(contract, root, limits) {
+  let admission = match start_typed_admission(contract, root, limits, wire~) {
     Ok(admission) => admission
     Err(issue) => return Err(issue)
   }
@@ -195,12 +199,26 @@ fn TypedAdmission::step(admission : TypedAdmission) -> Unit raise Abort {
         @contract.Json => {
           // The root was charged by this typed read; the shared JSON owner
           // consumes that same node rather than reserving it a second time.
+          let payload = if admission.wire {
+            let object = decoded(@decode.closed_object(cursor, ["$json"]))
+            guard @decode.lookup(object, "$json") is Some(payload) else {
+              fail(cursor, WrongType)
+            }
+            payload
+          } else {
+            cursor
+          }
           let json = match
-            start_json_admission(cursor, {
-              max_nodes: budget.nodes + 1,
-              max_depth: budget.max_depth - parent_depth,
-              max_text_bytes: budget.text,
-            }) {
+            start_json_admission(
+              payload,
+              {
+                max_nodes: budget.nodes + 1,
+                max_depth: budget.max_depth - parent_depth,
+                max_text_bytes: budget.text,
+              },
+              allow_json_null=admission.wire,
+              data_keys=admission.wire,
+            ) {
             Ok(json) => json
             Err(issue) => raise Abort(issue)
           }

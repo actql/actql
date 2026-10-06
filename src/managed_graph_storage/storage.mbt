@@ -188,9 +188,14 @@ fn encoded_values(
   values : Array[@value.CheckedValue],
   pending_bytes : Int,
   pending_work : Int,
+  identity_body? : Bool = false,
 ) -> Result[(String, Int, Int), Issue] {
   let preparation = start_value_encoding(
-    builder, values, pending_bytes, pending_work,
+    builder,
+    values,
+    pending_bytes,
+    pending_work,
+    identity_body~,
   )
   while true {
     match advance_value_encoding(preparation, 64) {
@@ -271,7 +276,7 @@ fn append_node_record(
   initial_work : Int,
 ) -> Result[Unit, Issue] {
   let (key, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, 1 + initial_work) {
+    encoded_values(builder, [identity], 0, 1 + initial_work, identity_body=true) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
@@ -402,6 +407,21 @@ pub fn builder_node_count(builder : Builder) -> Int {
 }
 
 ///|
+/// Query the existing private node index using a canonical typed identity token
+/// obtained from admitted Graph input. This grants no append/read authority and
+/// keeps endpoint-closure selection on the same Builder, without another table.
+pub fn builder_contains_node_identity_order_key(
+  builder : Builder,
+  token : String,
+) -> Bool? {
+  if !builder.open {
+    None
+  } else {
+    Some(builder.node_keys.contains(token))
+  }
+}
+
+///|
 pub fn builder_edge_count(builder : Builder) -> Int {
   builder.edges.length()
 }
@@ -511,7 +531,10 @@ pub fn node_index(
       value.limits.max_value_depth,
     )
     @encode.begin_array(out)
-    @value.emit_wire_value(identity.value, out)
+    guard @value.json_payload(identity.value) is Some(payload) else {
+      return Err(InvalidIdentity)
+    }
+    @value.emit_wire_value(payload, out)
     @encode.end_array(out)
     Ok(value.node_keys.get(@encode.finish(out)))
   } catch {

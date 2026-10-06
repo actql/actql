@@ -231,6 +231,8 @@ pub fn salesforce_single_write_request_scope_matches(@catalog.SingleWriteRequest
 
 pub fn salesforce_single_write_request_target_identity(@catalog.SingleWriteRequest, Int) -> @catalog.WriteTargetIdentity? raise SalesforceCatalogBridgeIssue
 
+pub fn salesforce_single_write_request_target_json(@catalog.SingleWriteRequest) -> String?
+
 pub fn salesforce_single_write_request_value(@catalog.SingleWriteRequest) -> String
 
 pub fn salesforce_single_write_success_projection(@catalog.WriteSingleResponse) -> Array[String] raise SalesforceCatalogBridgeIssue
