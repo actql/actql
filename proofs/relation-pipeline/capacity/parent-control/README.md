@@ -2,6 +2,25 @@
 
 ## Current completed-array update and historical evidence
 
+The receiving-input cursor follow-up retains metadata preparation in the
+existing chain while large names are measured/compared. The complete selected
+candidate factory is byte-identical to main
+`b98a50ff763d1367e344fdfa8aea380ec8749132`; its eleven records and construction
+captures are unchanged. Current source pins are accompanied by actual Git
+comparisons, including the integrated constructor spelling in the existing
+Graph row-kernel exclusion. The conditional 2344 constructor component is
+unchanged; callback execution is still excluded from that component.
+
+Runtime parent state now retains `input_preparation`, and `start_next` accepts
+prepared inputs. Pending input selection and common read cursors belong to
+the existing selected-input/internal-edge scope; their columns are transferred,
+not copied. The product declaration adds 512 bytes for two metadata handles.
+That allowance is not a Native byte upper theorem. Existing startup/capture
+observations and the retained-core recipe do not automatically cover the new
+parent layout or capture environment. Current Native correspondence requires
+the capacity owner's separate source/observer review. See the
+[receiving-input record](../../../../docs/reviews/2026-10-07-local-producer-read-preparation.md).
+
 The current chain retains `Array[CompletedOutput?]`, rather than a single
 `previous` completion. Its reader now requires the actual array/backing/nullable
 slots and an independent typed output/completion/result-identity observation.

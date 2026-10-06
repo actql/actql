@@ -6625,6 +6625,20 @@
           "fixture": "append admits independently calculated exact work and workspace"
         },
         {
+          "role": "append_receiving_metadata_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/producer_read_preparation_wbtest.mbt",
+          "fixture": "producer metadata yields inside long names with exact visit budgets"
+        },
+        {
+          "role": "append_receiving_metadata_handoff",
+          "suite": "moon:connectors_local",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/connectors/local/relation_chain_input_preparation_wbtest.mbt",
+          "fixture": "long producer handoff keeps nineteen independent control polls across quanta"
+        },
+        {
           "role": "append_two_consumer_reclamation",
           "suite": "moon:query_integration",
           "targets": [
@@ -6937,6 +6951,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-filter-in-flight"
+        },
+        {
+          "role": "append_receiving_metadata_public",
+          "suite": "node:embedded_producer_metadata",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-producer-read-preparation.test.mjs",
+          "fixture": "public retained chain prepares long producer names before child start and cancellation"
         },
         {
           "role": "append_chain_publication",

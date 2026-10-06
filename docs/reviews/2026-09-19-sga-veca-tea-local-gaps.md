@@ -300,6 +300,15 @@ selector, projection or missing-property variant.
 
 ## Status interpretation (2026-09-28)
 
+The bounded receiving-input follow-up on 2026-10-07 retains long producer-name
+measurement/comparison inside the existing same-task chain owner. Partial maps
+never authorize a child; cancellation keeps inputs/private outputs until stop
+and cleanup. Common metadata limits, the independently counted 19-poll handoff,
+and the ordinary retained Append/select/two-consumer Program have limited JS
+evidence. Existing Native source/census pins require G review before this unit
+is merge-ready; old receipts are not adopted as new-source evidence. See the
+[receiving-input record](2026-10-07-local-producer-read-preparation.md).
+
 This document contains chronological investigation notes as well as later
 closure evidence. The early strict-gate failures below are historical, not
 current failures. At main `805a29c5f`, the later production inventory records

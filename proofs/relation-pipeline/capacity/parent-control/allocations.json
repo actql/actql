@@ -265,7 +265,7 @@
     },
     {
       "id": "step-input-selection",
-      "objects": "new Array[ManagedProviderInput] owner/backing; each new RelationInput variant; external inputs are shared",
+      "objects": "new Array[ManagedProviderInput] owner/backing; each new RelationInput variant; pending RelationChainInputPreparation record and probe/port state; external inputs and completed-output arrays are shared",
       "phases": [
         "startup",
         "handoff",
@@ -276,12 +276,12 @@
     },
     {
       "id": "internal-edge-binding",
-      "objects": "ProducerBindingIdentity and BoundProducerInput records, consumer-step option and result wrappers; ProducerRead record and new column index array; temporary projection/metadata lookup wrappers",
+      "objects": "ProducerBindingIdentity and BoundProducerInput records, consumer-step option and result wrappers; ProducerRead record and new column index array; pending ProducerReadPreparation record, borrowed name/offset state and temporary projection/metadata lookup wrappers; the index array is transferred rather than copied",
       "phases": [
         "handoff",
         "cleanup-pending"
       ],
-      "basis": "unqualified receiving schema width, array growth and exact predecessor binding; output payload stays shared",
+      "basis": "receiving schema width, array growth and exact predecessor binding; output payload stays shared; long metadata remains owned through stop and cleanup; declared extra 512 bytes is not a proved Native bound",
       "status": "native size/lifetime bound pending"
     },
     {

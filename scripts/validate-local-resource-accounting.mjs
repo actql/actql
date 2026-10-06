@@ -482,6 +482,7 @@ export function validateResourceAccounting({
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
         'moon:relation_schema': 'relation_schema',
+        'moon:connectors_local': 'connectors/local',
         'moon:bounded_tuple_sort': 'bounded_tuple_sort',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
@@ -613,6 +614,7 @@ export function validateResourceAccounting({
         'append_chain_two_consumers',
         'append_chain_work_workspace_exact_one_short',
         'append_chain_cancel_cleanup',
+        'append_receiving_metadata_limits', 'append_receiving_metadata_handoff',
       ]) {
         if (!boundaryRoles.has(role)) {
           fail(`${label}: ${role} fixture is missing`);
@@ -951,6 +953,8 @@ export function validateResourceAccounting({
 
         'node:embedded_vector_records':
           'adapters/host-node/public-vector-record-retention.test.mjs',
+        'node:embedded_producer_metadata':
+          'adapters/host-node/public-producer-read-preparation.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -1035,10 +1039,15 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'RelA' && route.operation === 'append') {
-      for (const role of ['append_chain_timer', 'append_chain_publication']) {
+      for (const role of ['append_chain_timer', 'append_chain_publication',
+        'append_receiving_metadata_public']) {
         if (!environmentRoles.has(role)) {
           fail(`${label}: ${role} fixture is missing`);
         }
+      }
+      if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+        .includes("import './public-producer-read-preparation.test.mjs';")) {
+        fail(`${label}: receiving metadata public fixture is not suite-connected`);
       }
     }
     if (route.global_count_entrypoint !== undefined) {
