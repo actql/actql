@@ -1,6 +1,11 @@
 ///|
-fn restored_runtime_bundles() -> @bundle.NativeRuntimeBundleStore {
-  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+fn restored_runtime_bundles(
+  name? : String = "original",
+) -> @bundle.NativeRuntimeBundleStore {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  @filesystem.open_root(parent).unwrap().create_directory(name).unwrap()
+  |> ignore
+  let root_path = parent + "/" + name
   let sqlite = @sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
   ).unwrap()

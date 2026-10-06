@@ -147,9 +147,9 @@ pub fn resolve_native_remote_standard_transfer_run(@remote_site_protocol.Dispatc
 
 pub fn restore_native_remote_retained_task_input(@remote_site_protocol.RemoteInputBinding, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, NativeRemoteRetainedInputCurrent, NativeRemoteStandardTransferBindingLimits) -> Result[NativeRemoteRetainedTaskInput, NativeRemoteRetainedTaskInputIssue]
 
-pub fn restore_native_remote_standard_output(@remote_journal.RecoveredSiteDispatch, String, Int64, () -> Bool) -> NativeRemoteOutputRestoration
+pub fn restore_native_remote_standard_output(@remote_journal.RecoveredSiteDispatch, String, Int64, () -> Bool, cleanup_current? : (() -> Bool)?) -> NativeRemoteOutputRestoration
 
-pub fn restore_native_remote_standard_runtime_output(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, Int64, () -> Bool) -> @remote_runtime.NativeCompletedRuntimeRestoration
+pub fn restore_native_remote_standard_runtime_output(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, String, Int64, () -> Bool, cleanup_current? : (() -> Bool)?) -> @remote_runtime.NativeCompletedRuntimeRestoration
 
 pub fn retry_native_remote_standard_input_failure_cleanup(NativeRemoteStandardInputFailure) -> Bool
 

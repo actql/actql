@@ -5,6 +5,7 @@ fn restored_output_fixture(
   runtime_bundle_cid? : String? = None,
   input_binding_cid? : String? = None,
   budget_cid? : String? = None,
+  root_path? : String? = None,
 ) -> (
   @journal.Journal,
   @remote.DispatchRequest,
@@ -13,8 +14,10 @@ fn restored_output_fixture(
   @filesystem.NativeFileGeneration,
   @site.ExecutionSite,
 ) raise {
-  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
-    abort("private physical root required")
+  let root = root_path.unwrap_or_else(() => {
+    @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
+      abort("private physical root required")
+    })
   })
   let db_root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap_or_else(() => {
       abort("private SQLite root required")
