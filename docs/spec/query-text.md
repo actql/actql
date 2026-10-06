@@ -216,8 +216,28 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
+SQL `QUALIFY boolean_expression` filters the evaluated inline-window outputs
+after WHERE, grouping/HAVING and analytic computation, before final DISTINCT,
+ORDER and LIMIT/OFFSET. At least one window function must occur in SELECT or
+QUALIFY. Only TRUE retains a row; FALSE and SQL NULL discard it. Calls in
+QUALIFY use the same supported inline OVER signatures and common analytic
+contract as SELECT; their private output slots are omitted from Result fields.
+Window calls need not appear in SELECT. Group aggregates inside the condition
+use the ordinary grouped input and aggregate checking rather than a separate
+query evaluator. Named WINDOW declarations and broader OVER signatures remain
+existing profile gaps. This follows the selected
+[GoogleSQL QUALIFY clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#qualify_clause).
+
+QUALIFY resolves SELECT aliases to their evaluated slots before same-name
+inputs. Qualified input references retain their input meaning. A scalar alias
+needed by the condition is evaluated once against SELECT's input snapshot and
+reused by final projection; unrelated scalar projections are evaluated after
+the condition. No alias is made visible inside its own or a sibling SELECT
+expression, or inside an OVER specification. Ordinary Boolean and aggregate
+typing, failure, capacity and parameter rules remain common-owner decisions.
+
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
-introduced by that list. In `GROUP BY`, `HAVING` and the query's final
+introduced by that list. In `GROUP BY`, `HAVING`, `QUALIFY` and the query's final
 `ORDER BY`, a visible SELECT alias takes precedence over an input column of
 the same name. Duplicate aliases, qualified references and aggregate
 visibility still undergo their own ambiguity and validity checks. Names in
