@@ -101,3 +101,24 @@ test "canonical root removes object enumeration differences but preserves array 
   assert_eq(a.cid, b.cid)
   assert_true(a.cid != c.cid)
 }
+
+///|
+test "generated root identity preserves exact nested JSON keys and CRLF" {
+  // Complete preimage independently authored and hashed with Python SHA-256.
+  let evidence = artifact_evidence(
+    (
+      #|{"typed_literal":{"type":"json","value":"{\"é\":1,\"é\":2,\"line\":\"a\\r\\nb\"}"}}
+    ),
+  )
+  let artifact = prepare_root_artifact(evidence, 10000, 1000, 100).unwrap()
+  assert_eq(
+    artifact.cid,
+    "sha256:0825143cc2d6a34887d2d9497500eec475c417006851cf8f992fffe8a2433d5b",
+  )
+  assert_eq(
+    @identity.stringify_value(artifact.value, 10000, 1000, 100),
+    (
+      #|{"contract":{"nullable":false,"type":"json"},"demand_paths":{"/roots/0/source":[]},"node":{"body":{"$json":{"é":2,"line":"a\r\nb","é":1}},"op":"typed_literal"},"parameter_pointer":"/exprs/x","source":{"typed_literal":{"type":"json","value":"{\"é\":1,\"é\":2,\"line\":\"a\\r\\nb\"}"}},"step_id":"derive_1"}
+    ),
+  )
+}

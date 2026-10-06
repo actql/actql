@@ -92,6 +92,7 @@ pub fn from_json(
   max_nodes : Int,
   max_depth : Int,
   max_utf16_units : Int,
+  data_keys? : Bool = false,
 ) -> CanonicalValue raise CanonicalFailure {
   if max_nodes < 1 || max_depth < 0 || max_utf16_units < 0 {
     raise InputLimit
@@ -158,7 +159,7 @@ pub fn from_json(
             if budget.nodes == 0 {
               raise InputLimit
             }
-            let key = normalize(original_key, budget)
+            let key = normalize(original_key, budget, identifier=!data_keys)
             if seen.contains(key) {
               raise DuplicateKey(key)
             }
@@ -183,6 +184,7 @@ fn from_source_visit(
   node : @source.Node,
   budget : InputBudget,
   depth : Int,
+  data_keys : Bool,
 ) -> CanonicalValue raise CanonicalFailure {
   if budget.nodes == 0 {
     raise InputLimit
@@ -204,7 +206,9 @@ fn from_source_visit(
       if depth >= budget.depth || items.length() > budget.nodes {
         raise InputLimit
       }
-      let values = items.map(item => from_source_visit(item, budget, depth + 1))
+      let values = items.map(item => {
+        from_source_visit(item, budget, depth + 1, data_keys)
+      })
       Array({ values, })
     }
     Object(fields) => {
@@ -216,12 +220,12 @@ fn from_source_visit(
         if budget.nodes == 0 {
           raise InputLimit
         }
-        let key = normalize(field.key, budget)
+        let key = normalize(field.key, budget, identifier=!data_keys)
         if seen.contains(key) {
           raise DuplicateKey(key)
         }
         seen[key] = ()
-        (key, from_source_visit(field.value, budget, depth + 1))
+        (key, from_source_visit(field.value, budget, depth + 1, data_keys))
       })
       values.sort_by((left, right) => @value.compare_utf16(left.0, right.0))
       Object({ values, })
@@ -238,6 +242,7 @@ pub fn from_source(
   max_nodes : Int,
   max_depth : Int,
   max_utf16_units : Int,
+  data_keys? : Bool = false,
 ) -> CanonicalValue raise CanonicalFailure {
   if max_nodes < 1 || max_depth < 0 || max_utf16_units < 0 {
     raise InputLimit
@@ -246,6 +251,7 @@ pub fn from_source(
     node,
     { nodes: max_nodes, units: max_utf16_units, depth: max_depth, },
     0,
+    data_keys,
   )
 }
 

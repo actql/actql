@@ -45,7 +45,11 @@ pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
+pub fn check_subtraction(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedSubtraction, Issue]
+
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
+
+pub fn check_union(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
 
 pub fn components_input(CheckedComponents) -> @carrier_contract.Carrier
 
@@ -301,6 +305,18 @@ pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
 
 pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
+pub fn subtraction_composition(CheckedSubtraction) -> CheckedUnion
+
+pub fn subtraction_output(CheckedSubtraction) -> @carrier_contract.Carrier
+
+pub fn subtraction_pending_at(CheckedSubtraction, Int) -> SubtractionObligation?
+
+pub fn subtraction_pending_count(CheckedSubtraction) -> Int
+
+pub fn subtraction_source(CheckedSubtraction) -> @decode_core.Cursor
+
+pub fn subtraction_usage(CheckedSubtraction) -> Usage
+
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
@@ -331,6 +347,32 @@ pub fn traverse_start(CheckedTraverse) -> CheckedSelector
 
 pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 
+pub fn union_field_at(CheckedUnion, Int, Int, Int, edge~ : Bool) -> (Int, Int, UnionPropertyStrategy)?
+
+pub fn union_fold_output(CheckedUnion, Int) -> @carrier_contract.Carrier?
+
+pub fn union_input_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
+
+pub fn union_input_count(CheckedUnion) -> Int
+
+pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
+
+pub fn union_pending_at(CheckedUnion, Int) -> UnionObligation?
+
+pub fn union_pending_count(CheckedUnion) -> Int
+
+pub fn union_right_definition(CheckedUnion, Int, Int, edge~ : Bool) -> Int?
+
+pub fn union_source(CheckedUnion) -> @decode_core.Cursor
+
+pub fn union_strategy_at(CheckedUnion, Int, edge~ : Bool) -> (String, UnionPropertyStrategy)?
+
+pub fn union_strategy_count(CheckedUnion, edge~ : Bool) -> Int
+
+pub fn union_strategy_name(UnionPropertyStrategy) -> String
+
+pub fn union_usage(CheckedUnion) -> Usage
+
 // Errors
 
 // Types and methods
@@ -360,7 +402,11 @@ type CheckedSelector
 
 type CheckedSubgraph
 
+type CheckedSubtraction
+
 type CheckedTraverse
+
+type CheckedUnion
 
 pub(all) enum ComponentKind {
   Weak
@@ -438,6 +484,8 @@ pub(all) enum IssueKind {
   UnsupportedGraphProfile
   UnsupportedGraphOperation
   IncompatibleGraphDomains
+  UnionDefinitionIdentityMismatch(String)
+  UnionKeyIdentityMismatch(String, Int)
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -596,6 +644,16 @@ pub(all) enum SubgraphObligation {
   ResolveSubgraphProfile
 } derive(Eq, @debug.Debug)
 
+pub(all) enum SubtractionObligation {
+  AdmitSubtractionInputs
+  PreserveSubtractionIdentities
+  CheckSubtractionEdgeEndpoints
+  ApplySubtractionPropertyStrategies
+  InduceSubtractionEndpoints
+  CanonicalSubtractionOrder
+  ResolveSubtractionResources
+} derive(Eq, @debug.Debug)
+
 type TraversalHop
 
 pub(all) enum TraverseObligation {
@@ -610,6 +668,25 @@ pub(all) enum TraverseObligation {
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolvePropertyGraphTraversalProfile
+} derive(Eq, @debug.Debug)
+
+pub(all) enum UnionObligation {
+  AdmitUnionInputs
+  PreserveUnionIdentities
+  CheckUnionEdgeEndpoints
+  ApplyUnionPropertyStrategies
+  CanonicalUnionOrder
+  ResolveUnionResources
+} derive(Eq, @debug.Debug)
+
+pub(all) enum UnionPropertyStrategy {
+  UnionExactEqual
+  UnionSetUnion
+  UnionSetDifference
+  UnionNumberSum
+  UnionNumberMean
+  UnionNumberMax
+  UnionNumberMin
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

@@ -319,6 +319,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["kind", "requestId", "prepareAttemptId", "state", "durability", "lookupExpiresAt"],
+      "allOf": [{"oneOf": [
+        {"properties": {"state": {"const": "waiting_checkpoint"}},
+         "required": ["checkpoint"],
+         "allOf": [{"not": {"required": ["endReason"]}},
+                   {"not": {"required": ["terminalErrorCode"]}}]},
+        {"properties": {"state": {"const": "resuming"}},
+         "allOf": [{"not": {"required": ["endReason"]}},
+                   {"not": {"required": ["terminalErrorCode"]}}]},
+        {"properties": {"state": {"const": "ended"}}, "required": ["endReason"]}
+      ]}],
       "properties": {
         "kind": {"const": "held"},
         "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\u0000-\\u001f\\u007f]+$"},
@@ -822,6 +832,13 @@
       "requireRequested": {
         "durability": "durable"
       }
+    }
+  },
+  "request_response_rules": {
+    "held": {"schemas": ["held"], "matchRequest": "requestId"},
+    "request_lookup": {
+      "schemas": ["lookup_found", "lookup_not_found", "lookup_unknown", "held"],
+      "matchRequest": "requestId"
     }
   }
 }
