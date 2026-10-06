@@ -440,10 +440,12 @@ pub fn advance_append(cursor : AppendCursor) -> Result[Bool, Issue] {
       BeginField => {
         let writer = cursor.writer.unwrap()
         @encode.begin_array(writer)
+        let spelling = record_name(cursor.fields[cursor.index].0)
         cursor.name = Some(
-          @encode.start_string_value(
+          @encode.start_prefixed_string_value(
             writer,
-            @schema.reference_name(cursor.fields[cursor.index].0),
+            spelling.prefix,
+            spelling.text,
           ),
         )
         cursor.phase = FieldName

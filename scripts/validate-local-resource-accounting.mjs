@@ -479,6 +479,7 @@ export function validateResourceAccounting({
         'moon:execution_relation': 'execution_relation',
         'moon:value_admission': 'value_admission',
         'moon:value_contract': 'value_contract',
+        'moon:encode_core': 'encode_core',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
@@ -1382,7 +1383,9 @@ export function validateResourceAccounting({
         'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
         'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
-        'pool_field_binding_typed_role']) {
+        'pool_field_binding_typed_role', 'pool_qualified_name_limits',
+        'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
+        'pool_qualified_name_wire_unicode']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('pool_output_public_store')) {

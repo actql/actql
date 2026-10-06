@@ -10086,6 +10086,34 @@
           "fixture": "record prior identity name scan retains earlier rows through cleanup"
         },
         {
+          "role": "pool_qualified_name_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/qualified_name_emission_wbtest.mbt",
+          "fixture": "qualified record emission preserves independently derived limits"
+        },
+        {
+          "role": "pool_qualified_name_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/qualified_name_emission_wbtest.mbt",
+          "fixture": "qualified emission cancellation keeps prior rows until separate cleanup"
+        },
+        {
+          "role": "pool_qualified_name_wire_sinks",
+          "suite": "moon:encode_core",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/encode_core/prefixed_string_wbtest.mbt",
+          "fixture": "prefixed string borrows segments and preserves independent sink bytes"
+        },
+        {
+          "role": "pool_qualified_name_wire_unicode",
+          "suite": "moon:encode_core",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/encode_core/prefixed_string_wbtest.mbt",
+          "fixture": "prefixed string treats segment and poll boundaries as one scalar stream"
+        },
+        {
           "role": "pool_output_record_cleanup",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
