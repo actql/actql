@@ -57,6 +57,20 @@ test "QUALIFY shares evaluated scalar aliases with the final SELECT" {
 }
 
 ///|
+test "QUALIFY qualified input ranges do not demand colliding SELECT aliases" {
+  let text = checked_join_order(
+    "SELECT 1 / (x - 1) AS t, ROW_NUMBER() OVER (ORDER BY x) AS n FROM t QUALIFY t.x > 1 ORDER BY n",
+  )
+  let filters = text.split("\"filter\":").collect()
+  let divisions = text.split("\"divide\":").collect()
+  assert_eq(filters.length(), 2)
+  assert_eq(divisions.length(), 2)
+  let filter = filters[0].length()
+  let divide = divisions[0].length()
+  assert_true(filter < divide)
+}
+
+///|
 test "QUALIFY hidden calls grouping and composed scopes reach the common checker" {
   for
     source in [

@@ -69,6 +69,12 @@ export const qualifySuccesses = [
     columns: [column('ratio'), column('n')],
     expected: [{ratio: 1, n: 2}, {ratio: 0.5, n: 3}, {ratio: 0.5, n: 4}],
   }),
+  success('qualified-range-does-not-demand-alias', 'SELECT 1 / (id - 1) AS records, '
+    + 'ROW_NUMBER() OVER (ORDER BY id) AS n FROM records WHERE id > 0 '
+    + 'QUALIFY records.id > 1 ORDER BY n', {
+    columns: [column('records'), column('n')],
+    expected: [{records: 1, n: 2}, {records: 0.5, n: 3}, {records: 0.5, n: 4}],
+  }),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
 ];
 export const qualifyRefusals = [

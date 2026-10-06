@@ -2876,7 +2876,14 @@ fn compile_steps(
             continue
           }
           let expression = projection.expression.unwrap()
-          if !references.any(path => same_name(path[0], name)) {
+          if !references.any(path => {
+              // A qualified input that resolves in the authored range does
+              // not demand a SELECT alias with the same first component.
+              !(path.length() > 1 &&
+              pipe_slot(path, input_scope.visible, input_scope.ranges)
+              is Some(_)) &&
+              same_name(path[0], name)
+            }) {
             continue
           }
           let cached = qualify_cached_slot(
