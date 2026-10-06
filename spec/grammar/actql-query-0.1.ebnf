@@ -83,7 +83,8 @@ select_item   = "*" | path, ".", "*"
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;
-limit_clause  = "LIMIT", integer, [ "OFFSET", integer ] ;
+limit_clause  = "LIMIT", limit_integer, [ "OFFSET", limit_integer ] ;
+limit_integer = integer | parameter_token ;
 set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
                 [ "BY", "NAME" ], sql_operand ;

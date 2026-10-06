@@ -18,6 +18,21 @@ export function parentOverlay(read) {
     [pkg]: originals[pkg] + '\noptions(targets: { "parent_control_probe_native.mbt": [ "native" ] })\n',
   };
   const source = originals[provider];
+  const native = 'src/execution_relation/capacity_map_probe_native.mbt';
+  overlay[native] += `
+///|
+#borrow(output, completion, identity)
+extern "C" fn parent_completed_identity_probe(
+  output : CompletedOutput,
+  completion : CompletedSequence,
+  identity : Ref[Unit],
+) -> String = "actql_proof_parent_completed_identity"
+
+///|
+pub fn parent_completed_identity_observation(output : CompletedOutput) -> String {
+  parent_completed_identity_probe(output, output.completion, output.completion.result_identity)
+}
+`;
   const start = source.indexOf('fn bounded_relation_chain_execution(');
   const end = source.indexOf('\nfn selected_relation_provider(', start);
   assert(start >= 0 && end > start, 'Missing exact chain constructor');
@@ -27,7 +42,10 @@ export function parentOverlay(read) {
   assert.equal(body.split(before).length, 2);
   assert.equal(body.split(tail).length, 2);
   body = body.replace(before, '  let observed_parent =\n    managed_provider_execution_with_child_work_issue(')
-    .replace(tail, '    )\n  println(parent_control_probe(observed_parent, children, previous, current, position, pending, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count))\n  Ok(observed_parent)\n}\n');
+    .replace(tail, '    )\n  println(parent_control_probe(observed_parent, children, completed, current, position, pending, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count))\n  Ok(observed_parent)\n}\n');
+  const completionStore = '            completed.val[position.val] = Some(output)';
+  assert.equal(body.split(completionStore).length, 2, 'Changed actual intermediate completion store');
+  body = body.replace(completionStore, completionStore + '\n                println(@execution.parent_completed_identity_observation(output))');
   let selectedSource = source.slice(0, start) + body + source.slice(end);
   const candidates = selectedSource.match(/  for\n    provider in (\[[\s\S]*?\n    \]) \{/);
   assert(candidates && selectedSource.split(candidates[0]).length === 2, 'Changed complete provider candidate construction');

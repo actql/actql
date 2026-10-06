@@ -65,3 +65,11 @@ const privateDomain: Reason = {code: 'operation_parameter_invalid', facts: {para
 // @ts-expect-error Scalar facts never contain submitted values or owner indexes.
 const privateScalar: Reason = {code: 'operation_parameter_invalid', facts: {parameter: 'before', domain: 'positive_safe_integer', value: 0}};
 void privateDomain; void privateScalar;
+
+const expressionType: Reason = {code: 'expression_type_mismatch', facts: {expected_type: 'number'}};
+explainCheckReason(expressionType);
+// @ts-expect-error Required type facts use a closed Owner domain, not a private label.
+const privateExpressionType: Reason = {code: 'expression_type_mismatch', facts: {expected_type: 'private_field'}};
+// @ts-expect-error Expression facts do not contain an actual value or internal path.
+const privateExpressionValue: Reason = {code: 'expression_type_mismatch', facts: {expected_type: 'number', actual_value: 'secret'}};
+void privateExpressionType; void privateExpressionValue;

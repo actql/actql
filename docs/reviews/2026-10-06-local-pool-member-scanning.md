@@ -2,8 +2,10 @@
 
 ## Scope and production connection
 
-This component follows unmerged #561 at
-`beb738b9b79ee48f5cdb351c10fcdbce1ab7e0c7`; eventual merge target: main.
+This component started from then-unmerged #561 at
+`beb738b9b79ee48f5cdb351c10fcdbce1ab7e0c7`. After that dependency merged,
+main `7dad083e56004f87f2ff9e8deff7869957b0e185` was normally merged without
+conflict; the final PR targets main with no unmerged dependency.
 It does not complete all Local retained paths or change language, CID, ordering,
 installed limits or authority contracts.
 
@@ -57,6 +59,15 @@ The earlier copy-stop point at 171 was phase entry, before copying. The
 strengthened fixture stops at 172 after a fragment has been copied. The
 byte-failure observation was reconciled with canonical key order, not used
 as a replacement expectation without a phase explanation.
+
+The same 178/178 selection passed on clean pre-integration commit
+`44cb866ea9ea40832d91f5038028050eb7164927` (`run-mJpBGe`,
+`focused-test-iPeUqS`). This is not evidence for the later main integration.
+The focused evidence-role removal gate passed 1/1 (`run-4zjDsJ`,
+`focused-test-CJJeIq`); the actual resource checker passed and explicitly did
+not assert full boundary completion. Node/Workers freshness checks passed
+with the pinned MOON_HOME. Initial invocations without MOON_HOME failed before
+checking fixtures and are not generator or product success evidence.
 
 ```sh
 node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js \
