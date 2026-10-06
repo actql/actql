@@ -118,3 +118,38 @@ Node files passed 10/10 on that clean merge (`run-PdswwE`,
 are unchanged from the Native diagnostic's source; other child/runtime changes
 from main are retained and are not retroactively covered by that timed-out run.
 No old recipe or historical source compatibility path was added.
+
+## Native capture-order repair
+
+The first executed current-layout binary rejected the old `start_next` capture
+mapping. A borrowed diagnostic then compared every capture against the typed
+roots supplied to the existing observer. The completed-output Array moves the
+`completed` capture after `inputs`; the scalar `max_value_bytes` is at offset
+64 and `execution` at offset 72. The advance callback captures `execution`
+before `completed`, and cleanup captures `children` before `completed`.
+
+The readers and conditional field-layout input now express that order. Every
+existing identity, GC-layout, source-restoration and byte-bound assertion is
+retained. The component envelope and all product source/limits are unchanged.
+
+A working-tree Native execution passed the existing `pair:filter/distinct`
+case, 24 lifecycle observations, typed intermediate completion identities,
+provider-construction inspection and receipt substitution rejections. Receipt:
+`/private/tmp/actql-review-478/_build/local-checks/attempts/run-gjQROi`.
+The compilation-inclusive guard was 600 seconds; execution completed in about
+127 seconds. The earlier 180-second timeout and subsequent assertion failures
+remain separate failed observations. The original executor fixture was closed
+and all instrumented product sources restored successfully.
+
+This verifies the finite normal/premature/repeated-cleanup observation. It does
+not verify injected child-cleanup failures, ledger holding generations or the
+whole-parent lifetime union. Process-local completion identities are not
+ledger generations. The startup lower bound still exceeds the old isolated
+per-step component allowance; this is not a demonstrated total reservation
+violation or a complete heap bound.
+
+The private Native-only toolchain was extracted from both hash-verified pinned
+archives and bundled with the repository's pinned compiler. No shared toolchain
+or verifier was changed. A generated JS directory symlink in the shared
+installation caused a separate pre-execution tool-identity refusal; it is not
+reported as a product or Native test failure.

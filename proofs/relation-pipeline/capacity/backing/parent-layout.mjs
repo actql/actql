@@ -5,7 +5,7 @@ import { fieldLayout } from './native-extent.mjs';
 // not a maximum obtained by measuring the investigation fixture.
 export const parentFields = {
   owner: Array(6).fill('ref'),
-  startEnvironment: [...Array(9).fill('ref'), 'i32', ...Array(3).fill('ref'), 'i32'],
+  startEnvironment: [...Array(8).fill('ref'), 'i32', ...Array(4).fill('ref'), 'i32'],
   advance: [...Array(10).fill('ref'), 'i32'],
   cancel: Array(4).fill('ref'), stopped: Array(2).fill('ref'),
   cleanup: Array(7).fill('ref'), childWorkIssue: Array(2).fill('ref'),

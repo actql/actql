@@ -78,9 +78,9 @@ moonbit_string_t actql_proof_parent_control(void *parent, void *children,
       if (i == 0 && tagged == 4 && Moonbit_object_kind(child)==moonbit_BLOCK_KIND_REGULAR) {
         const uint32_t *env = layout(child);
         assert(Moonbit_rc_count(Moonbit_object_header(child)) >= 0);
-        void *expected[12]={used,pending,position,current,completed,children,
-          family,numeric,measurement,execution,inputs,sequence};
-        uint32_t offsets[12]={0,8,16,24,32,40,48,56,64,80,88,96};
+        void *expected[12]={used,pending,position,current,children,family,
+          numeric,measurement,execution,inputs,completed,sequence};
+        uint32_t offsets[12]={0,8,16,24,32,40,48,56,72,80,88,96};
         assert(env[0]==28 && env[1]==12);
         for(int k=0;k<12;k++) {
           assert(env[2+k]==offsets[k]/2);

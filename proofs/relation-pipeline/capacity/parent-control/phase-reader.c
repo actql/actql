@@ -72,19 +72,19 @@ moonbit_string_t actql_proof_parent_phase(void *parent, int32_t phase) {
   const uint32_t *cleanup_shape=parent_indexed_shape(callbacks[3]);
   assert(cleanup_shape && cleanup_shape[0]==14 && cleanup_shape[1]==6);
   void *roots[11]={parent,
-    parent_pointer_at(environment,40), parent_pointer_at(environment,32),
+    parent_pointer_at(environment,32), parent_pointer_at(environment,88),
     parent_pointer_at(environment,24), parent_pointer_at(environment,16),
     parent_pointer_at(environment,8), parent_pointer_at(environment,0),
     parent_pointer_at(callbacks[0],24), parent_pointer_at(callbacks[0],16),
     parent_pointer_at(callbacks[3],16), parent_pointer_at(callbacks[3],8)};
-  uint32_t captured_offsets[12]={0,8,16,24,32,40,48,56,64,80,88,96};
+  uint32_t captured_offsets[12]={0,8,16,24,32,40,48,56,72,80,88,96};
   for(int i=0;i<12;i++) assert(env_shape[2+i]==captured_offsets[i]/2);
-  void *expected_advance[9]={environment,roots[8],roots[7],roots[6],roots[5],roots[4],roots[3],roots[2],parent_pointer_at(environment,80)};
+  void *expected_advance[9]={environment,roots[8],roots[7],roots[6],roots[5],roots[4],roots[3],parent_pointer_at(environment,72),roots[2]};
   for(int i=0;i<9;i++) {
     assert(advance_shape[2+i]==(uint32_t)(i+1)*4);
     assert(parent_pointer_at(callbacks[0],(uint32_t)(i+1)*8)==expected_advance[i]);
   }
-  void *expected_cleanup[6]={roots[10],roots[9],roots[8],roots[3],roots[2],roots[1]};
+  void *expected_cleanup[6]={roots[10],roots[9],roots[8],roots[3],roots[1],roots[2]};
   for(int i=0;i<6;i++) {
     assert(cleanup_shape[2+i]==(uint32_t)(i+1)*4);
     assert(parent_pointer_at(callbacks[3],(uint32_t)(i+1)*8)==expected_cleanup[i]);
