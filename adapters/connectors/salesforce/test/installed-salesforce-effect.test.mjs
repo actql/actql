@@ -845,7 +845,7 @@ for (const scenario of ['value', 'target', 'outcome', 'outcome-keys',
       const {NODE_TEST_CONTEXT: _parent, ...env} = process.env;
       const {code, stdout} = await new Promise(resolve => execFile(
         process.execPath, ['--experimental-test-module-mocks', '--test',
-          child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
+          '--test-reporter=tap', child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
           timeout: 300_000},
         (error, out) => resolve({code: error?.code ?? 0, stdout: out})));
       assert.equal(code, 0, stdout);
