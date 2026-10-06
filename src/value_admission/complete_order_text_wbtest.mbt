@@ -154,10 +154,11 @@ test "complete order long object name yields with independent wire work and clea
     let (actual, bytes, work) = text_order_drain(cursor, quantum)
     assert_eq(actual, expected)
     assert_eq(bytes, @utf8.encode(expected).length())
-    // Recheck: root + two field visits + Number + terminal = 5.
+    // Recheck: root + two field visits + six 64-unit name fragments
+    // + Number + terminal = 11.
     // Emit: two values + two field visits + entry/aggregate closes + terminal
     // + six fixed name chunks = 13. Logical two-node/384-byte usage is unchanged.
-    assert_eq(work, 18)
+    assert_eq(work, 24)
   }
   let cursor = start_complete_order(checked, limits).unwrap()
   while cursor.recheck is Some(_) {

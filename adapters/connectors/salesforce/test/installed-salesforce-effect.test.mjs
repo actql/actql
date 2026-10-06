@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './effect-target-read-inventory.test.mjs';
+import '../../../host-node/installed-row-json.test.mjs';
 import {accountConfiguration, effectHost, effectProgram, installedEffect,
   recordEntry, salesforceMoon} from './installed-salesforce-effect.fixture.mjs';
 import {closeFailingJournal} from './salesforce-effect-site.fixture.mjs';
@@ -834,7 +835,8 @@ test('an unknown row is never resent after a restart', async t => {
 // the Program only by Unicode normalization is refused before any send, and a
 // provider outcome is stored with its exact text. Each scenario wraps the
 // real driver in its own process (see row-effect-value-identity.child.mjs).
-for (const scenario of ['value', 'target', 'outcome']) {
+for (const scenario of ['value', 'target', 'outcome', 'outcome-keys',
+  'outcome-single-key']) {
   test(`installed row Effect keeps exact data values: ${scenario}`,
     async () => {
       const child = fileURLToPath(new URL(
@@ -843,7 +845,7 @@ for (const scenario of ['value', 'target', 'outcome']) {
       const {NODE_TEST_CONTEXT: _parent, ...env} = process.env;
       const {code, stdout} = await new Promise(resolve => execFile(
         process.execPath, ['--experimental-test-module-mocks', '--test',
-          child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
+          '--test-reporter=tap', child], {env: {...env, ACTQL_ROW_VALUE_SCENARIO: scenario},
           timeout: 300_000},
         (error, out) => resolve({code: error?.code ?? 0, stdout: out})));
       assert.equal(code, 0, stdout);

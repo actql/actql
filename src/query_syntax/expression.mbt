@@ -483,11 +483,10 @@ fn ExpressionParser::expression(
             if t.value is Word(name) &&
               [
                 "SELECT", "FROM", "WHERE", "GROUP", "BY", "HAVING", "ORDER", "LIMIT",
-                "OFFSET", "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION",
-                "INTERSECT", "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL",
-                "CROSS", "ON", "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW",
-                "WHEN", "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN",
-                "LIKE",
+                "AS", "WITH", "RECURSIVE", "DISTINCT", "ALL", "UNION", "INTERSECT",
+                "EXCEPT", "JOIN", "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "ON",
+                "USING", "OVER", "PARTITION", "ROWS", "RANGE", "WINDOW", "WHEN",
+                "THEN", "ELSE", "END", "AND", "OR", "IS", "IN", "BETWEEN", "LIKE",
               ].contains(upper_ascii(name)) {
               raise ExpressionAbort(
                 "Reserved query identifier requires quoting",
@@ -719,7 +718,7 @@ fn ExpressionParser::expression(
         let target = match name.value {
           Word(word) =>
             match upper_ascii(word) {
-              "BOOL" => CastType::Boolean
+              "BOOL" | "BOOLEAN" => CastType::Boolean
               "STRING" => CastType::String
               "FLOAT64" => CastType::Number
               "TIMESTAMP" => CastType::Timestamp

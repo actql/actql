@@ -222,8 +222,8 @@ fn derive_logical_orders(
       // Difference completes exactly one Delta row under its checked operation
       // contract. Retain that producer, rather than infer order from a ceiling.
       // Application returns a Graph and cannot establish Relation row order.
-      GraphDelta(checked~, ..) => @graph.delta_operation(checked) is
-        @graph.Difference
+      GraphDelta(checked~, ..) =>
+        @graph.delta_operation(checked) is @graph.Difference
       // The typed Graph row Bridge must complete the existing bounded sort
       // by admitted Graph identity before it can complete its Relation.
       Projection(op) =>

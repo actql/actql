@@ -107,3 +107,12 @@ pub fn acknowledge_retained_input_plan(
 ) -> Result[Unit, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn acknowledge_retained_input_result(
+  _client : @http.Client,
+  _url : String,
+  _result : @remote.RemoteRetainedInputResult,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
