@@ -125,3 +125,22 @@ node scripts/local-checks.mjs test node --timeout-seconds 120 -- \
   scripts/check-local-resource-accounting.test.mjs
 node scripts/check-local-resource-accounting.mjs
 ```
+
+At clean implementation SHA `2304fb1f2dba1439436d495a0797a96c58dd7a00`,
+the focused JS/caller selection passed 96/96 (`run-KRbfta`,
+`focused-test-YCjVc0`). The public Store and guard selection passed 9/9
+(`run-wP8dkL`, `focused-test-rC0BbJ`) with pattern
+`public retained|record Bridges`. Accounting, Node syntax, per-file
+formatting, diff checks and read-only Node Host/Workers freshness passed.
+The new guard checks are scoped to the rows-to-record step and cleanup;
+the inverse projection's recheck cannot substitute for that connection.
+
+The ignored local-node connectors_builtin_node runtime has SHA-256
+`eab18a3cc08a906002cfe1646c92951b73e33a008d7b30c163df27e68f9790b6`.
+It was regenerated from these production inputs before the public checks.
+The temporary negative changed only test-build inputs, was removed before
+committing, and did not rebuild that runtime. Unchanged run-host-core
+client_values_host_abi remains
+`afd59ea3984645a1e8112c0470133b80846bd10cb7d6a417e5abf88aabd2ad22`.
+This subsequent record changes documentation only. It does not establish
+packed-distribution freshness or final-SHA CI success.
