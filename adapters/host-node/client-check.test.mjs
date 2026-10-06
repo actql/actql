@@ -4083,7 +4083,7 @@ for (const entrance of ['local', 'http']) {
       outcome => {outcome.report.reasons[0].location.precision = 'approximate';},
     ]) {
       const client = await contextClient(t, entrance, absentEnvironment, {
-        mutateCheckReply: outcome => {mutate(outcome); return outcome;},
+        mutateCheckTransportReply: outcome => {mutate(outcome); return outcome;},
       });
       let refusal;
       try {await client.check('SELECT 1 AS n /*', {format: 'sql'});} catch (error) {refusal = error.code;}
