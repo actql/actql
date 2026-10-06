@@ -164,9 +164,6 @@ test "unsupported Graph consumers cannot issue legacy selector or structural fol
         "{\"shortest_path\":{\"source\":{\"ids\":[]},\"target\":{\"ids\":[]},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
         "shortest_path",
       ),
-      (
-        "{\"from\":\"g\",\"union_graphs\":{\"with\":[\"g\",\"g\",\"g\"]}}", "union_graphs",
-      ),
     ] {
     let issue = @pipeline_typing.check_carriers(
       cursor("[" + body + "]"),
@@ -239,4 +236,31 @@ test "current subgraph obligations retain typed selector and edge predicate owne
     RequireSelectorMembership,
     ResolveSelectorResources,
   ])
+}
+
+///|
+test "supported union preserves four repeated input obligations without legacy fold" {
+  let checked = @pipeline_typing.check_carriers(
+    cursor("[{\"from\":\"g\",\"union_graphs\":{\"with\":[\"g\",\"g\",\"g\"]}}]"),
+    [("g", query_property_graph())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  let step = @pipeline_typing.step_at(checked, 0).unwrap()
+  assert_eq(@pipeline_typing.input_occurrence_count(step), 4)
+  for i in 0..<4 {
+    assert_eq(
+      @pipeline_typing.input_occurrence_at(step, i).unwrap().target,
+      Input(0),
+    )
+  }
+  assert_obligation_groups(step.operation, [Body])
+  let obligations = @pipeline_typing.operation_obligation_group_at(
+    step.operation,
+    0,
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.operation_obligations_graph_union(obligations) is Some(_),
+  )
 }

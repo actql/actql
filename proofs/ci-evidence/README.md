@@ -1,6 +1,7 @@
 # Incremental bounded Session evidence
 
-The implementation accounts for 26 existing actions in the selected
+The implementation accounts for the original 26 actions and four additive
+Rows / Events proof/connection actions (30 total) in the selected
 `session-evidence` job and authenticates the resulting immutable ZIP in the
 required `check` job. Main executes all actions fresh. A PR may reuse only
 `mutations-js`, after a successful full-main comparison and independent final
@@ -156,7 +157,7 @@ coverage gaps. Every original receipt also binds that file's exact bytes. The
 final consumer reconstructs these summaries from the authenticated ZIP and
 rejects missing/replaced inventories or erased gaps. It does not accept a
 summary solely because its label matches. Keeping the inventory once avoids
-copying the complete distribution list into each of the 26 receipts.
+copying the complete distribution list into every action receipt.
 
 `runtime-measurement.json` records inventory time, entries and bytes separately
 from semantic input equality. Curated execution-configuration hashes are

@@ -4,14 +4,17 @@ import type {DeliveryContractView, PublicationContract,
   ResultDeliveryControl, PreparedProgram, ValuesCompilation,
   RunAdmission, RunDefinition, CheckEnvironment, RetainedTaskInputEdge,
   TaskCompilation, RetainedInputProducer, RetainedTaskInput,
-  RetainedInputCurrent, RetainedInputLimits} from '@actql/run-host-core';
+  RetainedInputCurrent, RetainedInputLimits, RetainedInputIntent,
+  RetainedInputPlan, RetainedInputPlanCurrent, RetainedInputTransferPolicy} from '@actql/run-host-core';
 import {issueUnpublishedRunStateWire, issuePublicationAttempt,
   issuePublicationRecord, validatePublicationRecordTransition,
   issueSourceFreeRunMaterials, prepareRetainedTaskInputEdge,
   retainedTaskInputEdgeFacts, prepareRetainedInputProducer,
   retainedInputProducerAvailable, retainedInputProducerFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
-  retainedTaskInputFacts} from
+  retainedTaskInputFacts, prepareRetainedInputIntent, admitRetainedInputIntent,
+  retainedInputIntentFacts, retainedInputPlanEnvelope, admitRetainedInputPlan,
+  validateRetainedInputPlan, retainedInputPlanFacts} from
   '@actql/run-host-core';
 
 declare const control: ResultDeliveryControl;
@@ -35,6 +38,28 @@ declare const producer: RetainedInputProducer;
 declare const retainedInput: RetainedTaskInput;
 declare const currentInput: RetainedInputCurrent;
 declare const inputLimits: RetainedInputLimits;
+declare const inputIntent: RetainedInputIntent;
+declare const inputPlan: RetainedInputPlan;
+declare const planCurrent: RetainedInputPlanCurrent;
+declare const transferPolicy: RetainedInputTransferPolicy;
+prepareRetainedInputIntent(producer, transferPolicy);
+admitRetainedInputIntent(producer, retainedInputIntentFacts(inputIntent));
+retainedInputPlanEnvelope(inputIntent);
+admitRetainedInputPlan(inputIntent, {cid: 'c', wire: 'w'}, planCurrent,
+  {maxChunks: 1, maxManifestBytes: 4096, maxReferencedBytes: 8n});
+validateRetainedInputPlan(inputPlan);
+retainedInputPlanFacts(inputPlan);
+// @ts-expect-error An intent is not an admitted physical plan.
+validateRetainedInputPlan(inputIntent);
+// @ts-expect-error A canonical projection is not an owned checked intent.
+retainedInputPlanEnvelope(retainedInputIntentFacts(inputIntent));
+// @ts-expect-error A planning intent is not a committed receiver input binding.
+validateRetainedTaskInput(inputIntent);
+// @ts-expect-error Physical Transfer policy retains exact Int64 values.
+prepareRetainedInputIntent(producer, {...transferPolicy, transferMaxBytes: 8});
+// @ts-expect-error Saved wire cannot supply current authorization and Site Owner ports.
+admitRetainedInputPlan(inputIntent, {cid: 'c', wire: 'w'}, {},
+  {maxChunks: 1, maxManifestBytes: 4096, maxReferencedBytes: 8n});
 prepareRetainedTaskInput(producer, {cid: 'c', wire: 'w'}, 'use', currentInput, inputLimits);
 admitRetainedTaskInput(producer, retainedTaskInputFacts(retainedInput),
   {cid: 'c', wire: 'w'}, 'use', currentInput, inputLimits);

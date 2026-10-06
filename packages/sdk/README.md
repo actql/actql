@@ -423,8 +423,11 @@ response and its original submitted snapshot. Explanations are immutable, safe
 English text; they do not expose private causes or inspect error messages.
 
 Before credentials or transport, `check` rejects non-finite numbers and negative
-zero in supplied parameters or declarations (including nested values) with
-`InvalidCheckRequest`. JSON serialization must not replace these numbers with
+zero in supplied parameters or declarations (including nested values, boxed
+Numbers and values returned by `toJSON`) with `InvalidCheckRequest`. Public
+Local/HTTPS ingress independently refuses these values as `InvalidClientRequest`
+before invoking check, including overflowing HTTPS numeric tokens. Local owns
+its detached request before awaiting authentication. JSON serialization must not replace these numbers with
 `null` or zero and check a different input. This is request admission, not an
 `invalid`, `verified` or `undetermined` checker verdict.
 
@@ -519,6 +522,16 @@ the reason does not claim which one failed. `explainCheckReason` provides a
 family-specific hint. The declaration snapshot is available through
 `getCheckInput(outcome, 'parameter_declarations')`; actual values are not facts.
 Other violations remain safely generic rather than guessing a cause.
+JSON parser failures in supplied values and declarations can also carry the
+original structural path before a decoded cursor exists. The existing preserving
+JSON reader supplies location material only when its typed failure and source
+position match the authoritative parser failure; it never changes the verdict.
+These retain
+`supplied_parameters_invalid` / `parameter_declarations_invalid`; the pointer
+belongs to the corresponding submitted input revision. Escaped unpaired
+surrogates identify the original value; an undecodable member name identifies
+the parser's known enclosing container. Unknown paths stay absent, and parser
+budgets remain checking limits without an input-violation location.
 Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.

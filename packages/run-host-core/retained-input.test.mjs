@@ -13,6 +13,9 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   prepareRetainedTaskInputEdge, retainedTaskInputEdgeFacts, taskInputBinding,
   prepareTaskRequest, issueTaskDispatch, prepareRetainedInputProducer,
   retainedInputProducerAvailable, retainedInputProducerFacts,
+  prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
+  retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
+  retainedInputPlanFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, issueRetainedTaskDispatch}
   from './index.mjs';
@@ -279,7 +282,7 @@ function retainedTransferFixture(original) {
     authorized: (producerCid, wire) => authorized && producerCid === completed.issued.cid &&
       wire === requestWire.wire,
   };
-  return {completed, producer, record, requestWire, receipt, current, persist,
+  return {completed, producer, record, requestWire, manifest, receipt, current, persist,
     commit: () => {
       persist(transfer.prepareStart(record));
       persist(transfer.prepareSourceSettled(record, true, false));
@@ -288,6 +291,164 @@ function retainedTransferFixture(original) {
     siteCurrent: value => {siteCurrent = value;}, authorized: value => {authorized = value;},
     clock: value => {now = value;}, wire: () => durable};
 }
+
+// These protocol bodies have ASCII keys and primitive values. Sort keys while
+// preserving every string byte; configuration NFC canonicalization is not the
+// retained-input wire contract. This independent helper is test input only.
+const identifyRetainedWire = body => {
+  const wire = JSON.stringify(Object.fromEntries(Object.entries(body)
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)));
+  return {wire, cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`};
+};
+const transferPolicy = {destinationGrantCid: cid('b'), routeCapabilityCid: cid('c'),
+  sourceGrantCid: cid('d'), transferAttempt: 'transfer-1',
+  transferExpiresUnixMs: 2000000000000n, transferMaxBytes: 8n};
+const planLimits = {maxChunks: 1, maxManifestBytes: 4096, maxReferencedBytes: 8n};
+function retainedPlanFixture(original) {
+  const fixture = retainedTransferFixture(original);
+  const intent = prepareRetainedInputIntent(fixture.producer, transferPolicy);
+  const savedIntent = retainedInputIntentFacts(intent);
+  // Independently authored Site protocol response, not Native execution or
+  // physical bytes. The actual Native planning entry has separate acceptance.
+  const reply = identifyRetainedWire({dispatch_request_cid: fixture.completed.issued.cid,
+    evidence_cid: fixture.completed.evidence.cid, evidence_json: fixture.completed.evidence.wire,
+    intent_cid: savedIntent.cid, physical_manifest_cid: fixture.manifest.cid,
+    physical_manifest_json: fixture.manifest.wire, subject_cid: fixture.completed.subject.cid,
+    subject_json: fixture.completed.subject.wire, transfer_request_cid: fixture.requestWire.cid,
+    transfer_request_json: fixture.requestWire.wire, version: 'actql-remote-retained-input-plan/0.1'});
+  const {readTransfer: _unused, ...current} = fixture.current;
+  return {...fixture, intent, savedIntent, reply, planCurrent: current};
+}
+
+test('retained planning restores original intent and checks the current producer before poll', () => {
+  const original = run();
+  const fixture = retainedPlanFixture(original);
+  const envelope = retainedInputPlanEnvelope(fixture.intent);
+  const body = JSON.parse(envelope);
+  assert.equal(body.version, 'actql-remote-poll-retained-input-plan/0.1');
+  assert.equal(body.request_json, fixture.completed.issued.wire);
+  assert.equal(body.dispatch_request_cid, fixture.completed.issued.cid);
+  assert.equal(body.intent_json, fixture.savedIntent.wire);
+  assert.equal(body.intent_cid, fixture.savedIntent.cid);
+  // Reconstruction uses a fresh admitted checked edge and Coordinator port.
+  const rebuilt = run();
+  const producer = prepareRetainedInputProducer(rebuilt.edge(), fixture.completed.current);
+  const restored = admitRetainedInputIntent(producer, fixture.savedIntent);
+  assert.deepEqual(retainedInputIntentFacts(restored), fixture.savedIntent);
+  assert.equal(retainedInputPlanEnvelope(restored), envelope);
+  for (const change of [{consumer_task_key: 'another-consumer'},
+    {producer_output_port: 'other-output'}, {producer_subject_cid: cid('f')},
+    {dispatch_request_cid: cid('f')}]) {
+    const wrong = identifyRetainedWire({...JSON.parse(fixture.savedIntent.wire), ...change});
+    assert.throws(() => admitRetainedInputIntent(producer, wrong),
+      {code: 'RunHostRetainedInputIntentRejected'});
+  }
+  fixture.completed.observe([3, 2, 1, 1, 0], 6);
+  assert.throws(() => retainedInputPlanEnvelope(restored),
+    {code: 'RunHostRetainedInputIntentRejected'});
+  assert.throws(() => admitRetainedInputIntent(producer, fixture.savedIntent),
+    {code: 'RunHostRetainedInputIntentRejected'});
+  assert.deepEqual(retainedInputIntentFacts(restored), fixture.savedIntent);
+});
+
+test('retained intent keeps raw Unicode and line endings distinct across restoration', () => {
+  const fixture = retainedTransferFixture(run());
+  const raw = prepareRetainedInputIntent(fixture.producer,
+    {...transferPolicy, transferAttempt: 'e\u0301\r\n'});
+  const composed = prepareRetainedInputIntent(fixture.producer,
+    {...transferPolicy, transferAttempt: 'é\n'});
+  const saved = retainedInputIntentFacts(raw);
+  assert.equal(JSON.parse(saved.wire).transfer_attempt, 'e\u0301\r\n');
+  assert.notEqual(saved.cid, retainedInputIntentFacts(composed).cid);
+  assert.deepEqual(retainedInputIntentFacts(admitRetainedInputIntent(fixture.producer, saved)), saved);
+  assert.equal(JSON.parse(retainedInputPlanEnvelope(raw)).intent_json, saved.wire);
+});
+
+test('retained Native plan is checked before commit and reads live grants, generation and lifetime', () => {
+  const fixture = retainedPlanFixture(run());
+  const before = fixture.wire();
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  validateRetainedInputPlan(plan);
+  assert.deepEqual(retainedInputPlanFacts(plan), {...fixture.reply,
+    transfer: fixture.requestWire, manifest: fixture.manifest});
+  assert.equal(fixture.wire(), before); // no fabricated receiver commit
+  for (const change of [{dispatch_request_cid: cid('f')}, {intent_cid: cid('f')},
+    {transfer_request_cid: cid('f')}, {physical_manifest_cid: cid('f')}]) {
+    const wrong = identifyRetainedWire({...JSON.parse(fixture.reply.wire), ...change});
+    assert.throws(() => admitRetainedInputPlan(fixture.intent, wrong, fixture.planCurrent, planLimits),
+      {code: 'RunHostRetainedInputPlanRejected'});
+  }
+  for (const [set, value] of [[fixture.siteCurrent, false], [fixture.authorized, false],
+    [fixture.clock, 2000000000000n]]) {
+    set(value);
+    let sent = 0;
+    assert.throws(() => {validateRetainedInputPlan(plan); sent++;},
+      {code: 'RunHostRetainedInputPlanRejected'});
+    assert.equal(sent, 0);
+    assert.throws(() => admitRetainedInputPlan(fixture.intent, fixture.reply,
+      fixture.planCurrent, planLimits), {code: 'RunHostRetainedInputPlanRejected'});
+    fixture.siteCurrent(true); fixture.authorized(true); fixture.clock(1900000000000n);
+  }
+  assert.throws(() => admitRetainedInputPlan(fixture.intent, fixture.reply,
+    {...fixture.planCurrent, authority: () => cid('f')}, planLimits),
+  {code: 'RunHostRetainedInputPlanRejected'});
+  // Port replacement is not an authorization refresh: installed functions
+  // continue reading the original live Owner, not the new object properties.
+  fixture.planCurrent.authorized = () => true;
+  fixture.authorized(false);
+  assert.throws(() => validateRetainedInputPlan(plan), {code: 'RunHostRetainedInputPlanRejected'});
+  assert.deepEqual(retainedInputPlanFacts(plan).transfer, fixture.requestWire);
+  assert.equal(fixture.wire(), before);
+});
+
+test('retained plan refuses producer cleanup observed during trusted authorization', () => {
+  const fixture = retainedPlanFixture(run());
+  let checked = 0, sent = 0;
+  assert.throws(() => {
+    admitRetainedInputPlan(fixture.intent, fixture.reply,
+      {...fixture.planCurrent, authorized: (...args) => {
+        checked++;
+        fixture.completed.observe([3, 2, 1, 1, 0], 6);
+        return fixture.planCurrent.authorized(...args);
+      }}, planLimits);
+    sent++;
+  }, {code: 'RunHostRetainedInputPlanRejected'});
+  assert.equal(checked, 1);
+  assert.equal(sent, 0);
+});
+
+test('retained planning refuses forged handles and invalid Int64 or current ports', () => {
+  const fixture = retainedPlanFixture(run());
+  for (const bad of [0n, -1n, 1, 9223372036854775808n]) {
+    for (const key of ['transferExpiresUnixMs', 'transferMaxBytes']) {
+      assert.throws(() => prepareRetainedInputIntent(fixture.producer,
+        {...transferPolicy, [key]: bad}), {message: 'InvalidRunHostRetainedInputPolicy'});
+    }
+  }
+  for (const forged of [{kind: 'retained-input-intent'}, fixture.savedIntent, fixture.producer]) {
+    assert.throws(() => retainedInputPlanEnvelope(forged), {message: 'ForeignRunHostHandle'});
+    assert.throws(() => retainedInputIntentFacts(forged), {message: 'ForeignRunHostHandle'});
+  }
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  for (const forged of [fixture.intent, fixture.reply, retainedInputPlanFacts(plan)]) {
+    assert.throws(() => validateRetainedInputPlan(forged), {message: 'ForeignRunHostHandle'});
+  }
+  for (const current of [{}, {...fixture.planCurrent, authorized: true},
+    {...fixture.planCurrent, readTransfer: () => fixture.wire()}]) {
+    assert.throws(() => admitRetainedInputPlan(fixture.intent, fixture.reply, current, planLimits),
+      {message: 'InvalidRunHostRetainedPlanCurrent'});
+  }
+  for (const limits of [{...planLimits, maxChunks: 0}, {...planLimits, maxReferencedBytes: 8},
+    {...planLimits, maxReferencedBytes: 9223372036854775808n}]) {
+    assert.throws(() => admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, limits),
+      {message: 'InvalidRunHostRetainedPlanLimits'});
+  }
+  for (const current of [{...fixture.planCurrent, nowUnixMs: () => 1},
+    {...fixture.planCurrent, authority: () => null},
+    {...fixture.planCurrent, authorized: () => 'yes'}]) {
+    assert.throws(() => admitRetainedInputPlan(fixture.intent, fixture.reply, current, planLimits), TypeError);
+  }
+});
 
 const issueConsumer = (original, fixture, input, selection = fixture.completed.selection) =>
   issueRetainedTaskDispatch(original.prepared, original.compilation, original.admission,

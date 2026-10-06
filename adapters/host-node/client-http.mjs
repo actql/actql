@@ -2,6 +2,7 @@
 // by the Host; Run meaning and read admission stay with the existing services.
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {performClientSubmit} from './client-submit.mjs';
+import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
@@ -11,7 +12,7 @@ import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
-  validCheckOutcome} from
+  validCheckOutcome, snapshotCheckRequest} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -176,8 +177,14 @@ export function createClientHttpHandler({
       if (typeof principal !== 'string' || principal.length === 0) {
         invalid('ClientAuthenticationDenied');
       }
-      const body = await boundedJson(request, maxRequestBytes);
+      let body = await boundedJson(request, maxRequestBytes);
       if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
+      if (operation === 'check') {
+        // JSON.parse retains -0 and can overflow a numeric token to infinity.
+        try { body = snapshotCheckRequest(body); }
+        catch { invalid('InvalidClientRequest'); }
+      }
+      if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
       const connection = Object.freeze({...body.connection,
         consentRefs: Object.freeze([...body.connection.consentRefs]),
         runners: Object.freeze([...body.connection.runners])});
@@ -195,7 +202,17 @@ export function createClientHttpHandler({
           'authorize_connection', cause);
         authorized = false;
       }
-      if (authorized !== true) invalid('ClientConnectionDenied');
+      const sendJson = value => {
+        response.writeHead(200, {'content-type': 'application/json'});
+        response.end(JSON.stringify(value));
+      };
+      if (authorized !== true) {
+        if (operation === 'check') {
+          sendJson(await projectClientCheckUnavailable(check));
+          return;
+        }
+        invalid('ClientConnectionDenied');
+      }
       const invoke = async (handler, signal, preparedProgram) => {
         if (typeof handler !== 'function') invalid('ClientOperationUnavailable');
         return handler(Object.freeze({
@@ -207,10 +224,6 @@ export function createClientHttpHandler({
           ...(signal === undefined ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
-      };
-      const sendJson = value => {
-        response.writeHead(200, {'content-type': 'application/json'});
-        response.end(JSON.stringify(value));
       };
       if (operation === 'connect') {
         const profile = await invoke(negotiate);
@@ -302,8 +315,8 @@ export function createClientHttpHandler({
         }
         sendJson(cancelled);
       } else if (operation === 'check') {
-        // Every check outcome, including failed and unavailable, is a
-        // successful operation: the status never encodes a verdict.
+        // Every valid check outcome uses the same transport status; it
+        // establishes neither a verified report nor execution success.
         const observer = observationAttempt(response);
         try {
           const outcome = await invoke(check, observer.signal);

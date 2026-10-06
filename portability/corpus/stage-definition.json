@@ -1,8 +1,20 @@
 {
   "version": "actql-stage-definition-vectors/0.1",
   "cases": [
-    {"stage_case": "local-binding-and-parameter-uses", "id": "a", "expected_cid": "sha256:b7aff2b62b8c0bfb0dfa347ca57a933462e9512e7b4ef2862dd95710566e1946"},
-    {"stage_case": "other-stage-declarations-excluded", "id": "b", "expected_cid": "sha256:6724dec4cb6804833dbf065176cd590984f9e8ca4b6062ef3b4146301f896fc3"},
-    {"stage_case": "explicit-empty-maps-and-lists", "id": "b", "expected_cid": "sha256:c8b5c213c49543cf276aaa59fd8f58404f04b4b2c34d04c4e3cecb4be05f17c8"}
+    {
+      "stage_case": "local-binding-and-parameter-uses",
+      "id": "a",
+      "expected_cid": "sha256:37f8035098f1ce1d6e6b59b4b564acc2e67c54d2807fb623f1249a0c1ec6e89f"
+    },
+    {
+      "stage_case": "other-stage-declarations-excluded",
+      "id": "b",
+      "expected_cid": "sha256:4bb26a65feda4b5412ebe17ae77b79b5f074cfce48bded21014e0c8f946905d4"
+    },
+    {
+      "stage_case": "explicit-empty-maps-and-lists",
+      "id": "b",
+      "expected_cid": "sha256:4e46f2f3712c1b691be6ab1b93ddff0d1a7d5b32244ad3eb805ea771449fef10"
+    }
   ]
 }

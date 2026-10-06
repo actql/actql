@@ -1180,6 +1180,7 @@ pub(all) enum ExpressionIssueKind {
   PendingValidation(@expression_typing.ObligationKind)
   ExpressionNotImplemented(String)
   LiteralAdmission(@value_admission.Issue)
+  JsonLiteralAdmission(@value_admission.JsonLiteralIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ExpressionLimits {
