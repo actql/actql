@@ -1,0 +1,104 @@
+{
+  "authority": "local-controlled-checker-comparison",
+  "reuseAuthorized": false,
+  "candidate": "a7bf54e7cb0fe689415db5ff797b7ebb97c474fd",
+  "referenceRevision": "a3f551fd1f02cbb86aef45710311962df47bcd90",
+  "referenceDigest": "ce37aa3a9742903c7dc6fb58e26737ff304983e283a4c227c8529bb9bc70a348",
+  "candidateDigest": "222f4878ebbf26e5b40109d4b03b1eca4c7ef2747bbe963c5a25bf6be92247b0",
+  "fixture": {
+    "sourceRevision": "a3f551fd1f02cbb86aef45710311962df47bcd90",
+    "dataDigest": "9d07245a4b4829de52a43404568e6e6c58dc578ef2700468e3ea2cfcdf44756a",
+    "catalogDigest": "4522744ff805d4943d3a6df22fff4c78c460ac9ea27b32e34b5d711505beeb0c",
+    "requirements": 30,
+    "applications": 30
+  },
+  "conditions": {
+    "pairs": 3,
+    "warmup": 0,
+    "order": "alternating",
+    "execution": "serial real pinned Lean, production 30s limit",
+    "interval": "JS generation, version subprocess, model/claim/axiom and candidate proof checking",
+    "excluded": [
+      "Git/source fixture preparation",
+      "Actions authentication",
+      "artifact transfer",
+      "physical execution"
+    ],
+    "interpretation": "local one-plan cost; timeouts retained and never counted as accepted or exact savings"
+  },
+  "pairs": [
+    {
+      "index": 0,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "status": "timeout",
+        "milliseconds": 30875.933709,
+        "error": {
+          "name": "Error",
+          "code": "ETIMEDOUT"
+        }
+      },
+      "after": {
+        "status": "accepted",
+        "milliseconds": 4106.187417000001,
+        "inputDigest": "7c3f78fe3521739a03c17d855d245bda94b01aec40c566dd561f88c95775f305",
+        "outputDigest": "23d5ab16e6eaaffd313fee5e4eca12d60610fedca6504a7be68853c9c3ea006a",
+        "theoremCount": 5,
+        "toolchain": "leanprover/lean4:v4.30.0-rc1"
+      },
+      "savedMilliseconds": null
+    },
+    {
+      "index": 1,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": {
+        "status": "accepted",
+        "milliseconds": 4522.245209000001,
+        "inputDigest": "7c3f78fe3521739a03c17d855d245bda94b01aec40c566dd561f88c95775f305",
+        "outputDigest": "23d5ab16e6eaaffd313fee5e4eca12d60610fedca6504a7be68853c9c3ea006a",
+        "theoremCount": 5,
+        "toolchain": "leanprover/lean4:v4.30.0-rc1"
+      },
+      "before": {
+        "status": "accepted",
+        "milliseconds": 15376.08625,
+        "inputDigest": "5680b5e7c23203b9be491c399fe0a93eab004b1c322383f4f001906471f488f1",
+        "outputDigest": "23d5ab16e6eaaffd313fee5e4eca12d60610fedca6504a7be68853c9c3ea006a",
+        "theoremCount": 5,
+        "toolchain": "leanprover/lean4:v4.30.0-rc1"
+      },
+      "savedMilliseconds": 10853.841041
+    },
+    {
+      "index": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": {
+        "status": "accepted",
+        "milliseconds": 13854.211666000003,
+        "inputDigest": "5680b5e7c23203b9be491c399fe0a93eab004b1c322383f4f001906471f488f1",
+        "outputDigest": "23d5ab16e6eaaffd313fee5e4eca12d60610fedca6504a7be68853c9c3ea006a",
+        "theoremCount": 5,
+        "toolchain": "leanprover/lean4:v4.30.0-rc1"
+      },
+      "after": {
+        "status": "accepted",
+        "milliseconds": 1939.5529160000006,
+        "inputDigest": "7c3f78fe3521739a03c17d855d245bda94b01aec40c566dd561f88c95775f305",
+        "outputDigest": "23d5ab16e6eaaffd313fee5e4eca12d60610fedca6504a7be68853c9c3ea006a",
+        "theoremCount": 5,
+        "toolchain": "leanprover/lean4:v4.30.0-rc1"
+      },
+      "savedMilliseconds": 11914.658750000002
+    }
+  ],
+  "netRunnerSavingsMilliseconds": null
+}
