@@ -1477,12 +1477,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
             commit.configurationCid !== gate.configurationCid) {
           fail('EffectCheckpointConfigurationChanged');
         }
+        const scopes = [read, commit].map(owner => ({owner, closeAttempted: false,
+          released: false}));
+        const cleanupPending = () => scopes.some(scope => !scope.released);
+        const close = () => {
+          let failure;
+          for (const scope of scopes) {
+            if (scope.released) continue;
+            try {
+              const recover = scope.closeAttempted;
+              scope.closeAttempted = true;
+              const result = recover ? scope.owner.cleanup() : scope.owner.close();
+              scope.released = result !== false && scope.owner.cleanupPending() === false;
+            } catch (error) { failure ??= error; }
+          }
+          if (failure !== undefined) throw failure;
+          return !cleanupPending();
+        };
         return Object.freeze({
           authorize: (boundary, ...args) => boundary === 'acquisition' && targetReads !== undefined
             ? targetReads.authorize(...args)
             : (boundary === 'effect_commit' ? commit : read).authorize(boundary, ...args),
           resume: (...args) => commit.resume(...args),
-          close() { read.close(); commit.close(); },
+          close, cleanup: close, cleanupPending,
         });
       } catch (error) {
         read.close();

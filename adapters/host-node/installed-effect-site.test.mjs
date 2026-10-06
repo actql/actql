@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import './effect-cleanup-composition.test.mjs';
+import './effect-authorization-cleanup.test.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
