@@ -115,6 +115,22 @@ that difference remains a common-contract coverage gap, not a restriction of
 GoogleSQL. Row-dependent and arithmetic boundary expressions, RANGE and GROUPS
 are not implemented in this profile.
 
+## SELECT row quantifier
+
+SQL SELECT and the Pipe SELECT operator accept one optional `ALL` or
+`DISTINCT` quantifier. `SELECT ALL` explicitly selects the existing ordinary,
+duplicate-preserving projection; it has the same meaning as omitting the
+quantifier. It does not add DISTINCT, change NULL values, infer a key, or
+change the declared column order, WHERE, ORDER BY or LIMIT/OFFSET. Repeated or
+combined quantifiers are syntax errors. Quoted identifiers such as ``ALL``
+remain identifiers. Aggregate-call modifiers are a separate grammar.
+
+This connection follows [GoogleSQL SELECT ALL](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_all).
+The pinned GoogleSQL parser (`d82db99a923a46571f543a13899dc791a7b6f743`,
+`googlesql/parser/googlesql.tm`) shares `select_clause` and
+`opt_all_or_distinct` between ordinary SELECT and `pipe_select`; this is
+selected language-reference support, not a claim about every deployed service.
+
 ## Scope and lowering
 
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases

@@ -40,7 +40,7 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const expressionRules = '<a id="expression-text"></a>' + language
     .split('<a id="expression-text"></a>')[1]
     .split('<a id="predicates"></a>')[0];
-  const body = {
+  const currentBody = {
     version: 'actql-grammar-manifest/0.1',
     source_grammar_cid: cid(program),
     operations,
@@ -52,6 +52,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
+  // Preserve the pre-ALL normative inputs for every historical vector below.
+  const body = {...currentBody,
+    query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
+    query_text_rules_sha256: '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
   // role, combined with the adopted Frontend text rules. Retain both
@@ -145,9 +149,15 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
-  assert.deepEqual(pinned, body);
-  assert.equal(grammar_manifest_cid, expected);
+  assert.equal(currentBody.query_text_grammar_sha256,
+    'f845678d92e798b30cb3083efca014c96b8f389e14858f080984c7e71c2e68d8');
+  assert.equal(currentBody.query_text_rules_sha256,
+    'd37eaa128b5204b5845877af41601df7ccbc803522be01894ba240addf7625df');
+  const currentExpected = 'sha256:83dada5a89e2b221799c9b5c8aadc712aac474c5bb7ce70f2516c17b628d25c6';
+  assert.equal(cid(currentBody), currentExpected);
+  assert.deepEqual(pinned, currentBody);
+  assert.equal(grammar_manifest_cid, currentExpected);
   for (const field of ['query_text_grammar_sha256', 'query_text_rules_sha256']) {
-    assert.notEqual(cid({...body, [field]: '0'.repeat(64)}), expected);
+    assert.notEqual(cid({...currentBody, [field]: '0'.repeat(64)}), currentExpected);
   }
 });
