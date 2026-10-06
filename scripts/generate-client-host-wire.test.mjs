@@ -300,4 +300,16 @@ test('Requirement fact identities follow their referenced checked-contract schem
   assert.notEqual(changed.artifact_schema_cids.check_reason, protocol.artifact_schema_cids.check_reason);
   assert.notEqual(changed.artifact_schema_cids.check_outcome, protocol.artifact_schema_cids.check_outcome);
   assert.notEqual(buildClientHostWire(registry, changed).module, buildClientHostWire(registry, protocol).module);
+
+test('Run observation vocabulary derives from the registered state schema', async () => {
+  const expected = ['preparing', 'running', 'waiting_checkpoint', 'resuming',
+    'needs_reconciliation', 'succeeded', 'failed', 'cancelled'];
+  const wire = await import('../packages/client-wire/index.mjs');
+  assert.deepEqual(wire.runStateProtocol, {version: 'actql-run-state/0.1', statuses: expected});
+  assert.ok(Object.isFrozen(wire.runStateProtocol.statuses));
+  const future = structuredClone(protocol);
+  future.artifact_schemas.run_state.properties.status.enum.push('future_state');
+  assert.match(buildClientHostWire(registry, future).module, /"cancelled","future_state"/);
+  future.artifact_schemas.run_state.properties.status.enum.push('future_state');
+  assert.throws(() => buildClientHostWire(registry, future), /InvalidRunStateDiscriminants/);
 });

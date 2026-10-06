@@ -7,7 +7,7 @@ import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect, ClientError, explainReadFailure} from '../../packages/sdk/index.mjs';
+import {connect, ClientError, explainReadFailure, formatReadFailure} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openResultDeliveryControl} from '../../packages/run-host-core/index.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
@@ -102,6 +102,13 @@ function assertReadExplanation(f, failure, attemptId, rowsYielded, observation =
       lookupContext: {endpoint: f.endpoint, scopeRef: 'principal'}},
   };
   const explanation = explainReadFailure(failure);
+  for (const format of ['text', 'html', 'json']) {
+    const output = formatReadFailure(failure, {format});
+    assert.ok(output);
+    assert.doesNotMatch(output, /private-result-fragment|private-delivery-secret|scoped-token/u);
+    if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, expected,
+      '[check-mutation:operation-read-public-format]');
+  }
   assert.deepEqual(explanation, expected, '[check-mutation:read-explanation]');
   assert.deepEqual(explainReadFailure(failure, {locale: 'ja'}), {...expected,
     summary: observation === 'cleanup_unknown'
