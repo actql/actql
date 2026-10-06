@@ -130,3 +130,14 @@ Submitted-HEAD CI/content review remain separate; keep the PR Draft. Dependency
 #680 and SDK delivery #684 must reach main before final integration. Passing this
 selected corpus does not close #680's unchanged JOIN capacity reproduction or
 the broader Frontend/standard coverage gaps.
+
+## Subsequent main integration
+
+Normal merge adopts main `be30c8fdf2b3133219f7becc74c5667619806c70`, including
+bounded field/property-name lookup and the SDK delivery repair already merged
+as #682. The package delivery fix is no longer a missing main capability;
+#684 now contributes only its contained archive regression/evidence. The
+unmerged #680 parent remains. Post-merge named-window JS checks pass 4/4
+(`focused-test-cjIDOg`); read-only spec-family/document metadata checks passed.
+No packed campaign is repeated merely for integration. The public success above
+remains bound to `5e1beb8d503bda677a549adeedfd9e314710c0aa`, not the later HEAD.
