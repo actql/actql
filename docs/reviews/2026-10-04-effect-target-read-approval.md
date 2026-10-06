@@ -100,3 +100,33 @@ exact Named Result rows and column contract, same request/Run and no replay.
 Outer and generated child syntax checks pass. Fresh-packed execution and the
 required automatic PR CI remain pending; the feature is not ready to close
 #317 until that evidence is available.
+
+## Exact data custody
+
+Submission document and parameter strings, nested JSON strings and opaque
+provider bindings use the SDK Host-port value encoder at every target-read
+boundary: inventory, approval scope/review, retained continuation, the outer
+Effect-commit continuation and recovery comparison. Inventory and scope CIDs
+hash the same value-preserving preimage retained for those boundaries. The
+credential Site compares the independently supplied opaque binding exactly.
+Configuration identity encoders and public contract versions are unchanged.
+
+Existing `/0.1` records have no encoder discriminator. A byte-identical prior
+ASCII or NFC record remains admissible; normalization is never a fallback for
+a changed submission or binding. The target owner refuses a saved normalized
+record that differs from the current original before resume entry. The public
+Host still reconstructs admission and compares the resulting RunDefinition
+with the original before computation or provider dispatch. Already-lost
+original text cannot be recovered or relabeled by this repair.
+
+Regression coverage includes independently ordered inventory/scope preimages,
+composed/decomposed text, CR/LF, nested strings, exact encrypted evidence across
+separate processes, explicit old-encoder ASCII/NFC/decomposed fixtures, outer
+continuation mismatch before authorization, and the real credential Site's
+zero-I/O rejection. A source-check guard keeps the three data-envelope modules
+from importing the configuration encoder. The public HTTPS test follows
+submit, target approval, Host restart, commit approval, another restart,
+publication of exact original rows and no replay after the final restart.
+These source-checkout cases are separate from fresh-packed and hosted CI
+verification. Provider-neutral row/Preview migration is tracked separately in
+[#459](https://github.com/actql/actql/pull/459).

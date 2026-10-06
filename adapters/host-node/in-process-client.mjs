@@ -2,13 +2,14 @@
 // services with HTTP ingress while keeping control and Result rows in process.
 import {ClientError} from '../../packages/sdk/index.mjs';
 import {performClientSubmit} from './client-submit.mjs';
+import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validCheckpointPage, validCheckpointReview, validClientAdmission,
   validClientBody, validClientProfile, validDeliveryAttemptLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription, validCheckOutcome} from
+  validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -58,6 +59,14 @@ export function createNodeInProcessClientHost({
       if (!validClientBody(operation, validationBody)) {
         fail('InvalidClientRequest');
       }
+      if (operation === 'check') {
+        // Own the JSON request before awaiting caller-installed authentication.
+        try { body = snapshotCheckRequest(body); }
+        catch { fail('InvalidClientRequest'); }
+      }
+      if (operation === 'check' && !validClientBody(operation, body)) {
+        fail('InvalidClientRequest');
+      }
       let principalId;
       try { principalId = await authenticate(); }
       catch (cause) {
@@ -80,7 +89,10 @@ export function createNodeInProcessClientHost({
           'authorize_connection', cause);
         authorized = false;
       }
-      if (authorized !== true) fail('ClientConnectionDenied');
+      if (authorized !== true) {
+        if (operation === 'check') return await projectClientCheckUnavailable(check);
+        fail('ClientConnectionDenied');
+      }
       const invoke = async (handler, preparedProgram) => {
         if (typeof handler !== 'function') fail('ClientOperationUnavailable');
         return handler(Object.freeze({principalId, connection,

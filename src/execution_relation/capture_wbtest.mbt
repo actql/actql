@@ -92,7 +92,10 @@ test "nested value measurement preserves opaque business data and counts repeate
   assert_true(measure(checked.value, 1, twice))
   assert_eq(twice.nodes, 8)
   assert_true(measure(checked.value, 1, value_budget(limits).unwrap()))
-  guard checked.value is @admitted.Object(fields) else { fail("object") }
+  guard checked.value is @admitted.JsonData(payload) &&
+    payload is @admitted.Object(fields) else {
+    fail("JSON object")
+  }
   let copy = @admitted.elements(fields)
   copy.clear()
   assert_eq(@admitted.element_count(fields), 1)

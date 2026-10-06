@@ -663,7 +663,7 @@ two transfers are not hidden or conflated with logical output rows.
 
 ### Fixed-input filter/select Compute capacity
 
-<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:18acad6522ba361fe72b0de47e6ec7bf808423afe3e222739235d5101d72d88c -->
+<!-- machine-import: ../../spec/contracts/actql-fixed-compute-capacity.json# sha256:24683e330570cfec1701c1b9167d6bcec1c69065bad085f9581c4999f00a7f5f -->
 The [fixed-input capacity profile](../../spec/contracts/actql-fixed-compute-capacity.json)
 applies to filter followed by select over one completed, retained ProducerRead.
 It clarifies the application of the existing consumer capacity law, and fixes

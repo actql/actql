@@ -417,3 +417,11 @@ pub fn coordinator_poll_cancel_json(
 ) -> Result[String, @remote.DispatchIssue] {
   @remote.remote_poll_cancel_json(request)
 }
+
+///|
+#export_name("coordinatorCanRetireCancellationDelivery")
+pub fn coordinator_can_retire_cancellation_delivery(
+  record : @remote.CoordinatorDispatchIntentRecord,
+) -> Bool {
+  @remote.coordinator_can_retire_cancellation_delivery(record)
+}

@@ -144,6 +144,27 @@ export function validSubmitPreparationError(value) {
 
 export const validClientConnection = validConnectionShape;
 
+// A check observes the JSON value actually submitted at this boundary.
+// Preserve ordinary JSON serialization, but never replace source numbers.
+export function snapshotCheckRequest(value) {
+  return JSON.parse(JSON.stringify(value, (_key, item) => {
+    let number = item, boxed = false;
+    if (item !== null && typeof item === 'object') {
+      // Brand-check without invoking user coercion, including across realms.
+      try { Number.prototype.valueOf.call(item); boxed = true; }
+      catch { /* Ordinary objects retain their JSON serialization. */ }
+    }
+    // JSON unwraps Number objects with ToNumber, including custom coercion.
+    // Return that primitive so serialization cannot coerce it again unchecked.
+    if (boxed) number = +item;
+    if (typeof number === 'number' &&
+        (!Number.isFinite(number) || Object.is(number, -0))) {
+      throw new TypeError('UnrepresentableCheckNumber');
+    }
+    return boxed ? number : item;
+  }));
+}
+
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
   if (bodyKeys === undefined || !exact(body, bodyKeys) ||

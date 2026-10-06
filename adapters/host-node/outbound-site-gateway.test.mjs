@@ -1441,3 +1441,65 @@ test('outbound poll waits for work admitted during the idle window', async t => 
   );
   await closed;
 });
+
+test('Cancel waiter applies the common retirement projection after durable admission',
+  {timeout: 15_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'cancel-projection-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    let owner;
+    let admitted = false;
+    const projected = [];
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]),
+      control: {...control, responseCanRetireCancellationDelivery(response) {
+        assert.equal(admitted, true, 'durability must precede retirement');
+        const value = control.responseCanRetireCancellationDelivery(response);
+        projected.push(value);
+        return value;
+      }},
+      receiveObservation: async value => {
+        const receipt = await owner.receiveObservation(value);
+        admitted = true;
+        return receipt;
+      },
+    });
+    t.after(() => gateway.close());
+    owner = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+      control, journal: control.createCoordinatorJournal('coordinator-a'), store,
+      send: async () => ({revision: 0, state: [0, 0, 0, 0, 0]})});
+    const cases = [
+      [[6, 0, 2, 0, 0], false], [[5, 0, 1, 0, 0], false],
+      [[3, 1, 0, 1, 0], false], [[6, 0, 4, 0, 1], false],
+      [[3, 0, 5, 0, 0], false], [[3, 0, 2, 0, 0], true],
+      [[4, 0, 2, 0, 0], true], [[5, 0, 2, 0, 0], true],
+    ];
+    for (const [index, [state, expected]] of cases.entries()) {
+      const request = dispatch({dispatchId: `retirement-${index}`, taskAttempt: index + 1});
+      await owner.dispatch({dispatch: request});
+      let completed = false;
+      const waiting = gateway.cancel({dispatch: request}).then(value => {
+        completed = true;
+        return value;
+      }).catch(error => error);
+      admitted = false;
+      const reply = JSON.stringify({version: 'actql-remote-dispatch-status/0.1',
+        dispatch_request_cid: control.identity(request), revision: 1, state,
+        evidence: null, subject: null, measurement: null});
+      const response = await post(gateway.origin,
+        '/v1/sites/site-a/generations/1/outbound/observations', siteMaterial, reply);
+      assert.equal(response.status, 200);
+      assert.equal(projected.at(-1), expected);
+      assert.equal(completed, expected);
+      if (expected) assert.deepEqual((await waiting).state, state);
+    }
+    assert.deepEqual(projected, cases.map(([, expected]) => expected));
+  });

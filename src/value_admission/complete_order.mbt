@@ -154,6 +154,12 @@ pub fn advance_complete_order(
       match frame {
         OrderRead(child) =>
           match child {
+            JsonData(payload) => {
+              begin_order_value(out, "json")
+              // JSON adds one typed wrapper; container payloads close themselves.
+              pending.push(OrderEndEntry)
+              pending.push(OrderRead(payload))
+            }
             Null => {
               begin_order_value(out, "null")
               @encode.end_array(out)

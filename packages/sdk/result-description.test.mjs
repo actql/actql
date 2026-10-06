@@ -35,7 +35,10 @@ const description = () => ({ref: {...ref}, resultName: 'answer',
   resultArtifactCid: cid('artifact'), resultSchemaCid: cid(schema),
   columns: ['z', 'a'].map(name => ({name, contract: structuredClone(schema[name])})),
   serialization: {format: 'jsonl', version: 'actql-jsonl/0.1',
-    contractCid: cid({version: 'actql-jsonl/0.1'})}});
+    // Independent wire-law vector in portability/corpus/typed-json-literals.json.
+    contractCid: cid({json_value_wire_contract_cid:
+      'sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b',
+    version: 'actql-jsonl/0.1'})}});
 const expected = {ref, resultName: 'answer', format: 'jsonl'};
 
 test('generated contracts validate full recursive types and exact bindings', () => {
