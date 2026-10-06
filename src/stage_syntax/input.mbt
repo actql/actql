@@ -149,9 +149,9 @@ pub fn parse(
   let node = read_source(
     format => {
       if format == Yaml {
-        @source.parse_yaml_measured(source, limits.source, source_path~)
+        @source.parse_program_yaml_measured(source, limits.source, source_path~)
       } else {
-        @source.parse_json_measured(source, limits.source, source_path~)
+        @source.parse_program_json_measured(source, limits.source, source_path~)
       }
     },
     format,
@@ -176,9 +176,17 @@ pub fn parse_bytes(
   let node = read_source(
     format => {
       if format == Yaml {
-        @source.parse_yaml_bytes_measured(source, limits.source, source_path~)
+        @source.parse_program_yaml_bytes_measured(
+          source,
+          limits.source,
+          source_path~,
+        )
       } else {
-        @source.parse_json_bytes_measured(source, limits.source, source_path~)
+        @source.parse_program_json_bytes_measured(
+          source,
+          limits.source,
+          source_path~,
+        )
       }
     },
     format,

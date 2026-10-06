@@ -268,7 +268,8 @@ test('durable target approval preserves raw data and exact scope after restart',
 });
 
 
-for (const variant of ['exact', 'legacy-ascii', 'legacy-nfc', 'legacy-decomposed']) {
+for (const variant of ['exact', 'legacy-ascii', 'legacy-nfc', 'legacy-decomposed',
+  'exact-keys', 'legacy-keys']) {
   test(`separate-process target custody: ${variant}`, async t => {
     const scratch = new URL('../../_build/client-effect-target-checkpoints/', import.meta.url);
     await mkdir(scratch, {recursive: true});
@@ -282,13 +283,22 @@ for (const variant of ['exact', 'legacy-ascii', 'legacy-nfc', 'legacy-decomposed
     assert.notEqual(captured.pid, resumed.pid);
     assert.deepEqual(resumed.saved, captured.saved);
     assert.deepEqual(resumed.review, captured.review);
-    const original = variant === 'legacy-ascii' ? 'plain\r\ntext'
+    const original = ['legacy-ascii', 'legacy-keys'].includes(variant) ? 'plain\r\ntext'
       : variant === 'legacy-nfc' ? '\u00e9\r\ntext'
         : 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
     const expected = variant === 'legacy-decomposed' ? original.normalize('NFC') : original;
     assert.equal(captured.saved.submission.parameters.text, expected);
     assert.equal(captured.saved.submission.input.text, JSON.stringify({document: expected}));
-    assert.equal(resumed.refused, variant === 'legacy-decomposed');
+    assert.equal(resumed.refused, ['legacy-decomposed', 'legacy-keys'].includes(variant));
+    if (variant === 'exact-keys') {
+      const exact = {'é': 'composed', 'e\u0301': 'decomposed', '\r\n': 'CRLF', '\n': 'LF'};
+      assert.deepEqual(captured.saved.submission.input.literal, exact);
+      assert.deepEqual(captured.saved.targets[0].physicalBindings[0].json, exact);
+      const review = JSON.parse(Buffer.from(captured.review.contentBase64, 'base64'));
+      assert.deepEqual(review.scope.target.physicalBindings[0].json, exact);
+    } else if (variant === 'legacy-keys') {
+      assert.deepEqual(captured.saved.submission.input.literal, {'é\n': 'stable'});
+    }
     assert.equal(resumed.sends, 0);
   });
 }

@@ -5,7 +5,9 @@ priv enum EventWindowPhase {
   PrepareMembership
   SeekEarliest
   BuildMembership
+  CopyMembership
   CommitMembership
+  AppendMembership
   Finish
 }
 
@@ -21,7 +23,7 @@ priv struct EventWindowState {
   mut output : @records.OutputBuilder?
   limits : @storage.Limits
   window : @lower.PreparedWindow
-  time_name : String
+  time_name : @schema.FieldName
   timestamp : Bool
   start_name : @schema.FieldName
   end_name : @schema.FieldName
@@ -33,8 +35,11 @@ priv struct EventWindowState {
   mut phase : EventWindowPhase
   mut record : Int
   mut field : Int
+  mut name_offset : Int
   mut fields : Array[(@schema.FieldName, @value.CheckedValue)]
   mut emission : Array[(@schema.FieldName, @value.CheckedValue)]
+  mut emission_field : Int
+  mut append : @records.RecordAppend?
   mut time : @value.CheckedValue?
   mut coordinate : @grid.Coordinate?
   mut current : @bigint.BigInt
@@ -90,7 +95,10 @@ fn event_window_source_field(
 }
 
 ///|
+/// Private observation only; Session retains cleanup and completion authority.
+#warnings("-unused_field")
 struct EventWindowExecution {
+  state : EventWindowState
   session : @bounded.Session[
     EventWindowState,
     @records.Completed,
@@ -163,11 +171,18 @@ fn event_window_begin_record(
     is Some(field_count) else {
     return Err(InvalidEventWindowRecord(state.record))
   }
-  if field_count > state.limits.max_fields_per_record - 2 ||
-    field_count + 2 > state.limits.max_workspace_slots {
+  let current = match state.output {
+    Some(output) => @records.output_workspace_slots(output)
+    None => return Err(InvalidEventWindowKernel)
+  }
+  guard field_count <= state.limits.max_fields_per_record - 2 &&
+    field_count <= (2147483647 - 5) / 2 &&
+    current <= state.limits.max_workspace_slots &&
+    field_count + 3 <= state.limits.max_workspace_slots - current else {
     return Err(EventWindowWorkspaceLimit)
   }
   state.field = 0
+  state.name_offset = 0
   state.fields = []
   state.emission = []
   state.time = None
@@ -180,17 +195,23 @@ fn event_window_begin_record(
 fn event_window_read_field(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
-  guard event_window_source_field(state.source, state.record, state.field)
-    is Some((name, checked)) else {
-    return Err(InvalidEventWindowRecord(state.record))
+  if state.fields.length() == state.field {
+    guard event_window_source_field(state.source, state.record, state.field)
+      is Some(value) else {
+      return Err(InvalidEventWindowRecord(state.record))
+    }
+    state.fields.push(value)
   }
-  if @schema.reference_name(name) == state.time_name {
+  let (name, checked) = state.fields[state.field]
+  let (equal, next) = event_name_equal(name, state.time_name, state.name_offset)
+  state.name_offset = next
+  guard equal is Some(equal) else { return Ok(()) }
+  if equal {
     if state.time is Some(_) {
       return Err(InvalidEventWindowRecord(state.record))
     }
     state.time = Some(checked)
   }
-  state.fields.push((name, checked))
   state.field += 1
   Ok(())
 }
@@ -248,6 +269,40 @@ fn event_window_seek_earliest(
 fn event_window_build_membership(
   state : EventWindowState,
 ) -> Result[Unit, EventWindowIssue] {
+  guard state.output is Some(output) else {
+    return Err(InvalidEventWindowKernel)
+  }
+  let current = @records.output_workspace_slots(output)
+  guard event_emission_workspace(
+      state.fields.length() + 2,
+      if @lower.window_kind(state.window) == @window.Sliding {
+        2
+      } else {
+        1
+      },
+      state.limits.max_value_depth,
+      state.fields.length() * 2 + 5,
+    )
+    is Some(needed) &&
+    current <= state.limits.max_workspace_slots &&
+    needed <= state.limits.max_workspace_slots - current else {
+    return Err(EventWindowWorkspaceLimit)
+  }
+  state.emission = []
+  state.emission_field = 0
+  state.phase = CopyMembership
+  Ok(())
+}
+
+///|
+fn event_window_copy_membership(
+  state : EventWindowState,
+) -> Result[Unit, EventWindowIssue] {
+  if state.emission_field < state.fields.length() {
+    state.emission.push(state.fields[state.emission_field])
+    state.emission_field += 1
+    return Ok(())
+  }
   guard state.coordinate is Some(_) &&
     @grid.exact_binary64_boundary(state.current) is Some(start) &&
     @grid.exact_binary64_boundary(
@@ -261,7 +316,6 @@ fn event_window_build_membership(
     @value.checked_number_value(end, state.end_contract) is Some(end_value) else {
     return Err(InvalidEventWindowKernel)
   }
-  state.emission = state.fields.copy()
   state.emission.push((state.start_name, start_value))
   state.emission.push((state.end_name, end_value))
   state.phase = CommitMembership
@@ -271,26 +325,23 @@ fn event_window_build_membership(
 ///|
 fn event_window_commit_membership(
   state : EventWindowState,
-) -> Result[Bool, EventWindowIssue] {
+) -> Result[Unit, EventWindowIssue] {
   guard state.output is Some(output) else {
     return Err(InvalidEventWindowKernel)
   }
-  match @records.append_record(output, state.emission) {
+  match
+    @records.start_record_append(
+      output,
+      state.emission,
+      external_workspace_slots=state.fields.length() +
+        state.emission.length() +
+        3,
+    ) {
     Err(issue) => Err(EventWindowOutput(issue))
-    Ok(_) => {
-      state.emission = []
-      let last = state.current == state.latest
-      if last {
-        state.fields = []
-        state.time = None
-        state.coordinate = None
-        state.record += 1
-        state.phase = BeginRecord
-      } else {
-        state.current += @bigint.BigInt::from_int64(state.step)
-        state.phase = BuildMembership
-      }
-      Ok(last)
+    Ok(append) => {
+      state.append = Some(append)
+      state.phase = AppendMembership
+      Ok(())
     }
   }
 }
@@ -360,11 +411,45 @@ fn event_window_step(
           Err(issue) => return @bounded.Failed(issue, progress, used)
         }
       }
+      CopyMembership => {
+        used += 1
+        match event_window_copy_membership(state) {
+          Ok(_) => ()
+          Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
       CommitMembership => {
         used += 1
         match event_window_commit_membership(state) {
-          Ok(_) => progress += 1
+          Ok(_) => ()
           Err(issue) => return @bounded.Failed(issue, progress, used)
+        }
+      }
+      AppendMembership => {
+        used += 1
+        guard state.append is Some(append) else {
+          return @bounded.Failed(InvalidEventWindowKernel, progress, used)
+        }
+        match @records.advance_record_append(append) {
+          Ok(false) => ()
+          Ok(true) => {
+            state.append = None
+            state.emission = []
+            state.emission_field = 0
+            if state.current == state.latest {
+              state.fields = []
+              state.time = None
+              state.coordinate = None
+              state.record += 1
+              state.phase = BeginRecord
+            } else {
+              state.current += @bigint.BigInt::from_int64(state.step)
+              state.phase = BuildMembership
+            }
+            progress += 1
+          }
+          Err(issue) =>
+            return @bounded.Failed(EventWindowOutput(issue), progress, used)
         }
       }
       Finish => {
@@ -387,13 +472,19 @@ fn event_window_step(
 
 ///|
 fn cleanup_event_window_state(state : EventWindowState) -> Bool {
+  if state.append is Some(append) {
+    @records.cleanup_record_append(append) |> ignore
+    state.append = None
+  }
   if state.output is Some(output) {
     @records.cancel_output(output) |> ignore
     state.output = None
   }
   state.fields = []
   state.emission = []
+  state.emission_field = 0
   state.time = None
+  state.name_offset = 0
   state.coordinate = None
   true
 }
@@ -453,6 +544,7 @@ fn start_event_window_source(
   }
   guard size > 0L &&
     step_size > 0L &&
+    limits.max_workspace_slots >= 1 &&
     records <= limits.max_input_records &&
     event_window_output_bound(records, size, step_size) is Some(maximum) &&
     maximum <= limits.max_records &&
@@ -460,7 +552,7 @@ fn start_event_window_source(
     admitted_fields <= 2147483645 &&
     (
       maximum == 0 ||
-      admitted_fields + 2 <= limits.max_workspace_slots / maximum
+      admitted_fields + 2 <= (limits.max_workspace_slots - 1) / maximum
     ) &&
     event_window_output_contract(output_carrier, start_name)
     is Some(start_contract) &&
@@ -489,7 +581,7 @@ fn start_event_window_source(
     output: Some(output),
     limits,
     window,
-    time_name: @schema.reference_name(@carrier.event_time(events).name),
+    time_name: @carrier.event_time(events).name,
     timestamp: @carrier.event_clock_encoding(events) == @carrier.UtcTimestamp,
     start_name,
     end_name,
@@ -501,8 +593,11 @@ fn start_event_window_source(
     phase: BeginRecord,
     record: 0,
     field: 0,
+    name_offset: 0,
     fields: [],
     emission: [],
+    emission_field: 0,
+    append: None,
     time: None,
     coordinate: None,
     current: @bigint.BigInt::from_int(0),
@@ -512,7 +607,7 @@ fn start_event_window_source(
   let (session, token) = @bounded.start(
     control, state, event_window_step, cleanup_event_window_state, @records.discard_completed,
   )
-  Ok({ session, token: Some(token), })
+  Ok({ state, session, token: Some(token), })
 }
 
 ///|

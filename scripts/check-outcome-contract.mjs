@@ -29,6 +29,19 @@ const location = {oneOf: [
       document_id: {enum: ['parameter_declarations', 'parameters']}, revision,
       pointer: {type: 'string', maxLength: 4096, pattern: '^(?:/(?:[^~]|~[01])*)*$'}}},
 ]};
+// One source-only lexical proposal. Review and rechecking remain required.
+const fix = {type: 'object', additionalProperties: false,
+  required: ['code', 'applicability', 'risk', 'target', 'edits'],
+  properties: {code: {const: 'close_block_comment'},
+    applicability: {const: 'requires_review'}, risk: {const: 'syntax_structure'},
+    target: {type: 'object', additionalProperties: false,
+      required: ['document_id', 'revision'],
+      properties: {document_id: {const: 'source'}, revision}},
+    edits: {type: 'array', minItems: 1, maxItems: 1, items: {
+      type: 'object', additionalProperties: false,
+      required: ['start_byte', 'end_byte', 'replacement'],
+      properties: {start_byte: integer, end_byte: integer,
+        replacement: {const: '*/'}}}}}};
 // This registered facts schema is separate from outcome and presentation identity.
 // Known facts are closed; future codes have only a safe code-only representation.
 const parameterName = {type: 'string', minLength: 1, maxLength: 256};
@@ -36,6 +49,9 @@ const typeName = {enum: ['null', 'boolean', 'number', 'string', 'array', 'object
   'date', 'timestamp', 'decimal', 'json', 'vector', 'resource_ref', 'artifact_ref']};
 const lexicalIssues = ['unexpected_end', 'unexpected_token', 'invalid_escape',
   'invalid_scalar', 'empty_identifier', 'unterminated_comment', 'invalid_number', 'invalid_parameter'];
+const jsonIssues = ['invalid_unicode', 'unexpected_end', 'unexpected_token', 'invalid_string',
+  'invalid_escape', 'invalid_number', 'number_out_of_range', 'negative_zero', 'expected_colon',
+  'expected_array_separator', 'expected_object_separator', 'duplicate_key', 'trailing_content'];
 const graphIssues = ['invalid_kind', 'invalid_output_rows'];
 const subgraphIssues = ['invalid_node_selector'];
 const expressionIssues = ['unknown_reference', 'invalid_arguments', 'invalid_number', 'expected_boolean'];
@@ -48,6 +64,7 @@ export const checkReasonSchema = {
   title: 'actql-check-reason-0.1',
   type: 'object', additionalProperties: false,
   required: ['code'], properties: {code, location,
+    fixes: {type: 'array', minItems: 1, maxItems: 1, items: fix},
     facts: {oneOf: [
       {type: 'object', additionalProperties: false, required: ['parameter'], properties: {parameter: parameterName}},
       {type: 'object', additionalProperties: false,
@@ -68,10 +85,16 @@ export const checkReasonSchema = {
         properties: {operation: {const: 'components'}, issue: {enum: graphIssues}}},
       {type: 'object', additionalProperties: false, required: ['operation', 'issue'],
         properties: {operation: {const: 'subgraph'}, issue: {enum: subgraphIssues}}},
+      {type: 'object', additionalProperties: false, required: ['document', 'issue'],
+        properties: {document: {enum: ['parameters', 'parameter_declarations']}, issue: {enum: jsonIssues}}},
       {type: 'object', additionalProperties: false, required: ['issue'],
         properties: {issue: {enum: [...new Set([...lexicalIssues, ...expressionIssues, ...frameIssues])]}}},
     ]}},
   allOf: [
+    {if: {required: ['fixes']}, then: {required: ['facts', 'location'],
+      properties: {code: {const: 'query_lexical_invalid'},
+        facts: {properties: {issue: {const: 'unterminated_comment'}}},
+        location: {properties: {kind: {const: 'text'}, precision: {const: 'exact'}}}}}},
     // Known locations retain the input domain described by their reason.
     // Position remains optional when the existing owner cannot establish it.
     {if: {properties: {code: {enum: ['query_syntax_invalid', 'parameter_undeclared']}}},
@@ -112,6 +135,14 @@ export const checkReasonSchema = {
       then: {required: ['facts'], properties: {facts: {required: ['domain']},
         location: {properties: {kind: {const: 'structured'},
           document_id: {enum: ['parameters', 'parameter_declarations']}}}}}},
+    {if: {properties: {code: {const: 'binding_json_invalid'}}},
+      then: {required: ['facts'], properties: {facts: {type: 'object', additionalProperties: false,
+        required: ['document', 'issue'], properties: {document: {enum: ['parameters', 'parameter_declarations']},
+          issue: {enum: jsonIssues}}}, location: {properties: {kind: {const: 'structured'}}}},
+        allOf: ['parameters', 'parameter_declarations'].map(document => ({
+          if: {properties: {facts: {properties: {document: {const: document}}}}},
+          then: {properties: {location: {properties: {document_id: {const: document}}}}},
+        }))}},
     {if: {properties: {code: {const: 'query_lexical_invalid'}}},
       then: {required: ['facts'], properties: {facts: {required: ['issue'], properties: {issue: {enum: lexicalIssues}}},
         location: {properties: {kind: {const: 'text'}}}}}},
@@ -128,7 +159,7 @@ export const checkReasonSchema = {
         properties: {operation: {enum: ['components', 'subgraph']},
           issue: {enum: [...graphIssues, ...subgraphIssues]}}},
         location: {properties: {kind: {const: 'text'}}}}}},
-    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
+    {if: {properties: {code: {not: {enum: ['supplied_value_type_mismatch', 'parameter_default_type_mismatch', 'parameter_value_required', 'parameter_undeclared', 'parameter_unused', 'supplied_value_constraint_violation', 'binding_json_invalid', 'query_lexical_invalid', 'query_expression_invalid', 'query_frame_invalid', 'graph_operation_invalid', 'operation_parameter_invalid', 'expression_type_mismatch']}}}},
       then: {not: {required: ['facts']}}},
   ],
 };
