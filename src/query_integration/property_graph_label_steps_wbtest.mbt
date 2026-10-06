@@ -70,11 +70,12 @@ test "Graph label output resumes Text and array construction with exact limits" 
       },
     )
     let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
-    // Empty labels cost 104 polls. One 513-unit Text adds 11 construction,
+    // Empty labels cost 105 / 258 polls, retaining the JSON identity
+    // measurement marker without a logical charge. One 513-unit Text adds 11 construction,
     // 11 first recheck, 11 row recheck and 12 stepped measurement polls.
     // 128 four-unit labels add 384 construction, 384 per recheck and 257
     // measurement polls. No successful execution supplies these allowances.
-    let work = (if edge { 255 } else { 104 }) + (if many { 1409 } else { 45 })
+    let work = (if edge { 258 } else { 105 }) + (if many { 1409 } else { 45 })
     // Existing order/matched/recheck custody = 4+3+23 (node), 4+5+23 (edge).
     // Provisional labels remain reserved while row scope and two measurement
     // frames overlap: add label count and 6 (node) / 8 (edge).
@@ -126,7 +127,7 @@ test "Graph label output resumes Text and array construction with exact limits" 
           @local_bridge.Complete(output, work~, ..) => {
             assert_eq(
               work,
-              ((if edge { 255 } else { 104 }) + (if many { 1409 } else { 45 })).to_int64(),
+              ((if edge { 258 } else { 105 }) + (if many { 1409 } else { 45 })).to_int64(),
             )
             assert_eq(@execution.completed_row_count(output), 1)
             let column = property_rows_column(output, "labels")
