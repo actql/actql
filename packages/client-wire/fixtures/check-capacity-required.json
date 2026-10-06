@@ -9,7 +9,14 @@
       "kind": "bound_input"
     },
     "verdict": "undetermined",
-    "inputs": [],
+    "inputs": [
+      {
+        "document_id": "source",
+        "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+        "kind": "text",
+        "byte_length": 13
+      }
+    ],
     "reasons": [],
     "requirements": [
       {
