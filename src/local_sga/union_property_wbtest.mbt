@@ -72,6 +72,103 @@ fn union_property_test_wire(value : @value.CheckedValue) -> String raise {
 }
 
 ///|
+test "union property cancellation retains inputs while a long order key is emitting" {
+  let contract = @contract.array_contract(
+    @contract.primitive(StringType, nullable=false),
+    nullable=false,
+  ).unwrap()
+  let original = "[\"" + "x".repeat(4096) + "\"]"
+  let left = union_property_test_value(contract, original)
+  let right = union_property_test_value(contract, "[]")
+  let cursor = union_property_test_cursor(
+    left,
+    Some(right),
+    contract,
+    @graph_type.UnionSetUnion,
+  )
+  for _ in 0..<256 {
+    if cursor.phase is OrderItem {
+      break
+    }
+    assert_true(advance_union_property(cursor, 1) is PropertyContinue(1))
+  } nobreak {
+    abort("order phase was not reached")
+  }
+  // The nested order recheck is node + 64 chunks + terminal = 66; setup
+  // plus setup and two emission chunks follows. A synchronous-drain
+  // substitution has already left OrderItem at this fixed boundary.
+  for _ in 0..<69 {
+    assert_true(advance_union_property(cursor, 1) is PropertyContinue(1))
+  }
+  assert_true(cursor.phase is OrderItem && cursor.order is Some(_))
+  assert_true(cursor.items.is_empty() && cursor.candidate_order == "")
+  let pending_order = cursor.order.unwrap()
+  cleanup_union_property(cursor)
+  cleanup_union_property(cursor)
+  assert_true(
+    cursor.order is None && cursor.items.is_empty() && cursor.terminal,
+  )
+  assert_true(
+    @value.advance_complete_order(pending_order, 1)
+    is @value.OrderFailed(_, work=0),
+  )
+  assert_eq(union_property_test_wire(left), original)
+  assert_eq(union_property_test_wire(right), "[]")
+  assert_true(
+    advance_union_property(cursor, 1) is PropertyFailed(InvalidUnionProperty, 0),
+  )
+}
+
+///|
+test "union property long Text order keeps fixed work and exact temporary bytes across quantums" {
+  let contract = @contract.array_contract(
+    @contract.primitive(StringType, nullable=false),
+    nullable=false,
+  ).unwrap()
+  let original = "[\"" + "x".repeat(4096) + "\"]"
+  let left = union_property_test_value(contract, original)
+  let right = union_property_test_value(contract, "[]")
+  // Set setup/read 2 + candidate recheck 66 + typed order 132 + no-peer
+  // comparison/sort 2 + two input exhaustion transitions 2 + two output
+  // transitions 2 + final array recheck 69 = 275 physical steps.
+  // The one typed order key is 4096 data bytes + 11 framing bytes = 4107.
+  for quantum in [1, 7, 256] {
+    let cursor = union_property_test_cursor(
+      left,
+      Some(right),
+      contract,
+      @graph_type.UnionSetUnion,
+      max_order_bytes=Some(4107),
+    )
+    let (result, work) = union_property_test_finish(cursor, quantum)
+    assert_eq(work, 275)
+    assert_eq(union_property_test_wire(result), original)
+    let one_short = union_property_test_cursor(
+      left,
+      Some(right),
+      contract,
+      @graph_type.UnionSetUnion,
+      max_order_bytes=Some(4106),
+    )
+    for _ in 0..<1000 {
+      match advance_union_property(one_short, quantum) {
+        PropertyContinue(_) => ()
+        PropertyFailed(UnionPropertyOrder(@value.CompleteOrderLimit), _) =>
+          break
+        _ => abort("one-short long order quota was not refused")
+      }
+    } nobreak {
+      abort("one-short long order did not stop")
+    }
+    assert_true(one_short.terminal && one_short.order is None)
+    assert_true(
+      one_short.items.is_empty() && one_short.retained_order_bytes == 0,
+    )
+    assert_eq(union_property_test_wire(left), original)
+  }
+}
+
+///|
 test "union property applies numeric strategies to equal shared values without occurrence shortcuts" {
   let contract = @contract.primitive(NumberType, nullable=true)
   let two = union_property_test_value(contract, "2")

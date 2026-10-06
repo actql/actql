@@ -80,7 +80,9 @@ test "complete order cursor retains independent bytes across quantums and cancel
   let value = order_checked(array, "[null,\"a\"]")
   let limits = { max_nodes: 100, max_depth: 20, max_text_bytes: 1000, }
   // Recheck: 3 value nodes + 3 array visits + 1 Text chunk + terminal = 8.
-  // Existing emission: 7 frames + terminal = 8. No renewal at the boundary.
+  // Emission: 3 value frames + 3 array visits + aggregate close + Text chunk
+  // + terminal = 9. The inherited total 15 omitted the bounded Text recheck.
+  // No renewal or additional logical value charge at the emission boundary.
   for quantum in [1, 64] {
     let cursor = start_complete_order(value, limits).unwrap()
     let mut total = 0
@@ -94,7 +96,7 @@ test "complete order cursor retains independent bytes across quantums and cancel
           assert_eq(bytes, text.length())
           total += work
           assert_eq(text, "[\"array\",[[\"null\"],[\"text\",\"a\"]]]")
-          assert_eq(total, 16)
+          assert_eq(total, 17)
           break
         }
         OrderFailed(_, ..) => abort("unexpected order failure")
