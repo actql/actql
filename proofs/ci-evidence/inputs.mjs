@@ -134,6 +134,22 @@ export function packageSourceInputs({tree, packages, target}) {
   const paths = new Set(), listings = new Map(), external = new Set(), unresolved = new Set(), configurations = [];
   const visited = new Set();
   let pending = [...packages];
+  // Build directory membership once for this invocation. Every Git path is
+  // observed, including unmodelled nested inputs; a later call rebuilds the
+  // index and therefore observes additions, removals and renames anew.
+  const immediate = new Map(), descendants = new Map();
+  for (const path of tree.entries.keys()) {
+    const last = path.lastIndexOf('/');
+    if (last < 0) continue;
+    const parent = path.slice(0, last);
+    if (!immediate.has(parent)) immediate.set(parent, []);
+    immediate.get(parent).push(path);
+    for (let offset = path.indexOf('/'); offset >= 0 && offset < last; offset = path.indexOf('/', offset + 1)) {
+      const ancestor = path.slice(0, offset);
+      if (!descendants.has(ancestor)) descendants.set(ancestor, []);
+      descendants.get(ancestor).push(path);
+    }
+  }
   const toolchainDigest = tree.entries.get('toolchain.json')?.kind === 'blob' ? hash(tree.read('toolchain.json')) : null;
   function add(path) {
     if (!tree.entries.has(path)) { unresolved.add(`missing source input: ${path}`); return; }
@@ -145,8 +161,7 @@ export function packageSourceInputs({tree, packages, target}) {
   function visit(directory) {
     if (visited.has(directory)) return;
     visited.add(directory);
-    const members = [...tree.entries.keys()].filter(path => path.startsWith(`${directory}/`) &&
-      !path.slice(directory.length + 1).includes('/')).sort();
+    const members = (immediate.get(directory) ?? []).sort();
     listings.set(`${directory}/*`, members); members.forEach(add);
     const manifest = `${directory}/moon.pkg`; add(manifest);
     if (tree.entries.get(manifest)?.kind !== 'blob') return;
@@ -167,11 +182,9 @@ export function packageSourceInputs({tree, packages, target}) {
       } else if (dependency.startsWith('moonbitlang/core/')) external.add(dependency);
       else unresolved.add(`unmodelled external dependency: ${dependency}`);
     }
-    for (const path of tree.entries.keys()) {
-      if (path.startsWith(`${directory}/`) && path.slice(directory.length + 1).includes('/')) {
-        const first = `${directory}/${path.slice(directory.length + 1).split('/')[0]}`;
-        if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }
-      }
+    for (const path of descendants.get(directory) ?? []) {
+      const first = `${directory}/${path.slice(directory.length + 1).split('/')[0]}`;
+      if (!tree.entries.has(`${first}/moon.pkg`)) { add(path); unresolved.add(`nested package input requires review: ${path}`); }
     }
   }
   while (pending.length) {

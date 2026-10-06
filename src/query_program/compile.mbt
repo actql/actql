@@ -19,8 +19,7 @@ pub(all) struct GraphBinding {
 
 ///|
 pub(all) enum GraphBindingKind {
-  Node
-  PropertyNode(String)
+  NodeIdentity(String)
   Edge
   Path
 }

@@ -101,8 +101,12 @@ Full correspondence and physical tests remain in their existing CI jobs.
 
 ## Adding a local obligation through the ordinary PR
 
-The published initial 26 descriptors remain protected requirements. An added
-local obligation no longer fails initialization merely because the catalog is
+All 30 published descriptors, including the four Events Bridge actions, are
+protected from the independent integrated main pin in `actions.mjs`. The
+initial 26-action revision is historical provenance only. Changing both a
+candidate's catalog and its recipes cannot retire a published obligation,
+even without an available main comparison. An added local obligation no
+longer fails initialization merely because the catalog is
 larger. Initialization, the actual runner, producer finish and final consumer
 all check the catalog against the same finite execution recipes. A registration
 without an executable recipe is refused before collection; a recipe without a
@@ -126,6 +130,9 @@ For an existing numeric/NULL Relation operation:
    Keep every published original descriptor unchanged. New derived connection
    claims additionally require independently reviewed fixture coverage and
    binding checks; adding a local test action does not issue such claims.
+   Once an additive descriptor is integrated and published, advance the
+   independent protected registration pin in a reviewed policy update so a
+   later candidate cannot silently remove it. No retirement rule is implemented.
 4. Use the repository's bounded Node wrapper for the changed recipe/application
    tests. Submit the ordinary PR and use its automatic CI. The existing runner
    executes the actual fixture, records its subprocess output and artifacts,

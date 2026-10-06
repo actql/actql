@@ -1267,3 +1267,36 @@ establish durable cancellation-operation reconciliation, Delivery opening or
 receipt-backed completion, or complete template scope; those still require
 facts from their existing authoritative owners. No wire schema, identity,
 persistence or execution path changes are introduced by presentation.
+
+## Rejected Run observations
+
+`status`, `wait` and `reconcile` use the existing registered Run state validator
+before and after detaching the received value. A valid observation retains its
+original facts even if a Local transport reuses an object. A rejected state still
+throws `InvalidHostRunState` for a rejected decoded state, or the existing
+`InvalidHostResponse` for decoding/wire-bound failure;
+`explainRunObservationFailure(error)` distinguishes
+an unknown state under the current version (`uninterpretable/unknown_state`),
+a usable mismatched version (`protocol_failure/contract_mismatch`), and malformed
+known facts or unreadable payload (`protocol_failure/malformed_response`).
+The generated `runStateProtocol` vocabulary comes from the registered schema;
+it neither admits replies nor changes a Run Owner's transitions.
+
+The original SDK error privately retains only safe typed classification, the
+operation name and a read-only `status` candidate bound to the attached Run's
+original reference. A rejected response contributes no state, revision, Effect,
+publication, physical-stop or cleanup fact. Unknown provider text and raw causes
+are omitted from the protocol error. Explanation/locale edits confer no write
+retry, cancellation, Compute restart or reconciliation authority. Status lookup
+continues to enforce current Host authorization; the retained reference grants
+no access. Copies, serialized or forged errors have no explanation custody.
+Credential and transport refusals retain their existing separate behavior and
+are not labelled as received malformed state observations. No automatic lookup
+or additional operation is performed by presentation.
+
+This SDK weak association lasts only while its original error remains reachable;
+there is no timed retention guarantee or new Host persistence/retrieval API.
+The current Graph contracts and their identities are used without old aliases,
+fallbacks or reinterpretation of stored Run identities. This boundary completes
+only the rejected Run-observation part of X6; durable write/cancellation/Delivery
+contracts and their other diagnostic obligations remain separate.
