@@ -9,6 +9,8 @@ fn acquisition_runtime_case(
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
+  producer_cleanup_at_handoff? : Bool = false,
+  cleanup_after_preparation? : Bool = false,
   cancel_producer_before_handoff? : Bool = false,
 ) -> Unit raise {
   guard resident_compute_prerequisites() is Some((library_path, root_path)) else {
@@ -303,34 +305,41 @@ fn acquisition_runtime_case(
       cancel_receiver~,
       deny_after_admission~,
       consumer_start_expiry~,
+      producer_cleanup_at_handoff~,
+      cleanup_after_preparation~,
       cancel_producer_before_handoff~,
     )
-    assert_true(@host.client_retained_input_producer_available(producer))
+    assert_eq(
+      @host.client_retained_input_producer_available(producer),
+      !producer_cleanup_at_handoff,
+    )
     assert_eq(acquisitions.val, 1)
     assert_eq(captures.val, 1)
     assert_eq(entries.val, 1)
   }
-  let reader = runtime.open_output_reader(dispatch, fields[1], 128).unwrap()
-  assert_false(runtime.release(dispatch).unwrap())
-  let bytes : Array[Byte] = []
-  while true {
-    let chunk = reader.next().unwrap()
-    for byte in chunk.bytes {
-      bytes.push(byte)
+  if !producer_cleanup_at_handoff {
+    let reader = runtime.open_output_reader(dispatch, fields[1], 128).unwrap()
+    assert_false(runtime.release(dispatch).unwrap())
+    let bytes : Array[Byte] = []
+    while true {
+      let chunk = reader.next().unwrap()
+      for byte in chunk.bytes {
+        bytes.push(byte)
+      }
+      if chunk.eof {
+        break
+      }
     }
-    if chunk.eof {
-      break
-    }
+    // Database insertion order is 3, 1, 2; the read-only acquisition preserves
+    // that source order. The consumer's later filter yields only id 3.
+    assert_eq(
+      @utf8.decode(Bytes::from_array(bytes)),
+      "[{\"id\":3},{\"id\":1},{\"id\":2}]",
+    )
+    assert_true(reader.finish().unwrap())
+    assert_true(runtime.release(dispatch).unwrap())
+    assert_false(runtime.release(dispatch).unwrap())
   }
-  // Database insertion order is 3, 1, 2; the read-only acquisition preserves
-  // that source order. The consumer's later filter yields only id 3.
-  assert_eq(
-    @utf8.decode(Bytes::from_array(bytes)),
-    "[{\"id\":3},{\"id\":1},{\"id\":2}]",
-  )
-  assert_true(reader.finish().unwrap())
-  assert_true(runtime.release(dispatch).unwrap())
-  assert_false(runtime.release(dispatch).unwrap())
   assert_false(@host.client_retained_input_producer_available(producer))
   let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
     journal.require(dispatch).unwrap(),
@@ -387,6 +396,25 @@ test "resident consumer expiry at the exclusive start boundary keeps caller borr
     true,
     through_resident=true,
     consumer_start_expiry=true,
+  )
+}
+
+///|
+test "retained plan handoff refuses producer cleanup during admission before receiver IO" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    producer_cleanup_at_handoff=true,
+  )
+}
+
+///|
+test "retained plan physical advance refuses producer cleanup during authorization before receiver IO" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    producer_cleanup_at_handoff=true,
+    cleanup_after_preparation=true,
   )
 }
 
