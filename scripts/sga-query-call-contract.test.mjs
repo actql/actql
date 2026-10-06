@@ -199,10 +199,22 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_rules_sha256: 'e073701e0ba2126603b448877323cec95ad4955614c43b31aa8b472cf57c9619',
   };
   assert.equal(cid(soleGraph), 'sha256:3fe450061e6884fc773ecda7492de02dd27a15219a6832e8e490a096e29b1c9a');
-  const currentExpected = 'sha256:efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062';
+  const beforeSchemaClosure = {...currentBody,
+    source_grammar_cid: 'sha256:c6d41701c5ef0653a17d1472cfed07a657f3f655de70aa9c9a24b343fe571947'};
+  assert.equal(cid({...beforeSchemaClosure,
+    query_text_grammar_sha256: '7fbe8e64052773d288c04c39d3f1e6930ca43060cf1de1f01faffac5d52d7f0c',
+    query_text_rules_sha256: '2a53290cbfe58e8f5a9bb50066b45746ecf2f1bb6d14b15dda53318a170b55ed'}),
+    'sha256:1e69c47a6aba9a6bc728c10d4edbeeb1e72964e0504d82d7f54fde65293de06a');
+  assert.equal(cid(beforeSchemaClosure),
+    'sha256:57b2c75f3483e89a325a216c10636c5f098d8b09d190f7ce11b0895f1ac7c09a');
+  assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: '7fbe8e64052773d288c04c39d3f1e6930ca43060cf1de1f01faffac5d52d7f0c',
+    query_text_rules_sha256: '2a53290cbfe58e8f5a9bb50066b45746ecf2f1bb6d14b15dda53318a170b55ed'}),
+    'sha256:efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062');
+  const currentExpected = 'sha256:ebd855090f5f4695042910f4f0471a460929aeb4e26de36609b965b6c4623922';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
-  assert.equal(currentBody.query_text_grammar_sha256, '7fbe8e64052773d288c04c39d3f1e6930ca43060cf1de1f01faffac5d52d7f0c');
-  assert.equal(currentBody.query_text_rules_sha256, '2a53290cbfe58e8f5a9bb50066b45746ecf2f1bb6d14b15dda53318a170b55ed');
+  assert.equal(currentBody.query_text_grammar_sha256, '446694190a1e5c1412db556a0a1f7bbff024ba08b3d6edfae56a8c461c4f93bd');
+  assert.equal(currentBody.query_text_rules_sha256, '8f25caaec8d851767a09937831cd91aac30f48fad99f2851c7dddbfcc5095d14');
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);
