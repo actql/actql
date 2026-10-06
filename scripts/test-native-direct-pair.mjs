@@ -42,7 +42,9 @@ try {
   // A calibrated profile may select a different admitted physical plan.
   // runNativeDirectPair already verifies its exact ordinary selection.
   if (!nativeEstimateProfile && !nativeResidentEstimateProfile) {
-    assert.deepEqual(pair.native.selected, ['local', 'local', 'local']);
+    assert.deepEqual(pair.native.selected, ['duckdb', 'duckdb', 'duckdb']);
+    assert.deepEqual(pair.native.ownerCorrespondence.observations.choices.map(choice => choice.resident),
+      [true, true, true]);
   }
   console.log('Direct Native product and independent assembly agree');
 } finally {
