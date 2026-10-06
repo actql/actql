@@ -97,8 +97,9 @@ It includes actual raw logs, root inventories, image/configuration, command
 arguments, source identities, residuals and observations, rather than only a
 success summary. `local-isolated-replay.test.mjs` reopens these exact bytes using
 the existing real consumer and rejects tampered detection/restoration/residuals.
-It separately checks that later evidence-only commits preserve the selected
-physical inputs; it does not rewrite the original execution revision.
+It rejects applying either historical manifest after a product input changes;
+each original remains bound to its actual execution revision. Evidence-only
+publication is separately checked against those physical inputs.
 
 Observed local phases were 18,254 ms preparation, 11,132 ms scratch build,
 169,906 ms execution, 2,728 ms inspection and 359 ms cleanup. Outer wall time was
@@ -110,3 +111,36 @@ estimate of the full CI matrix.
 Earlier attempts remain failures of the local entry before mutation execution:
 one launcher-name mismatch, one unexpected actual environment rejection, and one
 heavy-lock refusal. None counts as a killed mutation or a performance failure.
+
+
+## Acceptance after current main integration
+
+The normal merge of main `5dc9cad224046c527278273017b055b686831742`
+preserves both the scoped package closure from #412 and the four registered
+Rows/Events obligations. Product inputs changed, so the earlier physical result
+was not reported as execution of this candidate. A new image was actually built
+and executed at clean `8bbe08fca045be6c00a64eb5a68889295082c67c`.
+
+The bounded receipt `run-NgCawX` passed with complete output and exit code zero.
+All 13 mutations produced their intended executed assertion failure, source
+bytes were restored, and the shared final scientific consumer accepted. Actual
+image `sha256:3b1d9034aa2c5e491db0357f87d9a3e48bd92ec6ef91d3988182c8b551ce1f18`
+contained 3,831 source files (35,458,625 bytes), with the four core metadata files
+absent. Owner-authenticated container/image cleanup completed.
+
+The exact unmodified JSON is retained losslessly in
+[evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz](evidence/2026-10-06-local-isolated-session-8bbe08fca.json.gz).
+Uncompressed: 3,985,281 bytes, SHA-256
+`52d9e7931fe6a3b14d2b00a51094f4f83f4161363440360ab22b207d33afb6aa`.
+Compressed: 795,907 bytes, SHA-256
+`827883c8bd535ae7e1e8f83fb6480c965352ae707b7f3381dd9a0d41933c1826`.
+The replay regression consumes both real originals at their separate revisions;
+it rejects compilation failure, missing logs, zero detection, failed byte
+restoration and removal of the unresolved runtime boundary for both.
+
+Observed phases: preparation 17,477 ms, build 12,504 ms, execution 145,823 ms,
+inspection 821 ms, cleanup 195 ms. Supervisor wall time was about 183 seconds.
+These local observations retain the same limitations as the earlier run. They
+are not a controlled before/after benchmark or proof of hosted runner savings.
+Authenticated main comparison, ordinary PR reuse and net runner savings remain
+open. No Actions environment was impersonated and no CI-only guard was removed.
