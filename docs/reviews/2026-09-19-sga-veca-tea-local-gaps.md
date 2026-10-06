@@ -6066,3 +6066,18 @@ This supersedes the atomic Graph append residual above, not the synchronous
 label construction, selector, ordering-key or JSON object-name boundaries.
 The route checker requires the new evidence and shared cursor connections;
 removing them or restoring atomic output fails its mutation checks.
+
+Graph label output now also uses the existing Text recheck and private
+ArrayBuilder. Each label yields during Unicode/byte validation; finalization
+transfers the array without copying it. Provisional label slots remain
+reserved until row commit, including overlap with shared row admission and
+measurement. Exact/one-short limits, long/wide labels, quantum invariance and
+stop/cleanup pass for node and edge projection. Existing viewed wrappers and
+public Host/real Store cases remain covered. The resource gate requires these
+connections and operation-bound evidence.
+
+This supersedes label construction/measurement and final label-array copy
+as residuals, not selectors, identity ordering keys, JSON object-name scans,
+constructor preparation, Events comparisons or whole-Run accounting. No full
+Local completion or pristine packed campaign is claimed. See the
+[label-output record](2026-10-06-local-graph-label-output.md).
