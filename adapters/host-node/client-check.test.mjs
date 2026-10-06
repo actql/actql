@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {createHash, createHmac, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
