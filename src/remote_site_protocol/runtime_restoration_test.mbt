@@ -213,3 +213,46 @@ test "completed runtime restoration refuses historical foreign and incomplete ev
   )
   assert_true(remote_runtime_record_released(record))
 }
+
+///|
+test "completed runtime cleanup restoration follows a current release without granting success" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "restore-cleanup-current",
+  )
+  let custody = restore_remote_runtime_completed_custody(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let revision = dispatch_record_revision(record)
+  assert_false(confirm_remote_runtime_completed_restoration(record, custody))
+  let (_, foreign, foreign_subject, foreign_measurement) = completed_runtime_fixture(
+    "restore-cleanup-foreign",
+  )
+  assert_false(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, foreign, foreign_subject, foreign_measurement,
+    ),
+  )
+  assert_true(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, evidence, subject, measurement,
+    ),
+  )
+  assert_false(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, evidence, subject, measurement,
+    ),
+  )
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_false(remote_runtime_record_released(record))
+  assert_true(prepare_remote_runtime_success(record, custody) is Err(_))
+  let cleanup = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(cleanup), 3)
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+}

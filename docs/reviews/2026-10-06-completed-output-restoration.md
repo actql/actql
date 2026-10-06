@@ -64,6 +64,10 @@ formal release acceptance. Fixed-source commands and results are in the PR.
 
 ## Remaining full execution connection
 
+The completed Runtime owner handoff is now implemented separately in
+[Runtime restoration](2026-10-06-completed-runtime-owner-restoration.md).
+The actual resident holder and public execution connections remain open.
+
 The Native resident holder must still consume these ports under its existing
 exclusive executor slot, validate current owner facts after restoration I/O,
 restore each reservation exactly once, and install the completed output into

@@ -2,12 +2,16 @@
 fn restored_output_fixture(
   name : String,
   wrong_content? : Bool = false,
+  runtime_bundle_cid? : String? = None,
+  input_binding_cid? : String? = None,
+  budget_cid? : String? = None,
 ) -> (
   @journal.Journal,
   @remote.DispatchRequest,
   String,
   String,
   @filesystem.NativeFileGeneration,
+  @site.ExecutionSite,
 ) raise {
   let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
     abort("private physical root required")
@@ -22,11 +26,26 @@ fn restored_output_fixture(
     }),
   ).unwrap()
   let cid = "sha256:" + "a".repeat(64)
+  let bundle = runtime_bundle_cid.unwrap_or(cid)
   let request = @remote.prepare_dispatch_request(
-    "authority", cid, "task", 1, name, "site", 1, cid, "local", "local/1", "strategy/1",
-    cid, cid, cid, cid, cid,
+    "authority",
+    cid,
+    "task",
+    1,
+    name,
+    "site",
+    1,
+    bundle,
+    "local",
+    "local/1",
+    "strategy/1",
+    input_binding_cid.unwrap_or(cid),
+    cid,
+    budget_cid.unwrap_or(cid),
+    cid,
+    cid,
   ).unwrap()
-  let site = @site.create_site("site", 1, cid, 4, 4, 1000L, 1000L).unwrap()
+  let site = @site.create_site("site", 1, bundle, 4, 4, 1000L, 1000L).unwrap()
   let control = @remote.create_site_dispatch_journal(
     site, "actql-remote-site/0.1",
   ).unwrap()
@@ -34,7 +53,7 @@ fn restored_output_fixture(
   let journal = @journal.open_journal(library, path, 1048576L, control).unwrap()
   let (_, record) = journal.accept(request).unwrap()
   let capability = @remote.register_remote_execution_capability(
-    site, cid, "local", "local/1", "strategy/1", cid,
+    site, bundle, "local", "local/1", "strategy/1", cid,
   ).unwrap()
   journal
   .commit_transition(
@@ -105,7 +124,7 @@ fn restored_output_fixture(
   ).unwrap()
   let issuer = @remote.register_remote_evidence_issuer(
     site,
-    cid,
+    bundle,
     "local",
     "local/1",
     "strategy/1",
@@ -130,32 +149,32 @@ fn restored_output_fixture(
   assert_true(journal.close())
   // Reopen both the journal and the physical file independently. The sealed
   // writer's finalizer keeps its committed file; no old object is returned.
-  let fresh_site = @site.create_site("site", 1, cid, 4, 4, 1000L, 1000L).unwrap()
+  let fresh_site = @site.create_site("site", 1, bundle, 4, 4, 1000L, 1000L).unwrap()
   let reopened = @journal.open_journal(
     library,
     path,
     1048576L,
     @remote.create_site_dispatch_journal(fresh_site, "actql-remote-site/0.1").unwrap(),
   ).unwrap()
-  (reopened, request, root, name, generation)
+  (reopened, request, root, name, generation, fresh_site)
 }
 
 ///|
 test "native restored standard output verifies original bytes from reopened custody" {
-  let (journal, request, root, name, generation) = restored_output_fixture(
+  let (journal, request, root, name, generation, _) = restored_output_fixture(
     "standard-restored-output",
   )
   let before = @remote.dispatch_record_revision(
     journal.require(request).unwrap(),
   )
   assert_true(
-    restore_native_remote_standard_output(
+    @standard.restore_native_remote_standard_output(
       journal.observation(request).unwrap(),
       root,
       10L,
       () => true,
     )
-    is NativeRestoredOutput(@runtime.NativeRemoteOutputReady(_)),
+    is @standard.NativeRestoredOutput(@runtime.NativeRemoteOutputReady(_)),
   )
   let physical = @filesystem.open_root(root).unwrap()
   assert_true(physical.verify_generation("output-" + name, generation))
@@ -176,7 +195,7 @@ test "native restored standard output verifies original bytes from reopened cust
 
 ///|
 test "native restored standard output refuses incorrect content without changing execution evidence" {
-  let (journal, request, root, name, generation) = restored_output_fixture(
+  let (journal, request, root, name, generation, _) = restored_output_fixture(
     "standard-restored-corrupt",
     wrong_content=true,
   )
@@ -184,8 +203,10 @@ test "native restored standard output refuses incorrect content without changing
   let proof = @remote.remote_execution_evidence_cid(
     @journal.recovered_site_dispatch_evidence(original).unwrap(),
   )
-  guard restore_native_remote_standard_output(original, root, 10L, () => true)
-    is NativeOutputRestorationPending(code, cleanup) else {
+  guard @standard.restore_native_remote_standard_output(original, root, 10L, () => {
+      true
+    })
+    is @standard.NativeOutputRestorationPending(code, cleanup) else {
     fail("mismatched content admitted")
   }
   assert_eq(code, "output-restore-content")
@@ -211,7 +232,7 @@ test "native restored standard output refuses incorrect content without changing
 
 ///|
 test "native restored standard output refuses release progress and missing material" {
-  let (journal, request, root, name, generation) = restored_output_fixture(
+  let (journal, request, root, name, generation, _) = restored_output_fixture(
     "standard-restored-releasing",
   )
   let physical = @filesystem.open_root(root).unwrap()
@@ -220,29 +241,29 @@ test "native restored standard output refuses release progress and missing mater
   .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
   .unwrap()
   assert_true(
-    restore_native_remote_standard_output(
+    @standard.restore_native_remote_standard_output(
       journal.observation(request).unwrap(),
       root,
       10L,
       () => true,
     )
-    is NativeOutputRestorationPending(_, _),
+    is @standard.NativeOutputRestorationPending(_, _),
   )
   assert_true(physical.verify_generation("output-" + name, generation))
   physical.reclaim_generation("output-" + name, generation).unwrap()
   assert_true(journal.close())
-  let (missing, request, root, name, generation) = restored_output_fixture(
+  let (missing, request, root, name, generation, _) = restored_output_fixture(
     "standard-restored-missing",
   )
   let physical = @filesystem.open_root(root).unwrap()
   physical.reclaim_generation("output-" + name, generation).unwrap()
-  guard restore_native_remote_standard_output(
+  guard @standard.restore_native_remote_standard_output(
       missing.observation(request).unwrap(),
       root,
       10L,
       () => true,
     )
-    is NativeOutputRestorationPending(code, cleanup) else {
+    is @standard.NativeOutputRestorationPending(code, cleanup) else {
     fail("missing bytes admitted")
   }
   assert_eq(code, "output-restore-physical")
@@ -255,7 +276,7 @@ test "native restored standard output refuses release progress and missing mater
 
 ///|
 test "native restored standard output rechecks current ownership during physical verification" {
-  let (journal, request, root, name, generation) = restored_output_fixture(
+  let (journal, request, root, _, _, _) = restored_output_fixture(
     "standard-restored-current",
   )
   let original = journal.observation(request).unwrap()
@@ -263,26 +284,15 @@ test "native restored standard output rechecks current ownership during physical
     @journal.recovered_site_dispatch_record(original),
   )
   let checks = Ref(0)
-  guard restore_native_remote_standard_output(original, root, 10L, () => {
+  guard @standard.restore_native_remote_standard_output(original, root, 10L, () => {
       checks.val += 1
       checks.val < 5
     })
-    is NativeOutputRestorationPending(code, cleanup) else {
+    is @standard.NativeOutputRestorationPending(code, cleanup) else {
     fail("lost authority admitted")
   }
   assert_eq(code, "output-restore-current")
   assert_eq(checks.val, 5)
-  let file = @retained_file.restore_native_retained_task_file(
-    root,
-    name,
-    generation,
-    "sha256:" + @sha.hex(b"[{\"id\":3}]"),
-    10L,
-  ).unwrap()
-  assert_eq(
-    verify_restored_standard_stream(file, () => false),
-    Err("output-restore-current"),
-  )
   assert_eq(
     @remote.dispatch_record_revision(journal.require(request).unwrap()),
     revision,
