@@ -1,4 +1,4 @@
-// CI-only owner of one scratch image and one isolated execution. There are no
+// Separate CI and local owners of one scratch image and one isolated execution. There are no
 // host mounts, inherited container credentials, registry pulls or cache reuse.
 // Keep this action comparison-only until runtime closure has been reviewed.
 import assert from 'node:assert/strict';
@@ -8,8 +8,8 @@ import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment,
-  isolatedRunArguments, scratchDockerfile, checkImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
+import {copyRegular, stageDistribution, stageMutationSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
+  isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, localScratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 
@@ -21,7 +21,11 @@ const command = (program, args, options = {}) => {
   assert(!result.error && result.status === 0, `Isolated executor command failed: ${program}`);
   return result.stdout;
 };
-const docker = args => command('/usr/bin/docker', args);
+const ciExecution = {engine: '/usr/bin/docker', label: 'org.actql.ci.owner', arguments: isolatedRunArguments, checkImage: checkImageDefinition};
+const localExecution = engine => {
+  assert(typeof engine === 'string' && engine.startsWith('/') && !engine.includes('\0'), 'Use an explicit Docker executable');
+  return {engine, local: true, label: 'org.actql.local.owner', arguments: localIsolatedRunArguments, checkImage: checkLocalImageDefinition};
+};
 
 // Static executables need no copied loader. Require an actual ELF64 x86-64
 // header with neither INTERP nor DYNAMIC; do not infer this from ldd's label.
@@ -40,6 +44,17 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
   assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
   const owner = `${origin.runId}:${origin.runAttempt}:${origin.jobId}`;
   assert(/^[0-9]+:[0-9]+:[0-9]+$/u.test(owner));
+  return prepare({root, tree, directory, owner});
+}
+
+// Explicit physical diagnostics confer no Actions origin or reuse authority.
+export function prepareLocalIsolatedMutation({root, tree, owner, directory}) {
+  assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
+  assert.equal(process.platform, 'linux'); assert.equal(process.arch, 'x64');
+  return prepare({root, tree, directory, owner, local: true});
+}
+
+function prepare({root, tree, directory, owner, local = false}) {
   const start = performance.now(), context = mkdtempSync(join(directory, 'isolated-build-'));
   const imageRoot = join(context, 'root'); mkdirSync(imageRoot);
   const source = stageMutationSource({tree, destination: imageRoot});
@@ -72,12 +87,13 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
   }
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});
   const probe = join(imageRoot, 'runtime/actql-write-probe'); writeFileSync(probe, '', {flag: 'wx', mode: 0o666}); chmodSync(probe, 0o666);
-  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', environment: isolatedEnvironment,
-    dockerfile: scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
+  const manifest = {version: 'actql-isolated-mutation-inputs/0.1', ...(local ? {localDiagnostic: true} : {}),
+    environment: local ? localIsolatedEnvironment : isolatedEnvironment,
+    dockerfile: local ? localScratchDockerfile() : scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
     sourceSnapshotDigest: snapshotFromGit(tree).digest, toolchainDigest: hash(tree.read('toolchain.json')),
     experimentDigest: isolatedExperimentDigest(tree),
     hostImage: process.env.ImageVersion ?? 'unrecorded'};
-  const runtime = imageRuntime(manifest); checkIsolatedInputs({runtime, manifest, tree});
+  const runtime = imageRuntime(manifest, {local}); checkIsolatedInputs({runtime, manifest, tree, local});
   mkdirSync(join(imageRoot, 'control')); writeFileSync(join(imageRoot, 'control/inputs.json'), jsonBytes(manifest), {flag: 'wx'});
   writeFileSync(join(context, 'Dockerfile'), manifest.dockerfile, {flag: 'wx'});
   return {owner, context, runtime, manifest, sourceBytes: source.bytes,
@@ -87,6 +103,17 @@ export function prepareIsolatedMutation({root, tree, origin, directory}) {
 export function executeIsolatedMutation({root, tree, prepared}) {
   assert.equal(process.env.GITHUB_ACTIONS, 'true', 'Isolated execution is CI-only');
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree});
+  return execute({root, tree, prepared, execution: ciExecution});
+}
+
+export function executeLocalIsolatedMutation({root, tree, prepared, engine}) {
+  assert(/^local-[a-f0-9]{32}$/u.test(prepared.owner), 'Use a distinct local owner');
+  return execute({root, tree, prepared, execution: localExecution(engine)});
+}
+
+function execute({root, tree, prepared, execution}) {
+  const docker = args => command(execution.engine, args);
+  checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true});
   // Both observations cover the physically staged cohort. The existing
   // collector checks the full tracked checkout independently on every action.
   const before = checkMutationCheckout({root, tree}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
@@ -98,17 +125,17 @@ export function executeIsolatedMutation({root, tree, prepared}) {
     let start = performance.now();
     assert.equal(readFileSync(join(prepared.context, 'Dockerfile'), 'utf8'), prepared.manifest.dockerfile, 'Changed build instruction bytes');
     assert.equal(encode(JSON.parse(readFileSync(join(prepared.context, 'root/control/inputs.json'), 'utf8'))), encode(prepared.manifest), 'Changed staged control inputs');
-    docker(['build', '--network=none', '--pull=false', '--label', `org.actql.ci.owner=${prepared.owner}`,
+    docker(['build', '--platform=linux/amd64', '--network=none', '--pull=false', '--label', `${execution.label}=${prepared.owner}`,
       '--iidfile', iidFile, '--tag', tag, prepared.context]);
     imageId = readFileSync(iidFile, 'utf8').trim();
     assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Missing immutable built image ID');
     const image = JSON.parse(docker(['image', 'inspect', imageId]));
     assert.equal(image.length, 1);
-    checkImageDefinition({image: image[0], imageId, owner: prepared.owner});
+    execution.checkImage({image: image[0], imageId, owner: prepared.owner});
     costs.buildMilliseconds = Math.round(performance.now() - start);
     start = performance.now();
-    const args = isolatedRunArguments({imageId, cidFile, owner: prepared.owner});
-    const result = spawnSync('/usr/bin/docker', args, {encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024});
+    const args = execution.arguments({imageId, cidFile, owner: prepared.owner});
+    const result = spawnSync(execution.engine, args, {encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024});
     costs.executionMilliseconds = Math.round(performance.now() - start);
     if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
     assert(!result.error && result.status === 0, 'Original isolated mutation action failed');
@@ -128,11 +155,11 @@ export function executeIsolatedMutation({root, tree, prepared}) {
     // may be closed. Never prune, unlink another CID or remove shared tags.
     if (existsSync(cidFile)) {
       const cid = readFileSync(cidFile, 'utf8').trim(); assert(/^[a-f0-9]{64}$/u.test(cid));
-      const inspected = spawnSync('/usr/bin/docker', ['container', 'inspect', cid], {encoding: 'utf8', timeout: 30000});
+      const inspected = spawnSync(execution.engine, ['container', 'inspect', cid], {encoding: 'utf8', timeout: 30000});
       if (inspected.status === 0) {
         const [container] = JSON.parse(inspected.stdout);
         assert.equal(container.Id, cid); assert.equal(container.Image, imageId);
-        assert.equal(container.Config.Labels['org.actql.ci.owner'], prepared.owner);
+        assert.equal(container.Config.Labels[execution.label], prepared.owner);
         docker(['container', 'rm', '--force', cid]);
       } else {
         assert(!inspected.error && inspected.status === 1 && /No such (?:object|container)/u.test(inspected.stderr), 'Unable to confirm owned container closure');
@@ -140,7 +167,7 @@ export function executeIsolatedMutation({root, tree, prepared}) {
     }
     if (imageId) {
       const [image] = JSON.parse(docker(['image', 'inspect', imageId]));
-      assert.equal(image.Config.Labels['org.actql.ci.owner'], prepared.owner);
+      assert.equal(image.Config.Labels[execution.label], prepared.owner);
       assert.deepEqual(image.RepoTags, [tag], 'Image is referenced by another owner');
       docker(['image', 'rm', imageId]);
     }
