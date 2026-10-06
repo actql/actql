@@ -123,6 +123,16 @@ casts where required. Result type and nullability come from common `coalesce`
 typing, including on empty input. The Frontend does not expand the first
 operand or install its own conditional evaluator.
 
+`REPLACE(value, search, replacement)` connects the adopted
+[GoogleSQL STRING replacement function](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/string_functions#replace)
+to the common three-argument `replace` expression. Operand order, parameter
+references and clause scope are preserved. Replacement is literal,
+case-sensitive, non-overlapping and left-to-right; an empty search leaves the
+original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
+or line-ending normalization is implicit. The STRING overload is connected;
+BYTES and explicit collation remain separate coverage gaps. This function does
+not implement the independent SELECT star REPLACE clause.
+
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar
 calls. The ordinary expression parser retains each key's source origin and
