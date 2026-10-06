@@ -22,6 +22,8 @@ test('canonical Graph interfaces expose one snapshot, equality and path API', ()
       /pub fn prepare\(/, /prepare_property|finish_property|begin_property_node/],
     ['src/graph_typing/pkg.generated.mbti',
       /CheckedGraphEquality/, /CheckedPropertyEquality|PropertyPathMode/],
+    ['src/query_program/pkg.generated.mbti',
+      /NodeIdentity\(String\)/, /\bPropertyNode\b|^\s*Node\s*$/m],
     ['src/local_bridge/pkg.generated.mbti',
       /GraphSnapshotHandoff/, /PropertySnapshot/],
   ]) {
