@@ -57,17 +57,20 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // role, combined with the adopted Frontend text rules. Retain both
   // parents' historical rule digests rather than rebinding their identities.
   assert.equal(body.query_text_grammar_sha256,
-    '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e');
+    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71');
   assert.equal(body.query_text_rules_sha256,
-    '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678');
+    '805112264609514560da44925a58c7641652bfe9decc5b53e4061936f0f25b8d');
   assert.equal(body.source_grammar_cid,
     'sha256:487b95656a825703baa75f2e108ac94d3d8a38fa113bb2ef12a3532cac2654ae');
   // Historical manifests retain the pre-alignment expression law rather than
   // being relabeled with the new shared membership meaning.
   const priorExpression = structuredClone(expression);
   delete priorExpression.laws.membership;
-  const beforeMembershipBody = {...body, expression_contract_cid: cid(priorExpression),
-    query_text_rules_sha256:'d91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'};
+  const priorTextBody = {...body,
+    query_text_grammar_sha256: '7cd11ce7c1e58b585756ef3c8ac0eb078cf2bbb7003086263f665e26251b7f0e',
+    query_text_rules_sha256: 'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'};
+  assert.equal(cid(priorTextBody), 'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5');
+  const beforeMembershipBody = {...priorTextBody, expression_contract_cid: cid(priorExpression)};
   assert.equal(beforeMembershipBody.expression_contract_cid,
     'sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb');
   const historicalBody = {...beforeMembershipBody, query_text_rules_sha256: 'e4639cbce44c77135b0f162475ca653b9774ef593a4c02434f6ea30b34ff2eb2'};
@@ -121,15 +124,17 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     '1591310fc6d0f8e53b01dcb646a5f22e717f53a825a00d8600c6aa3e31cb008b'}),
     'sha256:2afc5d41a26a51589b3ad3b647c08dae6ebdb8f135834c227ab97bfd6197bf8a');
   // Both merge parents retain their original normative identity inputs.
-  assert.equal(cid({...body, query_text_rules_sha256:
+  assert.equal(cid({...priorTextBody, query_text_rules_sha256:
     '6e19ee2d70f3c97104b0faff22b8f5d8e37ab021bff6555555bb018bac0f564a'}),
     'sha256:efd71d7d2e6495894932d871a093f184332c4c1a8f0350ad9d42d47e391176a0');
   assert.equal(cid(beforeMembershipBody),
     'sha256:cb47f1587dd7cb896f57d56d2aab4eacca6cd6fb673ab8f258b777947b142f14');
-  assert.equal(cid({...body, query_text_rules_sha256:
-    'd91710b1985ec0156bc9ca905d0ac3d8a86eac24a99ac19a6b5755be091f6561'}),
-    'sha256:cf717bd4a252742b0f29f3badb6b0bd1a876833879fc30e6fefec15f95506fb5');
-  const expected = 'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b';
+  // Preserve both parent manifests using their authored normative inputs.
+  assert.equal(cid({...body, query_text_rules_sha256: '5189df0c79fa8e99c29985dbc87d3360c0338262ec38ad6401957a1a43354992'}),
+    'sha256:a2fb073e8a80ea2647ac70c61b567c4ba00e692119e5bed3e389622b2920bfa7');
+  assert.equal(cid({...priorTextBody, query_text_rules_sha256: '96919df5ec9dee76c7f435ff6045b61fd85a6ac086fa047bc8e07c397dc05678'}),
+    'sha256:c7db9149ce04b3f85a273f97b5e4b1647e62e352484fb56309f5a347744fe37b');
+  const expected = 'sha256:2b32c93b38b2741b740f0f960b99995b4551cbfbb3c5a4ca9058e9c897082f75';
   assert.equal(cid(historicalBody),
     'sha256:2a5854a264c13c65bf7c2ecbc6f59f9ec09e0c590aacc1c8aed6ec247da80067');
   assert.equal(cid({...beforeMembershipBody, query_text_rules_sha256:
