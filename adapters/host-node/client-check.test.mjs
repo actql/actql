@@ -3384,11 +3384,23 @@ for (const entrance of ['local', 'http']) {
       const copied = JSON.parse(session.format({...observation}, {format: 'json'}));
       assert.equal(Object.hasOwn(copied.entries[0], 'location'), false,
         '[check-mutation:session-format-public-copy]');
-      session.update('\ufeff/*😀*/SELECT (', 2);
-      const stale = JSON.parse(session.format(observation, {format: 'json'}));
+      const stale = JSON.parse(session.format(observation, {format: 'json', get locale() {
+        session.update('\ufeff/*😀*/SELECT (', 2); return 'en';
+      }}));
       assert.equal(Object.hasOwn(stale.entries[0], 'location'), false,
         '[check-mutation:session-format-public-current]');
       assert.deepEqual(stale.observation, shown.observation);
+      const current = await session.check({format: 'sql'});
+      const input = getCheckInput(current.outcome, 'source');
+      let edited = false;
+      const changing = {...input, get text() {
+        if (!edited) { edited = true; session.update('edited', 3); }
+        return input.text;
+      }};
+      const changed = JSON.parse(session.format(current, {format: 'json', currentInputs: [changing]}));
+      assert.equal(Object.hasOwn(changed.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-recheck]');
+      assert.deepEqual(changed.observation, shown.observation);
       session.close();
     }
   });
