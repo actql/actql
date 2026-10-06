@@ -97,10 +97,36 @@ star. They do not restore a removed column or range alias. In SQL GROUP
 queries, the retained star columns must be grouped; excluded columns need not
 be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
 its final order. CTE and DATA relations use their current declared columns.
-Existing restrictions on direct Graph star and unsupported JOIN star remain
-explicit implementation gaps. Qualified or expression star and REPLACE are
-separate unconnected coverage; this exclusion connection does not establish
-their execution support or restrict their adopted GoogleSQL meanings.
+`alias.*`, including an EXCEPT list, expands an existing Relation range alias
+in its declared column order. The receiver is a source Reference with ordinary
+alias quotation/name resolution, not a string interpreted as a schema. SQL,
+Pipe, CTE and JOIN ranges share the same physical-slot scope. SET/DROP/RENAME
+retain the bound range's original values; Pipe AS replaces that range. SELECT
+materialization ends its input range scope, while a deferred query ORDER may
+still consume the admitted SELECT input snapshot before that materialization.
+SQL GROUP ordinals count the expanded and excluded range columns, and every
+retained star column must be grouped. LEFT JOIN nullability belongs to the
+common joined schema. A missing or displaced range is refused, including a
+star that would otherwise appear to be an identity projection. The selected
+[GoogleSQL star reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_expression)
+also permits expression/STRUCT receivers. Those broader receivers remain
+unconnected coverage; they are not reinterpreted as Relation ranges.
+Existing restrictions on direct Graph star and unqualified JOIN star remain
+explicit implementation gaps, not restrictions of the selected reference.
+
+`SELECT * REPLACE (expression AS column, ...)`, also following a supported
+range star and EXCEPT list, changes selected values/types while retaining the
+star's column names and order. Every target must occur exactly once in the
+retained star list; exclusions are applied before replacement, and duplicate
+targets are refused under ordinary field-name resolution. The expressions all
+see the same SELECT input snapshot, rather than earlier replacement values.
+Expansion yields ordinary projections and reuses their checker, GROUP/HAVING,
+analytic and ORDER semantics. A new output alias refers to its evaluated slot;
+qualified input references still denote the input snapshot where that scope is
+available. GROUP ordinals count the final expanded SELECT list. No replacement
+constructs type, identity, uniqueness or order evidence. The
+[GoogleSQL star REPLACE clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_replace)
+is distinct from the scalar STRING function of the same spelling.
 
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
@@ -130,8 +156,8 @@ references and clause scope are preserved. Replacement is literal,
 case-sensitive, non-overlapping and left-to-right; an empty search leaves the
 original value unchanged. Any SQL NULL operand produces SQL NULL. No Unicode
 or line-ending normalization is implicit. The STRING overload is connected;
-BYTES and explicit collation remain separate coverage gaps. This function does
-not implement the independent SELECT star REPLACE clause.
+BYTES and explicit collation remain separate coverage gaps. The scalar function
+is independent of the SELECT star REPLACE clause described above.
 
 In the implemented inline `OVER` profile, `PARTITION BY` accepts ordinary
 row-dependent expressions, including comparisons, CASE and supported scalar

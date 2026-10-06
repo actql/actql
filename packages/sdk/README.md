@@ -939,6 +939,66 @@ that input. The SDK imposes the existing check-request admission limits, adds no
 persistent storage, and promises no timed retention or destruction interval.
 
 
+### Bounded known Requirement enumeration
+
+A completed check may include `report.omissions: {requirements: true}` when the
+reserved reporting budget omits known input requirements. Its verdict and
+bound-input scope still account for the full originally submitted input; the
+flag is not a new analysis limit or a verified partial report. Safe violations
+and protected coverage remain in the report. No omitted count is exposed.
+Absence of the flag means this known Requirement enumeration was not truncated.
+
+`explainCheckOutcome` retains that flag separately from operation completeness.
+Text/HTML displays mark Host omissions; JSON retains the typed flag. Renderer
+`omittedEntries` counts only disclosed entries that its own display budget
+omits, and cannot estimate Host omissions. `getCheckRequirementFrontier` refuses
+truncated enumeration, so a check supplementation session stops rather than
+mistaking a prefix for a complete admission frontier. A valid old report remains
+bound to its original input/context; no more checking or supplementation is
+performed by presentation.
+
+
+### Declared parameter admission conditions
+
+A known missing-parameter Requirement can include `facts.admission`. This
+closed `parameter_declaration` representation is emitted from the existing
+admitted `ParameterType` Owner: its complete checked value contract,
+parameter-only numeric/integer, duration and exact-array-length rules, and
+`supplier: "caller"`. The checked-contract schema CID is pinned in the facts
+schema, so changing that referenced schema changes the Reason/Outcome identities.
+Defaults, annotation metadata and supplied values are never projected here.
+
+Rule paths use typed `field` and `items` segments of a type definition. They are
+not source positions or supplied-array indices. The Requirement's separate
+structured location still binds the caller's original declaration document and
+revision. Nullability, object fields, array maxima and decimal precision/scale
+come from the checked contract; parameter-only constraints retain their own
+rules. Conditions describe declaration admission, not all later operations or
+complete Program verification. An absent optional admission object means those
+expanded conditions are not available in that public Reason; no unconstrained
+fallback is invented.
+
+`getCheckParameterAdmission(outcome, name)` returns conditions only for that
+call's original SDK-owned completed response and a disclosed Requirement.
+Copies, forged responses, omitted Requirements and supplied values return
+undefined. The data is immutable and confers no input-write, approval or Run
+permission. Actual supplied values re-enter the existing binder and checker.
+The original unbound report remains bound to its earlier context.
+
+Constraint-row order is not supplementation progress; the existing frontier
+comparison uses its unordered typed set while preserving the semantic order of
+segments within each path. Context changes still consume the total attempt cap.
+If the reserved report budget cannot encode a whole Requirement's conditions,
+the existing omissions marker preserves the complete bound verdict/scope and
+prevents an incomplete frontier. Analysis is not repeated.
+
+`NeedsInputs` remains a partial checking frontier. Preparing declaration types,
+Stage topology or an unbound result wiring cannot certify all remaining static
+obligations as verified(template). A public template scope requires the common
+checker to close those obligations under a scope selected before checking,
+without fabricated values or a second checker. No template success or unsupported
+preparation-write path is introduced by these declaration conditions.
+
 ### Passive operation diagnostic formats
 
 `formatSubmission`, `formatCancellation`, `formatReadFailure` and

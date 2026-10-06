@@ -1,0 +1,46 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e",
+  "outcome_schema_cid": "sha256:b002dc7c0cb0776ae062ee693db51c0a150d5bdc440acb53f5073a15bf4f73b8",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-omissions-fixture",
+    "scope": {
+      "kind": "bound_input"
+    },
+    "verdict": "invalid",
+    "inputs": [
+      {
+        "document_id": "source",
+        "kind": "text",
+        "revision": "rev:7777777777777777777777777777777777777777777777777777777777777777",
+        "byte_length": 8
+      }
+    ],
+    "reasons": [
+      {
+        "code": "query_syntax_invalid",
+        "location": {
+          "kind": "text",
+          "document_id": "source",
+          "revision": "rev:7777777777777777777777777777777777777777777777777777777777777777",
+          "start_byte": 8,
+          "end_byte": 8,
+          "precision": "exact"
+        }
+      }
+    ],
+    "requirements": [],
+    "coverage": {
+      "limits": [
+        {
+          "code": "bound_values_missing"
+        }
+      ],
+      "unresolved": []
+    },
+    "omissions": {
+      "requirements": true
+    }
+  }
+}

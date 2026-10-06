@@ -1897,6 +1897,18 @@ const schemas = {
                 "minLength": 1,
                 "maxLength": 128
               },
+              "omissions": {
+                "type": "object",
+                "required": [
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "requirements": {
+                    "const": true
+                  }
+                }
+              },
               "inputs": {
                 "type": "array",
                 "minItems": 1,
@@ -2238,6 +2250,208 @@ const schemas = {
                                 "resource_ref",
                                 "artifact_ref"
                               ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         },
@@ -2406,6 +2620,28 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -3340,6 +3576,208 @@ const schemas = {
                                 "resource_ref",
                                 "artifact_ref"
                               ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         },
@@ -3508,6 +3946,28 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -4241,6 +4701,11 @@ const schemas = {
                         }
                       }
                     }
+                  },
+                  "not": {
+                    "required": [
+                      "omissions"
+                    ]
                   }
                 }
               },
@@ -4303,7 +4768,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4343,6 +4808,18 @@ const schemas = {
                 "pattern": "^[A-Za-z0-9:_-]+$",
                 "minLength": 1,
                 "maxLength": 128
+              },
+              "omissions": {
+                "type": "object",
+                "required": [
+                  "requirements"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "requirements": {
+                    "const": true
+                  }
+                }
               },
               "inputs": {
                 "type": "array",
@@ -4685,6 +5162,208 @@ const schemas = {
                                 "resource_ref",
                                 "artifact_ref"
                               ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         },
@@ -4853,6 +5532,28 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -5787,6 +6488,208 @@ const schemas = {
                                 "resource_ref",
                                 "artifact_ref"
                               ]
+                            },
+                            "admission": {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "contract_schema_cid",
+                                "contract",
+                                "constraints",
+                                "supplier"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "contract_schema_cid": {
+                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                },
+                                "kind": {
+                                  "const": "parameter_declaration"
+                                },
+                                "contract": {
+                                  "$ref": "value_contract"
+                                },
+                                "supplier": {
+                                  "const": "caller"
+                                },
+                                "constraints": {
+                                  "type": "array",
+                                  "maxItems": 8192,
+                                  "items": {
+                                    "oneOf": [
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "integer"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "numeric"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "integer": {
+                                            "type": "boolean"
+                                          },
+                                          "minimum": {
+                                            "type": "number"
+                                          },
+                                          "maximum": {
+                                            "type": "number"
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "duration"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        }
+                                      },
+                                      {
+                                        "type": "object",
+                                        "required": [
+                                          "kind",
+                                          "path",
+                                          "length"
+                                        ],
+                                        "additionalProperties": false,
+                                        "properties": {
+                                          "kind": {
+                                            "const": "array_length"
+                                          },
+                                          "path": {
+                                            "type": "array",
+                                            "maxItems": 64,
+                                            "items": {
+                                              "oneOf": [
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind",
+                                                    "name"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "field"
+                                                    },
+                                                    "name": {
+                                                      "type": "string",
+                                                      "minLength": 1,
+                                                      "maxLength": 65536
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "required": [
+                                                    "kind"
+                                                  ],
+                                                  "additionalProperties": false,
+                                                  "properties": {
+                                                    "kind": {
+                                                      "const": "items"
+                                                    }
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "length": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 9007199254740991
+                                          }
+                                        }
+                                      }
+                                    ]
+                                  }
+                                }
+                              }
                             }
                           }
                         },
@@ -5955,6 +6858,28 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "parameter_value_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "admission"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "required": [
@@ -6687,6 +7612,11 @@ const schemas = {
                         }
                       }
                     }
+                  },
+                  "not": {
+                    "required": [
+                      "omissions"
+                    ]
                   }
                 }
               },
@@ -6768,7 +7698,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -6814,7 +7744,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61"
+            "const": "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -7854,8 +8784,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:68e1bd708b29c0006749a8e0916104e89d20b1d7b56f1d0b07b04ae2d6bfca61";
-export const checkOutcomeSchemaCid = "sha256:218426e9d9a86ff7993dc0fac4c5bf92640b913e375588b4cbc2908441afdb4c";
+export const checkReasonSchemaCid = "sha256:2fb6707e07b5e3dc3f9a8ceb3aa5d1b2d37537770b979abf82bc4f598962876e";
+export const checkOutcomeSchemaCid = "sha256:b002dc7c0cb0776ae062ee693db51c0a150d5bdc440acb53f5073a15bf4f73b8";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
@@ -7875,6 +8805,7 @@ function valid(value, schema) {
         (schema.pattern !== undefined && !new RegExp(schema.pattern, 'u').test(value))))
     return false;
   if (schema.type === 'string') return typeof value === 'string';
+  if (schema.type === 'number') return typeof value === 'number' && Number.isFinite(value) && !Object.is(value, -0);
   if (schema.type === 'integer') return Number.isSafeInteger(value) &&
     (schema.minimum === undefined || value >= schema.minimum) &&
     (schema.maximum === undefined || value <= schema.maximum);
