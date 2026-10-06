@@ -99,6 +99,19 @@ checked cast; it does not widen the common conversion domains, make failing
 casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
 NULL remains a typed nullable boolean, including on empty Relations.
 
+An explicit output alias may omit `AS`, for example `SELECT id + 1 next_id`,
+`SELECT COUNT(*) n FROM records`, or `FROM records |> EXTEND id + 1 next_id`.
+This adopts the [pinned GoogleSQL SELECT alias spelling](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#explicit_alias_syntax)
+and the same projection spelling in Pipe SELECT, EXTEND and AGGREGATE.
+The omitted keyword does not change name resolution, sibling visibility,
+aggregate/window demand, output column order or type. Quoted aliases use
+backticks, including reserved words; an unquoted alias without AS cannot be a
+[reserved GoogleSQL keyword](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#reserved_keywords).
+Clause starters therefore remain syntax, including currently unsupported clauses.
+Unnamed function/computed columns remain an explicit unsupported coverage gap;
+this connection still requires names for aggregate and analytic outputs and does
+not manufacture a public name or change the ordinary Result contract.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still

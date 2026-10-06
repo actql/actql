@@ -607,7 +607,9 @@ test('baseline preimages and changed normative pins independently determine the 
   // Retain the preceding main Run with its original grammar and dependencies.
   assert.equal(vector('sha256:e31537c1b3104a915c951fa8bd3d98ee4d9ea4542d24275bf3c54b7341be62ad', cid(aoaContract), currentDependencies,
     barrierCid, currentIdentity).run.run_definition_cid, 'sha256:6cedd73015905be0a71b4df2db8ab5f95d1d0003b3b5abce9ed334a70edf5a68');
-  assert.equal(current.run.run_definition_cid, 'sha256:5d0c79e01623a60b1ab0f1f9e46f4ed395dae07ace32f9e8e6f46f8dcce1385b');
+  // Preserve the prior main Run closure; compute this change from normative bytes.
+  assert.equal(vector('sha256:5ac68c0bb19d569209191ad0131672abca12b8d520a800c7bc523fb0ab957c20', cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid, 'sha256:5d0c79e01623a60b1ab0f1f9e46f4ed395dae07ace32f9e8e6f46f8dcce1385b');
+  assert.equal(current.run.run_definition_cid, 'sha256:c5b782e7a52b65b45bca1d6b7d78dea24bb0c008182a40d93afa5197cd349ba5');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
