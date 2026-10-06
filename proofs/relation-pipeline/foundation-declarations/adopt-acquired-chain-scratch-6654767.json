@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-acquired-chain-scratch-6654767",
+  "kind": "change",
+  "revision": "6654767f548ae3b75403bc8a34ed50144c2bc971",
+  "parents": [
+    "660c48375b782e4d2c3aa7b405caf17bf61915d5"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "660c48375b782e4d2c3aa7b405caf17bf61915d5",
+          "digest": "dadf6e7235d6f79d8102608046aa94d71fb8141cd5bcb963bff4c514ef1915dc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5700f4439cc2d602f76571d3a2aba4aa638992ad2e7fe70777f68f4d5a6fcbeb",
+      "afterMode": "100644",
+      "reason": "Record the actual acquired-chain scratch-lifetime repair and its source-selected validation/ownership documentation without changing the retained verifier or prior evidence."
+    },
+    {
+      "path": "proofs/relation-chain/README.md",
+      "before": [
+        {
+          "revision": "660c48375b782e4d2c3aa7b405caf17bf61915d5",
+          "digest": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "45f560d5361db31531d049808f1d459e272548ccf0a1f167423353b2e38b4d10",
+      "afterMode": "100644",
+      "reason": "Record the actual acquired-chain scratch-lifetime repair and its source-selected validation/ownership documentation without changing the retained verifier or prior evidence."
+    }
+  ]
+}
