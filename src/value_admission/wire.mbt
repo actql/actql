@@ -41,6 +41,41 @@ pub fn canonical_scalar_text(
   value : CheckedValue,
   max_utf8_bytes : Int,
 ) -> String? {
+  guard start_scalar_text(value, max_utf8_bytes) is Some(cursor) else {
+    return None
+  }
+  while true {
+    match advance_scalar_text(cursor) {
+      ScalarTextContinue => ()
+      ScalarTextComplete(text, _, _) => return Some(text)
+      ScalarTextFailed => return None
+    }
+  } nobreak {
+    None
+  }
+}
+
+///|
+struct ScalarText {
+  mut text : String?
+  mut recheck : RecheckCursor?
+  max_utf8_bytes : Int
+}
+
+///|
+pub enum ScalarTextPoll {
+  ScalarTextContinue
+  ScalarTextComplete(String, Int, Int)
+  ScalarTextFailed
+}
+
+///|
+/// Stage the normative scalar spelling without scanning long borrowed Text.
+/// A successful poll returns text, scalar count and exact preserved UTF-8 bytes.
+pub fn start_scalar_text(
+  value : CheckedValue,
+  max_utf8_bytes : Int,
+) -> ScalarText? {
   if max_utf8_bytes < 0 {
     return None
   }
@@ -51,9 +86,59 @@ pub fn canonical_scalar_text(
     Decimal(v) => decimal_wire_text(v)
     Null | Array(_) | Object(_) | Vector(_) | Reference(_) => return None
   }
-  match @scalar.admit_utf8_length(text, max_utf8_bytes) {
-    Ok(_) => Some(text)
-    Err(_) => None
+  if text.length() > max_utf8_bytes {
+    return None
+  }
+  Some({ text: Some(text), recheck: None, max_utf8_bytes, })
+}
+
+///|
+pub fn cancel_scalar_text(cursor : ScalarText) -> Unit {
+  if cursor.recheck is Some(recheck) {
+    cancel_recheck_runtime_value(recheck)
+  }
+  cursor.recheck = None
+  cursor.text = None
+}
+
+///|
+/// Inspect one existing recheck frame, with a bounded short-scalar fast path.
+pub fn advance_scalar_text(cursor : ScalarText) -> ScalarTextPoll {
+  guard cursor.text is Some(text) else { return ScalarTextFailed }
+  if text.length() <= 64 {
+    let result = match @scalar.admit_utf8_length(text, cursor.max_utf8_bytes) {
+      Ok(bytes) =>
+        match @scalar.unicode_scalar_count(text) {
+          Some(count) => ScalarTextComplete(text, count, bytes)
+          None => ScalarTextFailed
+        }
+      Err(_) => ScalarTextFailed
+    }
+    cancel_scalar_text(cursor)
+    return result
+  }
+  if cursor.recheck is None {
+    cursor.recheck = start_recheck_runtime_text(
+      text,
+      @contract.primitive(@contract.StringType, nullable=false),
+      { max_nodes: 1, max_depth: 0, max_text_bytes: cursor.max_utf8_bytes, },
+    )
+  }
+  guard cursor.recheck is Some(recheck) else { return ScalarTextFailed }
+  match advance_recheck_runtime_value(recheck) {
+    RecheckContinue => ScalarTextContinue
+    RecheckComplete(_, _, _) => {
+      guard recheck.text_counts is Some((count, bytes)) else {
+        cancel_scalar_text(cursor)
+        return ScalarTextFailed
+      }
+      cancel_scalar_text(cursor)
+      ScalarTextComplete(text, count.to_int(), bytes.to_int())
+    }
+    RecheckFailed => {
+      cancel_scalar_text(cursor)
+      ScalarTextFailed
+    }
   }
 }
 

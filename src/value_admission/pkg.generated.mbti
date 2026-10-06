@@ -34,6 +34,8 @@ pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
 
 pub fn advance_reference_admission(ReferenceAdmission) -> ReferenceAdmissionPoll
 
+pub fn advance_scalar_text(ScalarText) -> ScalarTextPoll
+
 pub fn advance_typed_admission(TypedAdmission) -> TypedAdmissionPoll
 
 pub fn advance_wire_emit(WireEmitCursor) -> Bool raise @encode_core.EncodeFailure
@@ -63,6 +65,8 @@ pub fn cancel_object_value(ObjectBuilder) -> Bool
 pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
 
 pub fn cancel_reference_admission(ReferenceAdmission) -> Unit
+
+pub fn cancel_scalar_text(ScalarText) -> Unit
 
 pub fn cancel_typed_admission(TypedAdmission) -> Unit
 
@@ -167,6 +171,8 @@ pub fn start_recheck_runtime_text(String, @value_contract.Contract, Limits) -> R
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
 
 pub fn start_reference_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, ReferenceLimits) -> Result[ReferenceAdmission, ReferenceIssue]
+
+pub fn start_scalar_text(CheckedValue, Int) -> ScalarText?
 
 pub fn start_typed_admission(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[TypedAdmission, Issue]
 
@@ -334,6 +340,14 @@ pub struct ReferenceValue {
   envelope : @canonical_json.CanonicalValue
   wire : String
   authorize : () -> Bool
+}
+
+type ScalarText
+
+pub enum ScalarTextPoll {
+  ScalarTextContinue
+  ScalarTextComplete(String, Int, Int)
+  ScalarTextFailed
 }
 
 type TypedAdmission
