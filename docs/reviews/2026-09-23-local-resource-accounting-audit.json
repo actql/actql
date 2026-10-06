@@ -346,6 +346,7 @@
         "src/local_veca/ranking.mbt",
         "src/managed_record_storage/append_steps.mbt",
         "src/managed_record_storage/identity_steps.mbt",
+        "src/value_contract/equality_steps.mbt",
         "src/managed_record_runtime/output.mbt"
       ],
       "evidence": [

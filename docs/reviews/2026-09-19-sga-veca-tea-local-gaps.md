@@ -5833,3 +5833,24 @@ Schema/type/name scans, synchronous legacy drains, Relation member-identity
 concatenation, physical heap/whole-Run budgets and unexecuted target/packed
 campaigns remain outside this boundary. See the
 [identity evidence](2026-10-06-local-record-identity-streaming.md).
+
+### Record contract equality scanning
+
+The shared record append now retains exact type equality across field-contract
+transitions. Contract nodes, wide Object children, long Object names and
+reference parameter spelling no longer hide a complete recursive comparison
+inside one field poll. The same contract owner backs synchronous type equality;
+pair limits and reverse-name-before-forward-child refusal precedence are
+preserved. Deeper contracts reserve continuation custody before allocation,
+including a NULL value whose declared contract exceeds its wire depth.
+
+Focused JS evidence covers pair limits 130/129, extra workspace 25/24, original
+wire construction 7/6, typed mismatch before commit, prior-row custody and
+single cleanup. Atomic draining is detected by negative mutation. Existing
+installed retained Pool publication/request/cancellation cases remain successful;
+they do not prove cancellation inside a recursive contract. Field lookup/Map
+name scans, runtime Object-name validation, member-key concatenation, legacy
+drains, whole-Run physical accounting and unexecuted target/packed campaigns
+remain separate residuals. This supersedes only the recursive type-equality
+part of the historical schema/type/name residual. See the
+[contract scanning evidence](2026-10-06-local-record-contract-scanning.md).
