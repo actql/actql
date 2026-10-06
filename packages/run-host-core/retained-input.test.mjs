@@ -18,7 +18,7 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
   retainedInputResultFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
-  retainedTaskInputFacts, issueRetainedTaskDispatch}
+  retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress}
   from './index.mjs';
 
 // The ordinary two-stage Program has one checked Source producer and one
@@ -104,14 +104,14 @@ test('retained edge rejects absent edges, foreign Run owners and forged handles'
   }
 });
 
-function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid('7')) {
+function coordinatorProducerFixture(original, taskAttempt = 1, manifestCid = cid('7'), issuedOverride) {
   const authority = cid('c');
   const selection = {taskAttempt, dispatchId: `producer-${taskAttempt}`,
     siteKey: 'site-a', siteGeneration: 1, runtimeBundleCid: cid('a'),
     connectorRegistration: 'local', connectorRevision: 'local/1',
     strategyRevision: 'strategy/1', obligationsCid: cid('1'),
     budgetCid: cid('2'), evidenceIssuerCapabilityCid: cid('3'), grantCid: cid('4')};
-  const issued = issueTaskDispatch(original.prepared, original.compilation,
+  const issued = issuedOverride ?? issueTaskDispatch(original.prepared, original.compilation,
     original.admission, original.definition,
     prepareTaskRequest(original.prepared, original.compilation, authority,
       'original-request'), 0, selection);
@@ -456,6 +456,77 @@ const issueConsumer = (original, fixture, input, selection = fixture.completed.s
     original.definition, prepareTaskRequest(original.prepared, original.compilation,
       fixture.completed.authority, 'original-request'), 1,
     {...selection, dispatchId: 'consumer-1'}, input);
+
+test('checked remote task progress separates producer completion from Run and cleanup completion', () => {
+  const original = run();
+  const fixture = retainedTransferFixture(original);
+  const progress = (...records) => inspectTaskProgress(original.prepared, original.compilation,
+    original.admission, original.definition, fixture.completed.authority,
+    records.map(value => value.current().durableRecordWire));
+  const empty = progress();
+  assert.equal(empty.nextTask, 0);
+  assert.equal(empty.executionComplete, false);
+  assert.equal(empty.cleanupComplete, false);
+  assert.deepEqual(empty.resultTasks, [1]);
+  const producer = progress(fixture.completed);
+  assert.equal(producer.nextTask, 1);
+  assert.equal(producer.executionComplete, false);
+  assert.equal(producer.cleanupComplete, false);
+  assert.deepEqual(producer.tasks.map(value => value.execution), ['settled', 'unobserved']);
+  assert.equal(producer.tasks[0].dispatchCid, fixture.completed.issued.cid);
+  fixture.commit();
+  const input = prepareRetainedTaskInput(fixture.producer, fixture.receipt,
+    'receiver-use', fixture.current, inputLimits);
+  const consumer = coordinatorProducerFixture(original, 1, cid('7'), issueConsumer(original, fixture, input));
+  assert.equal(progress(fixture.completed, consumer).nextTask, undefined,
+    'persisted consumer intent is reconciled, never selected for another start');
+  consumer.observe([3, 2, 0, 1, 0], 5, false);
+  assert.equal(progress(fixture.completed, consumer).executionComplete, false,
+    'physical settlement without admitted output evidence cannot finish the checked graph');
+  consumer.observe([3, 2, 0, 1, 0], 6);
+  let complete = progress(consumer, fixture.completed);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, false);
+  assert.equal(complete.nextTask, undefined);
+  assert(Object.isFrozen(complete));
+  assert(Object.isFrozen(complete.tasks));
+  assert(Object.isFrozen(complete.tasks[0].executionScope));
+  for (const record of [fixture.completed, consumer]) {
+    record.observe([3, 2, 1, 1, 0], 7);
+    assert.equal(progress(fixture.completed, consumer).cleanupComplete, false);
+    record.observe([3, 2, 2, 0, 0], 8);
+  }
+  complete = progress(fixture.completed, consumer);
+  assert.equal(complete.executionComplete, true);
+  assert.equal(complete.cleanupComplete, true);
+  assert.deepEqual(complete.tasks.map(value => value.cleanup), ['released', 'released']);
+});
+
+test('checked remote task progress rejects foreign and competing observations and does not restart unknown work', () => {
+  const original = run();
+  const fixture = coordinatorProducerFixture(original);
+  const inspect = (records, authority = fixture.authority) => inspectTaskProgress(
+    original.prepared, original.compilation, original.admission, original.definition,
+    authority, records);
+  const saved = fixture.current().durableRecordWire;
+  assert.equal(inspect([saved]).nextTask, undefined, 'unobserved original intent has a reconciliation owner');
+  assert.throws(() => inspect([saved], cid('f')), {code: 'RunHostTaskProgressRejected'});
+  assert.throws(() => inspect([saved, saved]), {code: 'RunHostTaskProgressRejected'});
+  const otherAttempt = coordinatorProducerFixture(original, 2).current().durableRecordWire;
+  assert.throws(() => inspect([saved, otherAttempt]), {code: 'RunHostTaskProgressRejected'});
+  const foreign = coordinatorProducerFixture(run(document.replace('id > 2', 'id > 1')));
+  assert.throws(() => inspect([foreign.current().durableRecordWire]), {code: 'RunHostTaskProgressRejected'});
+  fixture.observe([6, 0, 3, 0, 0], 1, false);
+  const unknown = inspect([fixture.current().durableRecordWire]);
+  assert.equal(unknown.nextTask, undefined);
+  assert.equal(unknown.executionComplete, false);
+  assert.equal(unknown.cleanupComplete, false);
+  assert.equal(unknown.tasks[0].execution, 'unknown');
+  assert.equal(unknown.tasks[0].cleanup, 'unknown');
+  for (const records of [null, ['invalid'], [saved, 1]]) {
+    assert.throws(() => inspect(records));
+  }
+});
 
 test('retained consumer dispatch joins exact committed destination and restores current custody', () => {
   const original = run();

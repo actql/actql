@@ -466,6 +466,8 @@ pub fn managed_transfer_runtime_action_code(ManagedTransferRuntimeAction) -> Int
 
 pub fn next_captured_task(CapturedDAG) -> Int?
 
+pub fn next_dependency_ready_task(CheckedDAG, (Int) -> Bool, first_task? : Int) -> Int?
+
 pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
