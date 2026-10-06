@@ -202,7 +202,9 @@ test "presence row cursor yields inside nested cells and charges immutable shari
   ).unwrap()
   let owner = presence_output_owner(schema~)
   let number = @admitted.number_value(7.0).unwrap()
-  let nested = @admitted.array_value(Array::make(128, number))
+  let nested = @admitted.JsonData(
+    @admitted.array_value(Array::make(128, number)),
+  )
   let read = column => Some(Present(if column == 0 { number } else { nested }))
   // One row + id + array + 128 scalar occurrences = 131 nodes. The three
   // name bytes add three logical work even when all scalar backing is shared.
