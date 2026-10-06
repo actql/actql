@@ -405,6 +405,8 @@ fn validate_generated_protocol_shape(
 ///|
 /// Parse the closed private Effect Preview shape. This does not establish
 /// its semantic CID, nested identities, current authority, or apply admission.
+/// Data-bearing members keep exact keys; the generated schema still admits
+/// structural field names and the complete wire must already be canonical.
 pub fn parse_effect_preview_shape(
   wire : String,
   max_wire_bytes : Int,
@@ -412,7 +414,13 @@ pub fn parse_effect_preview_shape(
   max_depth : Int,
 ) -> Result[@json.CanonicalValue, PublicationContractIssue] {
   let value = match
-    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(parsed) => parsed
     Err(issue) => return Err(issue)
   }
@@ -435,6 +443,7 @@ pub fn parse_effect_preview_shape(
 ///|
 /// Canonicalize a complete Preview draft before semantic identities are
 /// issued. This does not admit its references or authorize an Effect apply.
+/// Ordering must not normalize the values whose identities will be sealed.
 pub fn canonical_effect_preview_draft_wire(
   wire : String,
   max_wire_bytes : Int,
@@ -442,7 +451,13 @@ pub fn canonical_effect_preview_draft_wire(
   max_depth : Int,
 ) -> Result[String, PublicationContractIssue] {
   let value = match
-    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(parsed) => parsed
     Err(issue) => return Err(issue)
   }
@@ -462,6 +477,7 @@ pub fn canonical_effect_preview_draft_wire(
 ///|
 /// Admit the closed, canonical EffectOutcome value shape. This does not bind
 /// a provider response, Preview row, dispatch, or terminal Receipt.
+/// Provider result/error data remains exact inside the closed outer shape.
 pub fn parse_effect_outcome_shape(
   wire : String,
   max_wire_bytes : Int,
@@ -469,7 +485,13 @@ pub fn parse_effect_outcome_shape(
   max_depth : Int,
 ) -> Result[@json.CanonicalValue, PublicationContractIssue] {
   let value = match
-    parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(parsed) => parsed
     Err(issue) => return Err(issue)
   }

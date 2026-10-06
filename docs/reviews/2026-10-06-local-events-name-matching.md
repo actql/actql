@@ -3,8 +3,8 @@
 ## Completion unit
 
 This component depends on #610 at
-`cf2d938f96ebfa02a697e449fe78115dd1f06a61`. The parent remains
-unmerged; the eventual destination is main. Watermark, fixed/sliding
+`cf2d938f96ebfa02a697e449fe78115dd1f06a61`. The parent is now adopted;
+the base and final merge destination are main. Watermark, fixed/sliding
 window, dedupe and Events/Relation session now resolve input names using
 the existing common reference-fragment comparator instead of flattening
 and comparing whole Strings in a single poll.

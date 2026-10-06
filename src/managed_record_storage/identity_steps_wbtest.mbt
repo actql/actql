@@ -184,7 +184,7 @@ test "record identity streaming equality preserves Unicode and escaped chunks" {
 ///|
 test "record identity equality ignores emitter fragment boundaries" {
   let builder = prepare(relation(), limits()).unwrap()
-  // Vector and JSON Array have the same canonical wire but different child
+  // Vector and declared numeric Array have the same canonical wire but different child
   // continuation schedules. This private comparator tests wire equality only;
   // it does not make structured values eligible Carrier identity fields.
   let vector = checked(
@@ -192,12 +192,18 @@ test "record identity equality ignores emitter fragment boundaries" {
     "[1,2]",
   )
   let array = checked(
-    @contract.primitive(@contract.JsonType, nullable=false),
+    @contract.array_contract(
+      @contract.primitive(@contract.NumberType, nullable=false),
+      nullable=false,
+    ).unwrap(),
     "[1,2]",
   )
   assert_true(identity_equal(builder, [vector], [array]))
   let different = checked(
-    @contract.primitive(@contract.JsonType, nullable=false),
+    @contract.array_contract(
+      @contract.primitive(@contract.NumberType, nullable=false),
+      nullable=false,
+    ).unwrap(),
     "[1,3]",
   )
   assert_false(identity_equal(builder, [vector], [different]))

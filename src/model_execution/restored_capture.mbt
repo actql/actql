@@ -73,6 +73,7 @@ fn begin_restored_model_response(
       @publication.model_capture_record_response(record),
       state.limits.value_limits,
       contract=Some(@environment.model_task_output(state.task)),
+      wire=true,
     )
     is Some(cursor) else {
     return @bounded.Failed(OutputValue, 1, 1)

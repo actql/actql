@@ -422,6 +422,15 @@ authorize another operation. Location helpers still require the exact SDK
 response and its original submitted snapshot. Explanations are immutable, safe
 English text; they do not expose private causes or inspect error messages.
 
+Before credentials or transport, `check` rejects non-finite numbers and negative
+zero in supplied parameters or declarations (including nested values, boxed
+Numbers and values returned by `toJSON`) with `InvalidCheckRequest`. Public
+Local/HTTPS ingress independently refuses these values as `InvalidClientRequest`
+before invoking check, including overflowing HTTPS numeric tokens. Local owns
+its detached request before awaiting authentication. JSON serialization must not replace these numbers with
+`null` or zero and check a different input. This is request admission, not an
+`invalid`, `verified` or `undetermined` checker verdict.
+
 A completed check may be invalid or undetermined. Its verdict is always bound to
 scope/context and does not start or authorize a Run. Wrong supplied types expose
 expected/actual types without values. Missing declared values expose Requirements
@@ -498,11 +507,50 @@ code units, non-BMP characters count as two, and CRLF is one line break; lone CR
 and LF also start a line. EOF and zero-width locations are supported. A boundary
 inside CRLF or malformed original Unicode has no exact editor range and is
 omitted. Structured locations remain pointers, without fabricated text ranges.
-An editor must associate its open-document session/version with the submitted
-snapshot and pass the current identity/revision/text when displaying against
-the current buffer. Reopening or editing does not rebind an old response.
-This helper provides UTF-16 coordinates, not a negotiated LSP server or an edit
-operation; approximate ranges retain their label and do not grant edit permission.
+`resolveCheckTextRangeEncoding(outcome, location, encoding, currentInput?)` uses
+that same walker with an already negotiated `utf-8`, `utf-16` or `utf-32`
+encoding. UTF-8 columns count bytes, UTF-16 columns count code units and UTF-32
+columns count Unicode scalars. Unsupported encodings are refused. Neither helper
+negotiates a protocol or applies edits; approximate ranges retain their label.
+
+`createCheckDocumentSession(client, {text, version, positionEncoding?})` binds one
+open unsaved buffer to explicit SDK checks. The default encoding is UTF-16, as in
+[LSP's position contract](https://github.com/microsoft/vscode-languageserver-node/blob/main/types/src/main.ts).
+`update(text, version)` replaces the entire buffer only with a well-formed string
+and a strictly increasing signed 32-bit version. Negative initial versions and
+nonconsecutive increases are allowed. Undo/redo still advances the version.
+Reopening requires a new session. The session does not infer text from a URI.
+
+```js
+const document = createCheckDocumentSession(client, {text: buffer, version: 1});
+const observation = await document.check({format: 'sql'});
+const report = observation.outcome.report ?? observation.outcome.partial_report;
+for (const reason of report?.reasons ?? []) {
+  const range = reason.location && document.resolveTextRange(observation, reason.location);
+  // Display the safe reason even when no current editor range is available.
+}
+document.close();
+```
+
+Each check captures the current text/version before waiting. Position resolution
+requires the original observation from this session, the current version and
+exact bytes, and the newest issued check. A newer pending or failed check also
+invalidates earlier positions, including checks with unchanged text but different
+bindings/context. Reordered replies remain historical observations; editing,
+closing, reopening, foreign sessions and copied observations cannot rebind them.
+A response without SDK-owned source input has no editor range. Safe explanations
+remain available through `observation.outcome` independently of position display.
+
+A session retains one current buffer and its shared Client while open. Outstanding
+checks retain their captured input until settlement; retained original outcomes
+keep their existing SDK input snapshots through weak associations. Session
+observation associations are also weak and do not retain an independent history.
+`close()` drops the current buffer and Client reference and invalidates all editor
+positions; it neither cancels outstanding checks nor closes the shared Client.
+The session has no additional buffer byte cap or timed retention; explicit check
+calls still use the existing SDK/Host request admission bounds. No extra Host
+persistence, retrieval API, public input hash or retention period is introduced. This is an SDK document adapter, not a full LSP server or a fix
+application mechanism.
 Nested object/array type failures identify the declared child type and the
 existing binder's path, with JSON pointer escaping for field names. Supplied
 constraint violations with an owned binder cause expose
@@ -513,6 +561,16 @@ the reason does not claim which one failed. `explainCheckReason` provides a
 family-specific hint. The declaration snapshot is available through
 `getCheckInput(outcome, 'parameter_declarations')`; actual values are not facts.
 Other violations remain safely generic rather than guessing a cause.
+JSON parser failures in supplied values and declarations can also carry the
+original structural path before a decoded cursor exists. The existing preserving
+JSON reader supplies location material only when its typed failure and source
+position match the authoritative parser failure; it never changes the verdict.
+These retain
+`supplied_parameters_invalid` / `parameter_declarations_invalid`; the pointer
+belongs to the corresponding submitted input revision. Escaped unpaired
+surrogates identify the original value; an undecodable member name identifies
+the parser's known enclosing container. Unknown paths stay absent, and parser
+budgets remain checking limits without an input-violation location.
 Missing submitted nodes and pointers beyond the public bound have no location;
 invalid defaults never point into supplied values. Values remain in the local
 submitted snapshot, not in public diagnostic facts.
@@ -719,3 +777,114 @@ opens another read after checking availability, it starts from the beginning;
 it does not append to or resume the interrupted iterator. Read interruption or
 cleanup uncertainty proves neither Run failure, Result publication nor resource
 release.
+
+
+`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?, positionEncoding?})`
+formats the validated public check observation for terminal output, HTML display,
+or structured agent data. Text is the default. It delegates summaries to the
+existing explanation helpers and preserves the Owner verdict, scope, completeness
+and context. Agent JSON keeps reason/outcome schema CIDs separately from the
+selected translation revision. Requirements, limits and protected unresolved boundaries stay distinct
+from violations. Unknown reasons have generic explanations; malformed known facts,
+wrong schema identities and unknown outcomes return `undefined`.
+
+HTML escapes markup. All formats escape untrusted control and bidirectional marks;
+agent JSON also escapes markup delimiters while preserving string data on parse.
+The output contains disclosed typed facts and locations, never original input text,
+parameter values, private causes, provider debug links, executable actions or input access. It performs no
+transport, checking, edit, submission or retry. Render HTML as this complete
+fragment; do not reinterpret its escaped strings as markup.
+
+Locations require the exact SDK response's original input association. Copied
+reports still display safe explanations but omit positions. For a current editor,
+pass `currentInputs` explicitly: missing, edited or stale revisions omit positions.
+Matching current inputs validate freshness; resolved locations use the SDK-owned
+immutable submitted snapshot, so later reads cannot switch to caller-mutated text.
+An absent option displays coordinates of the submitted revision only, never an
+assumed latest editor buffer. Text locations include original UTF-8 offsets and,
+when representable, the existing UTF-16 range. Structured pointers remain separate.
+This is display plumbing, not an LSP document-session owner or a fix applicator.
+
+The default output limit is 65,536 UTF-8 bytes; `maxBytes` must be an integer from
+1,024 through 1,048,576. Whole entries are retained in report order until the bound
+is reached. `omittedEntries` in JSON and an explicit omission line in text/HTML
+report the remaining count. Truncation never changes the observation or claims
+complete diagnostic display. If even the observation cannot fit, return
+`undefined`; callers retain the original typed outcome for another display.
+
+
+```js
+import {formatCheckOutcome} from '@actql/sdk';
+const outcome = await client.check(text, {format: 'sql'});
+const display = formatCheckOutcome(outcome, {format: 'text'});
+if (display === undefined) throw new Error('CheckDisplayUnavailable');
+console.log(display);
+```
+
+`positionEncoding` selects the already negotiated `utf-8`, `utf-16` or `utf-32`
+text coordinates. UTF-16 is the default; an unknown encoding refuses the display.
+The formatter reuses the SDK's original-byte coordinate conversion. Structured
+input pointers stay structured locations and have no text encoding.
+
+For an open unsaved document, `session.format(observation, options?)` uses the
+session's negotiated encoding and the same current-observation gate as
+`session.resolveTextRange`. It keeps safe explanations, facts, verdict and the
+original context for old, closed, foreign or copied observations, while omitting
+their positions. A newer pending check invalidates older positions even when
+the text and document version are equal. It reads application options before
+checking currency and checks again after rendering, because a supplied input
+accessor can edit or close the session. An explicitly supplied current-input set
+is respected; malformed or missing current entries do not restore older positions.
+The session retains no additional input, sends no request for formatting and
+applies no edit.
+
+```js
+const session = createCheckDocumentSession(client, {
+  text: unsavedText, version: documentVersion, positionEncoding: 'utf-8',
+});
+const observation = await session.check({format: 'sql'});
+const display = session.format(observation, {format: 'json'});
+// Call session.update(newText, newVersion) for edits and session.close() on close.
+```
+
+`binding_json_invalid` explains the existing parser's failure to admit submitted
+parameter declarations or values. Closed `facts.document` identifies which
+original input failed, and `facts.issue` identifies the parser family without
+including member names, values or messages. Unicode scalar failures and member
+names that collide under the admitted normalization rules are distinct. Exact
+owned structured pointers remain optional; a location recovery read cannot
+substitute another issue. Budgets are checking limits, not invalid JSON. Correct
+the submitted input and explicitly check again; these hints apply no edit and
+grant no execution authority.
+
+
+The operation explanation helpers `explainSubmission`, `explainCancellation`,
+`explainReadFailure` and `explainEffectUncertainty` accept optional `{locale}`
+with the same `en` / `ja` / `ja-JP` selection as check presentation. Unknown
+selections or a throwing locale getter retain the safe English explanation.
+`getOperationPresentationInfo({locale})` returns the operation translation
+revision; it is separate from the check translation revision, schema CIDs and
+Program/Run/Result identity.
+
+The helpers first retrieve the original immutable SDK observation, then choose
+wording. Locale changes preserve every observation, request/Run/read reference,
+control revision, physical-stop fact, cleanup fact and caller-yielded row count.
+They perform no lookup, submit, cancellation, reconciliation or read. Changing
+an error or response while the locale getter runs cannot replace retained facts;
+copies and foreign objects still have no retained explanation. English keeps
+the original frozen explanation; translated results are frozen and reuse its
+immutable nested data. No source, value or credential retention is added.
+
+```js
+const explanation = explainCancellation(cancelReply, {locale: 'ja'});
+// Cancellation acceptance still requires a fresh status for stop and release.
+const presentation = getOperationPresentationInfo({locale: 'ja'});
+```
+
+A held request is distinct from uncertain acceptance and from a received Run
+reference. A reader interruption reports only rows returned to that caller;
+it does not establish publication or execution success. Uncertain reader cleanup
+stays uncertain. An unresolved Effect stays unresolved even when computation
+stop is separately confirmed. Translation cannot grant retry or reconciliation
+permission; inspect the original Owner through the retained reference and current
+authorization when the caller explicitly chooses to do so.

@@ -61,10 +61,10 @@ test "Graph presence projection fragments long names and nested values under one
   // 2+3+4+9=18; recheck 24+6+2+259=291; verify 4; start row 1 = 325.
   // Label P construction adds two Text recheck polls to setup: 327.
   // Shared row: load/recheck 295; charge start 1; names 13 (one long-name
-  // setup plus nine fragments and three short names); ID 18; label/key 2;
-  // array 258; commit 1 = 588. Total 915 polls. The final Array recheck
+  // setup plus nine fragments and three short names); ID 19 (including its JsonData marker); label/key 2;
+  // array 258; commit 1 = 589. Total 916 polls. The final Array recheck
   // includes an empty-stack poll; measurement has no final container sentinel.
-  let exact_work = 915
+  let exact_work = 916
   // Order 4 + matched cells 4 + borrowed depth/custody 23 + row scope 5
   // + measurement frames 2 + the provisional label P = 39, independent of
   // the 128 borrowed immutable property elements.

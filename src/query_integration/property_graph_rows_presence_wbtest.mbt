@@ -111,14 +111,16 @@ fn property_rows_resource_boundary(
   // Original scan/match/verification/start = 3+6+3+1 or 5+15+5+1.
   // Cell initialization adds schema width (3 / 5). Shared row admission adds
   // reads/rechecks 32 / 82, charge start 1, names 3 / 5, identity measurement
-  // 18 / 54, two small cells 2, and commit 1: 57 / 145 polls.
-  // Totals are 104 / 255, not sampled from a successful product run.
+  // 19 / 57, two small cells 2, and commit 1: 58 / 148 polls.
+  // The JsonData identity marker adds one measurement poll per identity,
+  // without logical node/text charges or another live measurement frame.
+  // Totals are 105 / 258, not sampled from a successful product run.
   // Workspace: order 4, matched width, borrowed depth+3 (23), provisional
   // row width+1, and two nested measurement frames: 36 / 40 slots.
   // An explicit definition checks each candidate once before producing it.
   // Two short labels add six row recheck polls and fourteen construction /
   // selection polls; their bounded small-value charge is one poll.
-  let exact_work = (if edge { 255 } else { 104 }) +
+  let exact_work = (if edge { 258 } else { 105 }) +
     (if labelled { 20 } else if selected { 1 } else { 0 })
   let exact_slots = (if edge { 40 } else { 36 }) +
     (if labelled { 2 } else { 0 })
@@ -428,7 +430,7 @@ fn property_rows_project_identity(
     // including when other columns in the retained input are absent.
     assert_true(
       @execution.completed_cell(projected, row, 0)
-      is Some(@execution.Captured(@admitted.Object(_))),
+      is Some(@execution.Captured(@admitted.JsonData(@admitted.Object(_)))),
     )
     let wire = @execution.completed_output_row_wire(
       projected, row, 10000, 1000, 20,
@@ -783,13 +785,13 @@ test "edge rows preserve parallel identities endpoints and composite raw key com
       assert_eq(
         @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap(),
         "{\"dst\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"edge_key\":" +
         edge_key.to_string() +
         ",\"id\":" +
-        edge_identity +
+        property_graph_expected_json_wire(edge_identity) +
         ",\"labels\":[\"R\"],\"src\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"tenant\":\"a\"}",
       )
     }

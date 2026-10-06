@@ -23,6 +23,8 @@ pub(all) enum IssueKind {
   UnsupportedGraphProfile
   UnsupportedGraphOperation
   IncompatibleGraphDomains
+  UnionDefinitionIdentityMismatch(String)
+  UnionKeyIdentityMismatch(String, Int)
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType

@@ -41,6 +41,7 @@ const replacements = new Map([
   ["'../../packages/client-wire/index.mjs'", "'@actql/client-wire'"],
   ["'../../packages/sdk/index.mjs'", "'@actql/sdk'"],
   ["'../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'"],
+  ["'../../../../packages/sdk/host-port.mjs'", "'@actql/sdk/host-port'"],
   ["'../../packages/run-host-core/index.mjs'", "'@actql/run-host-core'"],
 ]);
 const expected = new Set();
@@ -52,7 +53,7 @@ for (const path of sourcePaths) {
     for (const [source, target] of replacements) {
       code = code.replaceAll(source, target);
     }
-    if (code.includes("'../../packages/")) {
+    if (/['"](?:\.\.\/)+packages\//u.test(code)) {
       throw new Error(`UnpackagedLocalNodeImport:${path}`);
     }
     bytes = Buffer.from(code);

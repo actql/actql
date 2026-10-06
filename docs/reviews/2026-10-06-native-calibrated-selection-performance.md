@@ -5,8 +5,14 @@ passes current-source calibrated release/Owner acceptance and one predeclared
 21-pair comparison. Complete parent time decreases by 40.771 ms (95% paired
 interval -65.688 to -17.866 ms) on the specified 1,000-row text case. This is a
 limited observed execution gain, not a whole-matrix or physical-heap guarantee.
-All earlier inconclusive/withdrawn results remain unchanged below. #507 stays
-Draft for review and exact-HEAD CI; #170 is not marked complete by this report.
+All earlier inconclusive/withdrawn results remain unchanged below. #507 was
+reviewed and merged as `d093bcedf8b64b5d7b3e8fdecc988310c51bff90`; the later
+policy/dispatch supplement #546 and registered resident default #557 are also
+on main. The [completion audit](2026-10-06-planner-native-completion-audit.md)
+maps the two delivery units to their original evidence and remaining exclusions.
+Historical pending-review text below records the state at each experiment, not
+an outstanding implementation dependency. No original measurement is retagged
+as current-main or hosted execution.
 
 G owns this second performance unit. The dependency #493, fixed at
 `7b48ed3140b05c906c6c5f875712bc4bd81f3dfd`, was merged into main as

@@ -1147,6 +1147,773 @@ fn wire_run_ref_shape(value : Json) -> Bool {
 }
 
 ///|
+fn wire_rule_61(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "found") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_62(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_64(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_65(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.length() != 71 || !text.has_prefix("sha256:") {
+    return false
+  }
+  for character in text[7:] {
+    if !((character >= '0' && character <= '9') ||
+      (character >= 'a' && character <= 'f')) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_66(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.length() != 71 || !text.has_prefix("sha256:") {
+    return false
+  }
+  for character in text[7:] {
+    if !((character >= '0' && character <= '9') ||
+      (character >= 'a' && character <= 'f')) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_63(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "namespaceId" ||
+      key == "authorityScopeCid" ||
+      key == "runDefinitionCid") {
+      return false
+    }
+  }
+  if !fields.contains("namespaceId") {
+    return false
+  }
+  if !fields.contains("authorityScopeCid") {
+    return false
+  }
+  if !fields.contains("runDefinitionCid") {
+    return false
+  }
+  if fields.get("namespaceId") is Some(item) {
+    if !wire_rule_64(item) {
+      return false
+    }
+  }
+  if fields.get("authorityScopeCid") is Some(item) {
+    if !wire_rule_65(item) {
+      return false
+    }
+  }
+  if fields.get("runDefinitionCid") is Some(item) {
+    if !wire_rule_66(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_67(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "volatile" || text == "durable") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_68(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_lookup_found_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "requestId" ||
+      key == "ref" ||
+      key == "durability" ||
+      key == "lookupExpiresAt") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("requestId") {
+    return false
+  }
+  if !fields.contains("ref") {
+    return false
+  }
+  if !fields.contains("durability") {
+    return false
+  }
+  if !fields.contains("lookupExpiresAt") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_61(item) {
+      return false
+    }
+  }
+  if fields.get("requestId") is Some(item) {
+    if !wire_rule_62(item) {
+      return false
+    }
+  }
+  if fields.get("ref") is Some(item) {
+    if !wire_rule_63(item) {
+      return false
+    }
+  }
+  if fields.get("durability") is Some(item) {
+    if !wire_rule_67(item) {
+      return false
+    }
+  }
+  if fields.get("lookupExpiresAt") is Some(item) {
+    if !wire_rule_68(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_69(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "not_found") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_lookup_not_found_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_69(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_70(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "unknown") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_71(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_lookup_unknown_shape(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" || key == "reason") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("reason") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_70(item) {
+      return false
+    }
+  }
+  if fields.get("reason") is Some(item) {
+    if !wire_rule_71(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_75(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  if !fields.contains("endReason") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_74(value : Json) -> Bool {
+  if wire_rule_75(value) {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_77(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  if !fields.contains("terminalErrorCode") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_76(value : Json) -> Bool {
+  if wire_rule_77(value) {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_78(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "waiting_checkpoint") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_73(value : Json) -> Bool {
+  if !wire_rule_74(value) {
+    return false
+  }
+  if !wire_rule_76(value) {
+    return false
+  }
+  guard value is Object(fields) else { return false }
+  if !fields.contains("checkpoint") {
+    return false
+  }
+  if fields.get("state") is Some(item) {
+    if !wire_rule_78(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_81(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  if !fields.contains("endReason") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_80(value : Json) -> Bool {
+  if wire_rule_81(value) {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_83(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  if !fields.contains("terminalErrorCode") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_82(value : Json) -> Bool {
+  if wire_rule_83(value) {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_84(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "resuming") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_79(value : Json) -> Bool {
+  if !wire_rule_80(value) {
+    return false
+  }
+  if !wire_rule_82(value) {
+    return false
+  }
+  guard value is Object(fields) else { return false }
+  if fields.get("state") is Some(item) {
+    if !wire_rule_84(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_86(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "ended") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_85(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  if !fields.contains("endReason") {
+    return false
+  }
+  if fields.get("state") is Some(item) {
+    if !wire_rule_86(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_72(value : Json) -> Bool {
+  if [wire_rule_73(value), wire_rule_79(value), wire_rule_85(value)]
+    .filter(fn(ok) { ok })
+    .length() !=
+    1 {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_87(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "held") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_88(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_89(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_90(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "waiting_checkpoint" || text == "resuming" || text == "ended") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_91(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "durable") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_92(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_94(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_95(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.length() != 71 || !text.has_prefix("sha256:") {
+    return false
+  }
+  for character in text[7:] {
+    if !((character >= '0' && character <= '9') ||
+      (character >= 'a' && character <= 'f')) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_96(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if !(text == "run_scope" ||
+    text == "read_access" ||
+    text == "data_egress" ||
+    text == "cost_scope" ||
+    text == "effect_set") {
+    return false
+  }
+  true
+}
+
+///|
+fn wire_rule_97(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_93(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "checkpointId" ||
+      key == "checkpointCid" ||
+      key == "kind" ||
+      key == "expiresAt") {
+      return false
+    }
+  }
+  if !fields.contains("checkpointId") {
+    return false
+  }
+  if !fields.contains("checkpointCid") {
+    return false
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("expiresAt") {
+    return false
+  }
+  if fields.get("checkpointId") is Some(item) {
+    if !wire_rule_94(item) {
+      return false
+    }
+  }
+  if fields.get("checkpointCid") is Some(item) {
+    if !wire_rule_95(item) {
+      return false
+    }
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_96(item) {
+      return false
+    }
+  }
+  if fields.get("expiresAt") is Some(item) {
+    if !wire_rule_97(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_98(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_rule_99(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_held_shape(value : Json) -> Bool {
+  if !wire_rule_72(value) {
+    return false
+  }
+  guard value is Object(fields) else { return false }
+  for key, _ in fields {
+    if !(key == "kind" ||
+      key == "requestId" ||
+      key == "prepareAttemptId" ||
+      key == "state" ||
+      key == "durability" ||
+      key == "lookupExpiresAt" ||
+      key == "checkpoint" ||
+      key == "endReason" ||
+      key == "terminalErrorCode") {
+      return false
+    }
+  }
+  if !fields.contains("kind") {
+    return false
+  }
+  if !fields.contains("requestId") {
+    return false
+  }
+  if !fields.contains("prepareAttemptId") {
+    return false
+  }
+  if !fields.contains("state") {
+    return false
+  }
+  if !fields.contains("durability") {
+    return false
+  }
+  if !fields.contains("lookupExpiresAt") {
+    return false
+  }
+  if fields.get("kind") is Some(item) {
+    if !wire_rule_87(item) {
+      return false
+    }
+  }
+  if fields.get("requestId") is Some(item) {
+    if !wire_rule_88(item) {
+      return false
+    }
+  }
+  if fields.get("prepareAttemptId") is Some(item) {
+    if !wire_rule_89(item) {
+      return false
+    }
+  }
+  if fields.get("state") is Some(item) {
+    if !wire_rule_90(item) {
+      return false
+    }
+  }
+  if fields.get("durability") is Some(item) {
+    if !wire_rule_91(item) {
+      return false
+    }
+  }
+  if fields.get("lookupExpiresAt") is Some(item) {
+    if !wire_rule_92(item) {
+      return false
+    }
+  }
+  if fields.get("checkpoint") is Some(item) {
+    if !wire_rule_93(item) {
+      return false
+    }
+  }
+  if fields.get("endReason") is Some(item) {
+    if !wire_rule_98(item) {
+      return false
+    }
+  }
+  if fields.get("terminalErrorCode") is Some(item) {
+    if !wire_rule_99(item) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 enum WireResponseIssue {
   InvalidShape
   ConnectionMismatch
@@ -1190,4 +1957,72 @@ fn wire_admission_issue(value : Json, selected : Json) -> WireResponseIssue? {
 ///|
 fn wire_admission(value : Json, selected : Json) -> Bool {
   wire_admission_issue(value, selected) is None
+}
+
+///|
+fn wire_rule_100(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_held(value : Json, expected : String) -> Bool {
+  if !wire_rule_100(Json::string(expected)) {
+    return false
+  }
+  guard value is Object(fields) else { return false }
+  wire_held_shape(value) &&
+  fields.get("requestId") == Some(Json::string(expected))
+}
+
+///|
+fn wire_rule_101(value : Json) -> Bool {
+  guard value is String(text) else { return false }
+  if text.iter().count() < 1 {
+    return false
+  }
+  if text.length() > 256 {
+    return false
+  }
+  if text.is_empty() {
+    return false
+  }
+  for character in text {
+    if character.to_int() < 32 || character.to_int() == 127 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn wire_request_lookup(value : Json, expected : String) -> Bool {
+  if !wire_rule_101(Json::string(expected)) {
+    return false
+  }
+  guard value is Object(fields) else { return false }
+  (
+    wire_lookup_found_shape(value) &&
+    fields.get("requestId") == Some(Json::string(expected))
+  ) ||
+  wire_lookup_not_found_shape(value) ||
+  wire_lookup_unknown_shape(value) ||
+  (
+    wire_held_shape(value) &&
+    fields.get("requestId") == Some(Json::string(expected))
+  )
 }
