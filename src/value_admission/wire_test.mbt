@@ -44,11 +44,13 @@ fn assert_wire(
 ///|
 test "resumable typed wire yields inside a long nested Text and cancels" {
   let text = String::make(130, 'a') + "😀"
-  let expected = "[\"" + text + "\",[1,2]]"
-  let value = accept(simple("json"), expected)
-  // Outer array, Text, inner array and two numbers: five nodes, depth two.
-  // Quoted Text is 136 bytes; both array envelopes and ',[1,2]' add eight.
-  let writer = @encode.writer(144, 5, 2)
+  let payload = "[\"" + text + "\",[1,2]]"
+  let expected = "{\"$json\":" + payload + "}"
+  let value = accept(simple("json"), payload)
+  // Payload: outer array, Text, inner array and two numbers = five nodes,
+  // depth two. Its quoted Text is 136 bytes; array punctuation adds eight.
+  // The typed JSON envelope adds ten bytes, one node and one depth level.
+  let writer = @encode.writer(154, 6, 3)
   let cursor = @value_admission.start_wire_emit(value.value, writer)
   let mut polls = 0
   let mut largest = 0
@@ -62,15 +64,17 @@ test "resumable typed wire yields inside a long nested Text and cancels" {
   assert_true(done && polls > 3)
   assert_true(largest <= 68)
   assert_eq(@value_admission.wire_emit_pending_frames(cursor), 0)
-  assert_eq(@encode.finish_text_usage(writer), (expected, 144, 5, 2))
+  assert_eq(@encode.finish_text_usage(writer), (expected, 154, 6, 3))
 
-  let writer = @encode.writer(144, 5, 2)
+  let writer = @encode.writer(154, 6, 3)
   let cursor = @value_admission.start_wire_emit(value.value, writer)
-  for _ in 0..<4 {
+  for _ in 0..<5 {
     assert_false(@value_admission.advance_wire_emit(cursor))
   }
-  // One Text chunk has emitted, while the outer continuation still exists.
-  assert_eq(@encode.writer_progress(writer).0, 66)
+  // Polls open the JSON envelope (9 bytes), open its array (10), select
+  // the Text (10), open its quote (11), then emit 64 ASCII bytes (75).
+  // JsonEnd, the array continuation and the progressed Text remain owned.
+  assert_eq(@encode.writer_progress(writer).0, 75)
   @value_admission.cancel_wire_emit(cursor)
   assert_eq(@value_admission.wire_emit_pending_frames(cursor), 0)
   assert_true(
@@ -99,13 +103,23 @@ test "typed wire fixed scalar and opaque object vectors" {
       ("[]", 2, 1, 1),
       ("{}", 2, 1, 1),
     ] {
-    assert_wire(
-      accept(simple("json", nullable=true), text),
-      text,
-      bytes,
-      nodes,
-      depth,
-    )
+    if text == "null" {
+      assert_wire(
+        accept(simple("json", nullable=true), text),
+        text,
+        bytes,
+        nodes,
+        depth,
+      )
+    } else {
+      assert_wire(
+        accept(simple("json", nullable=true), text),
+        "{\"$json\":" + text + "}",
+        bytes + 10,
+        nodes + 1,
+        depth + 1,
+      )
+    }
   }
   assert_wire(
     accept(simple("date"), "\"0000-02-29\""),
@@ -184,5 +198,11 @@ test "typed wire traverses deep values without recursion or whole output allocat
   let depth = 10000
   let text = "[".repeat(depth) + "null" + "]".repeat(depth)
   let value = accept(simple("json"), text)
-  assert_wire(value, text, depth * 2 + 4, depth + 1, depth)
+  assert_wire(
+    value,
+    "{\"$json\":" + text + "}",
+    depth * 2 + 14,
+    depth + 2,
+    depth + 1,
+  )
 }

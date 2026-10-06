@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -1061,8 +1061,11 @@ for (const [entrance, open] of Object.entries(entrances)) {
           assert.deepEqual(withoutContext(outcomes[index]).report, {
             context_ref: '<ctx>', scope: {kind: 'bound_input'},
             verdict: invalid ? 'invalid' : 'verified',
-            reasons: invalid ? [{code: 'parameter_declarations_invalid'}] : [],
+            reasons: invalid ? [{code: 'binding_json_invalid'}] : [],
             coverage: {limits: [], unresolved: []}});
+          if (invalid) assert.deepEqual(outcomes[index].report.reasons, [{code: 'binding_json_invalid',
+            facts: {document: 'parameter_declarations', issue: 'duplicate_key'}}],
+          '[check-mutation:json-parser-fallback-facts]');
           assert.deepEqual(await run(texts[index]), outcomes[index]);
         }
         assert.notEqual(outcomes[0].report.context_ref, outcomes[1].report.context_ref);
@@ -1202,12 +1205,13 @@ const contextKey = new Uint8Array(32).fill(7);
 // A fixed test-only key makes complete envelopes comparable across physically
 // different private inventories. No provider or Run handler is installed.
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
-  closed = false, connectionAllowed = true,
+  closed = false, connectionAllowed = true, observations,
   sdkConnect = connect,
   sdkConnectInProcess = connectInProcess,
+  localAuthenticate = () => owner,
   maxRequestBytes = 65536,
   mutateCheckReply,
-  mutateCheckTransportReply,
+  mutateCheckTransportReply, mutateUnavailable,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -1217,9 +1221,19 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
   if (authorization) t.after(() => authorization.close());
   if (closed) authorization.close();
-  const check = installNodeClientCheck({moon, environment: admitted, contextKey,
+  const observedMoon = observations ? {...moon,
+    clientProgramCheckSource: (...args) => {
+      observations.analysis++; return moon.clientProgramCheckSource(...args);
+    },
+    clientProgramCheckUnavailable: (...args) => {
+      observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
+    },
+  } : moon;
+  const check = installNodeClientCheck({moon: observedMoon, environment: admitted, contextKey,
     publication: sourceAliasPublication(moon, admitted, aliases),
-    sourceAccesses: authorization === undefined ? [] : [{authorization,
+    sourceAccesses: authorization === undefined ? [] : [{authorization: observations ? {
+      authorize: (...args) => { observations.sourceDecisions++; return authorization.authorize(...args); },
+    } : authorization,
       connection: 'local-database', resource: '/records.duckdb',
       sourceRef: aliases[0].sourceRef}]});
   const mode = entrance === 'local' ? 'local' : 'remote';
@@ -1228,17 +1242,25 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
     limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
       maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
-  const configuration = {authenticate: () => owner,
-    authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
+  const configuration = {authenticate: localAuthenticate,
+    authorizeConnection: value => {
+      if (value.operation === 'connect') return true;
+      if (observations) observations.authorization++;
+      return typeof connectionAllowed === 'function' ? connectionAllowed(value) : connectionAllowed;
+    },
     negotiate: () => profile,
-    check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
+    check: mutateCheckReply || mutateUnavailable ? Object.assign(async request => {
+      const outcome = await check(request);
+      return mutateCheckReply ? mutateCheckReply(outcome) : outcome;
+    }, {unavailable: () => mutateUnavailable ? mutateUnavailable(check.unavailable()) : check.unavailable()}) : check,
     maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
     const port = createNodeInProcessClientHost(configuration);
     const client = await sdkConnectInProcess({mode, owner: mode},
-      mutateCheckTransportReply ? {async perform(operation, body, signal) {
+      mutateCheckTransportReply || observations ? {async perform(operation, body, signal) {
         const value = await port.perform(operation, body, signal);
-        return operation === 'check' ? mutateCheckTransportReply(value) : value;
+        if (operation === 'check' && observations) observations.wireOutcomes.push(structuredClone(value));
+        return operation === 'check' && mutateCheckTransportReply ? mutateCheckTransportReply(value) : value;
       }} : port);
     t.after(() => client.close());
     return client;
@@ -1246,6 +1268,14 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   const handler = createClientHttpHandler({...configuration,
     authenticate: header => header === 'Bearer owner-token' ? owner : undefined});
   const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+    if (observations && request.url.endsWith('/check')) {
+      response.on('finish', () => observations.statuses.push(response.statusCode));
+      const end = response.end.bind(response);
+      response.end = (body, ...args) => {
+        observations.wireOutcomes.push(JSON.parse(body));
+        return end(body, ...args);
+      };
+    }
     if (mutateCheckTransportReply && request.url.endsWith('/check')) {
       const end = response.end.bind(response);
       response.end = body => end(JSON.stringify(mutateCheckTransportReply(JSON.parse(body))));
@@ -1491,7 +1521,7 @@ for (const entrance of ['local', 'http']) {
       assert.equal(JSON.stringify(outcome), original);
       assert.equal(requests, count, 'Presentation performs no additional check or execution I/O');
       assert.deepEqual(sdk.getCheckPresentationInfo({locale: 'ja'}),
-        {locale: 'ja', translationRevision: '2026-10-06.ja.4'});
+        {locale: 'ja', translationRevision: '2026-10-06.ja.6'});
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
@@ -2261,7 +2291,7 @@ for (const entrance of ['local', 'http']) {
       ["SELECT '\\q' AS x", 'invalid_escape', 9, {line: 0, character: 9}],
       ["SELECT '\\uD800' AS x", 'invalid_scalar', 10, {line: 0, character: 10}],
       ['SELECT `` AS x', 'empty_identifier', 7, {line: 0, character: 7}],
-      ['SELECT 1 /* comment', 'unterminated_comment', 9, {line: 0, character: 9}],
+      ['SELECT 1 /* comment', 'unterminated_comment', 9, {line: 0, character: 9}, 19],
       ['SELECT 1e+', 'invalid_number', 7, {line: 0, character: 7}],
       ['SELECT @', 'invalid_parameter', 7, {line: 0, character: 7}],
       ["/*😀é*/\r\nSELECT '\\q' AS x", 'invalid_escape', 21, {line: 1, character: 9}],
@@ -2269,7 +2299,7 @@ for (const entrance of ['local', 'http']) {
       ["\ufeffSELECT '\\q' AS x", 'invalid_escape', 12, {line: 0, character: 10}],
     ];
     for (const format of ['sql', 'aql-text']) {
-      for (const [text, issue, byte, position] of cases) {
+      for (const [text, issue, byte, position, fixAt] of cases) {
         let originalOutcome;
         for (const client of clients) {
           const outcome = await client.check(text, {format});
@@ -2281,7 +2311,11 @@ for (const entrance of ['local', 'http']) {
           assert.equal(input.text, text);
           assert.deepEqual(outcome.report.reasons, [{code: 'query_lexical_invalid',
             facts: {issue}, location: {document_id: 'source', revision: input.revision,
-              kind: 'text', start_byte: byte, end_byte: byte, precision: 'exact'}}],
+              kind: 'text', start_byte: byte, end_byte: byte, precision: 'exact'},
+            ...(fixAt === undefined ? {} : {fixes: [{code: 'close_block_comment',
+              applicability: 'requires_review', risk: 'syntax_structure',
+              target: {document_id: 'source', revision: input.revision},
+              edits: [{start_byte: fixAt, end_byte: fixAt, replacement: '*/'}]}]})}],
           '[check-mutation:lexical-reason]');
           const reason = outcome.report.reasons[0];
           const range = resolveCheckTextRange(outcome, reason.location);
@@ -2368,8 +2402,11 @@ for (const entrance of ['local', 'http']) {
   test(`${entrance}: Source failure cannot bypass connection authorization`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment,
       {aliases: [alias], readOutcome: 'allow', closed: true, connectionAllowed: false});
-    await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}),
-      {code: 'ClientConnectionDenied'});
+    const outcome = await client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.equal(outcome.outcome, 'unavailable');
+    assert.equal(outcome.report, undefined);
+    assert.equal(outcome.partial_report, undefined);
+    assert.equal(getCheckInput(outcome, 'source'), undefined);
   });
 
   test(`${entrance}: unsupported function lowering remains an implementation limit`, async t => {
@@ -2849,6 +2886,7 @@ for (const entrance of ['local', 'http']) {
       ['39939e32f8b81812204f4b62affb318b4dcd1077', 'sha256:3204b8f2edb377120d3139f380fc3c49541ff34b7117430de4ed52e0f826025f'],
       ['b40f973ca636895d7dccac79c4c678371d912887', 'sha256:15d4d9b93f6e22c50256271ba09d09ba5da6a2a7105e118af2ad224a0591feac'],
       ['47fd48576a1c4f48ebd0ce949e821e302a420cba', 'sha256:9fec13a58413e7a0267442d380986e6e8567a0711cd3f486885b7de6b9ef297d'],
+      ['11f43a5ff151dfe6c0a5f243298dbec50eeefefe', 'sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace'],
     ]) {
       const historical = path => execFileSync('git', ['show', `${revision}:${path}`],
         {cwd: repository, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024});
@@ -2864,6 +2902,10 @@ for (const entrance of ['local', 'http']) {
       if (previousSource.includes("'./check-presentation.mjs'")) {
         previousSource = previousSource.replaceAll("'./check-presentation.mjs'",
           JSON.stringify(moduleUrl(historical('packages/sdk/check-presentation.mjs'))));
+      }
+      if (previousSource.includes("'./json-value-wire.generated.mjs'")) {
+        previousSource = previousSource.replaceAll("'./json-value-wire.generated.mjs'",
+          JSON.stringify(moduleUrl(historical('packages/sdk/json-value-wire.generated.mjs'))));
       }
       const previous = await import(moduleUrl(previousSource
         .replace("'@actql/client-wire'", JSON.stringify(wire))
@@ -3061,6 +3103,30 @@ for (const entrance of ['local', 'http']) {
     assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
       {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
     assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
+  });
+
+  test(`${entrance}: admitted LIMIT parameters retain the owned offset domain`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow'});
+    const text = 'SELECT id FROM records LIMIT 2 OFFSET @offset';
+    const options = {format: 'sql', parameterDeclarations: {
+      offset: {type: 'number', nullable: false}}, parameters: {offset: -1}};
+    const outcome = await client.check(text, options);
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
+      [{code: 'operation_parameter_invalid',
+        facts: {parameter: 'offset', domain: 'nonnegative_safe_integer'}}]);
+    const input = getCheckInput(outcome, 'parameters');
+    assert.deepEqual(outcome.report.reasons[0].location,
+      {kind: 'structured', document_id: 'parameters', revision: input.revision, pointer: '/offset'});
+    assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, input);
+    assert.equal(outcome.report.reasons[0].location.kind === 'text', false);
+    for (const offset of [0, 2]) {
+      const valid = await client.check(text, {...options, parameters: {offset}});
+      assert.equal(valid.report.verdict, 'verified');
+      assert.deepEqual(valid.report.reasons, []);
+      assert.deepEqual(valid.report.coverage, {limits: [], unresolved: []});
+    }
   });
 
   test(`${entrance}: admitted LIMIT parameters retain scalar facts and input location`, async t => {
@@ -3287,6 +3353,387 @@ for (const entrance of ['local', 'http']) {
   });
 }
 
+// Parser failures carry original structural paths even when no decoded cursor
+// can be admitted. These are caller input paths, never serialized SQL spans.
+const invalidParsedBindings = [
+  {document: 'parameters', code: 'binding_json_invalid',
+    options: key => ({parameterDeclarations: {payload: {type: 'number'}},
+      parameters: {payload: {[key]: ['safe', '\ud800']}}}),
+    prefix: '/payload/'},
+  {document: 'parameter_declarations', code: 'binding_json_invalid',
+    options: key => ({parameterDeclarations: {payload: {type: 'number',
+      default: {[key]: ['safe', '\udfff']}}}}),
+    prefix: '/payload/default/'},
+];
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: session formats use negotiated coordinates and omit stale positions`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    for (const [encoding, character] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const shown = JSON.parse(session.format(observation, {format: 'json'}));
+      assert.deepEqual(shown.entries[0].location,
+        {kind: 'text', documentId: 'source', revision: observation.outcome.report.inputs[0].revision,
+          startByte: 19, endByte: 19, precision: 'exact', positionEncoding: encoding,
+          range: {start: {line: 0, character}, end: {line: 0, character}}},
+        '[check-mutation:session-format-public-encoding]');
+      for (const format of ['text', 'html']) {
+        const output = session.format(observation, {format});
+        assert.ok(output.includes(encoding));
+        assert.equal(format === 'html' ? output.includes('&quot;character&quot;:' + character)
+          : output.includes('"character":' + character), true);
+      }
+      const copied = JSON.parse(session.format({...observation}, {format: 'json'}));
+      assert.equal(Object.hasOwn(copied.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-copy]');
+      const stale = JSON.parse(session.format(observation, {format: 'json', get locale() {
+        session.update('\ufeff/*😀*/SELECT (', 2); return 'en';
+      }}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-current]');
+      assert.deepEqual(stale.observation, shown.observation);
+      const current = await session.check({format: 'sql'});
+      const input = getCheckInput(current.outcome, 'source');
+      let edited = false;
+      const changing = {...input, get text() {
+        if (!edited) { edited = true; session.update('edited', 3); }
+        return input.text;
+      }};
+      const changed = JSON.parse(session.format(current, {format: 'json', currentInputs: [changing]}));
+      assert.equal(Object.hasOwn(changed.entries[0], 'location'), false,
+        '[check-mutation:session-format-public-recheck]');
+      assert.deepEqual(changed.observation, shown.observation);
+      session.close();
+    }
+  });
+
+  test(`${entrance}: session formats retain binding JSON facts and protected equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const fixture of invalidParsedBindings) {
+      const displays = [];
+      for (const client of clients) {
+        const session = sdk.createCheckDocumentSession(client,
+          {text: 'SELECT @payload AS n FROM records', version: 1, positionEncoding: 'utf-8'});
+        const observation = await session.check({format: 'sql', ...fixture.options('a/~e\u0301😀')});
+        const display = JSON.parse(session.format(observation, {format: 'json'}));
+        const reason = observation.outcome.report.reasons[0];
+        assert.deepEqual(display.entries[0].facts,
+          {document: fixture.document, issue: 'invalid_unicode'},
+          '[check-mutation:session-format-public-facts]');
+        assert.deepEqual(display.entries[0].location,
+          {kind: 'structured', documentId: fixture.document, revision: reason.location.revision,
+            pointer: fixture.prefix + 'a~1~0e\u0301😀/1'},
+          '[check-mutation:session-format-public-pointer]');
+        const formats = ['text', 'html', 'json'].map(format => session.format(observation, {format}));
+        for (const formatted of formats) assert.doesNotMatch(formatted,
+          /\\ud800|\\udfff|records\.duckdb/u, '[check-mutation:session-format-public-private-value]');
+        displays.push(formats);
+        session.close();
+        const closed = JSON.parse(session.format(observation, {format: 'json'}));
+        assert.equal(Object.hasOwn(closed.entries[0], 'location'), false,
+          '[check-mutation:session-format-public-close]');
+        assert.deepEqual(closed.entries[0].facts, display.entries[0].facts);
+      }
+      assert.deepEqual(displays[0], displays[1], '[check-mutation:session-format-public-disclosure]');
+      assert.deepEqual(displays[0], displays[2], '[check-mutation:session-format-public-disclosure]');
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  for (const fixture of invalidParsedBindings) {
+    test(`${entrance}: JSON parser location survives ${fixture.document} failure`, async t => {
+      const client = await contextClient(t, entrance, sourceEnvironment);
+      for (const [key, token] of [['a/~é😀', 'a~1~0é😀'], ['a/~e\u0301😀', 'a~1~0e\u0301😀']]) {
+        const result = await client.check('SELECT @payload AS n',
+          {format: 'sql', ...fixture.options(key)}).catch(error => ({protocolFailure: error.code}));
+        assert.equal(result.outcome, 'completed', '[check-mutation:json-parser-outcome]');
+        assert.equal(result.report.verdict, 'invalid', '[check-mutation:json-parser-verdict]');
+        const input = getCheckInput(result, fixture.document);
+        assert.ok(input);
+        const location = {kind: 'structured', document_id: fixture.document,
+          revision: input.revision, pointer: fixture.prefix + token + '/1'};
+        assert.deepEqual(result.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'}, location}],
+          '[check-mutation:json-parser-location]');
+        assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
+          summary: 'The binding JSON contains invalid Unicode text.',
+          hint: 'Use valid Unicode scalar values in member names and string values.'},
+        '[check-mutation:json-parser-explanation]');
+        assert.equal(resolveCheckLocation(result, location).input, input);
+        assert.equal(resolveCheckTextRange(result, location), undefined);
+        assert.equal(resolveCheckLocation(result, location, {...input, revision: 'rev:' + '0'.repeat(64)}), undefined);
+        assert.equal(JSON.stringify(result).includes('safe'), false);
+      }
+
+      // A preserving read may reach a later Unicode error after a normalized
+      // duplicate key. It cannot replace the authoritative failure's location.
+      const collision = fixture.document === 'parameters'
+        ? {parameterDeclarations: {payload: {type: 'number'}},
+          parameters: {payload: {'é': 'safe', 'e\u0301': '\ud800'}}}
+        : {parameterDeclarations: {'é': {type: 'number'}, 'e\u0301': {type: 'string', default: '\ud800'}}};
+      const duplicate = await client.check('SELECT @payload AS n', {format: 'sql', ...collision});
+      assert.deepEqual(duplicate.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'duplicate_key'}}]);
+      // A malformed member name has the parser's known enclosing root path,
+      // not a fabricated location at a member that could not be decoded.
+      const options = fixture.document === 'parameters'
+        ? {parameterDeclarations: {payload: {type: 'number'}}, parameters: {'\ud800': 'safe'}}
+        : {parameterDeclarations: {'\ud800': {type: 'number'}}};
+      const root = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
+      const input = getCheckInput(root, fixture.document);
+      assert.deepEqual(root.report.reasons, [{code: fixture.code, facts: {document: fixture.document, issue: 'invalid_unicode'},
+        location: {kind: 'structured', document_id: fixture.document,
+          revision: input.revision, pointer: ''}}]);
+    });
+  }
+
+  test(`${entrance}: JSON parser failures retain protected-source equivalence`, async t => {
+    const clients = [
+      await contextClient(t, entrance, sourceEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    for (const fixture of invalidParsedBindings) {
+      const results = await Promise.all(clients.map(client => client.check('SELECT id FROM records',
+        {format: 'sql', ...fixture.options('a/~é😀')})));
+      assert.deepEqual(results[0], results[1], '[check-mutation:json-parser-disclosure]');
+      assert.deepEqual(results[0], results[2], '[check-mutation:json-parser-disclosure]');
+      assert.equal(results[0].report.verdict, 'invalid');
+      assert.equal(results[0].report.reasons[0].code, fixture.code);
+      if (fixture.document === 'parameters') {
+        assert.deepEqual(results[0].report.coverage.unresolved,
+          [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+      }
+    }
+  });
+
+  test(`${entrance}: JSON parser budgets stay unlocated checking limits`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    const nested = depth => {
+      let value = 'leaf';
+      for (let i = 0; i < depth; i++) value = [value];
+      return value;
+    };
+    for (const options of [
+      {parameterDeclarations: {payload: {type: 'number'}}, parameters: {payload: nested(70)}},
+      {parameterDeclarations: {payload: {type: 'number', default: nested(40)}}},
+    ]) {
+      const result = await client.check('SELECT @payload AS n', {format: 'sql', ...options});
+      assert.equal(result.outcome, 'completed');
+      assert.equal(result.report.verdict, 'undetermined', '[check-mutation:json-parser-budget]');
+      assert.deepEqual(result.report.reasons, []);
+      assert.deepEqual(result.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unavailable checking contexts hide every protected Source variant`, async t => {
+    const clients = [];
+    for (const [wire, options] of [
+      [absentEnvironment, {}],
+      [sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}],
+      [sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}],
+    ]) {
+      const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+      const client = await contextClient(t, entrance, wire,
+        {...options, connectionAllowed: false, observations});
+      clients.push({client, observations});
+    }
+    const correlations = new Set();
+    for (const [text, options] of [
+      ['SELECT 1 AS n', {format: 'sql'}],
+      ['SELECT (', {format: 'sql'}],
+      [query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'private-input-secret'}}],
+      [query, {format: 'sql', parameterDeclarations: declarations}],
+    ]) {
+      for (const {client, observations} of clients) {
+        const received = await client.check(text, options).then(outcome => ({outcome}), error => {
+          if (!(error instanceof sdk.ClientError)) throw error;
+          return {clientError: error.code};
+        });
+        assert.equal(received.outcome?.outcome, 'unavailable', `[check-mutation:check-context-outcome] ${received.clientError ?? 'public outcome'}`);
+        const outcome = received.outcome;
+        assert.deepEqual(observations.wireOutcomes.at(-1), outcome, '[check-mutation:check-context-envelope]');
+        assert.match(outcome.correlation_ref, /^corr:[a-f0-9]{32}$/u);
+        assert.equal(correlations.has(outcome.correlation_ref), false);
+        correlations.add(outcome.correlation_ref);
+        assert.deepEqual({...outcome, correlation_ref: 'opaque-attempt'}, {
+          version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+          outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable',
+          correlation_ref: 'opaque-attempt', problem: {code: 'check_unavailable'},
+        }, '[check-mutation:check-context-envelope]');
+        assert.equal(getCheckInput(outcome, 'source'), undefined);
+        assert.equal(sdk.getCheckRequirementFrontier(outcome), undefined);
+        assert.deepEqual(sdk.explainCheckOutcome(outcome), {
+          outcome: 'unavailable', problem: {kind: 'known', code: 'check_unavailable'},
+          correlationRef: outcome.correlation_ref,
+          summary: 'The scope and checking context needed for a safe public report are unavailable.',
+          hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
+        });
+        assert.equal(observations.analysis, 0, '[check-mutation:check-context-analysis]');
+        assert.equal(observations.sourceDecisions, 0, '[check-mutation:check-context-analysis]');
+      }
+    }
+    for (const {observations} of clients) {
+      assert.equal(observations.authorization, 4);
+      assert.equal(observations.unavailable, 4);
+      assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200] : []);
+    }
+  });
+
+  test(`${entrance}: connection authorization loss preserves earlier reports`, async t => {
+    let allowed = true;
+    const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', observations,
+        connectionAllowed: () => allowed});
+    const earlier = await client.check('SELECT 1 AS n', {format: 'sql'});
+    const retained = structuredClone(earlier);
+    assert.equal(earlier.report.verdict, 'verified');
+    assert.equal(observations.analysis, 1);
+    assert.equal(observations.sourceDecisions, 1);
+    allowed = false;
+    const received = await client.check('SELECT (', {format: 'sql'}).then(outcome => ({outcome}), error => {
+      if (!(error instanceof sdk.ClientError)) throw error;
+      return {clientError: error.code};
+    });
+    assert.equal(received.outcome?.outcome, 'unavailable', `[check-mutation:check-context-outcome] ${received.clientError ?? 'public outcome'}`);
+    assert.deepEqual(earlier, retained);
+    assert.equal(getCheckInput(earlier, 'source').text, 'SELECT 1 AS n');
+    assert.equal(getCheckInput(received.outcome, 'source'), undefined);
+    assert.equal(observations.analysis, 1, '[check-mutation:check-context-analysis]');
+    assert.equal(observations.sourceDecisions, 1, '[check-mutation:check-context-analysis]');
+    allowed = true;
+    const current = await client.check('SELECT @x AS n', {format: 'sql',
+      parameterDeclarations: {x: {type: 'number'}}, parameters: {}});
+    assert.equal(current.report.verdict, 'undetermined');
+    assert.notEqual(current.report.context_ref, earlier.report.context_ref);
+    assert.deepEqual(current.report.requirements.map(reason => reason.facts),
+      [{parameter: 'x', expected_type: 'number'}]);
+    assert.equal(observations.analysis, 2);
+    assert.equal(observations.sourceDecisions, 2);
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unavailable producer failures never disclose a report`, async t => {
+    let replacement;
+    let rejectProjection = false;
+    let authorization = true;
+    const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', observations,
+        connectionAllowed: () => {
+          if (authorization === 'throw') throw new Error('private-context-authorization');
+          return authorization;
+        },
+        mutateUnavailable: value => {
+          if (rejectProjection) throw new Error('private-context-producer');
+          return replacement ?? value;
+        }});
+    const earlier = await client.check('SELECT 1 AS n', {format: 'sql'});
+    authorization = false;
+    for (const invalid of [earlier,
+      {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable', correlation_ref: 'corr:bad',
+        problem: {code: 'check_unavailable'}, context_ref: 'private-context-binding'},
+      {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable', correlation_ref: 'corr:bad',
+        problem: {code: 'check_unavailable', secret: 'private-context-fact'}},
+    ]) {
+      replacement = invalid;
+      await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}), error =>
+        error instanceof sdk.ClientError && error.code === 'ClientHostFailure' &&
+        !JSON.stringify(error).includes('private-context'));
+      assert.equal(observations.analysis, 1);
+      assert.equal(observations.sourceDecisions, 1);
+    }
+    replacement = undefined;
+    rejectProjection = true;
+    await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}), error =>
+      error instanceof sdk.ClientError && error.code === 'ClientHostFailure' &&
+        !JSON.stringify(error).includes('private-context'));
+    rejectProjection = false;
+    for (const unknown of ['throw', undefined, {allow: true}]) {
+      authorization = unknown;
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql'});
+      assert.equal(outcome.outcome, 'unavailable');
+      assert.equal(outcome.report, undefined);
+      assert.equal(outcome.partial_report, undefined);
+      assert.equal(observations.analysis, 1);
+      assert.equal(observations.sourceDecisions, 1);
+    }
+    assert.deepEqual(observations.statuses, entrance === 'http'
+      ? [200, 500, 500, 500, 500, 200, 200, 200] : []);
+    for (const value of observations.wireOutcomes.slice(1)) {
+      assert.equal(value.report, undefined);
+      assert.equal(value.context_ref, undefined);
+      assert.equal(JSON.stringify(value).includes('private-context'), false);
+    }
+  });
+}
+
+test('installed HTTPS: checkpoint readers receive context-unavailable without execution', async t => {
+  const hostKeys = generateKeyPairSync('ed25519');
+  const reviewerKeys = generateKeyPairSync('ed25519');
+  const authorization = {
+    reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: 'reviewer-principal',
+      publicKey: reviewerKeys.publicKey.export({format: 'pem', type: 'spki'})}],
+    reviewReaders: ['reader-principal'],
+    hostKey: {keyId: 'host-key', privateKey: hostKeys.privateKey.export({format: 'pem', type: 'pkcs8'})},
+  };
+  const outcomes = [];
+  for (const configuration of [configurations.absent, configurations.denied]) {
+    const root = await mkdtemp(join(scratch, 'context-reader-'));
+    const sourceInstallation = await installedConfigurations(root, configuration);
+    const observation = observeCheckOnly(t, root);
+    const host = await openInstalledRemoteHttpHost({directory: join(root, 'state'),
+      authenticate: header => header === 'Bearer reader-token' ? 'reader-principal' : undefined,
+      authorization, beforeDispatch: observation.beforeDispatch, ...sourceInstallation});
+    const statuses = [];
+    const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+      if (request.url.endsWith('/check')) response.on('finish', () => statuses.push(response.statusCode));
+      return host.handler(request, response);
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    t.after(async () => {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+      await host.close();
+      await rm(root, {recursive: true, force: true});
+    });
+    const client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+      token: 'reader-token'});
+    t.after(() => client.close());
+    // The existing installed Checkpoint owner admits this principal's connection,
+    // while the Host connection owner denies its access to the checking context.
+    assert.deepEqual((await client.checkpoints()).items, []);
+    const received = await client.check(query, {format: 'sql', parameterDeclarations: declarations,
+      parameters: {minimum: 'private-input-secret'}}).then(outcome => ({outcome}), error => {
+      if (!(error instanceof sdk.ClientError)) throw error;
+      return {clientError: error.code};
+    });
+    assert.equal(received.outcome?.outcome, 'unavailable',
+      `[check-mutation:installed-check-context] ${received.clientError ?? 'public outcome'}`);
+    outcomes.push({...received.outcome, correlation_ref: 'opaque-attempt'});
+    assert.equal(getCheckInput(received.outcome, 'source'), undefined);
+    assert.deepEqual(statuses, [200]);
+    observation.assertNoExecution();
+  }
+  assert.deepEqual(outcomes[0], outcomes[1], '[check-mutation:installed-check-context-envelope]');
+  assert.deepEqual(outcomes[0], {version: 'actql-check-outcome/0.1',
+    reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
+    outcome: 'unavailable', correlation_ref: 'opaque-attempt', problem: {code: 'check_unavailable'}});
+});
+
 for (const entrance of ['local', 'http']) {
   test(`${entrance}: check refuses source numbers that JSON would replace`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment);
@@ -3308,6 +3755,501 @@ for (const entrance of ['local', 'http']) {
         parameterDeclarations: {x: {type: 'number', nullable: true}}, parameters: {x: value}});
       assert.equal(result.report.verdict, 'verified');
       assert.deepEqual(getCheckInput(result, 'parameters').value, {x: value});
+    }
+  });
+}
+
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: check formats retain submitted coordinates and protected equivalence`, async t => {
+    const client = await open(t, configurations.denied);
+    const outcome = await client.check('\ufeff/*😀*/\r\nSELECT (', {format: 'sql'});
+    const json = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json'}));
+    assert.equal(json.observation.report.verdict, 'invalid', '[check-mutation:format-verdict]');
+    assert.deepEqual(json.entries[0].location, {kind: 'text', documentId: 'source',
+      revision: outcome.report.inputs[0].revision, startByte: 21, endByte: 21, precision: 'exact',
+      positionEncoding: 'utf-16', range: {start: {line: 1, character: 8}, end: {line: 1, character: 8}}},
+    '[check-mutation:format-location]');
+    const copied = JSON.parse(sdk.formatCheckOutcome(JSON.parse(JSON.stringify(outcome)), {format: 'json'}));
+    assert.equal(Object.hasOwn(copied.entries[0], 'location'), false, '[check-mutation:format-stale]');
+    const input = getCheckInput(outcome, 'source');
+    for (const currentInputs of [[], [{...input, text: 'SELECT 1 AS n'}],
+      [{...input, revision: 'rev:' + '0'.repeat(64)}]]) {
+      const stale = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs}));
+      assert.equal(Object.hasOwn(stale.entries[0], 'location'), false, '[check-mutation:format-stale]');
+      assert.equal(stale.observation.report.verdict, 'invalid');
+    }
+    assert.deepEqual(JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [input]})), json);
+    let reads = 0;
+    const changing = {...input, get text() { return ++reads <= 2 ? input.text : ' '.repeat(21); }};
+    const owned = JSON.parse(sdk.formatCheckOutcome(outcome, {format: 'json', currentInputs: [changing]}));
+    assert.deepEqual(owned.entries[0].location.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}}, '[check-mutation:format-owned-input]');
+
+    for (const format of ['text', 'html', 'json']) {
+      const views = [];
+      for (const configuration of [configurations.absent, configurations.denied]) {
+        const selected = await contextClient(t, entrance, sourceEnvironment, {
+          aliases: configuration.aliases,
+          ...(configuration.aliases.length ? {readOutcome: configuration.readOutcome} : {})});
+        const check = await selected.check('SELECT @x AS n FROM records', {format: 'sql',
+          parameterDeclarations: {x: {type: 'number'}}, parameters: {x: 'private-supplied-value'}});
+        const rendered = sdk.formatCheckOutcome(check, {format});
+        assert.doesNotMatch(rendered, /private-supplied-value|records\.duckdb/u, '[check-mutation:format-input]');
+        views.push(rendered);
+      }
+      assert.equal(views[0], views[1], '[check-mutation:format-disclosure]');
+      if (format === 'json') {
+        const model = JSON.parse(views[0]);
+        assert.equal(model.observation.report.verdict, 'invalid');
+        assert.deepEqual(model.entries.map(x => x.kind), ['violation', 'unresolved']);
+      }
+    }
+    client.assertNoExecution();
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: raw check ingress refuses lossy source numbers`, async t => {
+    let post, checked = 0;
+    const body = options => ({connection: {mode: entrance === 'local' ? 'local' : 'remote',
+      owner: entrance === 'local' ? 'local' : 'remote', consentRefs: [], runners: []},
+    input: {text: 'SELECT @x AS n', format: 'sql',
+      parameterDeclarations: options.parameterDeclarations}, parameters: options.parameters ?? null});
+    await contextClient(t, entrance, sourceEnvironment, {
+      mutateCheckReply: outcome => {checked++; return outcome;},
+      sdkConnectInProcess: async (options, port) => {
+        post = async (options) => port.perform('check', body(options))
+          .then(value => ({value}), error => ({value: {code: error.code}}));
+        return connectInProcess(options, port);
+      },
+      sdkConnect: async options => {
+        post = async (bindings, token) => {
+          const wire = JSON.stringify(body(bindings)).replace('"numeric-token"', token ?? 'null');
+          const response = await fetch(new URL('actql/client/0.1/check', options.endpoint), {
+            method: 'POST', headers: {'content-type': 'application/json',
+              authorization: 'Bearer owner-token'}, body: wire,
+            signal: AbortSignal.timeout(5000)});
+          return {status: response.status, value: await response.json()};
+        };
+        return connect(options);
+      },
+    });
+    const fixtures = value => [
+      {parameterDeclarations: {x: {type: 'number', nullable: true}}, parameters: {x: value}},
+      {parameterDeclarations: {x: {type: 'object', fields: {nested: {type: 'array', items: {type: 'number'}}}}},
+        parameters: {x: {nested: [value]}}},
+      {parameterDeclarations: {x: {type: 'number', default: value}}},
+      {parameterDeclarations: {x: {type: 'object', fields: {nested: {type: 'array', items: {type: 'number'}}},
+        default: {nested: [value]}}}},
+    ];
+    const invalid = entrance === 'local'
+      ? [NaN, Infinity, -Infinity, -0, new Number(NaN), new Number(-0),
+        {toJSON: () => Infinity}, {toJSON: () => -0},
+        Object.assign(new Number(1), {valueOf: () => NaN}),
+        Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]
+      : ['-0', '1e309', '-1e309'];
+    for (const value of invalid) {
+      for (const fixture of fixtures(entrance === 'local' ? value : 'numeric-token')) {
+        const response = await post(fixture, value);
+        assert.equal(response.value.code, 'InvalidClientRequest', '[check-mutation:host-numeric-refusal]');
+        assert.deepEqual(response.value, {code: 'InvalidClientRequest'});
+        if (entrance === 'http') assert.equal(response.status, 400);
+        assert.equal(checked, 0);
+      }
+    }
+    for (const value of [null, 0, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]) {
+      const response = await post({parameterDeclarations: {x: {type: 'number', nullable: true}},
+        parameters: {x: entrance === 'local' ? value : 'numeric-token'}}, JSON.stringify(value));
+      assert.equal(response.value.report?.verdict, 'verified');
+      if (entrance === 'http') assert.equal(response.status, 200);
+    }
+    // Detachment does not turn the checker's depth budget into request refusal.
+    let nested = 'leaf';
+    for (let i = 0; i < 70; i++) nested = [nested];
+    const limited = await post({parameterDeclarations: {x: {type: 'number'}}, parameters: {x: nested}});
+    assert.equal(limited.value.outcome, 'completed');
+    assert.equal(limited.value.report.verdict, 'undetermined');
+    assert.deepEqual(limited.value.report.reasons, []);
+    assert.deepEqual(limited.value.report.coverage.limits, [{code: 'analysis_budget_exhausted'}]);
+  });
+}
+
+test('local: raw check input custody precedes asynchronous authentication', async t => {
+  let raw, waiting = false, release;
+  const pendingAuthentication = new Promise(resolve => {release = resolve;});
+  await contextClient(t, 'local', sourceEnvironment, {
+    localAuthenticate: async () => {if (waiting) await pendingAuthentication; return owner;},
+    sdkConnectInProcess: async (options, port) => {
+      raw = body => port.perform('check', body);
+      return connectInProcess(options, port);
+    },
+  });
+  waiting = true;
+  const body = {connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+    input: {text: 'SELECT @x AS n', format: 'sql', parameterDeclarations: {x: {type: 'number'}}},
+    parameters: {x: 7}};
+  const pending = raw(body);
+  body.input.text = 'SELECT (';
+  body.input.parameterDeclarations.x.type = 'string';
+  body.parameters.x = 'changed-after-admission';
+  release();
+  const result = await pending;
+  assert.equal(result.report.verdict, 'verified', '[check-mutation:host-check-input-custody]');
+  assert.deepEqual(result.report.inputs.map(({document_id, byte_length}) => ({document_id, byte_length})),
+    [{document_id: 'source', byte_length: 14}, {document_id: 'parameter_declarations', byte_length: 23},
+      {document_id: 'parameters', byte_length: 7}]);
+});
+
+test('local: check snapshots cannot erase or introduce unexpected request fields', async t => {
+  let raw, checked = 0;
+  await contextClient(t, 'local', sourceEnvironment, {
+    mutateCheckReply: outcome => {checked++; return outcome;},
+    sdkConnectInProcess: async (options, port) => {
+      raw = body => port.perform('check', body).then(value => value,
+        error => ({code: error.code}));
+      return connectInProcess(options, port);
+    },
+  });
+  const request = () => ({connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []},
+    input: {text: 'SELECT 1 AS n', format: 'sql'}, parameters: null});
+  for (const value of [undefined, () => null, Symbol('unknown')]) {
+    for (const domain of ['request', 'input']) {
+      const body = request();
+      (domain === 'request' ? body : body.input).extra = value;
+      const result = await raw(body);
+      assert.equal(result.code, 'InvalidClientRequest', '[check-mutation:host-check-request-shape]');
+      assert.deepEqual(result, {code: 'InvalidClientRequest'});
+      assert.equal(checked, 0);
+    }
+  }
+  const body = request();
+  Object.defineProperty(body, 'toJSON', {value: () => ({...body, extra: true})});
+  const result = await raw(body);
+  assert.equal(result.code, 'InvalidClientRequest', '[check-mutation:host-check-request-shape]');
+  assert.deepEqual(result, {code: 'InvalidClientRequest'});
+  assert.equal(checked, 0);
+});
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unsaved document sessions bind current revisions and reply order`, async t => {
+    let hold = false;
+    const waiting = [];
+    let arrived;
+    const client = await contextClient(t, entrance, absentEnvironment, {
+      mutateCheckReply: outcome => hold ? new Promise(resolve => {
+        waiting.push(() => resolve(outcome));
+        arrived?.();
+      }) : outcome,
+    });
+    const waitFor = count => waiting.length >= count ? Promise.resolve() :
+      new Promise(resolve => {arrived = () => {if (waiting.length >= count) resolve();};});
+    // Independent source bytes include BOM, a non-BMP scalar and unchanged CRLF.
+    for (const [encoding, eof] of [['utf-8', 19], ['utf-16', 15], ['utf-32', 14]]) {
+      const session = sdk.createCheckDocumentSession(client,
+        {text: '\ufeff/*😀*/SELECT (', version: 1, positionEncoding: encoding});
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: eof}, end: {line: 0, character: eof}},
+        '[check-mutation:document-public-encoding]');
+      assert.equal(getCheckInput(observation.outcome, 'source').text, '\ufeff/*😀*/SELECT (');
+      session.close();
+    }
+    const session = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    hold = true;
+    const first = session.check({format: 'sql'});
+    const second = session.check({format: 'sql', parameters: {x: 'private-second-binding'}});
+    await waitFor(2);
+    waiting[1](); const newer = await second;
+    waiting[0](); const older = await first;
+    const location = newer.outcome.report.reasons[0].location;
+    assert.equal(newer.outcome.report.verdict, 'invalid');
+    assert.deepEqual(session.resolveTextRange(newer, location)?.range,
+      {start: {line: 1, character: 8}, end: {line: 1, character: 8}});
+    assert.equal(session.resolveTextRange(older, older.outcome.report.reasons[0].location), undefined,
+      '[check-mutation:document-public-order]');
+    assert.equal(session.resolveTextRange({...newer}, location), undefined,
+      '[check-mutation:document-public-copy]');
+    session.update('SELECT 1 AS n', 2);
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-current]');
+    const closing = session.check({format: 'sql'});
+    await waitFor(3); session.close(); waiting[2](); const closed = await closing;
+    assert.equal(closed.outcome.report.verdict, 'verified');
+    assert.equal(session.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-close]');
+    hold = false;
+    const reopened = sdk.createCheckDocumentSession(client,
+      {text: '\ufeff/*😀*/\r\nSELECT (', version: 1});
+    assert.equal(reopened.resolveTextRange(newer, location), undefined,
+      '[check-mutation:document-public-session]');
+    const current = await reopened.check({format: 'sql'});
+    assert.ok(reopened.resolveTextRange(current, current.outcome.report.reasons[0].location));
+    assert.equal(getCheckInput(current.outcome, 'source').text, '\ufeff/*😀*/\r\nSELECT (');
+    assert.doesNotMatch(JSON.stringify(newer), /private-second-binding/);
+    reopened.close();
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check protocol failures retain original input without verdict or retry authority`, async t => {
+    let alter = value => value;
+    const observations = {authorization: 0, analysis: 0, unavailable: 0,
+      sourceDecisions: 0, wireOutcomes: [], statuses: []};
+    const client = await contextClient(t, entrance, absentEnvironment,
+      {observations, mutateCheckTransportReply: value => alter(value)});
+    const text = '/*e\u0301😀*/\r\nSELECT \'\\q\' AS label';
+    const parameterDeclarations = {x: {type: 'string'}};
+    const parameters = {x: 'private-submitted-protocol-value'};
+    for (const [mutation, kind, problem] of [
+      [value => ({...value, outcome: 'private-future-outcome'}), 'uninterpretable', 'unknown_outcome'],
+      [value => ({...value, report: {...value.report,
+        reasons: [{code: 'query_lexical_invalid', facts: {issue: 42}}]}}),
+      'protocol_failure', 'malformed_response'],
+      [value => ({...value, outcome_schema_cid: `sha256:${'0'.repeat(64)}`}),
+        'protocol_failure', 'contract_mismatch'],
+      [value => ({...value, reason_schema_cid: undefined}), 'protocol_failure', 'malformed_response'],
+      [value => ({...value, report: {...value.report, inputs: value.report.inputs.map(input =>
+        input.document_id === 'source' ? {...input, byte_length: input.byte_length + 1} : input)}}),
+      'protocol_failure', 'malformed_response'],
+    ]) {
+      alter = mutation;
+      const before = observations.analysis;
+      let failure;
+      try { await client.check(text, {format: 'sql', parameterDeclarations, parameters}); }
+      catch (error) { failure = error; }
+      assert.equal(failure?.code, 'InvalidHostCheckOutcome', '[check-mutation:protocol-failure-public-rejection]');
+      const view = sdk.explainCheckFailure(failure);
+      assert.deepEqual(view && {kind: view.kind, problem: view.problem}, {kind, problem},
+        '[check-mutation:protocol-failure-public]');
+      assert.deepEqual(sdk.getCheckFailureInput(failure), {text, format: 'sql', parameterDeclarations, parameters},
+        '[check-mutation:protocol-failure-public-input]');
+      assert.equal(observations.analysis, before + 1);
+      for (const field of ['verdict', 'report', 'scope', 'contextRef', 'correlationRef', 'next', 'ref']) {
+        assert.equal(Object.hasOwn(view, field), false);
+      }
+      assert.equal(getCheckInput(failure, 'source'), undefined);
+      assert.equal(resolveCheckLocation(failure, observations.wireOutcomes.at(-1).report.reasons[0].location), undefined);
+      assert.equal(sdk.getCheckFailureInput(structuredClone(failure)), undefined);
+      assert.equal(sdk.explainCheckFailure(new Error('InvalidHostCheckOutcome')), undefined);
+      assert.equal(JSON.stringify({failure, view}).includes('private-future-outcome'), false);
+      assert.equal(JSON.stringify({failure, view}).includes('private-submitted-protocol-value'), false);
+      assert.equal(sdk.explainCheckFailure(failure, {locale: 'ja'}).kind, kind);
+    }
+    // A valid unknown reason remains a rejected-source observation with a safe
+    // unknown explanation, distinct from malformed known reason facts.
+    alter = value => ({...value, report: {...value.report, reasons: [{code: 'future_reason'}]}});
+    const outcome = await client.check(text, {format: 'sql', parameterDeclarations, parameters});
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(explainCheckReason(outcome.report.reasons[0]).kind, 'unknown');
+    assert.equal(sdk.explainCheckFailure(outcome), undefined);
+    assert.equal(observations.analysis, 6);
+  });
+}
+
+
+for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: lexical fixes retain original EOF edits and require review`, async t => {
+    const client = await open(t, configurations.absent);
+    // Original byte intervals and edited texts are independently authored.
+    for (const [text, at, comment, changed] of [
+      ['SELECT 1 AS n /*', 16, 14, 'SELECT 1 AS n /**/'],
+      ['/*😀*/\r\nSELECT 1 AS n /*', 26, 24, '/*😀*/\r\nSELECT 1 AS n /**/'],
+      ['\ufeffSELECT 1 AS n /*', 19, 17, '\ufeffSELECT 1 AS n /**/'],
+      ['SELECT 1 AS n /* e\u0301😀\r\n', 26, 14, 'SELECT 1 AS n /* e\u0301😀\r\n*/'],
+    ]) {
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      const observation = await session.check({format: 'sql'});
+      const outcome = observation.outcome;
+      assert.equal(outcome.outcome, 'completed');
+      assert.equal(outcome.report.verdict, 'invalid');
+      const input = sdk.getCheckInput(outcome, 'source');
+      assert.equal(input.text, text);
+      const reason = outcome.report.reasons[0];
+      assert.deepEqual(reason, {code: 'query_lexical_invalid',
+        facts: {issue: 'unterminated_comment'},
+        location: {kind: 'text', document_id: 'source', revision: input.revision,
+          start_byte: comment, end_byte: comment, precision: 'exact'},
+        fixes: [{code: 'close_block_comment', applicability: 'requires_review',
+          risk: 'syntax_structure', target: {document_id: 'source', revision: input.revision},
+          edits: [{start_byte: at, end_byte: at, replacement: '*/'}]}]},
+      '[check-mutation:lexical-fix-original]');
+      assert.equal(new TextEncoder().encode(text).length, at);
+      assert.equal(sdk.getCheckFixes(structuredClone(outcome)), undefined,
+        '[check-mutation:fix-copy]');
+      let refusal;
+      try { await session.applyFixes(observation, sdk.getCheckFixes(outcome),
+        {version: 2, reviewed: false}); } catch (error) { refusal = error.code; }
+      assert.equal(refusal, 'CheckFixReviewRequired', '[check-mutation:fix-review]');
+      const applied = await session.applyFixes(observation, sdk.getCheckFixes(outcome),
+        {version: 2, reviewed: true});
+      const corrected = applied.outcome;
+      assert.equal(sdk.getCheckInput(corrected, 'source').text, changed,
+        '[check-mutation:fix-atomic-text]');
+      assert.equal(sdk.getCheckInput(outcome, 'source').text, text);
+      assert.equal(session.resolveTextRange(observation, reason.location), undefined);
+      assert.equal(corrected.outcome, 'completed');
+      assert.equal(corrected.report.verdict, 'verified');
+      assert.deepEqual(corrected.report.reasons, []);
+      session.close();
+    }
+    client.assertNoExecution();
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  for (const lostAt of ['before', 'after_candidate']) {
+    test(`${entrance}: lexical fixes reject connection permission loss ${lostAt}`, async t => {
+      let allowed = true, checks = 0;
+      const client = await contextClient(t, entrance, absentEnvironment, {
+        connectionAllowed: () => allowed,
+        mutateCheckReply: outcome => {
+          if (++checks === 3 && lostAt === 'after_candidate') allowed = false;
+          return outcome;
+        },
+      });
+      const session = sdk.createCheckDocumentSession(client, {text: 'SELECT 1 AS n /*', version: 1});
+      const observation = await session.check({format: 'sql'});
+      if (lostAt === 'before') allowed = false;
+      let refusal;
+      try {await session.applyFixes(observation, sdk.getCheckFixes(observation.outcome),
+        {version: 2, reviewed: true});} catch (error) {refusal = error.code;}
+      assert.equal(refusal, 'CheckFixContextChanged', '[check-mutation:fix-public-permission]');
+      assert.ok(session.resolveTextRange(observation, observation.outcome.report.reasons[0].location));
+      allowed = true;
+      const unchanged = await session.check({format: 'sql'});
+      assert.equal(sdk.getCheckInput(unchanged.outcome, 'source').text, 'SELECT 1 AS n /*');
+      assert.equal(unchanged.version, 1);
+      session.close();
+    });
+  }
+}
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: lexical fix replies reject preceding pins and malformed proposals`, async t => {
+    for (const mutate of [
+      outcome => {
+        outcome.reason_schema_cid = 'sha256:6b6f4811a1d2fd685c309769b30a796273d47a45182aff58b7398358c6770fb6';
+        outcome.outcome_schema_cid = 'sha256:0f7a006d18e01848f95b7d6b7204f82c1913136d148d26ebffec26bb1b587ef2';
+      },
+      outcome => {outcome.report.reasons[0].fixes[0].edits[0].start_byte = 15;},
+      outcome => {outcome.report.reasons[0].fixes[0].target.revision = 'rev:' + '0'.repeat(64);},
+      outcome => {outcome.report.reasons[0].location.precision = 'approximate';},
+    ]) {
+      const client = await contextClient(t, entrance, absentEnvironment, {
+        mutateCheckTransportReply: outcome => {mutate(outcome); return outcome;},
+      });
+      let refusal;
+      try {await client.check('SELECT 1 AS n /*', {format: 'sql'});} catch (error) {refusal = error.code;}
+      assert.equal(refusal, 'InvalidHostCheckOutcome', '[check-mutation:fix-reply-validation]');
+    }
+  });
+}
+
+for (const entrance of ['local', 'http']) {
+  for (const [property, transition] of [
+    ['document_id', 'close'], ['kind', 'edit'], ['start_byte', 'edit'],
+    ['end_byte', 'edit'], ['document_id', 'newer-check'],
+  ]) {
+    test(`${entrance}: session range rejects ${transition} from a ${property} accessor`, async t => {
+      const client = await contextClient(t, entrance, absentEnvironment);
+      const text = '\ufeff/*😀*/SELECT (';
+      const session = sdk.createCheckDocumentSession(client, {text, version: 1});
+      t.after(() => session.close());
+      const observation = await session.check({format: 'sql'});
+      const location = observation.outcome.report.reasons[0].location;
+      assert.equal(location.start_byte, 19);
+      assert.deepEqual(session.resolveTextRange(observation, location)?.range,
+        {start: {line: 0, character: 15}, end: {line: 0, character: 15}});
+      let changed = false, newer;
+      const changingLocation = {...location};
+      Object.defineProperty(changingLocation, property, {enumerable: true, get() {
+        if (!changed) {
+          changed = true;
+          if (transition === 'edit') session.update('SELECT 1 AS n', 2);
+          else if (transition === 'close') session.close();
+          else newer = session.check({format: 'sql'});
+        }
+        return location[property];
+      }});
+      const resolved = session.resolveTextRange(observation, changingLocation);
+      if (newer) await newer;
+      assert.equal(changed, true);
+      assert.equal(session.resolveTextRange(observation, location), undefined);
+      assert.equal(getCheckInput(observation.outcome, 'source').text, text);
+      assert.equal(observation.outcome.report.verdict, 'invalid');
+      assert.equal(resolved, undefined, '[check-mutation:document-public-range-callback]');
+    });
+  }
+}
+
+// Independent context oracle: literal public fixture selections and registered
+// manifests, with an ordinary sorted JSON encoder. No product canonicalizer,
+// compiler accessor or returned reference constructs the expected preimage.
+const contextGrammar = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-grammar-0.1.json'), 'utf8'));
+const contextBarriers = JSON.parse(await readFile(join(repository,
+  'spec/manifests/actql-barrier-contracts-0.1.json'), 'utf8'));
+const contextProtocols = JSON.parse(await readFile(join(repository,
+  'spec/contracts/actql-protocol-schemas.json'), 'utf8'));
+const contextJSON = value => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(contextJSON).join(',') + ']';
+  return '{' + Object.keys(value).sort().map(key =>
+    JSON.stringify(key) + ':' + contextJSON(value[key])).join(',') + '}';
+};
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: context references bind both schemas through ordinary and fallback input`, async t => {
+    const clients = [
+      await contextClient(t, entrance, absentEnvironment),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}),
+      await contextClient(t, entrance, sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}),
+    ];
+    const base = {version: 'actql-check-context/0.1', audience: owner,
+      disclosure_policy: 'actql-check-disclosure/0.1', projection: 'actql-check-outcome/0.1',
+      scope: 'bound_input', compiler: {compiler_version: 'actql-moonbit-0.0.1',
+        grammar_manifest_cid: contextGrammar.grammar_manifest_cid,
+        barrier_contract_manifest_cid: contextBarriers.barrier_contract_manifest_cid},
+      reason_schema_cid: contextProtocols.artifact_schema_cids.check_reason,
+      outcome_schema_cid: contextProtocols.artifact_schema_cids.check_outcome,
+      checking_context: {host_policy_profile: sourceEnvironment.host_policy_profile,
+        model_task_contract_cids: [], profiles: {text_time: false, veca: false,
+          rela: true, sga: true, tea: false, calendar: false, text_rank: false,
+          property_graph: false, property_graph_law_cid: null, model_tasks: true,
+          numeric_profile_cid: null, calendar_profile_cid: null, text_rank_profile_cid: null}},
+      visible_aliases: []};
+    const hash = value => 'ctx:' + createHmac('sha256', new Uint8Array(32).fill(7))
+      .update(contextJSON(value)).digest('hex');
+    for (const parameterDeclarations of [undefined,
+      {'é': {type: 'string'}, 'e\u0301': {type: 'string'}}]) {
+      const references = [];
+      for (const text of ["SELECT 'café' AS label", "SELECT 'cafe\u0301' AS label"]) {
+        const input = {text, format: 'sql',
+          ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})};
+        const preimage = {...base, ...(parameterDeclarations === undefined
+          ? {source: {format: 'sql', text}, parameter_declarations: null, parameters: null}
+          : {received: JSON.stringify({input, parameters: null})})};
+        const {outcome_schema_cid, ...precedingProjection} = preimage;
+        assert.notEqual(hash(preimage), hash(precedingProjection));
+        const outcomes = [];
+        for (const client of clients) {
+          const outcome = await client.check(text, {format: 'sql', parameterDeclarations});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.context_ref, hash(preimage),
+            '[check-mutation:context-schema-public]');
+          assert.equal(getCheckInput(outcome, 'source').text, text);
+          assert.deepEqual(await client.check(text, {format: 'sql', parameterDeclarations}), outcome);
+          outcomes.push(outcome);
+        }
+        assert.deepEqual(outcomes[0], outcomes[1]);
+        assert.deepEqual(outcomes[0], outcomes[2]);
+        references.push(outcomes[0].report.context_ref);
+      }
+      assert.notEqual(references[0], references[1]);
     }
   });
 }

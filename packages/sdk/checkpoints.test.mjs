@@ -140,6 +140,9 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.equal(getSubmissionInput(error).lookupContext.scopeRef, 'scope-a');
     assert.equal(Object.isFrozen(getSubmissionInput(error)), true);
     const explanation = explainSubmission(error);
+    assert.deepEqual(explainSubmission(error, {locale: 'ja'}), {...explanation,
+      summary: 'Hostは保留中の要求を返しました。元の要求の現在状態を確認してください。'},
+    '[check-mutation:operation-held-locale]');
     assert.deepEqual(explanation, {observation: 'request_held',
       summary: 'The Host returned a held-request response. Look up the current request state.',
       next: {operation: 'lookupRequest', requestId: 'saved-a',
@@ -361,4 +364,27 @@ test('Checkpoint canonical bytes retain data values and reject identifier collis
   assert.equal(identities.size, 6);
   assert.throws(() => canonicalJson({'é': 1, 'e\u0301': 2}), /CanonicalKeyCollision/);
   assert.equal(canonicalJson({'e\u0301\r': 1}), '{"é\\n":1}');
+});
+
+test('opaque data encoding keeps exact JSON keys with the shared value encoder', () => {
+  const dataKeys = {dataKeys: true};
+  const payload = {'é': 'composed', 'e\u0301': 'decomposed',
+    '\r\n': 'CRLF', '\n': 'LF', '\r': 'CR'};
+  const expected = '{"\\n":"LF","\\r":"CR","\\r\\n":"CRLF",' +
+    '"e\u0301":"decomposed","é":"composed"}';
+  assert.equal(canonicalJson(payload, dataKeys), expected);
+  assert.equal(canonicalJson({nested: [{$json: payload}]}, dataKeys),
+    `{"nested":[{"$json":${expected}}]}`);
+  assert.equal(canonicalJson({'e\u0301\r\n': 'e\u0301\r\n'}, dataKeys),
+    '{"e\u0301\\r\\n":"e\u0301\\r\\n"}');
+  assert.equal(canonicalJson(Object.fromEntries(Object.entries(payload).reverse()),
+    dataKeys), expected);
+  assert.notEqual(canonicalJson({'é': 1}, dataKeys),
+    canonicalJson({'e\u0301': 1}, dataKeys));
+  assert.throws(() => canonicalJson({'\ud800': 1}, dataKeys),
+    /InvalidCanonicalText/);
+  // The default artifact/identifier domain is unchanged.
+  assert.throws(() => canonicalJson(payload), /CanonicalKeyCollision/);
+  assert.equal(canonicalJson({'e\u0301\r\n': 'e\u0301\r\n'}),
+    '{"é\\n":"e\u0301\\r\\n"}');
 });

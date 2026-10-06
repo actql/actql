@@ -51,10 +51,48 @@ function program(id, prefix, unused = false) {
   }};
 }
 
-async function runPublicRankingBarrier(t, {unused = false} = {}) {
+function nameMatchingProgram(id) {
+  const group = 'z'.repeat(513);
+  const selected = ['id', 'rank', 'score', group];
+  const schema = {
+    aa_unused: {type: 'array', nullable: false, max_items: 118,
+      items: {type: 'number', nullable: false}},
+    id: {type: 'number', nullable: false},
+    rank: {type: 'number', nullable: false},
+    [group]: {type: 'number', nullable: false},
+  };
+  return {version: 'actql/0.1', id, stages: [
+    ...['left', 'right'].map(name => ({id: name, inputs: {},
+      steps: [{values: {schema, rows: name === 'right' ? [] : [{
+        aa_unused: Array.from({length: 118}, () => 1), id: 1, rank: 1, [group]: 7,
+      }]}, as: 'out'}], results: {r: {from: 'out', fields: Object.keys(schema)}},
+    })),
+    {id: 'ranking', inputs: {
+      left: {result: {stage: 'left', result: 'r'}},
+      right: {result: {stage: 'right', result: 'r'}},
+    }, steps: [{from: 'left', merge_rankings: {
+      with: ['right'], by: [group], candidate: 'id', rank: 'rank',
+      k: 2, score_policy: {rrf: {rank_constant: 1, weights: [1, 1], rank_window: 2}},
+    }, as: 'out'}], results: {r: {from: 'out', fields: selected}}},
+    ...['consumer_a', 'consumer_b'].map(name => ({id: name,
+      inputs: {rows: {result: {stage: 'ranking', result: 'r'}}},
+      steps: [{select: selected, as: 'out'}],
+      results: {r: {from: 'out', fields: selected}},
+    })),
+  ], results: {
+    published: {from: {stage: 'ranking', result: 'r'}},
+    consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+    consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+  }};
+}
+
+async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {}) {
     const prefix = 'x'.repeat(512);
-    const fixtureId = unused ? 'public-ranking-input' : 'public-ranking-key';
-    const expected = expectedRows(prefix);
+    const fixtureId = nameScan ? 'public-ranking-name' :
+      unused ? 'public-ranking-input' : 'public-ranking-key';
+    const expected = nameScan ? [{id: 1, rank: 1, score: 0.5, ['z'.repeat(513)]: 7}] :
+      expectedRows(prefix);
+    const fixture = id => nameScan ? nameMatchingProgram(id) : program(id, prefix, unused);
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-ranking-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -93,6 +131,10 @@ async function runPublicRankingBarrier(t, {unused = false} = {}) {
         // then the array read costs one. Its 232 recheck polls at this
         // boundary cannot exhaust a 129-element array (261 polls).
         // Neither fixture can commit an output row at this boundary.
+        // Name matching: initialization 1 + unused read/recheck 240 +
+        // id/rank 6 + group read/recheck 3 starts its first fragment at 250.
+        // Poll 256 retains offset 448, independently fixed by the same-input
+        // common-owner fixture; value comparison has not started.
         assert.equal(detail.work, '256');
         assert.equal(detail.progress, '0');
         barrier.resolve();
@@ -107,7 +149,7 @@ async function runPublicRankingBarrier(t, {unused = false} = {}) {
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program(fixtureId, prefix, unused));
+    const source = JSON.stringify(fixture(fixtureId));
     const options = {format: 'json', requestId: fixtureId};
     const execution = await client.aql(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
@@ -127,7 +169,7 @@ async function runPublicRankingBarrier(t, {unused = false} = {}) {
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', prefix, unused)),
+    const cancel = await client.aql(JSON.stringify(fixture(fixtureId + '-cancel')),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
@@ -163,3 +205,6 @@ test('public retained ranking publishes and cancels inside long group comparison
 
 test('public retained ranking publishes and cancels inside unused array recheck',
   {timeout: 45_000}, t => runPublicRankingBarrier(t, {unused: true}));
+
+test('public retained ranking publishes and cancels inside reference name matching',
+  {timeout: 45_000}, t => runPublicRankingBarrier(t, {nameScan: true}));

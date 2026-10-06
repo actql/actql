@@ -46,6 +46,24 @@ time and observed pre-start intervals. Missing wall-clock evidence stays absent.
 Parallel job durations, phase action sums, enclosing capacity durations and queue
 time are never conflated. Compiler/hash/I/O splits and build counts are unknown.
 
+The live timing projection also retains `runnerConsumption` for each explicit
+run/attempt. `totalJobSeconds` sums distinct job intervals once; overlapping
+jobs still consume separate runner time. `observedJobWallSpan` is retained
+separately. Neither steps nor artifact phase sums are added to the total.
+Setup, transfer and final verification inside the jobs are already included.
+Missing/invalid times, incomplete inventories, unobserved runner allocation or
+no executed steps leave the total null. `knownJobSeconds` remains a partial
+observation. Failed/cancelled attempts may retain measured consumption but
+cannot become successful samples; retries stay separate.
+
+These are observed job seconds, not billed minutes or a causal savings verdict.
+For Session reuse, select the actual producer and final-check owners from
+authenticated source/applicability evidence and retain the complete attempt
+total as well. The partial Session cost record explains subphases; it must not
+be added to job totals. A claimed reuse saving still needs equal inputs and
+obligations, qualified originals, comparable execution conditions and measured
+fresh/reused attempts. The read-only timing report never authorizes reuse.
+
 ## Custody and storage boundaries
 
 One ZIP reader serves both timing and storage projections. It rejects traversal,
@@ -92,3 +110,34 @@ available without changing this reporting framework or relabeling older evidence
 All current cohorts have one selected sample and differing source, runner/event,
 outcome or unknown cache dimensions. No stable or causal speedup is claimed.
 Capacity campaign scope is reported separately from the eight mutation sites.
+
+## Session source archive costs
+
+The same `--artifacts` command accepts a separate Session source ZIP with
+`"reports": {"session": "checked.json"}` and the normal full provenance object.
+Do not mix a pipeline report into that archive selection. Supply the saved
+read-only `ci-evidence --json` output as `timingEvidence` to join enclosing costs.
+Without it, the output retains bound phase observations but is incomplete;
+missing costs are not zero.
+
+The reader reconstructs all 30 registered actions using the independent current
+catalog, exact original receipt digests, certificate-bound collection,
+comparison and acquisition bytes, and actual isolated execution for fresh work.
+Missing/changed records or another catalog reject; no older-format fallback is
+introduced. Reused action units/time remain null for the candidate. Historical
+original time remains separate. This projection does not authenticate the
+original Actions producer, execute Lean or authorize reuse.
+
+The actual bound producer job ID must refer to `session-evidence` in the same
+repository/run/attempt/head. The unique `check` job and complete attempt must
+have observed successful execution. Their two distinct job intervals include
+setup, transfer and final verification; partial phase sums are never added.
+The whole attempt's runner total and overlapping job wall span remain separate.
+Missing/zero-step/running/failed observations make enclosing totals unknown.
+
+`sessionCosts.netRunnerSavingsMilliseconds` stays null: an enclosing cost
+observation is not a counterfactual or causal improvement. Use authenticated,
+compatible fresh/reused samples and retain their complete inputs, scientific
+observations and execution conditions before making that comparison. Local
+controlled fixtures exercise this command and its real ZIP reader, not a real
+hosted reuse or economic result.

@@ -16,6 +16,8 @@ priv enum CheckFinding {
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
+  JsonInputViolation(String, String, String?)
+  SuppliedParseViolation(String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -185,12 +187,25 @@ fn check_source_findings(
   let (supplied, supplied_admitted) = match
     client_program_input("json", parameters) {
     Ok((_, supplied)) => (supplied, true)
-    Err(SuppliedSyntax({ issue, .. })) => {
+    Err(SuppliedSyntax(error)) => {
+      let issue = error.issue
       findings.push(
         if check_parse_budget(issue) {
           Limit("analysis_budget_exhausted")
         } else {
-          Violation("supplied_parameters_invalid")
+          check_json_parse_finding(
+            "parameters",
+            issue,
+            if parameters is Some(body) {
+              check_parse_original_pointer(body, error, {
+                max_input_bytes: 65536,
+                max_nodes: 8192,
+                max_depth: 64,
+              })
+            } else {
+              None
+            },
+          )
         },
       )
       (None, false)
@@ -381,6 +396,8 @@ fn check_source_findings(
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | JsonInputViolation(_, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -458,6 +475,40 @@ priv enum CheckInputFault {
 }
 
 ///|
+/// Only closed JSON issue families are public; no member name or input value.
+fn check_json_parse_finding(
+  document : String,
+  issue : @source.ParseIssue,
+  pointer : String?,
+) -> CheckFinding {
+  let kind = match issue {
+    InvalidUtf8 | InvalidUtf16 | InvalidUnicodeEscape => Some("invalid_unicode")
+    UnexpectedEnd => Some("unexpected_end")
+    UnexpectedToken => Some("unexpected_token")
+    InvalidString => Some("invalid_string")
+    InvalidEscape => Some("invalid_escape")
+    InvalidNumber => Some("invalid_number")
+    NumberOutOfRange => Some("number_out_of_range")
+    NegativeZero => Some("negative_zero")
+    ExpectedColon => Some("expected_colon")
+    ExpectedArraySeparator => Some("expected_array_separator")
+    ExpectedObjectSeparator => Some("expected_object_separator")
+    DuplicateKey(_) => Some("duplicate_key")
+    TrailingContent => Some("trailing_content")
+    _ => None
+  }
+  match kind {
+    Some(kind) => JsonInputViolation(document, kind, pointer)
+    None =>
+      if document == "parameter_declarations" {
+        DeclarationViolation(pointer)
+      } else {
+        SuppliedParseViolation(pointer)
+      }
+  }
+}
+
+///|
 fn check_parse_budget(issue : @source.ParseIssue) -> Bool {
   issue is (InputLimit | NodeLimit | DepthLimit)
 }
@@ -518,16 +569,35 @@ fn check_declarations(
       max_depth: 32,
     }) {
     Ok(node) => node
-    Err({ issue, .. }) =>
+    Err(error) => {
+      let issue = error.issue
+      let pointer = if check_parse_budget(issue) {
+        None
+      } else {
+        check_parse_original_pointer(body, error, {
+          max_input_bytes: 1048576,
+          max_nodes: 16384,
+          max_depth: 32,
+        })
+      }
       return Err({
         kind: if check_parse_budget(issue) {
           Budget
         } else {
           Invalid
         },
-        pointer: None,
-        finding: None,
+        // The parser owns this original structural path, not a SQL range.
+        // A preflight/unknown path stays absent; budgets produce no violation.
+        pointer,
+        finding: if check_parse_budget(issue) {
+          None
+        } else {
+          Some(
+            check_json_parse_finding("parameter_declarations", issue, pointer),
+          )
+        },
       })
+    }
   }
   let cursor = match
     @decode.admit(node, {
@@ -783,6 +853,8 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | JsonInputViolation(_, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -834,6 +906,8 @@ fn write_check_report(
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
         Some("parameter_default_type_mismatch")
+      JsonInputViolation(_, _, _) => Some("binding_json_invalid")
+      SuppliedParseViolation(_) => Some("supplied_parameters_invalid")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
@@ -930,6 +1004,10 @@ fn write_check_report(
               start,
               end,
             )
+            if issue == "unterminated_comment" {
+              // The existing lexical issue concerns the original input.
+              write_check_comment_fix(writer, documents)
+            }
           }
           break
         }
@@ -1066,6 +1144,39 @@ fn write_check_report(
               writer, document_id, revision, pointer,
             )
           }
+          break
+        }
+      }
+    }
+    if code == "binding_json_invalid" {
+      for finding in findings {
+        if finding is JsonInputViolation(document, issue, pointer) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "document")
+          @encode.string_value(writer, document)
+          @encode.key(writer, "issue")
+          @encode.string_value(writer, issue)
+          @encode.end_object(writer)
+          let revision = if document == "parameter_declarations" {
+            documents.declarations_revision
+          } else {
+            documents.parameters_revision
+          }
+          if revision is Some(revision) && pointer is Some(pointer) {
+            write_check_structured_location(writer, document, revision, pointer)
+          }
+          break
+        }
+      }
+    }
+    if code == "supplied_parameters_invalid" {
+      for finding in findings {
+        if finding is SuppliedParseViolation(Some(pointer)) &&
+          documents.parameters_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameters", revision, pointer,
+          )
           break
         }
       }
@@ -1302,6 +1413,42 @@ priv struct CheckDocuments {
 }
 
 ///|
+fn write_check_comment_fix(
+  writer : @encode.Writer,
+  documents : CheckDocuments,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, "fixes")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "code")
+  @encode.string_value(writer, "close_block_comment")
+  @encode.key(writer, "applicability")
+  @encode.string_value(writer, "requires_review")
+  @encode.key(writer, "risk")
+  @encode.string_value(writer, "syntax_structure")
+  @encode.key(writer, "target")
+  @encode.begin_object(writer)
+  @encode.key(writer, "document_id")
+  @encode.string_value(writer, "source")
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, documents.source_revision)
+  @encode.end_object(writer)
+  @encode.key(writer, "edits")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "start_byte")
+  @encode.number_value(writer, documents.source_bytes.to_double())
+  @encode.key(writer, "end_byte")
+  @encode.number_value(writer, documents.source_bytes.to_double())
+  @encode.key(writer, "replacement")
+  @encode.string_value(writer, "*/")
+  @encode.end_object(writer)
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+  @encode.end_array(writer)
+}
+
+///|
 fn check_syntax_finding(diagnostic : @query_syntax.Diagnostic) -> CheckFinding {
   // Only the parser's typed lexical issue is projected. Syntax(String) remains
   // generic; messages are neither classification evidence nor public facts.
@@ -1415,6 +1562,35 @@ fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
     pointer += "/" + token
   }
   Some(pointer)
+}
+
+///|
+/// Canonical parser paths contain admitted keys. Reuse the existing preserving
+/// reader solely for original-path material after an authoritative failure.
+/// A different failure, budget or unknown path cannot supply a location.
+fn check_parse_original_pointer(
+  body : String,
+  original : @source.ParseError,
+  limits : @source.ParseLimits,
+) -> String? {
+  guard !check_parse_budget(original.issue) && original.path is Some(_) else {
+    return None
+  }
+  match
+    @source.parse_json_bytes_preserving(
+      @utf8.encode(body),
+      limits,
+      source_path=original.source_path,
+    ) {
+    Err(preserved) => {
+      guard preserved.issue == original.issue &&
+        preserved.location == original.location else {
+        return None
+      }
+      preserved.path.bind(check_supplied_pointer)
+    }
+    Ok(_) => None
+  }
 }
 
 ///|

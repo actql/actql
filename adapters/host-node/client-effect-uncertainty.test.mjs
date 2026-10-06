@@ -66,11 +66,15 @@ for (const entrance of ['local', 'https']) {
           catch (error) { reconcileError = error.code; }
           return {ref: attached.ref, state, reconcileError,
             explanation: sdk.explainEffectUncertainty?.(state),
+            japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
             copiedExplanation: sdk.explainEffectUncertainty?.({...state})};
         } finally { await host.close(); }
       };
     }
     const first = await observe();
+    assert.deepEqual(first.japaneseExplanation, {...expectedExplanation(first.ref, first.state.control.revision),
+      summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
+    '[check-mutation:operation-effect-public-locale]');
     // Establish the actual Owner/provider facts before testing presentation.
     assert.equal(first.state.status, 'needs_reconciliation');
     assert.deepEqual(first.state.next_action, {kind: 'reconcile', effects: ['save']});
@@ -87,6 +91,9 @@ for (const entrance of ['local', 'https']) {
     assert.equal(first.copiedExplanation, undefined);
     const queries = setup.queries(), reads = setup.targetReads();
     const again = await observe();
+    assert.deepEqual(again.japaneseExplanation, {...expectedExplanation(again.ref, again.state.control.revision),
+      summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
+    '[check-mutation:operation-effect-public-restart]');
     assert.deepEqual(again.ref, first.ref);
     assert.deepEqual(again.explanation, first.explanation,
       '[check-mutation:effect-restart]');

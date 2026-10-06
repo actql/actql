@@ -944,26 +944,11 @@ pub fn next_captured_task(run : CapturedDAG) -> Int? {
   if run.stopped || run.running is Some(_) || resident_provision_pending(run) {
     return None
   }
-  for index in captured_compute_first_task(run)..<run.graph.owners.length() {
-    if task_done(run, index) {
-      continue
-    }
-    let mut ready = true
-    for edge in run.graph.data {
-      if edge.consumer == index && !task_done(run, edge.producer) {
-        ready = false
-      }
-    }
-    for edge in run.graph.control {
-      if edge.consumer == index && !task_done(run, edge.predecessor) {
-        ready = false
-      }
-    }
-    if ready {
-      return Some(index)
-    }
-  }
-  None
+  next_dependency_ready_task(
+    run.graph,
+    task => task_done(run, task),
+    first_task=captured_compute_first_task(run),
+  )
 }
 
 ///|

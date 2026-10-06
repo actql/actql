@@ -5,7 +5,9 @@
   "bounds": {
     "intent_bytes": 65536,
     "poll_plan_bytes": 524288,
-    "plan_bytes": 3145728
+    "plan_bytes": 3145728,
+    "poll_transfer_bytes": 1048576,
+    "result_bytes": 65536
   },
   "schemas": {
     "intent": {
@@ -191,11 +193,105 @@
           "const": "actql-remote-retained-input-plan/0.1"
         }
       }
+    },
+    "poll_transfer": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dispatch_request_cid",
+        "intent_cid",
+        "intent_json",
+        "plan_cid",
+        "plan_json",
+        "request_json",
+        "version"
+      ],
+      "properties": {
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "plan_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "const": "actql-remote-poll-retained-input-transfer/0.1"
+        }
+      }
+    },
+    "result": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "destination_receipt_cid",
+        "destination_receipt_json",
+        "dispatch_request_cid",
+        "intent_cid",
+        "plan_cid",
+        "transfer_reply_json",
+        "transfer_request_cid",
+        "version"
+      ],
+      "properties": {
+        "destination_receipt_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "destination_receipt_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dispatch_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "intent_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "transfer_reply_json": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transfer_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "version": {
+          "const": "actql-remote-retained-input-result/0.1"
+        }
+      }
     }
   },
   "schema_cids": {
     "intent": "sha256:3017f216f574f944094b5867fd6f17b9ca383f0794355d828efb7e11caef035f",
     "poll_plan": "sha256:23bdc3f9c47031c30b79f89e4568fbacedc512744feb33759a3435395f238afc",
-    "plan": "sha256:36e122f53342cd7cfe2238b9e51d276ec5c2e455502bdec984ea43ce1bf2c1e6"
-  }
+    "plan": "sha256:36e122f53342cd7cfe2238b9e51d276ec5c2e455502bdec984ea43ce1bf2c1e6",
+    "poll_transfer": "sha256:b4caff47cc3bec10d3b436ad80410d4545b51c0c0d3e77b26de9a825714a9064",
+    "result": "sha256:75c309d729c8f162668dce6f6ecae4393bff84c4d637d566ec4233bb16afcbf7"
+  },
+  "result_admission": "Exact saved plan, original dispatch/intent, committed Direct receiver state and original destination receipt; historical evidence alone grants no current material access, reservation, borrow, cleanup or execution."
 }

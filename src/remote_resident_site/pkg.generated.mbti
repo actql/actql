@@ -3,6 +3,7 @@ package "actql/actql/remote_resident_site"
 
 import {
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "actql/actql/run_publication_host",
 }
 
@@ -10,6 +11,8 @@ import {
 pub fn check_resident_dispatch_delegation(ResidentSiteDelegation, @remote_site_protocol.DispatchRequest, Int) -> Result[Unit, ResidentDispatchRefusal]
 
 pub fn check_resident_materials_current(@run_publication_host.ClientRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
+
+pub fn check_resident_retained_input_delegation(ResidentRetainedInputDelegation, @remote_site_protocol.DispatchRequest, @remote_transfer.RemoteTransferRequest, Int) -> Result[Unit, ResidentDispatchRefusal]
 
 pub fn check_resident_run_current(@run_publication_host.ClientValuesRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
 
@@ -42,6 +45,13 @@ pub(all) enum ResidentDispatchRefusal {
   UnsupportedTask
   NotCurrent
   QueueFull
+}
+
+pub(all) struct ResidentRetainedInputDelegation {
+  dispatch : ResidentSiteDelegation
+  source_grant_cid : String
+  destination_grant_cid : String
+  route_capability_cid : String
 }
 
 pub(all) struct ResidentSiteDelegation {
