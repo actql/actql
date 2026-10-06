@@ -181,6 +181,35 @@ test('nearest public key evidence requires an actual suite connection', () => {
     'VecA nearest: nearest key public fixture is not suite-connected'));
 });
 
+test('nearest requires borrowed-name limits, qualification and public Store evidence', () => {
+  for (const role of ['nearest_name_limits_stop_cleanup',
+    'nearest_name_public_barrier', 'nearest_name_qualification']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_name_public_store');
+  }), /VecA nearest: nearest name public Store fixture is missing/u);
+});
+
+test('nearest cannot replace borrowed-name admission by flattened spelling', () => {
+  const file = join(root, 'src/local_veca/nearest.mbt');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace('compare_reference_fragment(', 'reference_name(')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest borrowed-name production boundary is missing'));
+});
+
 test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
   for (const [operation, prefix, publicName] of [
     ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],

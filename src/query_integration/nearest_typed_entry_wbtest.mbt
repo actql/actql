@@ -35,7 +35,9 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
     1000,
   ).unwrap()
   let generated = task_test_generated(owner)
-  // One record on each side requires 52 control work and 31 workspace slots.
+  // One record on each side requires 66 control work and 52 workspace slots:
+  // Carrier 52 plus two scalar/Vector rechecks (2+5); structural 32 plus
+  // the shared depth-ten admission cursor (8+10+2).
   // The public default also uses max_work for output capture; keep its separate
   // value budget at 1000, as in the existing bounded-control fixtures.
   let active = @local_veca.start_nearest_inputs_with_relations(
@@ -47,14 +49,14 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    31,
+    52,
     1000,
     1000,
     [candidate_read, query_read],
   ).unwrap()
   let mut terminal = false
   let mut charged = 0L
-  for _ in 0..<64 {
+  for _ in 0..<80 {
     if !terminal {
       match @local_veca.advance_nearest(active, 1).unwrap() {
         @local_veca.NearestContinue(work~, ..) => {
@@ -100,7 +102,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
     }
   }
   assert_true(terminal)
-  assert_eq(charged, 52L)
+  assert_eq(charged, 66L)
   assert_true(@local_veca.nearest_stopped(active))
   assert_eq(@local_veca.cleanup_nearest(active), Ok(true))
   assert_eq(@local_veca.cleanup_nearest(active), Ok(false))
@@ -117,7 +119,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      30,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -135,7 +137,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(candidate_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      52,
       1000,
       1000,
       [candidate_read, query_read],
@@ -153,7 +155,7 @@ test "typed nearest Relation entry preserves values limits and exact custody" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      31,
+      52,
       1000,
       1000,
       [candidate_read, query_read],
