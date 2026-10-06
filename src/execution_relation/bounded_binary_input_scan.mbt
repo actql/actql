@@ -166,6 +166,12 @@ fn binary_input_scan_frame(
         return Err(ValueLimit)
       }
       match value {
+        @admitted.JsonData(payload) => {
+          scan.budget.nodes -= 1
+          if !binary_input_push(scan, ScanValue(payload, depth)) {
+            return Err(WorkspaceLimit)
+          }
+        }
         @admitted.Null | @admitted.Boolean(_) | @admitted.Number(_) => ()
         @admitted.Text(text)
         | @admitted.Date(text)

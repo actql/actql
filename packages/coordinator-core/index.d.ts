@@ -273,3 +273,7 @@ export function recordStateCodes(record: IntentRecord): string[];
  * before sending; this function grants no executor/start-claim permission. */
 export function exactRetransmissionEligible(record: IntentRecord,
   request: DispatchRequest): boolean;
+
+/** Cancel delivery custody only, after durable observation admission. Success
+ * may win a cancellation race; this does not confirm Run cancellation. */
+export function canRetireCancellationDelivery(record: IntentRecord): boolean;

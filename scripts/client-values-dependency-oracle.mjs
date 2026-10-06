@@ -14,6 +14,8 @@ const body = (file, pointer='') => pointer.split('/').slice(1)
   .reduce((value,key)=>value[key.replaceAll('~1','/').replaceAll('~0','~')],
     JSON.parse(readFileSync(new URL('../'+file,import.meta.url),'utf8')));
 
+const predecessor = body('scripts/fixtures/pre-typed-json-values-contracts.json');
+const membershipPredecessor = body('scripts/fixtures/pre-typed-json-membership-values-contracts.json');
 const roles = [
   ['spec/contracts/actql-stage-contracts.json','/source'],
   ['spec/contracts/actql-stage-contracts.json','/laws'],
@@ -49,28 +51,33 @@ const roles = [
   ['spec/contracts/actql-production-profile-schemas.json','/schemas/regex_replacement_ast'],
 ];
 
-function expressionCid(beforeMembership) {
+function expressionCid(beforeMembership, preTypedJson = false) {
+  if (preTypedJson) return (beforeMembership ? predecessor : membershipPredecessor)
+    .contract_cids['spec/contracts/actql-expressions.json#'];
   const expression = body('spec/contracts/actql-expressions.json');
   if (beforeMembership) delete expression.laws.membership;
   return hash(expression);
 }
 
-function contractCid(file, pointer, legacy, beforeMembership=legacy) {
+function contractCid(file, pointer, legacy, beforeMembership=legacy, preTypedJson=false) {
+    // Both retained typed-JSON predecessor Catalogs select the owned Graph
+    // law for this role, including fixtures whose values are only Relations.
+    if (!legacy && file === 'spec/dependencies/aoa-sga-identity-laws.json') {
+      return hash(body('spec/dependencies/actql-property-graph-laws.json'));
+    }
+    // Freeze both independent historical law generations before adapting the
+    // current typed-JSON schemas. Neither history inherits the installed law.
+    if (!legacy && preTypedJson) return (beforeMembership ? predecessor : membershipPredecessor)
+      .contract_cids[file + '#' + (pointer ?? '')];
     // Membership alignment changes the containing expression contract.
     // Historical fixtures retain their original normative body and role pins.
-    if (beforeMembership && file === 'spec/contracts/actql-expressions.json' && !pointer) {
+    if (beforeMembership && !legacy && file === 'spec/contracts/actql-expressions.json' && !pointer) {
       return expressionCid(true);
     }
     if (beforeMembership && !legacy && file === 'spec/contracts/actql-check-environment.json') {
       const environment = body(file);
       environment.pushdown_contract_bodies.semantic_dependencies.expression_contract.cid = expressionCid(true);
       return hash(environment);
-    }
-    // The current Catalog selects the owned Property Graph law even when the
-    // fixture itself uses only Relation values. Keep the historical role/body
-    // for predecessor vectors; do not silently repin those preimages.
-    if (!legacy && file === 'spec/dependencies/aoa-sga-identity-laws.json') {
-      return hash(body('spec/dependencies/actql-property-graph-laws.json'));
     }
     // Historical fixtures retain pre-String bodies as well as the original
     // Program grammar and count law. Never rebind old preimages to current laws.
@@ -93,12 +100,13 @@ function contractCid(file, pointer, legacy, beforeMembership=legacy) {
       // Pre-Property-Graph body, independently hashed from main 16d93c2.
       return 'sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8';
     }
+    if (legacy) return predecessor.contract_cids[file + '#' + (pointer ?? '')];
     return hash(body(file,pointer));
 }
 
 // The fixed acquired Relation fixture uses the same foundational roles, but
 // filter/select do not depend on the Values execution or cardinality laws.
-export function relationFixtureContracts({legacy=false,acquired=false}={}) {
+export function relationFixtureContracts({legacy=false,beforeMembership=legacy,preTypedJson=false,acquired=false}={}) {
   const relationRoles = roles.filter(([file,pointer]) =>
     !file.endsWith('actql-bound-values-law.json') &&
     !file.endsWith('actql-bound-values-wire-law.json') &&
@@ -111,14 +119,14 @@ export function relationFixtureContracts({legacy=false,acquired=false}={}) {
     ['spec/contracts/actql-stage-contracts.json','/schemas/gate_requirement'],
     ['spec/contracts/actql-stage-contracts.json','/schemas/result_import_interface'],
   ]));
-  return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy));
+  return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership,preTypedJson));
 }
 
-export function valuesDependencyOracle({legacy=false,beforeMembership=legacy,resultName='rows'}={}) {
-  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership)).sort();
+export function valuesDependencyOracle({legacy=false,beforeMembership=legacy,preTypedJson=false,resultName='rows'}={}) {
+  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership,preTypedJson)).sort();
   const local = {version:'actql-stage-semantics/0.1',binding_references:[],
     bindings:{},parameter_references:[],parameters:{},
-    expression_contract_cid:expressionCid(beforeMembership),
+    expression_contract_cid:legacy ? predecessor.contract_cids['spec/contracts/actql-expressions.json#'] : expressionCid(beforeMembership, preTypedJson),
     local_body:{effects:{},inputs:{},results:{[resultName]:{fields:['id'],from:'selected'}},
       steps:[{as:'selected',values:{rows:[{id:1},{id:2}],schema:{id:{nullable:false,type:'number'}}}}]}};
   const unit = hash({version:'actql-local-unit-dependencies/0.1',

@@ -211,7 +211,7 @@ fn recheck_node_step(
       cursor.stack.push(VectorItems(values.values, 0))
       true
     }
-    (_, @contract.Json) => {
+    (JsonData(value), @contract.Json) => {
       budget.nodes += 1
       recheck_json_step(cursor, value, depth)
     }

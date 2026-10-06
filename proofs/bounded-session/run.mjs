@@ -8,6 +8,8 @@ import { artifacts, checkBindings, checkRetirements, graph, snapshot, targets, v
 import { recordExistingAction } from '../ci-evidence/collect.mjs';
 import { readCatalog } from '../ci-evidence/actions.mjs';
 import { checkExecutionRecipes } from '../ci-evidence/execution-recipes.mjs';
+import { bridgeSnapshot, checkBridgeRoute, bridgeClaim, validateBridgeEvidence } from '../events-bridge/evidence.mjs';
+import { observationUnits } from '../ci-evidence/receipts.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -19,6 +21,8 @@ const moon = join(home, 'bin/moon');
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
 const bindings = JSON.parse(readFileSync(new URL('bindings.json', import.meta.url)));
 checkBindings(root, bindings);
+checkBridgeRoute(root);
+const bridgeSource = bridgeSnapshot(root);
 const retirements = checkRetirements(root);
 const source = snapshot(root);
 const directory = join(root, '.artifacts/bounded-session');
@@ -28,22 +32,23 @@ const worktreeDirty = spawnSync('git', ['status', '--porcelain'], { cwd: root, e
 const compiler = spawnSync(join(home, 'bin/moonc'), ['-v'], { env, encoding: 'utf8' });
 if (compiler.status !== 0 || compiler.stdout.trim() !== pin.moonc) throw new Error('Wrong MoonBit toolchain');
 
-function run(id, command, args, target = 'model', packagePath = null) {
+function run(id, command, args, target = 'model', packagePath = null, action = null) {
   const start = performance.now();
   const result = spawnSync(command, args, { cwd: root, env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   const milliseconds = Math.round(performance.now() - start);
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `${id}.log`), output);
-  const count = packagePath ? Number(output.match(/Total tests: (\d+), passed: (\d+), failed: 0/)?.[2] ?? 0) : null;
-  if (result.error || result.status !== 0 || (packagePath && count === 0)) {
+  if (result.error || result.status !== 0) {
     process.stderr.write(output);
-    throw result.error ?? new Error(`${id} failed or executed no tests`);
+    throw result.error ?? new Error(`${id} failed`);
   }
+  const count = observationUnits(action, output, result.status);
   console.log(`${id}: passed${count ? ` ${count} tests` : ''} (${milliseconds} ms)`);
   const execution = {
-    command: [command === moon ? 'moon' : command, ...args], target, exit: result.status,
+    command: [command === moon ? 'moon' : command === process.execPath ? 'node' : command, ...args], target, exit: result.status,
     passed: true, count, milliseconds, sourceDigest: source.digest,
     artifacts: packagePath ? artifacts(root, target, packagePath) : {},
+    ...(id === 'events-model' ? {bridgeSourceDigest: bridgeSource.digest} : {}),
   };
   recordExistingAction({id: id === 'lean' ? 'model' : id,
     command: [command === moon ? 'moon' : command === process.execPath ? 'node' : command, ...args],
@@ -60,14 +65,14 @@ const actionInputs = inventoryAction({
 });
 writeFileSync(join(directory, 'action-inputs.json'), serializeManifest(actionInputs));
 console.log(`Lean input inventory: ${actionInputs.inputs.files.length} entries (${Math.round(performance.now() - inventoryStart)} ms); report-only, reuse ineligible`);
-const model = recipes.find(recipe => recipe.role === 'model');
-const lean = run(model.runId, process.execPath, model.action.command.slice(1));
+const modelRuns = Object.fromEntries(recipes.filter(recipe => recipe.role === 'model').map(recipe =>
+  [recipe.runId, run(recipe.runId, process.execPath, recipe.action.command.slice(1), 'model', null, recipe.action)]));
 for (const target of selected === 'all' ? targets : [selected]) {
-  const runs = { lean };
+  const runs = { ...modelRuns };
   const targetRecipes = recipes.filter(recipe => recipe.action.target === target && recipe.role !== 'external');
   for (const recipe of targetRecipes) {
     const action = recipe.action;
-    const execution = run(recipe.runId, moon, action.command.slice(1), target, action.package.slice('src/'.length));
+    const execution = run(recipe.runId, moon, action.command.slice(1), target, action.package.slice('src/'.length), action);
     if (execution.count < action.minimumUnits) throw new Error(`${action.id} executed fewer than its required tests`);
     if (recipe.role === 'connection') execution.coverage = recipe.coverage;
     runs[recipe.runId] = execution;
@@ -75,6 +80,7 @@ for (const target of selected === 'all' ? targets : [selected]) {
   const report = {
     version: 'actql-bounded-session-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
     source, toolchain: pin, target, runs, claims: graph(bindings, target), retirements,
+    bridge: {source: bridgeSource, claim: bridgeClaim(target)},
     trust: ['Lean kernel and permitted foundational axioms', 'MoonBit compiler/runtime',
       'reviewed source connection plus executed integration fixture',
       'finite correspondence domains; operation/kernel premises remain obligations'],
@@ -83,6 +89,7 @@ for (const target of selected === 'all' ? targets : [selected]) {
   current.builtArtifacts = Object.assign({}, ...[...new Set(targetRecipes.map(recipe => recipe.action.package))]
     .map(packagePath => artifacts(root, target, packagePath.slice('src/'.length))));
   const derived = validate(report.claims, report, current, target);
+  validateBridgeEvidence(report, current, bridgeSnapshot(root), target);
   writeFileSync(join(directory, `${target}.json`), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`${target}: ${derived.length} conditional derived claim(s); existing resource gates remain authoritative`);
 }

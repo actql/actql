@@ -33,7 +33,7 @@ fn[T : IndexedRows] dedupe_key_identity(
           emit_runtime_value(value, writer)
         Captured(admitted) =>
           match admitted {
-            Array(_) | Object(_) | Vector(_) =>
+            Array(_) | Object(_) | Vector(_) | JsonData(_) =>
               return Err(Ordering(Scalar(ComparisonDomainNotImplemented)))
             Null
             | Number(_)
