@@ -17,6 +17,34 @@ fn restored_output_refused(
 }
 
 ///|
+/// Keep the original exact cleanup obligation even when opening its root is
+/// temporarily unavailable. A recovered handle is cached for unlink/sync retry.
+fn retry_restored_standard_cleanup(
+  root_path : String,
+  custody : @journal.NativeOutputFileCustody,
+  max_bytes : Int64,
+) -> () -> Bool {
+  let cleanup : Ref[(() -> Bool)?] = Ref(None)
+  () => {
+    if cleanup.val is None {
+      let file = match
+        @retained_file.restore_native_retained_task_file_cleanup(
+          root_path,
+          @journal.native_output_file_custody_occurrence(custody),
+          @journal.native_output_file_custody_generation(custody),
+          @journal.native_output_file_custody_content_cid(custody),
+          max_bytes,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      cleanup.val = Some(retain_standard_output_cleanup(Some(file), () => true))
+    }
+    cleanup.val.unwrap()()
+  }
+}
+
+///|
 fn verify_restored_standard_stream(
   file : @retained_file.NativeRetainedTaskFile,
   current : () -> Bool,
@@ -97,13 +125,7 @@ pub fn restore_native_remote_standard_output(
     ) {
     Ok(value) => value
     Err(_) => {
-      let cleanup = match
-        @retained_file.restore_native_retained_task_file_cleanup(
-          root_path, occurrence, generation, content_cid, max_bytes,
-        ) {
-        Ok(value) => retain_standard_output_cleanup(Some(value), () => true)
-        Err(_) => () => false
-      }
+      let cleanup = retry_restored_standard_cleanup(root_path, custody, max_bytes)
       return restored_output_refused("output-restore-physical", cleanup)
     }
   }

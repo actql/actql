@@ -94,6 +94,12 @@ path; cleanup failure remains a failed command. Raw `moon test` does not acquire
 this namespace for callers: use the wrapper when testing native SQLite fixtures,
 and do not point an unwrapped test at a previous run's database.
 
+The completed-output recovery boundary has a narrow Native runner:
+`node scripts/test-native-completed-restoration.mjs`. It creates private signed
+bundle, file and SQLite fixtures and invokes the bounded focused-test wrapper
+for `remote_standard_host/native_test`. Optional Moon test filters are forwarded;
+the nonzero-test guard still applies. It does not build or run query integration.
+
 Use `moon info` to regenerate `.mbti` files and review and commit them when the
 public API intentionally changes. The API guard rejects cross-target differences,
 modified files and newly untracked interfaces. Its report parser is tested
