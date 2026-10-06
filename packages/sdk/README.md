@@ -585,6 +585,36 @@ private parser message. Ordinary grammar failures retain
 `query_syntax_invalid`. Budget limits remain undetermined coverage rather than
 lexical invalidity. Hints are advisory and never apply an edit or confer authority.
 
+`getCheckFixes(outcome)` returns the typed proposals associated with that exact
+completed SDK response; copied or externally parsed reports return `undefined`.
+For the existing lexer's `unterminated_comment` issue with an exact original
+position, the Host offers `close_block_comment`: insert literal `*/` at the
+original source's EOF, bound to its document revision. It declares
+`applicability: "requires_review"` and `risk: "syntax_structure"`. Other issues,
+unresolved protected dependencies and inexact origins acquire no fabricated fix.
+
+An open `createCheckDocumentSession` can apply explicitly selected proposals with
+`await session.applyFixes(observation, fixes, {version: 2, reviewed: true})`.
+The new version must increase. Only proposals from the latest check of that
+unchanged session are eligible. Copied proposals, stale revisions, duplicate
+insertion points and conflicting edits are refused without changing the buffer.
+The SDK reuses the original format and detached bindings. It checks the original
+request's current context, checks the staged edited text, then checks the original
+context again before committing the one-document edit and its new observation
+together. A failed/unavailable recheck, concurrent edit/close/new check, or observed
+permission/context change leaves the buffer unchanged. The returned observation
+contains the actual recheck verdict, including remaining violations; applying a
+proposal never implies verification. Context checks are observations, not a
+remote authorization lease. No Run or external Effect is executed.
+
+The request snapshot remains weakly associated with the response for this reuse;
+retaining the response retains its original source and bindings. Closing a session
+drops its current buffer and Client reference. Host processing adds no durable
+storage, refetch API or retention-period promise. Existing request/report limits
+still apply. This extension changes the reason/outcome schema bodies and pins;
+preceding SDK/Host pins reject each other explicitly. Legacy diagnostics remain
+separate and no compatibility implementation is retained.
+
 This coordinated correction changes the closed `actql-check-outcome/0.1` schema
 and introduces `actql-check-reason/0.1`. Schema identity, validator and SDK/Host
 must match; a mismatched reply throws `InvalidHostCheckOutcome` and never becomes
@@ -856,6 +886,38 @@ owned structured pointers remain optional; a location recovery read cannot
 substitute another issue. Budgets are checking limits, not invalid JSON. Correct
 the submitted input and explicitly check again; these hints apply no edit and
 grant no execution authority.
+
+
+The operation explanation helpers `explainSubmission`, `explainCancellation`,
+`explainReadFailure` and `explainEffectUncertainty` accept optional `{locale}`
+with the same `en` / `ja` / `ja-JP` selection as check presentation. Unknown
+selections or a throwing locale getter retain the safe English explanation.
+`getOperationPresentationInfo({locale})` returns the operation translation
+revision; it is separate from the check translation revision, schema CIDs and
+Program/Run/Result identity.
+
+The helpers first retrieve the original immutable SDK observation, then choose
+wording. Locale changes preserve every observation, request/Run/read reference,
+control revision, physical-stop fact, cleanup fact and caller-yielded row count.
+They perform no lookup, submit, cancellation, reconciliation or read. Changing
+an error or response while the locale getter runs cannot replace retained facts;
+copies and foreign objects still have no retained explanation. English keeps
+the original frozen explanation; translated results are frozen and reuse its
+immutable nested data. No source, value or credential retention is added.
+
+```js
+const explanation = explainCancellation(cancelReply, {locale: 'ja'});
+// Cancellation acceptance still requires a fresh status for stop and release.
+const presentation = getOperationPresentationInfo({locale: 'ja'});
+```
+
+A held request is distinct from uncertain acceptance and from a received Run
+reference. A reader interruption reports only rows returned to that caller;
+it does not establish publication or execution success. Uncertain reader cleanup
+stays uncertain. An unresolved Effect stays unresolved even when computation
+stop is separately confirmed. Translation cannot grant retry or reconciliation
+permission; inspect the original Owner through the retained reference and current
+authorization when the caller explicitly chooses to do so.
 
 When response decoding, schema admission or original-input binding fails,
 `client.check` still rejects with `InvalidHostCheckOutcome`.

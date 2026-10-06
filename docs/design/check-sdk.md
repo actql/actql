@@ -705,6 +705,23 @@ This is lookup in the original input snapshot, not a query/declaration parser
 or a second checker. It changes no wire schema, reason identity or historical
 `actql-diagnostics/0.1` contract and adds no persistence or retrieval API.
 A copied/externally parsed report has no association.
+The same response custody also holds its detached check request for explicit
+revision-bound fix rechecks. `getCheckFixes` exposes proposals only from a completed
+owned response. The initial `close_block_comment` proposal comes from the existing
+typed lexer issue and original byte length: an exact EOF insertion of `*/`, with
+review required and syntax-structure risk. No parser, checker, public source hash,
+Host persistence or retrieval API is added.
+An open document session validates selected proposal identity, current version,
+target revision, byte boundaries and non-overlapping edits before staging a single
+document. It brackets the candidate check with original-request context checks,
+rejects observed context/permission changes and any concurrent session change,
+then commits the whole edit and rechecked observation synchronously. Checks are
+observations rather than an authorization lease. Failed checks leave the buffer
+unchanged; remaining invalidity is returned as the actual recheck verdict.
+The closed reason/outcome schemas, generated guards/types, pins and independent
+fixtures change together; the preceding schemas are explicitly incompatible.
+Native wire generation currently selects connection/admission/request schemas,
+not check reports, and therefore has no changed check-response projection.
 Unavailable input, another revision or edited text yields no resolved location;
 the reason's safe code/explanation remains usable. The API applies no edits.
 `resolveCheckTextRange` converts a resolved source location to zero-based UTF-16
@@ -1171,6 +1188,23 @@ is rechecked after rendering so an input accessor cannot edit the buffer during
 rendering and publish a stale position. On such a change, the same safe observation
 is formatted with all positions omitted. Formatting performs no Host lookup,
 check, execution, cancellation or edit and retains no additional source buffer.
+
+### Operation explanation locales
+
+Submission, cancellation, read-failure and Effect-uncertainty helpers select
+wording only after retrieving their SDK-owned immutable observation. Operation
+translation identity is exposed separately from check translation and wire
+identity. English fallback remains safe for unknown selections or failed locale
+access. Translation changes only summary/hint text; original references,
+revisions, physical stop, cleanup, Effect identities and yielded counts remain
+unchanged. A locale callback cannot replace this custody with mutable public
+properties, and a copied result still has no custody.
+
+No Host schema, execution Owner, retry permission, persistence, additional input
+retention or automatic I/O is introduced. Existing delivery and cancellation
+certainty limits remain in force; localized presentation does not establish a
+successful Run, an accepted cancellation operation identity, physical release or
+authoritative reconciliation support.
 
 ## Rejected check protocol observations
 

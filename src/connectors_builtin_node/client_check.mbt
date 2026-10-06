@@ -1004,6 +1004,10 @@ fn write_check_report(
               start,
               end,
             )
+            if issue == "unterminated_comment" {
+              // The existing lexical issue concerns the original input.
+              write_check_comment_fix(writer, documents)
+            }
           }
           break
         }
@@ -1406,6 +1410,42 @@ priv struct CheckDocuments {
   declarations_bytes : Int
   parameters_revision : String?
   parameters_bytes : Int
+}
+
+///|
+fn write_check_comment_fix(
+  writer : @encode.Writer,
+  documents : CheckDocuments,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, "fixes")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "code")
+  @encode.string_value(writer, "close_block_comment")
+  @encode.key(writer, "applicability")
+  @encode.string_value(writer, "requires_review")
+  @encode.key(writer, "risk")
+  @encode.string_value(writer, "syntax_structure")
+  @encode.key(writer, "target")
+  @encode.begin_object(writer)
+  @encode.key(writer, "document_id")
+  @encode.string_value(writer, "source")
+  @encode.key(writer, "revision")
+  @encode.string_value(writer, documents.source_revision)
+  @encode.end_object(writer)
+  @encode.key(writer, "edits")
+  @encode.begin_array(writer)
+  @encode.begin_object(writer)
+  @encode.key(writer, "start_byte")
+  @encode.number_value(writer, documents.source_bytes.to_double())
+  @encode.key(writer, "end_byte")
+  @encode.number_value(writer, documents.source_bytes.to_double())
+  @encode.key(writer, "replacement")
+  @encode.string_value(writer, "*/")
+  @encode.end_object(writer)
+  @encode.end_array(writer)
+  @encode.end_object(writer)
+  @encode.end_array(writer)
 }
 
 ///|

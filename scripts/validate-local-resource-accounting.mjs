@@ -481,6 +481,7 @@ export function validateResourceAccounting({
         'moon:value_contract': 'value_contract',
         'moon:encode_core': 'encode_core',
         'moon:relation_schema': 'relation_schema',
+        'moon:bounded_tuple_sort': 'bounded_tuple_sort',
         'moon:managed_record_storage': 'managed_record_storage',
         'moon:managed_record_runtime': 'managed_record_runtime',
         'moon:local_sga': 'local_sga',
@@ -932,6 +933,8 @@ export function validateResourceAccounting({
           'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
         'node:property_graph_surface_checker':
           'scripts/property-graph-surface-checker.test.mjs',
+        'node:property_graph_public_host':
+          'scripts/property-graph-public-host.test.mjs',
         'node:embedded_distinct_values':
           'adapters/host-node/public-distinct-value-retention.test.mjs',
         'node:embedded_expression_comparison':
@@ -955,6 +958,11 @@ export function validateResourceAccounting({
         continue;
       }
       const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
+      if (item.suite === 'node:property_graph_public_host' &&
+        !fs.readFileSync(path.join(root, 'package.json'), 'utf8')
+          .includes('scripts/property-graph-public-host.test.mjs')) {
+        fail(`${label}: Graph projection public fixture is not suite-connected`);
+      }
       if (item.suite === 'node:embedded_vector_records' &&
           !fs.readFileSync(path.join(root,
             'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
@@ -2394,6 +2402,76 @@ export function validateResourceAccounting({
       if (route.operation === 'events' &&
         !environmentRoles.has('record_projection_public_store')) {
         fail(`${label}: record projection public Store fixture is missing`);
+      }
+    }
+    if (route.family === 'Bridge' && ['node_rows', 'edge_rows'].includes(route.operation)) {
+      for (const role of ['graph_projection_fragment_limits', 'graph_projection_presence_charge',
+        'graph_projection_label_limits', 'graph_projection_selection_limits',
+        'graph_projection_order_comparison']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('graph_projection_public_store')) {
+        fail(`${label}: Graph projection public Store fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root, 'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn events_to_rows_step(');
+      const issueStart = bridge.indexOf('fn relation_row_issue(');
+      const projection = stepStart >= 0 && issueStart > stepStart
+        ? bridge.slice(stepStart, issueStart) : '';
+      for (const marker of ['InitializeRecordCells =>',
+        '@carrier.compare_property_name_fragment(',
+        'state.record_cells[state.graph_column]',
+        '@execution.start_admitted_presence_output_row(',
+        '@execution.advance_admitted_output_row(']) {
+        if (!projection.includes(marker)) fail(`${label}: stepped Graph projection is missing`);
+      }
+      if (projection.includes('@execution.append_admitted_output_cells(') ||
+        projection.includes('@execution.admit_relation_row(') ||
+        projection.includes('@execution.append_admitted_output_presence(')) {
+        fail(`${label}: Graph projection output computes synchronously`);
+      }
+      const cleanupStart = bridge.indexOf('fn cleanup_events_to_rows_state(');
+      const ownerStart = bridge.indexOf('fn start_storage_to_rows(');
+      const cleanup = cleanupStart >= 0 && ownerStart > cleanupStart
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      if (!cleanup.includes('@execution.cleanup_admitted_output_row(') ||
+        !cleanup.includes('state.record_cells = []')) {
+        fail(`${label}: Graph projection cleanup custody is missing`);
+      }
+      const graph = fs.readFileSync(path.join(root, 'src/local_bridge/graph_rows.mbt'), 'utf8');
+      for (const marker of ['fn graph_definition_selected(',
+        'source.selection_name_offset = offset',
+        '@canonical.compare_utf16_fragment(', '@carrier.compare_property_name_fragment(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph selection is missing`);
+      }
+      if (graph.includes('@carrier.property_name_identity(')) {
+        fail(`${label}: Graph selection computes synchronously`);
+      }
+      const sorter = fs.readFileSync(path.join(root, 'src/bounded_tuple_sort/sort.mbt'), 'utf8');
+      if (!sorter.includes('@canonical.compare_utf16_fragment(') ||
+        !sorter.includes('value.comparison_component += 1') ||
+        !sorter.includes('value.comparison_offset = offset')) {
+        fail(`${label}: stepped Graph order comparison is missing`);
+      }
+      if (sorter.includes('compare_tuple(') || sorter.includes('@canonical.compare_utf16(')) {
+        fail(`${label}: Graph order comparison computes synchronously`);
+      }
+      for (const marker of ['count > source.label_workspace', 'source.label_reserved = count',
+        '@value.prepare_array_value(', '@value.start_recheck_runtime_text(',
+        '@value.advance_recheck_runtime_value(', '@value.append_array_item(',
+        '@value.finish_array_value(']) {
+        if (!graph.includes(marker)) fail(`${label}: stepped Graph labels are missing`);
+      }
+      if (graph.includes('@value.text_value(') || graph.includes('@utf8.encode(') ||
+        graph.includes('@value.array_value(')) {
+        fail(`${label}: Graph labels compute synchronously`);
+      }
+      if (!projection.includes('source.label_reserved') ||
+        !projection.includes('source.label_reserved = 0') ||
+        !cleanup.includes('source.label_reserved = 0') ||
+        !cleanup.includes('@value.cancel_recheck_runtime_value(recheck)') ||
+        !cleanup.includes('@value.cancel_array_value(builder)')) {
+        fail(`${label}: Graph label cleanup custody is missing`);
       }
     }
     if (route.family === 'Bridge' && route.operation === 'graph' &&

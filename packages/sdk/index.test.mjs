@@ -1,3 +1,4 @@
+import './operation-diagnostic-locales.test.mjs';
 import './check-requirement-frontier.test.mjs';
 import './check-locations.test.mjs';
 import './check-output-formats.test.mjs';
