@@ -73,6 +73,22 @@ function textArrayProgram(id) {
 }
 const textArrayExpected=[{id:1,value:[rawText]},{id:2,value:[]}];
 const textArrayContract={type:'array',nullable:false,items:{type:'string',nullable:false}};
+const aggregateDelimiter='d'.repeat(256);
+function textStringProgram(id) {
+  const value=textArrayProgram(id);
+  value.stages[0].steps[0].values.schema.bucket={type:'number',nullable:false};
+  value.stages[0].steps[0].values.rows=[{id:1,bucket:1,payload:rawText},
+    {id:2,bucket:1,payload:'end'},{id:3,bucket:2,payload:null}];
+  value.stages[0].results.rows.fields=['id','bucket','payload'];
+  value.stages[1].steps=[
+    {group:{by:['bucket'],aggregates:{value:{fn:'string_agg',field:'payload',
+      order_by:[{field:'id',dir:'asc',nulls:'first'}],delimiter:aggregateDelimiter,max_bytes:4096}}},as:'aggregated'},
+    {rename:{bucket:'id'},as:'renamed'},
+    {select:['id','value'],as:'out'}];
+  return value;
+}
+const textStringExpected=[{id:1,value:rawText+aggregateDelimiter+'end'},
+  {id:2,value:null}];
 
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true}){
@@ -147,3 +163,6 @@ test('public retained raw Text Object children preserve data and post-progress c
   {timeout:90_000},t=>verifyRetainedNames(t,'text-object',textObjectProgram,textObjectExpected,textObjectContract));
 test('public retained raw Text array aggregation preserves data and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'text-array',textArrayProgram,textArrayExpected,textArrayContract));
+test('public retained string aggregation preserves delimiters data and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'text-string',textStringProgram,textStringExpected,
+    {type:'string',nullable:true}));
