@@ -394,6 +394,15 @@ export function createInstalledEffectSite({environmentWire,
                     stage.storedResults, facts.control));
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
               }
+              if (error instanceof ExecutionAuthorizationError) {
+                // An unavailable decision grants no send and no terminal
+                // outcome. Keep the durable capture, but attach its live
+                // payload release to this same cleanup owner before leaving.
+                custody.requireRelease(() => suspendCompletedEffectfulComputation({
+                  execution, store: facts.store, storedResults: stage.storedResults,
+                  control: facts.control, computation: stage.computation,
+                  preview: stage.preview}));
+              }
               throw error;
             }
             throw completionError;
