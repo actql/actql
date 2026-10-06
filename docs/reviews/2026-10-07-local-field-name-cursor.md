@@ -5,6 +5,12 @@ Branch: `feat/local-field-name-cursor`; parent: #681. The parent is still
 unmerged. This unit extends its existing expression frame, not the Frontend,
 Run controller, scheduler or ledger. The sole Graph contract remains unchanged.
 
+Integration update: #681 was adopted on main
+`40ed08757152ff4c88397e6e01965e2051909343`. The dependent branch normally
+merges that main and #683 moves to main; its original receipts stay at their
+recorded SHA. The subsequent Object-name addition has a separate
+[boundary record](2026-10-07-local-object-name-cursor.md).
+
 ## Counterexample and implementation
 
 A normally checked/lowered 256-unit Field expression synchronously charged its
