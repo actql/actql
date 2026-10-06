@@ -92,6 +92,28 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+Explicit standalone `FROM UNNEST(array_expression) [AS] element` accepts an
+existing array-producing expression, including a typed array parameter. SQL
+and FROM-headed Pipe use the same common `unnest` operation. `WITH OFFSET`
+optionally exposes the zero-based element position; `[AS] name` changes its
+name and omission uses `offset`. OFFSET is not a reserved identifier in this
+selected GoogleSQL rule. Explicit ORDER BY is needed to request element order.
+NULL and empty arrays produce zero rows; NULL elements and duplicates remain
+rows. Array bounds, element types and nullable contracts are checked by the
+existing checker, without a Frontend expansion evaluator or an inferred key.
+The element and optional position are the visible columns; the source-free
+witness and temporary array/element slots are not authored names or Result
+fields. Later Pipe projection and AS use the ordinary current-column scope.
+
+This first connection requires an explicit element alias. Direct value-table
+star expansion, array constructor literals, implicit array paths and correlated
+JOIN UNNEST remain unimplemented coverage, not restrictions of GoogleSQL.
+Direct star is refused rather than treating a STRUCT element as an ordinary
+single object column. Explicit selection uses the existing nullable-object
+property contracts where applicable. The selected reference is [GoogleSQL
+UNNEST](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest_operator);
+this connection does not establish complete ARRAY/STRUCT or value-table support.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still

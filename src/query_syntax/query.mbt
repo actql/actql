@@ -80,6 +80,7 @@ pub(all) enum QueryInteger {
 ///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
+  UnnestSource(Expression, NamePart, NamePart?)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
   Nearest(NearestClause)
@@ -363,6 +364,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    UnnestSource(expression, element, offset) =>
+      Some(UnnestSource(expression, element, offset))
     GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     AssertUnique(keys) => Some(AssertUnique(keys.map(path => path.copy())))
     Nearest(clause) =>
@@ -1148,6 +1151,47 @@ fn QueryParser::end(self : QueryParser) -> Unit raise QueryAbort {
 }
 
 ///|
+// Explicit UNNEST consumes an array value, not an installed Relation alias.
+// Element and offset names remain authored columns in the resulting scope.
+fn QueryParser::unnest_source(
+  self : QueryParser,
+) -> QueryOperation raise QueryAbort {
+  self.keyword("UNNEST")
+  self.symbol(40)
+  let expression = self.expression()
+  self.symbol(41)
+  if self.has("AS") {
+    self.keyword("AS")
+  }
+  if self.has("WITH") || self.peek().value == Pipe || self.peek().value == End {
+    raise QueryAbort(
+      "UNNEST requires an explicit element alias in this profile",
+      self.peek().start,
+    )
+  }
+  let element = self.name()
+  let offset = if self.has("WITH") {
+    self.keyword("WITH")
+    self.keyword("OFFSET")
+    let name = if self.has("AS") {
+      self.keyword("AS")
+      self.name()
+    } else if self.peek().value is QuotedName(_) {
+      self.name()
+    } else if self.optional_source_alias() is Some(name) {
+      name
+    } else {
+      { value: "offset", quoted: false, }
+    }
+    Some(name)
+  } else {
+    None
+  }
+  self.node()
+  UnnestSource(expression, element, offset)
+}
+
+///|
 fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   self.keyword("SELECT")
   let distinct = self.has("DISTINCT")
@@ -1155,9 +1199,15 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     self.keyword("DISTINCT")
   }
   let projections = self.projections()
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
     self.keyword("FROM")
-    self.query_source()
+    if self.has("UNNEST") {
+      operations.push(self.unnest_source())
+      ([], None, [])
+    } else {
+      self.query_source()
+    }
   } else {
     ([], None, [])
   }
@@ -1169,7 +1219,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       ctes.push(cte)
     }
   }
-  let operations : Array[QueryOperation] = []
+
   if self.has("WHERE") {
     self.keyword("WHERE")
     self.node()
@@ -1350,6 +1400,7 @@ fn QueryParser::pipe(
 ) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
+  let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
     if cte_body {
       raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
@@ -1359,6 +1410,9 @@ fn QueryParser::pipe(
     let label_field = self.graph_labels()
     graph = Some({ label_field, pattern: None, })
     (relation, None, [])
+  } else if self.has("UNNEST") {
+    operations.push(self.unnest_source())
+    ([], None, [])
   } else {
     self.query_source()
   }
@@ -1370,7 +1424,7 @@ fn QueryParser::pipe(
       source_alias,
       graph,
       joins: [],
-      operations: [],
+      operations,
       sets: [],
       final_operations: [],
       effect: None,

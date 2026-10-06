@@ -1546,6 +1546,57 @@ fn compile_steps(
       first = false
     }
     match operation {
+      UnnestSource(expression, element, offset) => {
+        // No original Source or private Values witness belongs to this scope.
+        if i != 0 || !@query.relation(query).is_empty() {
+          raise Abort(UnsupportedProjection)
+        }
+        if offset is Some(name) && same_name(element, name) {
+          raise Abort(DuplicateOutput)
+        }
+        // Value-table star expansion depends on the admitted element type;
+        // do not reinterpret a STRUCT value table as one object column.
+        if selected_projections(query).any(projection => {
+            projection.star is Some(_)
+          }) {
+          raise Abort(UnsupportedProjection)
+        }
+        let physical = ["aql_source_free_unit", element.value]
+        if offset is Some(name) {
+          physical.push(name.value)
+        }
+        let column = pipe_physical_name(physical, "aql_unnest_array_")
+        physical.push(column)
+        let element_slot = pipe_physical_name(physical, "aql_unnest_element_")
+        physical.push(element_slot)
+        let derived = append_pipe_expression(
+          construction,
+          expression,
+          [],
+          [],
+          max_work,
+        )
+        entries.push(("derive", construction.object([(column, derived)])))
+        step_entries.push(entries.copy())
+        entries.clear()
+        let arguments : Array[(String, @builder.Node)] = [
+          ("column", construction.text(column)),
+          ("as", construction.text(element_slot)),
+        ]
+        pipe_visible = [(element.value, element_slot)]
+        if offset is Some(name) {
+          let index_slot = pipe_physical_name(physical, "aql_unnest_offset_")
+          physical.push(index_slot)
+          arguments.push(("with_index", construction.text(index_slot)))
+          pipe_visible.push((name.value, index_slot))
+        }
+        entries.push(("unnest", construction.object(arguments)))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = true
+        active_fields = [column] + pipe_visible.map(pair => pair.1)
+        output = pipe_visible.map(pair => pair.0)
+      }
       GraphCall(_) => raise Abort(UnsupportedGraph)
       AssertUnique(keys) => {
         let unique : Array[@builder.Node] = []
