@@ -35,8 +35,10 @@ export function isolatedExperimentDigest(tree) {
 }
 export const isolatedContract = Object.freeze({
   id: 'actql-isolated-session-mutations-contract/0.1',
-  reviewRevision: '2034069ff171d09684b43cba21e9e9552dc3aa69',
-  experimentDigest: '3611a80f4e044eaf65fc452cc914f25c0c48b80b6c2ec09c3a5a2829f5e46f7b',
+  // The finite effect review and retained physical correspondence are recorded
+  // in docs/reviews/2026-10-06-current-isolated-experiment-contract.md.
+  reviewRevision: '8e090492aa323836bca86871602b8dd6109f5d4f',
+  experimentDigest: '5fb3fc315c59e0c88123cc6824e9634729f84e81824ab18cf323e22c11f37a14',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   hostImage: '20260927.320.1',
   kernelRelease: '6.17.0-1022-azure',
