@@ -45,6 +45,7 @@ test "UNNEST source matches a complete independent checked Program" {
   for
     text in [
       "SELECT element, position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position",
+      "SELECT ALL element element, position position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position",
       "FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT element, position |> ORDER BY position",
     ] {
     let actual = compile(
