@@ -17,7 +17,7 @@ test('check presentation revisions are immutable and separate from schema identi
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.3`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.4`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);
@@ -1399,5 +1399,18 @@ test('operation scalar presentation explains the existing closed domains without
     assert.equal(Object.hasOwn(japanese, 'next'), false);
     assert.equal(Object.hasOwn(japanese, 'apply'), false);
     assert.equal(reason.facts.domain, domain);
+  }
+});
+
+test('expression required types expose safe localized advice without executable edits', () => {
+  for (const type of ['number', 'boolean', 'string']) {
+    const reason = {code: 'expression_type_mismatch', facts: {expected_type: type}};
+    assert.deepEqual(explainCheckReason(reason), {kind: 'known',
+      summary: `An expression argument must have ${type} type.`,
+      hint: `Use an expression with ${type} type for the rejected argument.`});
+    assert.deepEqual(explainCheckReason(reason, {locale: 'ja'}), {kind: 'known',
+      summary: `式の引数には${type}型が必要です。`, hint: `拒否された引数には${type}型の式を使用してください。`});
+    assert.equal(Object.hasOwn(explainCheckReason(reason), 'edits'), false);
+    assert.equal(Object.hasOwn(explainCheckReason(reason), 'next'), false);
   }
 });
