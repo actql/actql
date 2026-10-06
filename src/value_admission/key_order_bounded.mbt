@@ -20,6 +20,17 @@ pub enum BoundedKeyComparisonPoll {
 }
 
 ///|
+/// Compare already-admitted canonical tokens by raw UTF-16 code-unit order.
+/// The caller must retain their admission and lifetime authority. This only
+/// borrows the strings and does not validate, normalize, or admit either token.
+pub fn start_bounded_token_comparison(
+  left : String,
+  right : String,
+) -> BoundedKeyComparison {
+  { kind: TextOrder(left, right), index: 0, terminal: false, null_order: None, }
+}
+
+///|
 pub fn start_bounded_key_comparison(
   left : CheckedValue,
   right : CheckedValue,

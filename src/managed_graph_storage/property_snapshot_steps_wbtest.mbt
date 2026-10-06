@@ -590,7 +590,7 @@ fn snapshot_reference_fixture() -> (@carrier.Carrier, String, String) {
     identity +
     ",\"key\":[" +
     envelope +
-    "],\"props\":{\"p\":{\"a\":[null,3],\"z\":false}}}",
+    "],\"props\":{\"p\":{\"$json\":{\"a\":[null,3],\"z\":false}}}}",
     identity,
   )
 }
@@ -613,7 +613,7 @@ test "snapshot append retains reference key authority and nested properties acro
   assert_eq(storage.nodes[0].identity_order_key, "[" + identity + "]")
   let out = @encode.writer(1000, 100, 10)
   @value.emit_checked_wire_value(storage.nodes[0].properties[0], out)
-  assert_eq(@encode.finish(out), "{\"a\":[null,3],\"z\":false}")
+  assert_eq(@encode.finish(out), "{\"$json\":{\"a\":[null,3],\"z\":false}}")
   guard storage.nodes[0].typed_key[0].value is @value.Reference(reference) else {
     abort("reference key was replaced by plain identity JSON")
   }

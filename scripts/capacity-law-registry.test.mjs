@@ -325,7 +325,7 @@ test('values count law has a separately pinned semantic body', () => {
 test('values wire byte law is separately owned and has independent measurement vectors', () => {
   const path = 'spec/contracts/actql-bound-values-wire-law.json';
   const law = JSON.parse(readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'));
-  const cid = 'sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750';
+  const cid = 'sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f';
   assert.equal(machineCid(law), cid);
   assert.equal(law.unit, 'bytes');
   assert.equal(law.law_id, 'actql.bound.values-wire');

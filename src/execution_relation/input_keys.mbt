@@ -130,8 +130,10 @@ fn validate_captured_keys(
             }
             KeyReference(@admitted.reference_identity_cid(reference))
           }
-          @admitted.Array(_) | @admitted.Object(_) | @admitted.Vector(_) =>
-            return Err(UnsupportedKeyDomain)
+          @admitted.Array(_)
+          | @admitted.Object(_)
+          | @admitted.Vector(_)
+          | @admitted.JsonData(_) => return Err(UnsupportedKeyDomain)
         }
         tuple.push(atom)
       }

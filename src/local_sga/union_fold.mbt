@@ -1,6 +1,9 @@
 ///|
 priv enum UnionFoldPhase {
   ScanUnionElements
+  CompareUnionPrevious
+  CompareUnionSelected
+  CompareUnionEndpoints
   ResolveUnionDefinition
   CheckUnionEndpoints
   ReadUnionKeys
@@ -46,6 +49,8 @@ priv struct UnionFoldPreparation {
   mut scan_index : Int
   mut previous : String?
   mut selected : String?
+  mut candidate : String?
+  mut comparison : @value.BoundedKeyComparison?
   mut left_index : Int
   mut right_index : Int
   mut definition_index : Int
@@ -110,6 +115,8 @@ fn prepare_union_fold(
     scan_index: 0,
     previous: None,
     selected: None,
+    candidate: None,
+    comparison: None,
     left_index: -1,
     right_index: -1,
     definition_index: 0,
@@ -161,6 +168,8 @@ fn union_fold_definition(
 ///|
 fn union_fold_reset_scan(value : UnionFoldPreparation) -> Unit {
   value.selected = None
+  value.candidate = None
+  value.comparison = None
   value.left_index = -1
   value.right_index = -1
   value.scan_side = 0
@@ -173,6 +182,56 @@ fn union_fold_reset_scan(value : UnionFoldPreparation) -> Unit {
   value.column = 0
   value.endpoint = 0
   value.phase = ScanUnionElements
+}
+
+///|
+fn union_fold_finish_candidate(value : UnionFoldPreparation) -> Unit {
+  value.candidate = None
+  value.comparison = None
+  value.scan_index += 1
+  value.phase = ScanUnionElements
+}
+
+///|
+fn union_fold_select_candidate(
+  value : UnionFoldPreparation,
+  order : Int,
+) -> Unit {
+  if order < 0 {
+    value.selected = value.candidate
+    value.left_index = if value.scan_side == 0 { value.scan_index } else { -1 }
+    value.right_index = if value.scan_side == 1 { value.scan_index } else { -1 }
+  } else if order == 0 {
+    if value.scan_side == 0 {
+      value.left_index = value.scan_index
+    } else {
+      value.right_index = value.scan_index
+    }
+  }
+  union_fold_finish_candidate(value)
+}
+
+///|
+fn union_fold_start_selection(value : UnionFoldPreparation) -> Unit {
+  if value.selected is Some(selected) {
+    value.comparison = Some(
+      @value.start_bounded_token_comparison(value.candidate.unwrap(), selected),
+    )
+    value.phase = CompareUnionSelected
+  } else {
+    union_fold_select_candidate(value, -1)
+  }
+}
+
+///|
+fn union_fold_next_endpoint(value : UnionFoldPreparation) -> Unit {
+  value.comparison = None
+  if value.endpoint == 0 {
+    value.endpoint = 1
+    value.phase = CheckUnionEndpoints
+  } else {
+    value.phase = ReadUnionKeys
+  }
 }
 
 ///|
@@ -226,34 +285,15 @@ fn advance_union_fold(
           guard key is Some(key) else {
             return union_fold_failed(value, UnionInputUnavailable, work)
           }
-          let after_previous = value.previous
-            .map(previous => @canonical.compare_utf16(previous, key) < 0)
-            .unwrap_or(true)
-          if after_previous {
-            let order = value.selected
-              .map(selected => @canonical.compare_utf16(key, selected))
-              .unwrap_or(-1)
-            if order < 0 {
-              value.selected = Some(key)
-              value.left_index = if value.scan_side == 0 {
-                value.scan_index
-              } else {
-                -1
-              }
-              value.right_index = if value.scan_side == 1 {
-                value.scan_index
-              } else {
-                -1
-              }
-            } else if order == 0 {
-              if value.scan_side == 0 {
-                value.left_index = value.scan_index
-              } else {
-                value.right_index = value.scan_index
-              }
-            }
+          value.candidate = Some(key)
+          if value.previous is Some(previous) {
+            value.comparison = Some(
+              @value.start_bounded_token_comparison(previous, key),
+            )
+            value.phase = CompareUnionPrevious
+          } else {
+            union_fold_start_selection(value)
           }
-          value.scan_index += 1
         } else if value.scan_side == 0 {
           value.scan_side = 1
           value.scan_index = 0
@@ -281,6 +321,32 @@ fn advance_union_fold(
           union_fold_reset_scan(value)
         } else {
           value.phase = FinishUnionFold
+        }
+      }
+      CompareUnionPrevious | CompareUnionSelected | CompareUnionEndpoints => {
+        guard value.comparison is Some(comparison) else {
+          return union_fold_failed(value, InvalidUnionFold, work)
+        }
+        match @value.advance_bounded_key_comparison(comparison, budget) {
+          Err(_) => return union_fold_failed(value, InvalidUnionFold, work)
+          Ok(@value.KeyComparisonContinue(work=used)) => work += used
+          Ok(@value.KeyComparisonComplete(order~, work=used)) => {
+            work += used
+            value.comparison = None
+            if value.phase == CompareUnionPrevious {
+              if order < 0 {
+                union_fold_start_selection(value)
+              } else {
+                union_fold_finish_candidate(value)
+              }
+            } else if value.phase == CompareUnionSelected {
+              union_fold_select_candidate(value, order)
+            } else if order != 0 {
+              return union_fold_failed(value, UnionEndpointConflict, work)
+            } else {
+              union_fold_next_endpoint(value)
+            }
+          }
         }
       }
       ResolveUnionDefinition => {
@@ -354,6 +420,11 @@ fn advance_union_fold(
           is Some(token) else {
           return union_fold_failed(value, UnionInputUnavailable, work)
         }
+        if value.endpoint == 0 {
+          value.source = Some(identity)
+        } else {
+          value.target = Some(identity)
+        }
         if value.left_index >= 0 && value.right_index >= 0 {
           guard graph_read_edge_endpoints(value.right, value.right_index)
             is Some((other_src, other_dst)) &&
@@ -368,18 +439,14 @@ fn advance_union_fold(
             is Some(other) else {
             return union_fold_failed(value, UnionInputUnavailable, work)
           }
-          // These are complete canonical typed identity tokens retained by the
-          // existing admission owner, not endpoint indexes or scalar key text.
-          if token != other {
-            return union_fold_failed(value, UnionEndpointConflict, work)
-          }
-        }
-        if value.endpoint == 0 {
-          value.source = Some(identity)
-          value.endpoint = 1
+          // Admission owns these complete canonical typed identity tokens;
+          // shared bounded raw order supplies exact token equality here.
+          value.comparison = Some(
+            @value.start_bounded_token_comparison(token, other),
+          )
+          value.phase = CompareUnionEndpoints
         } else {
-          value.target = Some(identity)
-          value.phase = ReadUnionKeys
+          union_fold_next_endpoint(value)
         }
       }
       ReadUnionKeys => {
@@ -650,5 +717,7 @@ fn cleanup_union_fold(value : UnionFoldPreparation) -> Unit {
   value.definition = None
   value.previous = None
   value.selected = None
+  value.candidate = None
+  value.comparison = None
   value.phase = UnionFoldFinished
 }

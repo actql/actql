@@ -6,6 +6,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import {mkdir, mkdtemp, rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import test from 'node:test';
+import './effect-authorization-options.test.mjs';
 import './client-effect-target-checkpoints.test.mjs';
 import './client-two-source-checkpoints.test.mjs';
 import './effect-target-read-continuation.test.mjs';
