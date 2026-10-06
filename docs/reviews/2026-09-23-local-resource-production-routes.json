@@ -1486,6 +1486,20 @@
           "fixture": "ordinary Local derive resumes within quantum and preserves row order"
         },
         {
+          "role": "derive_property_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor retains exact successful accounting and root bounds"
+        },
+        {
+          "role": "derive_property_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor preserves NULL refusal precedence and stop custody"
+        },
+        {
           "role": "same_stage_values_derive_two_consumers",
           "suite": "moon:query_integration",
           "targets": [
@@ -1590,6 +1604,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-long-text-derive-select"
+        },
+        {
+          "role": "derive_property_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained property names publish NULL and deliver cancellation after progress"
         }
       ],
       "path_assurance": {
