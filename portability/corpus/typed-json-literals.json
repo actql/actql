@@ -1,0 +1,88 @@
+{
+  "version": "actql-typed-json-literal-vectors/0.1",
+  "cases": [
+    {
+      "id": "null",
+      "source": "null",
+      "wire": "{\"$json\":null}",
+      "cid": "sha256:aa360d94d0b538decb764fbc2de710774e1dfda38a271ee0e1c82a505cd3d771"
+    },
+    {
+      "id": "boolean",
+      "source": "true",
+      "wire": "{\"$json\":true}",
+      "cid": "sha256:ebcc8c9872ab3149f2cff1a9e6a0f811f3fd504ddecd147cf378e482651e7a56"
+    },
+    {
+      "id": "number",
+      "source": "1.5",
+      "wire": "{\"$json\":1.5}",
+      "cid": "sha256:96b7dfc3ad84543b5db520f81522f1e0f0e5cd467f5a356d3f5a249432f20d31"
+    },
+    {
+      "id": "string",
+      "source": "\"x\"",
+      "wire": "{\"$json\":\"x\"}",
+      "cid": "sha256:275255d222f15f030ac5a71592a0467f0aced782968a5c38aa801af671408705"
+    },
+    {
+      "id": "array",
+      "source": "[null,1]",
+      "wire": "{\"$json\":[null,1]}",
+      "cid": "sha256:df8666272b216c22231d08fb96fd452359ee635b4b9d63aff7d9aaf50ad82601"
+    },
+    {
+      "id": "object",
+      "source": "{\"k\":null}",
+      "wire": "{\"$json\":{\"k\":null}}",
+      "cid": "sha256:9ed71d4590342a34d015a7916b0bb7bbe017fa42ee85a2967082659f8a2f8cc4"
+    },
+    {
+      "id": "duplicate-first",
+      "source": "{\"a\":1,\"a\":2}",
+      "wire": "{\"$json\":{\"a\":1}}",
+      "cid": "sha256:9d25f323f3b8b1ab7a41327dc14abd754e8d5876fc1db1eb7bca0b1778e12514"
+    },
+    {
+      "id": "tag-is-data",
+      "source": "{\"$json\":null}",
+      "wire": "{\"$json\":{\"$json\":null}}",
+      "cid": "sha256:02ed4c7beb6613df21f71514bb9d4dc4ad28c9cc1b1497f04b2ec6406a872b6a"
+    },
+    {
+      "id": "unicode-keys",
+      "source": "{\"é\":1,\"e\\u0301\":2}",
+      "wire": "{\"$json\":{\"é\":2,\"é\":1}}",
+      "cid": "sha256:ae31ee7e369e869996dfc4293a638c8c635e283b8a254a9a9236765cf1c9d1b1"
+    },
+    {
+      "id": "crlf",
+      "source": "\"\\r\\n\"",
+      "wire": "{\"$json\":\"\\r\\n\"}",
+      "cid": "sha256:9257b47ad4078cbb2778923bbc94d551b8cf19806014426497f003a925a79f6f"
+    }
+  ],
+  "serialization_contracts": {
+    "json": {
+      "preimage": {
+        "json_value_wire_contract_cid": "sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b",
+        "version": "actql-json/0.1"
+      },
+      "cid": "sha256:f23fea019c655e7d23cc4636c1c766436ab3002aa24e00348aa8539735b848db"
+    },
+    "jsonl": {
+      "preimage": {
+        "json_value_wire_contract_cid": "sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b",
+        "version": "actql-jsonl/0.1"
+      },
+      "cid": "sha256:61035606b44ad7f4dc24127825bcc46636f40ce5e06881cf9c97996dcb3bde84"
+    },
+    "csv": {
+      "preimage": {
+        "json_value_wire_contract_cid": "sha256:8ce92036074141bdc4b39436fe2460c7d1460810af1c345b45c6fc102b36791b",
+        "version": "actql-csv/0.1"
+      },
+      "cid": "sha256:8bd0190f95dc6ae0aedea29755c907fd94ecdb677709b124b0f104fa339e9fd2"
+    }
+  }
+}

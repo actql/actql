@@ -1,4 +1,33 @@
 ///|
+fn graph_diff_expected_row(
+  base : String,
+  target : String,
+  removal? : Bool = false,
+) -> String {
+  // Canonical order is authored independently of the output encoder. Typed
+  // JSON wraps only the Delta column, never the enclosing Relation row.
+  let removed = if removal {
+    let node = snapshot_fixture_identity("N", 1)
+    "{\"dst\":" +
+    node +
+    ",\"id\":" +
+    snapshot_fixture_identity("E", 11) +
+    ",\"key\":[11],\"props\":{},\"src\":" +
+    node +
+    "}"
+  } else {
+    ""
+  }
+  "{\"delta\":{\"$json\":{\"base_graph_cid\":\"" +
+  base +
+  "\",\"edges\":{\"add\":[],\"remove\":[" +
+  removed +
+  "],\"update\":[]},\"graph_contract_cid\":\"sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d\",\"nodes\":{\"add\":[],\"remove\":[],\"update\":[]},\"target_graph_cid\":\"" +
+  target +
+  "\",\"version\":\"actql-graph-delta/0.1\"}}}"
+}
+
+///|
 fn graph_diff_provider_fixture(
   removal? : Bool = false,
   empty? : Bool = false,
@@ -100,17 +129,19 @@ test "Graph diff provider matches independent kernel row admission and completio
   let decode = 103L
   let json_admission = 355L
   let assemble = 1L
-  let delta_recheck = 35L
+  // Four Text values add seven chunk polls: version 1, three CIDs 2 each.
+  let delta_recheck = 35L + 7L
   let kernel = 2L * (snapshot + body_start + parse + decode + json_admission) +
     assemble +
     delta_recheck
   let row_start = 1L
-  // Begin/read=2; Delta recheck=35; name=1; value measurement=31;
+  // Begin/read=2; Delta recheck=42; name=1; payload measurement=31;
+  // the typed JSON marker adds one physical measurement frame.
   // commit/end-of-input/seal=3. Completion authority is separate from import.
-  let row_admission = 2L + 35L + 1L + 31L + 3L
+  let row_admission = 2L + delta_recheck + 1L + 31L + 1L + 3L
   let completion = 1L
   let total = kernel + row_start + row_admission + completion
-  assert_eq((kernel, row_admission, total), (2784L, 72L, 2858L))
+  assert_eq((kernel, row_admission, total), (2791L, 80L, 2873L))
   for selected in [false, true] {
     let generated = task_test_generated(owner)
     let generated = if selected {
@@ -148,22 +179,9 @@ test "Graph diff provider matches independent kernel row admission and completio
             assert_eq(ceiling, total)
             assert_eq(used, total)
             assert_eq(@execution.completed_row_count(output), 1)
-            let expected = "{\"delta\":" +
-              graph_delta_empty_actions()
-              .replace(
-                old=snapshot_fixture_cid(),
-                new="sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
-              )
-              .replace(
-                old=snapshot_fixture_cid(),
-                new="sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
-              ) +
-              "}"
-            let expected = @identity.stringify_value(
-              @identity.from_json(@json.parse(expected), 10000, 100, 10000),
-              10000,
-              10000,
-              100,
+            let expected = graph_diff_expected_row(
+              "sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
+              "sha256:b432ac9e6035853bc1e8a7cfcdadd4a98f04f5aeefa279f4287204f33e9f0fec",
             )
             assert_eq(
               @execution.completed_output_row_wire(output, 0, 10000, 10000, 100).unwrap(),
@@ -245,18 +263,14 @@ test "Graph diff provider completes one Delta row without reclaiming borrowed Gr
         }
       }
       let output = output.unwrap()
-      let expected = "{\"delta\":" +
-        (if removal {
-          graph_delta_remove_parallel_edge()
+      let expected = graph_diff_expected_row(
+        snapshot_fixture_cid(),
+        if removal {
+          "sha256:1371549624dd79d7a1121a061fde22c27ef85f8c0fd99f42a28d1fdb26e7ef01"
         } else {
-          graph_delta_empty_actions()
-        }) +
-        "}"
-      let expected = @identity.stringify_value(
-        @identity.from_json(@json.parse(expected), 10000, 100, 10000),
-        10000,
-        10000,
-        100,
+          snapshot_fixture_cid()
+        },
+        removal~,
       )
       assert_eq(
         @execution.completed_output_row_wire(output, 0, 10000, 10000, 100).unwrap(),

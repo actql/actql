@@ -43,8 +43,8 @@ test "query material resolves only request slots and unions request and filter P
     let material = @planning.prepare_query_material(sequence, limits).unwrap()
     assert_eq(
       @encode.document_text(@planning.query_material_request(material)),
-      // Request business objects do not use the expression literal wrapper.
-      "{\"payload\":{\"literal\":{\"$param\":\"business\",\"literal\":{\"a\":1}}},\"threshold\":1}",
+      // The typed JSON marker preserves opaque business data; literal stays data.
+      "{\"payload\":{\"$json\":{\"literal\":{\"$param\":\"business\",\"literal\":{\"a\":1}}}},\"threshold\":1}",
     )
     let cids = @planning.query_material_cids(material)
     assert_eq(

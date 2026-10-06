@@ -175,3 +175,61 @@ test "complete order long object name yields with independent wire work and clea
   guard checked.value is Object(fields) else { abort("object expected") }
   assert_eq(element_count(fields), 1)
 }
+
+///|
+test "typed JSON order preserves its domain with bounded Text emission" {
+  let payload = "a".repeat(63) + "😀" + "b".repeat(4031)
+  let checked : CheckedValue = {
+    contract: @contract.primitive(@contract.JsonType, nullable=false),
+    value: JsonData(Text(payload)),
+  }
+  let limits : Limits = { max_nodes: 1, max_depth: 0, max_text_bytes: 4098, }
+  let expected = "[\"json\",[\"text\",\"" + payload + "\"]]"
+  let expected_bytes = @utf8.encode(expected).length()
+  // Recheck uses 64 chunks and setup/terminal. Emission has the same 64
+  // chunks plus payload read, wrapper read/close and terminal: 134 total.
+  for quantum in [1, 7, 256] {
+    let cursor = start_complete_order(
+      checked,
+      limits,
+      max_output_bytes=Some(expected_bytes),
+    ).unwrap()
+    let (actual, bytes, work) = text_order_drain(cursor, quantum)
+    assert_eq(actual, expected)
+    assert_eq(bytes, expected_bytes)
+    assert_eq(work, 134)
+    assert_true(cursor.out is None && cursor.pending.is_empty())
+    let cancelled = start_complete_order(checked, limits).unwrap()
+    assert_true(advance_complete_order(cancelled, 70) is OrderContinue(work=70))
+    cancel_complete_order(cancelled)
+    assert_true(cancelled.out is None && cancelled.pending.is_empty())
+    assert_true(
+      advance_complete_order(cancelled, quantum) is OrderFailed(_, work=0),
+    )
+  }
+}
+
+///|
+test "typed JSON order separates SQL null and nested JSON payloads" {
+  let contract = @contract.primitive(@contract.JsonType, nullable=true)
+  let limits : Limits = { max_nodes: 20, max_depth: 5, max_text_bytes: 100, }
+  let sql_null = order_checked(contract, "null")
+  assert_eq(complete_order_key(sql_null, limits).unwrap(), "[\"null\"]")
+  for
+    (source, expected) in [
+      ("null", "[\"json\",[\"null\"]]"),
+      ("[null,1]", "[\"json\",[\"array\",[[\"null\"],[\"number\",1]]]]"),
+      (
+        "{\"x\":[true]}", "[\"json\",[\"object\",[[\"x\",[\"array\",[[\"boolean\",true]]]]]]]",
+      ),
+    ] {
+    let (checked, _, _) = admit_json_literal(source, limits).unwrap()
+    for quantum in [1, 7, 256] {
+      let cursor = start_complete_order(checked, limits).unwrap()
+      let (actual, bytes, _) = text_order_drain(cursor, quantum)
+      assert_eq(actual, expected)
+      assert_eq(bytes, @utf8.encode(expected).length())
+      assert_true(cursor.out is None && cursor.pending.is_empty())
+    }
+  }
+}

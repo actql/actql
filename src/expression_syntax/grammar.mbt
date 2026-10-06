@@ -94,6 +94,7 @@ fn expression_role(
     | "array"
     | "vector_concat" => Arguments(tag)
     "to_decimal"
+    | "typed_literal"
     | "join_field"
     | "cast"
     | "property"
@@ -141,6 +142,7 @@ fn arity(
 ///|
 fn body_fields(tag : String) -> (Array[String], Array[String]) {
   let required = match tag {
+    "typed_literal" => ["type", "value"]
     "to_decimal" | "try_decimal" => ["value", "precision", "scale"]
     "quantize" => ["value", "precision", "scale", "rounding"]
     "decimal_divide" => ["left", "right", "precision", "scale", "rounding"]
@@ -174,6 +176,7 @@ fn body_fields(tag : String) -> (Array[String], Array[String]) {
 ///|
 fn body_role(tag : String, name : String) -> Role {
   match (tag, name) {
+    ("typed_literal", _) => Data
     ("cast", "target") => CastTarget
     ("empty_array", "items") => ItemContract
     ("case", "when") => Branches

@@ -700,9 +700,9 @@ test "property Graph union retained snapshot matches independent bytes after sou
   }
   let relation = relation.unwrap()
   assert_eq(@execution.completed_row_count(relation), 1)
-  let expected = "{\"id\":" +
+  let expected = "{\"id\":{\"$json\":" +
     snapshot_fixture_identity("N", 1) +
-    ",\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}"
+    "},\"labels\":[\"Node\",\"Person\"],\"name\":\"one\"}"
   assert_eq(
     @execution.completed_output_row_wire(relation, 0, 10000, 10000, 50).unwrap(),
     expected,

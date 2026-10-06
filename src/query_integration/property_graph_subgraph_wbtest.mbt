@@ -498,11 +498,11 @@ test "bounded keyed subgraph preserves independent edges and source Graph" {
   for row in 0..<2 {
     assert_eq(
       @execution.completed_output_row_wire(rows, row, 10000, 10000, 50).unwrap(),
-      "{\"id\":{\"definition\":\"E\",\"domain\":\"" +
+      "{\"id\":{\"$json\":{\"definition\":\"E\",\"domain\":\"" +
       domain +
       "\",\"key\":[" +
       (10 + row).to_string() +
-      "],\"key_types\":[{\"kind\":\"number\"}]}}",
+      "],\"key_types\":[{\"kind\":\"number\"}]}}}",
     )
   }
   assert_true(@local_sga.cleanup_match_edges(projected).unwrap())
