@@ -213,3 +213,150 @@ test "completed runtime restoration refuses historical foreign and incomplete ev
   )
   assert_true(remote_runtime_record_released(record))
 }
+
+///|
+test "completed runtime cleanup restoration follows a current release without granting success" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "restore-cleanup-current",
+  )
+  let custody = restore_remote_runtime_completed_custody(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  assert_true(remote_runtime_custody_acquire_bundle(custody))
+  assert_true(remote_runtime_custody_acquire_output(custody))
+  assert_true(remote_runtime_custody_acquire_holding(custody))
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let revision = dispatch_record_revision(record)
+  assert_false(confirm_remote_runtime_completed_restoration(record, custody))
+  let (_, foreign, foreign_subject, foreign_measurement) = completed_runtime_fixture(
+    "restore-cleanup-foreign",
+  )
+  assert_false(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, foreign, foreign_subject, foreign_measurement,
+    ),
+  )
+  assert_true(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, evidence, subject, measurement,
+    ),
+  )
+  assert_false(
+    confirm_remote_runtime_completed_cleanup_restoration(
+      record, custody, evidence, subject, measurement,
+    ),
+  )
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_false(remote_runtime_record_released(record))
+  assert_true(prepare_remote_runtime_success(record, custody) is Err(_))
+  let cleanup = prepare_owned_remote_runtime_cleanup(record, custody).unwrap()
+  assert_eq(remote_runtime_step_action_code(cleanup), 3)
+  assert_false(remote_runtime_custody_resources_reclaimed(custody))
+}
+
+///|
+test "completed runtime cleanup observation refresh preserves exact completion and strict reconstruction" {
+  let (source, _, _, _) = completed_runtime_fixture("cleanup-refresh-exact")
+  let original = dispatch_record_durable_json(source).unwrap()
+  let cached_journal = journal()
+  let record = restore_durable_dispatch_record(
+    cached_journal,
+    admit_durable_dispatch_record(@utf8.encode(original)).unwrap(),
+  ).unwrap()
+  let copy = restore_durable_dispatch_record(
+    journal(),
+    admit_durable_dispatch_record(@utf8.encode(original)).unwrap(),
+  ).unwrap()
+  commit_dispatch_transition(prepare_begin_remote_release(copy).unwrap(), true).unwrap()
+  let changed = admit_durable_dispatch_record(
+    @utf8.encode(dispatch_record_durable_json(copy).unwrap()),
+  ).unwrap()
+  assert_true(
+    restore_durable_dispatch_record(cached_journal, changed)
+    is Err(StateCollision),
+  )
+  refresh_remote_completed_cleanup_observation(record, changed).unwrap()
+  assert_eq(
+    dispatch_record_durable_json(record),
+    dispatch_record_durable_json(copy),
+  )
+  assert_false(remote_runtime_record_startable(record))
+  assert_false(remote_runtime_record_released(record))
+  assert_true(
+    refresh_remote_completed_cleanup_observation(
+      record,
+      admit_durable_dispatch_record(@utf8.encode(original)).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+}
+
+///|
+test "completed runtime cleanup observation refuses changed material foreign identity and terminal adoption" {
+  let (record, _, _, _) = completed_runtime_fixture("cleanup-refresh-refused")
+  let original = dispatch_record_durable_json(record).unwrap()
+  let copy = restore_durable_dispatch_record(
+    journal(),
+    admit_durable_dispatch_record(@utf8.encode(original)).unwrap(),
+  ).unwrap()
+  commit_dispatch_transition(prepare_begin_remote_release(copy).unwrap(), true).unwrap()
+  let body = dispatch_record_durable_json(copy).unwrap()
+  let changed = admit_durable_dispatch_record(
+    @utf8.encode(
+      body.replace(old="original-material", new="replacement-material"),
+    ),
+  ).unwrap()
+  assert_true(
+    refresh_remote_completed_cleanup_observation(record, changed)
+    is Err(StateCollision),
+  )
+  let (foreign, _, _, _) = completed_runtime_fixture("cleanup-refresh-foreign")
+  assert_true(
+    refresh_remote_completed_cleanup_observation(
+      record,
+      admit_durable_dispatch_record(
+        @utf8.encode(dispatch_record_durable_json(foreign).unwrap()),
+      ).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+  commit_dispatch_transition(
+    prepare_confirm_remote_release(copy).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    refresh_remote_completed_cleanup_observation(
+      record,
+      admit_durable_dispatch_record(
+        @utf8.encode(dispatch_record_durable_json(copy).unwrap()),
+      ).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+  assert_eq(dispatch_record_durable_json(record), Ok(original))
+  assert_true(
+    refresh_remote_completed_cleanup_observation(
+      copy,
+      admit_durable_dispatch_record(
+        @utf8.encode(dispatch_record_durable_json(copy).unwrap()),
+      ).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+  let (_, accepted) = commit_dispatch_acceptance(
+    prepare_dispatch_acceptance(journal(), dispatch_record_request(record)).unwrap(),
+    true,
+  ).unwrap()
+  assert_true(
+    refresh_remote_completed_cleanup_observation(
+      accepted,
+      admit_durable_dispatch_record(
+        @utf8.encode(dispatch_record_durable_json(accepted).unwrap()),
+      ).unwrap(),
+    )
+    is Err(StateCollision),
+  )
+}
