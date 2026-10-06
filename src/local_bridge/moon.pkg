@@ -23,3 +23,8 @@ import {
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
 }
+
+import {
+  "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/json",
+} for "wbtest"
