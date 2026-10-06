@@ -109,7 +109,8 @@ pub fn NativeExecutorSlot::spawn_holder(
 
 ///|
 /// Start a holder whose standard input is the read end of a new channel.
-/// This process keeps only the write end, to send the holder its work.
+/// This process retains the read end for queue inspection only; it never
+/// consumes holder input. Both descriptors remain owned by the channel.
 pub fn NativeExecutorSlot::spawn_holder_with_channel(
   self : NativeExecutorSlot,
   executable : String,
@@ -125,10 +126,16 @@ pub fn NativeExecutorSlot::spawn_holder_with_channel(
   let read_end = ends >> 16
   let write_end = ends & 0xFFFF
   let spawned = self.spawn_holder_reading(executable, arguments, read_end)
-  ignore(slot_close_ffi(read_end))
   match spawned {
-    Ok(child) => Ok((child, { descriptor: write_end, }))
+    Ok(child) =>
+      Ok(
+        (
+          child,
+          { descriptor: write_end, inspection_descriptor: read_end, child, pending_frame: None, offset: 0, },
+        ),
+      )
     Err(issue) => {
+      ignore(slot_close_ffi(read_end))
       ignore(slot_close_ffi(write_end))
       Err(issue)
     }
@@ -379,8 +386,10 @@ extern "C" fn open_channel_ffi() -> Int = "actql_executor_slot_open_channel"
 #borrow(line)
 extern "C" fn channel_write_ffi(
   descriptor : Int,
+  inspection_descriptor : Int,
   line : Bytes,
   length : Int,
+  offset : Int,
 ) -> Int = "actql_executor_slot_channel_write"
 
 ///|
@@ -390,10 +399,17 @@ extern "C" fn read_input_line_ffi(max_bytes : Int) -> Bytes = "actql_executor_sl
 /// The control process's end of a channel to one holder.
 struct NativeHolderChannel {
   mut descriptor : Int
+  mut inspection_descriptor : Int
+  child : NativeExecutorSlotChild
+  mut pending_frame : (String, Bytes)?
+  mut offset : Int
 }
 
 ///|
-/// Send one line. False when the holder is gone or the line is invalid.
+/// Send one line when no prior frame is unread and the child is observed live.
+/// A partial frame is retained and resumed without interleaving a new frame.
+/// False means no confirmed relay (busy/unavailable/invalid), never stop or
+/// cleanup evidence. Remote responsibility remains with its existing Owner.
 pub fn NativeHolderChannel::send(
   self : NativeHolderChannel,
   line : String,
@@ -401,18 +417,54 @@ pub fn NativeHolderChannel::send(
   if self.descriptor < 0 || line.contains("\n") {
     return false
   }
-  let encoded = @utf8.encode(line)
-  channel_write_ffi(self.descriptor, encoded, encoded.length()) == 0
+  match self.child.wait(false) {
+    Ok(None) => ()
+    _ => return false
+  }
+  let (original, encoded) = match self.pending_frame {
+    Some(frame) => frame
+    None => (line, @utf8.encode(line + "\n"))
+  }
+  let written = channel_write_ffi(
+    self.descriptor,
+    self.inspection_descriptor,
+    encoded,
+    encoded.length(),
+    self.offset,
+  )
+  if written < 0 {
+    return false
+  }
+  self.offset += written
+  if self.offset == encoded.length() {
+    self.pending_frame = None
+    self.offset = 0
+    original == line
+  } else {
+    self.pending_frame = Some((original, encoded))
+    false
+  }
 }
 
 ///|
 pub fn NativeHolderChannel::close(self : NativeHolderChannel) -> Bool {
-  if self.descriptor < 0 {
-    return false
+  let closed = if self.descriptor < 0 {
+    true
+  } else if slot_close_ffi(self.descriptor) == 0 {
+    self.descriptor = -1
+    true
+  } else {
+    false
   }
-  let closed = slot_close_ffi(self.descriptor) == 0
-  self.descriptor = -1
-  closed
+  let inspection_closed = if self.inspection_descriptor < 0 {
+    true
+  } else if slot_close_ffi(self.inspection_descriptor) == 0 {
+    self.inspection_descriptor = -1
+    true
+  } else {
+    false
+  }
+  closed && inspection_closed
 }
 
 ///|
