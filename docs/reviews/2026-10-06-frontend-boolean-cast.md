@@ -37,7 +37,43 @@ The ordinary packed corpus and its `--boolean-cast-only` selection include
 and 1 admitted invalid-string cast failure per Local/HTTPS transport. Expectations
 include values, declaration-order columns, nullability, empty typed Result,
 parameters, Pipe scope, no Source I/O, and existing resend/reattach behavior.
-Public execution evidence will be recorded after the clean-HEAD package run.
+The clean-HEAD public run succeeded at runtime/fixture commit
+`f0314ce728280ccc7a2f88107df8c164d0d8c6c4`. Both Local and HTTPS passed all
+8 successes, 4 preparation refusals (Run admission and provider I/O remain zero),
+and 1 admitted invalid-string failure. The shared public harness compares rows,
+`Result.describe()` contracts, column order, stream termination and existing
+same-request resend/reattach behavior. This is local acceptance, not CI success.
+
+Command: pinned Node/Moon environment running
+`node /private/tmp/actql-b-boolean-cast-packed-20261006.mjs`, which executes
+`packed-client-packages.mjs <outside-directory>` followed by
+`test-packed-public-query.mjs --boolean-cast-only` under the shared 900s heavy
+guard `run-Qtolzk`. It does not execute full Core or the full packed corpus.
+
+Ordinary five-package producer: `/private/tmp/actql-b-boolean-cast-pack-C8NtiP`.
+The producer manifest pins the runtime commit above. Receipt:
+`worktrees/.codex-scratch/public-query-evidence-d8gCXZ/summary.json`,
+`008.result.json`, `008.stdout.log` and `008.stderr.log`; status passed,
+complete true, command 008 exit 0, artifactsRemoved true. The outside consumer
+installation was removed after evidence capture.
+
+| Package | SHA-256 tarball digest |
+|---|---|
+| client-wire | 68e1aa6b3539f5833630693a5a10e084f61a2ab7f4e2e4f978722a33ce6e9e90 |
+| sdk | 50bbc571100ad143807b709fa1cd74ed9e2c544bf9d2edba08981c960b02515a |
+| run-host-core | 4497f315db851fb284fcd36be8d57d9c4c5780bd15b2f95348eda247644e6063 |
+| local-node | d251b8754d8111d8e912f0318714c1452f0778e4a81c63ce67dfbdc19e3ebada |
+| node | 89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64 |
+
+The first producer attempt (`run-oBgFRC`) stopped before public execution due
+to four obsolete ignored generated Salesforce adapter copies in this worktree.
+They were verified absent from the current esbuild dependency graph and removed
+individually (26,926 bytes); no tracked adapter, source or shared dependency was
+removed. The successful producer reran ordinary prepack without suppressing its
+freshness checks. This infrastructure stop is not a BOOLEAN runtime failure.
+
+The subsequent report-only commit changes this document alone; it does not
+relabel the runtime commit's executed tests as a new-SHA CI success.
 
 ## Identity impact
 
