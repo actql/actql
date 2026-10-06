@@ -78,8 +78,9 @@ where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;
 having_clause = "HAVING", expression ;
 select_list   = select_item, { ",", select_item } ;
-select_item   = "*" | path, ".", "*"
+select_item   = "*", [ star_except ] | path, ".", "*"
               | expression, [ "AS", identifier ] ;
+star_except   = "EXCEPT", "(", identifier, { ",", identifier }, ")" ;
 order_clause  = "ORDER", "BY", sort_item, { ",", sort_item } ;
 sort_item     = expression, [ "ASC" | "DESC" ],
                 [ "NULLS", ( "FIRST" | "LAST" ) ] ;

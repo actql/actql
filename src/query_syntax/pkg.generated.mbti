@@ -346,6 +346,7 @@ pub(all) struct Projection {
   analytic : AnalyticCall?
   name : NamePart?
   star : String?
+  except_columns : Array[NamePart]
 }
 
 pub(all) struct PropertyEdgeDefinition {

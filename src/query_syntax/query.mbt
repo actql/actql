@@ -14,6 +14,7 @@ pub(all) struct Projection {
   analytic : AnalyticCall?
   name : NamePart?
   star : String?
+  except_columns : Array[NamePart]
 }
 
 ///|
@@ -385,20 +386,28 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
         }),
       )
     Where(e) => Some(Where(e))
-    Extend(xs) => Some(Extend(xs.copy()))
+    Extend(xs) => Some(Extend(copy_projections(xs)))
     Set(xs) => Some(Set(xs.copy()))
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
-      Some(Group(keys.copy(), projections.copy(), scope))
+      Some(Group(keys.copy(), copy_projections(projections), scope))
     Having(e) => Some(Having(e))
-    Analytic(projections) => Some(Analytic(projections.copy()))
-    Select(xs, distinct) => Some(Select(xs.copy(), distinct))
+    Analytic(projections) => Some(Analytic(copy_projections(projections)))
+    Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
     Limit(count, offset) => Some(Limit(count, offset))
   }
+}
+
+///|
+fn copy_projections(projections : Array[Projection]) -> Array[Projection] {
+  projections.map(projection => {
+    ..projection,
+    except_columns: projection.except_columns.copy(),
+  })
 }
 
 ///|
@@ -803,12 +812,33 @@ fn QueryParser::projections(
     self.node()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
+      let except_columns : Array[NamePart] = []
+      if self.has("EXCEPT") {
+        self.keyword("EXCEPT")
+        let open = self.advance()
+        if open.value != Symbol(40) {
+          raise QueryAbort("Expected EXCEPT opening parenthesis", open.start)
+        }
+        while true {
+          self.node()
+          except_columns.push(self.name())
+          if self.peek().value != Symbol(44) {
+            break
+          }
+          ignore(self.advance())
+        }
+        let close = self.advance()
+        if close.value != Symbol(41) {
+          raise QueryAbort("Expected EXCEPT closing parenthesis", close.start)
+        }
+      }
       {
         expression: None,
         aggregate: None,
         analytic: None,
         name: None,
         star: Some("*"),
+        except_columns,
       }
     } else {
       let aggregate = if self.aggregate_head() {
@@ -849,6 +879,7 @@ fn QueryParser::projections(
         analytic,
         name,
         star: None,
+        except_columns: [],
       }
     }
     values.push(projection)

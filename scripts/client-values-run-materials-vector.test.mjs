@@ -590,7 +590,11 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector('sha256:f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead',
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:0f55021c0394bc5cd6b6fa37fa3f30ebad510678911822e8c7b3da6fd557e659');
-  assert.equal(current.run.run_definition_cid, 'sha256:80cca8baf237d7c1d546d91d221ade151cb78961ffc467dacad95ef2f7b15b91');
+  // Keep the ordinary typed-JSON/main integration predecessor intact.
+  assert.equal(vector('sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52',
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    'sha256:80cca8baf237d7c1d546d91d221ade151cb78961ffc467dacad95ef2f7b15b91');
+  assert.equal(current.run.run_definition_cid, 'sha256:cdb7ea45586739d1b8fd7e3d4b030c1df0957760e35f7df1b938094c95db2eb1');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

@@ -52,7 +52,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
     query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
   };
-  const body = {...currentBody, query_text_rules_sha256:
+  const body = {...currentBody, query_text_grammar_sha256:
+    '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     '4b2ba4eae5f58ec4834ac3fdea39df0fc636fb385baae0b1e2f5d5475bc2c966'};
   // Literal expectations bind the independent normative preimage above, not
   // generated runtime output. Label selection changes the Program schema
@@ -164,22 +165,25 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'sha256:d825ab855369e92f2e4da5e9af19567cdc89e431784b09d19c3b57ef2e9f301a');
   assert.equal(cid(body), expected);
   // Preserve the statistical-signature predecessor before adding union routing.
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: currentBody.query_text_grammar_sha256, query_text_rules_sha256:
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     'ae044114d8ced801e803b2857da3f5055ad91308c341741fe64cdb6ab700d0b7'}),
     'sha256:cfb9547ce2d09997b65f3dc9496985e80c9e51210333b8dc7d5d911a0c3bb29d');
   // Preserve union routing before connecting binary subtraction.
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: currentBody.query_text_grammar_sha256, query_text_rules_sha256:
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     'bd1e6623508c4ff49006df452a5ab4e77f74f78b19e2fd5a4ca392d7615da08a'}),
     'sha256:8cef04355f736983a0fcb4ce73551596ce04f370be0ab9c1d4400f81263842ae');
   // Retain the Graph subtraction parent's normative preimage.
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: currentBody.query_text_grammar_sha256, query_text_rules_sha256:
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71', query_text_rules_sha256:
     'eab7d4fa147eef8d62760111ec8064eee60befb81ea4239c6ffe2161f2ac5cb2'}),
     'sha256:f6691d7e84028f06cef976870509421ba61d6f6310f7f32171f8ad5cf6ad422e');
-  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: currentBody.query_text_grammar_sha256,
+  assert.equal(cid({...beforeTypedJsonBody, query_text_grammar_sha256: '165db9942f8928d4867288e6616079844df827722d58c7481a4170b858fb6f71',
     query_text_rules_sha256:'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85'}),
     'sha256:76c09e292bf9def41ddb0d40fe5bf59b60483e1a6c2ebde654a54bb3153c4ead');
-  const currentExpected = 'sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52';
-  assert.equal(currentBody.query_text_rules_sha256, 'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85');
+  assert.equal(cid({...body, query_text_rules_sha256:
+    'af2bb27cffada1e7c28c6407d82af77921f843e8e457b023442941ea6b5ebf85'}),
+    'sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52');
+  const currentExpected = 'sha256:92c856defd0bc75bb8b5592bab01327343421f2498ecf2a8fd8549f3c2197d45';
+  assert.equal(currentBody.query_text_rules_sha256, 'b65b58ba08272ce1bf7c5b58f94410365404bd975e0ef3d02f3e97d21eefd81b');
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);

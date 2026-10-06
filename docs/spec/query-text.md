@@ -82,6 +82,26 @@ functions, casts and the `OVER` subset follow the adopted profile. New query
 overloads and numeric domains are rejected before a Program is issued.
 Expression text is never concatenated and reparsed with the legacy dialect.
 
+`SELECT * EXCEPT (name, ...)` uses the adopted
+[GoogleSQL column-exclusion syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#select_except).
+It expands the current visible star columns, removes all matching named
+columns under ordinary column-name resolution, and preserves the remaining
+column order. The exclusion list is nonempty and every name must resolve in
+that star scope. It is not the EXCEPT set operation. Exclusion does not apply
+to separately written expressions elsewhere in the SELECT list, and it does
+not alter row multiplicity or NULLs. Ordinary projection and DISTINCT checking
+still apply; no execution operation or special Source acquisition is added.
+
+After SET, DROP, RENAME or AS, exclusions use the same current Pipe slots as
+star. They do not restore a removed column or range alias. In SQL GROUP
+queries, the retained star columns must be grouped; excluded columns need not
+be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
+its final order. CTE and DATA relations use their current declared columns.
+Existing restrictions on direct Graph star and unsupported JOIN star remain
+explicit implementation gaps. Qualified or expression star and REPLACE are
+separate unconnected coverage; this exclusion connection does not establish
+their execution support or restrict their adopted GoogleSQL meanings.
+
 `LIMIT` and `OFFSET` accept an exact integer literal or a whole named
 parameter. Names lower to the ordinary `take.count` and `take.offset` Parameter
 slots; declarations and values follow existing Program checking, with no

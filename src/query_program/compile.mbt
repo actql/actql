@@ -2060,12 +2060,17 @@ fn compile_steps(
             }),
           })
         }
-        if sql_group_projection &&
-          projections.any(projection => projection.star is Some(_)) &&
-          sql_group_input_columns.any(column => !key_names.contains(column.1)) {
-          // An aggregate with the same name cannot replace an ungrouped value
-          // in star expansion. Validate against keys, before aggregate slots.
-          raise Abort(UnsupportedGrouping)
+        if sql_group_projection {
+          for projection in projections {
+            if projection.star is Some(_) &&
+              expanded_star_columns(projection, sql_group_input_columns).any(column => {
+                !key_names.contains(column.1)
+              }) {
+              // Excluded input columns are not projected; every retained star
+              // value must still be grouped before aggregate slots are added.
+              raise Abort(UnsupportedGrouping)
+            }
+          }
         }
         let order_reserved = active_fields.copy() + key_names
         for projection in projections {
@@ -2408,11 +2413,14 @@ fn compile_steps(
           match projection.star {
             Some("*") =>
               for
-                visible in (if sql_group_projection {
-                  sql_group_input_columns
-                } else {
-                  pipe_visible
-                }) {
+                visible in expanded_star_columns(
+                  projection,
+                  if sql_group_projection {
+                    sql_group_input_columns
+                  } else {
+                    pipe_visible
+                  },
+                ) {
                 names.push(visible.0)
                 selected.push(
                   if visible.0 == visible.1 {
@@ -2598,7 +2606,8 @@ fn compile_steps(
         !sql_group_projection &&
         !distinct &&
         projections.length() == 1 &&
-        projections[0].star == Some("*") => {
+        projections[0].star == Some("*") &&
+        projections[0].except_columns.is_empty() => {
         if entries.length() == 1 && entries[0].0 == "from" {
           entries.clear()
           first = true
@@ -2621,11 +2630,14 @@ fn compile_steps(
           match projection.star {
             Some(_) =>
               for
-                (name, field) in (if sql_group_projection {
-                  sql_group_input_columns
-                } else {
-                  active_fields.map(field => (field, field))
-                }) {
+                (name, field) in expanded_star_columns(
+                  projection,
+                  if sql_group_projection {
+                    sql_group_input_columns
+                  } else {
+                    active_fields.map(field => (field, field))
+                  },
+                ) {
                 names.push(name)
                 selected.push(
                   if name == field {
