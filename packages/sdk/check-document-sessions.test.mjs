@@ -62,8 +62,9 @@ test('document sessions reject reused versions without replacing exact buffer by
   const first = await session.check({format: 'sql'});
   for (const [text, version] of [['edited', -2], ['edited', -3], ['\ud800', -1],
     ['edited', 1.5], ['edited', 2147483648], ['edited', -2147483649]]) {
-    assert.throws(() => session.update(text, version), {code: 'InvalidCheckDocument'},
-      '[check-mutation:document-version]');
+    let refusal;
+    try { session.update(text, version); } catch (error) { refusal = error.code; }
+    assert.equal(refusal, 'InvalidCheckDocument', '[check-mutation:document-version]');
   }
   assert.deepEqual(session.resolveTextRange(first, location(first)).range,
     {start: {line: 0, character: 3}, end: {line: 0, character: 3}});
