@@ -214,6 +214,7 @@ pub struct ResidentRetainedTransfer {
   mut reclaimed : Bool
 }
 pub fn ResidentRetainedTransfer::advance(Self) -> Result[Bool, ResidentRetainedTransferIssue]
+pub fn ResidentRetainedTransfer::current_reply(Self, @remote_site_protocol.RemotePollRetainedCurrent) -> Result[@remote_site_protocol.RemoteRetainedCurrentReply, ResidentRetainedTransferIssue]
 pub fn ResidentRetainedTransfer::reclaim(Self) -> Result[Bool, ResidentRetainedTransferIssue]
 pub fn ResidentRetainedTransfer::reopen_completed_destination(Self, @remote_transfer_journal.Journal) -> Result[Unit, ResidentRetainedTransferIssue]
 pub fn ResidentRetainedTransfer::result(Self) -> Result[@remote_site_protocol.RemoteRetainedInputResult, ResidentRetainedTransferIssue]

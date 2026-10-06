@@ -15,6 +15,8 @@ pub fn acknowledge_output_plan(@http_client.Client, String, @remote_site_protoco
 
 pub fn acknowledge_output_result(@http_client.Client, String, @remote_site_protocol.RemoteOutputResult) -> Result[Unit, NativeRemoteClientIssue]
 
+pub fn acknowledge_retained_input_current(@http_client.Client, String, @remote_site_protocol.RemoteRetainedCurrentReply) -> Result[Unit, NativeRemoteClientIssue]
+
 pub fn acknowledge_retained_input_plan(@http_client.Client, String, @remote_site_protocol.RemoteRetainedInputPlan) -> Result[Unit, NativeRemoteClientIssue]
 
 pub fn acknowledge_retained_input_result(@http_client.Client, String, @remote_site_protocol.RemoteRetainedInputResult) -> Result[Unit, NativeRemoteClientIssue]

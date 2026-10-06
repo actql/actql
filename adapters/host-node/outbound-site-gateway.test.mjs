@@ -1538,3 +1538,82 @@ test('outbound poll waits for work admitted during the idle window', async t => 
   );
   await closed;
 });
+
+
+test('retained current receiver query keeps delivery pending across stale replies and custody failure',
+  {timeout: 15_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'outbound-retained-current-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const request = dispatch({dispatchId: 'retained-current'});
+    const identity = control.identity(request);
+    const plan = Object.freeze({testPlan: true});
+    const query = Object.freeze({testQuery: true});
+    const admitted = Object.freeze({testCurrent: true});
+    const envelope = '{"test":"query-b-envelope"}';
+    const report = '{"test":"query-b-report"}';
+    // Admission is isolated here to prove transport custody only. The real
+    // protocol and physical Native receiver are tested independently.
+    const unused = () => { throw new Error('unused'); };
+    const retainedInput = {
+      retainedInputIntentFacts: unused, retainedInputPlanEnvelope: unused,
+      admitRetainedInputPlan: unused, retainedInputTransferEnvelope: unused,
+      admitRetainedInputResult: unused,
+      retainedInputPlanFacts: selected => {
+        assert.equal(selected, plan);
+        return {wire: JSON.stringify({dispatch_request_cid: identity})};
+      },
+      prepareRetainedInputCurrentQuery: (selected, challenge) => {
+        assert.equal(selected, plan); assert.equal(challenge, 'query-b');
+        return query;
+      },
+      retainedInputCurrentEnvelope: selected => {
+        assert.equal(selected, query); return envelope;
+      },
+      admitRetainedInputCurrentReply: (selected, saved, limits) => {
+        assert.equal(selected, query); assert.deepEqual(limits, {testLimit: true});
+        assert.equal(saved.wire, report); assert.equal(saved.cid, physicalCid(report));
+        return admitted;
+      },
+    };
+    let custodyCalls = 0;
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]), control, retainedInput,
+      receiveRetainedInput: async value => {
+        assert.equal(value.operation, 'retained-current');
+        assert.equal(value.admitted, admitted);
+        if (++custodyCalls === 1) throw new Error('custody unconfirmed');
+      },
+      receiveObservation: async value => {
+        control.admitResponseJson(value.body, request, false);
+        return Object.freeze({});
+      },
+    });
+    t.after(() => gateway.close());
+    const abort = new AbortController(); t.after(() => abort.abort());
+    const pending = gateway.retainedCurrent({dispatch: request, plan, queryId: 'query-b',
+      limits: {testLimit: true}, signal: abort.signal});
+    pending.catch(() => {});
+    const route = '/v1/sites/site-a/generations/1/outbound';
+    const tls = {ca: material.ca, cert: material.siteCertificate, key: material.siteKey};
+    // A different challenge cannot settle this current query, before or after
+    // delivery. Merely polling is not proof that a response is current.
+    assert.notEqual((await post(gateway.origin, `${route}/observations`, tls,
+      '{"test":"query-a-report"}')).status, 200);
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await post(gateway.origin, `${route}/poll`, tls)).body, envelope);
+    assert.notEqual((await post(gateway.origin, `${route}/observations`, tls,
+      '{"test":"query-a-report"}')).status, 200);
+    assert.equal(gateway.pending(), 1);
+    assert.equal(custodyCalls, 0);
+    assert.equal((await post(gateway.origin, `${route}/observations`, tls, report)).status, 503);
+    assert.equal(gateway.pending(), 1);
+    assert.equal((await post(gateway.origin, `${route}/poll`, tls)).body, envelope);
+    assert.equal((await post(gateway.origin, `${route}/observations`, tls, report)).status, 200);
+    assert.equal(await pending, admitted);
+    assert.equal(custodyCalls, 2);
+    assert.equal(gateway.pending(), 0);
+  });

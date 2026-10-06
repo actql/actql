@@ -359,6 +359,55 @@ pub fn ResidentRetainedTransfer::result(
 }
 
 ///|
+/// Read the existing live receiver Owner for one exact current query. This
+/// does not reconstruct a record from historical replies, advance Transfer,
+/// reserve capacity, pin a borrow or enter either executor.
+pub fn ResidentRetainedTransfer::current_reply(
+  self : ResidentRetainedTransfer,
+  query : @remote.RemotePollRetainedCurrent,
+) -> Result[@remote.RemoteRetainedCurrentReply, ResidentRetainedTransferIssue] {
+  if self.reclaimed ||
+    self.cleanup_started ||
+    !self.source_finished ||
+    self.holding is None ||
+    self.result is None {
+    return Err(CleanupPending)
+  }
+  guard self.plan is Some((_, plan)) &&
+    @remote.remote_retained_input_plan_identity(plan) ==
+    @remote.remote_retained_input_plan_identity(
+      @remote.remote_retained_input_current_plan(query),
+    ) else {
+    return Err(ForeignProducer)
+  }
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let record = match self.journal.require(self.request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let receipt = match self.journal.inspect_destination_receipt(self.request) {
+    Ok(Some(value)) if self.receipt_cid ==
+      Some(@transfer.destination_receipt_cid(value)) => value
+    Ok(_) => return Err(ForeignProducer)
+    Err(issue) => return Err(Journal(issue))
+  }
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  if self.reclaimed || self.cleanup_started || self.holding is None {
+    return Err(CleanupPending)
+  }
+  @remote.prepare_remote_retained_input_current_reply(query, record, receipt).map_err(_ => {
+      ForeignProducer
+    },
+  )
+}
+
+///|
 /// Reopen the committed receiver journal while this holder still owns the
 /// original producer and Site reservation. The exact saved receipt must match;
 /// no second reservation, reader, Source acquisition or Transfer is created.
