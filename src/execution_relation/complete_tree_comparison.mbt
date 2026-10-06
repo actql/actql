@@ -166,6 +166,8 @@ fn advance_complete_tree_comparison(
         return Err(Limit)
       }
       cursor.frames[top] = match (a, b) {
+        (@admitted.JsonData(left), @admitted.JsonData(right)) =>
+          CompareAdmitted(left, right)
         (@admitted.Array(left), @admitted.Array(right)) =>
           ArrayMembers(left, right, 0)
         (@admitted.Object(left), @admitted.Object(right)) =>

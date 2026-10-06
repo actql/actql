@@ -4,10 +4,12 @@ pkgtype(kind: "executable")
 
 import {
   "actql/actql/check_environment" @environment,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/executor_slot" @slot,
   "actql/actql/platform_native/http_client" @http,
+  "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/process_image",
   "actql/actql/platform_native/publication_store",
   "actql/actql/publication_payload" @payload,

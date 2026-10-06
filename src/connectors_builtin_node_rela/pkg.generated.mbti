@@ -1526,6 +1526,8 @@ pub fn strategy_remote_bundle_transition_key(@remote_bundle.RemoteBundleTransiti
 
 pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleTransition) -> (Array[String], Array[String])
 
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
+
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
 pub fn strategy_remote_coordinator_delivery_context_current(@remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool) -> Bool raise NodeHostFailure

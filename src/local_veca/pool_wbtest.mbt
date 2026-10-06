@@ -3,12 +3,15 @@ fn pool_relation_carrier(
   text_keys? : Bool = false,
   text_group? : Bool = false,
   dimensions? : Int = 2,
+  group_name? : String = "group",
+  id_name? : String = "id",
+  vector_name? : String = "embedding",
 ) -> @carrier.Carrier {
   @carrier.relation(
     @carrier.rows(
       [
         (
-          @schema.Unqualified("id"),
+          @schema.Unqualified(id_name),
           Some(
             @contract.primitive(
               if text_keys {
@@ -21,7 +24,7 @@ fn pool_relation_carrier(
           ),
         ),
         (
-          @schema.Unqualified("group"),
+          @schema.Unqualified(group_name),
           Some(
             @contract.primitive(
               if text_keys || text_group {
@@ -34,7 +37,7 @@ fn pool_relation_carrier(
           ),
         ),
         (
-          @schema.Unqualified("embedding"),
+          @schema.Unqualified(vector_name),
           Some(
             @contract.vector_contract(dimensions.to_double(), nullable=false).unwrap(),
           ),
@@ -42,7 +45,9 @@ fn pool_relation_carrier(
       ],
       field_set=@carrier.Closed,
       max_fields=3,
-      max_name_bytes=16,
+      max_name_bytes=id_name.length() +
+        vector_name.length() +
+        group_name.length(),
     ).unwrap(),
   )
 }
@@ -52,19 +57,38 @@ fn pool_producer_owner(
   text_keys? : Bool = false,
   text_group? : Bool = false,
   dimensions? : Int = 2,
+  group_name? : String = "group",
+  id_name? : String = "id",
+  vector_name? : String = "embedding",
 ) -> @lower.BoundPrepared {
   bind(
     @pipeline.check_carriers(
       cursor(
-        "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"id\",\"vector\":\"embedding\"}}]",
+        "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"" +
+        id_name +
+        "\",\"vector\":\"" +
+        vector_name +
+        "\"}}]",
       ),
-      [("rows", pool_relation_carrier(text_keys~, text_group~, dimensions~))],
+      [
+        (
+          "rows",
+          pool_relation_carrier(
+            text_keys~,
+            text_group~,
+            dimensions~,
+            group_name~,
+            id_name~,
+            vector_name~,
+          ),
+        ),
+      ],
       None,
       None,
       {
         max_steps: 10,
-        max_work: 10000,
-        max_text_bytes: 10000,
+        max_work: 100000,
+        max_text_bytes: 100000,
         max_nodes: 1000,
         max_tokens: 1000,
         max_depth: 100,
@@ -78,6 +102,7 @@ fn pool_owner(
   producer : @lower.BoundPrepared,
   reduction? : String = "sum",
   output_id? : String = "",
+  group_name? : String = "group",
 ) -> @lower.BoundPrepared {
   let output = if output_id == "" {
     ""
@@ -87,7 +112,9 @@ fn pool_owner(
   bind(
     @pipeline.check_with_evidence(
       cursor(
-        "[{\"pool_vectors\":{\"by\":[\"group\"],\"method\":\"" +
+        "[{\"pool_vectors\":{\"by\":[\"" +
+        group_name +
+        "\"],\"method\":\"" +
         reduction +
         "\"" +
         output +
@@ -108,8 +135,10 @@ fn pool_owner(
       Some(cursor("\"prior\"")),
       {
         max_steps: 10,
-        max_work: 10000,
-        max_text_bytes: 10000,
+        // This setup is not a checker limit fixture. Reserve repeated authored
+        // references separately from the execution limits tested by the kernel.
+        max_work: 100000,
+        max_text_bytes: 100000,
         max_nodes: 1000,
         max_tokens: 1000,
         max_depth: 100,
@@ -288,12 +317,12 @@ test "pool view checks exact work and workspace before publication" {
   let material = @records.completed_material(source).unwrap()
   let owner = pool_owner(producer)
   // One record uses 30 existing steps plus 31 append polls. Cursor custody
-  // adds 8+2*3+1+3*10=45 to the existing 15 structural slots.
+  // adds 16+3*3+1+3*10=56 to 15 structural slots and one name offset.
   for
     (work, workspace, accepted) in [
-      (61, 60, true),
-      (60, 60, false),
-      (61, 59, false),
+      (61, 72, true),
+      (60, 72, false),
+      (61, 71, false),
     ] {
     let view = @carrier_runtime.material_prepare_view(
       material, owner, 0, producer,
@@ -309,7 +338,7 @@ test "pool view checks exact work and workspace before publication" {
         fn() { true },
         control_work_limit=Some(work),
       ) {
-      Err(PoolWorkspaceLimit) => assert_eq(workspace, 59)
+      Err(PoolWorkspaceLimit) => assert_eq(workspace, 71)
       Err(_) => fail("pool view failed before its selected boundary")
       Ok(execution) => {
         let mut terminal = false
@@ -613,9 +642,9 @@ test "pool admits structural workspace before allocating sort state" {
   // Four retained records need two four-slot ordering arrays (32 slots).
   // The three output fields, two components, and two key slots add seven.
   // Keep this expected boundary independent of pool_workspace().
-  // Append snapshot/map (six), identity (one), fixed custody (eight) and
-  // three depth-ten stacks (30) add 45, making 84.
-  let required = 84
+  // Append snapshot/map/links (nine), identity (one), fixed append/name custody
+  // (sixteen) and three depth-ten stacks (30) add 56. One name offset makes 96.
+  let required = 96
   assert_true(
     start_pool(
       @bounded.control(),
@@ -652,8 +681,8 @@ test "pool completes at its exact structural workspace boundary" {
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Two four-slot ordering arrays per retained record (32), plus three
   // output fields, two components, and two key slots: 39. The append cursor
-  // adds 45 as itemized above: 84 in total.
-  let required = 84
+  // adds 56 as itemized above, plus one name offset: 96 in total.
+  let required = 96
   let execution = start_pool(
     @bounded.control(),
     sequence(owner),

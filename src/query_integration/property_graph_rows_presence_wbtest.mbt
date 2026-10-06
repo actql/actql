@@ -54,7 +54,7 @@ fn property_rows_resource_boundary(
   )
   // Labelled variant puts Choice after A. Each of two labels adds a label read,
   // scalar validation, one TextUnits poll, container frame and selector
-  // comparison (five work units per short label); cancellation
+  // comparison, plus two label Text construction polls; cancellation
   // must also work while the first comparison leaves selection pending.
   let graph_owner = if labelled {
     keyed_bridge_owner(
@@ -105,15 +105,25 @@ fn property_rows_resource_boundary(
   let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
   let completion = task_test_completion(owner)
   // Independent one-row ledger: key collection + sort initialization = 2.
-  // Rechecking each typed identity takes 8 nodes, 11 container/child frames
-  // and the final empty-stack poll = 20. Empty labels cost 3; scalar key = 2.
-  // Scan + schema matching + verification + append cost 3+6+3+1 for nodes,
-  // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
-  // Workspace is four ordering slots per row plus schema width (3 / 5).
+  // Rechecking each typed identity takes 8 nodes, 11 container/child frames,
+  // four TextUnits polls (definition 1, 71-unit domain 2, kind 1), and the
+  // final empty-stack poll = 24. Empty labels cost 3; scalar key = 2.
+  // Original scan/match/verification/start = 3+6+3+1 or 5+15+5+1.
+  // Cell initialization adds schema width (3 / 5). Shared row admission adds
+  // reads/rechecks 32 / 82, charge start 1, names 3 / 5, identity measurement
+  // 19 / 57, two small cells 2, and commit 1: 58 / 148 polls.
+  // The JsonData identity marker adds one measurement poll per identity,
+  // without logical node/text charges or another live measurement frame.
+  // Totals are 105 / 258, not sampled from a successful product run.
+  // Workspace: order 4, matched width, borrowed depth+3 (23), provisional
+  // row width+1, and two nested measurement frames: 36 / 40 slots.
   // An explicit definition checks each candidate once before producing it.
-  let exact_work = (if edge { 93 } else { 40 }) +
-    (if labelled { 10 } else if selected { 1 } else { 0 })
-  let exact_slots = if edge { 9 } else { 7 }
+  // Two short labels add six row recheck polls and fourteen construction /
+  // selection polls; their bounded small-value charge is one poll.
+  let exact_work = (if edge { 258 } else { 105 }) +
+    (if labelled { 20 } else if selected { 1 } else { 0 })
+  let exact_slots = (if edge { 40 } else { 36 }) +
+    (if labelled { 2 } else { 0 })
   for viewed in [false, true] {
     let start = fn(control, work, slots) {
       if viewed {
@@ -145,19 +155,17 @@ fn property_rows_resource_boundary(
         )
       }
     }
-    assert_eq(
-      start(@bounded.control(), exact_work, exact_slots - 1).unwrap_err(),
-      @local_bridge.Completion(@execution.Limit),
-    )
-    for short in [false, true] {
+    for boundary in [0, 1, 2] {
+      let short = boundary == 1
+      let short_workspace = boundary == 2
       let active = start(
         @bounded.control(),
         exact_work - (if short { 1 } else { 0 }),
-        exact_slots,
+        exact_slots - (if short_workspace { 1 } else { 0 }),
       ).unwrap()
       let mut terminal = false
       let mut cumulative = 0L
-      for _ in 0..<200 {
+      for _ in 0..<300 {
         match @local_bridge.advance_events_to_rows(active, 1).unwrap() {
           @local_bridge.Continue(work~, ..) => {
             assert_true(work >= cumulative && work - cumulative <= 1L)
@@ -165,6 +173,7 @@ fn property_rows_resource_boundary(
           }
           @local_bridge.Complete(output, work~, ..) => {
             assert_false(short)
+            assert_false(short_workspace)
             assert_eq(work, exact_work.to_int64())
             assert_eq(@execution.completed_row_count(output), 1)
             terminal = true
@@ -173,6 +182,14 @@ fn property_rows_resource_boundary(
           @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
             assert_true(short)
             assert_eq(work, (exact_work - 1).to_int64())
+            terminal = true
+            break
+          }
+          @local_bridge.Failed(
+            @local_bridge.RelationOutput(@execution.CaptureLimit),
+            ..
+          ) => {
+            assert_true(short_workspace)
             terminal = true
             break
           }
@@ -214,6 +231,39 @@ fn property_rows_resource_boundary(
 ///|
 test "node rows admit exact work and workspace and reclaim every private phase" {
   property_rows_resource_boundary(false)
+}
+
+///|
+test "Graph row identity recheck has independent JSON Text frame costs" {
+  // Fixed independent full identity: eight value nodes, root/child frames
+  // 5+2+2+2, Text chunks 1+2+1, and one final empty-stack poll = 24.
+  // Field names total 32 bytes, data Text 1+71+6 = 78; total Text is 110.
+  let identity = @admitted.admit(
+    @value_contract.primitive(@value_contract.JsonType, nullable=false),
+    input_cursor(
+      "{\"definition\":\"N\",\"domain\":\"sha256:" +
+      String::make(64, '0') +
+      "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}",
+    ),
+    { max_nodes: 8, max_text_bytes: 110, max_depth: 20, },
+  ).unwrap()
+  let cursor = @admitted.start_recheck_runtime_value(
+    identity.value,
+    identity.contract,
+    { max_nodes: 8, max_text_bytes: 110, max_depth: 20, },
+  ).unwrap()
+  for _ in 0..<23 {
+    assert_true(
+      @admitted.advance_recheck_runtime_value(cursor)
+      is @admitted.RecheckContinue,
+    )
+  }
+  guard @admitted.advance_recheck_runtime_value(cursor)
+    is @admitted.RecheckComplete(_, nodes, bytes) else {
+    fail("typed identity did not complete at its independent frame boundary")
+  }
+  assert_eq(nodes, 8)
+  assert_eq(bytes, 110)
 }
 
 ///|
@@ -380,7 +430,7 @@ fn property_rows_project_identity(
     // including when other columns in the retained input are absent.
     assert_true(
       @execution.completed_cell(projected, row, 0)
-      is Some(@execution.Captured(@admitted.Object(_))),
+      is Some(@execution.Captured(@admitted.JsonData(@admitted.Object(_)))),
     )
     let wire = @execution.completed_output_row_wire(
       projected, row, 10000, 1000, 20,
@@ -735,13 +785,13 @@ test "edge rows preserve parallel identities endpoints and composite raw key com
       assert_eq(
         @execution.completed_output_row_wire(output, row, 10000, 1000, 20).unwrap(),
         "{\"dst\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"edge_key\":" +
         edge_key.to_string() +
         ",\"id\":" +
-        edge_identity +
+        property_graph_expected_json_wire(edge_identity) +
         ",\"labels\":[\"R\"],\"src\":" +
-        node_identity +
+        property_graph_expected_json_wire(node_identity) +
         ",\"tenant\":\"a\"}",
       )
     }

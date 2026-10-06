@@ -5,6 +5,7 @@ import {constants} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {openArtifactZip} from './ci-artifact-reader.mjs';
 import {addTimingEvidence, formatTiming} from './ci-timing.mjs';
+import {projectSessionCosts, bindSessionRunnerCosts} from './ci-session-costs.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -27,6 +28,7 @@ const limits = [
   'One sample is not a stable speedup estimate. Different source, runner/region, command, workload or campaign scope prevents a causal performance claim.',
   'Logical bytes and ZIP bytes are distinct. Identical-content bytes are deduplication potential, not recoverable disk space or deletion permission.',
   'All files remain protected: known references are re-audit evidence; unrecognized/unresolved references and unreferenced build outputs are unknown-protected.',
+  'Session costs reconstruct certificate-bound observations, but offline selection metadata is not authenticated Actions provenance or reuse permission. Enclosing costs are not causal savings.',
 ];
 
 export function artifactPath(value) {
@@ -55,7 +57,8 @@ function observationMap(value) {
 function workload(row) {
   return {...pick(row, ['name', 'site', 'anchor', 'original', 'minimal', 'history', 'localMinimal', 'finalCandidates', 'killed']),
     finalObservations: (row.finalObservations ?? []).map(withoutOccurrence),
-    replay: observationMap(row.replay), healthy: observationMap(row.healthy)};
+    replay: observationMap(row.replay), healthy: observationMap(row.healthy),
+    postRestore: observationMap(row.postRestore?.observations)};
 }
 function phaseRow(campaign, row, phase, target, value, receipts, reason = null) {
   const measured = duration(value);
@@ -65,7 +68,7 @@ function phaseRow(campaign, row, phase, target, value, receipts, reason = null) 
 }
 function phaseReceipts(executions, phase, target) {
   const suffix = phase === 'search' ? /-search-/u : phase === 'shrink' ? /-shrink-/u : /-(?:fixed|minimal|replay)-/u;
-  return executions.filter(e => e.receipt?.target === target && (phase === 'healthy' || suffix.test(e.path ?? '')))
+  return executions.filter(e => e.receipt?.target === target && (['healthy', 'post-restore'].includes(phase) || suffix.test(e.path ?? '')))
     .map(e => ({path: e.path, digest: e.digest}));
 }
 export function projectCampaign(report, kind, expectedInventory = {}) {
@@ -82,9 +85,12 @@ export function projectCampaign(report, kind, expectedInventory = {}) {
     const capacityExecutions = (report.executions ?? []).filter(e => e.path?.includes(`-capacity-${row.name}-`));
     const mutated = row.executions ?? capacityExecutions.filter(e => !e.path.includes('-restored-'));
     const healthy = row.healthyExecutions ?? capacityExecutions.filter(e => e.path.includes('-restored-'));
-    if (kind !== 'capacity') receipts.push(...mutated, ...healthy);
+    const postRestore = row.postRestore?.executions ?? [];
+    if (kind !== 'capacity') receipts.push(...mutated, ...healthy, ...postRestore);
     const actualTargets = Object.keys(row.replay ?? {}).sort(), actualHealthy = Object.keys(row.healthy ?? {}).sort();
-    const matched = fingerprint(actualTargets) === fingerprint([...expectedTargets].sort()) && fingerprint(actualHealthy) === fingerprint([...expectedTargets].sort());
+    const actualPostRestore = Object.keys(row.postRestore?.observations ?? {}).sort();
+    const matched = fingerprint(actualTargets) === fingerprint([...expectedTargets].sort()) && fingerprint(actualHealthy) === fingerprint([...expectedTargets].sort()) &&
+      (kind === 'capacity' || fingerprint(actualPostRestore) === fingerprint([...expectedTargets].sort()));
     targetComplete &&= matched;
     const timing = row.timing ?? row.timings ?? {};
     if (kind !== 'fixed') for (const phase of ['search', 'shrink']) {
@@ -98,13 +104,22 @@ export function projectCampaign(report, kind, expectedInventory = {}) {
           !expectedTargets.includes(target) || !(target in (phase === 'healthy' ? row.healthy ?? {} : row.replay ?? {})) ? 'target-mismatch' : null));
       }
     }
+    // A pristine replay and a new owner's replay of restored mutable bytes
+    // are different obligations. Missing restoration is unknown, not zero.
+    if (kind !== 'capacity') for (const target of new Set([...expectedTargets, ...Object.keys(timing.postRestoreReplayMs ?? {})])) {
+      phases.push(phaseRow(campaign, row, 'post-restore', target, timing.postRestoreReplayMs?.[target],
+        phaseReceipts(postRestore, 'post-restore', target),
+        !expectedTargets.includes(target) || !(target in (row.postRestore?.observations ?? {})) ? 'target-mismatch' : null));
+    }
     mutations.push({name: row.name, site: row.site, anchor: row.anchor ?? null,
       originalDigest: row.originalDigest ?? null, mutatedDigest: row.mutatedDigest ?? null,
-      targets: actualTargets, healthyTargets: actualHealthy, targetMatch: matched,
+      targets: actualTargets, healthyTargets: actualHealthy,
+      postRestoreTargets: kind === 'capacity' ? null : actualPostRestore, targetMatch: matched,
       workloadSha256: fingerprint(workload(row)), minimaSha256: fingerprint(row.minimal ?? null),
       shrinkHistorySha256: fingerprint(row.history ?? null), finalCandidateCount: row.finalCandidates?.length ?? null,
       attemptedCandidateCount: row.history ? sum(row.history.map(x => x.attempted ?? 0)) : null,
-      oracleSha256: fingerprint({replay: observationMap(row.replay), healthy: observationMap(row.healthy), final: (row.finalObservations ?? []).map(withoutOccurrence)}),
+      oracleSha256: fingerprint({replay: observationMap(row.replay), healthy: observationMap(row.healthy),
+        postRestore: observationMap(row.postRestore?.observations), final: (row.finalObservations ?? []).map(withoutOccurrence)}),
       enclosingDuration: kind === 'capacity' ? duration(row.durationMs) : null});
   }
   if (kind === 'capacity') {
@@ -273,13 +288,23 @@ export async function analyzeArtifactSelection(selection, repository, open = ope
   const seen = new Set();
   for (const sample of selection.samples) {
     const source = provenance(sample.provenance, repository);
-    if (!object(sample.reports) || !['fixed', 'fresh', 'capacity'].some(kind => typeof sample.reports[kind] === 'string')) throw new Error('No recognized retained report selected');
+    if (!object(sample.reports) || !['fixed', 'fresh', 'capacity', 'session'].some(kind => typeof sample.reports[kind] === 'string')) throw new Error('No recognized retained report selected');
+    const sessionSelected = Object.hasOwn(sample.reports, 'session');
+    if (sessionSelected && (sample.reports.session !== 'checked.json' || Object.keys(sample.reports).length !== 1)) throw new Error('Session costs require their complete separate source archive');
     const id = `${source.runId}:${source.attempt}:${source.artifact.id}`;
     if (seen.has(id)) throw new Error('Duplicate artifact sample selection');
     seen.add(id);
     const zip = await open(sample.archive, {expectedSha256: source.artifact.sha256});
     try {
       if (zip.compressedBytes !== source.artifact.compressedBytes) throw new Error('Artifact compressed size mismatch');
+      if (sessionSelected) {
+        const sessionCosts = await projectSessionCosts(zip, source);
+        report.samples.push({id, provenance: source, selectedReports: structuredClone(sample.reports),
+          sampleCount: 1, campaigns: [], sessionCosts, selectedEvidenceComplete: false,
+          status: source.status, conclusion: source.conclusion,
+          reportedRunSuccessful: source.status === 'completed' && source.conclusion === 'success'});
+        continue;
+      }
       const campaigns = [];
       for (const kind of ['fixed', 'fresh', 'capacity']) {
         if (!sample.reports?.[kind]) continue;
@@ -322,6 +347,11 @@ export async function analyzeArtifactSelection(selection, repository, open = ope
     addTimingEvidence(timingEvidence, report.samples.map(sample => `${sample.provenance.runId}:${sample.provenance.attempt}`));
     report.timing = timingEvidence.timing;
   }
+  for (const sample of report.samples) if (sample.sessionCosts) {
+    if (report.timing) bindSessionRunnerCosts(sample, report.timing);
+    sample.selectedEvidenceComplete = sample.sessionCosts.runner.complete;
+    report.complete &&= sample.selectedEvidenceComplete;
+  }
   return report;
 }
 export async function collectArtifactEvidence(options) {
@@ -348,6 +378,16 @@ export async function collectArtifactEvidence(options) {
 export function formatArtifactEvidence(report) {
   const lines = [`Offline retained evidence: ${report.repository}`];
   for (const sample of report.samples) {
+    if (sample.sessionCosts) {
+      const {cost, runner} = sample.sessionCosts;
+      lines.push(`\nSession sample ${sample.id}: ${sample.status}/${sample.conclusion}; n=${sample.sampleCount}`,
+        `Provenance: ${JSON.stringify(sample.provenance)}`,
+        `Bound producer owner: ${JSON.stringify(cost.producerOwner)}; partial phase sum ${cost.knownProducerMilliseconds} ms`,
+        `Enclosing producer/check jobs: ${runner.selectedJobMilliseconds ?? 'unknown'} ms; whole attempt runner total ${runner.attemptRunnerMilliseconds ?? 'unknown'} ms; complete=${runner.complete}; ${runner.reason ?? 'observed'}`);
+      for (const action of cost.actions) lines.push(`  ${action.actionId}: ${action.observation}; current ${action.currentMilliseconds ?? 'not executed'} ms; original ${action.originMilliseconds} ms at run ${action.originRunId} attempt ${action.originRunAttempt}`);
+      lines.push('Net runner savings: unknown; nested phases and historical durations are not added to enclosing jobs.');
+      continue;
+    }
     lines.push(`\nSample ${sample.id}: ${sample.status}/${sample.conclusion}; n=${sample.sampleCount}`,
       `Provenance: ${JSON.stringify(sample.provenance)}`,
       `Receipts: ${sample.receipts.uniqueReceipts} unique; ${sample.receipts.duplicateOccurrences} repeated references; ${sample.receipts.caseObservations} case observations; errors ${JSON.stringify(sample.receipts.errors)}`);

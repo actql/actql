@@ -25,30 +25,25 @@ fn finish_typed_steps(
 }
 
 ///|
-// Retain the existing Host traversal as a regression oracle for ordinary data.
-// This is not an independently expected value; literal wires below provide that.
-fn prior_typed_usage(
+// The synchronous Host convenience entry must use the same resumed owner.
+// Independent wire spellings and usage counts below remain the expectations.
+fn host_typed_usage(
   contract : @contract.Contract,
   cursor : @decode.Cursor,
   limits : Limits,
 ) -> Result[(CheckedValue, Int, Int), Issue] {
-  let budget : Budget = {
-    nodes: limits.max_nodes,
-    text: limits.max_text_bytes,
-    max_depth: limits.max_depth,
-  }
-  try {
-    let value = run(cursor, contract, budget)
-    Ok(
-      (
-        { contract, value, },
-        limits.max_nodes - budget.nodes,
-        limits.max_text_bytes - budget.text,
-      ),
-    )
-  } catch {
-    Abort(issue) => Err(issue)
-  }
+  admit_host_usage(
+    bind_reference_reissuer((_, _) => None),
+    contract,
+    cursor,
+    limits,
+    {
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_units: 10000,
+    },
+  )
 }
 
 ///|
@@ -74,11 +69,11 @@ test "resumed typed admission retains nested typed values and exact usage" {
   let admission = start_typed_admission(contract, cursor, limits).unwrap()
   let (checked, nodes, text) = finish_typed_steps(admission).unwrap()
   let expected =
-    #|{"a":[{"d":"1.20","n":null}],"b":false,"date":"2026-10-05","j":{"a":true,"z":[null,2]},"s":"é","t":"2026-10-05T00:00:00.000Z","v":[1,2]}
+    #|{"a":[{"d":"1.20","n":null}],"b":false,"date":"2026-10-05","j":{"$json":{"a":true,"z":[null,2]}},"s":"é","t":"2026-10-05T00:00:00.000Z","v":[1,2]}
   assert_eq(typed_steps_wire(checked), expected)
   // 17 value nodes, 14 field-name bytes and 40 scalar bytes.
   assert_eq((nodes, text), (17, 54))
-  let prior = prior_typed_usage(contract, cursor, limits).unwrap()
+  let prior = host_typed_usage(contract, cursor, limits).unwrap()
   assert_eq((nodes, text), (prior.1, prior.2))
   assert_eq(typed_steps_wire(prior.0), expected)
   assert_true(physical_equal(checked.contract, contract))
@@ -129,7 +124,7 @@ test "resumed typed admission preserves leaf and nullable reference contracts" {
     ).unwrap()
     assert_eq(typed_steps_wire(checked), expected)
     assert_eq((nodes, text), usage)
-    let prior = prior_typed_usage(contract, cursor, limits).unwrap()
+    let prior = host_typed_usage(contract, cursor, limits).unwrap()
     assert_eq(typed_steps_wire(prior.0), expected)
     assert_eq((nodes, text), (prior.1, prior.2))
   }
@@ -220,7 +215,7 @@ test "resumed typed refusal retains original issue kind path span and precedence
     let resumed = start_typed_admission(contract, cursor, limits).unwrap()
     let result = finish_typed_steps(resumed)
     guard result is Err(issue) &&
-      prior_typed_usage(contract, cursor, limits) is Err(prior) else {
+      host_typed_usage(contract, cursor, limits) is Err(prior) else {
       abort("expected typed refusal")
     }
     assert_eq(issue, prior)

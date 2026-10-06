@@ -33,11 +33,13 @@ struct RecordAppend {
 pub fn start_record_append(
   output : OutputBuilder,
   fields : Array[(@schema.FieldName, @value.CheckedValue)],
+  external_workspace_slots? : Int = 0,
 ) -> Result[RecordAppend, Issue] {
   if !output.open {
     return Err(Closed)
   }
-  match @storage.start_append(output.records, fields) {
+  match
+    @storage.start_append(output.records, fields, external_workspace_slots~) {
     Ok(cursor) => Ok({ output, cursor, settled: false, })
     Err(issue) => {
       if issue != @storage.Closed {

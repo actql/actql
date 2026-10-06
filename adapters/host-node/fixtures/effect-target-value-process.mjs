@@ -1,6 +1,6 @@
 // Separate-process fixture over the real encrypted Checkpoint journal. The
-// legacy mode serializes with the unchanged old configuration encoder only
-// to create explicit previous-format evidence; production never takes it.
+// legacy modes use the unchanged old encoders only to create explicit
+// previous-format evidence; production never takes those fallback paths.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
@@ -10,7 +10,8 @@ import {runtimeCore} from '../../host-common/runtime-core.mjs';
 import {installRemoteCheckpoints} from '../client-checkpoints.mjs';
 import {effectTargetReadContinuation} from '../effect-target-read-continuation.mjs';
 import {canonicalJson as legacyConfigurationJson} from '../local-account-config.mjs';
-import {signedAnswer} from '../../../packages/sdk/checkpoints.mjs';
+import {canonicalJson as legacyValueJson, signedAnswer} from
+  '../../../packages/sdk/checkpoints.mjs';
 import {checkpointApprovalFacts} from '../../host-common/checkpoint-approval.mjs';
 
 const [phase, root, variant] = process.argv.slice(2);
@@ -24,7 +25,7 @@ if (phase === 'capture') {
     reviewerPrivate: pem(reviewer.privateKey), reviewerPublic: pem(reviewer.publicKey)}));
 }
 const keys = JSON.parse(await readFile(keysPath, 'utf8'));
-const original = variant === 'legacy-ascii' ? 'plain\r\ntext'
+const original = ['legacy-ascii', 'legacy-keys'].includes(variant) ? 'plain\r\ntext'
   : variant === 'legacy-nfc' ? '\u00e9\r\ntext'
     : 'e\u0301\r\nline\rreturn\n' + JSON.stringify({nested: 'e\u0301'});
 const submission = {requestId: 'process-request',
@@ -33,6 +34,12 @@ const submission = {requestId: 'process-request',
 const readTuple = {connection: 'crm', resource: 'Account', operation: 'read'};
 const physicalBinding = {version: 'fixture-target/0.1',
   text: variant.startsWith('legacy-') ? 'unchanged-provider-binding' : original};
+if (variant === 'exact-keys' || variant === 'legacy-keys') {
+  submission.input.literal = variant === 'exact-keys'
+    ? {'é': 'composed', 'e\u0301': 'decomposed', '\r\n': 'CRLF', '\n': 'LF'}
+    : {'e\u0301\r\n': 'stable'};
+  if (variant === 'exact-keys') physicalBinding.json = submission.input.literal;
+}
 const configuration = legacyConfigurationJson({version: 'actql-execution-account-config/0.1',
   account_id: 'process-account', entries: [{entry_id: 'read', outcome: 'delegate',
     principal: {all: true}, connection: {any_of: ['crm']}, resource: {all: true},
@@ -57,7 +64,9 @@ try {
     if (variant.startsWith('legacy-')) {
       options.checkpoints = {...checkpoints,
         effectTargetAuthorization: args => checkpoints.effectTargetAuthorization({...args,
-          continuation: async () => legacyConfigurationJson(JSON.parse(await args.continuation()))})};
+          continuation: async () => (variant === 'legacy-keys'
+            ? legacyValueJson : legacyConfigurationJson)(
+            JSON.parse(await args.continuation()))})};
     }
     owner = await effectTargetReadContinuation(options);
     assert.equal((await owner.prepare()).status, 'waiting_checkpoint');
@@ -83,7 +92,7 @@ try {
     options.resume = {view, claim: claim.claim, continuation: saved,
       assertCurrent: () => checkpoints.journal.admitResume(claim.claim,
         {checkpointCid: view.checkpointCid})};
-    if (variant === 'legacy-decomposed') {
+    if (variant === 'legacy-decomposed' || variant === 'legacy-keys') {
       await assert.rejects(async () => {
         owner = await effectTargetReadContinuation(options);
         await owner.prepare(); owner.enterComputation(); sends++;

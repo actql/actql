@@ -1,0 +1,12 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-pr463-late-resident-producer-receipt",
+  "target": {
+    "id": "pr463-main-package-resolution-9fdb20e",
+    "digest": "6fdcb8430c8b1c6f270a69a28ef0cdddbfb1b3d799f839b6d4d4372216dbd3f3"
+  },
+  "inputs": [
+    "resolve-resident-producer-entry-main-cfd37ff"
+  ],
+  "reason": "Preserve the original PR 463 main integration declaration and add only the resident producer merge receipt introduced later on main. The source is ancestral to the recorded merge, but its receipt was absent when the original declaration was introduced."
+}

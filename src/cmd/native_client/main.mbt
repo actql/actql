@@ -119,21 +119,6 @@ fn json_text(fields : Map[String, Json], name : String) -> String? {
 }
 
 ///|
-fn valid_cid(value : String) -> Bool {
-  if !value.has_prefix("sha256:") || value.length() != 71 {
-    return false
-  }
-  let bytes = @utf8.encode(value)
-  for index = 7; index < bytes.length(); index = index + 1 {
-    let byte = bytes[index].to_int()
-    if !((byte >= 48 && byte <= 57) || (byte >= 97 && byte <= 102)) {
-      return false
-    }
-  }
-  true
-}
-
-///|
 fn confirmed_profile(wire : String, connection : Json) -> Json raise ClientStop {
   let profile = @json.parse(wire) catch {
     _ => stop("invalid Client Host profile")
@@ -216,82 +201,6 @@ fn attached_reference_matches(
 }
 
 ///|
-fn nonempty_member(fields : Map[String, Json], name : String) -> Bool {
-  match json_text(fields, name) {
-    Some(value) => !value.is_empty()
-    None => false
-  }
-}
-
-///|
-fn bounded_control_member(fields : Map[String, Json], name : String) -> Bool {
-  guard json_text(fields, name) is Some(text) &&
-    !text.is_empty() &&
-    text.length() <= 256 else {
-    return false
-  }
-  for unit in text {
-    if unit.to_int() < 32 || unit.to_int() == 127 {
-      return false
-    }
-  }
-  true
-}
-
-///|
-// A held reply is a request control result with no RunRef. Inspection never
-// approves it, starts it, or changes the Host's durable resume decision.
-fn valid_held(value : Json, request_id : String) -> Bool {
-  guard value is Object(fields) else { return false }
-  let keys = [
-    "kind", "requestId", "prepareAttemptId", "state", "durability", "lookupExpiresAt",
-    "checkpoint", "endReason", "terminalErrorCode",
-  ]
-  for key, _ in fields {
-    if !keys.contains(key) {
-      return false
-    }
-  }
-  if json_text(fields, "kind") != Some("held") ||
-    json_text(fields, "requestId") != Some(request_id) ||
-    json_text(fields, "durability") != Some("durable") ||
-    !bounded_control_member(fields, "requestId") ||
-    !bounded_control_member(fields, "prepareAttemptId") ||
-    !bounded_control_member(fields, "lookupExpiresAt") {
-    return false
-  }
-  for key in ["endReason", "terminalErrorCode"] {
-    if fields.contains(key) && !bounded_control_member(fields, key) {
-      return false
-    }
-  }
-  if fields.get("checkpoint") is Some(checkpoint) {
-    guard checkpoint is Object(checkpoint) &&
-      checkpoint.length() == 4 &&
-      bounded_control_member(checkpoint, "checkpointId") &&
-      bounded_control_member(checkpoint, "expiresAt") &&
-      json_text(checkpoint, "checkpointCid") is Some(cid) &&
-      valid_cid(cid) &&
-      json_text(checkpoint, "kind") is Some(kind) &&
-      ["run_scope", "read_access", "data_egress", "cost_scope", "effect_set"].contains(
-        kind,
-      ) else {
-      return false
-    }
-  }
-  match json_text(fields, "state") {
-    Some("waiting_checkpoint") =>
-      fields.contains("checkpoint") &&
-      !fields.contains("endReason") &&
-      !fields.contains("terminalErrorCode")
-    Some("resuming") =>
-      !fields.contains("endReason") && !fields.contains("terminalErrorCode")
-    Some("ended") => fields.contains("endReason")
-    _ => false
-  }
-}
-
-///|
 fn held_reply(text : String, request_id : String) -> Bool {
   if @source.parse_json(text, {
       max_input_bytes: 8192,
@@ -302,35 +211,7 @@ fn held_reply(text : String, request_id : String) -> Bool {
     return false
   }
   let value = @json.parse(text) catch { _ => return false }
-  valid_held(value, request_id)
-}
-
-///|
-fn valid_reference_member(fields : Map[String, Json]) -> Bool {
-  match fields.get("ref") {
-    Some(reference) => valid_reference(reference)
-    None => false
-  }
-}
-
-///|
-fn valid_request_lookup(value : Json, expected_request_id : String) -> Bool {
-  guard value is Object(fields) else { return false }
-  match json_text(fields, "kind") {
-    Some("held") => valid_held(value, expected_request_id)
-    Some("not_found") => fields.length() == 1
-    Some("unknown") => fields.length() == 2 && nonempty_member(fields, "reason")
-    Some("found") =>
-      fields.length() == 5 &&
-      json_text(fields, "requestId") == Some(expected_request_id) &&
-      valid_reference_member(fields) &&
-      (
-        json_text(fields, "durability") == Some("volatile") ||
-        json_text(fields, "durability") == Some("durable")
-      ) &&
-      nonempty_member(fields, "lookupExpiresAt")
-    _ => false
-  }
+  wire_held(value, request_id)
 }
 
 ///|
@@ -728,7 +609,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       _ => stop("invalid JSON Host response")
     }
     if route == "lookup-request" &&
-      !valid_request_lookup(value, required(child, "request-id")) {
+      !wire_request_lookup(value, required(child, "request-id")) {
       stop("InvalidHostRequestLookup")
     }
     if route == "delivery-attempt" &&

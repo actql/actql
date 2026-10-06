@@ -14,13 +14,17 @@ import {
 // Values
 pub fn admit(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[CheckedValue, Issue]
 
-pub fn admit_host(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits) -> Result[CheckedValue, Issue]
+pub fn admit_host(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits, wire? : Bool) -> Result[CheckedValue, Issue]
 
-pub fn admit_host_usage(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits) -> Result[(CheckedValue, Int, Int), Issue]
+pub fn admit_host_usage(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits, wire? : Bool) -> Result[(CheckedValue, Int, Int), Issue]
+
+pub fn admit_json_literal(String, Limits) -> Result[(CheckedValue, Int, Int), JsonLiteralIssue]
 
 pub fn admit_number_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
 
-pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[(CheckedValue, Int, Int), Issue]
+pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits, authored_fields? : Bool) -> Result[(CheckedValue, Int, Int), Issue]
+
+pub fn admit_wire(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[CheckedValue, Issue]
 
 pub fn advance_bounded_key_comparison(BoundedKeyComparison, Int) -> Result[BoundedKeyComparisonPoll, KeyOrderIssue]
 
@@ -35,6 +39,8 @@ pub fn advance_json_admission(JsonAdmission) -> JsonAdmissionPoll
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
 
 pub fn advance_reference_admission(ReferenceAdmission) -> ReferenceAdmissionPoll
+
+pub fn advance_scalar_text(ScalarText) -> ScalarTextPoll
 
 pub fn advance_typed_admission(TypedAdmission) -> TypedAdmissionPoll
 
@@ -67,6 +73,8 @@ pub fn cancel_object_value(ObjectBuilder) -> Bool
 pub fn cancel_recheck_runtime_value(RecheckCursor) -> Unit
 
 pub fn cancel_reference_admission(ReferenceAdmission) -> Unit
+
+pub fn cancel_scalar_text(ScalarText) -> Unit
 
 pub fn cancel_typed_admission(TypedAdmission) -> Unit
 
@@ -122,6 +130,8 @@ pub fn finish_object_value(ObjectBuilder) -> Value?
 
 pub fn issue_reference(ReferenceIssuer, @value_contract.Contract, String, ReferenceLimits) -> Result[CheckedValue, ReferenceIssue]
 
+pub fn json_payload(Value) -> Value?
+
 pub fn null_value() -> Value
 
 pub fn number_value(Double) -> Value?
@@ -130,9 +140,11 @@ pub fn object_value(Array[(String, Value)]) -> Value?
 
 pub fn prepare_array_value(Int) -> ArrayBuilder?
 
-pub fn prepare_object_value(Int) -> ObjectBuilder?
+pub fn prepare_object_value(Int, data_keys? : Bool) -> ObjectBuilder?
 
 pub fn prepare_vector_value(Int) -> VectorBuilder?
+
+pub fn recheck_json_payload_usage(Value, Limits) -> (CheckedValue, Int, Int)?
 
 pub fn recheck_runtime_value(Value, @value_contract.Contract, Limits) -> CheckedValue?
 
@@ -160,15 +172,17 @@ pub fn start_bounded_present_key_comparison(CheckedValue, CheckedValue) -> Resul
 
 pub fn start_bounded_token_comparison(String, String) -> BoundedKeyComparison
 
-pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contract? : @value_contract.Contract?) -> CanonicalConversion?
+pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contract? : @value_contract.Contract?, wire? : Bool) -> CanonicalConversion?
 
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
 pub fn start_complete_order(CheckedValue, Limits, max_output_bytes? : Int?) -> Result[CompleteOrder, CompleteOrderIssue]
 
-pub fn start_host_typed_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits) -> Result[TypedAdmission, Issue]
+pub fn start_host_typed_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, Limits, ReferenceLimits, wire? : Bool) -> Result[TypedAdmission, Issue]
 
-pub fn start_json_admission(@decode_core.Cursor, Limits) -> Result[JsonAdmission, Issue]
+pub fn start_json_admission(@decode_core.Cursor, Limits, allow_json_null? : Bool, data_keys? : Bool) -> Result[JsonAdmission, Issue]
+
+pub fn start_json_payload_recheck(Value, Limits) -> RecheckCursor?
 
 pub fn start_recheck_runtime_text(String, @value_contract.Contract, Limits) -> RecheckCursor?
 
@@ -176,7 +190,9 @@ pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> R
 
 pub fn start_reference_admission(ReferenceIssuer, @value_contract.Contract, @decode_core.Cursor, ReferenceLimits) -> Result[ReferenceAdmission, ReferenceIssue]
 
-pub fn start_typed_admission(@value_contract.Contract, @decode_core.Cursor, Limits) -> Result[TypedAdmission, Issue]
+pub fn start_scalar_text(CheckedValue, Int) -> ScalarText?
+
+pub fn start_typed_admission(@value_contract.Contract, @decode_core.Cursor, Limits, wire? : Bool, authored_fields? : Bool) -> Result[TypedAdmission, Issue]
 
 pub fn start_wire_emit(Value, @encode_core.Writer) -> WireEmitCursor
 
@@ -284,6 +300,11 @@ pub enum JsonAdmissionPoll {
   JsonAdmissionTerminal
 }
 
+pub(all) enum JsonLiteralIssue {
+  JsonLiteralParse(@source_value.ParseError)
+  JsonLiteralAdmission(Issue)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum KeyOrderIssue {
   InvalidKey
   UnavailableReference
@@ -352,6 +373,14 @@ pub struct ReferenceValue {
   authorize : () -> Bool
 }
 
+type ScalarText
+
+pub enum ScalarTextPoll {
+  ScalarTextContinue
+  ScalarTextComplete(String, Int, Int)
+  ScalarTextFailed
+}
+
 type TypedAdmission
 
 pub enum TypedAdmissionPoll {
@@ -371,6 +400,7 @@ pub enum Value {
   Decimal(DecimalValue)
   Array(FrozenArray[Value])
   Object(FrozenArray[(String, Value)])
+  JsonData(Value)
   Vector(FrozenArray[Double])
   Reference(ReferenceValue)
 }

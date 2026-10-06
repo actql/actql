@@ -110,9 +110,9 @@ test "event dedupe view retains exact work and workspace boundaries" {
   )
   for
     (work, workspace, accepted) in [
-      (31, 7, true),
-      (30, 7, false),
-      (31, 6, false),
+      (59, 71, true),
+      (58, 71, false),
+      (59, 70, false),
     ] {
     let view = @lifecycle.material_prepare_view(material, owner, 0, producer).unwrap()
     let execution = start_dedupe_view(
@@ -126,7 +126,7 @@ test "event dedupe view retains exact work and workspace boundaries" {
       control_work_limit=Some(work),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<32 {
+    for _ in 0..<70 {
       if !terminal {
         match advance_dedupe(execution, 1).unwrap() {
           DedupeContinue(..) => ()
@@ -137,12 +137,12 @@ test "event dedupe view retains exact work and workspace boundaries" {
           }
           DedupeFailed(DedupeControlWorkLimit, ..) => {
             assert_false(accepted)
-            assert_eq(work, 30)
+            assert_eq(work, 58)
             terminal = true
           }
           DedupeFailed(DedupeWorkspaceLimit, ..) => {
             assert_false(accepted)
-            assert_eq(workspace, 6)
+            assert_eq(workspace, 70)
             terminal = true
           }
           _ => fail("unexpected dedupe view result")
@@ -316,7 +316,7 @@ test "event dedupe admits scratch before allocation and observes cancellation" {
       sequence(owner),
       0,
       too_small,
-      limits(workspace=19),
+      limits(workspace=20),
       4096L,
       fn() { true },
     )
@@ -330,7 +330,7 @@ test "event dedupe admits scratch before allocation and observes cancellation" {
     sequence(owner),
     0,
     input,
-    limits(workspace=20),
+    limits(workspace=21),
     4096L,
     fn() { true },
   ).unwrap()
@@ -366,7 +366,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
       sequence(owner),
       0,
       read,
-      limits(workspace=40, max_input_records=7),
+      limits(workspace=41, max_input_records=7),
       4096L,
       fn() { true },
     )
@@ -378,7 +378,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
     sequence(owner),
     0,
     read,
-    limits(workspace=40),
+    limits(workspace=41),
     4096L,
     fn() { true },
   ).unwrap()
@@ -414,7 +414,7 @@ test "event dedupe initializes predicate cells within the resume quantum" {
     sequence(owner),
     0,
     stopped_read,
-    limits(workspace=40),
+    limits(workspace=41),
     4096L,
     fn() { true },
   ).unwrap()
@@ -438,7 +438,8 @@ test "event dedupe admits exact and one-short cumulative control work" {
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // One record with two terms and three fields takes five initialization,
   // fourteen loading, one sort, three grouping, and eight output/final steps.
-  for (budget, accepted) in [(31, true), (30, false)] {
+  // Stepped append adds 6*3+2*1+8=28 polls: 31+28=59.
+  for (budget, accepted) in [(59, true), (58, false)] {
     let execution = start_dedupe(
       @bounded.control(),
       sequence(owner),
@@ -450,7 +451,7 @@ test "event dedupe admits exact and one-short cumulative control work" {
       control_work_limit=Some(budget),
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<32 {
+    for _ in 0..<70 {
       if terminal {
         break
       }
@@ -458,13 +459,13 @@ test "event dedupe admits exact and one-short cumulative control work" {
         DedupeContinue(work~, ..) => assert_true(work <= budget.to_int64())
         DedupeComplete(output, progress~, work~) => {
           assert_true(accepted)
-          assert_eq((progress, work), (1L, 31L))
+          assert_eq((progress, work), (1L, 59L))
           assert_true(@records.discard_completed(output))
           terminal = true
         }
         DedupeFailed(DedupeControlWorkLimit, progress~, work~) => {
           assert_false(accepted)
-          assert_eq((progress, work), (1L, 30L))
+          assert_eq((progress, work), (1L, 58L))
           assert_true(dedupe_cleanup_pending(execution))
           terminal = true
         }
@@ -499,9 +500,9 @@ test "event dedupe admits exact and one-short output workspace" {
     producer, "[\"payload\"]", "[{\"field\":\"occurred_at\",\"dir\":\"asc\",\"nulls\":\"last\"}]",
   )
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
-  // One retained row needs five scratch slots; emission holds the row index
-  // and two structural entries for each of its three fields: seven slots.
-  for (workspace, accepted) in [(7, true), (6, false)] {
+  // Five sorting slots + three borrowed fields + append handle = nine.
+  // Cursor 56, next row five, caller nine, name position one: peak 71.
+  for (workspace, accepted) in [(71, true), (70, false)] {
     let execution = start_dedupe(
       @bounded.control(),
       sequence(owner),
@@ -512,7 +513,7 @@ test "event dedupe admits exact and one-short output workspace" {
       fn() { true },
     ).unwrap()
     let mut terminal = false
-    for _ in 0..<32 {
+    for _ in 0..<70 {
       if terminal {
         break
       }

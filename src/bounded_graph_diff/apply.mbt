@@ -527,7 +527,7 @@ pub fn advance_apply(
           BodyComplete(body, decoded, work~) => {
             used += work.to_int64()
             value.body_admission = None
-            value.base_body = Some(body.value)
+            value.base_body = @value.json_payload(body.value)
             value.base_decoded = Some(decoded)
             if value.builder is None {
               value.builder = match
