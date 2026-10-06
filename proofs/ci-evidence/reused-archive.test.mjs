@@ -17,21 +17,28 @@ import {fullCheckpointJobs} from '../../scripts/ci-main-base.mjs';
 import {gateJobs} from '../../scripts/ci-targets.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-// Two actual parent revisions with identical scientific/policy inputs. The
-// second adds only the independent archive-construction fixture and its test.
-const first = '3e59835ee2caedc4b4fbbf8e96abb2d85f96046a';
-const second = '19f7b920fce6840524c7302138e46f65d623e46d';
-
 test('real nested original/acceptance ZIPs satisfy the mixed final consumer and remain mandatory once reused', async t => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-reused-archive-'));
   const historical = join(directory, 'fresh-main');
-  let added = false;
-  t.after(async () => {
-    if (added) execFileSync('git', ['worktree', 'remove', historical], {cwd: root});
-    await rm(directory, {recursive: true, force: true});
-  });
-  execFileSync('git', ['worktree', 'add', '--detach', '--quiet', historical, second], {cwd: root});
-  added = true;
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const source = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
+  // Own fixture repository and actual Git commits from the current snapshot.
+  // No checkout/commit/ref in the user's repository is changed. Marker bytes
+  // are outside every scientific action input; all three revisions retain the
+  // same source, policy and oracle even after future product integrations.
+  execFileSync('git', ['clone', '--shared', '--no-checkout', '--quiet', root, historical]);
+  const git = args => execFileSync('git', args, {cwd: historical, encoding: 'utf8'}).trim();
+  git(['checkout', '--quiet', '--detach', source]);
+  const revision = async phase => {
+    await writeFile(join(historical, 'fixture-revision.json'), jsonBytes({authority: 'controlled-Git-fixture', phase}));
+    git(['add', 'fixture-revision.json']);
+    git(['-c', 'user.name=Controlled fixture', '-c', 'user.email=fixture@example.invalid',
+      'commit', '--quiet', '-m', `test: record controlled ${phase} fixture`]);
+    return git(['rev-parse', 'HEAD']);
+  };
+  const first = await revision('first-fresh'), second = await revision('second-fresh');
+  const current = await revision('mixed-candidate');
+  git(['checkout', '--quiet', '--detach', second]);
 
   const runs = new Map(), jobs = new Map(), artifacts = new Map(), archives = new Map();
   const request = async path => {
@@ -80,7 +87,7 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
   const compare = repository => ({context, catalog, runtime, actionRuntimes}) => comparisonPlan({root: repository,
     context, runtime, actionRuntimes, directory, token: 'controlled-fixture-only', request});
 
-  const a = await archiveFixture(t, {revision: first, closed: true, requestFor: request});
+  const a = await archiveFixture(t, {repository: historical, revision: first, closed: true, requestFor: request});
   register(a, 7);
   const b = await archiveFixture(t, {repository: historical, revision: second, runId: 13, attempt: 1,
     jobId: 15, artifactId: 16, closed: true, requestFor: request, comparisonFor: compare(historical)});
@@ -99,12 +106,13 @@ test('real nested original/acceptance ZIPs satisfy the mixed final consumer and 
     digest: `sha256:${hash(acceptanceBytes)}`, size_in_bytes: acceptanceBytes.length});
   archives.set(18, acceptanceBytes);
 
-  const candidate = await archiveFixture(t, {runId: 30, attempt: 1, jobId: 35, artifactId: 36,
-    event: 'pull_request', branch: 'controlled-feature', closed: true, requestFor: request, comparisonFor: compare(root),
+  git(['checkout', '--quiet', '--detach', current]);
+  const candidate = await archiveFixture(t, {repository: historical, runId: 30, attempt: 1, jobId: 35, artifactId: 36,
+    event: 'pull_request', branch: 'controlled-feature', closed: true, requestFor: request, comparisonFor: compare(historical),
     reusedOriginal: {source: b.original, acceptance: acceptanceBytes, receipt: b.members.get('receipts/mutations-js.json')},
-    readReady: (comparison, context) => readReadyOrigin({root, catalog: b.catalog, sourceArchive: b.options.archive,
+    readReady: (comparison, context) => readReadyOrigin({root: historical, catalog: b.catalog, sourceArchive: b.options.archive,
       sourceArtifact: {id: 16, digest: hash(b.original)}, baseline: comparison.baseline, candidateContext: context,
-      treeAt: revision => gitTree(root, revision), request, token: 'controlled-fixture-only', directory,
+      treeAt: revision => gitTree(historical, revision), request, token: 'controlled-fixture-only', directory,
       artifactId: 18, archive: acceptanceArchive, expectedDigest: hash(acceptanceBytes)}),
   });
   register(candidate, 37);
