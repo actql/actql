@@ -6190,3 +6190,23 @@ fixtures and their actual public suite connection; full boundary completion is
 still not asserted. Broader physical accounting, remaining execution scans and
 unexecuted packed/target campaigns are not closed by this change. See the
 [record-emission evidence](2026-10-06-local-vector-record-emission.md).
+
+### Opaque JSON member-name runtime rechecks (2026-10-07)
+
+The common runtime recheck now retains long JSON member names across resumes,
+sharing the scalar-safe Text byte scan. This supersedes the earlier opaque
+JSON-name scanning residual; data spelling, including decomposed Unicode and
+CRLF, remains exact. Child and sibling continuations wait for the name to finish.
+
+The existing Relation Pool input owner reaches this cursor. Independent limits
+are 313/312 control, 67/66 startup workspace and 72/71 completed output workspace;
+quanta 1/7/256 and stopped cleanup retain the borrowed producer. An ordinary
+VALUES plus typed JSON literal Program publishes three independently expected
+Named Results through the real retained Store and accepts delivered cancellation
+at poll 256 inside a 513-unit JSON name without early stop or release.
+
+Preparation/schema and availability scans, legacy drains, runtime buffer
+assembly, aggregate physical byte custody and unexecuted target/packed
+campaigns remain distinct. See the
+[JSON-name record](2026-10-07-local-json-name-rechecks.md) for the fixed main,
+counterexample, fixture connection and verification limitations.
