@@ -1468,6 +1468,14 @@ export function validateResourceAccounting({
       if (!environmentRoles.has('ranking_input_public_store')) {
         fail(`${label}: ranking input public Store fixture is missing`);
       }
+      for (const role of ['ranking_name_match_common',
+        'ranking_name_match_limits_stop', 'ranking_name_match_wide_overlap',
+        'ranking_name_match_public_barrier']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ranking_name_match_public_store')) {
+        fail(`${label}: ranking name matching public Store fixture is missing`);
+      }
     }
     const sharedRules = route.shared_resource_rule ?? {};
     if (route.family === 'RelA' && route.operation === 'filter' &&

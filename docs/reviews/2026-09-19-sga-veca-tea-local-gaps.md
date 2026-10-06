@@ -5950,3 +5950,26 @@ aggregate intermediate bytes, whole-Run physical accounting and unexecuted
 full-target/packed campaigns remain residuals. See the
 [name-matching evidence](2026-10-06-local-pool-name-matching.md) for executable
 boundaries, the atomic-drain negative and actual versus unverified checks.
+
+### Ranking algorithmic reference-name matching
+
+Ranking input binding now retains its borrowed current field, role probe and
+raw UTF-16 offset across advances. The shared fragment scans at most 64 pairs;
+input binding also caps probes at eight without losing overlapping group/tie
+roles. Output candidate/score/rank precedence and one-group-per-poll search
+remain unchanged. Four new fixed slots are reserved before reads; cancellation
+preserves input/current-field custody until confirmed stop and single cleanup.
+
+Independent current boundaries are 81/80 control and 90/89 workspace for a
+513-unit group/candidate, 199/198 and 122/121 for nine groups, 88/87 and 93/92
+for weighted overlapping roles, and 321/320 and 82/81 for the public Host
+name-matching barrier. Existing short-role caller work is unchanged, while
+workspace gains four slots. Historical figures above remain historical.
+
+Actual Host evidence includes retained publication, three explicitly read
+Named Results, two consumers, request reuse without another dispatch and
+cancellation during the input name scan. This closes algorithmic name matching,
+not preparation/schema lookup, per-poll input-availability loops, normalization,
+legacy drains, final runtime assembly, aggregate intermediate bytes or
+whole-Run accounting. See the [Ranking name-matching evidence](2026-10-06-local-ranking-name-matching.md)
+for independent budgets, negative evidence and executed/unverified checks.
