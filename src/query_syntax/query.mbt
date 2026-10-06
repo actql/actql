@@ -584,9 +584,9 @@ fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
 }
 
 ///|
-///|
-fn QueryParser::having_expression(
+fn QueryParser::aggregate_expression(
   self : QueryParser,
+  prefix : String,
 ) -> (Expression, Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let calls : Array[(NamePart, AggregateCall)] = []
   let serial = [self.synthetic_sources]
@@ -625,7 +625,7 @@ fn QueryParser::having_expression(
     }
     try {
       let call = parser.aggregate()
-      let name = parser.fresh_producer("aql_having_aggregate_")
+      let name = parser.fresh_producer(prefix)
       serial[0] = parser.synthetic_sources
       syntax_nodes[0] += parser.syntax_nodes
       calls.push((name, call))
@@ -914,8 +914,10 @@ fn QueryParser::optional_output_alias(
 ///|
 fn QueryParser::projections(
   self : QueryParser,
-) -> Array[Projection] raise QueryAbort {
+  aggregate_expressions? : Bool = false,
+) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
+  let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
     let projection = if self.peek().value == Symbol(42) {
@@ -949,15 +951,36 @@ fn QueryParser::projections(
         except_columns,
       }
     } else {
-      let aggregate = if self.aggregate_head() {
-        Some(self.aggregate())
+      let (expression, aggregate) = if aggregate_expressions {
+        let serial = self.synthetic_sources
+        let (expression, calls) = self.aggregate_expression(
+          "aql_select_aggregate_",
+        )
+        let mut root = expression.root
+        while expression.nodes[root].kind is Parenthesized(child) {
+          root = child
+        }
+        if calls.length() == 1 &&
+          expression.nodes[root].kind is Reference(path) &&
+          path == [calls[0].0] {
+          // A whole aggregate keeps its existing projection and producer IDs.
+          // Only calls embedded in a scalar tree need private output slots.
+          self.synthetic_sources = serial
+          (None, Some(calls[0].1))
+        } else {
+          if !calls.is_empty() && self.has("OVER") {
+            raise QueryAbort(
+              "OVER requires one analytic call",
+              self.peek().start,
+            )
+          }
+          embedded.append(calls)
+          (Some(expression), None)
+        }
+      } else if self.aggregate_head() {
+        (None, Some(self.aggregate()))
       } else {
-        None
-      }
-      let expression = if aggregate is Some(_) {
-        None
-      } else {
-        Some(self.expression())
+        (Some(self.expression()), None)
       }
       let analytic = if self.has("OVER") {
         Some({ expression, aggregate, window: self.over(), })
@@ -991,7 +1014,7 @@ fn QueryParser::projections(
     }
     ignore(self.advance())
   }
-  values
+  (values, embedded)
 }
 
 ///|
@@ -1324,7 +1347,16 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   } else if self.has("ALL") {
     self.keyword("ALL")
   }
-  let projections = self.projections()
+  let (projections, embedded) = self.projections(aggregate_expressions=true)
+  let group_projections = projections +
+    embedded.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+      except_columns: [],
+  })
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
     self.keyword("FROM")
@@ -1352,20 +1384,21 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     operations.push(Where(self.expression()))
   }
   let grouped = self.has("GROUP") ||
-    projections.any(projection => projection.aggregate is Some(_))
+    projections.any(projection => projection.aggregate is Some(_)) ||
+    !embedded.is_empty()
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), projections, SqlSelect))
+    operations.push(Group(self.group_keys(), group_projections, SqlSelect))
   } else if grouped {
-    operations.push(Group([], projections, SqlSelect))
+    operations.push(Group([], group_projections, SqlSelect))
   }
   if self.has("HAVING") {
     self.keyword("HAVING")
-    let (predicate, calls) = self.having_expression()
+    let (predicate, calls) = self.aggregate_expression("aql_having_aggregate_")
     if !grouped {
       if calls.is_empty() {
         raise QueryAbort("HAVING requires grouping", self.peek().start)
       }
-      operations.push(Group([], projections, SqlSelect))
+      operations.push(Group([], group_projections, SqlSelect))
     }
     operations.push(Having(predicate, calls))
   }
@@ -1744,7 +1777,7 @@ fn QueryParser::pipe_tail(
       operations.push(Where(self.expression()))
     } else if self.has("EXTEND") {
       self.keyword("EXTEND")
-      let values = self.projections()
+      let (values, _) = self.projections()
       if values.any(p => p.name is None || p.expression is None) {
         raise QueryAbort(
           "EXTEND requires named scalar expressions",
@@ -1799,7 +1832,7 @@ fn QueryParser::pipe_tail(
       operations.push(Alias(self.name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
-      let aggregates = self.projections()
+      let (aggregates, _) = self.projections()
       if aggregates.any(projection => projection.aggregate is None) {
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }
@@ -1813,7 +1846,7 @@ fn QueryParser::pipe_tail(
       } else if self.has("ALL") {
         self.keyword("ALL")
       }
-      let projections = self.projections()
+      let (projections, _) = self.projections()
       if projections.any(projection => projection.analytic is Some(_)) {
         operations.push(Analytic(projections))
       }

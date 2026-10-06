@@ -2236,13 +2236,6 @@ fn compile_steps(
           }
         }
         let order_evaluated : Array[(@query.Expression, String)] = []
-        let resolve_aggregate = path => {
-          if scoped {
-            pipe_slot(path, input_visible, input_ranges)
-          } else {
-            resolve_column(path, query, input, active_fields)
-          }
-        }
         let aggregates : Array[(String, @builder.Node)] = []
         let result_fields : Array[String] = []
         for name in key_names {
@@ -2250,47 +2243,105 @@ fn compile_steps(
             result_fields.push(name)
           }
         }
+        let selected = selected_projections(query)
+        let select_calls : Array[(@query.AggregateCall, String)] = []
+        let resolve_input = path => {
+          if scoped {
+            pipe_slot(path, input_visible, input_ranges)
+          } else {
+            resolve_column(path, query, input, active_fields)
+          }
+        }
         for projection in projections {
           match projection.aggregate {
             Some(call) => {
               let name = projection.name.unwrap().value
-              if result_fields.contains(name) ||
-                aggregates.any(entry => entry.0 == name) {
-                raise Abort(DuplicateOutput)
+              let embedded = sql_group_projection &&
+                !selected.any(item => {
+                  item.aggregate is Some(_) && item.name == projection.name
+                })
+              let mut reused : String? = None
+              if embedded {
+                for (previous, slot) in select_calls {
+                  if same_aggregate_call(
+                      previous, call, resolve_input, resolve_input,
+                    ) {
+                    reused = Some(slot)
+                    break
+                  }
+                }
               }
-              let order_fields = aggregate_order_fields(
-                construction, call, resolve_aggregate, order_reserved, order_evaluated,
-                derives, max_work,
-              )
-              aggregates.push(
-                (
-                  name,
-                  if scoped {
-                    lower_aggregate_resolved(
-                      construction,
-                      call,
-                      path => pipe_slot(path, pipe_visible, pipe_ranges),
-                      max_work,
-                      max_collection_items,
-                      max_collection_bytes,
-                      order_fields=Some(order_fields),
+              let slot = match reused {
+                Some(slot) => slot
+                None => {
+                  let output_name = if embedded &&
+                    (
+                      active_fields.contains(name) ||
+                      result_fields.contains(name)
+                    ) {
+                    pipe_physical_name(
+                      active_fields + result_fields,
+                      "aql_select_aggregate_",
                     )
                   } else {
-                    lower_aggregate(
-                      construction,
-                      call,
-                      query,
-                      input,
-                      active_fields,
-                      max_work,
-                      max_collection_items,
-                      max_collection_bytes,
-                      order_fields=Some(order_fields),
-                    )
-                  },
-                ),
-              )
-              result_fields.push(name)
+                    name
+                  }
+                  if result_fields.contains(output_name) ||
+                    aggregates.any(entry => entry.0 == output_name) {
+                    raise Abort(DuplicateOutput)
+                  }
+                  let order_fields = aggregate_order_fields(
+                    construction, call, resolve_input, order_reserved, order_evaluated,
+                    derives, max_work,
+                  )
+                  aggregates.push(
+                    (
+                      output_name,
+                      if scoped {
+                        lower_aggregate_resolved(
+                          construction,
+                          call,
+                          resolve_input,
+                          max_work,
+                          max_collection_items,
+                          max_collection_bytes,
+                          order_fields=Some(order_fields),
+                        )
+                      } else {
+                        lower_aggregate(
+                          construction,
+                          call,
+                          query,
+                          input,
+                          active_fields,
+                          max_work,
+                          max_collection_items,
+                          max_collection_bytes,
+                          order_fields=Some(order_fields),
+                        )
+                      },
+                    ),
+                  )
+                  result_fields.push(output_name)
+                  select_calls.push((call, output_name))
+                  output_name
+                }
+              }
+              if embedded {
+                // Only parser-owned embedded calls enter SELECT's scalar
+                // scope. An authored sibling alias still cannot be read here.
+                let scope = sql_group_select_scope.unwrap()
+                sql_group_select_scope = Some({
+                  ..scope,
+                  // fresh_producer excludes every authored token with this
+                  // name. A star may still retain an implicit input column;
+                  // its public selection keeps the original physical binding.
+                  visible: scope.visible.filter(entry => {
+                    ascii_upper(entry.0) != ascii_upper(name)
+                  }) +
+                  [(name, slot)],
+                })
+              }
             }
             None => ()
           }
@@ -2392,10 +2443,8 @@ fn compile_steps(
             None
           }
           let known : Array[(@query.AggregateCall, String, Bool)] = []
-          for projection in projections {
-            if projection.aggregate is Some(call) {
-              known.push((call, projection.name.unwrap().value, false))
-            }
+          for (call, slot) in select_calls {
+            known.push((call, slot, false))
           }
           // HAVING uses its resolved SELECT aliases; its order expressions must
           // not reuse projections cached in the SELECT aggregate input scope.
