@@ -71,3 +71,12 @@ Full Core, Wasm/native execution, all packed cases and performance are not
 locally re-run. SELECT ALL support does not complete the entire Frontend.
 REPLACE has a separate public-function and common execution-lowering gap;
 inspection found `ExpressionNotImplemented` and no repair is included here.
+
+The first packed attempt at `74f4ab3a7bea0efb07e20cf79b6b5a65d679fe89`
+failed on the first JSON control before source cases. Its capture stage used a
+select directly from the connector instead of the existing Source filter
+entry. The independent control now includes an explicit true acquisition
+predicate followed by selection, as the existing capture contract requires;
+its main-stage `id > 0`, rows, NULLs, order and LIMIT remain unchanged. The
+failure receipt is `public-query-evidence-BVoUOo`; it is not source execution
+evidence. The corrected fixed SHA must be packed and accepted separately.

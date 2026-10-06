@@ -15,6 +15,10 @@ test('SELECT ALL expectations distinguish multiplicity, NULL, filtering and LIMI
   assert.deepEqual(byName.get('select-all-sql-empty').columns,
     [{name: 'amount', contract: {type: 'number', nullable: true}}]);
   const control = JSON.parse(byName.get('select-all-json-control').text);
+  assert.deepEqual(control.stages[0].steps, [
+    {from: 'remote', filter: {literal: true}},
+    {select: ['amount', 'id'], as: 'captured'},
+  ]);
   assert.deepEqual(control.stages[1].steps, [
     {from: 'records', filter: {gt: [{field: 'id'}, {literal: 0}]}},
     {select: ['amount']}, {sort: [{field: 'amount', dir: 'asc', nulls: 'first'}]},

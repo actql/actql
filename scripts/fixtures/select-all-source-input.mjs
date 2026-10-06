@@ -9,7 +9,8 @@ const sql = 'SELECT ALL amount FROM records WHERE id > 0 ORDER BY amount NULLS F
 const pipe = 'FROM records |> WHERE id > 0 |> SELECT ALL amount |> ORDER BY amount NULLS FIRST';
 const program = {version: 'actql/0.1', id: 'fixture.select_all',
   stages: [{id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
-    steps: [{from: 'remote', select: ['amount', 'id'], as: 'captured'}],
+    steps: [{from: 'remote', filter: {literal: true}},
+      {select: ['amount', 'id'], as: 'captured'}],
     results: {source: {from: 'captured', fields: ['amount', 'id']}}},
   {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
     steps: [{from: 'records', filter: {gt: [{field: 'id'}, {literal: 0}]}},
