@@ -1805,7 +1805,8 @@ const schemas = {
           "outcome",
           "report",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid"
         ],
         "additionalProperties": false,
         "properties": {
@@ -2128,6 +2129,49 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "operation",
                             "issue"
                           ],
@@ -2181,7 +2225,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -2190,6 +2235,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -2273,6 +2398,13 @@ const schemas = {
                                     "constraint"
                                   ]
                                 }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
                               }
                             ]
                           }
@@ -2294,6 +2426,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -2362,6 +2495,82 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -2450,6 +2659,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -2504,7 +2751,10 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
-                                "graph_operation_invalid"
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -2733,6 +2983,49 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "operation",
                             "issue"
                           ],
@@ -2786,7 +3079,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -2795,6 +3089,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -2878,6 +3252,13 @@ const schemas = {
                                     "constraint"
                                   ]
                                 }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
                               }
                             ]
                           }
@@ -2899,6 +3280,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -2967,6 +3349,82 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -3055,6 +3513,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -3109,7 +3605,10 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
-                                "graph_operation_invalid"
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -3238,8 +3737,12 @@ const schemas = {
               }
             ]
           },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -3252,7 +3755,9 @@ const schemas = {
           "outcome",
           "problem",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid",
+          "correlation_ref"
         ],
         "additionalProperties": false,
         "properties": {
@@ -3575,6 +4080,49 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "operation",
                             "issue"
                           ],
@@ -3628,7 +4176,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -3637,6 +4186,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -3720,6 +4349,13 @@ const schemas = {
                                     "constraint"
                                   ]
                                 }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
                               }
                             ]
                           }
@@ -3741,6 +4377,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -3809,6 +4446,82 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -3897,6 +4610,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -3951,7 +4702,10 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
-                                "graph_operation_invalid"
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -4180,6 +4934,49 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
+                            "expected_type"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "expected_type": {
+                              "enum": [
+                                "number",
+                                "boolean",
+                                "string"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "parameter",
+                            "domain"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "parameter": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 256
+                            },
+                            "domain": {
+                              "enum": [
+                                "positive_safe_integer",
+                                "nonnegative_safe_integer",
+                                "unit_fraction",
+                                "finite_number",
+                                "duration",
+                                "positive_milliseconds",
+                                "signed_milliseconds",
+                                "timestamp"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
                             "operation",
                             "issue"
                           ],
@@ -4233,7 +5030,8 @@ const schemas = {
                                 "invalid_parameter",
                                 "unknown_reference",
                                 "invalid_arguments",
-                                "expected_boolean"
+                                "expected_boolean",
+                                "invalid_bounds"
                               ]
                             }
                           }
@@ -4242,6 +5040,86 @@ const schemas = {
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "query_syntax_invalid",
+                              "parameter_undeclared"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "supplied_value_type_mismatch",
+                              "supplied_value_constraint_violation",
+                              "supplied_value_invalid",
+                              "supplied_parameters_invalid"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameters"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_declarations_invalid",
+                              "parameter_value_required"
+                            ]
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "const": "parameter_declarations"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -4325,6 +5203,13 @@ const schemas = {
                                     "constraint"
                                   ]
                                 }
+                              },
+                              {
+                                "not": {
+                                  "required": [
+                                    "domain"
+                                  ]
+                                }
                               }
                             ]
                           }
@@ -4346,6 +5231,7 @@ const schemas = {
                         "properties": {
                           "facts": {
                             "required": [
+                              "parameter",
                               "expected_type"
                             ],
                             "not": {
@@ -4414,6 +5300,82 @@ const schemas = {
                             "required": [
                               "constraint"
                             ]
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "expression_type_mismatch"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "expected_type"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "expected_type": {
+                                "enum": [
+                                  "number",
+                                  "boolean",
+                                  "string"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "operation_parameter_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "domain"
+                            ]
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "structured"
+                              },
+                              "document_id": {
+                                "enum": [
+                                  "parameters",
+                                  "parameter_declarations"
+                                ]
+                              }
+                            }
                           }
                         }
                       }
@@ -4502,6 +5464,44 @@ const schemas = {
                       "if": {
                         "properties": {
                           "code": {
+                            "const": "query_frame_invalid"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "invalid_bounds"
+                                ]
+                              }
+                            }
+                          },
+                          "location": {
+                            "properties": {
+                              "kind": {
+                                "const": "text"
+                              },
+                              "document_id": {
+                                "const": "source"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
                             "const": "graph_operation_invalid"
                           }
                         }
@@ -4556,7 +5556,10 @@ const schemas = {
                                 "supplied_value_constraint_violation",
                                 "query_lexical_invalid",
                                 "query_expression_invalid",
-                                "graph_operation_invalid"
+                                "query_frame_invalid",
+                                "graph_operation_invalid",
+                                "operation_parameter_invalid",
+                                "expression_type_mismatch"
                               ]
                             }
                           }
@@ -4697,8 +5700,18 @@ const schemas = {
               }
             }
           },
+          "correlation_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]+$",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -4712,7 +5725,8 @@ const schemas = {
           "outcome",
           "problem",
           "version",
-          "reason_schema_cid"
+          "reason_schema_cid",
+          "outcome_schema_cid"
         ],
         "additionalProperties": false,
         "properties": {
@@ -4738,8 +5752,12 @@ const schemas = {
               }
             }
           },
+          "outcome_schema_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
           "reason_schema_cid": {
-            "const": "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6"
+            "const": "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5779,7 +6797,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:ac08ebfd20b15d7ee4898039c94f3d089baaaeb693b319d241b3e0fe6adec4a6";
+export const checkReasonSchemaCid = "sha256:ae227713f6c587924092d7bfe5624ebaf5aa2969453ca48611272ff4bece9ace";
+export const checkOutcomeSchemaCid = "sha256:db05f03444b2546dbcda8d9cf4105b0d1df64f92fb72abf99d3098b2f56ac7b0";
 function valid(value, schema) {
   if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
@@ -5848,7 +6867,7 @@ export const validResourceInspectionShape = value => valid(value, schemas.resour
 export const validResourcePeekShape = value => valid(value, schemas.resource_peek);
 export const validResultDescriptionShape = value => valid(value, schemas.result_description);
 export const validRunStateShape = value => valid(value, schemas.run_state);
-export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome);
+export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;
 export const validProfileContract = (value, selected) =>
   validConnectionShape(selected) && validProfileShape(value) &&
   value.mode === selected.mode &&

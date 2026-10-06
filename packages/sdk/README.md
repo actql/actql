@@ -677,3 +677,45 @@ validators, generated wire types, SDK and independent fixtures are updated
 together; mixed pins are rejected. `actql-diagnostics/0.1` remains unchanged.
 There is no compatibility adapter, new parser, Host input persistence or
 retrieval API. Existing per-call input custody and destruction conditions apply.
+
+### Check explanation language
+
+Use `explainCheckOutcome(outcome, {locale: 'ja'})` or
+`explainCheckReason(reason, {locale: 'ja'})` for Japanese check presentation.
+`ja-JP` selects the same translations. English remains the default; unknown
+locale names, failed locale lookup and missing/malformed translations fall
+back to safe English. `getCheckPresentationInfo({locale: 'ja'})` identifies
+the selected translation revision separately from the pinned reason/outcome
+schema identities.
+
+Only summary and hint change. The received verdict, scope/context, Problem
+correlation, typed facts, input revision/position binding and Requirement
+frontier remain unchanged. Rendering performs no transport or Owner action;
+translated hints do not authorize execution, cancellation, retry or recovery.
+Malformed outcome envelopes do not gain a usable outcome explanation through translation.
+Copied responses retain safe wording without reconstructing original input.
+
+
+### Interrupted read explanations
+
+`explainReadFailure(error)` returns immutable SDK-observed progress for the original
+read error. It includes the read reference, `rowsYielded`, and the original
+connection, Run and named Result target for `result.deliveryAttempt(attemptId)`.
+Copies and independently constructed errors have no retained explanation. Changing
+an error's message, code or public properties does not replace the observation.
+The explanation keeps no returned row values or credentials.
+
+For `rows()`, the count is complete rows yielded by that reader. For `batches()`, it
+counts rows in batches yielded to the caller, excluding an unfinished buffered
+batch. A failed `all()` returns no value and reports zero caller-yielded rows.
+These counts do not establish server-sent or application-persisted rows. A read
+failure can also retain `cleanup: 'unknown'` when cancellation of that reader
+separately failed; wrapping the reader does not erase either observation.
+
+The lookup suggestion performs no I/O and grants no retry permission. Use the
+original Client/Result and current authorization to inspect the attempt. An absent
+record does not prove that opening was never committed. If the caller explicitly
+opens another read after checking availability, it starts from the beginning;
+it does not append to or resume the interrupted iterator. Read interruption or
+cleanup uncertainty proves neither Run failure, Result publication nor resource
+release.

@@ -114,6 +114,11 @@ priv struct BoundedSequenceState {
   mut phase : BoundedSequencePhase
   mut continuation : BoundedSequenceResume
   mut sort : BoundedIndexSort?
+  mut comparison : BoundedCompleteValueComparison?
+  mut compare_left : Int
+  mut compare_right : Int
+  mut compare_kind : BoundedSequenceComparisonKind?
+  mut compare_column : Int
   mut identity_order : Array[Int]
   mut ordered : Array[Int]
   mut clocks : Array[Int64]
@@ -220,9 +225,21 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
     state.output_charge = None
   }
   if state.sort is Some(active) {
-    cleanup_bounded_index_sort(active) |> ignore
+    // A stopped parent can still own a pending child comparison. Confirm the
+    // child's stop before releasing its callback state or borrowed cells.
+    if !bounded_index_sort_stopped(active) {
+      @bounded.request_cancel(state.engine) |> ignore
+      match advance_bounded_index_sort(active, 1) {
+        Ok(BoundedIndexSortStopped(_)) => ()
+        _ => return false
+      }
+    }
+    if !cleanup_bounded_index_sort(active) {
+      return false
+    }
     state.sort = None
   }
+  clear_bounded_sequence_comparison(state)
   if state.predicate_execution is Some(active) {
     cancel_predicate_expression(active) |> ignore
     state.predicate_execution = None
@@ -276,14 +293,37 @@ fn bounded_sequence_compare_value(
   left : Int,
   right : Int,
   column : Int,
-) -> Result[Int, BoundedSequenceMatchIssue] {
+) -> Result[Int?, BoundedSequenceMatchIssue] {
   guard bounded_sequence_input_cell(state.input, left, column) is Some(a) &&
     bounded_sequence_input_cell(state.input, right, column) is Some(b) else {
     return Err(InvalidExecution)
   }
-  compare_complete_value(a, b, state.control).map_err(issue => {
-    Rows(ordering_row_issue(issue))
-  })
+  if state.comparison is None &&
+    a is Text(text_a) &&
+    b is Text(text_b) &&
+    (text_a.length() > 64 || text_b.length() > 64) {
+    if !reserve_slots(state.workspace, 2) {
+      return Err(Rows(RowLimit))
+    }
+    state.comparison = Some(bounded_complete_value_comparison())
+  }
+  if state.comparison is Some(cursor) {
+    let result : Result[Int?, BoundedSequenceMatchIssue] = bounded_complete_value_comparison_step(
+      cursor,
+      a,
+      b,
+      state.control,
+    ).map_err(issue => Rows(ordering_row_issue(issue)))
+    if result is Ok(Some(_)) {
+      state.comparison = None
+      release_slots(state.workspace, 2)
+    }
+    result
+  } else {
+    compare_complete_value(a, b, state.control)
+    .map(value => Some(value))
+    .map_err(issue => Rows(ordering_row_issue(issue)))
+  }
 }
 
 ///|
@@ -291,14 +331,25 @@ fn bounded_sequence_compare_identity(
   state : BoundedSequenceState,
   left : Int,
   right : Int,
-) -> Result[Int, RowIssue] {
-  bounded_sequence_compare_value(state, left, right, state.identity_column).map_err(issue => {
-      match issue {
-        Rows(issue) => issue
-        _ => InvalidRows
-      }
-    },
-  )
+) -> Result[Int?, RowIssue] {
+  if !begin_bounded_sequence_comparison(state, left, right, IdentityComparison) {
+    return Err(InvalidRows)
+  }
+  let result = bounded_sequence_compare_value(
+    state,
+    left,
+    right,
+    state.identity_column,
+  ).map_err(issue => {
+    match issue {
+      Rows(issue) => issue
+      _ => InvalidRows
+    }
+  })
+  if result is Ok(Some(_)) {
+    clear_bounded_sequence_comparison(state)
+  }
+  result
 }
 
 ///|
@@ -306,28 +357,60 @@ fn bounded_sequence_compare_order(
   state : BoundedSequenceState,
   left : Int,
   right : Int,
-) -> Result[Int, RowIssue] {
-  for column in state.key_columns {
-    match bounded_sequence_compare_value(state, left, right, column) {
-      Ok(0) => ()
-      Ok(value) => return Ok(value)
+) -> Result[Int?, RowIssue] {
+  if !begin_bounded_sequence_comparison(state, left, right, OrderedComparison) {
+    return Err(InvalidRows)
+  }
+  if state.compare_column < state.key_columns.length() {
+    match
+      bounded_sequence_compare_value(
+        state,
+        left,
+        right,
+        state.key_columns[state.compare_column],
+      ) {
+      Ok(None) => return Ok(None)
+      Ok(Some(0)) => {
+        state.compare_column += 1
+        return Ok(None)
+      }
+      Ok(Some(value)) => {
+        clear_bounded_sequence_comparison(state)
+        return Ok(Some(value))
+      }
       Err(Rows(issue)) => return Err(issue)
       Err(_) => return Err(InvalidRows)
     }
   }
   if state.clocks[left] < state.clocks[right] {
-    return Ok(-1)
+    clear_bounded_sequence_comparison(state)
+    return Ok(Some(-1))
   }
   if state.clocks[left] > state.clocks[right] {
-    return Ok(1)
+    clear_bounded_sequence_comparison(state)
+    return Ok(Some(1))
   }
-  bounded_sequence_compare_identity(state, left, right)
+  let result = bounded_sequence_compare_value(
+    state,
+    left,
+    right,
+    state.identity_column,
+  ).map_err(issue => {
+    match issue {
+      Rows(issue) => issue
+      _ => InvalidRows
+    }
+  })
+  if result is Ok(Some(_)) {
+    clear_bounded_sequence_comparison(state)
+  }
+  result
 }
 
 ///|
 fn bounded_sequence_start_sort(
   state : BoundedSequenceState,
-  compare : (Int, Int) -> Result[Int, RowIssue],
+  compare : (Int, Int) -> Result[Int?, RowIssue],
 ) -> Bool {
   guard bounded_sequence_input_row_count(state.input) is Some(count) else {
     return false
@@ -336,7 +419,7 @@ fn bounded_sequence_start_sort(
     !reserve_slots(state.workspace, count * 2) {
     return false
   }
-  state.sort = start_bounded_index_sort(state.engine, count, compare)
+  state.sort = start_bounded_index_sort_stepped(state.engine, count, compare)
   state.sort is Some(_)
 }
 
@@ -345,17 +428,34 @@ fn bounded_sequence_same_key(
   state : BoundedSequenceState,
   left_position : Int,
   right_position : Int,
-) -> Result[Bool, BoundedSequenceMatchIssue] {
+) -> Result[Bool?, BoundedSequenceMatchIssue] {
   let left = state.ordered[left_position]
   let right = state.ordered[right_position]
-  for column in state.key_columns {
-    match bounded_sequence_compare_value(state, left, right, column) {
-      Ok(0) => ()
-      Ok(_) => return Ok(false)
-      Err(issue) => return Err(issue)
-    }
+  if !begin_bounded_sequence_comparison(state, left, right, PartitionComparison) {
+    return Err(InvalidExecution)
   }
-  Ok(true)
+  if state.compare_column == state.key_columns.length() {
+    clear_bounded_sequence_comparison(state)
+    return Ok(Some(true))
+  }
+  match
+    bounded_sequence_compare_value(
+      state,
+      left,
+      right,
+      state.key_columns[state.compare_column],
+    ) {
+    Ok(None) => Ok(None)
+    Ok(Some(0)) => {
+      state.compare_column += 1
+      Ok(None)
+    }
+    Ok(Some(_)) => {
+      clear_bounded_sequence_comparison(state)
+      Ok(Some(false))
+    }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -652,17 +752,17 @@ fn bounded_sequence_step(
         let before = state.identity_order[state.unique_index - 1]
         let after = state.identity_order[state.unique_index]
         match bounded_sequence_compare_identity(state, before, after) {
-          Ok(0) =>
+          Ok(Some(0)) =>
             return bounded_sequence_failure(
               Rows(AssertionDuplicate(before, after)),
               progress,
               used + 1,
             )
-          Ok(_) => ()
+          Ok(Some(_)) => state.unique_index += 1
+          Ok(None) => ()
           Err(issue) =>
             return bounded_sequence_failure(Rows(issue), progress, used + 1)
         }
-        state.unique_index += 1
         used += 1
         progress += 1
       }
@@ -725,11 +825,11 @@ fn bounded_sequence_step(
       CompareGroupKey => {
         match
           bounded_sequence_same_key(state, state.group_start, state.group_end) {
-          Ok(true) => {
+          Ok(Some(true)) => {
             state.group_end += 1
             state.phase = StartGroup
           }
-          Ok(false) => {
+          Ok(Some(false)) => {
             state.cursor = state.group_start
             state.position = state.group_start
             state.pattern = 0
@@ -740,6 +840,7 @@ fn bounded_sequence_step(
               PrepareAllowPattern
             }
           }
+          Ok(None) => ()
           Err(issue) =>
             return bounded_sequence_failure(issue, progress, used + 1)
         }
@@ -1469,6 +1570,11 @@ fn start_bounded_sequence_match_input(
     phase: LoadInputNames,
     continuation: ResumeDisallowFirst,
     sort: None,
+    comparison: None,
+    compare_left: -1,
+    compare_right: -1,
+    compare_kind: None,
+    compare_column: 0,
     identity_order: [],
     ordered: [],
     clocks: [],

@@ -6070,9 +6070,31 @@ field sets respectively, with compatible recursive value domains. The common
 type rules join nullability and extents; missing properties are not filled with
 null. A present record must contain every declared property even when nullable.
 Empty graphs retain those contracts and do not bypass compatibility checking.
+
+<!-- requirement-block: structural-graphs.union-identity-compatible-definitions -->
+The initial Property Graph union realization MUST accept only a single identity
+domain and the same named node and edge definition sets. Definition and property
+declaration order may differ; align them by the existing name rules. The exact
+definition spelling embedded in identity and each ordered key type descriptor
+must nevertheless match: `N` and `n`, decimal precision/scale changes, and
+different ArtifactRef media types are not implicit identity conversions.
+Check rejects those mismatches with typed identity reasons. Key-component order
+and original key-column correspondence, label sets and label-visible property
+sets, and source/target definition mappings must agree. Property value contracts
+may join nullability and extents under the existing rules; key contract joins
+must preserve their identity descriptor. Output contracts must also represent
+the selected strategy's results (for example, array union cannot retain an
+insufficient input array-length bound). This limited compatibility does not
+change constructor identity or authorize relabeling, rekeying or migration.
 An entity present only on one side is distinct from a missing property in a
 present entity: union keeps its complete record without applying a binary
 property strategy, while subtraction keeps only left-only entities.
+
+<!-- requirement-block: structural-graphs.union-shared-edge-endpoint-integrity -->
+For a shared edge identity, union MUST require exact typed source and target
+identity equality separately. A conflicting endpoint fails the whole operation
+without publishing a partial accumulator or modifying either input. Property
+strategies do not overwrite endpoints or allocate a replacement edge identity.
 
 On a shared identity, an explicitly named strategy applies even when its two
 values are equal. `exact_equal` requires typed value equality and returns that

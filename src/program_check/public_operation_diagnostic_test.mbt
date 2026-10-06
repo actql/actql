@@ -95,3 +95,34 @@ test "standard Result diagnostics retain the offending field without an expressi
     @source.Key("stages"),
   )
 }
+
+///|
+test "expression type rejection retains the existing required domain and classification" {
+  let (text, _, environment, _, limits) = public_input_fixture()
+  for
+    (expression, expected) in [
+      ("sqrt('private-value') + $n", "number"),
+      ("if(1, id + $n, 0)", "boolean"),
+      ("to_number(lower(1)) + $n", "string"),
+    ] {
+    let source = text.replace(old="id + $n", new=expression)
+    let diagnostic = public_rejected(
+      @program_check.check_document(
+        source,
+        environment,
+        None,
+        limits,
+        format=Json,
+      ),
+    )
+    assert_eq(@program_check.diagnostic_category(diagnostic), InvalidInput)
+    guard @program_check.diagnostic_cause(diagnostic)
+      is Source(SourceView(Program(Program(Pipeline(_, issue))))) else {
+      raise @program_check.diagnostic_cause(diagnostic)
+    }
+    assert_true(
+      issue.kind is Operation(Expression(TypeMismatch(actual))) &&
+      actual == expected,
+    )
+  }
+}

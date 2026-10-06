@@ -7,16 +7,18 @@ import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
-import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
+import {certificates} from '../adapters/site-node/https-test-certificates.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const selectorDeriveOnly = process.argv.includes('--selector-derive-only');
 const deltaApplicationOnly = process.argv.includes('--delta-application-only');
 const deltaRelationOnly = process.argv.includes('--delta-relation-only');
 const deltaDiffOnly = process.argv.includes('--delta-diff-only');
+const unionOnly = process.argv.includes('--union-only');
+const subtractionOnly = process.argv.includes('--subtraction-only');
 if (process.argv.slice(2).some(argument=>!['--selector-derive-only',
-  '--delta-application-only','--delta-relation-only','--delta-diff-only'].includes(argument)) ||
-  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) + Number(deltaDiffOnly) > 1) {
+  '--delta-application-only','--delta-relation-only','--delta-diff-only','--union-only','--subtraction-only'].includes(argument)) ||
+  Number(selectorDeriveOnly) + Number(deltaApplicationOnly) + Number(deltaRelationOnly) + Number(deltaDiffOnly) + Number(unionOnly) + Number(subtractionOnly) > 1) {
   throw new Error('Unknown packed Property Graph selection');
 }
 const source = checkoutState(repository);
@@ -47,6 +49,8 @@ for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.
   'fixtures/property-graph-parallel.program.json',
   'fixtures/property-graph-presence.program.json',
   'fixtures/property-graph-delta-application.mjs',
+  'fixtures/property-graph-union.mjs',
+  'fixtures/property-graph-subtraction.mjs',
   'fixtures/property-graph-definition-rows.program.json',
   'fixtures/property-graph-label-rows.program.json',
   'fixtures/property-graph-selector-derive.program.json',
@@ -60,6 +64,8 @@ const output = await run(process.execPath,nodeTestArguments([
   ...(deltaApplicationOnly ? ['--test-name-pattern','complete Delta application'] : []),
   ...(deltaRelationOnly ? ['--test-name-pattern','Delta Relation DISTINCT and GROUP'] : []),
   ...(deltaDiffOnly ? ['--test-name-pattern','Graph diff Delta survives'] : []),
+  ...(unionOnly ? ['--test-name-pattern','Property Graph union preserves occurrences'] : []),
+  ...(subtractionOnly ? ['--test-name-pattern','Property Graph subtraction preserves typed records'] : []),
   'property-graph-public-host.test.mjs']),root,
   {...environment,ACTQL_PROPERTY_GRAPH_PACKED:'1',
     PATH:[dirname(process.execPath),'/usr/bin','/bin'].join(':')},true);
@@ -73,14 +79,32 @@ const acceptance = {
   source,
   packages:digests,paths:['embedded-local','remote-https'],
   selection:selectorDeriveOnly ? 'selector-derive' : deltaApplicationOnly ? 'delta-application'
-    : deltaRelationOnly ? 'delta-relation' : deltaDiffOnly ? 'delta-diff' : 'all',
+    : deltaRelationOnly ? 'delta-relation' : deltaDiffOnly ? 'delta-diff' : unionOnly ? 'union' : subtractionOnly ? 'subtraction' : 'all',
   independentFixture:'fixtures/property-graph-parallel.program.json',
   presenceFixture:'fixtures/property-graph-presence.program.json',
   definitionFixture:'fixtures/property-graph-definition-rows.program.json',
   labelFixture:'fixtures/property-graph-label-rows.program.json',
   selectorDeriveFixture:'fixtures/property-graph-selector-derive.program.json',
   traversalFixture:'fixtures/property-graph-traverse-nodes.expected.json',
-  assertions:deltaDiffOnly ? [
+  assertions:subtractionOnly ? [
+    'ordered binary borrowed occurrences preserve exact typed identities and source domain',
+    'shared removal differs from explicit equality retention and number_sum remains addition',
+    'induced endpoint closure and independent parallel-edge removal never rekey records',
+    'independent Graph snapshot bytes CID and metadata after source invalidation and verified reload',
+    'sparse Relation omission NULL values and original key components through real Store reload',
+    'canonical initial Named Result and reattach order through public Local and HTTPS',
+    'payload NULL strategy and endpoint conflicts fail without a partial Named Result',
+    'list and extra-field subtraction refused before Run admission and physical work',
+  ] : unionOnly ? [
+    'ordered repeated Graph occurrences apply number_sum three times without identity conversion',
+    'partial overlap restores the independent parallel edge without collapsing endpoints',
+    'declaration-derived empty Graph and Relation schemas survive Store reload',
+    'independent Graph snapshot bytes and CID with source invalidation and verified reload',
+    'sparse Relation omission NULL values and original typed key components through real Store reload',
+    'ordered initial Named Result and reattach through public Local and HTTPS',
+    'shared edge endpoint conflict fails with no initial or reattached partial Named Result',
+    'extra-field union rejected before Run admission and physical work',
+  ] : deltaDiffOnly ? [
     'two retained Graph inputs produce one exact independently authored Delta row',
     'node property update and independent parallel-edge removal with unchanged records omitted',
     'unchanged Graphs produce one Delta row with empty typed action arrays',

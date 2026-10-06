@@ -1,11 +1,12 @@
 ///|
 /// Run the zero-input values, fixed row window and keyed window group chain
-/// with the given execution work and operation-entry limits at quantum one.
+/// with the given execution work, operation-entry limits and resume quantum.
 /// Returns "complete", "work" or "workspace", with the charged work.
 fn run_window_group_chain_budget(
   max_work : Int,
   max_entries : Int,
   cancel_after? : Int? = None,
+  quantum? : Int = 1,
 ) -> (String, Int64) raise {
   let (run, issuer) = captured_graph_fixture(
     local_values_window_group_chain=true,
@@ -64,6 +65,7 @@ fn run_window_group_chain_budget(
   let mut charged = 0L
   let mut advances = 0
   while outcome == "" {
+    assert_true(advances < 1000)
     if cancel_after is Some(limit) && advances == limit {
       assert_true((operations.request_cancel)())
       assert_true((operations.advance)(1) is Err(_))
@@ -71,9 +73,9 @@ fn run_window_group_chain_budget(
       outcome = "cancelled"
       break
     }
-    match (operations.advance)(1) {
+    match (operations.advance)(quantum) {
       Ok(observation) => {
-        assert_true(observation.work <= 1L)
+        assert_true(observation.work <= quantum.to_int64())
         charged += observation.work
         advances += 1
         if observation.complete {
@@ -134,10 +136,34 @@ fn run_window_group_chain_budget(
 
 ///|
 test "ordinary window group chain admits exact work and one-short limits" {
-  // Values, fixed window assignment and the keyed window group share one
-  // task-wide work ceiling across the bounded chain.
-  assert_eq(run_window_group_chain_budget(267, 10000), ("complete", 267L))
-  assert_eq(run_window_group_chain_budget(266, 10000).0, "work")
+  // These counts follow the phase transitions, not a successful run's meter.
+  // Values (three rows, two columns): names + begin/cells/row-charge + finish.
+  // Row-charge pays start + each name + each scalar value + commit, not one
+  // synchronous commit. This changes Values from 15 to 30 steps.
+  let values = 2 + 3 * (1 + 2 + (1 + 2 + 2 + 1)) + 1
+  // Window: six schema fields, three row/two scalar input charges, then
+  // begin/membership/four output cells/ten row-charge steps per output row.
+  // The window's old one-step commit becomes ten, changing 37 to 64 steps.
+  let window = 6 + 3 * (1 + 2) + 3 * (1 + 1 + 4 + (1 + 4 + 4 + 1)) + 1
+  // General keyed group: input charge 15; name/profile setup 92; stable merge
+  // 57; group ranges 21; two count groups plus terminal transitions 17;
+  // two four-cell output rows plus commits 10; output finish 1 = 213.
+  // Stable merge uses one 13-step equal three-key comparison and two
+  // four-step NULL/number comparisons. Ranges use the same equal comparison
+  // and one unequal comparison. Neither adds work for yielding itself.
+  let group = 15 + 92 + 57 + 21 + 17 + 10 + 1
+  let exact = values + window + group + 2 // Two completed child handoffs.
+  assert_eq((values, window, group, exact), (30, 64, 213, 309))
+  for quantum in [1, 7, 256] {
+    assert_eq(
+      run_window_group_chain_budget(exact, 10000, quantum~),
+      ("complete", exact.to_int64()),
+    )
+    assert_eq(
+      run_window_group_chain_budget(exact - 1, 10000, quantum~).0,
+      "work",
+    )
+  }
 }
 
 ///|
