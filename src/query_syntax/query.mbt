@@ -1368,6 +1368,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       name: Some(pair.0),
       star: None,
       except_columns: [],
+      except_columns: [],
   })
   let operations : Array[QueryOperation] = []
   let (relation, source_alias, ctes) = if self.has("FROM") {
