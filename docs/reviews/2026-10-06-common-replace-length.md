@@ -90,7 +90,8 @@ Result remains unavailable. This public case establishes delivered cancellation,
 not a claim that its opaque progress barrier identifies a particular internal
 Text phase; the typed frame fixtures separately identify those phases.
 
-Public tests passed 2/2: `run-HFppT0` / `focused-test-JtoIDl`.
+The final submitted tree passed the public tests 2/2:
+`run-RtRBlV` / `focused-test-OIriXr`.
 The source tree was uncommitted during these candidate checks. Final submitted
 SHA and exact-SHA receipts are recorded in the PR; earlier receipts are not
 relabelled as checks of that SHA.
