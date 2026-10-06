@@ -2,6 +2,8 @@
 // public Client: submit, Preview, approval of the whole Set, Host restart,
 // current checks, writes and the Named Result. The org is a local HTTPS mock.
 import assert from 'node:assert/strict';
+// The public update acceptance runs with the installed Effect's Host tests.
+import './update-effect.acceptance.test.mjs';
 import {execFileSync} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -32,7 +34,7 @@ await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
 execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
-  '-subj', '/CN=localhost',
+  '-subj', '/CN=salesforce-effect-host-fixture',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
 {cwd: tlsRoot, stdio: 'ignore'});
 const tlsKey = await readFile(join(tlsRoot, 'host.key'));
