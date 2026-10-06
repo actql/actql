@@ -43,6 +43,29 @@ export async function effectTargetReadContinuation({checkpoints, runId,
   let ready = false;
   let pendingTarget;
   let entered = false;
+  const cleanupPending = () => states.some(state =>
+    state.gate !== undefined && !state.released);
+  const close = () => {
+    // Revoke further use immediately, independently of physical completion.
+    live = false;
+    let failure;
+    for (const state of states) {
+      if (state.gate === undefined || state.released) continue;
+      try {
+        // Close-only gates must close synchronously and remain retryable on
+        // false/throw. Full gates retain their existing cleanup owner.
+        const recover = state.closeAttempted &&
+          typeof state.gate.cleanup === 'function';
+        state.closeAttempted = true;
+        const result = recover ? state.gate.cleanup() : state.gate.close();
+        state.released = result !== false &&
+          (typeof state.gate.cleanupPending !== 'function' ||
+            state.gate.cleanupPending() === false);
+      } catch (error) { failure ??= error; }
+    }
+    if (failure !== undefined) throw failure;
+    return !cleanupPending();
+  };
   const approvalAt = checkpointCid => {
     try { return checkpoints.journal.committedApprovalAt(checkpointCid); }
     catch (error) {
@@ -108,8 +131,47 @@ export async function effectTargetReadContinuation({checkpoints, runId,
       }
     }
   } catch (error) {
-    for (const state of states) state.gate?.close();
-    throw error;
+    const errors = [];
+    try { close(); } catch (failure) { errors.push(failure); }
+    if (!cleanupPending()) throw error;
+    // Construction has no returned owner. Transfer this same closure through
+    // the dispatch owner's existing cleanup-handle protocol. Keep any cleanup
+    // responsibility already attached to the primary construction failure.
+    const earlier = error?.cleanupHandle;
+    let earlierReleased = earlier === undefined && error?.cleanupPending !== true;
+    const attachable = error !== null && typeof error === 'object' &&
+      Object.isExtensible(error) && ['cleanupHandle', 'cleanupPending'].every(key => {
+        const descriptor = Object.getOwnPropertyDescriptor(error, key);
+        return descriptor === undefined || descriptor.writable === true;
+      });
+    const failure = attachable ? error
+      : Object.assign(new Error('EffectTargetReadCleanupPending', {cause: error}),
+        {code: error?.code ?? 'EffectTargetReadCleanupPending', primaryFailure: error});
+    if (isEffectTargetReadRefusal(error)) refusals.add(failure);
+    const status = () => Object.freeze({pending: cleanupPending() || !earlierReleased,
+      errors: Object.freeze([...errors])});
+    const handle = Object.freeze({status, async retry() {
+      try { close(); } catch (failure) { errors.push(failure); }
+      if (!earlierReleased) {
+        try {
+          if (typeof earlier?.retry !== 'function' ||
+              typeof earlier?.status !== 'function') {
+            throw new Error('EffectTargetReadCleanupOwnerMissing');
+          }
+          if (earlier.status().pending !== false) await earlier.retry();
+          earlierReleased = earlier.status().pending === false;
+        } catch (failure) { errors.push(failure); }
+      }
+      failure.cleanupPending = status().pending;
+      return status();
+    }});
+    // Define own data fields so inherited setters/read-only fields cannot
+    // intercept this handoff. Non-writable own metadata uses the wrapper.
+    Object.defineProperties(failure, {
+      cleanupHandle: {value: handle, writable: true},
+      cleanupPending: {value: true, writable: true},
+    });
+    throw failure;
   }
   const owner = Object.freeze({
     inventoryCid: bound.inventoryCid,
@@ -194,11 +256,9 @@ export async function effectTargetReadContinuation({checkpoints, runId,
         },
       });
     },
-    close() {
-      if (!live) return;
-      live = false;
-      for (const state of states) state.gate.close();
-    },
+    close,
+    cleanup: close,
+    cleanupPending,
   });
   return owner;
 }
