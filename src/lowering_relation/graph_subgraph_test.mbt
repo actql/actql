@@ -17,7 +17,7 @@ test "current subgraph lowers full typed identities without a tuple fallback" {
     graph_match_checked_value_wire(
       @lowering_relation.graph_subgraph_literal_id_at(view, 0).unwrap(),
     ),
-    id,
+    "{\"$json\":" + id + "}",
   )
   assert_eq(
     @lowering_relation.graph_subgraph_relation_selector_field(view),
@@ -32,7 +32,9 @@ test "current subgraph lowers full typed identities without a tuple fallback" {
   assert_eq(
     @encode.finish(writer),
     "[{\"id\":\"subgraph_0\",\"in\":[\"input_0\"],\"op\":\"SGA.subgraph\",\"params\":{\"nodes\":{\"ids\":[" +
+    "{\"$json\":" +
     id +
+    "}" +
     "]},\"edges\":{\"body\":true,\"op\":\"literal\"}}}]",
   )
 }

@@ -569,6 +569,12 @@ test('baseline preimages and changed normative pins independently determine the 
     'sha256:8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397', mainDependencies, barrierCid, mainIdentity).run.run_definition_cid,
     pin('2624f666695d785e72040453976d086dc98e7778ac5dfeb5a75ba93cc8f67891'));
   // Preserve the typed-JSON parent with its original complete grammar body.
+  // Frozen independent closure before the Values whole-cell schema repair.
+  const previousCellDependencies = {
+    unit: pin('70a8b6f174373e258c106a0a8e8b66d5b61f85de377cda9f11fe87b1f09e2168'),
+    proof: pin('d196a1e53a23de1987933c71ae0047476d855a3911930f0c612267147d57c086'),
+    resultPlan: pin('2d37e465bf372e6115235bd843172cd85367704c4ba728a7ad1ce57523c81738'),
+  };
   assert.equal(vector(pin('cbf544dd2f03bbf120cb4181a861e3ee5bad66c73680414f563c13ecba2254a6'),
     pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid,
     pin('36560241fceee9447094100569f3c391e28ac5a0dcce70ef3cd1d446f8bc7ace'));
@@ -592,8 +598,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('b43a9bd5a9e433dd164afd4760f583cee1d29e63e8eb65200dc9adbfd54bc095'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('aeaec36c0401892a5b3ccb6b09ded8f9d077a500e36eb9f4650c6cd14a97ea80'));
   assert.equal(vector(pin('e36194fdba1c86643169c8f10888a05a39ecc0fea7e1189ac1dfaaf1f4ac01f0'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('c43c9af213d8c24dc132f500cadc213814f461912038b362a79dc2d116470d2f'));
   assert.equal(vector(pin('33b5a9ea6214ae40f224b7f105632b933b6394dbd6d3f337cbdae20c9c1608ed'), pin('8e3c47ee3e151473304602f49ad1dcdb2c44b3d310a0dac3a41b668d8bdc4397'), mainDependencies, barrierCid, mainIdentity).run.run_definition_cid, pin('cd459a94b139de3909f0b0376bdfb42fe2885fe9d7959fe67d2d0bd75ce18176'));
-  assert.equal(vector(pin('d342a6bef23a6737a1d8c366eebafba2659a8495b7e22355fbe3e903f281dbf8'), pin('c8768130d38f4999ab2cb4640a273036fe1c822ca580038978d50692f2f0c958'), priorTypedDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid, pin('72401cebfc4164aab0fcf562c80062be79017714465c0cacb017cd30b4949adb'));
-  assert.equal(current.run.run_definition_cid, 'sha256:21f7d5c527334069ddb38f755a3b0f998dec86a9aee115b7cf905e86d36d7f25');
+  assert.equal(vector(pin('d342a6bef23a6737a1d8c366eebafba2659a8495b7e22355fbe3e903f281dbf8'),
+    cid(aoaContract), previousCellDependencies, barrierCid, priorTypedIdentity).run.run_definition_cid,
+    pin('72401cebfc4164aab0fcf562c80062be79017714465c0cacb017cd30b4949adb'));
+  assert.equal(vector(pin('f97f4aab9869f21b5d8c75e13bed93c69fa671602020167f68eb196bc65e1ead'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('0f55021c0394bc5cd6b6fa37fa3f30ebad510678911822e8c7b3da6fd557e659'));
+  assert.equal(current.run.run_definition_cid, 'sha256:6cedd73015905be0a71b4df2db8ab5f95d1d0003b3b5abce9ed334a70edf5a68');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

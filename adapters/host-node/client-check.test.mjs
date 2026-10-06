@@ -3286,3 +3286,28 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: check refuses source numbers that JSON would replace`, async t => {
+    const client = await contextClient(t, entrance, sourceEnvironment);
+    for (const value of [NaN, Infinity, -Infinity, -0]) {
+      for (const options of [
+        {parameterDeclarations: {x: {type: 'number', nullable: true}}, parameters: {x: value}},
+        {parameterDeclarations: {x: {type: 'json'}}, parameters: {x: {nested: [value]}}},
+        {parameterDeclarations: {x: {type: 'number', default: value}}},
+        {parameterDeclarations: {x: {type: 'json', default: {nested: [value]}}}},
+      ]) {
+        const result = await client.check('SELECT @x AS n', {format: 'sql', ...options})
+          .then(() => ({}), error => ({code: error.code}));
+        assert.equal(result.code, 'InvalidCheckRequest', '[check-mutation:numeric-source-refusal]');
+        assert.deepEqual(result, {code: 'InvalidCheckRequest'});
+      }
+    }
+    for (const value of [null, 0, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE]) {
+      const result = await client.check('SELECT @x AS n', {format: 'sql',
+        parameterDeclarations: {x: {type: 'number', nullable: true}}, parameters: {x: value}});
+      assert.equal(result.report.verdict, 'verified');
+      assert.deepEqual(getCheckInput(result, 'parameters').value, {x: value});
+    }
+  });
+}
