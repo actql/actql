@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
-import {createHash} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
@@ -1202,12 +1202,12 @@ const contextKey = new Uint8Array(32).fill(7);
 // A fixed test-only key makes complete envelopes comparable across physically
 // different private inventories. No provider or Run handler is installed.
 async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
-  closed = false, connectionAllowed = true,
+  closed = false, connectionAllowed = true, observations,
   sdkConnect = connect,
   sdkConnectInProcess = connectInProcess,
   maxRequestBytes = 65536,
   mutateCheckReply,
-  mutateCheckTransportReply,
+  mutateCheckTransportReply, mutateUnavailable,
   profiles = [false, false, true, true, false, false, false]} = {}) {
   const admitted = moon.clientProgramCheckEnvironment(canonicalText(wire),
     wire.evidence_bundle_cid, ...profiles);
@@ -1217,9 +1217,19 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
   if (authorization) t.after(() => authorization.close());
   if (closed) authorization.close();
-  const check = installNodeClientCheck({moon, environment: admitted, contextKey,
+  const observedMoon = observations ? {...moon,
+    clientProgramCheckSource: (...args) => {
+      observations.analysis++; return moon.clientProgramCheckSource(...args);
+    },
+    clientProgramCheckUnavailable: (...args) => {
+      observations.unavailable++; return moon.clientProgramCheckUnavailable(...args);
+    },
+  } : moon;
+  const check = installNodeClientCheck({moon: observedMoon, environment: admitted, contextKey,
     publication: sourceAliasPublication(moon, admitted, aliases),
-    sourceAccesses: authorization === undefined ? [] : [{authorization,
+    sourceAccesses: authorization === undefined ? [] : [{authorization: observations ? {
+      authorize: (...args) => { observations.sourceDecisions++; return authorization.authorize(...args); },
+    } : authorization,
       connection: 'local-database', resource: '/records.duckdb',
       sourceRef: aliases[0].sourceRef}]});
   const mode = entrance === 'local' ? 'local' : 'remote';
@@ -1229,16 +1239,24 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
       maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
       maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
   const configuration = {authenticate: () => owner,
-    authorizeConnection: ({operation}) => operation === 'connect' || connectionAllowed,
+    authorizeConnection: value => {
+      if (value.operation === 'connect') return true;
+      if (observations) observations.authorization++;
+      return typeof connectionAllowed === 'function' ? connectionAllowed(value) : connectionAllowed;
+    },
     negotiate: () => profile,
-    check: mutateCheckReply ? async request => mutateCheckReply(await check(request)) : check,
+    check: mutateCheckReply || mutateUnavailable ? Object.assign(async request => {
+      const outcome = await check(request);
+      return mutateCheckReply ? mutateCheckReply(outcome) : outcome;
+    }, {unavailable: () => mutateUnavailable ? mutateUnavailable(check.unavailable()) : check.unavailable()}) : check,
     maxRowBytes: 1024, maxRequestBytes};
   if (entrance === 'local') {
     const port = createNodeInProcessClientHost(configuration);
     const client = await sdkConnectInProcess({mode, owner: mode},
-      mutateCheckTransportReply ? {async perform(operation, body, signal) {
+      mutateCheckTransportReply || observations ? {async perform(operation, body, signal) {
         const value = await port.perform(operation, body, signal);
-        return operation === 'check' ? mutateCheckTransportReply(value) : value;
+        if (operation === 'check' && observations) observations.wireOutcomes.push(structuredClone(value));
+        return operation === 'check' && mutateCheckTransportReply ? mutateCheckTransportReply(value) : value;
       }} : port);
     t.after(() => client.close());
     return client;
@@ -1246,6 +1264,14 @@ async function contextClient(t, entrance, wire, {aliases = [], readOutcome,
   const handler = createClientHttpHandler({...configuration,
     authenticate: header => header === 'Bearer owner-token' ? owner : undefined});
   const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+    if (observations && request.url.endsWith('/check')) {
+      response.on('finish', () => observations.statuses.push(response.statusCode));
+      const end = response.end.bind(response);
+      response.end = (body, ...args) => {
+        observations.wireOutcomes.push(JSON.parse(body));
+        return end(body, ...args);
+      };
+    }
     if (mutateCheckTransportReply && request.url.endsWith('/check')) {
       const end = response.end.bind(response);
       response.end = body => end(JSON.stringify(mutateCheckTransportReply(JSON.parse(body))));
@@ -2368,8 +2394,11 @@ for (const entrance of ['local', 'http']) {
   test(`${entrance}: Source failure cannot bypass connection authorization`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment,
       {aliases: [alias], readOutcome: 'allow', closed: true, connectionAllowed: false});
-    await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}),
-      {code: 'ClientConnectionDenied'});
+    const outcome = await client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.equal(outcome.outcome, 'unavailable');
+    assert.equal(outcome.report, undefined);
+    assert.equal(outcome.partial_report, undefined);
+    assert.equal(getCheckInput(outcome, 'source'), undefined);
   });
 
   test(`${entrance}: unsupported function lowering remains an implementation limit`, async t => {
@@ -3049,18 +3078,28 @@ for (const entrance of ['local', 'http']) {
 }
 
 for (const entrance of ['local', 'http']) {
-  test(`${entrance}: literal-only LIMIT syntax does not invent scalar domain facts`, async t => {
+  test(`${entrance}: admitted LIMIT parameters retain the owned offset domain`, async t => {
     const client = await contextClient(t, entrance, sourceEnvironment,
       {aliases: [alias], readOutcome: 'allow'});
-    const outcome = await client.check('SELECT id FROM records LIMIT 2 OFFSET @offset', {format: 'sql',
-      parameterDeclarations: {offset: {type: 'number', nullable: false}}, parameters: {offset: -1}});
+    const text = 'SELECT id FROM records LIMIT 2 OFFSET @offset';
+    const options = {format: 'sql', parameterDeclarations: {
+      offset: {type: 'number', nullable: false}}, parameters: {offset: -1}};
+    const outcome = await client.check(text, options);
     assert.equal(outcome.report.verdict, 'invalid');
     assert.deepEqual(outcome.report.reasons.map(({code, facts}) => ({code, ...(facts ? {facts} : {})})),
-      [{code: 'query_syntax_invalid'}]);
-    assert.equal(outcome.report.reasons[0].location.document_id, 'source');
-    assert.deepEqual({...outcome.report.reasons[0].location, revision: 'submitted'},
-      {kind: 'text', document_id: 'source', revision: 'submitted', start_byte: 38, end_byte: 38, precision: 'exact'});
-    assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).text, '');
+      [{code: 'operation_parameter_invalid',
+        facts: {parameter: 'offset', domain: 'nonnegative_safe_integer'}}]);
+    const input = getCheckInput(outcome, 'parameters');
+    assert.deepEqual(outcome.report.reasons[0].location,
+      {kind: 'structured', document_id: 'parameters', revision: input.revision, pointer: '/offset'});
+    assert.equal(resolveCheckLocation(outcome, outcome.report.reasons[0].location).input, input);
+    assert.equal(outcome.report.reasons[0].location.kind === 'text', false);
+    for (const offset of [0, 2]) {
+      const valid = await client.check(text, {...options, parameters: {offset}});
+      assert.equal(valid.report.verdict, 'verified');
+      assert.deepEqual(valid.report.reasons, []);
+      assert.deepEqual(valid.report.coverage, {limits: [], unresolved: []});
+    }
   });
 
   test(`${entrance}: protected scalar demands retain only independent public violations`, async t => {
@@ -3175,3 +3214,205 @@ for (const entrance of ['local', 'http']) {
     }
   });
 }
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unavailable checking contexts hide every protected Source variant`, async t => {
+    const clients = [];
+    for (const [wire, options] of [
+      [absentEnvironment, {}],
+      [sourceEnvironment, {aliases: [alias], readOutcome: 'deny'}],
+      [sourceEnvironment, {aliases: [alias], readOutcome: 'allow', closed: true}],
+    ]) {
+      const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+      const client = await contextClient(t, entrance, wire,
+        {...options, connectionAllowed: false, observations});
+      clients.push({client, observations});
+    }
+    const correlations = new Set();
+    for (const [text, options] of [
+      ['SELECT 1 AS n', {format: 'sql'}],
+      ['SELECT (', {format: 'sql'}],
+      [query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'private-input-secret'}}],
+      [query, {format: 'sql', parameterDeclarations: declarations}],
+    ]) {
+      for (const {client, observations} of clients) {
+        const received = await client.check(text, options).then(outcome => ({outcome}), error => {
+          if (!(error instanceof sdk.ClientError)) throw error;
+          return {clientError: error.code};
+        });
+        assert.equal(received.outcome?.outcome, 'unavailable', `[check-mutation:check-context-outcome] ${received.clientError ?? 'public outcome'}`);
+        const outcome = received.outcome;
+        assert.deepEqual(observations.wireOutcomes.at(-1), outcome, '[check-mutation:check-context-envelope]');
+        assert.match(outcome.correlation_ref, /^corr:[a-f0-9]{32}$/u);
+        assert.equal(correlations.has(outcome.correlation_ref), false);
+        correlations.add(outcome.correlation_ref);
+        assert.deepEqual({...outcome, correlation_ref: 'opaque-attempt'}, {
+          version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+          outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable',
+          correlation_ref: 'opaque-attempt', problem: {code: 'check_unavailable'},
+        }, '[check-mutation:check-context-envelope]');
+        assert.equal(getCheckInput(outcome, 'source'), undefined);
+        assert.equal(sdk.getCheckRequirementFrontier(outcome), undefined);
+        assert.deepEqual(sdk.explainCheckOutcome(outcome), {
+          outcome: 'unavailable', problem: {kind: 'known', code: 'check_unavailable'},
+          correlationRef: outcome.correlation_ref,
+          summary: 'The scope and checking context needed for a safe public report are unavailable.',
+          hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
+        });
+        assert.equal(observations.analysis, 0, '[check-mutation:check-context-analysis]');
+        assert.equal(observations.sourceDecisions, 0, '[check-mutation:check-context-analysis]');
+      }
+    }
+    for (const {observations} of clients) {
+      assert.equal(observations.authorization, 4);
+      assert.equal(observations.unavailable, 4);
+      assert.deepEqual(observations.statuses, entrance === 'http' ? [200, 200, 200, 200] : []);
+    }
+  });
+
+  test(`${entrance}: connection authorization loss preserves earlier reports`, async t => {
+    let allowed = true;
+    const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', observations,
+        connectionAllowed: () => allowed});
+    const earlier = await client.check('SELECT 1 AS n', {format: 'sql'});
+    const retained = structuredClone(earlier);
+    assert.equal(earlier.report.verdict, 'verified');
+    assert.equal(observations.analysis, 1);
+    assert.equal(observations.sourceDecisions, 1);
+    allowed = false;
+    const received = await client.check('SELECT (', {format: 'sql'}).then(outcome => ({outcome}), error => {
+      if (!(error instanceof sdk.ClientError)) throw error;
+      return {clientError: error.code};
+    });
+    assert.equal(received.outcome?.outcome, 'unavailable', `[check-mutation:check-context-outcome] ${received.clientError ?? 'public outcome'}`);
+    assert.deepEqual(earlier, retained);
+    assert.equal(getCheckInput(earlier, 'source').text, 'SELECT 1 AS n');
+    assert.equal(getCheckInput(received.outcome, 'source'), undefined);
+    assert.equal(observations.analysis, 1, '[check-mutation:check-context-analysis]');
+    assert.equal(observations.sourceDecisions, 1, '[check-mutation:check-context-analysis]');
+    allowed = true;
+    const current = await client.check('SELECT @x AS n', {format: 'sql',
+      parameterDeclarations: {x: {type: 'number'}}, parameters: {}});
+    assert.equal(current.report.verdict, 'undetermined');
+    assert.notEqual(current.report.context_ref, earlier.report.context_ref);
+    assert.deepEqual(current.report.requirements.map(reason => reason.facts),
+      [{parameter: 'x', expected_type: 'number'}]);
+    assert.equal(observations.analysis, 2);
+    assert.equal(observations.sourceDecisions, 2);
+  });
+}
+
+
+for (const entrance of ['local', 'http']) {
+  test(`${entrance}: unavailable producer failures never disclose a report`, async t => {
+    let replacement;
+    let rejectProjection = false;
+    let authorization = true;
+    const observations = {analysis: 0, unavailable: 0, sourceDecisions: 0, authorization: 0, statuses: [], wireOutcomes: []};
+    const client = await contextClient(t, entrance, sourceEnvironment,
+      {aliases: [alias], readOutcome: 'allow', observations,
+        connectionAllowed: () => {
+          if (authorization === 'throw') throw new Error('private-context-authorization');
+          return authorization;
+        },
+        mutateUnavailable: value => {
+          if (rejectProjection) throw new Error('private-context-producer');
+          return replacement ?? value;
+        }});
+    const earlier = await client.check('SELECT 1 AS n', {format: 'sql'});
+    authorization = false;
+    for (const invalid of [earlier,
+      {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable', correlation_ref: 'corr:bad',
+        problem: {code: 'check_unavailable'}, context_ref: 'private-context-binding'},
+      {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+        outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'unavailable', correlation_ref: 'corr:bad',
+        problem: {code: 'check_unavailable', secret: 'private-context-fact'}},
+    ]) {
+      replacement = invalid;
+      await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}), error =>
+        error instanceof sdk.ClientError && error.code === 'ClientHostFailure' &&
+        !JSON.stringify(error).includes('private-context'));
+      assert.equal(observations.analysis, 1);
+      assert.equal(observations.sourceDecisions, 1);
+    }
+    replacement = undefined;
+    rejectProjection = true;
+    await assert.rejects(client.check('SELECT 1 AS n', {format: 'sql'}), error =>
+      error instanceof sdk.ClientError && error.code === 'ClientHostFailure' &&
+        !JSON.stringify(error).includes('private-context'));
+    rejectProjection = false;
+    for (const unknown of ['throw', undefined, {allow: true}]) {
+      authorization = unknown;
+      const outcome = await client.check('SELECT 1 AS n', {format: 'sql'});
+      assert.equal(outcome.outcome, 'unavailable');
+      assert.equal(outcome.report, undefined);
+      assert.equal(outcome.partial_report, undefined);
+      assert.equal(observations.analysis, 1);
+      assert.equal(observations.sourceDecisions, 1);
+    }
+    assert.deepEqual(observations.statuses, entrance === 'http'
+      ? [200, 500, 500, 500, 500, 200, 200, 200] : []);
+    for (const value of observations.wireOutcomes.slice(1)) {
+      assert.equal(value.report, undefined);
+      assert.equal(value.context_ref, undefined);
+      assert.equal(JSON.stringify(value).includes('private-context'), false);
+    }
+  });
+}
+
+test('installed HTTPS: checkpoint readers receive context-unavailable without execution', async t => {
+  const hostKeys = generateKeyPairSync('ed25519');
+  const reviewerKeys = generateKeyPairSync('ed25519');
+  const authorization = {
+    reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: 'reviewer-principal',
+      publicKey: reviewerKeys.publicKey.export({format: 'pem', type: 'spki'})}],
+    reviewReaders: ['reader-principal'],
+    hostKey: {keyId: 'host-key', privateKey: hostKeys.privateKey.export({format: 'pem', type: 'pkcs8'})},
+  };
+  const outcomes = [];
+  for (const configuration of [configurations.absent, configurations.denied]) {
+    const root = await mkdtemp(join(scratch, 'context-reader-'));
+    const sourceInstallation = await installedConfigurations(root, configuration);
+    const observation = observeCheckOnly(t, root);
+    const host = await openInstalledRemoteHttpHost({directory: join(root, 'state'),
+      authenticate: header => header === 'Bearer reader-token' ? 'reader-principal' : undefined,
+      authorization, beforeDispatch: observation.beforeDispatch, ...sourceInstallation});
+    const statuses = [];
+    const server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
+      if (request.url.endsWith('/check')) response.on('finish', () => statuses.push(response.statusCode));
+      return host.handler(request, response);
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    t.after(async () => {
+      server.closeAllConnections();
+      await new Promise(resolve => server.close(resolve));
+      await host.close();
+      await rm(root, {recursive: true, force: true});
+    });
+    const client = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${server.address().port}/`,
+      token: 'reader-token'});
+    t.after(() => client.close());
+    // The existing installed Checkpoint owner admits this principal's connection,
+    // while the Host connection owner denies its access to the checking context.
+    assert.deepEqual((await client.checkpoints()).items, []);
+    const received = await client.check(query, {format: 'sql', parameterDeclarations: declarations,
+      parameters: {minimum: 'private-input-secret'}}).then(outcome => ({outcome}), error => {
+      if (!(error instanceof sdk.ClientError)) throw error;
+      return {clientError: error.code};
+    });
+    assert.equal(received.outcome?.outcome, 'unavailable',
+      `[check-mutation:installed-check-context] ${received.clientError ?? 'public outcome'}`);
+    outcomes.push({...received.outcome, correlation_ref: 'opaque-attempt'});
+    assert.equal(getCheckInput(received.outcome, 'source'), undefined);
+    assert.deepEqual(statuses, [200]);
+    observation.assertNoExecution();
+  }
+  assert.deepEqual(outcomes[0], outcomes[1], '[check-mutation:installed-check-context-envelope]');
+  assert.deepEqual(outcomes[0], {version: 'actql-check-outcome/0.1',
+    reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid,
+    outcome: 'unavailable', correlation_ref: 'opaque-attempt', problem: {code: 'check_unavailable'}});
+});
