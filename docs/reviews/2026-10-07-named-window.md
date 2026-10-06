@@ -83,3 +83,50 @@ normal five packages and record their exact source SHA and tarball digests.
 #680's JOIN capacity reproduction remains separate and unchanged; a passing
 named-window corpus cannot close it. No full Core/all-target execution, proof,
 performance campaign, manual CI retry or merge is included in this evidence.
+
+## Normal fixed-package public acceptance
+
+The initial normal package source `51d7a5e4b860ecd11938d005621441bb796c96a0`
+stopped before Host execution: main's SDK tarball omitted its imported
+`operation-formats.mjs`. Evidence is `public-query-evidence-WxksIZ`; this is
+not a named-window execution pass. B isolated the packaging-only repair in
+[PR #684](https://github.com/actql/actql/pull/684), shared ownership on #679,
+and normally merged fixed dependency `2bf5141056ccd01f14b0fb807033455c35709f6a`
+into this branch. SDK implementation/diagnostics remain E-owned.
+
+Normal five-package source after that merge:
+`5e1beb8d503bda677a549adeedfd9e314710c0aa`. The ordinary runner completed
+Embedded Local and public HTTPS with 13/13 successful cases and 10/10
+pre-admission refusals per transport. Named Result rows and describe columns
+(order, complete type and nullability), duplicate/NULL behavior, one acquisition,
+retransmission identity and no re-execution were checked by the existing helper.
+No expectations, ceilings or input sources changed after the initial attempt.
+
+Commands, with pinned MoonBit/Node PATH and MOON_HOME for packing:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-named-window-fixed-20261007-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-named-window-fixed-20261007-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+npm_config_offline=true npm_config_include=optional \
+node scripts/test-packed-public-query.mjs --named-window-only
+```
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-Fw80yG`, with successful
+summary and captured Local/HTTPS output. The harness removed the external
+installation after saving source/package digests and logs. The normal producer
+directory retains `packed-client-packages.json` and five tarballs. Digests are
+listed below; they are not rewritten to stand for another HEAD.
+
+| Package | Tarball SHA-256 |
+|---|---|
+| client-wire | `af57abf7f4cbbed70fcc316975b70e532b6d67cb26737c552ea9608d12922a75` |
+| sdk | `ba73a00f0506c67ca00995da5dca55ddf929280e51d57fbd996cfa027997d947` |
+| run-host-core | `f788f89786f0e42377e936c40284b07a9458f3ff937b7c6b6a3d8c0b0743e1b0` |
+| local-node | `e4aa05b303316cbbd2071f004e324b05bd64295a51c4c31100252e15c727c413` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+Submitted-HEAD CI/content review remain separate; keep the PR Draft. Dependency
+#680 and SDK delivery #684 must reach main before final integration. Passing this
+selected corpus does not close #680's unchanged JOIN capacity reproduction or
+the broader Frontend/standard coverage gaps.
