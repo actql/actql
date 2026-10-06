@@ -5854,3 +5854,19 @@ drains, whole-Run physical accounting and unexecuted target/packed campaigns
 remain separate residuals. This supersedes only the recursive type-equality
 part of the historical schema/type/name residual. See the
 [contract scanning evidence](2026-10-06-local-record-contract-scanning.md).
+
+### Relation Pool member identity scanning
+
+Composite member encoding now reuses the common stepped scalar Text recheck,
+copies scalar-safe fragments, and checks the complete key before collection.
+The normative length-prefixed spelling and comparison order are unchanged.
+The independent two-component fixture fixes 227/226 control, 86/85 workspace,
+138/137 member bytes and cancellation during copying. Installed public Host
+evidence reaches measurement before output, retains custody before confirmed
+stop and checks three explicit Named Results, request reuse and reclamation.
+
+This closes algorithmic member Text scans, not preemption inside the runtime's
+final StringBuilder buffer assembly or aggregate intermediate-byte accounting.
+Field/schema name scans, runtime Object-name validation, legacy drains and
+unexecuted full-target/packed/whole-Run campaigns remain distinct. See
+[member scanning evidence](2026-10-06-local-pool-member-scanning.md).
