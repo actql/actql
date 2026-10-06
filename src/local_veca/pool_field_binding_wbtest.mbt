@@ -5,7 +5,7 @@ test "Pool retained field binding keeps independent limits across quantum and st
   let owner = pool_owner(producer, group_name=name)
   let prepared = sequence(owner, name_bytes=100000)
   let limits = {
-    ..limits(workspace=72, work=20000),
+    ..limits(workspace=77, work=20000),
     max_value_bytes: 10000,
     max_total_value_bytes: 30000,
     max_retained_value_bytes: 30000,
@@ -29,7 +29,9 @@ test "Pool retained field binding keeps independent limits across quantum and st
   // and identity hash + exact bucket comparison each add 2*(127-1).
   // Record name emission adds 127-1. Input group and output group matching
   // each add another 126. Total: 61+9*126=1195. Construction stays 18;
-  // workspace is 15+16+9+1+30 append/structure plus one name offset: 72.
+  // admission is 15+16+9+1+30 append/structure plus one name offset: 72.
+  // Completion retains one three-field record alongside the reservation:
+  // 72+(3+2)=77. The one-short initial admission check remains 71.
   assert_true(
     start_pool_with_control_work_limit(
       @bounded.control(),

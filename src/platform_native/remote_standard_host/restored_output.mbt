@@ -17,6 +17,34 @@ fn restored_output_refused(
 }
 
 ///|
+/// Keep the original exact cleanup obligation even when opening its root is
+/// temporarily unavailable. A recovered handle is cached for unlink/sync retry.
+fn retry_restored_standard_cleanup(
+  root_path : String,
+  custody : @journal.NativeOutputFileCustody,
+  max_bytes : Int64,
+) -> () -> Bool {
+  let cleanup : Ref[(() -> Bool)?] = Ref(None)
+  () => {
+    if cleanup.val is None {
+      let file = match
+        @retained_file.restore_native_retained_task_file_cleanup(
+          root_path,
+          @journal.native_output_file_custody_occurrence(custody),
+          @journal.native_output_file_custody_generation(custody),
+          @journal.native_output_file_custody_content_cid(custody),
+          max_bytes,
+        ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      cleanup.val = Some(retain_standard_output_cleanup(Some(file), () => true))
+    }
+    cleanup.val.unwrap()()
+  }
+}
+
+///|
 fn verify_restored_standard_stream(
   file : @retained_file.NativeRetainedTaskFile,
   current : () -> Bool,
@@ -67,10 +95,9 @@ pub fn restore_native_remote_standard_output(
   root_path : String,
   max_bytes : Int64,
   current : () -> Bool,
+  cleanup_current? : (() -> Bool)? = None,
 ) -> NativeRemoteOutputRestoration {
-  if !current() {
-    return restored_output_refused("output-restore-current", () => false)
-  }
+  let initially_current = current()
   let record = @journal.recovered_site_dispatch_record(recovered)
   guard @journal.recovered_site_dispatch_file_custody(recovered)
     is Some(custody) &&
@@ -85,27 +112,23 @@ pub fn restore_native_remote_standard_output(
     is Err(_) {
     return restored_output_refused("output-restore-state", () => false)
   }
+  let cleanup_authorized = cleanup_current.unwrap_or(current)
+  let retry_cleanup = retry_restored_standard_cleanup(
+    root_path, custody, max_bytes,
+  )
+  let cleanup = () => cleanup_authorized() && retry_cleanup()
   let occurrence = @journal.native_output_file_custody_occurrence(custody)
   let generation = @journal.native_output_file_custody_generation(custody)
   let content_cid = @journal.native_output_file_custody_content_cid(custody)
-  if !current() {
-    return restored_output_refused("output-restore-current", () => false)
+  if !initially_current || !current() {
+    return restored_output_refused("output-restore-current", cleanup)
   }
   let file = match
     @retained_file.restore_native_retained_task_file(
       root_path, occurrence, generation, content_cid, max_bytes,
     ) {
     Ok(value) => value
-    Err(_) => {
-      let cleanup = match
-        @retained_file.restore_native_retained_task_file_cleanup(
-          root_path, occurrence, generation, content_cid, max_bytes,
-        ) {
-        Ok(value) => retain_standard_output_cleanup(Some(value), () => true)
-        Err(_) => () => false
-      }
-      return restored_output_refused("output-restore-physical", cleanup)
-    }
+    Err(_) => return restored_output_refused("output-restore-physical", cleanup)
   }
   let release = retain_standard_output_cleanup(Some(file), () => true)
   if verify_restored_standard_stream(file, current) is Err(code) {
@@ -173,18 +196,42 @@ pub fn restore_native_remote_standard_runtime_output(
   root_path : String,
   max_bytes : Int64,
   current : () -> Bool,
+  cleanup_current? : (() -> Bool)? = None,
 ) -> @runtime.NativeCompletedRuntimeRestoration {
-  runtime.restore_completed(request, binding, current, recovered => {
-    match
-      restore_native_remote_standard_output(
-        recovered, root_path, max_bytes, current,
-      ) {
-      NativeRestoredOutput(@runtime.NativeRemoteOutputReady(output)) =>
-        @runtime.RestoredCompletedOutput(output)
-      NativeRestoredOutput(@runtime.NativeRemoteExecutionFailed(_)) =>
-        @runtime.CompletedOutputUnavailable("output-restore-facts", () => false)
-      NativeOutputRestorationPending(code, cleanup) =>
-        @runtime.CompletedOutputUnavailable(code, cleanup)
-    }
-  })
+  let custody_current = cleanup_current.unwrap_or(current)
+  let cleanup : @runtime.NativeCompletedCleanupRestoration = {
+    current: custody_current,
+    restore: recovered => {
+      guard @journal.recovered_site_dispatch_file_custody(recovered)
+        is Some(custody) else {
+        return () => false
+      }
+      retry_restored_standard_cleanup(root_path, custody, max_bytes)
+    },
+  }
+  runtime.restore_completed(
+    request,
+    binding,
+    current,
+    recovered => {
+      match
+        restore_native_remote_standard_output(
+          recovered,
+          root_path,
+          max_bytes,
+          current,
+          cleanup_current=Some(custody_current),
+        ) {
+        NativeRestoredOutput(@runtime.NativeRemoteOutputReady(output)) =>
+          @runtime.RestoredCompletedOutput(output)
+        NativeRestoredOutput(@runtime.NativeRemoteExecutionFailed(_)) =>
+          @runtime.CompletedOutputUnavailable("output-restore-facts", () => {
+            false
+          })
+        NativeOutputRestorationPending(code, cleanup) =>
+          @runtime.CompletedOutputUnavailable(code, cleanup)
+      }
+    },
+    cleanup=Some(cleanup),
+  )
 }
