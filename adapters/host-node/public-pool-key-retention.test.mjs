@@ -15,24 +15,32 @@ const expected = ['a', 'b'].map(suffix => ({
   group: prefix + suffix, embedding: [1, 2], member_count: 1,
 }));
 
-function program(id, direct = false, outputScan = false, identityScan = false, memberScan = false) {
+function program(id, direct = false, outputScan = false, identityScan = false, memberScan = false,
+  objectNameScan = false) {
   const dimensions = outputScan ? 257 : 2;
+  const objectName = 'x'.repeat(513);
+  const objectSchema = {type: 'object', nullable: false,
+    fields: {[objectName]: {type: 'number', nullable: false}}};
   const schema = {
     id: {type: memberScan ? 'string' : 'number', nullable: false},
     ...(memberScan ? {code: {type: 'number', nullable: false}} : {}),
-    group: {type: outputScan || memberScan ? 'number' : 'string', nullable: false},
+    group: {type: outputScan || memberScan || objectNameScan ? 'number' : 'string', nullable: false},
     embedding: {type: 'vector', dimensions, nullable: false},
-    ...(direct && !memberScan ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
+    ...(objectNameScan ? {aa_unused: {type: 'array', nullable: false, max_items: 112,
+      items: {type: 'number', nullable: false}}, zz_unused: objectSchema} : {}),
+    ...(direct && !memberScan && !objectNameScan ? {zz_unused: {type: 'array', nullable: false, max_items: 129,
       items: {type: 'number', nullable: false}}} : {}),
   };
   return {version: 'actql/0.1', id, stages: [
     {id: 'values', inputs: {}, steps: [{values: {schema,
-      rows: (outputScan || identityScan || memberScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
+      rows: (outputScan || identityScan || memberScan || objectNameScan ? ['a'] : ['b', 'a']).map((suffix, index) => ({
       id: memberScan ? 'x'.repeat(5000) : index + 1,
       ...(memberScan ? {code: 1} : {}),
-      group: outputScan || memberScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
+      group: outputScan || memberScan || objectNameScan ? 1 : identityScan ? 'g'.repeat(8096) : prefix + suffix,
       embedding: outputScan ? Array.from({length: dimensions}, () => 1) : [1, 2],
-      ...(direct && !memberScan ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
+      ...(objectNameScan ? {aa_unused: Array.from({length: 112}, () => 1),
+        zz_unused: {[objectName]: 2}} : {}),
+      ...(direct && !memberScan && !objectNameScan ? {zz_unused: Array.from({length: 129}, () => 1)} : {}),
     }))}, as: 'out'}, ...(direct ? [
       {from: 'out', assert_rows: {unique_by: memberScan ? ['id', 'code'] : ['id']}, as: 'keyed'},
     ] : [])], results: {r: {from: direct ? 'keyed' : 'out',
@@ -57,7 +65,7 @@ function program(id, direct = false, outputScan = false, identityScan = false, m
 }
 
 async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
-  identityScan = false, memberScan = false} = {}) {
+  identityScan = false, memberScan = false, objectNameScan = false} = {}) {
     const directory = await mkdtemp(join(tmpdir(), 'actql-public-pool-key-'));
     const barrier = Promise.withResolvers();
     const released = Promise.withResolvers();
@@ -73,9 +81,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     let dispatches = 0;
     let completions = 0;
     let representations;
-    const fixtureId = memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
+    const fixtureId = objectNameScan ? 'public-pool-object-name' : memberScan ? 'public-pool-member' : identityScan ? 'public-pool-identity' : outputScan ? 'public-pool-output' :
       direct ? 'public-pool-input' : 'public-pool-key';
-    const expectedRows = memberScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
+    const expectedRows = memberScan || objectNameScan ? [{group: 1, embedding: [1, 2], member_count: 1}] : identityScan ? [{group: 'g'.repeat(8096), embedding: [1, 2],
       member_count: 1}] : outputScan ? [{group: 1,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
@@ -131,6 +139,9 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
         // Relation mode has an unused array requiring 261 recheck polls;
         // other field/control units leave fewer than 256 for that array.
         // Neither first quantum can commit a Pool record or output group.
+        // A 112-item Array needs 227 recheck polls. With earlier fields,
+        // the Object name starts at 255; nine name fragments end at 263.
+        // Poll 256 is inside that name, before its child or a Pool record.
         assert.equal(detail.work, '256');
         assert.equal(detail.progress, '0');
         barrier.resolve();
@@ -145,9 +156,12 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     };
     client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true, authorization}});
-    const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan));
+    const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
+      objectNameScan));
     const options = {format: 'json', requestId: fixtureId};
-    const execution = await client.aql(source, options);
+    const execution = await client.aql(source, options).catch(error => {
+      assert.fail(inspect(error, {depth: 8}));
+    });
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
     assert.equal(state.status, 'succeeded', inspect(state, {depth: 6}));
     for (const name of names) assert.deepEqual(await execution.result(name).all(), expectedRows);
@@ -163,7 +177,8 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan)),
+    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
+      objectNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await barrier.promise;
     const atBarrier = advances;
@@ -205,3 +220,6 @@ test('public retained Pool publishes and cancels inside output identity hashing'
 
 test('public retained Pool publishes and cancels inside composite member encoding',
   {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, memberScan: true}));
+
+test('public retained Pool publishes and cancels inside typed Object name admission',
+  {timeout: 45_000}, t => runPublicPoolBarrier(t, {direct: true, objectNameScan: true}));

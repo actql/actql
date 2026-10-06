@@ -10190,6 +10190,27 @@
           "fixture": "scalar spelling cancellation releases its borrowed text and recheck"
         },
         {
+          "role": "pool_object_name_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_object_name_recheck_wbtest.mbt",
+          "fixture": "Relation Pool Object names retain independent limits and stop custody"
+        },
+        {
+          "role": "pool_object_name_shared_limits",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_object_names_wbtest.mbt",
+          "fixture": "typed Object name recheck steps before visiting the child"
+        },
+        {
+          "role": "pool_object_identifier_json_data_separation",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_object_names_wbtest.mbt",
+          "fixture": "Object identifier refusal stays separate from opaque JSON member data"
+        },
+        {
           "role": "pool_output_record_limits",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10323,6 +10344,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside composite member encoding"
+        },
+        {
+          "role": "pool_object_name_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside typed Object name admission"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",

@@ -18,7 +18,7 @@ const freeze = value => {
 export function effectTargetReadInventory(inventory) {
   if (!Array.isArray(inventory) || inventory.length === 0 ||
       inventory.length > 1000) fail();
-  const wire = canonicalValueJson(inventory);
+  const wire = canonicalValueJson(inventory, {dataKeys: true});
   if (Buffer.byteLength(wire) > 256 * 1024) fail();
   const groups = new Map();
   for (const item of JSON.parse(wire)) {
@@ -41,7 +41,7 @@ export function effectTargetReadInventory(inventory) {
   // The CID binds the same value-preserving preimage as the retained data.
   // Opaque provider bindings are not configuration identities.
   const preimage = canonicalValueJson({
-    version: 'actql-effect-target-read-inventory/0.1', targets});
+    version: 'actql-effect-target-read-inventory/0.1', targets}, {dataKeys: true});
   return Object.freeze({targets, inventoryCid: `sha256:${createHash('sha256')
     .update(preimage, 'utf8').digest('hex')}`});
 }
