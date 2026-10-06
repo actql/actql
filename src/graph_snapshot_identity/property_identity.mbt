@@ -53,7 +53,10 @@ fn property_order_key(
       builder.limits.value_limits.max_depth,
     )
     @encode.begin_array(out)
-    @value.emit_checked_wire_value(identity, out)
+    guard @value.json_payload(identity.value) is Some(payload) else {
+      return Err(InvalidContractIdentity)
+    }
+    @value.emit_wire_value(payload, out)
     @encode.end_array(out)
     Ok(@encode.finish(out))
   } catch {
@@ -101,7 +104,10 @@ pub fn begin_property_node(
   try {
     @encode.begin_object(builder.writer)
     @encode.key(builder.writer, "id")
-    @value.emit_checked_wire_value(identity, builder.writer)
+    guard @value.json_payload(identity.value) is Some(payload) else {
+      return Err(InvalidContractIdentity)
+    }
+    @value.emit_wire_value(payload, builder.writer)
   } catch {
     _ => return Err(EncodingLimit)
   }
@@ -137,9 +143,14 @@ pub fn begin_property_edge(
   try {
     @encode.begin_object(builder.writer)
     @encode.key(builder.writer, "dst")
-    @value.emit_checked_wire_value(target, builder.writer)
+    guard @value.json_payload(target.value) is Some(target_payload) &&
+      @value.json_payload(identity.value) is Some(identity_payload) &&
+      @value.json_payload(source.value) is Some(_) else {
+      return Err(InvalidContractIdentity)
+    }
+    @value.emit_wire_value(target_payload, builder.writer)
     @encode.key(builder.writer, "id")
-    @value.emit_checked_wire_value(identity, builder.writer)
+    @value.emit_wire_value(identity_payload, builder.writer)
   } catch {
     _ => return Err(EncodingLimit)
   }
@@ -149,7 +160,7 @@ pub fn begin_property_edge(
   }
   builder.previous_edge = Some(key)
   builder.previous_property = None
-  builder.edge_source = Some(source.value)
+  builder.edge_source = @value.json_payload(source.value)
   builder.phase = EdgeProperties
   Ok(())
 }

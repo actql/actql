@@ -11,6 +11,7 @@ priv struct Parser {
   source_path : String
   limits : ParseLimits
   normalize_text : Bool
+  literal_json : Bool
   path : Array[PathSegment]
   mut offset : Int
   mut byte_offset : Int
@@ -26,6 +27,7 @@ fn Parser::make(
   source_path : String,
   limits : ParseLimits,
   normalize_text? : Bool = true,
+  literal_json? : Bool = false,
 ) -> Parser {
   let bom = source.length() > 0 && source[0].to_int() == 0xfeff
   {
@@ -33,6 +35,7 @@ fn Parser::make(
     source_path,
     limits,
     normalize_text,
+    literal_json,
     path: [],
     offset: if bom {
       1

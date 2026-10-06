@@ -55,7 +55,7 @@ test "Graph storage identity conversion resumes canonical composite keys" {
     @value.emit_checked_wire_value(identity.unwrap(), out)
     assert_eq(
       @encode.finish(out),
-      "{\"definition\":\"N\",\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":[1,\"a\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}",
+      "{\"$json\":{\"definition\":\"N\",\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":[1,\"a\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}}",
     )
     // Independently counted document: 11 value nodes and two key components.
     assert_eq(work, 46)
@@ -242,11 +242,11 @@ test "Graph storage resumed identity projects reference CID without minting auth
   @value.emit_checked_wire_value(identity.unwrap(), out)
   assert_eq(
     @encode.finish(out),
-    "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "{\"$json\":{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[{\"identity\":\"sha256:" +
     "4".repeat(64) +
-    "\"}],\"key_types\":[{\"kind\":\"resource_ref\",\"resource_kind\":\"Issue\"}]}",
+    "\"}],\"key_types\":[{\"kind\":\"resource_ref\",\"resource_kind\":\"Issue\"}]}}",
   )
   assert_eq(work, 41)
   authorized.val = false
