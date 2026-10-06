@@ -29,8 +29,15 @@ structure Rows where
   records : List Row
   deriving DecidableEq
 
+structure EventRecord where
+  key : Int
+  time : Clock
+  properties : List Cell
+  deriving DecidableEq
+
 structure Events where
-  rows : Rows
+  schema : List Field
+  records : List EventRecord
   deriving DecidableEq
 
 inductive Issue where
@@ -77,24 +84,44 @@ def admission (rows : Rows) : Except Issue Unit :=
     else .error .duplicateIdentity
   else .error .invalidWidth
 
+def encodeRecord (row : Row) : EventRecord := ⟨row.identity, row.clock, row.payload⟩
+def decodeRecord (event : EventRecord) : Row := ⟨event.key, event.time, event.properties⟩
+def encodeRows (rows : Rows) : Events := ⟨rows.schema, rows.records.map encodeRecord⟩
+def eventRows (events : Events) : Rows := ⟨events.schema, events.records.map decodeRecord⟩
+
+theorem encoded_rows_round_trip (rows : Rows) : eventRows (encodeRows rows) = rows := by
+  cases rows with
+  | mk schema records =>
+    have recordsLaw : (records.map encodeRecord).map decodeRecord = records := by
+      induction records with
+      | nil => rfl
+      | cons row rest ih =>
+        cases row
+        simp [encodeRecord, decodeRecord, ih]
+    simp [encodeRows, eventRows, recordsLaw]
+
+def admittedRows (rows : Rows) : Except Issue Rows :=
+  BridgeComposition.composeResult (admission rows) (fun _ => .ok rows)
+
 def toEvents (rows : Rows) : Except Issue Events :=
-  BridgeComposition.composeResult (admission rows) (fun _ => .ok ⟨rows⟩)
+  BridgeComposition.composeResult (admission rows) (fun _ => .ok (encodeRows rows))
 
-def toRows (events : Events) : Except Issue Rows := .ok events.rows
+def toRows (events : Events) : Except Issue Rows := .ok (eventRows events)
 
--- Full ordered semantic values are the observations for this instance.
--- No equivalence discards schema, row order, duplicates, NULL or text bytes.
+-- Both stages are checked against the same complete ordered Rows observation,
+-- although the intermediate carrier has separate records and identity/time roles.
 theorem to_events_respects (rows : Rows) :
-    BridgeComposition.observeResult id (toEvents rows) = toEvents (id rows) :=
-  BridgeComposition.observe_identity (toEvents rows)
+    BridgeComposition.observeResult eventRows (toEvents rows) = admittedRows (id rows) := by
+  cases decision : admission rows <;>
+    simp [toEvents, admittedRows, decision, BridgeComposition.composeResult,
+      BridgeComposition.observeResult, encoded_rows_round_trip]
 
 theorem to_rows_respects (events : Events) :
-    BridgeComposition.observeResult id (toRows events) = toRows (id events) :=
-  BridgeComposition.observe_identity (toRows events)
+    BridgeComposition.observeResult id (toRows events) = .ok (eventRows events) := rfl
 
 theorem round_trip (rows : Rows) (h : admission rows = .ok ()) :
     BridgeComposition.composeResult (toEvents rows) toRows = .ok rows := by
-  simp [toEvents, h, BridgeComposition.composeResult, toRows]
+  simp [toEvents, h, BridgeComposition.composeResult, toRows, encoded_rows_round_trip]
 
 theorem rejected_input_preserves_error (rows : Rows) (issue : Issue)
     (h : admission rows = .error issue) :
@@ -105,12 +132,39 @@ theorem round_trip_schema_and_order (rows : Rows) (h : admission rows = .ok ()) 
     BridgeComposition.composeResult (toEvents rows) toRows = .ok
       { schema := rows.schema, records := rows.records } := round_trip rows h
 
--- Apply the shared observation-composition law to two distinct carriers.
+-- The output contract, rather than matching sorts, discharges the next premise.
+theorem events_establish_precondition (rows : Rows) (events : Events)
+    (completed : toEvents rows = .ok events) : admission (eventRows events) = .ok () := by
+  cases decision : admission rows with
+  | error issue => simp [toEvents, decision, BridgeComposition.composeResult] at completed
+  | ok witness =>
+    cases witness
+    have same : encodeRows rows = events := by
+      simpa [toEvents, decision, BridgeComposition.composeResult] using completed
+    rw [← same, encoded_rows_round_trip, decision]
+
+theorem rows_preserve_precondition (events : Events) (rows : Rows)
+    (admitted : admission (eventRows events) = .ok ())
+    (completed : toRows events = .ok rows) : admission rows = .ok () := by
+  have same : eventRows events = rows := by simpa [toRows] using completed
+  rw [← same]
+  exact admitted
+
+theorem sequential_contract (input output : Rows) (admitted : admission input = .ok ())
+    (completed : BridgeComposition.composeResult (toEvents input) toRows = .ok output) :
+    admission output = .ok () :=
+  BridgeComposition.sequential_preconditions toEvents toRows
+    (fun rows => admission rows = .ok ()) (fun events => admission (eventRows events) = .ok ())
+    (fun rows => admission rows = .ok ())
+    (fun rows events _ proof => events_establish_precondition rows events proof)
+    rows_preserve_precondition input output admitted completed
+
+-- Apply the shared law with a representation-changing middle observation.
 theorem observed_round_trip (rows : Rows) :
     BridgeComposition.observeResult id (BridgeComposition.composeResult (toEvents rows) toRows) =
-    BridgeComposition.composeResult (toEvents (id rows)) toRows :=
-  BridgeComposition.observed_composition id id id toEvents toRows toEvents toRows
-    to_events_respects to_rows_respects rows
+    BridgeComposition.composeResult (admittedRows (id rows)) (fun observed => .ok observed) :=
+  BridgeComposition.observed_composition id eventRows id toEvents toRows admittedRows
+    (fun observed => .ok observed) to_events_respects to_rows_respects rows
 
 -- Nonvacuous witnesses: empty input, repeated payload, unsorted clock, NULL,
 -- authored timestamp text, and duplicate ID failure. No product-generated oracle.

@@ -29,8 +29,9 @@ export function checkEventsBridge() {
   const input = proofInput();
   const code = input.replace(/\/-[\s\S]*?-\//gu, '').replace(/--[^\n]*/gu, '');
   if (/\b(sorry|admit|axiom|native_decide|unsafe)\b/u.test(code)) throw new Error('Unfinished or unchecked proof');
-  const expected = ['to_events_respects', 'to_rows_respects', 'round_trip',
-    'rejected_input_preserves_error', 'round_trip_schema_and_order', 'observed_round_trip'];
+  const expected = ['encoded_rows_round_trip', 'to_events_respects', 'to_rows_respects', 'round_trip',
+    'rejected_input_preserves_error', 'round_trip_schema_and_order', 'events_establish_precondition',
+    'rows_preserve_precondition', 'sequential_contract', 'observed_round_trip'];
   const actual = [...read('Events.lean').matchAll(/^theorem (\w+)/gmu)].map(([, name]) => name);
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error('Review the instance theorem inventory');
   const commonExpected = ['observed_composition', 'failure_short_circuits', 'observed_failure',

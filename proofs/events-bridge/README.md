@@ -20,7 +20,11 @@ premises. It does not infer them from matching types or construct a canonical
 quotient automatically. Failure short-circuits the downstream semantic function.
 None of these theorems licenses operation reordering.
 
-`Events.lean` instantiates the composition law with distinct Rows and Events carriers.
+`Events.lean` instantiates the composition law with distinct Rows and Events
+carriers. Events has separate key/time/property records; it does not simply wrap
+an unchanged Rows value. A structural encode/decode theorem preserves the ordered
+records. The middle observation reconstructs Rows from those Events records, and
+both stages discharge the same shared observation-composition premises.
 The finite correspondence scope uses numeric integer IDs and numeric or authored
 UTC timestamp clocks, with the roles named `event_id` and `occurred_at`.
 Additional payload fields admit integer numbers, text and declared NULL.
@@ -42,7 +46,8 @@ is not evidence that the product will admit that string.
 | Layer | Evidence / obligation |
 | --- | --- |
 | General composition | Local observation and precondition composition; exact claim types and axiom audit |
-| Concrete semantic instance | Six Events model theorems; the same observation-composition theorem is applied, not reimplemented |
+| Concrete semantic instance | Ten Events model theorems, including encode/decode, the established intermediate admission and sequential postcondition; shared composition theorems are applied, not reimplemented |
+| Intermediate Events observation | Actual stored identity/time role names and clock encoding, identity index, public material schema, record count and typed record fields compared independently before projection |
 | Real Bridge connection | Existing `local_bridge` entrypoints, exact prepared occurrence/input binding, Carrier projection and completed-output port matching |
 | Independent checked contract | Authored field names, Number/Timestamp/Text shapes and nullability compared with the schema of that same checked/lowered projection |
 | Execution values | Real public column names/order and cells compared with independent expected rows; empty/all-NULL type checks are explicitly checked-contract evidence |
@@ -52,7 +57,11 @@ is not evidence that the product will admit that string.
 
 The new fixture directly runs Rows → Events → Rows, without a watermark in
 between. It checks empty, all-NULL payload, repeated payload with distinct IDs
-and non-sorted clocks, plus timestamp and decomposed text with CRLF. The existing
+and non-sorted clocks, plus timestamp and decomposed text with CRLF. The
+intermediate Events carrier is observed before running the projection, so a pair
+of inverse mistakes cannot be concealed by a successful final round trip. Its
+record values use the same independently authored expectations as the final Rows;
+expected values are never read back from the intermediate output. The existing
 duplicate-identity test supplies the real semantic refusal boundary. Existing
 two-consumer and limit/stop tests supply their own ownership/resource boundary;
 their observations are not replaced by the pure round-trip theorem.
@@ -86,7 +95,9 @@ node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src
 ```
 
 The existing Session proof-admission suite imports the concrete instance's
-positive and weakened-proposition rejection tests. The normal Core target loop
+positive and weakened-proposition rejection tests. A deliberately incorrect
+clock mapping is also refused by the real model proof; this is model admission,
+not a claimed mutation detection in MoonBit product code. The normal Core target loop
 discovers the new real fixture. This is an additive admission boundary, not an
 extra reusable-action registration or new CI dispatcher. A model proof or a
 selected local JS pass is not a three-target integration result.

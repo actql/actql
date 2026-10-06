@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {checkEventsBridge, proofInput, runLean} from './check.mjs';
 
 test('ActQL composition laws and the admitted Events instance have exact types and audited axioms', () => {
-  assert.equal(checkEventsBridge().theorems.length, 12);
+  assert.equal(checkEventsBridge().theorems.length, 16);
 });
 
 test('the common composition claim rejects replacing its conclusion with True', () => {
@@ -35,4 +35,14 @@ test('the instance cannot erase an observable admission failure', () => {
   assert.ifError(result.error);
   assert.notEqual(result.status, 0);
   assert.match(result.stdout + result.stderr, /type mismatch/iu);
+});
+
+test('incorrect clock mapping cannot retain the model round-trip proof', () => {
+  const input = proofInput();
+  const original = '⟨row.identity, row.clock, row.payload⟩';
+  assert.equal(input.split(original).length, 2);
+  const result = runLean(input.replace(original, '⟨row.identity, .milliseconds row.identity, row.payload⟩'));
+  assert.ifError(result.error);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /unsolved goals/iu);
 });

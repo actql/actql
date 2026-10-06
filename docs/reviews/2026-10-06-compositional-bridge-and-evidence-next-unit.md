@@ -24,13 +24,18 @@ No protocol model, common Session state-history suite, generator, shrinker,
 runtime Owner, ledger or CI selection policy is copied or replaced.
 
 Execution evidence is revision-specific. Focused proof admission checks the
-six common and six instance theorems, their exact claim types and axiom audit.
+six common and ten instance theorems, their exact claim types and axiom audit.
 Weakening the composition conclusion, schema/order guarantee or admission-error
-guarantee must fail the real Lean check. The consuming Session admission test
+guarantee must fail the real Lean check. The Events model uses separate key,
+clock and property records; a wrong clock mapping invalidates the actual inverse
+proof. Its successful output establishes the intermediate admission premise,
+which is then passed to the common sequential precondition theorem. The consuming Session admission test
 remains in place. Fixed-source commands and results are recorded in the PR;
 earlier diagnostic receipts are not relabeled as new-source execution.
 
-The real JS Bridge test contains four independent input cases. The existing
+The real JS Bridge test contains four independent input cases, with intermediate
+Events identity/time roles, clock encoding and stored record fields observed
+before projection as well as final Rows values/schema. The existing
 duplicate-ID refusal and provider/Host lifetime tests remain. Three-target
 integration and public Host acceptance are not claimed from focused checks.
 No heavy campaign is added merely to produce this report.
