@@ -1374,7 +1374,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 114 |',
+    '| Path-scoped work/workspace assurance | 115 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
