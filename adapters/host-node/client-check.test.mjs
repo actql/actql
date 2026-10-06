@@ -1530,7 +1530,8 @@ for (const entrance of ['local', 'http']) {
     }
     const declarations = Object.fromEntries(Array.from({length: 512}, (_, i) =>
       [`p${String(i).padStart(3, '0')}`, {type: 'number'}]));
-    const failed = await client.check('SELECT 1 AS n', {format: 'sql',
+    const reportingFailure = await contextClient(t, entrance, absentEnvironment, {reportContextOverflow: true});
+    const failed = await reportingFailure.check('SELECT 1 AS n', {format: 'sql',
       parameterDeclarations: declarations, parameters: {}});
     assert.equal(failed.outcome, 'failed');
     const explanation = sdk.explainCheckOutcome(failed, {locale: 'ja'});

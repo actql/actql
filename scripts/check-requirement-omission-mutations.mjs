@@ -21,7 +21,7 @@ const mutations = [
     from: '...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})', to: '...{}',
     targets: [target('Host Requirement omissions remain distinct from renderer omissions and verification', 'omissions-presentation', 'deepStrictEqual')]},
   {name: 'verified report admits truncated requirements', path: 'packages/client-wire/client-host.generated.js', file: unit, occurrences: 2,
-    from: '"omissions"\n            ]', to: '"unavailable_omissions_permission"\n            ]',
+    from: '"omissions"\n                    ]', to: '"unavailable_omissions_permission"\n                    ]',
     targets: [target('Host Requirement omissions remain distinct from renderer omissions and verification', 'omissions-no-verification')]},
 ];
 const args = process.argv.slice(2);
