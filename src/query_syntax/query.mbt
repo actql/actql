@@ -70,6 +70,14 @@ pub(all) enum GroupingScope {
 } derive(Eq)
 
 ///|
+/// An authored operation integer. Bound values belong to the common checker;
+/// the parser retains the parameter name without evaluating or defaulting it.
+pub(all) enum QueryInteger {
+  Integer(Int64)
+  BoundParameter(String)
+} derive(Eq, Debug)
+
+///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
   AssertUnique(Array[Array[NamePart]])
@@ -87,7 +95,7 @@ pub(all) enum QueryOperation {
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
-  Limit(Int64, Int64)
+  Limit(QueryInteger, QueryInteger)
 }
 
 ///|
@@ -1106,14 +1114,27 @@ fn QueryParser::safe_integer(
 ///|
 fn QueryParser::limit(self : QueryParser) -> QueryOperation raise QueryAbort {
   self.keyword("LIMIT")
-  let count = self.safe_integer(false)
+  let count = self.limit_integer(false)
   let offset = if self.has("OFFSET") {
     self.keyword("OFFSET")
-    self.safe_integer(true)
+    self.limit_integer(true)
   } else {
-    0L
+    Integer(0L)
   }
   Limit(count, offset)
+}
+
+///|
+fn QueryParser::limit_integer(
+  self : QueryParser,
+  zero_allowed : Bool,
+) -> QueryInteger raise QueryAbort {
+  if self.peek().value is Parameter(name) {
+    ignore(self.advance())
+    BoundParameter(name)
+  } else {
+    Integer(self.safe_integer(zero_allowed))
+  }
 }
 
 ///|

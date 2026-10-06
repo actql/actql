@@ -677,3 +677,20 @@ validators, generated wire types, SDK and independent fixtures are updated
 together; mixed pins are rejected. `actql-diagnostics/0.1` remains unchanged.
 There is no compatibility adapter, new parser, Host input persistence or
 retrieval API. Existing per-call input custody and destruction conditions apply.
+
+### Check explanation language
+
+Use `explainCheckOutcome(outcome, {locale: 'ja'})` or
+`explainCheckReason(reason, {locale: 'ja'})` for Japanese check presentation.
+`ja-JP` selects the same translations. English remains the default; unknown
+locale names, failed locale lookup and missing/malformed translations fall
+back to safe English. `getCheckPresentationInfo({locale: 'ja'})` identifies
+the selected translation revision separately from the pinned reason/outcome
+schema identities.
+
+Only summary and hint change. The received verdict, scope/context, Problem
+correlation, typed facts, input revision/position binding and Requirement
+frontier remain unchanged. Rendering performs no transport or Owner action;
+translated hints do not authorize execution, cancellation, retry or recovery.
+Malformed outcome envelopes do not gain a usable outcome explanation through translation.
+Copied responses retain safe wording without reconstructing original input.

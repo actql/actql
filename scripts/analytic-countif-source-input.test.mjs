@@ -35,8 +35,8 @@ test('ordinary packed corpus includes COUNTIF and narrow acceptance excludes unr
     ['refusals', 'analyticCountifRefusals'], ['executionFailures', 'analyticCountifExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }
-  const scopeSelection = fixture.split('const scopeOnly = ')[1].split(';')[0];
-  assert.ok(scopeSelection.split(' || ').includes('analyticCountifOnly'));
+  const scopes = fixture.match(/const scopeOnly = ([^;]+);/u)?.[1];
+  assert.ok(scopes?.split(' || ').includes('analyticCountifOnly'));
   assert.ok(fixture.includes('analyticCountifOnly ? {successes: analyticCountifSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/analytic-countif-source-input.mjs', 'analytic-countif-source-input.mjs']"));

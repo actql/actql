@@ -48,6 +48,290 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('Set requires nested comparison boundary evidence for both operations', () => {
+  for (const operation of ['except', 'intersect']) {
+    for (const suffix of ['quantum_order', 'work_workspace', 'stop_cleanup']) {
+      const role = `${operation}_nested_compare_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'RelA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`RelA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+});
+
+test('DISTINCT requires nested comparison limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum_order', 'stop_cleanup', 'workspace', 'work', 'public_barrier']) {
+    const role = `distinct_nested_compare_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'distinct');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`RelA distinct: selected ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'distinct');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'distinct_nested_compare_public_store');
+  }), /RelA distinct: nested DISTINCT public Store fixture is missing/u);
+});
+
+test('DISTINCT public evidence cannot lose its actual suite import', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-distinct-value-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'RelA distinct: nested DISTINCT public fixture is not suite-connected'));
+});
+
+test('filter requires long expression limits, roots and public Store evidence', () => {
+  for (const suffix of ['limits', 'control', 'scan', 'root_stop', 'quantum']) {
+    const role = `filter_long_expression_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'filter');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`RelA filter: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'RelA' &&
+      entry.operation === 'filter');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'filter_long_expression_public_store');
+  }), /RelA filter: expression comparison public Store fixture is missing/u);
+});
+
+test('filter public expression evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-expression-comparison-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'RelA filter: expression comparison public fixture is not suite-connected'));
+});
+
+test('Pool requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `pool_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_long_keys_public_store');
+  }), /VecA pool_vectors: Pool key public Store fixture is missing/u);
+});
+
+test('Pool public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-pool-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA pool_vectors: Pool key public fixture is not suite-connected'));
+});
+
+test('nearest requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `nearest_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_long_keys_public_store');
+  }), /VecA nearest: nearest key public Store fixture is missing/u);
+});
+
+test('nearest public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-nearest-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest key public fixture is not suite-connected'));
+});
+
+test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
+  for (const [operation, prefix, publicName] of [
+    ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],
+  ]) {
+    for (const suffix of ['limits_stop_cleanup', 'shared_vector']) {
+      const role = `${prefix}_relation_input_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_relation_input_public_store`);
+    }), new RegExp(`VecA ${operation}: ${publicName} Relation input public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.boundary_tests.find(item =>
+        item.role === `${prefix}_relation_input_shared_vector`).suite = 'moon:local_veca';
+    }), new RegExp(`VecA ${operation}: boundary evidence must be suite-connected on all targets`, 'u'));
+  }
+});
+
+test('Pool output requires shared append accounting and public stop custody evidence', () => {
+  for (const role of ['pool_output_limits_stop_cleanup',
+    'pool_output_record_limits', 'pool_output_record_cleanup',
+    'pool_output_owner_exclusion']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_output_public_store');
+  }), /VecA pool_vectors: Pool output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item => item.role === 'pool_output_record_limits').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
+});
+
+test('nearest output requires its shared cursor and operator boundary evidence', () => {
+  for (const role of ['nearest_output_row_stop_cleanup',
+    'nearest_output_public_barrier', 'nearest_output_composite_order',
+    'nearest_output_shared_limits', 'nearest_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_output_public_store');
+  }), /VecA nearest: nearest output public Store fixture is missing/u);
+});
+
+test('ranking requires stepped comparison limits, roots and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'components']) {
+    const role = `ranking_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_long_keys_public_store');
+  }), /VecA merge_rankings: ranking key public Store fixture is missing/u);
+});
+
+test('ranking output requires its logical limits and shared cursor custody evidence', () => {
+  for (const role of ['ranking_output_logical_limits',
+    'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
+    'ranking_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+});
+
+test('ranking input requires unused-value limits, shared scans and public custody evidence', () => {
+  for (const role of ['ranking_input_value_limits_stop_cleanup',
+    'ranking_input_shared_vector', 'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_input_public_store');
+  }), /VecA merge_rankings: ranking input public Store fixture is missing/u);
+  for (const role of ['ranking_input_shared_vector',
+    'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests.find(item => item.role === role).suite = 'moon:local_veca';
+    }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
+  }
+});
+
+test('ranking public evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-ranking-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA merge_rankings: ranking key public fixture is not suite-connected'));
+});
+
+test('interval join requires stepped Text comparison boundary evidence', () => {
+  for (const role of [
+    'interval_long_text_compare_quantum_order',
+    'interval_long_text_compare_stop_cleanup',
+    'interval_long_text_compare_work_workspace',
+    'interval_long_text_whole_work_workspace',
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'TEA' &&
+        entry.operation === 'interval_join');
+      route.boundary_tests = route.boundary_tests.filter(item =>
+        item.role !== role);
+    }), new RegExp(`TEA interval_join: ${role} fixture is missing`, 'u'));
+  }
+});
+
 function runCli(mutator, routeMutator, args = [], gapsText, observeDirectory) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);

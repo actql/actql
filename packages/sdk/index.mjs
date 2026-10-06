@@ -9,6 +9,8 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {localizeCheck} from './check-presentation.mjs';
+export {getCheckPresentationInfo} from './check-presentation.mjs';
 // The response owns only a weak association to this call's immutable inputs.
 // A parsed/copied report has no such association and cannot resolve a location.
 const checkInputs = new WeakMap();
@@ -249,7 +251,7 @@ export function resolveCheckTextRange(outcome, location, currentInput) {
 }
 
 // Presentation never participates in verdicts, admission or retry decisions.
-export function explainCheckOutcome(outcome) {
+export function explainCheckOutcome(outcome, options) {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = (report, completeness) => ({completeness,
     verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
@@ -262,9 +264,11 @@ export function explainCheckOutcome(outcome) {
       undetermined: ['The report cannot establish verification or a proven input violation in its checking scope.',
         'Review missing inputs and disclosed checking limits; an outstanding obligation is not an input error.'],
     };
-    const [summary, hint] = explanations[outcome.report.verdict];
-    return freezeInput({outcome: 'completed', summary, hint,
-      report: reportExplanation(outcome.report, 'complete')});
+    // Capture observation fields before reading application-owned locale options.
+    const report = reportExplanation(outcome.report, 'complete');
+    const [summary, hint] = localizeCheck(`completed.${report.verdict}`,
+      explanations[report.verdict], options);
+    return freezeInput({outcome: 'completed', summary, hint, report});
   }
   if (outcome.outcome === 'failed') {
     const explanations = {
@@ -274,26 +278,33 @@ export function explainCheckOutcome(outcome) {
         'Ask the checking-context owner to investigate the reporting failure.'],
     };
     const known = Object.hasOwn(explanations, outcome.problem.code);
-    const [summary, hint] = known ? explanations[outcome.problem.code]
+    const problem = {kind: known ? 'known' : 'unknown', code: outcome.problem.code};
+    const correlationRef = outcome.correlation_ref;
+    const report = outcome.partial_report === undefined ? undefined
+      : reportExplanation(outcome.partial_report, 'partial');
+    const [summary, hint] = localizeCheck(`failed.${known ? problem.code : 'unknown'}`,
+      known ? explanations[problem.code]
       : ['A complete bound check report could not be issued; this problem code has no supported explanation.',
-        'Ask the checking-context owner to investigate; a partial report does not verify the input.'];
-    return freezeInput({outcome: 'failed', summary, hint,
-      problem: {kind: known ? 'known' : 'unknown', code: outcome.problem.code},
-      ...(outcome.partial_report === undefined ? {} : {
-        report: reportExplanation(outcome.partial_report, 'partial')})});
+        'Ask the checking-context owner to investigate; a partial report does not verify the input.'], options);
+    return freezeInput({outcome: 'failed', summary, hint, correlationRef, problem,
+      ...(report === undefined ? {} : {report})});
   }
-  return freezeInput({outcome: 'unavailable',
-    summary: 'The scope and checking context needed for a safe public report are unavailable.',
-    hint: 'Ask the checking-context owner to review the published context; this response does not establish an input error.',
-    problem: {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
-      code: outcome.problem.code}, correlationRef: outcome.correlation_ref});
+  const problem = {kind: outcome.problem.code === 'check_unavailable' ? 'known' : 'unknown',
+    code: outcome.problem.code};
+  const correlationRef = outcome.correlation_ref;
+  const [summary, hint] = localizeCheck('unavailable',
+    ['The scope and checking context needed for a safe public report are unavailable.',
+      'Ask the checking-context owner to review the published context; this response does not establish an input error.'], options);
+  return freezeInput({outcome: 'unavailable', summary, hint, problem, correlationRef});
 }
 
 // Reason presentation does not decide the report's verdict or outcome branch.
-export function explainCheckReason(reason) {
+export function explainCheckReason(reason, options) {
   const explanations = {
     query_syntax_invalid: ['The query syntax is invalid.', 'Correct the query syntax at the reported location when available.'],
     query_expression_invalid: ['An expression violates its reference, argument or numeric contract.', 'Correct the expression under the selected query contract.'],
+    query_frame_invalid: ['The analytic ROWS frame boundaries do not form a valid interval.',
+      'For two PRECEDING boundaries, the start distance must be at least the end distance; for two FOLLOWING boundaries, it must be at most the end distance.'],
     query_lexical_invalid: ['A query token violates its lexical syntax.', 'Correct the token at the reported location when available.'],
     parameter_undeclared: ['The query refers to an undeclared parameter.', 'Declare the parameter or correct its reference; a value alone cannot declare it.'],
     parameter_unused: ['A declared parameter is not used by the complete Program.',
@@ -307,6 +318,7 @@ export function explainCheckReason(reason) {
     parameter_value_required: ['A declared parameter value is missing.', 'Supply the declared value and check the complete bound input again.'],
     parameter_default_type_mismatch: ['A parameter default does not match its declared type.',
       'Correct the default to match the declared type, then check again.'],
+    operation_parameter_invalid: ['A parameter violates an operation scalar domain.', 'Correct the supplied value or selected default under the reported operation domain.'],
     program_invalid: ['The input violates the checked Program contract.', 'Correct the input under the selected contract.'],
     bound_values_missing: ['Required bound inputs are missing.', 'Supply the declared inputs and check again.'],
     implementation_limit: ['This checking implementation cannot discharge an obligation.', 'Ask the checking-context owner to review support for the submitted construct.'],
@@ -315,6 +327,30 @@ export function explainCheckReason(reason) {
     unresolved_protected: ['Source resolution cannot be established from the disclosed context.', 'Ask the Source or checking-context owner to review the published context.'],
   };
   const known = Object.hasOwn(explanations, reason?.code) ? explanations[reason.code] : undefined;
+  const scalarExplanations = {
+    positive_safe_integer: ['An operation parameter must be a positive safe integer.',
+      'Supply an integer from 1 through 9007199254740991.'],
+    nonnegative_safe_integer: ['An operation parameter must be a nonnegative safe integer.',
+      'Supply an integer from 0 through 9007199254740991; negative zero is not admitted.'],
+    unit_fraction: ['An operation parameter must be a finite fraction between 0 and 1.',
+      'Supply a number from 0 through 1, inclusive; negative zero is not admitted.'],
+    finite_number: ['An operation parameter must be a finite number.',
+      'Supply a finite number; negative zero is not admitted.'],
+    duration: ['An operation parameter must be an admitted duration.',
+      'Supply positive ASCII digits followed by ms, s, m, h or d, without whitespace; the milliseconds must fit a safe integer.'],
+    positive_milliseconds: ['An operation parameter must be positive safe milliseconds or an admitted duration.',
+      'Supply a positive safe integer of milliseconds, or a positive duration string with ms, s, m, h or d.'],
+    signed_milliseconds: ['An operation parameter must be signed safe milliseconds or an admitted duration.',
+      'Supply integer milliseconds from -9007199254740991 through 9007199254740991 without negative zero, or a positive duration string.'],
+    timestamp: ['An operation parameter must be an admitted timestamp value.',
+      'Supply a non-null timestamp value admitted by the timestamp declaration contract.'],
+  };
+  const domain = reason?.facts?.domain;
+  if (reason?.code === 'operation_parameter_invalid' && typeof domain === 'string' &&
+      Object.hasOwn(scalarExplanations, domain)) {
+    const [summary, hint] = localizeCheck(`scalar.${domain}`, scalarExplanations[domain], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
   const lexicalExplanations = {
     unexpected_end: ['The input ends before a token is complete.', 'Complete the quoted token or escape sequence at the reported position.'],
     unexpected_token: ['A token is not valid in this lexical context.', 'Correct the token spelling or delimiter at the reported position.'],
@@ -328,7 +364,7 @@ export function explainCheckReason(reason) {
   const issue = reason?.facts?.issue;
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
-    const [summary, hint] = lexicalExplanations[issue];
+    const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const expressionExplanations = {
@@ -339,7 +375,7 @@ export function explainCheckReason(reason) {
   };
   if (reason?.code === 'query_expression_invalid' && typeof issue === 'string' &&
       Object.hasOwn(expressionExplanations, issue)) {
-    const [summary, hint] = expressionExplanations[issue];
+    const [summary, hint] = localizeCheck(`expression.${issue}`, expressionExplanations[issue], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   const graphExplanations = {
@@ -349,13 +385,15 @@ export function explainCheckReason(reason) {
   if (reason?.code === 'graph_operation_invalid' &&
       reason?.facts?.operation === 'components' && typeof issue === 'string' &&
       Object.hasOwn(graphExplanations, issue)) {
-    const [summary, hint] = graphExplanations[issue];
+    const [summary, hint] = localizeCheck(`components.${issue}`, graphExplanations[issue], options);
     return Object.freeze({kind: 'known', summary, hint});
   }
   if (reason?.code === 'graph_operation_invalid' &&
       reason?.facts?.operation === 'subgraph' && issue === 'invalid_node_selector') {
-    return Object.freeze({kind: 'known', summary: 'The Subgraph node selector is invalid.',
-      hint: 'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'});
+    const [summary, hint] = localizeCheck('subgraph.invalid_node_selector',
+      ['The Subgraph node selector is invalid.',
+        'Provide one selector: nonempty ids, a named Relation with an id field, or a node where predicate.'], options);
+    return Object.freeze({kind: 'known', summary, hint});
   }
   const constraintHints = {
     numeric: 'Supply a number satisfying the declared integer, minimum and maximum constraints.',
@@ -366,11 +404,15 @@ export function explainCheckReason(reason) {
   const constraint = reason?.facts?.constraint;
   if (reason?.code === 'supplied_value_constraint_violation' &&
       typeof constraint === 'string' && Object.hasOwn(constraintHints, constraint)) {
-    return Object.freeze({kind: 'known', summary: known[0],
-      hint: constraintHints[constraint]});
+    const [summary, hint] = localizeCheck(`constraint.${constraint}`, [known[0], constraintHints[constraint]], options);
+    return Object.freeze({kind: 'known', summary, hint});
   }
-  return Object.freeze(known ? {kind: 'known', summary: known[0], hint: known[1]}
-    : {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
+  if (known) {
+    const [summary, hint] = localizeCheck(`reason.${reason.code}`, known, options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+  const [summary] = localizeCheck('reason.unknown', ['No supported explanation is available for this reason.'], options);
+  return Object.freeze({kind: 'unknown', summary});
 }
 
 const positive = value => Number.isSafeInteger(value) && value > 0;

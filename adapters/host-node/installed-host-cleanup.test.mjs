@@ -682,3 +682,61 @@ test('Host shutdown retains both installations behind a failed drain',
     assert.deepEqual(calls, ['stop', 'drain', 'drain', 'retire',
       'checkpoint', 'journal', 'source', 'effect', 'store']);
   });
+
+for (const kind of ['frozen', 'undefined']) {
+  test(`installed Host preserves ${kind} checkpoint close failure and shutdown custody`,
+    async t => {
+      const {openInstalledRemoteHttpHost} = await import('./embedded-local.mjs');
+      const root = fileURLToPath(new URL('../../_build/host-init/', import.meta.url));
+      await mkdir(root, {recursive: true});
+      const directory = await mkdtemp(join(root, 'checkpoint-shutdown-'));
+      t.after(() => rm(directory, {recursive: true, force: true}));
+      const keys = generateKeyPairSync('ed25519');
+      const authorization = {reviewers: [{keyId: 'reviewer-key',
+        reviewerId: 'reviewer', principalId: 'reviewer',
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host-key', privateKey: keys.privateKey.export({
+        type: 'pkcs8', format: 'pem'})}};
+      const primary = kind === 'frozen'
+        ? Object.freeze(new Error('CheckpointCloseFailed')) : undefined;
+      const exec = DatabaseSync.prototype.exec;
+      const close = DatabaseSync.prototype.close;
+      const databases = new Set();
+      let closes = 0;
+      let host;
+      DatabaseSync.prototype.exec = function(sql) {
+        const result = exec.call(this, sql);
+        if (sql.includes('CREATE TABLE IF NOT EXISTS runs')) databases.add(this);
+        return result;
+      };
+      try {
+        host = await openInstalledRemoteHttpHost({directory,
+          authenticate: () => 'owner', authorization});
+        DatabaseSync.prototype.exec = exec;
+        assert.equal(databases.size, 1);
+        DatabaseSync.prototype.close = function() {
+          if (databases.has(this) && ++closes === 1) throw primary;
+          return close.call(this);
+        };
+        let failure;
+        await assert.rejects(host.close(), error => {
+          failure = error;
+          assert.equal(error.cause, primary);
+          assert.equal(Object.hasOwn(error, 'primaryFailure'), true);
+          assert.equal(error.primaryFailure, primary);
+          assert.equal(error.cleanupPending, true);
+          assert.deepEqual(error.cleanupHandle.status().pending,
+            ['checkpoint', 'journal', 'source', 'effect', 'store']);
+          return true;
+        });
+        await failure.cleanupHandle.retry();
+        assert.deepEqual(failure.cleanupHandle.status().pending, []);
+        assert.equal(closes, 2);
+        for (const database of databases) assert.equal(database.isOpen, false);
+      } finally {
+        DatabaseSync.prototype.exec = exec;
+        DatabaseSync.prototype.close = close;
+        await host?.close();
+      }
+    });
+}
