@@ -1,5 +1,6 @@
 import path from 'node:path';
 import {sourceAccess} from './local-resource-accounting-sources.mjs';
+import {localResourceApiIssues} from './local-resource-api-guard.mjs';
 
 // No filesystem, environment, output, or process state is consulted here.
 // Every invocation owns its errors and derived sets. Sources are an immutable
@@ -11,7 +12,7 @@ export function validateResourceAccounting({
 }) {
   const fs = sourceAccess(sources);
   const readJson = file => fs.readJson(file);
-  const errors = [];
+  const errors = localResourceApiIssues({root, sources});
   const fail = message => errors.push(message);
   let summaryReplacement;
 
@@ -2077,6 +2078,9 @@ export function validateResourceAccounting({
         'pool_relation_kernel_cancel_cleanup',
         'pool_empty_work_exact_one_short',
         'pool_record_work_exact_one_short',
+        'pool_caller_workspace_exact_one_short',
+        'pool_caller_workspace_stop_cleanup',
+        'pool_relation_caller_workspace_exact_one_short',
         'pool_workspace_exact',
         'pool_workspace_one_short',
         'pool_kernel_cancel_cleanup',

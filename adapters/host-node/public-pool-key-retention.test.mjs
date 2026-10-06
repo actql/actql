@@ -95,6 +95,8 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
       embedding: Array.from({length: 257}, () => 1), member_count: 1}] : expected;
     const trace = [];
     let prefixComplete = false;
+    let prefixWork = 0;
+    let prefixProgress = 0;
     let poolWork = 0;
     let poolProgress = 0;
     const keys = generateKeyPairSync('ed25519');
@@ -116,9 +118,18 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
         if (cancelling) trace.push({...detail});
         if (!cancelling || detail.task !== 1) return;
         if (!direct && !prefixComplete) {
-          assert.equal(detail.progress, outputScan || identityScan || fieldNameScan ? '1' : '2');
-          assert.equal(detail.work, outputScan || identityScan || fieldNameScan ? '4' : '8');
-          prefixComplete = true;
+          // The bridge charges cell admission and every shared-append poll.
+          // A long-group row: loads 3+6+12, start 1, append 25+1+4+10 = 62.
+          // Two rows give 124. Vector-257: 3+3+261+1+25+1+1+259 = 554.
+          // Text-8096: 3+6+130+1+25+1+4+128 = 298. Only the final
+          // bridge callback completes its row(s); its tail is not Pool work.
+          const expectedWork = outputScan ? 554 : identityScan ? 298 : 124;
+          const expectedRows = outputScan || identityScan ? 1 : 2;
+          assert.equal(Number(detail.work), Math.min(256, expectedWork - prefixWork));
+          prefixWork += Number(detail.work);
+          prefixProgress += Number(detail.progress);
+          assert.equal(prefixProgress, prefixWork === expectedWork ? expectedRows : 0);
+          prefixComplete = prefixWork === expectedWork;
           return;
         }
         if (outputScan || identityScan || memberScan || fieldNameScan) {
@@ -192,7 +203,10 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
       objectNameScan, fieldNameScan, inputNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
-    await barrier.promise;
+    await Promise.race([barrier.promise,
+      cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {
+        throw new Error(`Pool missed bounded barrier: ${inspect({state, trace}, {depth: 6})}`);
+      })]);
     const atBarrier = advances;
     const retainedAtBarrier = await readdir(join(directory, 'carrier-snapshots'));
     try {

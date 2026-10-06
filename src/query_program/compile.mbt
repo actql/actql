@@ -1073,6 +1073,11 @@ fn same_aggregate_call(
     (Some(a), Some(b)) => if !same(a, b) { return false }
     _ => return false
   }
+  match (left.filter, right.filter) {
+    (None, None) => ()
+    (Some(a), Some(b)) => if !same(a, b) { return false }
+    _ => return false
+  }
   for index in 0..<left.order_by.length() {
     let a = left.order_by[index]
     let b = right.order_by[index]
@@ -2415,6 +2420,9 @@ fn compile_steps(
           let references : Array[Array[@query.NamePart]] = []
           for (_, call) in hidden_calls {
             if call.argument is Some(expression) {
+              references.append(join_reference_paths(expression))
+            }
+            if call.filter is Some(expression) {
               references.append(join_reference_paths(expression))
             }
             for term in call.order_by {

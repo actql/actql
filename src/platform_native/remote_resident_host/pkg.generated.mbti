@@ -101,6 +101,7 @@ pub struct ResidentCompletedAttempt {
   root : String
   max_bytes : Int64
   current : () -> Bool
+  cleanup_current : () -> Bool
 }
 pub fn ResidentCompletedAttempt::advance(Self) -> ResidentCompletedRestoration
 pub fn ResidentCompletedAttempt::runtime(Self) -> @remote_runtime.NativeRemoteRuntime

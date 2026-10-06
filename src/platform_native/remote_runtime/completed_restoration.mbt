@@ -7,6 +7,15 @@ pub(all) enum NativeCompletedOutputRestoration {
 }
 
 ///|
+/// A trusted cleanup port proves exclusive custody independently of permission
+/// to read/use output. It can only reconstruct the original physical release.
+/// Runtime saves the first port with its owner; retries cannot replace custody.
+pub(all) struct NativeCompletedCleanupRestoration {
+  current : () -> Bool
+  restore : (@journal.RecoveredSiteDispatch) -> () -> Bool
+}
+
+///|
 /// Pending means Runtime owns the original resource responsibility. Refused
 /// means no physical restoration or capacity acquisition was attempted.
 pub(all) enum NativeCompletedRuntimeRestoration {
@@ -96,6 +105,7 @@ pub fn NativeRemoteRuntime::restore_completed(
   binding : @remote.RemoteInputBinding,
   current : () -> Bool,
   restore_output : (@journal.RecoveredSiteDispatch) -> NativeCompletedOutputRestoration,
+  cleanup? : NativeCompletedCleanupRestoration? = None,
 ) -> NativeCompletedRuntimeRestoration {
   if self.closed {
     return CompletedRuntimeRefused(Closed)
@@ -107,12 +117,6 @@ pub fn NativeRemoteRuntime::restore_completed(
     return CompletedRuntimeRefused(Protocol(@remote.DispatchIdentityMismatch))
   }
   let identity = @remote.dispatch_request_identity(request)
-  if !current() {
-    if self.owners.contains(identity) || self.pending_cleanup.contains(identity) {
-      return CompletedRuntimePending(StartAuthorizationRejected)
-    }
-    return CompletedRuntimeRefused(StartAuthorizationRejected)
-  }
   if self.pending_cleanup.contains(identity) {
     return CompletedRuntimePending(CleanupPending("dispatch"))
   }
@@ -126,6 +130,9 @@ pub fn NativeRemoteRuntime::restore_completed(
         )
       }
       if !owner.restoration_pending {
+        if !current() {
+          return CompletedRuntimePending(StartAuthorizationRejected)
+        }
         return match native_remote_runtime_completion(owner) {
           Ok(value) => CompletedRuntimeReady(value)
           Err(issue) => CompletedRuntimePending(issue)
@@ -134,6 +141,9 @@ pub fn NativeRemoteRuntime::restore_completed(
       owner
     }
     None => {
+      if !current() {
+        return CompletedRuntimeRefused(StartAuthorizationRejected)
+      }
       let registration = match self.registration_for(request) {
         Some(value) => value
         None => return CompletedRuntimeRefused(RuntimeUnsupported)
@@ -182,6 +192,13 @@ pub fn NativeRemoteRuntime::restore_completed(
       if bytes > retained {
         return CompletedRuntimeRefused(OutputRejected)
       }
+      if !current() {
+        return CompletedRuntimeRefused(StartAuthorizationRejected)
+      }
+      guard @site.prepare_site_holding_restoration(registration.site, bytes)
+        is Some(holding_restoration) else {
+        return CompletedRuntimeRefused(SiteUnavailable)
+      }
       let owner : NativeRemoteRuntimeOwner = {
         request,
         binding,
@@ -200,6 +217,9 @@ pub fn NativeRemoteRuntime::restore_completed(
         active_readers: 0,
         restoration_pending: true,
         restoration_current: Some(current),
+        restoration_cleanup_port: cleanup,
+        holding_restoration: Some(holding_restoration),
+        restoration_observation: Some(recovered),
         restoration_cleanup: None,
       }
       // Register responsibility before any reservation or physical callback.
@@ -215,38 +235,77 @@ pub fn NativeRemoteRuntime::restore_completed(
 }
 
 ///|
+fn completed_restoration_cleanup_current(
+  owner : NativeRemoteRuntimeOwner,
+) -> Bool {
+  match owner.restoration_cleanup_port {
+    Some(port) => (port.current)()
+    None =>
+      owner.restoration_current is Some(current) &&
+      current() &&
+      completed_restoration_site_current(owner.registration.site, owner.request)
+  }
+}
+
+///|
+fn NativeRemoteRuntime::finish_completed_cleanup_restoration(
+  self : NativeRemoteRuntime,
+  owner : NativeRemoteRuntimeOwner,
+  issue : NativeRemoteRuntimeIssue,
+) -> NativeCompletedRuntimeRestoration {
+  if !completed_restoration_cleanup_current(owner) {
+    return CompletedRuntimePending(StartAuthorizationRejected)
+  }
+  let latest = match self.journal.require_completed_cleanup(owner.request) {
+    Ok(value) => value
+    Err(issue) => return CompletedRuntimePending(Journal(issue))
+  }
+  if !@remote.confirm_remote_runtime_completed_cleanup_restoration(
+      latest,
+      owner.custody,
+      owner.evidence.unwrap(),
+      owner.subject.unwrap(),
+      owner.measurement.unwrap(),
+    ) {
+    return CompletedRuntimePending(CustodyRejected)
+  }
+  owner.record = latest
+  owner.restoration_pending = false
+  let identity = @remote.dispatch_request_identity(owner.request)
+  ignore(self.owners.remove(identity))
+  self.pending_cleanup[identity] = owner
+  CompletedRuntimePending(issue)
+}
+
+///|
 fn NativeRemoteRuntime::advance_completed_restoration(
   self : NativeRemoteRuntime,
   owner : NativeRemoteRuntimeOwner,
   restore_output : (@journal.RecoveredSiteDispatch) -> NativeCompletedOutputRestoration,
 ) -> NativeCompletedRuntimeRestoration {
-  guard owner.restoration_current is Some(current) &&
-    current() &&
-    completed_restoration_site_current(owner.registration.site, owner.request) else {
+  if !completed_restoration_cleanup_current(owner) {
     return CompletedRuntimePending(StartAuthorizationRejected)
   }
-  let recovered = match self.journal.observation(owner.request) {
+  // Only this already-owned completion may reconcile cleanup progress. Normal
+  // durable reconstruction stays strict, including terminal/material changes.
+  let latest = match self.journal.require_completed_cleanup(owner.request) {
     Ok(value) => value
     Err(issue) => return CompletedRuntimePending(Journal(issue))
   }
-  let record = @journal.recovered_site_dispatch_record(recovered)
-  if @remote.dispatch_record_revision(record) !=
-    @remote.dispatch_record_revision(owner.record) ||
-    @remote.restore_remote_runtime_completed_custody(
-      record,
-      owner.evidence.unwrap(),
-      owner.subject.unwrap(),
-      owner.measurement.unwrap(),
-    )
-    is Err(_) {
+  owner.record = latest
+  // Physical identity stays pinned to the original saved obligation. The
+  // record is refreshed above; no later observation may substitute a file.
+  guard owner.restoration_observation is Some(recovered) else {
+    return CompletedRuntimePending(CustodyRejected)
+  }
+  guard owner.restoration_current is Some(current) else {
     return CompletedRuntimePending(CustodyRejected)
   }
   if !@remote.remote_runtime_custody_holding_acquired(owner.custody) {
-    let (_, _, _, bytes) = @remote.remote_managed_output_subject_retention(
-      owner.subject.unwrap(),
-    )
-    guard @site.retain_site_holding(owner.registration.site, bytes)
-      is Some(holding) else {
+    guard owner.holding_restoration is Some(restoration) else {
+      return CompletedRuntimePending(CustodyRejected)
+    }
+    guard restoration.acquire() is Some(holding) else {
       return CompletedRuntimePending(CapacityRejected)
     }
     owner.holding = Some(holding)
@@ -264,16 +323,33 @@ fn NativeRemoteRuntime::advance_completed_restoration(
       Err(issue) => return CompletedRuntimePending(Bundle(issue))
     }
   }
-  if !current() {
+  if !completed_restoration_cleanup_current(owner) {
     return CompletedRuntimePending(StartAuthorizationRejected)
   }
-  // A refused adapter output can itself require cleanup. Confirm that cleanup
-  // before attempting physical restoration again; never drop its callback.
-  if owner.restoration_cleanup is Some(cleanup) {
+  // A rejected foreign adapter result is not the original output obligation.
+  // Finish that callback before attaching any original cleanup-only handle.
+  if !@remote.remote_runtime_custody_output_acquired(owner.custody) &&
+    owner.restoration_cleanup is Some(cleanup) {
     if !cleanup() {
       return CompletedRuntimePending(CleanupPending("restoration-output"))
     }
     owner.restoration_cleanup = None
+  }
+  if @remote.dispatch_record_state_codes(latest)[2] != 0 ||
+    !current() ||
+    !completed_restoration_site_current(owner.registration.site, owner.request) ||
+    owner.restoration_cleanup is Some(_) {
+    if !@remote.remote_runtime_custody_output_acquired(owner.custody) {
+      guard owner.restoration_cleanup_port is Some(port) else {
+        return CompletedRuntimePending(StartAuthorizationRejected)
+      }
+      owner.restoration_cleanup = Some((port.restore)(recovered))
+      ignore(@remote.remote_runtime_custody_acquire_output(owner.custody))
+    }
+    return self.finish_completed_cleanup_restoration(
+      owner,
+      CleanupPending("restoration-transition"),
+    )
   }
   if owner.output is None {
     match restore_output(recovered) {
@@ -286,37 +362,27 @@ fn NativeRemoteRuntime::advance_completed_restoration(
         ignore(@remote.remote_runtime_custody_acquire_output(owner.custody))
       }
       CompletedOutputUnavailable(code, cleanup) => {
-        // Reconstruct the original cleanup handle, not a readable output.
         owner.restoration_cleanup = Some(cleanup)
         ignore(@remote.remote_runtime_custody_acquire_output(owner.custody))
-        let latest = match
-          self.journal.require_completed_cleanup(owner.request) {
-          Ok(value) => value
-          Err(issue) => return CompletedRuntimePending(Journal(issue))
-        }
-        if !@remote.confirm_remote_runtime_completed_cleanup_restoration(
-            latest,
-            owner.custody,
-            owner.evidence.unwrap(),
-            owner.subject.unwrap(),
-            owner.measurement.unwrap(),
-          ) {
-          return CompletedRuntimePending(CustodyRejected)
-        }
-        owner.record = latest
-        owner.restoration_pending = false
-        let identity = @remote.dispatch_request_identity(owner.request)
-        ignore(self.owners.remove(identity))
-        self.pending_cleanup[identity] = owner
-        return CompletedRuntimePending(CompletedMaterialUnavailable(code))
+        return self.finish_completed_cleanup_restoration(
+          owner,
+          CompletedMaterialUnavailable(code),
+        )
       }
     }
   }
-  if !current() {
+  // Losing permission after the callback cannot expose the restored output.
+  // Keep its exact release handle under independently verified cleanup custody.
+  if !current() ||
+    !completed_restoration_site_current(owner.registration.site, owner.request) {
+    return self.finish_completed_cleanup_restoration(
+      owner,
+      CleanupPending("restoration-authority"),
+    )
+  }
+  if !completed_restoration_cleanup_current(owner) {
     return CompletedRuntimePending(StartAuthorizationRejected)
   }
-  // Physical I/O can overlap another observer's durable cleanup transition.
-  // Re-read after the callback; a cached pre-I/O revision is not current.
   let latest = match self.journal.require_completed_cleanup(owner.request) {
     Ok(value) => value
     Err(issue) => return CompletedRuntimePending(Journal(issue))
@@ -325,21 +391,10 @@ fn NativeRemoteRuntime::advance_completed_restoration(
       latest,
       owner.custody,
     ) {
-    if @remote.confirm_remote_runtime_completed_cleanup_restoration(
-        latest,
-        owner.custody,
-        owner.evidence.unwrap(),
-        owner.subject.unwrap(),
-        owner.measurement.unwrap(),
-      ) {
-      owner.record = latest
-      owner.restoration_pending = false
-      let identity = @remote.dispatch_request_identity(owner.request)
-      ignore(self.owners.remove(identity))
-      self.pending_cleanup[identity] = owner
-      return CompletedRuntimePending(CleanupPending("restoration-transition"))
-    }
-    return CompletedRuntimePending(CustodyRejected)
+    return self.finish_completed_cleanup_restoration(
+      owner,
+      CleanupPending("restoration-transition"),
+    )
   }
   owner.record = latest
   owner.restoration_pending = false

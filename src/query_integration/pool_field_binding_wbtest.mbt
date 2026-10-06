@@ -33,13 +33,15 @@ fn pool_public_name_barrier(input_matching : Bool) -> Unit raise {
   // adding 9*(9-1)=72 across name matching, retained binding and wire scans.
   // Exact cumulative control: 592-334+72=330. Three-field cursor custody
   // is 16+9+1+3*3=35, plus structural/recheck 31 and one name offset: 67.
+  // Admission stays 67; completion retains one three-field row alongside
+  // this conservative reservation, so it requires 67+(3+2)=72.
   // The input-matching variant moves Array-116 before the group. It adds
   // 2*(116-90)=52 polls: 382. Begin/group/identity initialization costs 3;
   // Array read/recheck/group/identity costs 1+(2*116+3)+1+1=238;
   // Vector costs 1+5+1+1=8; group read/scalar recheck costs 1+2=3.
   // The first group-name fragment is poll 253; poll 256 retains offset 256.
   let limits = {
-    ..direct_relation_pool_limits(67, exact),
+    ..direct_relation_pool_limits(72, exact),
     max_value_depth: 3,
     max_value_nodes: if input_matching {
       117

@@ -295,7 +295,8 @@ test "Relation Pool admission yields within unused arrays before stop" {
   ).unwrap()
   // Original 32 plus one extra field/group/identity scan (3), two scalar
   // rechecks (4), Vector (5), Array (517): 561. Append polls add 31: 592.
-  // Workspace 18+8+3+2=31 plus append 16+9+1+3*3=35 and name offset: 67.
+  // Admission: 18+8+3+2=31 plus append 16+9+1+3*3=35 and name offset: 67.
+  // Completion also retains one three-field output row: 67+(3+2)=72.
   // Depth three also admits the existing stored-record outer array,
   // field tuple and Vector envelope; depth two fails Store encoding.
   assert_true(
@@ -322,7 +323,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
         0,
         read,
         {
-          ..direct_relation_pool_limits(67, limit),
+          ..direct_relation_pool_limits(72, limit),
           max_value_depth: 3,
           max_value_nodes: 258,
         },
@@ -372,7 +373,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(67, 592),
+      ..direct_relation_pool_limits(72, 592),
       max_value_depth: 3,
       max_value_nodes: 258,
     },
@@ -395,7 +396,7 @@ test "Relation Pool admission yields within unused arrays before stop" {
     0,
     read,
     {
-      ..direct_relation_pool_limits(67, 592),
+      ..direct_relation_pool_limits(72, 592),
       max_value_depth: 3,
       max_value_nodes: 257,
     },

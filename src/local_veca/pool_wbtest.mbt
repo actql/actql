@@ -318,10 +318,14 @@ test "pool view checks exact work and workspace before publication" {
   let owner = pool_owner(producer)
   // One record uses 30 existing steps plus 31 append polls. Cursor custody
   // adds 16+3*3+1+3*10=56 to 15 structural slots and one name offset.
+  // Admission is still 72. Completion holds the same reservation plus the
+  // retained three-field output record (3+2), giving an exact peak of 77.
   for
     (work, workspace, accepted) in [
-      (61, 72, true),
-      (60, 72, false),
+      (61, 77, true),
+      (60, 77, false),
+      (61, 72, false),
+      (61, 76, false),
       (61, 71, false),
     ] {
     let view = @carrier_runtime.material_prepare_view(
@@ -353,6 +357,14 @@ test "pool view checks exact work and workspace before publication" {
               }
               PoolFailed(PoolWorkLimit, ..) => {
                 assert_false(accepted)
+                terminal = true
+              }
+              PoolFailed(
+                PoolOutput(@records.Storage(@storage.WorkspaceLimit)),
+                ..
+              ) => {
+                assert_false(accepted)
+                assert_true(workspace == 72 || workspace == 76)
                 terminal = true
               }
               _ => fail("pool view ended at an unrelated boundary")
@@ -674,15 +686,17 @@ test "pool admits structural workspace before allocating sort state" {
 }
 
 ///|
-test "pool completes at its exact structural workspace boundary" {
+test "pool completes at its exact retained-output workspace boundary" {
   let producer = pool_producer_owner()
   let source = pool_source(producer, Ref(true))
   let owner = pool_owner(producer)
   let input = @records.prepare_producer_read(owner, 0, producer, source).unwrap()
   // Two four-slot ordering arrays per retained record (32), plus three
   // output fields, two components, and two key slots: 39. The append cursor
-  // adds 56 as itemized above, plus one name offset: 96 in total.
-  let required = 96
+  // adds 56 as itemized above, plus one name offset: admission remains 96.
+  // Two retained output records each need three fields and two links: 10.
+  // The conservative caller reservation stays live through their append.
+  let required = 106
   let execution = start_pool(
     @bounded.control(),
     sequence(owner),
