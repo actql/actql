@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {readCatalog, initialRegistrationRevision} from './actions.mjs';
+import {readCatalog, protectedRegistrationRevision} from './actions.mjs';
 import {actionInputs, gitTree} from './inputs.mjs';
 import {canonicalReceipt, sealReceipt} from './receipts.mjs';
 import {checkApplications} from './applications.mjs';
@@ -48,7 +48,7 @@ export async function command(operation, request) {
   assert.equal(request.context.runId, Number(process.env.GITHUB_RUN_ID));
   assert.equal(request.context.runAttempt, Number(process.env.GITHUB_RUN_ATTEMPT));
   assert(request.entries.every(entry => entry.acquisition === 'fresh'), 'Cross-revision reuse is not activated');
-  return checkApplications({root, ...request, protectedRevision: initialRegistrationRevision,
+  return checkApplications({root, ...request, protectedRevision: protectedRegistrationRevision,
     request: actionsReader({repository: process.env.GITHUB_REPOSITORY, token: process.env.ACTIONS_READ_TOKEN})});
 }
 

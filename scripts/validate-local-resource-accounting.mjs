@@ -951,6 +951,8 @@ export function validateResourceAccounting({
 
         'node:embedded_vector_records':
           'adapters/host-node/public-vector-record-retention.test.mjs',
+        'node:embedded_property_names':
+          'adapters/host-node/public-property-name-retention.test.mjs',
       }[item.suite];
       if (!suitePath || item.path !== suitePath ||
         JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -1440,6 +1442,7 @@ export function validateResourceAccounting({
         'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
         'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
         'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
+        'pool_json_name_limits_stop', 'pool_json_name_shared_limits',
         'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
         'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
         'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
@@ -1461,6 +1464,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('pool_object_name_public_store')) {
         fail(`${label}: Pool Object name public Store fixture is missing`);
+      }
+      if (!environmentRoles.has('pool_json_name_public_store')) {
+        fail(`${label}: Pool JSON name public Store fixture is missing`);
       }
       if (!environmentRoles.has('pool_field_binding_public_store')) {
         fail(`${label}: Pool field binding public Store fixture is missing`);
@@ -1795,6 +1801,22 @@ export function validateResourceAccounting({
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {
       fail(`${label}: same-stage values derive evidence is missing`);
+    }
+    if (route.family === 'RelA' && route.operation === 'derive') {
+      for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
+        'derive_field_name_limits', 'derive_field_name_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('derive_property_name_public')) {
+        fail(`${label}: property name public fixture is missing`);
+      }
+      if (!environmentRoles.has('derive_field_name_public')) {
+        fail(`${label}: field name public fixture is missing`);
+      }
+      if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
+        .includes("import './public-property-name-retention.test.mjs';")) {
+        fail(`${label}: property name public fixture is not suite-connected`);
+      }
     }
     if (route.family === 'RelA' && route.operation === 'take') {
       if (route.selected_entrypoint?.symbol !==

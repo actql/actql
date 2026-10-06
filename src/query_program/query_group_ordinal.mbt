@@ -12,6 +12,7 @@ fn resolved_group_key(
   projections : Array[@query.Projection],
   input_visible : Array[(String, String)],
   sql : Bool,
+  ranges? : Array[(@query.NamePart, Array[(String, String)])] = [],
 ) -> GroupKeyReference raise Abort {
   let mut root = @query.expression_node(key, @query.expression_root(key)).unwrap()
   while true {
@@ -29,7 +30,8 @@ fn resolved_group_key(
       let mut width = 0
       for projection in projections {
         let columns = match projection.star {
-          Some("*") => expanded_star_columns(projection, input_visible).length()
+          Some("*") =>
+            expanded_star_columns(projection, input_visible, ranges~).length()
           Some(_) => raise Abort(UnsupportedProjection)
           None => 1
         }
@@ -56,7 +58,11 @@ fn resolved_group_key(
       for projection in projections {
         match projection.star {
           Some("*") => {
-            let columns = expanded_star_columns(projection, input_visible)
+            let columns = expanded_star_columns(
+              projection,
+              input_visible,
+              ranges~,
+            )
             if ordinal <= columns.length() {
               return StarColumn(columns[ordinal - 1])
             }

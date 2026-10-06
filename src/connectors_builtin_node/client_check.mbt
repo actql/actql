@@ -23,7 +23,7 @@ priv enum CheckFinding {
   ConstraintViolation(String, String, String?)
   UndeclaredParameter(String, (Int, Int)?)
   UnusedParameter(String, String?)
-  RequiredValue(String, String)
+  RequiredValue(@parameter_binding.Declaration, String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
@@ -253,7 +253,7 @@ fn check_source_findings(
           let declaration = @parameter_binding.missing_at(missing, index).unwrap()
           if declaration.name.length() <= 256 &&
             check_declaration_type(declaration) is Some(expected) {
-            findings.push(RequiredValue(declaration.name, expected))
+            findings.push(RequiredValue(declaration, expected))
           }
         }
       }
@@ -893,6 +893,7 @@ fn write_check_report(
   context_ref : String,
   verdict : String,
   documents : CheckDocuments,
+  requirement_limit : Int,
 ) -> Unit raise @encode.EncodeFailure {
   let violations = check_codes(findings, finding => {
     match finding {
@@ -1005,6 +1006,21 @@ fn write_check_report(
     )
   }
   @encode.end_array(writer)
+  let mut required_count = 0
+  for finding in findings {
+    if finding is RequiredValue(_, _) {
+      required_count = required_count + 1
+    }
+  }
+  if required_count > requirement_limit {
+    // Only already-public input obligations determine this bounded summary.
+    // Never expose an omitted count or replace protected coverage with it.
+    @encode.key(writer, "omissions")
+    @encode.begin_object(writer)
+    @encode.key(writer, "requirements")
+    @encode.bool_value(writer, true)
+    @encode.end_object(writer)
+  }
   @encode.key(writer, "reasons")
   @encode.begin_array(writer)
   for code in violations {
@@ -1303,13 +1319,21 @@ fn write_check_report(
   @encode.end_array(writer)
   @encode.key(writer, "requirements")
   @encode.begin_array(writer)
+  let mut written_requirements = 0
   for finding in findings {
-    if finding is RequiredValue(name, expected) {
+    if written_requirements >= requirement_limit {
+      continue
+    }
+    if finding is RequiredValue(declaration, expected) {
+      let name = declaration.name
+      written_requirements = written_requirements + 1
       @encode.begin_object(writer)
       @encode.key(writer, "code")
       @encode.string_value(writer, "parameter_value_required")
       @encode.key(writer, "facts")
       @encode.begin_object(writer)
+      @encode.key(writer, "admission")
+      write_check_parameter_admission(writer, declaration.parameter_type)
       @encode.key(writer, "expected_type")
       @encode.string_value(writer, expected)
       @encode.key(writer, "parameter")
@@ -1338,8 +1362,9 @@ fn write_check_report(
 }
 
 ///|
-/// The reporting budget is separate from the analysis budget: a report that
-/// cannot be bounded becomes Failed without a partial report.
+/// Report enumeration has its own bounded budget. Keep the complete findings
+/// for verdict/scope/coverage and retry only encoding a smaller public prefix.
+/// At most nine reserved encoding attempts occur; analysis is never repeated.
 fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
@@ -1347,6 +1372,28 @@ fn check_outcome_json(
   correlation_ref : String,
   documents : CheckDocuments,
 ) -> String {
+  let mut requirement_limit = 128
+  for attempt = 0; attempt < 9; attempt = attempt + 1 {
+    match
+      check_outcome_attempt(
+        findings, stop, context_ref, correlation_ref, documents, requirement_limit,
+      ) {
+      Some(value) => return value
+      None => requirement_limit = requirement_limit / 2
+    }
+  }
+  check_failed_json("check_report_unbounded", correlation_ref)
+}
+
+///|
+fn check_outcome_attempt(
+  findings : Array[CheckFinding],
+  stop : CheckStop,
+  context_ref : String,
+  correlation_ref : String,
+  documents : CheckDocuments,
+  requirement_limit : Int,
+) -> String? {
   try {
     let writer = @encode.writer(65536, 4096, 16)
     @encode.begin_object(writer)
@@ -1361,6 +1408,7 @@ fn check_outcome_json(
           context_ref,
           check_verdict(findings),
           documents,
+          requirement_limit,
         )
       }
       Failed(problem) => {
@@ -1372,7 +1420,7 @@ fn check_outcome_json(
         if check_verdict(findings) == "invalid" {
           @encode.key(writer, "partial_report")
           write_check_report(
-            writer, findings, context_ref, "invalid", documents,
+            writer, findings, context_ref, "invalid", documents, requirement_limit,
           )
         }
         @encode.key(writer, "problem")
@@ -1389,9 +1437,9 @@ fn check_outcome_json(
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
-    @encode.finish(writer)
+    Some(@encode.finish(writer))
   } catch {
-    _ => check_failed_json("check_report_unbounded", correlation_ref)
+    _ => None
   }
 }
 

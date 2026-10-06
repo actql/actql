@@ -1486,6 +1486,34 @@
           "fixture": "ordinary Local derive resumes within quantum and preserves row order"
         },
         {
+          "role": "derive_property_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor retains exact successful accounting and root bounds"
+        },
+        {
+          "role": "derive_property_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/property_name_cursor_wbtest.mbt",
+          "fixture": "property name cursor preserves NULL refusal precedence and stop custody"
+        },
+        {
+          "role": "derive_field_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/field_name_cursor_wbtest.mbt",
+          "fixture": "field name cursor preserves exact work workspace and NULL boundaries"
+        },
+        {
+          "role": "derive_field_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/field_name_cursor_wbtest.mbt",
+          "fixture": "field name cursor keeps missing binding precedence and borrowed input on stop"
+        },
+        {
           "role": "same_stage_values_derive_two_consumers",
           "suite": "moon:query_integration",
           "targets": [
@@ -1590,6 +1618,20 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "append-long-text-derive-select"
+        },
+        {
+          "role": "derive_property_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained property names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_field_name_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained field names publish NULL and deliver cancellation after progress"
         }
       ],
       "path_assurance": {
@@ -13061,6 +13103,20 @@
           "fixture": "Relation Pool Object names retain independent limits and stop custody"
         },
         {
+          "role": "pool_json_name_limits_stop",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_object_name_recheck_wbtest.mbt",
+          "fixture": "Relation Pool opaque JSON names retain independent limits and stop custody"
+        },
+        {
+          "role": "pool_json_name_shared_limits",
+          "suite": "moon:value_admission",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/value_admission/recheck_json_names_wbtest.mbt",
+          "fixture": "opaque JSON name limits cancellation and surrogate boundaries stay exact"
+        },
+        {
           "role": "pool_object_name_shared_limits",
           "suite": "moon:value_admission",
           "targets": [
@@ -13486,6 +13542,13 @@
           ],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside typed Object name admission"
+        },
+        {
+          "role": "pool_json_name_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside opaque JSON name admission"
         },
         {
           "role": "pool_field_binding_public_store",

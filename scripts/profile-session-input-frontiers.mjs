@@ -10,8 +10,9 @@ import {actionInputs, gitTree, hash} from '../proofs/ci-evidence/inputs.mjs';
 
 export const referenceRevision = '92fb7a94b1c9776ce13eb516723dd3471f6152f3';
 const sourcePath = 'proofs/ci-evidence/inputs.mjs';
-export async function loadReference(root) {
-  const bytes = execFileSync('git', ['show', `${referenceRevision}:${sourcePath}`], {cwd: root});
+export async function loadReference(root, reference = referenceRevision) {
+  assert(/^[a-f0-9]{40}$/u.test(reference), 'Use a full reference Git revision');
+  const bytes = execFileSync('git', ['show', `${reference}:${sourcePath}`], {cwd: root});
   // Compare only the changed traversal. Keep registry/shared-input/parser
   // context equal so later legitimate obligations do not invalidate this
   // regression merely because the historical module's catalog was smaller.
@@ -34,14 +35,26 @@ export async function loadReference(root) {
   return {...await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`), referenceDigest: hash(bytes)};
 }
 
-async function profile(root, output) {
+async function profile(root, output, reference = referenceRevision) {
   const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
   const clean = () => assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {cwd: root, encoding: 'utf8'}), '', 'Use a clean candidate');
   clean();
-  const before = await loadReference(root), catalog = readCatalog();
+  const before = await loadReference(root, reference), catalog = readCatalog();
   const runtime = {profile: 'input-extractor-equivalence-only', unresolved: ['not runtime acceptance']};
-  const extract = implementation => {
-    const tree = implementation.gitTree(root, revision);
+  const extract = (implementation, counters = null) => {
+    let tree = implementation.gitTree(root, revision);
+    if (counters) {
+      const original = tree.entries;
+      const entries = new Proxy(original, {get(map, key) {
+        if (key === 'keys') return function* () {
+          counters.entryEnumerations++;
+          for (const path of original.keys()) {counters.pathVisits++; yield path;}
+        };
+        const value = Reflect.get(map, key, map);
+        return typeof value === 'function' ? value.bind(map) : value;
+      }});
+      tree = {...tree, entries};
+    }
     return catalog.actions.map(action => implementation.actionInputs({tree, revision, action, runtime}));
   };
   const after = {gitTree, actionInputs};
@@ -56,7 +69,8 @@ async function profile(root, output) {
       return original(command, args, options);
     };
     syncBuiltinESMExports();
-    try { const inputs = extract(implementation); return {batches, objects, keys: inputs.map(input => input.key)}; }
+    const counters = {entryEnumerations: 0, pathVisits: 0};
+    try { const inputs = extract(implementation, counters); return {batches, objects, ...counters, keys: inputs.map(input => input.key)}; }
     finally { processTools.execFileSync = original; syncBuiltinESMExports(); }
   };
   const counts = {before: count(before), after: count(after)};
@@ -74,7 +88,7 @@ async function profile(root, output) {
   }
   clean(); assert.equal(execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(), revision);
   const record = {authority: 'local-controlled-input-extraction', reuseAuthorized: false, candidate: revision,
-    referenceRevision, referenceDigest: before.referenceDigest, candidateExtractorDigest: hash(readFileSync(join(root, sourcePath))),
+    referenceRevision: reference, referenceDigest: before.referenceDigest, candidateExtractorDigest: hash(readFileSync(join(root, sourcePath))),
     conditions: {actions: catalog.actions.length, tree: 'fresh per invocation; immutable candidate Git blobs',
       warmupPairs: 2, measuredPairs: 9, caches: 'OS/filesystem warm; no closure cache across invocations',
       referenceImports: 'preceding package traversal in equal candidate context; two relative imports relocated',
@@ -85,6 +99,7 @@ async function profile(root, output) {
     meanSavedMilliseconds: pairs.reduce((sum, pair) => sum + pair.savedMilliseconds, 0) / pairs.length}));
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  assert.equal(process.argv.length, 3, 'Use profile-session-input-frontiers.mjs OUTPUT_JSON');
-  await profile(fileURLToPath(new URL('../', import.meta.url)), process.argv[2]);
+  assert(process.argv.length === 3 || process.argv.length === 5 && process.argv[3] === '--reference',
+    'Use profile-session-input-frontiers.mjs OUTPUT_JSON [--reference FULL_SHA]');
+  await profile(fileURLToPath(new URL('../', import.meta.url)), process.argv[2], process.argv[4] ?? referenceRevision);
 }

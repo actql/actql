@@ -1,5 +1,6 @@
 // Generated from the registered Client–Host machine contract.
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
+export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
 export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
@@ -314,6 +315,9 @@ export type WireCheckOutcomeShape = Readonly<{
   outcome: "completed";
   report: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
@@ -380,6 +384,41 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  admission?: Readonly<{
+  contract_schema_cid: "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551";
+  kind: "parameter_declaration";
+  contract: WireValueContractShape;
+  supplier: "caller";
+  constraints: readonly (Readonly<{
+  kind: "numeric";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  integer: boolean;
+  minimum?: number;
+  maximum?: number;
+}> | Readonly<{
+  kind: "duration";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+}> | Readonly<{
+  kind: "array_length";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  length: number;
+}>)[];
+}>;
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
@@ -439,6 +478,41 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  admission?: Readonly<{
+  contract_schema_cid: "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551";
+  kind: "parameter_declaration";
+  contract: WireValueContractShape;
+  supplier: "caller";
+  constraints: readonly (Readonly<{
+  kind: "numeric";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  integer: boolean;
+  minimum?: number;
+  maximum?: number;
+}> | Readonly<{
+  kind: "duration";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+}> | Readonly<{
+  kind: "array_length";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  length: number;
+}>)[];
+}>;
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
@@ -466,12 +540,15 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69";
+  reason_schema_cid: "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
   partial_report?: Readonly<{
   context_ref: string;
+  omissions?: Readonly<{
+  requirements: true;
+}>;
   inputs: readonly Readonly<{
   document_id: "source" | "parameter_declarations" | "parameters";
   revision: string;
@@ -538,6 +615,41 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  admission?: Readonly<{
+  contract_schema_cid: "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551";
+  kind: "parameter_declaration";
+  contract: WireValueContractShape;
+  supplier: "caller";
+  constraints: readonly (Readonly<{
+  kind: "numeric";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  integer: boolean;
+  minimum?: number;
+  maximum?: number;
+}> | Readonly<{
+  kind: "duration";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+}> | Readonly<{
+  kind: "array_length";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  length: number;
+}>)[];
+}>;
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
@@ -597,6 +709,41 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   parameter: string;
   expected_type: "null" | "boolean" | "number" | "string" | "array" | "object" | "date" | "timestamp" | "decimal" | "json" | "vector" | "resource_ref" | "artifact_ref";
+  admission?: Readonly<{
+  contract_schema_cid: "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551";
+  kind: "parameter_declaration";
+  contract: WireValueContractShape;
+  supplier: "caller";
+  constraints: readonly (Readonly<{
+  kind: "numeric";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  integer: boolean;
+  minimum?: number;
+  maximum?: number;
+}> | Readonly<{
+  kind: "duration";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+}> | Readonly<{
+  kind: "array_length";
+  path: readonly (Readonly<{
+  kind: "field";
+  name: string;
+}> | Readonly<{
+  kind: "items";
+}>)[];
+  length: number;
+}>)[];
+}>;
 }> | Readonly<{
   parameter: string;
   constraint: "numeric" | "duration" | "array_length" | "array_size";
@@ -628,7 +775,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69";
+  reason_schema_cid: "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -637,7 +784,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:8ef84899a1aa19f4429b4d5c5032a83e96741d6a688fa3e671465edaee57ea69";
+  reason_schema_cid: "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

@@ -298,7 +298,47 @@ Existing portable predicate resource and stop fixtures remain the boundary
 evidence for the shared MATCH kernels. These cases do not certify every
 selector, projection or missing-property variant.
 
+### Immutable schema admission facts (2026-10-07)
+
+The common Relation Schema owner retains required-column and qualification
+facts already established during construction. Per-cell retained input, row
+measurement and wire readers now use constant-time fact access instead of
+rescanning all scoped fields. Presence remains independent of nullability;
+no caller array or restored serialized assertion may supply these facts.
+
+The wide 257-column corpus covers qualification/conditional combinations and
+detached array mutation. Existing bounded presence, input/snapshot and fixed
+schema CID regressions pass. The ordinary Graph-to-sparse-Relation Host fixture
+retains and reloads raw absence/NULL/long Text, reads producer/two-consumer
+Results and confirms stop before reclamation in filter/derive cancellation.
+Its Graph identity JSON cells now use the existing normative typed envelope in
+the independent public and snapshot expectations.
+
+General name lookup and binding preparation remain distinct residuals. See the
+[schema-facts record](2026-10-07-local-schema-admission-facts.md) for executed
+evidence and unverified performance/target/distribution coverage.
+
 ## Status interpretation (2026-09-28)
+
+The dependent 2026-10-07 field-name follow-up now splits long authored Field
+charging and exact input lookup in the same expression frame, preserving
+prior-slot binding, successful work totals and caller-owned input custody.
+The retained public Program shares the existing property harness and verifies
+three independent Named Results plus delivered post-progress cancellation.
+Initial row-map construction, short-name collision behavior and Object
+construction-name measurement are not closed by this unit. See the
+[field-name record](2026-10-07-local-field-name-cursor.md); #681 remains its
+unmerged parent until adopted on main.
+
+The 2026-10-07 property-name follow-up now resumes member-name UTF-8 charging
+and exact spelling comparison in the existing expression frame. The receiver
+root survives the scan, successful logical work and NULL semantics are
+unchanged, and name-budget failure still precedes invalid-member/type failure.
+Independent work/live/workspace limits and exact-phase cleanup are connected
+to derive evidence. A normal Program reads three real retained Named Results
+and receives delivered Host cancellation after positive compute progress.
+Field/Map lookup and Object construction-name scans remain separate. See the
+[property-name record](2026-10-07-local-property-name-cursor.md).
 
 This document contains chronological investigation notes as well as later
 closure evidence. The early strict-gate failures below are historical, not
@@ -6170,3 +6210,23 @@ fixtures and their actual public suite connection; full boundary completion is
 still not asserted. Broader physical accounting, remaining execution scans and
 unexecuted packed/target campaigns are not closed by this change. See the
 [record-emission evidence](2026-10-06-local-vector-record-emission.md).
+
+### Opaque JSON member-name runtime rechecks (2026-10-07)
+
+The common runtime recheck now retains long JSON member names across resumes,
+sharing the scalar-safe Text byte scan. This supersedes the earlier opaque
+JSON-name scanning residual; data spelling, including decomposed Unicode and
+CRLF, remains exact. Child and sibling continuations wait for the name to finish.
+
+The existing Relation Pool input owner reaches this cursor. Independent limits
+are 313/312 control, 67/66 startup workspace and 72/71 completed output workspace;
+quanta 1/7/256 and stopped cleanup retain the borrowed producer. An ordinary
+VALUES plus typed JSON literal Program publishes three independently expected
+Named Results through the real retained Store and accepts delivered cancellation
+at poll 256 inside a 513-unit JSON name without early stop or release.
+
+Preparation/schema and availability scans, legacy drains, runtime buffer
+assembly, aggregate physical byte custody and unexecuted target/packed
+campaigns remain distinct. See the
+[JSON-name record](2026-10-07-local-json-name-rechecks.md) for the fixed main,
+counterexample, fixture connection and verification limitations.

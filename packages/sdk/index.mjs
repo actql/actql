@@ -6,10 +6,11 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
+import {formatOperationExplanation} from './operation-formats.mjs';
 import {localizeCheck, getCheckPresentationInfo} from './check-presentation.mjs';
 export {getCheckPresentationInfo} from './check-presentation.mjs';
 import {localizeOperation} from './operation-presentation.mjs';
@@ -20,6 +21,40 @@ const checkInputs = new WeakMap();
 // Rejected transport observations retain only a safe classification and this
 // call's own input. No unvalidated reply, revision or location gains custody.
 const checkFailures = new WeakMap();
+const runObservationFailures = new WeakMap();
+
+// Only a rejected observation of this SDK's attached Run retains its lookup
+// candidate. No rejected state, effect, revision or write permission is kept.
+export function explainRunObservationFailure(error, options) {
+  return localizeOperation(runObservationFailures.get(error), 'observation', options);
+}
+
+const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunState') => {
+  const error = new ClientError(code);
+  const summaries = {
+    unknown_state: 'The Run reply contains a state this SDK cannot interpret.',
+    contract_mismatch: 'The Run reply does not match this SDK’s registered state contract.',
+    malformed_response: 'The Run reply violates the registered state contract.',
+  };
+  runObservationFailures.set(error, freezeInput({
+    kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',
+    problem, operation, summary: summaries[problem],
+    hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
+    next: {operation: 'status', ref: {...ref}},
+  }));
+  return error;
+};
+
+const rejectedRunProblem = value => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'malformed_response';
+    const version = Object.getOwnPropertyDescriptor(value, 'version')?.value;
+    const status = Object.getOwnPropertyDescriptor(value, 'status')?.value;
+    if (typeof version !== 'string' || !version || typeof status !== 'string' || !status) return 'malformed_response';
+    if (version !== runStateProtocol.version) return 'contract_mismatch';
+    return runStateProtocol.statuses.includes(status) ? 'malformed_response' : 'unknown_state';
+  } catch { return 'malformed_response'; }
+};
 
 export function getCheckFailureInput(error) {
   return checkFailures.get(error)?.input;
@@ -86,17 +121,27 @@ const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
 
+// Admitted declaration conditions from this call's public Requirement only.
+// This is neither supplied-value admission nor proof of the remaining Program.
+export function getCheckParameterAdmission(outcome, parameter) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed' ||
+      typeof parameter !== 'string') return undefined;
+  return outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
+    reason.facts.parameter === parameter)?.facts.admission;
+}
+
 export function getCheckRequirementFrontier(outcome) {
   if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
   if (checkFrontiers.has(outcome)) return checkFrontiers.get(outcome);
   const report = outcome.report;
   // These are the currently exposed typed Requirements. Unknown obligations
   // cannot supply a structural admission condition for supplementation.
-  if (report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
+  if (report.omissions?.requirements || report.requirements.some(reason => reason.code !== 'parameter_value_required')) return undefined;
   const frontier = freezeInput({contextRef: report.context_ref,
     reasonSchemaCid: outcome.reason_schema_cid,
     scope: {...report.scope}, requirements: unordered(report.requirements.map(({code, facts}) =>
-      ({code, facts}))),
+      ({code, facts: facts.admission === undefined ? facts : {...facts,
+        admission: {...facts.admission, constraints: unordered(facts.admission.constraints)}}}))),
     coverage: {limits: unordered(report.coverage.limits),
       unresolved: unordered(report.coverage.unresolved)}});
   checkFrontiers.set(outcome, frontier);
@@ -431,7 +476,8 @@ export function createCheckDocumentSession(client, options) {
 export function explainCheckOutcome(outcome, options) {
   if (!validCheckOutcome(outcome)) return undefined;
   const reportExplanation = (report, completeness) => ({completeness,
-    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref});
+    verdict: report.verdict, scope: {...report.scope}, contextRef: report.context_ref,
+    ...(report.omissions === undefined ? {} : {omissions: {...report.omissions}})});
   if (outcome.outcome === 'completed') {
     const explanations = {
       invalid: ['The report establishes an input violation in its checking scope.',
@@ -532,7 +578,11 @@ export function formatCheckOutcome(outcome, options) {
       'Correlation: ' + checkDisplayString(observation.correlationRef) :
       'Scope: ' + observation.report.scope.kind + '; context_ref: ' + checkDisplayString(observation.report.contextRef);
     const omitted = rows.length - entries.length;
-    const suffix = omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '';
+    const suffix = [omitted ? `Omitted entries: ${omitted}. The observation above is unchanged.` : '',
+      report?.omissions?.requirements ? localizeCheck('omissions.requirements',
+        ['The Host omitted some known input requirements; no omitted count is exposed.',
+          'The verdict still covers the original scope; this requirement list is not a complete supplementation frontier.'],
+        {locale: presentation.locale}).join(' ') : ''].filter(Boolean).join(' ');
     if (format === 'html') return '<section><h2>' + checkHtml(heading) + '</h2><p>' +
       checkHtml(observation.hint) + '</p><p>' + checkHtml(binding) + '</p><ol>' + entries.map(entry => '<li>' +
         checkHtml(line(entry)) + '</li>').join('') + '</ol><p>' + checkHtml(suffix) + '</p></section>';
@@ -1072,6 +1122,26 @@ async function connectSelected(selected, port) {
       }
     };
 
+    const readRunObservation = async (operation, body, signal) => {
+      // Credential/transport refusals occur before interpreting a received
+      // observation and retain their existing operation-specific behavior.
+      const response = await runRequest(operation, body, signal);
+      let state;
+      try { state = await controlValue(response); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
+      const problem = rejectedRunProblem(state);
+      try {
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        // Each observation owns its value even if a Local port reuses a reply.
+        state = structuredClone(state);
+        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        return retainEffectUncertainty(state, ref);
+      } catch (cause) {
+        if (runObservationFailures.has(cause)) throw cause;
+        throw rejectedRunObservation(ref, operation, 'malformed_response');
+      }
+    };
+
     const result = name => {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
       const rows = (options = {}) => {
@@ -1344,14 +1414,10 @@ async function connectSelected(selected, port) {
     return Object.freeze({
       ref, profile: runProfile, result,
       status: async ({signal} = {}) => {
-        const state = await readControl('status', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('status', {}, signal);
       },
       wait: async ({until, signal} = {}) => {
-        const state = await readControl('wait', {until: until ?? null}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('wait', {until: until ?? null}, signal);
       },
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
@@ -1384,9 +1450,7 @@ async function connectSelected(selected, port) {
       // unknown Effect outcome stays `needs_reconciliation` until the Host
       // has provider evidence; nothing is resent to find out.
       reconcile: async ({signal} = {}) => {
-        const state = await readControl('reconcile', {}, signal);
-        if (!validRunState(state)) fail('InvalidHostRunState');
-        return retainEffectUncertainty(state, ref);
+        return readRunObservation('reconcile', {}, signal);
       },
     });
   };
@@ -1758,4 +1822,19 @@ async function connectSelected(selected, port) {
     },
     close() { closed = true; },
   });
+}
+
+
+/** Display retained operation facts without lookup, retry or execution authority. */
+export function formatSubmission(result, options) {
+  return formatOperationExplanation(explainSubmission(result), 'submission', options);
+}
+export function formatCancellation(result, options) {
+  return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
+}
+export function formatReadFailure(result, options) {
+  return formatOperationExplanation(explainReadFailure(result), 'read', options);
+}
+export function formatEffectUncertainty(result, options) {
+  return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);
 }

@@ -26,7 +26,7 @@ test('character length remains in normal packed acceptance and its focused route
   const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...characterLengthSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...characterLengthRefusals)'));
-  assert.match(fixture, /const scopeOnly = characterLengthOnly \|\|/u);
+  assert.match(fixture, /const scopeOnly = [^;]*\bcharacterLengthOnly\b/u);
   assert.ok(fixture.includes('characterLengthOnly ? {successes: characterLengthSuccesses'));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_CHARACTER_LENGTH_ONLY = '1'"));
   assert.ok(driver.includes("['scripts/fixtures/character-length-source-input.mjs', 'character-length-source-input.mjs']"));

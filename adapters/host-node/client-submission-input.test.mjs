@@ -192,6 +192,13 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(explanation, expectedExplanation,
           '[check-mutation:submission-explanation]');
         const callsBeforeLocale = [...f.operations];
+        for (const format of ['text', 'html', 'json']) {
+          const output = sdk.formatSubmission(result, {format});
+          assert.ok(output);
+          assert.doesNotMatch(output, /private-token|private-submission-cause|client-values/);
+          if (format === 'json') assert.deepEqual(JSON.parse(output).explanation, expectedExplanation,
+            '[check-mutation:operation-submit-public-format]');
+        }
         const japanese = {...expectedExplanation, summary: loss
           ? '送信の受理を確認できません。処理は既に始まっている可能性があります。'
           : 'Hostは検証済みのRun参照を返しました。実行の進行はRunの現在状態で確認してください。'};

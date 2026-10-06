@@ -78,25 +78,23 @@ test('graph bodies preserve literal options and optional positive component guar
   }
 });
 
-test('keyed schemas are explicit closed alternatives and preserve complete legacy branches', () => {
-  const legacy = baseGraphOperationSchemas(), current = graphSchemas();
-  for (const name of Object.keys(legacy)) {
+test('current graph schemas require scoped matches and explicit path modes', () => {
+  const base = baseGraphOperationSchemas(), current = graphSchemas();
+  for (const name of Object.keys(base)) {
     if (['node_rows','edge_rows'].includes(name)) {
       assert.equal(current[name].oneOf.length, 3);
-      assert.deepEqual(current[name].oneOf[0], legacy[name]);
+      assert.deepEqual(current[name].oneOf[0], base[name]);
       assert.deepEqual(current[name].oneOf[1], {type:'object',additionalProperties:false,
         required:['definition'],properties:{definition:{type:'string',minLength:1}}});
       assert.deepEqual(current[name].oneOf[2], {type:'object',additionalProperties:false,
         required:['label'],properties:{label:{type:'string',minLength:1}}});
     } else if (['match_nodes','match_edges','traverse'].includes(name)) {
-      assert.equal(current[name].oneOf.length, 2);
-      assert.deepEqual(current[name].oneOf[0], legacy[name]);
-      const keyed = current[name].oneOf[1];
+      const keyed = current[name];
       assert.equal(keyed.additionalProperties, false);
       assert.ok(keyed.required.includes(name === 'traverse' ? 'path_mode' : 'definition'));
-      assert.equal(legacy[name].properties.definition, undefined);
-      assert.equal(legacy[name].properties.path_mode, undefined);
-    } else assert.deepEqual(current[name], legacy[name]);
+      assert.equal(base[name].properties.definition, undefined);
+      assert.equal(base[name].properties.path_mode, undefined);
+    } else assert.deepEqual(current[name], base[name]);
   }
   const c = current.graph;
   assert.equal(c.additionalProperties, false);
@@ -118,15 +116,15 @@ test('keyed schemas are explicit closed alternatives and preserve complete legac
     assert.equal(c.properties.edges.items.properties[role].additionalProperties, false);
     assert.deepEqual(c.properties.edges.items.properties[role].required, ['definition','key']);
   }
-  const traversal = current.traverse.oneOf[1];
+  const traversal = current.traverse;
   assert.deepEqual(traversal.properties.path_mode.enum, ['walk','trail','acyclic']);
   assert.deepEqual(traversal.properties.emit, {enum:['nodes','paths']});
   for (const filter of ['edge_where','node_where']) {
     assert.deepEqual(traversal.properties[filter],
-      legacy.traverse.properties.hops.items.properties[filter]);
+      base.traverse.properties.hops.items.properties[filter]);
     assert.ok(traversal.oneOf[0].not.anyOf.some(term=>term.required[0]===filter));
   }
-  assert.deepEqual(traversal.oneOf[1], legacy.traverse.oneOf[1]);
+  assert.deepEqual(traversal.oneOf[1], base.traverse.oneOf[1]);
 });
 
 test('embedded graph schemas and pins reject drift', () => {
@@ -138,3 +136,96 @@ test('embedded graph schemas and pins reject drift', () => {
     assert.throws(() => checkGraphSchemas(copy));
   }
 });
+
+// Independent JSON Schema subset for the closed operation fixtures below.
+// Unknown keywords fail rather than silently weakening the registered schema.
+function accepts(schema, value) {
+  const known = new Set(['type', 'const', 'enum', 'oneOf', 'anyOf', 'not',
+    'properties', 'required', 'additionalProperties', 'items', 'uniqueItems',
+    'minItems', 'minimum', 'maximum', 'minLength', 'minProperties', 'maxProperties']);
+  for (const key of Object.keys(schema)) assert.ok(known.has(key), key);
+  if ('const' in schema && !Object.is(value, schema.const)) return false;
+  if (schema.enum && !schema.enum.includes(value)) return false;
+  if (schema.oneOf && schema.oneOf.filter(rule => accepts(rule, value)).length !== 1) return false;
+  if (schema.anyOf && !schema.anyOf.some(rule => accepts(rule, value))) return false;
+  if (schema.not && accepts(schema.not, value)) return false;
+  const object = value !== null && typeof value === 'object' && !Array.isArray(value);
+  if (schema.type && !({object, array: Array.isArray(value),
+    integer: Number.isSafeInteger(value), string: typeof value === 'string'})[schema.type]) return false;
+  if (typeof value === 'string' && [...value].length < (schema.minLength ?? 0)) return false;
+  if (typeof value === 'number' &&
+      (value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) return false;
+  if (Array.isArray(value)) {
+    if (value.length < (schema.minItems ?? 0)) return false;
+    if (schema.uniqueItems && new Set(value.map(JSON.stringify)).size !== value.length) return false;
+    if (schema.items && !value.every(item => accepts(schema.items, item))) return false;
+  }
+  if (object) {
+    if (Object.keys(value).length < (schema.minProperties ?? 0) ||
+        Object.keys(value).length > (schema.maxProperties ?? Infinity)) return false;
+    if (schema.required?.some(key => !Object.hasOwn(value, key))) return false;
+    for (const [key, item] of Object.entries(value)) {
+      const rule = schema.properties?.[key];
+      if (rule && !accepts(rule, item)) return false;
+      if (!rule && schema.additionalProperties === false) return false;
+      if (!rule && typeof schema.additionalProperties === 'object' &&
+          !accepts(schema.additionalProperties, item)) return false;
+    }
+  }
+  return true;
+}
+
+const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json'));
+const programNames = ['executable_plan', 'plan_document'];
+for (const [index, program] of parameterPrograms(registry).entries()) {
+  const schemas = program.properties.steps.items.properties;
+  test(`${programNames[index]} rejects definition-free MATCH and preserves current selectors`, () => {
+    const id = {definition: 'N', domain: 'sha256:' + '0'.repeat(64),
+      key_types: [{kind: 'number'}], key: [1]};
+    const cases = [
+      ['match_nodes', {fields: ['name'], where: 'true'}],
+      ['match_nodes', {fields: ['node_id'], ids: [id], bindings: {identity: 'node_id'}}],
+      ['match_edges', {fields: ['name']}],
+      ['match_edges', {fields: ['edge_id', 'source_id', 'target_id'], types: [],
+        where: {eq: [{field: 'active'}, {literal: true}]},
+        bindings: {identity: 'edge_id', source: 'source_id', target: 'target_id'}}],
+    ];
+    for (const [name, body] of cases) {
+      assert.equal(accepts(schemas[name], body), false, `${name}: missing definition`);
+      const current = {...body, definition: name === 'match_nodes' ? 'N' : 'E'};
+      assert.equal(accepts(schemas[name], current), true, name);
+      assert.equal(accepts(schemas[name], {...current, label: 'Selected'}), true, name);
+      for (const invalid of [{...current, definition: ''}, {...current, definition: 1},
+        {...current, fields: []}, {...current, fields: ['name', 'name']},
+        {...current, extra: true}, {...current, bindings: {unknown: 'field'}}]) {
+        assert.equal(accepts(schemas[name], invalid), false, name);
+      }
+    }
+    assert.equal(accepts(schemas.match_nodes, {definition: 'N', fields: ['name']}), false);
+    assert.equal(accepts(schemas.match_nodes,
+      {definition: 'N', fields: ['name'], ids: [id], where: 'true'}), false);
+  });
+
+  test(`${programNames[index]} requires path_mode for every traversal mode and emission`, () => {
+    for (const emit of ['nodes', 'paths']) for (const mode of [
+      {direction: 'out', min_hops: 0, max_hops: 3},
+      {hops: [{direction: 'out'}]},
+    ]) {
+      const body = {start: {from: 'starts', id: 'node_id'}, emit, ...mode};
+      assert.equal(accepts(schemas.traverse, body), false, 'missing path_mode');
+      for (const path_mode of ['walk', 'trail', 'acyclic']) {
+        const current = {...body, path_mode};
+        assert.equal(accepts(schemas.traverse, current), true);
+        assert.equal(accepts(schemas.traverse, {...current, max_output_rows: 1}), true);
+        assert.equal(accepts(schemas.traverse, {...current, path_mode: 'simple'}), false);
+        assert.equal(accepts(schemas.traverse, {...current, extra: true}), false);
+        assert.equal(accepts(schemas.traverse, {...current, max_output_rows: 0}), false);
+        for (const filter of ['edge_where', 'node_where']) {
+          assert.equal(accepts(schemas.traverse, {...current, [filter]: 'true'}), !('hops' in mode));
+          if ('hops' in mode) assert.equal(accepts(schemas.traverse,
+            {...current, hops: [{direction: 'out', [filter]: 'true'}]}), true);
+        }
+      }
+    }
+  });
+}

@@ -9,6 +9,7 @@ priv enum RecheckFrame {
   JsonNode(Value, Int)
   JsonItems(Array[Value], Int, Int)
   JsonFields(Array[(String, Value)], Int, Int)
+  JsonName(Array[(String, Value)], Int, Int, Int)
   VectorItems(Array[Double], Int)
   TextUnits(String, @contract.TextLimits, Int, Int64, Int64)
 }
@@ -194,12 +195,28 @@ pub fn advance_recheck_runtime_value(cursor : RecheckCursor) -> RecheckPoll {
     JsonFields(values, index, depth) =>
       if index < values.length() {
         let (name, child) = values[index]
-        if recheck_text(name, budget) is None {
-          return recheck_step_fail(cursor)
+        if name.length() > 64 {
+          cursor.stack.push(JsonName(values, index, depth, 0))
+        } else {
+          if recheck_text(name, budget) is None {
+            return recheck_step_fail(cursor)
+          }
+          cursor.stack.push(JsonFields(values, index + 1, depth))
+          cursor.stack.push(JsonNode(child, depth + 1))
         }
-        cursor.stack.push(JsonFields(values, index + 1, depth))
+      }
+    JsonName(values, field_index, depth, offset) => {
+      let (name, child) = values[field_index]
+      guard recheck_text_fragment(budget, name, offset) is Some((next, _, _)) else {
+        return recheck_step_fail(cursor)
+      }
+      if next < name.length() {
+        cursor.stack.push(JsonName(values, field_index, depth, next))
+      } else {
+        cursor.stack.push(JsonFields(values, field_index + 1, depth))
         cursor.stack.push(JsonNode(child, depth + 1))
       }
+    }
     VectorItems(values, index) =>
       if index < values.length() {
         let component = values[index]
@@ -297,40 +314,12 @@ fn recheck_text_units(
   characters : Int64,
   bytes : Int64,
 ) -> Bool {
-  let mut index = offset
-  let mut count = characters
-  let mut byte_count = bytes
-  let end = offset + Int::min(64, value.length() - offset)
-  while index < end {
-    let unit = value[index].to_int()
-    let mut units = 1
-    let width = if unit < 0x80 {
-      1
-    } else if unit < 0x800 {
-      2
-    } else if unit >= 0xd800 && unit <= 0xdbff {
-      if index + 1 >= value.length() {
-        return false
-      }
-      let trailing = value[index + 1].to_int()
-      if trailing < 0xdc00 || trailing > 0xdfff {
-        return false
-      }
-      units = 2
-      4
-    } else if unit >= 0xdc00 && unit <= 0xdfff {
-      return false
-    } else {
-      3
-    }
-    if width > cursor.budget.text {
-      return false
-    }
-    cursor.budget.text -= width
-    byte_count += width.to_int64()
-    count += 1L
-    index += units
+  guard recheck_text_fragment(cursor.budget, value, offset)
+    is Some((index, added_characters, added_bytes)) else {
+    return false
   }
+  let count = characters + added_characters
+  let byte_count = bytes + added_bytes
   if index < value.length() {
     cursor.stack.push(TextUnits(value, bounds, index, count, byte_count))
     true
@@ -343,6 +332,51 @@ fn recheck_text_units(
       byte_count <= bounds.max_utf8_bytes.unwrap()
     )
   }
+}
+
+///|
+/// Data Text and opaque JSON names share scalar-safe byte admission. Names
+/// retain their exact data spelling; only their UTF-8 bytes are charged here.
+fn recheck_text_fragment(
+  budget : RecheckBudget,
+  value : String,
+  offset : Int,
+) -> (Int, Int64, Int64)? {
+  let mut index = offset
+  let mut count = 0L
+  let mut byte_count = 0L
+  let end = offset + Int::min(64, value.length() - offset)
+  while index < end {
+    let unit = value[index].to_int()
+    let mut units = 1
+    let width = if unit < 0x80 {
+      1
+    } else if unit < 0x800 {
+      2
+    } else if unit >= 0xd800 && unit <= 0xdbff {
+      if index + 1 >= value.length() {
+        return None
+      }
+      let trailing = value[index + 1].to_int()
+      if trailing < 0xdc00 || trailing > 0xdfff {
+        return None
+      }
+      units = 2
+      4
+    } else if unit >= 0xdc00 && unit <= 0xdfff {
+      return None
+    } else {
+      3
+    }
+    if width > budget.text {
+      return None
+    }
+    budget.text -= width
+    byte_count += width.to_int64()
+    count += 1L
+    index += units
+  }
+  Some((index, count, byte_count))
 }
 
 ///|

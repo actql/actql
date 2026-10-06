@@ -362,7 +362,7 @@ fn lower_script_keyed_graph_query(
         variable,
         prefix: "",
         fields,
-        kind: PropertyNode(identity),
+        kind: NodeIdentity(identity),
         hops: 0,
         label_field: None,
       })
