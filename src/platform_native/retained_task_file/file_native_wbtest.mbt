@@ -38,6 +38,64 @@ fn sealed_restoration_fixture(
 }
 
 ///|
+test "native retained cleanup restoration denies reads and resumes missing unlink synchronization" {
+  guard native_retained_test_root() is Some(root) else { return }
+  let occurrence = "task-file-cleanup-restore-" + @env.now().to_string()
+  let (generation, cid) = sealed_restoration_fixture(root, occurrence)
+  let owner = restore_native_retained_task_file(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  test_fail_root_sync(owner.root, 1)
+  assert_true(owner.release() is Err(Filesystem(_)))
+  assert_false(owner.release_confirmed())
+  assert_true(owner.root.inspect_generation(owner.name) is Ok(None))
+  assert_true(
+    restore_native_retained_task_file(root, occurrence, generation, cid, 3L)
+    is Err(_),
+  )
+  let cleanup = restore_native_retained_task_file_cleanup(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  assert_false(cleanup.available())
+  assert_eq(cleanup.sealed_custody(), None)
+  assert_true(cleanup.open_reader() is Err(InvalidState))
+  assert_true(cleanup.append("x") is Err(InvalidState))
+  test_fail_root_sync(cleanup.root, 1)
+  assert_true(cleanup.release() is Err(Filesystem(_)))
+  assert_false(cleanup.release_confirmed())
+  cleanup.release().unwrap()
+  assert_true(cleanup.release_confirmed())
+  cleanup.release().unwrap()
+}
+
+///|
+test "native retained cleanup restoration preserves a replacement until exact retry" {
+  guard native_retained_test_root() is Some(root) else { return }
+  let occurrence = "task-file-cleanup-replacement-" + @env.now().to_string()
+  let (generation, cid) = sealed_restoration_fixture(root, occurrence)
+  let physical = @filesystem.open_root(root).unwrap()
+  let pin = physical.open_reader("output-" + occurrence, generation).unwrap()
+  physical.reclaim_generation("output-" + occurrence, generation).unwrap()
+  let replacement = physical
+    .create_writer("replacement-" + occurrence, 3L)
+    .unwrap()
+  replacement.append(b"xyz").unwrap()
+  let changed = replacement.seal("output-" + occurrence).unwrap()
+  let cleanup = restore_native_retained_task_file_cleanup(
+    root, occurrence, generation, cid, 3L,
+  ).unwrap()
+  assert_true(
+    cleanup.release() is Err(Filesystem(@filesystem.GenerationMismatch)),
+  )
+  assert_false(cleanup.release_confirmed())
+  assert_true(physical.verify_generation("output-" + occurrence, changed))
+  pin.close().unwrap()
+  replacement.cancel().unwrap()
+  cleanup.release().unwrap()
+  assert_true(cleanup.release_confirmed())
+}
+
+///|
 test "native retained task restoration reads original bytes without a new writer" {
   guard native_retained_test_root() is Some(root) else { return }
   let occurrence = "task-file-restore-" + @env.now().to_string()

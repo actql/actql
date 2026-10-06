@@ -11,6 +11,8 @@ pub fn begin_native_retained_task_file(String, String, Int64) -> Result[NativeRe
 
 pub fn restore_native_retained_task_file(String, String, @filesystem.NativeFileGeneration, String, Int64) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue]
 
+pub fn restore_native_retained_task_file_cleanup(String, String, @filesystem.NativeFileGeneration, String, Int64) -> Result[NativeRetainedTaskFile, NativeRetainedTaskFileIssue]
+
 // Errors
 
 // Types and methods
