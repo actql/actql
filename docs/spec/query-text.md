@@ -92,6 +92,13 @@ order. GoogleSQL also allows zero count and more general constant expressions;
 these remain coverage gaps, not restrictions of GoogleSQL. Row-dependent and
 arithmetic operands are rejected by this implemented literal/parameter subset.
 
+`CAST(value AS BOOLEAN)` uses the same existing boolean target as
+`CAST(value AS BOOL)`, following the [GoogleSQL BOOL/BOOLEAN alias](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#boolean_type).
+Type names are ASCII case-insensitive. This is a source spelling for the same
+checked cast; it does not widen the common conversion domains, make failing
+casts safe, infer a type from a row, or treat a backtick-quoted name as a type.
+NULL remains a typed nullable boolean, including on empty Relations.
+
 `IFNULL(expr, null_result)` has exactly two arguments and lowers to the common
 two-argument `coalesce`. Only a NULL first value selects the fallback; a
 non-NULL first value leaves the fallback unevaluated. Both operands still
