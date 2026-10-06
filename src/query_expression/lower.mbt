@@ -196,6 +196,7 @@ fn scalar_call(path : Array[@query.NamePart]) -> (String, Int, Int) raise Abort 
     "LOWER" => ("lower", 1, 1)
     "UPPER" => ("upper", 1, 1)
     "TRIM" => ("trim", 1, 1)
+    "REPLACE" => ("replace", 3, 3)
     "COALESCE" => ("coalesce", 1, 2147483647)
     "IFNULL" => ("coalesce", 2, 2)
     "IF" => ("if", 3, 3)

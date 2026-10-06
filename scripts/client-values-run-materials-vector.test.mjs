@@ -594,7 +594,7 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector('sha256:75eff2143c075f817ae4bc93022b34f3b6a84a48092cb8ec4726a42b791c5c52',
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     'sha256:80cca8baf237d7c1d546d91d221ade151cb78961ffc467dacad95ef2f7b15b91');
-  assert.equal(current.run.run_definition_cid, 'sha256:cdb7ea45586739d1b8fd7e3d4b030c1df0957760e35f7df1b938094c95db2eb1');
+  assert.equal(current.run.run_definition_cid, 'sha256:e9e1315ed7d55af5076ef8b6507364f7727cf6556d6ee5ad19f3694f4e7813b2');
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
