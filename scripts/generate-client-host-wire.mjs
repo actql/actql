@@ -99,7 +99,8 @@ export function buildClientHostWire(registry, protocol) {
     ).join('\n') +
     `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
     `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n` +
-    `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n`;
+    `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
+    `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
   return {module: module + jsResponseRules(rules) +
     jsRequestResponseRules(schemas, requestRules), types, native};
 }
