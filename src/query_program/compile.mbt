@@ -3251,6 +3251,16 @@ pub fn compile(
     return compile_set_query(query, context, limits)
   }
   if @query.join_part_count(query) > 0 {
+    if context.captured_stage is Some(_) {
+      // Acquired inputs use the existing shared-capture assembler, including
+      // a query with no DATA declarations. The Values-only Stage assembler
+      // cannot bind a captured Source and is not an alternate execution path.
+      return compile_query_script(
+        @query.single_query_script(query),
+        context,
+        limits,
+      )
+    }
     if @query.join_part_count(query) > 1 {
       return compile_join_chain_query(query, context, limits)
     }

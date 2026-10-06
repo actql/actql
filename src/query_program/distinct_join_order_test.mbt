@@ -82,3 +82,21 @@ test "DISTINCT JOIN ORDER shares a helper without expanding SELECT" {
   assert_true(wire.contains("\"distinct\":[\"score\"]"))
   assert_true(wire.contains("\"take\":{\"count\":1,\"offset\":0}"))
 }
+
+///|
+test "DISTINCT JOIN ORDER uses the nullable selected property slot" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT DISTINCT l.payload.score AS score FROM objects AS l JOIN others AS r ON l.id = r.id ORDER BY score + 1 NULLS LAST",
+      syntax_limits(),
+    ).unwrap(),
+    join_property_context(),
+    construction_limits(),
+  ).unwrap()
+  check_join_property(program)
+  let wire = semantic(program)
+  assert_eq(wire.split("\"property\":").length(), 2)
+  assert_true(wire.contains("\"add\":[{\"field\":\"score\"},{\"literal\":1}]"))
+  assert_true(wire.contains("\"distinct\":[\"score\"]"))
+  assert_true(wire.contains("\"fields\":[\"score\"]"))
+}

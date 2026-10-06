@@ -79,3 +79,32 @@ normal committed-source packing.
 No common owner, planner, provider or Host implementation is changed. Full Core,
 other targets, all packed/proofs/performance and hosted required coverage remain
 unverified by the selected checks. No merge or manual CI retry is performed.
+
+## Public-route failure and follow-up repair
+
+Normal packing at `1db7f63023176811a44c74e190f14f4dcd2a92b8` produced
+receipt `public-query-evidence-iKCR3N` (`run-3fr0h4`). The independent
+JSON control passed Embedded Local, but the first raw SQL request was refused
+with `ClientProgramUnsupported` (422), before later cases or HTTPS were reached.
+This is retained failure evidence, not public completion.
+
+The standalone query dispatcher selected the Values-only JOIN assembler, which
+rejects a context with a captured Stage. A separate acquired-input counterexample
+failed 0/1 in `run-91UKtC`. The existing Script JOIN assembler already binds
+acquired producers once and calls the same JOIN lowering. The dispatcher now
+uses it when a captured Stage is requested, even without DATA declarations.
+It neither rewrites the submitted source nor modifies an emitted Program.
+The original Values-only path remains unchanged for its existing context.
+No CTE predicate, assert, Effect, Host or execution-owner implementation is edited.
+
+The final focused JS selection passed 42/42 (`run-7SQYIo`):
+
+```sh
+node scripts/local-checks.mjs test moon -- --target js src/query_program/acquired_join_order_test.mbt src/query_program/distinct_join_order_test.mbt src/query_program/join_order_test.mbt src/query_program/join_chain_test.mbt src/query_program/data_join_test.mbt src/query_program/join_property_paths_test.mbt src/query_program/distinct_order_output_test.mbt
+```
+
+Additional coverage retains authored filter equality, ceiling 25 and refusal
+under a lower declared construction ceiling, range-name collision refusal,
+one declared acquired input, and nullable selected-property ordering through
+the ordinary checker. Normal committed-source packing must be repeated because
+compiled inputs changed; the previous tarballs are not relabeled as this source.
