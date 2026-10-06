@@ -2565,13 +2565,16 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     1000,
   ).unwrap()
   // Each row costs two identity nodes, nine record nodes, and three copy
-  // units. Four slots per retained record overlap two scratch fields and
-  // four new slots during the second append.
+  // units: logical work remains 28. Each row loads its number in three
+  // polls and two-component vector in six, starts append in one and uses
+  // 25 append polls: physical work is 2*35 = 70.
+  // Append custody is 16+3*2+1+3*10 = 53. Caller scratch is 2+2;
+  // both four-slot records overlap at second commit: peak 53+4+4+4 = 65.
   for
     (work, slots, outcome) in [
-      (28, 10, "complete"),
-      (27, 10, "work"),
-      (28, 9, "workspace"),
+      (28, 65, "complete"),
+      (27, 65, "work"),
+      (28, 64, "workspace"),
     ] {
     let execution = @local_bridge.start_rows_to_vectors(
       @bounded.control(),
@@ -2590,11 +2593,12 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
     let mut polls = 0
     while !terminal {
       polls += 1
-      assert_true(polls < 40)
+      assert_true(polls < 80)
       match @local_bridge.advance_rows_to_vectors(execution, 1).unwrap() {
         @local_bridge.Continue(..) => ()
-        @local_bridge.Complete(output, ..) => {
+        @local_bridge.Complete(output, work~, ..) => {
           assert_eq(outcome, "complete")
+          assert_eq(work, 70L)
           assert_true(
             @records.completed_storage(output) is Some(storage) &&
             @record_storage.construction_work(storage) == 28 &&
@@ -2639,7 +2643,7 @@ test "rows to Vectors admits exact work and workspace and reclaims partial outpu
   let mut polls = 0
   while !first_row {
     polls += 1
-    assert_true(polls < 20)
+    assert_true(polls < 40)
     match @local_bridge.advance_rows_to_vectors(cancelled, 1).unwrap() {
       @local_bridge.Continue(progress~, ..) => first_row = progress > 0L
       _ => abort("rows-to-Vectors did not yield after its first row")
@@ -2678,7 +2682,7 @@ test "Vectors projection production entrypoint enforces value and width limits" 
     fn() { true },
   ).unwrap()
   let mut vectors = None
-  for _ in 0..<40 {
+  for _ in 0..<80 {
     if vectors is Some(_) {
       break
     }

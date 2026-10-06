@@ -2317,6 +2317,45 @@ export function validateResourceAccounting({
         fail(`${label}: delivered Bridge cancellation assurance is missing`);
       }
     }
+    if (route.family === 'Bridge' &&
+      ['to_events', 'to_vectors'].includes(route.operation)) {
+      for (const role of ['bridge_record_value_limits',
+        'bridge_record_value_stop_cleanup']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const bridge = fs.readFileSync(path.join(root,
+        'src/local_bridge/events.mbt'), 'utf8');
+      const stepStart = bridge.indexOf('fn rows_to_events_step(');
+      const cleanupStart = bridge.indexOf('fn cleanup_rows_to_events_state(');
+      const ownerStart = bridge.indexOf('fn start_rows_to_records(');
+      const bridgeStep = stepStart >= 0 && cleanupStart > stepStart
+        ? bridge.slice(stepStart, cleanupStart) : '';
+      const bridgeCleanup = ownerStart > cleanupStart && cleanupStart >= 0
+        ? bridge.slice(cleanupStart, ownerStart) : '';
+      for (const marker of ['@value.start_recheck_runtime_text(',
+        '@value.start_recheck_runtime_value(', '@value.advance_recheck_runtime_value(',
+        '@records.start_record_append(', '@records.advance_record_append(',
+        'external_workspace_slots=']) {
+        if (!bridgeStep.includes(marker)) fail(`${label}: stepped Bridge custody is missing`);
+      }
+      for (const marker of ['@value.cancel_recheck_runtime_value(',
+        '@records.cleanup_record_append(']) {
+        if (!bridgeCleanup.includes(marker)) fail(`${label}: stepped Bridge custody is missing`);
+      }
+      if (bridgeStep.includes('@records.append_record(') ||
+        bridgeStep.includes('@execution.producer_read_checked_cell(')) {
+        fail(`${label}: Bridge value processing computes synchronously`);
+      }
+      if (route.operation === 'to_vectors' &&
+        !fs.readFileSync(path.join(root, route.entrypoint.path), 'utf8')
+          .includes('start_rows_to_records(')) {
+        fail(`${label}: shared Bridge execution connection is missing`);
+      }
+      if (route.operation === 'to_events' &&
+        !environmentRoles.has('bridge_record_value_public_store')) {
+        fail(`${label}: Bridge value public Store fixture is missing`);
+      }
+    }
     if (route.family === 'Bridge' && route.operation === 'events' &&
       !boundaryRoles.has('events_projection_value_width_and_kernel_cancel_cleanup')) {
       fail(`${label}: Events projection boundary fixture is missing`);

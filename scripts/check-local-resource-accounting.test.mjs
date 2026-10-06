@@ -48,6 +48,42 @@ function run(...args) {
   return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
 }
 
+test('record Bridges require in-value limits, stop and public Store evidence', () => {
+  for (const operation of ['to_events', 'to_vectors']) {
+    for (const role of ['bridge_record_value_limits', 'bridge_record_value_stop_cleanup']) {
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`Bridge ${operation}: ${role} fixture is missing`, 'u'));
+    }
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(r => r.family === 'Bridge' && r.operation === 'to_events');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'bridge_record_value_public_store');
+  }), /Bridge to_events: Bridge value public Store fixture is missing/u);
+});
+
+test('record Bridges reject missing shared recheck and append connections', () => {
+  const file = join(root, 'src/local_bridge/events.mbt');
+  for (const [before, after] of [
+    ['@value.advance_recheck_runtime_value(', '@execution.producer_read_checked_cell('],
+    ['@records.start_record_append(', '@records.append_record('],
+  ]) {
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...sourceTemplate[file],
+        text: sourceTemplate[file].text.replace(before, after)}),
+    });
+    const result = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources});
+    for (const operation of ['to_events', 'to_vectors']) {
+      assert.ok(result.errors.includes(`Bridge ${operation}: stepped Bridge custody is missing`));
+      assert.ok(result.errors.includes(
+        `Bridge ${operation}: Bridge value processing computes synchronously`));
+    }
+  }
+});
+
 test('Events input-name matching requires limits, stop and public Store evidence', () => {
   for (const operation of ['window_events', 'watermark_events', 'dedupe_events', 'session']) {
     for (const role of ['events_input_name_limits', 'events_input_name_stop_cleanup']) {
