@@ -146,21 +146,22 @@ test "HAVING hidden aggregate retains scoped CTE JOIN chain inputs" {
 }
 
 ///|
-test "HAVING single JOIN grouping retains its separate existing refusal" {
-  // The single-JOIN specialization expects SELECT before GROUP. Its refusal
-  // also occurs with an ordinary HAVING alias, without the new call parser.
+test "HAVING single JOIN grouping retains its evaluated aggregate scope" {
   let head = "WITH picked AS (SELECT x FROM t WHERE x > 0) SELECT p.x, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.x = seed.k MAX_OUTPUT_ROWS 10 GROUP BY p.x HAVING "
   for predicate in ["n > 1", "COUNT(*) > 1"] {
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(
-          head + predicate + " ORDER BY x",
-          syntax_limits(),
-        ).unwrap(),
-        join_order_context(),
-        construction_limits(),
-      )
-      is Err(UnsupportedCte),
-    )
+    let program = compile_query_script(
+      @query.parse_query_script(
+        head + predicate + " ORDER BY x",
+        syntax_limits(),
+      ).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("single-JOIN aggregates use existing closed inputs")
+    }
   }
 }
