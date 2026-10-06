@@ -91,7 +91,7 @@ test "wire decode preserves typed scalars nested values and number extremes" {
     (@contract.vector_contract(2, nullable=false).unwrap(), "[1,2]"),
     (
       @contract.primitive(JsonType, nullable=false),
-      "{\"a\":[null,{\"b\":true}]}",
+      "{\"$json\":{\"a\":[null,{\"b\":true}]}}",
     ),
     (number, "5e-324"),
     (number, "1.7976931348623157e+308"),

@@ -60,6 +60,9 @@ function checkedBinding(value) {
   });
 }
 
+// An installed durable receiver returns an owner-backed synchronous
+// canRetireCancellationDelivery() projection for Cancel. Missing confirmation
+// retains the waiter. Without a receiver this is only a transport gateway.
 export async function startHttpsOutboundSiteGateway({
   host = '127.0.0.1',
   port = 0,
@@ -70,6 +73,8 @@ export async function startHttpsOutboundSiteGateway({
   bearerAuthorities = new Map(),
   control,
   receiveObservation,
+  retainedInput,
+  receiveRetainedInput,
   maxRequestBytes = 65_536,
   maxPendingDispatches = 1024,
   idlePollMilliseconds = 1000,
@@ -95,6 +100,13 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.admitPollNotSeen !== 'function' ||
       typeof control.admitResponseJson !== 'function' ||
       (receiveObservation !== undefined && typeof receiveObservation !== 'function') ||
+      (retainedInput !== undefined &&
+        (retainedInput === null || typeof retainedInput !== 'object' ||
+          ['retainedInputIntentFacts', 'retainedInputPlanEnvelope',
+            'admitRetainedInputPlan', 'retainedInputPlanFacts',
+            'retainedInputTransferEnvelope', 'admitRetainedInputResult']
+            .some(name => typeof retainedInput[name] !== 'function') ||
+          typeof receiveRetainedInput !== 'function')) ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 ||
       !Number.isSafeInteger(maxPendingDispatches) ||
       maxPendingDispatches <= 0 ||
@@ -174,6 +186,7 @@ export async function startHttpsOutboundSiteGateway({
     transferRequest,
     subject,
     planLimits,
+    retained,
   ) => {
     const identity = control.identity(dispatch);
     const key = `${operation}:${identity}`;
@@ -185,8 +198,16 @@ export async function startHttpsOutboundSiteGateway({
     const outputExpected = operation === 'output'
       ? control.outputExpectedIdentity(payloadRequest, transferRequest)
       : undefined;
+    const retainedEnvelope = operation === 'retained-plan'
+      ? retainedInput.retainedInputPlanEnvelope(retained.intent)
+      : operation === 'retained-transfer'
+        ? retainedInput.retainedInputTransferEnvelope(retained.plan)
+        : undefined;
     let entry = pending.get(key);
     if (entry !== undefined) {
+      if (retainedEnvelope !== undefined && entry.envelope !== retainedEnvelope) {
+        fail('OutboundRetainedInputBindingCollision');
+      }
       if (operation === 'dispatch' &&
           entry.inputBindingBody !== inputBindingBody) {
         fail('OutboundDispatchBindingCollision');
@@ -234,6 +255,7 @@ export async function startHttpsOutboundSiteGateway({
         ? control.managedOutputSubjectIdentity(subject)
         : undefined,
       planLimits,
+      retained,
       key,
       operation,
       acceptanceObserved: false,
@@ -247,6 +269,8 @@ export async function startHttpsOutboundSiteGateway({
             ? outputEnvelope
           : operation === 'plan'
             ? outputEnvelope
+          : retainedEnvelope !== undefined
+            ? retainedEnvelope
           : materialsEnvelopes.get(identity) ??
             control.pollJson(dispatch, inputBinding),
       sequence: sequence++,
@@ -266,6 +290,7 @@ export async function startHttpsOutboundSiteGateway({
     transferRequest,
     subject,
     planLimits,
+    retained,
   ) => {
     if (signal?.aborted) return Promise.reject(signal.reason);
     const entry = entryFor(
@@ -277,6 +302,7 @@ export async function startHttpsOutboundSiteGateway({
       transferRequest,
       subject,
       planLimits,
+      retained,
     );
     return new Promise((resolve, reject) => {
       const waiter = {resolve, reject, signal, abort: undefined};
@@ -366,6 +392,28 @@ export async function startHttpsOutboundSiteGateway({
       let admitted;
       let matched;
       let statusReply = false;
+      for (const entry of pending.values()) {
+        if (entry.binding !== binding ||
+            !['retained-plan', 'retained-transfer'].includes(entry.operation)) {
+          continue;
+        }
+        const saved = Object.freeze({wire: body,
+          cid: `sha256:${createHash('sha256').update(body).digest('hex')}`});
+        try {
+          admitted = entry.operation === 'retained-plan'
+            ? retainedInput.admitRetainedInputPlan(entry.retained.intent,
+              saved, entry.retained.current, entry.retained.limits)
+            : retainedInput.admitRetainedInputResult(entry.retained.plan, saved);
+        } catch { continue; }
+        // The common owner admits the exact report. The Host must confirm its
+        // custody before we ACK or discard this transport delivery obligation.
+        observationAdmissionAttempted = true;
+        await receiveRetainedInput(Object.freeze({operation: entry.operation,
+          dispatch: entry.dispatch, binding, saved, admitted}));
+        settle(entry, 'resolve', admitted);
+        replyJson(response, 200, {accepted: true});
+        return;
+      }
       for (const entry of pending.values()) {
         if (entry.binding !== binding || entry.operation !== 'plan') {
           continue;
@@ -517,11 +565,12 @@ export async function startHttpsOutboundSiteGateway({
         admitted,
         {statusReply},
       );
+      let observationReceipt;
       if (receiveObservation !== undefined) {
         // Commit admission and replay history before resolving a waiter or
         // sending ACK. A failed/unknown commit leaves the waiter pending.
         observationAdmissionAttempted = true;
-        await receiveObservation(Object.freeze({body, binding}));
+        observationReceipt = await receiveObservation(Object.freeze({body, binding}));
       }
       if (matched.operation === 'dispatch' && !statusReply &&
           projected.state.every(value => value === 0)) {
@@ -530,9 +579,13 @@ export async function startHttpsOutboundSiteGateway({
         return;
       }
       if (matched.operation === 'cancel' &&
-          !([3, 4, 5].includes(projected.state[0]) &&
-            projected.state[2] === 2 && projected.state[3] === 0 &&
-            projected.state[4] === 0)) {
+          !(receiveObservation === undefined
+            ? control.responseCanRetireCancellationDelivery(admitted)
+            : typeof observationReceipt?.canRetireCancellationDelivery === 'function' &&
+              observationReceipt.canRetireCancellationDelivery() === true)) {
+        // With a durable receiver, only its latest committed projection may
+        // retire delivery; a known old released reply is not current evidence.
+        // The receiver-free gateway retains its transport-only contract.
         // Ordinary status (even after an offer) cannot prove that the Site
         // saved Cancel. Admit the observation, but keep offering the exact
         // cancellation until the common owner admits terminal execution and
@@ -661,6 +714,29 @@ export async function startHttpsOutboundSiteGateway({
     query({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');
       return waitFor(dispatch, signal, 'query', undefined);
+    },
+    retainedPlan({dispatch, intent, current, limits, signal} = {}) {
+      if (retainedInput === undefined || dispatch === undefined ||
+          intent === undefined || current === undefined || limits === undefined) {
+        fail('InvalidOutboundRetainedInputPlan');
+      }
+      const facts = retainedInput.retainedInputIntentFacts(intent);
+      if (JSON.parse(facts.wire).dispatch_request_cid !== control.identity(dispatch)) {
+        fail('OutboundRetainedInputDispatchMismatch');
+      }
+      return waitFor(dispatch, signal, 'retained-plan', undefined, undefined,
+        undefined, undefined, undefined, undefined, {intent, current, limits});
+    },
+    retainedTransfer({dispatch, plan, signal} = {}) {
+      if (retainedInput === undefined || dispatch === undefined || plan === undefined) {
+        fail('InvalidOutboundRetainedInputTransfer');
+      }
+      const facts = retainedInput.retainedInputPlanFacts(plan);
+      if (JSON.parse(facts.wire).dispatch_request_cid !== control.identity(dispatch)) {
+        fail('OutboundRetainedInputDispatchMismatch');
+      }
+      return waitFor(dispatch, signal, 'retained-transfer', undefined, undefined,
+        undefined, undefined, undefined, undefined, {plan});
     },
     release({dispatch, signal} = {}) {
       if (dispatch === undefined) fail('InvalidOutboundDispatch');

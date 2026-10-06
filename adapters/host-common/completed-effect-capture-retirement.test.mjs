@@ -23,7 +23,7 @@ test('terminal capture retirement keeps its record until deletion succeeds',
       captured_run: 'captured', preview: 'preview',
       authoring_context: 'authoring',
       effect_source_artifacts: [{member_index: 0, artifact: 'source'}],
-      connector_recovery: []};
+      connector_recovery: [], effect_dependency_payloads: []};
     const holdings = new Map([
       [recordCid, {namespace: 'publication-private',
         manifest_cid: capturedCid, objects: [{}]}],
@@ -36,8 +36,23 @@ test('terminal capture retirement keeps its record until deletion succeeds',
     ]);
     const visits = [];
     let failCaptureDeletion = true;
+    let captureCustody = true;
     const store = {storeAuthorityCid: cid('0'),
       async inspectPhysicalHolding(key) { return holdings.get(key); },
+      // The fixture has metadata only. Retirement inspection never supplies
+      // payload usability or consumption evidence.
+      async inspectPhysicalHoldingForRetirement(key) { return holdings.get(key); },
+      async retireEffectCaptureCustody(definition) {
+        assert.equal(definition.identity, run.identity);
+        const retired = captureCustody;
+        captureCustody = false;
+        return retired;
+      },
+      async forgetEffectCaptureCustody(definition) {
+        assert.equal(definition.identity, run.identity);
+        assert.equal(holdings.size, 0, 'custody is forgotten only after all holdings retire');
+        captureCustody = false;
+      },
       async readPrivateEvidence() {
         return Buffer.from(JSON.stringify(body));
       },
@@ -65,6 +80,10 @@ test('terminal capture retirement keeps its record until deletion succeeds',
       capturedEffectSourceRecoveryInventoryValid() { return true; },
       admitCapturedEffectSourceArtifact() { return {}; },
       capturedEffectSourceHoldingCid() { return sourceCid; },
+      capturedEffectDependencyPayloadBindings(_captured, dependencies) {
+        assert.deepEqual(dependencies, []);
+        return [];
+      },
     };
     const options = {store, control, runDefinition: run,
       contractLimits: {maxWireBytes: 1000, maxNodes: 100, maxDepth: 10}};
@@ -73,9 +92,11 @@ test('terminal capture retirement keeps its record until deletion succeeds',
     assert.deepEqual(visits, [sourceCid, captureCid]);
     assert.ok(holdings.has(recordCid));
     assert.ok(holdings.has(captureCid));
+    assert.equal(captureCustody, true);
     assert.equal(await retireCompletedEffectfulCapture(options), true);
     assert.deepEqual(visits.slice(2), [sourceCid, captureCid,
       previewCid, recordCid]);
     assert.equal(holdings.size, 0);
+    assert.equal(captureCustody, false);
     assert.equal(await retireCompletedEffectfulCapture(options), false);
   });

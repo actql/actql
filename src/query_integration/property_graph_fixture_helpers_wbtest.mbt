@@ -148,3 +148,10 @@ fn graph_publication_obligations(
     None
   }
 }
+
+///|
+// The fixture supplies the independent identity bytes; typed value wire adds
+// the JSON domain marker. Snapshot bytes and source syntax remain unwrapped.
+fn property_graph_expected_json_wire(body : String) -> String {
+  "{\"$json\":" + body + "}"
+}

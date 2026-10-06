@@ -6,6 +6,8 @@ priv enum Phase {
   Transform
   StartNormalize
   Normalizing
+  StartUnion
+  Unioning
   ApplyingDelta
   StartProjection
   Projection
@@ -51,6 +53,7 @@ priv struct Execution {
   mut phase : Phase
   constructions : Array[@bridge.RowsToGraphExecution]
   mut normalization : @sga.NormalizeExecution?
+  mut union : @sga.UnionExecution?
   mut graph : @graph.Completed?
   mut transform : @sga.SubgraphExecution?
   mut delta_apply : @sga.DeltaApplyExecution?
@@ -79,6 +82,14 @@ pub(all) struct SnapshotPolicy {
 /// total heap use. Plan obligations still require their checked derivation.
 pub(all) struct DeltaPolicy {
   limits : @delta_kernel.Limits
+  workspace_bytes : Int64
+}
+
+///|
+/// Installed union cursor ceiling and its private execution reservation. This
+/// does not increase input/value quotas or prove a physical Graph heap bound.
+pub(all) struct UnionPolicy {
+  max_workspace_slots : Int
   workspace_bytes : Int64
 }
 
@@ -166,7 +177,9 @@ fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
       selected.unwrap_or(0),
     ) {
     Some(@lower.PropertyGraphConstructionStep(_))
-    | Some(@lower.GraphNormalizeStep(_)) => true
+    | Some(@lower.GraphNormalizeStep(_))
+    | Some(@lower.GraphUnionStep(_))
+    | Some(@lower.GraphSubtractionStep(_)) => true
     _ => false
   }
 }
@@ -328,6 +341,29 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         .bind(target => @lower.preparation_carrier_at(prepared, target))
         .map(current_graph)
         .unwrap_or(false)
+      @lower.GraphUnionStep(union) | @lower.GraphSubtractionStep(union) => {
+        let count = @graph_type.union_input_count(
+          @lower.graph_union_checked(union),
+        )
+        (
+          @lower.operation(node) == "SGA.union_structural" ||
+          (@lower.operation(node) == "SGA.diff_structural" && count == 2)
+        ) &&
+        count >= 2 &&
+        @lower.node_input_count(node) == count &&
+        ({
+          let mut valid = true
+          for input in 0..<count {
+            if !@lower.node_input_target(node, input)
+              .bind(target => @lower.preparation_carrier_at(prepared, target))
+              .map(current_graph)
+              .unwrap_or(false) {
+              valid = false
+            }
+          }
+          valid
+        })
+      }
       @lower.GraphDeltaStep(delta) => {
         guard @lower.node_input_target(node, 0) is Some(base) &&
           @lower.node_input_target(node, 1) is Some(changes) &&
@@ -556,6 +592,56 @@ fn advance_execution(
   }
   while true {
     match value.phase {
+      StartUnion => {
+        match
+          @sga.start_graph_composition_views(
+            value.control,
+            value.sequence,
+            value.selected_step.unwrap_or(0),
+            value.carrier_inputs,
+            value.limits,
+            value.storage_bytes,
+            () => true,
+            Some(value.limits.max_work),
+          ) {
+          Ok(active) => value.union = Some(active)
+          Err(_) => return fail_execution(value)
+        }
+        value.phase = Unioning
+        reset_stage(value)
+      }
+      Unioning => {
+        guard value.union is Some(active) else { return fail_execution(value) }
+        match @sga.advance_union(active, quantum) {
+          Err(_) => return fail_execution(value)
+          Ok(@sga.UnionContinue(progress~, work~)) => {
+            guard continue_poll(value, progress, work) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.UnionComplete(output, progress~, work~)) =>
+            return complete_graph_poll(
+              value,
+              output,
+              value.selected_step.unwrap_or(0),
+              progress,
+              work,
+            )
+          Ok(@sga.UnionFailed(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, false) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+          Ok(@sga.UnionStopped(_, progress~, work~)) => {
+            guard terminal_poll(value, progress, work, true) is Some(poll) else {
+              return fail_execution(value)
+            }
+            return Ok(poll)
+          }
+        }
+      }
       StartNormalize => {
         guard value.carrier_inputs.length() == 1 else {
           return fail_execution(value)
@@ -1504,6 +1590,12 @@ fn cleanup_execution(
       Err(_) => failed = true
     }
   }
+  if value.union is Some(active) {
+    match @sga.cleanup_union(active) {
+      Ok(_) => ()
+      Err(_) => failed = true
+    }
+  }
   discard(value.graph) |> ignore
   value.graph = None
   let mut construction_pending = false
@@ -1540,6 +1632,9 @@ fn cleanup_execution(
   let delta_pending = value.delta_apply
     .map(@sga.delta_apply_cleanup_pending)
     .unwrap_or(false)
+  let union_pending = value.union
+    .map(@sga.union_cleanup_pending)
+    .unwrap_or(false)
   if failed {
     return Err(issue())
   }
@@ -1547,7 +1642,8 @@ fn cleanup_execution(
     projection_pending ||
     transform_pending ||
     normalization_pending ||
-    delta_pending {
+    delta_pending ||
+    union_pending {
     return Ok(false)
   }
   value.reclaimed = true
@@ -1561,6 +1657,7 @@ pub fn provider(
   capacity : @execution.ExecutionCapacity,
   snapshot_policy? : SnapshotPolicy? = None,
   delta_policy? : DeltaPolicy? = None,
+  union_policy? : UnionPolicy? = None,
 ) -> @local.ManagedProvider {
   let eligible = fn(sequence) {
     accepts(sequence) &&
@@ -1586,14 +1683,55 @@ pub fn provider(
       } else {
         0L
       }
+      let mut union_workspace = 0L
+      let mut union_accumulator = false
+      let mut union_selected = false
+      let prepared = @execution.generated_prepared_sequence(sequence)
+      for position in 0..<@execution.generated_sequence_step_count(sequence) {
+        guard @execution.generated_sequence_step_index_at(sequence, position)
+          is Some(step) else {
+          return None
+        }
+        let composition = match @lower.sequence_step(prepared, step) {
+          Some(@lower.GraphUnionStep(union))
+          | Some(@lower.GraphSubtractionStep(union)) => Some(union)
+          _ => None
+        }
+        if composition is Some(union) {
+          let checked = @lower.graph_union_checked(union)
+          union_selected = true
+          guard @sga.union_order_workspace_bytes(checked, limits) is Some(bytes) else {
+            return None
+          }
+          union_workspace = Int64::max(union_workspace, bytes.to_int64())
+          union_accumulator = union_accumulator ||
+            @graph_type.union_input_count(checked) > 2
+        }
+      }
+      if union_selected && union_policy is Some(policy) {
+        if policy.max_workspace_slots < limits.max_workspace_slots ||
+          policy.workspace_bytes < 0L ||
+          union_workspace > 9223372036854775807L - policy.workspace_bytes {
+          return None
+        }
+        union_workspace += policy.workspace_bytes
+      }
       if delta_workspace > 9223372036854775807L - snapshot_workspace {
+        return None
+      }
+      let private_workspace = snapshot_workspace + delta_workspace
+      if union_workspace > 9223372036854775807L - private_workspace {
+        return None
+      }
+      let generations = @lower.sequence_count(prepared)
+      if union_accumulator && generations == 2147483647 {
         return None
       }
       provider_capacity(
         capacity,
         storage_bytes,
-        @lower.sequence_count(@execution.generated_prepared_sequence(sequence)),
-        snapshot_workspace + delta_workspace,
+        generations + (if union_accumulator { 1 } else { 0 }),
+        private_workspace + union_workspace,
       )
     } else {
       None
@@ -1702,6 +1840,25 @@ pub fn provider(
         Some(@lower.GraphNormalizeStep(_)) => true
         _ => false
       }
+      let direct_union_inputs = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphUnionStep(union))
+        | Some(@lower.GraphSubtractionStep(union)) =>
+          Some(@graph_type.union_input_count(@lower.graph_union_checked(union)))
+        _ => None
+      }
+      let limits = if direct_union_inputs is Some(_) &&
+        union_policy is Some(policy) {
+        guard capacity_for(sequence) is Some(_) else {
+          return Err(@connector.InvalidLimits)
+        }
+        { ..limits, max_workspace_slots: policy.max_workspace_slots, }
+      } else {
+        limits
+      }
       let property_inputs = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -1738,9 +1895,16 @@ pub fn provider(
         direct_equality ||
         direct_diff ||
         direct_normalize ||
+        direct_union_inputs is Some(_) ||
         direct_delta {
         if carriers.length() !=
-          (if direct_equality || direct_diff { 2 } else { 1 }) ||
+          direct_union_inputs.unwrap_or(
+            if direct_equality || direct_diff {
+              2
+            } else {
+              1
+            },
+          ) ||
           relations.length() !=
           (if direct_traverse {
             direct_traverse_relation_count
@@ -1777,7 +1941,9 @@ pub fn provider(
           @execution.generated_sequence_step_count(sequence) - 1,
         ),
         construction_steps,
-        phase: if direct_normalize {
+        phase: if direct_union_inputs is Some(_) {
+          StartUnion
+        } else if direct_normalize {
           StartNormalize
         } else if direct_delta {
           ApplyingDelta
@@ -1790,6 +1956,7 @@ pub fn provider(
         },
         constructions: [],
         normalization: None,
+        union: None,
         graph: None,
         transform: None,
         delta_apply: None,

@@ -2,9 +2,25 @@
   "version": "actql-program-semantics-vectors/0.1",
   "description": "Compose the first two independently authored stage-semantics.json envelopes. Prefix references with /stages/0 and /stages/1. Retain ordered descriptors a and b and export out from b/r. Import mode replaces b's rows input and descriptor import with a/r Result or a/d receipt. These are source projection fixtures, not executable Programs.",
   "cases": [
-    {"import_mode": 0, "accepted": false, "expected_cid": "sha256:d49cb568560cbdb3d57a36139c26e804ed401e100f05b0521c43eac3fac00b75"},
-    {"import_mode": 0, "accepted": true, "expected_cid": "sha256:604321ca300696aff3b9b0144d1e0ec690dfa95cb47e960fd0c3da8b5f1de5a4"},
-    {"import_mode": 1, "accepted": false, "expected_cid": "sha256:68ee7b878a7ec69413b26d101f0a4276e955a8100d09fe3275938405ba03f60d"},
-    {"import_mode": 2, "accepted": false, "expected_cid": "sha256:8ef9d310d2a10a3cf06a7f11bb45306d2c9e65f4cf3f76ae0a782c4156cb620c"}
+    {
+      "import_mode": 0,
+      "accepted": false,
+      "expected_cid": "sha256:e56fdc503572fe26328102eb7375d342a4376b653cc2c6d1799a65756a25b590"
+    },
+    {
+      "import_mode": 0,
+      "accepted": true,
+      "expected_cid": "sha256:3e1359f596168cc20d22b57aa53a1e1c568cffa26de20e02f4a278292f2f8d46"
+    },
+    {
+      "import_mode": 1,
+      "accepted": false,
+      "expected_cid": "sha256:650f6a53c41fc93454578224c7e62230502108b8a569982b0f55df4c7e862212"
+    },
+    {
+      "import_mode": 2,
+      "accepted": false,
+      "expected_cid": "sha256:ba37c4b0940316e2b05780ec6a91845f0806b2be4feaf6d0f56ac6966b9104ab"
+    }
   ]
 }

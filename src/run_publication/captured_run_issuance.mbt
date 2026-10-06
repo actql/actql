@@ -195,7 +195,13 @@ pub fn inspect_canonical_result_rows(
   max_depth : Int,
 ) -> Result[(String, Int), CapturedRunIssuanceIssue] {
   let rows = match
-    parse_contract_wire(rows_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      rows_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(_) => return Err(CaptureIssuanceInvalidRows("payload"))
   }
@@ -246,7 +252,13 @@ pub fn admit_captured_result_snapshot(
     return Err(CaptureIssuanceReferenceMismatch("result_definition_cid"))
   }
   let rows = match
-    parse_contract_wire(rows_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      rows_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(_) => return Err(CaptureIssuanceInvalidRows(name))
   }
@@ -594,7 +606,13 @@ fn seal_effect_context(
     _ => return Err(CaptureIssuanceEncoding)
   }
   let body = match
-    parse_contract_wire(body_wire, max_wire_bytes, max_nodes, max_depth) {
+    parse_contract_wire(
+      body_wire,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      data_keys=true,
+    ) {
     Ok(value) => value
     Err(_) => return Err(CaptureIssuanceEncoding)
   }

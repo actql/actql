@@ -95,6 +95,14 @@ fn selected_graph_delta_policy() -> @local_sga_provider.DeltaPolicy {
 }
 
 ///|
+/// Union's typed record append/order cursors coexist with a private previous
+/// fold generation. Reserve the installed scratch before task selection; the
+/// ordinary Graph input/value/work ceilings remain unchanged.
+fn selected_graph_union_policy() -> @local_sga_provider.UnionPolicy {
+  { max_workspace_slots: 2000000, workspace_bytes: 67108864L, }
+}
+
+///|
 fn installed_client_family_providers(
   capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
@@ -106,6 +114,7 @@ fn installed_client_family_providers(
       capacity,
       snapshot_policy=Some(selected_graph_snapshot_policy()),
       delta_policy=Some(selected_graph_delta_policy()),
+      union_policy=Some(selected_graph_union_policy()),
     ),
     @local_tea_provider.provider(records, 100000L, capacity),
     @local_tea_provider.time_series_provider(records, capacity),
@@ -153,6 +162,7 @@ fn selected_client_sga_providers(
           sequence_capacity,
           snapshot_policy=Some(selected_graph_snapshot_policy()),
           delta_policy=Some(selected_graph_delta_policy()),
+          union_policy=Some(selected_graph_union_policy()),
         ),
       ])
     None => None

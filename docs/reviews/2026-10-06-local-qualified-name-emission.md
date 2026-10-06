@@ -2,9 +2,10 @@
 
 ## Scope and ownership
 
-This component starts at #576,
-`168d56827aacd29d10e547eb3d0505ceff7804be`, retaining the unmerged parent
-dependency. The eventual merge destination is main.
+This component originally started at #576,
+`168d56827aacd29d10e547eb3d0505ceff7804be`. The parent is now adopted on
+main, including its field-binding and Object/JSON name corrections. The final
+merge destination is main.
 
 The stepped record append's BeginField previously called `reference_name()`
 before constructing its String emitter. For a qualified field this concatenated
@@ -97,7 +98,7 @@ node scripts/check-local-resource-accounting.mjs
 
 This closes qualified-name assembly in stepped record append only. Preparation
 and Pool input/output matching still have independent whole-name scans.
-Legacy synchronous append/serialization, runtime JSON name normalization,
+Legacy synchronous append/serialization, declared Object name normalization,
 StringBuilder final assembly, aggregate intermediate-byte accounting and
 whole-Run physical Ledger evidence remain separate. New qualified public
 Program acceptance, full fault/retry, packed Local/HTTP, Wasm/native execution

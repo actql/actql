@@ -15,22 +15,25 @@ fn logical_text_row_budget(work : Int64, live : Int64) -> LogicalBudget {
 
 ///|
 test "stepped logical row walks nested cells without copying their elements" {
-  // 65 scalar occurrences: [1,...,1] is 131 bytes. The outer row adds
-  // twelve bytes; object + key bytes + array + scalar nodes cost 74 work.
+  // 65 scalar occurrences: [1,...,1] is 131 bytes. Typed JSON adds ten
+  // wire bytes and the outer row adds twelve. Logical payload accounting
+  // stays object + key bytes + array + scalar nodes = 74 work.
   let value = logical_literal("[" + Array::make(65, "1").join(",") + "]")
-  for work in [74L, 73L] {
+  // Typed wire retains JsonEnd + ArrayNext + Read: eight cell handles,
+  // three frames, two row handles and one pre-advance spare require 14 slots.
+  for (work, slots) in [(74L, 14), (73L, 14), (74L, 13)] {
     let budget = logical_budget(
       {
         max_input_rows: 1L,
-        max_value_bytes: 143L,
-        max_live_value_bytes: 143L,
+        max_value_bytes: 153L,
+        max_live_value_bytes: 153L,
         max_work: work,
       },
-      143,
-      67,
+      153,
+      68,
       3,
     ).unwrap()
-    let workspace = row_workspace(13)
+    let workspace = row_workspace(slots)
     let cursor = start_stepped_logical_row(
       budget,
       ["payload"],
@@ -45,17 +48,19 @@ test "stepped logical row walks nested cells without copying their elements" {
         polls += 1
       }
     }
-    if work == 74L {
+    if work == 74L && slots == 14 {
       guard result is Ok(Some(root)) else {
         if result is Err(LogicalRows(issue)) {
           debug_inspect(issue, content="completed nested row")
         }
         fail("nested exact allowance")
       }
-      assert_eq((budget.work, budget.live), (74L, 143L))
+      assert_eq((budget.work, budget.live), (74L, 153L))
       assert_true(polls > 65)
-      assert_true(workspace.peak <= 13)
+      assert_eq(workspace.peak, 14)
       release_logical_root(budget, root).unwrap()
+    } else if slots == 13 {
+      assert_true(result is Err(RowLimit))
     } else {
       assert_true(result is Err(LogicalRows(ValueMeasure(LogicalWorkLimit))))
       assert_eq(budget.work, 73L)

@@ -3,8 +3,8 @@
 ## Scope and owners
 
 This component starts from #566 at
-`35cd17419c928d62b9c47b4bd92967d30bd1535e`. It retains the unmerged parent
-dependency; the eventual merge target is main, not a dependency branch.
+`35cd17419c928d62b9c47b4bd92967d30bd1535e`. The reviewed #563 and #566
+parents are adopted on main; the merge target is main.
 
 The existing stepped append owner now retains field-name hashing, exact
 collision comparison, sorted Carrier Knowledge lookup, required-field checks,
@@ -114,7 +114,7 @@ node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
 This closes the stepped append name-binding scans, not every schema/name scan
 in preparation or Pool input matching. Qualified-name wire spelling still
 assembles a reference String at emission setup. Legacy synchronous drains,
-runtime JSON identifier normalization, runtime String buffer assembly,
+runtime String buffer assembly,
 aggregate intermediate-byte custody and whole-Run physical Ledger remain
 separate obligations. Full fault/retry, packed Local/HTTP, Wasm/native execution
 and final CI are not established by a focused JS/checkout boundary selection.

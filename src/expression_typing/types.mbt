@@ -27,6 +27,7 @@ pub(all) enum IssueKind {
   NullTypeUnresolved
   ForbiddenConstructorValue
   InvalidStaticOption(String)
+  InvalidJsonLiteral(@value.JsonLiteralIssue)
   BudgetExceeded
 } derive(Eq, Debug)
 

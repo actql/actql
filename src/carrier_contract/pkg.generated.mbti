@@ -90,6 +90,8 @@ pub fn property_graph_node_named(PropertyGraphDefinition, String) -> PropertyNod
 
 pub fn property_graph_usage(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), PropertyGraphIssue]
 
+pub fn property_key_descriptor(@value_contract.Contract) -> PropertyKeyDescriptor?
+
 pub fn property_name_identity(String) -> String
 
 pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[PropertyNodeDefinition, PropertyGraphIssue]
@@ -203,6 +205,17 @@ pub(all) enum PropertyGraphIssue {
   PropertyTypeConflict
   LimitExceeded
   InvalidDomain
+} derive(Eq, @debug.Debug)
+
+pub(all) enum PropertyKeyDescriptor {
+  NumberKey
+  TextKey
+  BooleanKey
+  DateKey
+  TimestampKey
+  DecimalKey(precision~ : Int, scale~ : Int)
+  ResourceKey(resource_kind~ : String)
+  ArtifactKey(media_type~ : String?)
 } derive(Eq, @debug.Debug)
 
 type PropertyNodeDefinition

@@ -45,12 +45,17 @@ test "runtime vector recheck yields between components with exact node usage" {
 ///|
 test "runtime JSON recheck yields within nested data Text without normalization" {
   let text = "a".repeat(130) + "e\u{0301}\r\n"
-  let value = Object({
+  let payload = Object({
     values: [("payload", Array({ values: [Text(text)], }))],
   })
+  let value = JsonData(payload)
   let contract = @contract.primitive(@contract.JsonType, nullable=false)
   // Three nodes: object, array, Text. Seven key bytes plus 135 data bytes.
   let limits : Limits = { max_nodes: 3, max_depth: 2, max_text_bytes: 142, }
+  // The JSON domain is explicit; bare payloads cannot claim its contract.
+  assert_true(recheck_runtime_value(payload, contract, limits) is None)
+  let rejected = start_recheck_runtime_value(payload, contract, limits).unwrap()
+  assert_true(advance_recheck_runtime_value(rejected) is RecheckFailed)
   let expected = recheck_runtime_value_usage(value, contract, limits).unwrap()
   assert_eq(expected.1, 3)
   assert_eq(expected.2, 142)
