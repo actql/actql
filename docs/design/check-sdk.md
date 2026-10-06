@@ -1241,6 +1241,62 @@ preceding incompatible SDK/Host contracts still reject explicitly. The English
 and Japanese translation revisions advance independently of wire identities.
 
 
+### Reserved reporting and Requirement enumeration
+
+Checking completion is separate from enumeration completion. The existing
+public bridge computes verdict, scope and protected coverage from all projected
+findings. It emits at most 128 known parameter Requirements and can reduce that
+prefix through at most nine independently bounded encoding attempts (128, 64,
+32, 16, 8, 4, 2, 1, 0). Each attempt uses the existing 65,536-byte, 4,096-node,
+depth-16 reporting writer; it does not repeat analysis, parser work or Source
+authorization. Disclosable violations and original document/context bindings
+are never dropped to make a prefix fit. If even that bound report cannot be
+encoded, the separately reserved Problem envelope still returns
+`check_report_unbounded` without a partial report.
+
+The closed public report optionally carries `omissions: {requirements: true}`
+when this enumeration excludes already-public known input obligations. The
+summary contains no count and is independent of inaccessible Source details.
+It cannot accompany `verified`; missing values preserve bound-input scope and
+undetermined, unless an independent public violation establishes invalidity.
+An invalid report retains its disclosed violation. This changes only the
+`actql-check-outcome/0.1` schema body/CID and its dependent pins, generated wire
+and consumers; reason schema/catalog meaning and legacy diagnostics remain
+separate. Mixed outcome identities reject explicitly, without an adapter.
+
+SDK explanation retains the typed omissions summary independently of completed
+or partial reporting. Renderer omissions describe only the disclosed report,
+not the Host's omitted obligations. A truncated Requirement enumeration cannot
+establish a comparable supplementation frontier. Display locale/wording never
+changes the original scope, verdict, input revision or action permission.
+
+### Passive operation diagnostic formats
+
+`formatSubmission`, `formatCancellation`, `formatReadFailure` and
+`formatEffectUncertainty` render only the original SDK-owned observations used
+by their corresponding explanation helpers. They offer `text`, `html` and
+agent `json` formats, locale selection and a 1,024..1,048,576 UTF-8 byte budget
+(default 65,536). Copies and forged errors/responses have no formatting custody.
+The renderer captures the retained observation before reading display options.
+Locale, wording, severity or edits to an enumerable error never change its facts.
+
+All original lookup references, returned-row counts, unknown outcomes, unresolved
+Effect names and physical-stop/control revisions remain intact. JSON carries the
+whole explanation and independent operation translation revision; text/HTML
+retain those same facts as escaped data. Markup, terminal controls and bidi marks
+are escaped without changing parsed JSON values or semantic identities. No raw
+cause, input, credential or provider message is included. References are data,
+not executable instructions or durable permission.
+
+If the complete observation cannot fit the requested output budget, return
+undefined rather than a success-looking prefix or a reduced unresolved-Effect
+set. Existing explanation helpers remain available independently. Formatting
+performs no lookup, cancel, resend, new read, Compute or provider call. It cannot
+establish durable cancellation-operation reconciliation, Delivery opening or
+receipt-backed completion, or complete template scope; those still require
+facts from their existing authoritative owners. No wire schema, identity,
+persistence or execution path changes are introduced by presentation.
+
 ## Rejected Run observations
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator

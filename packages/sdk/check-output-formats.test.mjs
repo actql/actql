@@ -100,3 +100,22 @@ test('locale callbacks cannot retarget the captured public observation', () => {
   assert.equal(json.presentation.locale, 'ja');
   assert.match(json.observation.summary, /入力違反/u);
 });
+
+
+test('Host Requirement omissions remain distinct from renderer omissions and verification', () => {
+  const outcome = completed('invalid', [{code: 'query_syntax_invalid'}], [], [{code: 'bound_values_missing'}]);
+  outcome.report.omissions = {requirements: true};
+  for (const locale of ['en', 'ja']) {
+    const model = JSON.parse(formatCheckOutcome(outcome, {format: 'json', locale}));
+    assert.deepEqual(model.observation.report.omissions, {requirements: true}, '[check-mutation:omissions-presentation]');
+    assert.equal(model.observation.report.verdict, 'invalid');
+    assert.equal(model.omittedEntries, 0);
+    for (const format of ['text', 'html']) assert.match(formatCheckOutcome(outcome, {format, locale}),
+      locale === 'ja' ? /省略しました/ : /Host omitted/);
+  }
+  for (const omissions of [{requirements: false}, {requirements: 42}, {requirements: true, count: 512}, {reasons: true}]) {
+    assert.equal(formatCheckOutcome({...outcome, report: {...outcome.report, omissions}}), undefined);
+  }
+  const verified = completed('verified'); verified.report.omissions = {requirements: true};
+  assert.equal(explainCheckOutcome(verified), undefined, '[check-mutation:omissions-no-verification]');
+});

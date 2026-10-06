@@ -1,3 +1,4 @@
+import './operation-formats.test.mjs';
 import './run-observation-protocol.test.mjs';
 import './operation-diagnostic-locales.test.mjs';
 import './check-requirement-frontier.test.mjs';
@@ -24,7 +25,7 @@ test('check presentation revisions are immutable and separate from schema identi
     [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'], [{locale: 'fr'}, 'en'],
     [{get locale() { throw new Error('private locale cause'); }}, 'en']]) {
     const info = getCheckPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-06.${locale}.6`});
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-07.${locale}.7`});
     assert.equal(Object.isFrozen(info), true);
     assert.equal(Object.hasOwn(info, 'reasonSchemaCid'), false);
     assert.equal(Object.hasOwn(info, 'outcomeSchemaCid'), false);

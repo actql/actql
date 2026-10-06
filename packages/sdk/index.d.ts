@@ -16,6 +16,7 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
   verdict: C extends 'partial' ? 'invalid' | 'undetermined' : 'invalid' | 'undetermined' | 'verified';
   scope: CheckReportScope;
   contextRef: string;
+  omissions?: Readonly<{requirements: true}>;
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
@@ -399,6 +400,17 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+
+/** Complete display of original SDK-owned operation facts; never performs I/O. */
+export type OperationFormatOptions = OperationExplanationOptions & Readonly<{
+  format?: 'text' | 'html' | 'json';
+  /** UTF-8 output bytes, 1024..1048576. Undefined output if complete facts cannot fit. */
+  maxBytes?: number;
+}>;
+export declare function formatSubmission(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatCancellation(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions): string | undefined;
 
 /** Safe explanation of an original SDK-rejected Run observation; no write permission. */
 export type RunObservationFailureExplanation = Readonly<{
