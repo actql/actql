@@ -9,7 +9,10 @@ const root = fileURLToPath(new URL('../../../../', import.meta.url));
 checkParentCensus(path => readFileSync(join(root, path)));
 providerConstructionBound(path => readFileSync(join(root, path)));
 const pin = readFileSync(new URL('../../../relation-capacity/lean-toolchain', import.meta.url), 'utf8').trim();
-const version = spawnSync('lean', ['--short-version'], { encoding: 'utf8' });
+// Resolve the repository pin before asking an elan shim for its version; a
+// developer's default 'stable' is not this proof's compiler identity.
+const environment = {...process.env, ELAN_TOOLCHAIN: pin};
+const version = spawnSync('lean', ['--short-version'], { encoding: 'utf8', env: environment });
 assert.equal(version.status, 0); assert.equal(version.stdout.trim(), pin.split(':v')[1]);
 const array = readFileSync(new URL('../backing/ArrayBacking.lean', import.meta.url), 'utf8');
 const identities = readFileSync(new URL('../../../relation-capacity/Capacity.lean', import.meta.url), 'utf8');
@@ -25,11 +28,12 @@ const consumers = `
 example (n : Nat) (s : NativeParentCore.Footprint)
   (r : s.references ≤ 160) (o : s.owner ≤ 56) (c : s.callbacks ≤ 248)
   (e : s.environment ≤ 120) (w : s.reported ≤ 32) (a : s.arrayOwners ≤ 48)
-  (h : s.backingHeaders ≤ 16) (b : s.backingSlots ≤ 2 * NativeParentCore.slots n) :
-  s.bytes ≤ NativeParentCore.envelope n := NativeParentCore.phase_bound n s r o c e w a h b
+  (h : s.backingHeaders ≤ 16) (b : s.backingSlots ≤ 2 * NativeParentCore.slots n)
+  (co : s.completedOwners ≤ 48) (ch : s.completedHeaders ≤ 8) (cs : s.completedSlots ≤ n) :
+  s.bytes ≤ NativeParentCore.envelope n := NativeParentCore.phase_bound n s r o c e w a h b co ch cs
 example (n old next : Nat) (a : old ≤ NativeParentCore.slots n) (b : next ≤ NativeParentCore.slots n) :
   8 * (old + next) ≤ 16 * NativeParentCore.slots n := NativeParentCore.growth_overlap n old next a b
-example : NativeParentCore.retired.bytes = 600 := NativeParentCore.retired_owner_witness
+example : NativeParentCore.retired.bytes = 624 := NativeParentCore.retired_owner_witness
 example (s : ProviderConstruction.Footprint) (r : s.records ≤ 11 * 40)
   (c : s.callbacks ≤ 44 * 40) (a : s.candidates ≤ 120) (f : s.defaultFamily ≤ 24) :
   s.bytes ≤ 2344 := ProviderConstruction.candidate_component s r c a f
@@ -42,7 +46,7 @@ example (n : Nat) (r : RelationCapacity.Registry) (a b : Nat → Bool)
   ProviderConstruction.retained_core_union n r a b core s c sb cc sc
 `;
 const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], { encoding: 'utf8',
-  input: array + '\n' + identities + '\n' + model + '\n' + selection + consumers +
+  env: environment, input: array + '\n' + identities + '\n' + model + '\n' + selection + consumers +
     names.map(n => `\n#print axioms NativeParentCore.${n}`).join('') +
     selectionNames.map(n => `\n#print axioms ProviderConstruction.${n}`).join(''),
   maxBuffer: 1024 * 1024 });

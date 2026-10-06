@@ -3080,8 +3080,8 @@ fn compile_steps(
           (
             "take",
             construction.object([
-              ("count", construction.add(Number(count.to_double()))),
-              ("offset", construction.add(Number(offset.to_double()))),
+              ("count", lower_query_integer(construction, count)),
+              ("offset", lower_query_integer(construction, offset)),
             ]),
           ),
         )
@@ -5797,8 +5797,8 @@ fn append_join_order_steps(
           (
             "take",
             construction.object([
-              ("count", construction.add(Number(count.to_double()))),
-              ("offset", construction.add(Number(offset.to_double()))),
+              ("count", lower_query_integer(construction, count)),
+              ("offset", lower_query_integer(construction, offset)),
             ]),
           ),
           (

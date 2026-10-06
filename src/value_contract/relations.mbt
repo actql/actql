@@ -136,7 +136,14 @@ pub fn type_equal(
   b : Contract,
   max_pairs : Int,
 ) -> Bool raise RelationError {
-  compare(a, b, max_pairs, Equal).0
+  let cursor = start_type_equality(a, b, max_pairs)
+  while true {
+    if advance_type_equality(cursor) is Some(equal) {
+      return equal
+    }
+  } nobreak {
+    false
+  }
 }
 
 ///|

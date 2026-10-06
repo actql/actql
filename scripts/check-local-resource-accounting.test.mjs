@@ -121,6 +121,211 @@ test('filter public expression evidence requires an actual suite connection', ()
     'RelA filter: expression comparison public fixture is not suite-connected'));
 });
 
+test('Pool requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `pool_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_long_keys_public_store');
+  }), /VecA pool_vectors: Pool key public Store fixture is missing/u);
+});
+
+test('Pool public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-pool-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA pool_vectors: Pool key public fixture is not suite-connected'));
+});
+
+test('nearest requires stepped key limits, stop and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'public_barrier']) {
+    const role = `nearest_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_long_keys_public_store');
+  }), /VecA nearest: nearest key public Store fixture is missing/u);
+});
+
+test('nearest public key evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-nearest-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA nearest: nearest key public fixture is not suite-connected'));
+});
+
+test('VecA Relation input requires nested limits, shared scans and public custody evidence', () => {
+  for (const [operation, prefix, publicName] of [
+    ['nearest', 'nearest', 'nearest'], ['pool_vectors', 'pool', 'Pool'],
+  ]) {
+    for (const suffix of ['limits_stop_cleanup', 'shared_vector']) {
+      const role = `${prefix}_relation_input_${suffix}`;
+      assert.match(run(undefined, routes => {
+        const route = routes.routes.find(entry => entry.family === 'VecA' &&
+          entry.operation === operation);
+        route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+      }), new RegExp(`VecA ${operation}: ${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.environment_tests = route.environment_tests.filter(item =>
+        item.role !== `${prefix}_relation_input_public_store`);
+    }), new RegExp(`VecA ${operation}: ${publicName} Relation input public Store fixture is missing`, 'u'));
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === operation);
+      route.boundary_tests.find(item =>
+        item.role === `${prefix}_relation_input_shared_vector`).suite = 'moon:local_veca';
+    }), new RegExp(`VecA ${operation}: boundary evidence must be suite-connected on all targets`, 'u'));
+  }
+});
+
+test('Pool output requires shared append accounting and public stop custody evidence', () => {
+  for (const role of ['pool_output_limits_stop_cleanup',
+    'pool_output_record_limits', 'pool_output_record_cleanup',
+    'pool_output_owner_exclusion', 'pool_identity_hash_limits',
+    'pool_identity_collision_cleanup', 'pool_identity_collision_equality',
+    'pool_identity_output_control_stop', 'pool_record_contract_names',
+    'pool_record_contract_workspace', 'pool_record_contract_cleanup',
+    'pool_record_contract_pair_limits', 'pool_record_contract_binding']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'pool_vectors');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA pool_vectors: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_output_public_store');
+  }), /VecA pool_vectors: Pool output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_identity_output_public_store');
+  }), /VecA pool_vectors: Pool identity output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item => item.role === 'pool_output_record_limits').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
+});
+
+test('nearest output requires its shared cursor and operator boundary evidence', () => {
+  for (const role of ['nearest_output_row_stop_cleanup',
+    'nearest_output_public_barrier', 'nearest_output_composite_order',
+    'nearest_output_shared_limits', 'nearest_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'nearest');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA nearest: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'nearest');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'nearest_output_public_store');
+  }), /VecA nearest: nearest output public Store fixture is missing/u);
+});
+
+test('ranking requires stepped comparison limits, roots and public Store evidence', () => {
+  for (const suffix of ['quantum', 'limits', 'stop_cleanup', 'components']) {
+    const role = `ranking_long_keys_${suffix}`;
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_long_keys_public_store');
+  }), /VecA merge_rankings: ranking key public Store fixture is missing/u);
+});
+
+test('ranking output requires its logical limits and shared cursor custody evidence', () => {
+  for (const role of ['ranking_output_logical_limits',
+    'ranking_output_row_stop_cleanup', 'ranking_output_shared_limits',
+    'ranking_output_shared_cleanup']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+});
+
+test('ranking input requires unused-value limits, shared scans and public custody evidence', () => {
+  for (const role of ['ranking_input_value_limits_stop_cleanup',
+    'ranking_input_shared_vector', 'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`VecA merge_rankings: ${role} fixture is missing`, 'u'));
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'merge_rankings');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'ranking_input_public_store');
+  }), /VecA merge_rankings: ranking input public Store fixture is missing/u);
+  for (const role of ['ranking_input_shared_vector',
+    'ranking_input_shared_json_text']) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'VecA' &&
+        entry.operation === 'merge_rankings');
+      route.boundary_tests.find(item => item.role === role).suite = 'moon:local_veca';
+    }), /VecA merge_rankings: boundary evidence must be suite-connected on all targets/u);
+  }
+});
+
+test('ranking public evidence requires an actual suite connection', () => {
+  const file = join(root, 'adapters/host-node/embedded-installation.test.mjs');
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file],
+      text: sourceTemplate[file].text.replace(
+        "import './public-ranking-key-retention.test.mjs';", '')}),
+  });
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes(
+    'VecA merge_rankings: ranking key public fixture is not suite-connected'));
+});
+
 test('interval join requires stepped Text comparison boundary evidence', () => {
   for (const role of [
     'interval_long_text_compare_quantum_order',
@@ -195,7 +400,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 63 with four-role boundary evidence, 63 with full work\/workspace assurance, 115 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
 });
 
 test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
@@ -3223,4 +3428,13 @@ test('resource snapshots are explicit per-run source bytes rather than validatio
     rmSync(directory, {recursive: true, force: true});
   }
   assert.equal(existsSync(directory), false);
+});
+
+
+test('union cannot claim its logical workspace assurance without the independent boundary', () => {
+  assert.match(run(undefined, routes => {
+    const union = routes.routes.find(route => route.operation === 'union_graphs');
+    union.boundary_tests = union.boundary_tests.filter(item =>
+      item.role !== 'union_workspace_exact_one_short_before_fold');
+  }), /SGA union_graphs: entrypoint operation workspace lacks an executable fixture/);
 });

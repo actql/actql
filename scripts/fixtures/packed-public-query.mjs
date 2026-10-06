@@ -1,3 +1,4 @@
+import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
 import {ifnullSuccesses, ifnullRefusals, ifnullExecutionFailures}
   from './ifnull-source-input.mjs';
 import {havingObjectPropertySuccesses, havingObjectPropertyRefusals, havingObjectPropertyExecutionFailures}
@@ -75,6 +76,8 @@ import {graphTraverseSourceSuccesses, graphTraverseSourceRefusals}
   from './property-graph-traverse-source-input.mjs';
 import {graphTraversePathSuccesses, graphTraversePathRefusals}
   from './property-graph-traverse-path-source-input.mjs';
+import {graphDifferenceSourceSuccesses, graphDifferenceSourceRefusals}
+  from './property-graph-difference-source-input.mjs';
 import {graphEqualitySourceSuccesses, graphEqualitySourceRefusals}
   from './property-graph-equality-source-input.mjs';
 import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
@@ -91,6 +94,7 @@ if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
 const havingObjectPropertyOnly = process.env.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY === '1';
 const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const graphPropertyPredicateOnly = process.env.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY === '1';
+const limitParameterOnly = process.env.ACTQL_TEST_LIMIT_PARAMETER_ONLY === '1';
 const ifnullOnly = process.env.ACTQL_TEST_IFNULL_ONLY === '1';
 const analyticCountifOnly = process.env.ACTQL_TEST_ANALYTIC_COUNTIF_ONLY === '1';
 const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
@@ -99,6 +103,7 @@ const analyticOffsetOnly = process.env.ACTQL_TEST_ANALYTIC_OFFSET_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
 const graphMatchOnly = process.env.ACTQL_TEST_GRAPH_MATCH_ONLY === '1';
 const graphRowsOnly = process.env.ACTQL_TEST_GRAPH_ROWS_ONLY === '1';
+const graphDifferenceOnly = process.env.ACTQL_TEST_GRAPH_DIFFERENCE_ONLY === '1';
 const graphEqualityOnly = process.env.ACTQL_TEST_GRAPH_EQUALITY_ONLY === '1';
 const quotedIdentifiersOnly = process.env.ACTQL_TEST_QUOTED_IDENTIFIERS_ONLY === '1';
 const graphProjectionPropertyOnly = process.env.ACTQL_TEST_GRAPH_PROJECTION_PROPERTY_ONLY === '1';
@@ -132,7 +137,7 @@ const analyticPartitionPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PARTITION_
 const analyticOrderOnly = process.env.ACTQL_TEST_ANALYTIC_ORDER_ONLY === '1';
 const joinPropertyOnly = process.env.ACTQL_TEST_JOIN_PROPERTY_ONLY === '1';
 const analyticFrameParameterOnly = process.env.ACTQL_TEST_ANALYTIC_FRAME_PARAMETER_ONLY === '1';
-const scopeOnly = ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
+const scopeOnly = graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -153,7 +158,7 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
+const scopeInputs = limitParameterOnly ? {successes: limitParameterSuccesses, refusals: limitParameterRefusals} : havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses, refusals: havingObjectPropertyRefusals, executionFailures: havingObjectPropertyExecutionFailures}
   : analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses, refusals: analyticPartitionPropertyRefusals}
   : analyticCountifOnly ? {successes: analyticCountifSuccesses, refusals: analyticCountifRefusals, executionFailures: analyticCountifExecutionFailures}
   : analyticFrameParameterOnly ? {successes: analyticFrameParameterSuccesses, refusals: analyticFrameParameterRefusals}
@@ -190,6 +195,7 @@ const scopeInputs = havingObjectPropertyOnly ? {successes: havingObjectPropertyS
   : graphTraverseOnly ? {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals}
   : graphMatchOnly ? {successes: graphMatchSourceSuccesses, refusals: graphMatchSourceRefusals}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
+  : graphDifferenceOnly ? {successes: graphDifferenceSourceSuccesses, refusals: graphDifferenceSourceRefusals}
   : graphEqualityOnly ? {successes: graphEqualitySourceSuccesses, refusals: graphEqualitySourceRefusals}
   : scopedOrderOnly ? {
   successes: scope.successes.filter(item => item.name.startsWith('scoped-order-')),
@@ -211,6 +217,8 @@ const scopeInputs = havingObjectPropertyOnly ? {successes: havingObjectPropertyS
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...limitParameterSuccesses);
+  scopeInputs.refusals.push(...limitParameterRefusals);
   scopeInputs.successes.push(...ifnullSuccesses);
   scopeInputs.refusals.push(...ifnullRefusals);
   scopeInputs.executionFailures.push(...ifnullExecutionFailures);
@@ -277,6 +285,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphTraverseSourceRefusals);
   scopeInputs.successes.push(...graphTraversePathSuccesses);
   scopeInputs.refusals.push(...graphTraversePathRefusals);
+  scopeInputs.successes.push(...graphDifferenceSourceSuccesses);
+  scopeInputs.refusals.push(...graphDifferenceSourceRefusals);
   scopeInputs.successes.push(...graphEqualitySourceSuccesses);
   scopeInputs.refusals.push(...graphEqualitySourceRefusals);
 }
