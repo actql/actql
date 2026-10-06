@@ -66,6 +66,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/order-ordinal-source-input.mjs', 'order-ordinal-source-input.mjs'],
   ['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs'],
   ['scripts/fixtures/distinct-order-source-input.mjs', 'distinct-order-source-input.mjs'],
+  ['scripts/fixtures/unary-plus-source-input.mjs', 'unary-plus-source-input.mjs'],
   ['scripts/fixtures/ifnull-source-input.mjs', 'ifnull-source-input.mjs'],
   ['scripts/fixtures/grouped-in-source-input.mjs', 'grouped-in-source-input.mjs'],
   ['scripts/fixtures/order-property-source-input.mjs', 'order-property-source-input.mjs'],
@@ -164,6 +165,9 @@ if (process.argv.includes('--typed-json-literal-only')) {
 }
 if (process.argv.includes('--having-object-property-only')) {
   runtimeEnvironment.ACTQL_TEST_HAVING_OBJECT_PROPERTY_ONLY = '1';
+}
+if (process.argv.includes('--unary-plus-only')) {
+  runtimeEnvironment.ACTQL_TEST_UNARY_PLUS_ONLY = '1';
 }
 if (process.argv.includes('--property-graph-source-only')) {
   runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
@@ -379,7 +383,7 @@ if (process.argv.includes('--cancellation-only')) {
 }
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
-const narrowPublicQuery = process.argv.some(flag => ['--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
+const narrowPublicQuery = process.argv.some(flag => ['--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',
   '--analytic-offset-only',
   '--join-property-only', '--aggregate-property-order-only', '--aggregate-property-only', '--analytic-property-only', '--graph-match-only',
   '--graph-diagnostics-only',
@@ -425,6 +429,7 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (process.argv.includes('--unary-plus-only')) return;
 if (process.argv.includes('--having-object-property-only')) return;
 if (process.argv.includes('--select-all-only')) return;
 if (plannerSelectionOnly || twoSourceExampleOnly || process.argv.includes('--replace-call-only') || process.argv.includes('--character-length-only') || process.argv.includes('--select-all-only') || process.argv.includes('--star-exclusion-only') || process.argv.includes('--analytic-partition-expression-only') || process.argv.includes('--graph-subtraction-only') || process.argv.includes('--graph-union-only') || process.argv.includes('--statistical-aggregate-only') || process.argv.includes('--analytic-countif-only') ||
