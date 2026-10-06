@@ -1127,6 +1127,12 @@ try {
       }
       site.child.kill('SIGTERM');
       await within(site.exited, 'retained consumer control shutdown');
+      const acquisitions = site.lines.filter(line => line.kind === 'source-acquisition-entered');
+      assert.equal(acquisitions.length, 1, 'physical Source acquisition Owner entered exactly once');
+      const acceptedProducer = site.lines.find(line => line.kind === 'accepted' &&
+        line.request_cid === siteControl.identity(producerDispatch));
+      assert.ok(acceptedProducer, 'original producer admission was observed');
+      assert.equal(acquisitions[0].attempt, acceptedProducer.attempt);
       const database = new DatabaseSync(journalPath, {readOnly: true});
       try {
         const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
@@ -1137,7 +1143,7 @@ try {
       } finally { database.close(); }
       console.log(JSON.stringify({kind: 'native-retained-consumer-verified',
         runDefinitionCid: definition.identity, producerDispatchCid: siteControl.identity(producerDispatch),
-        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: 1,
+        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: acquisitions.length,
         producerEntries: 1, consumerEntries: retainedCancelBeforeConsumer ? 0 : 1,
         rows: retainedCancelBeforeConsumer ? [] : retainedSourceRows,
         typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
