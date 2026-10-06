@@ -3168,8 +3168,9 @@ fn confirm_unstarted_consumer_cleanup(
   if codes[0] != 5 || codes[1] != 0 || codes[3] != 0 || codes[4] != 0 {
     return false
   }
-  if journal.start_claimant(request) is not Ok(None) {
-    return false
+  match journal.start_claimant(request) {
+    Ok(None) => ()
+    _ => return false
   }
   if codes[2] == 0 {
     let transition = match @remote.prepare_begin_remote_release(record) {
