@@ -158,13 +158,16 @@ fn second_input_normalize_owner(
 }
 
 ///|
-fn sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
+fn sequence(
+  owner : @lower.BoundPrepared,
+  name_bytes? : Int = 1000,
+) -> @lower.PreparedSequence {
   @lower.prepare_sequence(owner, {
     max_steps: 10,
     max_rows: 100,
     max_cells: 1000,
     max_bindings: 100,
-    max_name_bytes: 1000,
+    max_name_bytes: name_bytes,
     expressions: {
       max_nodes: 100,
       max_work: 1000,

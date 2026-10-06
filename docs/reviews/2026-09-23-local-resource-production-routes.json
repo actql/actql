@@ -10037,6 +10037,55 @@
           "fixture": "record append keeps exact wire accounting across Text chunk yields"
         },
         {
+          "role": "pool_field_binding_limits_stop",
+          "suite": "moon:local_veca",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_veca/pool_field_binding_wbtest.mbt",
+          "fixture": "Pool retained field binding keeps independent limits across quantum and stop"
+        },
+        {
+          "role": "pool_field_binding_public_barrier",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/pool_field_binding_wbtest.mbt",
+          "fixture": "Relation Pool public field binding has independent limits and stop barrier"
+        },
+        {
+          "role": "pool_field_binding_shared_limits",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/field_binding_steps_wbtest.mbt",
+          "fixture": "record field names keep independent wire and workspace boundaries"
+        },
+        {
+          "role": "pool_field_binding_collision",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/field_binding_steps_wbtest.mbt",
+          "fixture": "record name fingerprint collisions retain exact field identity"
+        },
+        {
+          "role": "pool_field_binding_bucket_yield",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/field_binding_steps_wbtest.mbt",
+          "fixture": "record name collision buckets yield before traversing every prior field"
+        },
+        {
+          "role": "pool_field_binding_typed_role",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/field_binding_steps_wbtest.mbt",
+          "fixture": "record schema binding preserves typed qualification after spelling equality"
+        },
+        {
+          "role": "pool_field_binding_prior_cleanup",
+          "suite": "moon:managed_record_storage",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/managed_record_storage/field_binding_steps_wbtest.mbt",
+          "fixture": "record prior identity name scan retains earlier rows through cleanup"
+        },
+        {
           "role": "pool_output_record_cleanup",
           "suite": "moon:managed_record_storage",
           "targets": ["js", "wasm", "native"],
@@ -10170,6 +10219,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-pool-key-retention.test.mjs",
           "fixture": "public retained Pool publishes and cancels inside typed Object name admission"
+        },
+        {
+          "role": "pool_field_binding_public_store",
+          "suite": "node:embedded_pool_keys",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-pool-key-retention.test.mjs",
+          "fixture": "public retained Pool publishes and cancels inside retained field binding"
         },
         {
           "role": "pool_relation_host_in_flight_cancel",

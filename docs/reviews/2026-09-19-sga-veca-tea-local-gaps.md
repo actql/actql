@@ -5888,3 +5888,23 @@ Object matching/byte scans, not every name/Map/schema boundary. Legacy drains,
 runtime buffer assembly, whole-Run physical accounting and unexecuted
 target/packed campaigns remain distinct. See the
 [Object-name evidence](2026-10-06-local-object-name-rechecks.md).
+
+### Retained record field-name binding
+
+Stepped record append now yields while hashing/comparing long field names,
+searching typed Carrier Knowledge, checking required fields and resolving
+current/prior identity names. Numeric fingerprints never replace exact UTF-16
+equality or typed qualification. A new fixed eight-slot name reservation and
+one collision-link slot per field are admitted before allocation. Historical
+Pool workspace figures above belong to their original source revisions;
+current three-field depth-three input cases need 66/65 slots, while the
+depth-ten scalar Carrier case needs 71/70. Construction work is unchanged.
+
+Independent fixtures cover name collisions, omission/refusal, mutation during
+yield, prior-row custody and quantum-independent 943/942 and 314/313 control.
+The latter fixes the ordinary retained Host cancellation boundary at 256.
+This does not close preparation/input-matching name scans, qualified wire-name
+assembly, JSON normalization, legacy drains, runtime buffer assembly,
+aggregate intermediate bytes or whole-Run physical accounting. See the
+[field-binding evidence](2026-10-06-local-record-field-binding.md) for actual
+executed checks and unverified target/packed/public coverage.
