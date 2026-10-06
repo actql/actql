@@ -4,6 +4,7 @@ pkgtype(kind: "executable")
 
 import {
   "actql/actql/check_environment" @environment,
+  "actql/actql/execution_relation" @execution,
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/executor_slot" @slot,
