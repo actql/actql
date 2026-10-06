@@ -6,7 +6,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome} from
+  validResultDescription, validCheckOutcome, snapshotCheckRequest} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -1143,17 +1143,10 @@ async function connectSelected(selected, port) {
       let body;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
-        body = freezeInput(JSON.parse(JSON.stringify({input: {text, format: options.format,
+        body = freezeInput(snapshotCheckRequest({input: {text, format: options.format,
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})},
-          parameters: options.parameters ?? null}, (_key, value) => {
-            // JSON.stringify would silently replace these source numbers.
-            if (typeof value === 'number' &&
-                (!Number.isFinite(value) || Object.is(value, -0))) {
-              fail('InvalidCheckRequest');
-            }
-            return value;
-          })));
+          parameters: options.parameters ?? null}));
       } catch { fail('InvalidCheckRequest'); }
       if (!validClientBody('check', {connection: selected.wire, ...body})) {
         fail('InvalidCheckRequest');
