@@ -441,7 +441,18 @@ fn append_resolved(
             }
           }
         Predicate(op, args) =>
-          if op == "IN" || op == "NOT IN" {
+          if op == "IN UNNEST" || op == "NOT IN UNNEST" {
+            // The existing membership operator consumes the array expression
+            // itself. It is not a scalar item wrapped in a literal list.
+            lowering.arguments(
+              if op == "IN UNNEST" {
+                "in"
+              } else {
+                "not_in"
+              },
+              args.map(i => nodes[i]),
+            )
+          } else if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []
             for j in 1..<args.length() {
               match literals[args[j]] {
