@@ -7,6 +7,42 @@ const safe = value => Number.isSafeInteger(value) && value >= 0;
 const sameBoundary = (left, right) => left.phase === right.phase &&
   left.task === right.task && left.producer === right.producer;
 
+// These labels mark the start of the named operation. Keep the enclosing
+// intervals separate from nested physical phases and parent process time.
+export function nativePreparationObservations(stdout, expectedReadOnly) {
+  assert(typeof expectedReadOnly === 'boolean', 'MissingNativeSourceOpenExpectation');
+  const modes = stdout.split('\n').filter(line => line.startsWith('source-open-mode:'));
+  assert.deepEqual(modes, ['source-open-mode:' + (expectedReadOnly ? 'read-only' : 'read-write')],
+    'NativeSourceOpenModeMismatch');
+  const names = ['application', 'library', 'database', 'acquisition-start',
+    'acquisition-execute', 'acquisition-output', 'source', 'capture', 'dispatch',
+    'strategy-open', 'strategy-execute', 'output-cid', 'execution-end', 'cleanup-end'];
+  const boundaries = stdout.split('\n').filter(line => line.startsWith('phase-time-us:'))
+    .map(line => {
+      const match = /^phase-time-us:([a-z-]+):(0|[1-9][0-9]*)$/.exec(line);
+      assert(match, 'InvalidNativePreparationBoundary');
+      const microseconds = Number(match[2]);
+      assert(safe(microseconds), 'InvalidNativePreparationClock');
+      return {name: match[1], microseconds};
+    });
+  assert.deepEqual(boundaries.map(item => item.name), names, 'NativePreparationBoundaryMismatch');
+  assert(boundaries.every((item, index) => !index ||
+    item.microseconds >= boundaries[index - 1].microseconds), 'NativePreparationClockRetreat');
+  const at = Object.fromEntries(boundaries.map(item => [item.name, item.microseconds]));
+  const elapsed = (start, end) => (at[end] - at[start]) / 1000;
+  return Object.freeze({sourceReadOnly: expectedReadOnly, boundaries,
+    applicationMs: elapsed('application', 'library'),
+    libraryMs: elapsed('library', 'database'),
+    databaseMs: elapsed('database', 'acquisition-start'),
+    acquisitionMs: elapsed('acquisition-start', 'acquisition-output'),
+    sourceMaterializationMs: elapsed('acquisition-output', 'capture'),
+    captureMs: elapsed('capture', 'dispatch'),
+    dispatchMs: elapsed('dispatch', 'strategy-execute'),
+    computeAndIdentityMs: elapsed('strategy-execute', 'execution-end'),
+    cleanupMs: elapsed('execution-end', 'cleanup-end'),
+    scope: 'monotonic enclosing operation-start boundaries; not additive with nested task phases'});
+}
+
 export function admitNativePhysicalPhases({events, ownerCorrespondence, taskIntervals,
   cleanupMicroseconds}) {
   assert(Array.isArray(events), 'MissingNativePhysicalPhaseEvents');

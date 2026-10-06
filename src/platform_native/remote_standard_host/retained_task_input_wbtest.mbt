@@ -74,6 +74,7 @@ fn retained_transfer_edge() -> @publication_host.ClientRetainedInputEdge {
 fn retained_transfer_fixture(
   committed : Bool,
   edge? : @publication_host.ClientRetainedInputEdge? = None,
+  release? : Ref[(() -> Unit)?]? = None,
 ) -> (
   @publication_host.ClientRetainedInputProducer,
   @transfer.RemoteTransferRecord,
@@ -166,6 +167,14 @@ fn retained_transfer_fixture(
     @remote.prepare_durable_execution_evidence(record, evidence).unwrap(),
     true,
   ).unwrap()
+  if release is Some(callback) {
+    callback.val = Some(() => {
+      @remote.commit_dispatch_transition(
+        @remote.prepare_begin_remote_release(record).unwrap(),
+        true,
+      ).unwrap()
+    })
+  }
   let producer = @publication_host.prepare_client_retained_input_producer(
     edge, record, evidence, subject,
   ).unwrap()
@@ -803,4 +812,34 @@ test "saved retained binding restores its checked material use through the exist
   )
   assert_eq(@site.site_status(site), before)
   assert_eq(@transfer.record_revision(transfer), revision)
+}
+
+///|
+test "retained Transfer refuses producer release during current authorization" {
+  let release : Ref[(() -> Unit)?] = Ref(None)
+  let (producer, transfer, _, site) = retained_transfer_fixture(
+    false,
+    release=Some(release),
+  )
+  let request = @transfer.record_request(transfer)
+  let before = @site.site_status(site)
+  let current = @publication_host.install_client_retained_input_current(
+    () => site,
+    () => standard_transfer_input_cid("c"),
+    () => 1791158400000L,
+    (_, _) => {
+      release.val.unwrap()()
+      true
+    },
+  )
+  assert_true(
+    @publication_host.validate_client_retained_input_transfer_current(
+      producer, request, current,
+    )
+    is Err(@publication_host.ProducerUnavailable),
+  )
+  assert_false(
+    @publication_host.client_retained_input_producer_available(producer),
+  )
+  assert_eq(@site.site_status(site)[6], before[6])
 }

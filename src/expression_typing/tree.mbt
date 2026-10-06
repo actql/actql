@@ -81,6 +81,7 @@ fn flatten(
       "field"
       | "$param"
       | "literal"
+      | "typed_literal"
       | "template"
       | "#null"
       | "join_field"

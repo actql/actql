@@ -68,3 +68,46 @@ test "complete order budget includes typed tags and JSON escaping" {
   assert_true(key.contains("text"))
   assert_true(key.length() > 3)
 }
+
+///|
+test "complete order cursor retains independent bytes across quantums and cancellation" {
+  let text = @contract.primitive(@contract.StringType, nullable=true)
+  let array = @contract.array_contract(
+    text,
+    nullable=false,
+    max_items=Some(10L),
+  ).unwrap()
+  let value = order_checked(array, "[null,\"a\"]")
+  let limits = { max_nodes: 100, max_depth: 20, max_text_bytes: 1000, }
+  // Recheck: 3 value nodes + 3 array visits + 1 Text chunk + terminal = 8.
+  // Emission: 3 value frames + 3 array visits + aggregate close + Text chunk
+  // + terminal = 9. The inherited total 15 omitted the bounded Text recheck.
+  // No renewal or additional logical value charge at the emission boundary.
+  for quantum in [1, 64] {
+    let cursor = start_complete_order(value, limits).unwrap()
+    let mut total = 0
+    while true {
+      match advance_complete_order(cursor, quantum) {
+        OrderContinue(work~) => {
+          assert_true(work > 0 && work <= quantum)
+          total += work
+        }
+        OrderComplete(text, bytes~, work~) => {
+          assert_eq(bytes, text.length())
+          total += work
+          assert_eq(text, "[\"array\",[[\"null\"],[\"text\",\"a\"]]]")
+          assert_eq(total, 17)
+          break
+        }
+        OrderFailed(_, ..) => abort("unexpected order failure")
+      }
+    }
+    assert_true(advance_complete_order(cursor, 1) is OrderFailed(_, work=0))
+  }
+  let cursor = start_complete_order(value, limits).unwrap()
+  assert_true(advance_complete_order(cursor, 1) is OrderContinue(work=1))
+  cancel_complete_order(cursor)
+  assert_true(cursor.pending.is_empty())
+  assert_true(cursor.out is None && cursor.recheck is None)
+  assert_true(advance_complete_order(cursor, 1) is OrderFailed(_, work=0))
+}

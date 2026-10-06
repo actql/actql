@@ -14,6 +14,8 @@ priv enum Frame {
   ArrayItems(Bool)
   ObjectKey(Bool, Map[String, Unit])
   ObjectValue(Map[String, Unit])
+  OrderedObjectKey(String?)
+  OrderedObjectValue(String)
 }
 
 ///|
@@ -409,8 +411,10 @@ fn value_start(w : Writer) -> Unit raise EncodeFailure {
         }
         w.frames[index] = ArrayItems(false)
       }
-      ObjectKey(_, _) => fail(w, InvalidStructure)
+      ObjectKey(_, _) | OrderedObjectKey(_) => fail(w, InvalidStructure)
       ObjectValue(keys) => w.frames[index] = ObjectKey(false, keys)
+      OrderedObjectValue(previous) =>
+        w.frames[index] = OrderedObjectKey(Some(previous))
     }
   }
   w.remaining_nodes -= 1
@@ -572,6 +576,138 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
 }
 
 ///|
+/// An object whose keys must be strictly increasing in canonical UTF-16 order.
+/// This checked lane borrows only the previous key instead of hashing whole
+/// keys. It does not permit omission of uniqueness or Unicode validation.
+pub fn begin_ordered_object(w : Writer) -> Unit raise EncodeFailure {
+  value_start(w)
+  if w.frames.length() >= w.max_depth {
+    fail(w, OutputLimit)
+  }
+  ascii(w, "{")
+  w.frames.push(OrderedObjectKey(None))
+  w.peak_depth = w.peak_depth.max(w.frames.length())
+}
+
+///|
+struct OrderedKeyEmitCursor {
+  writer : Writer
+  text : String
+  previous : String?
+  mut position : Int
+  mut phase : Int
+  mut done : Bool
+}
+
+///|
+pub fn start_ordered_key(
+  w : Writer,
+  name : String,
+) -> OrderedKeyEmitCursor raise EncodeFailure {
+  idle(w)
+  guard w.frames.last() is Some(OrderedObjectKey(previous)) else {
+    fail(w, InvalidStructure)
+  }
+  // Reject the UTF-16 lower bound before touching the previous key. Exact
+  // escaping and punctuation still use the existing bounded writer below.
+  if name.length() > w.remaining_bytes {
+    fail(w, OutputLimit)
+  }
+  w.string_active = true
+  { writer: w, text: name, previous, position: 0, phase: 0, done: false, }
+}
+
+///|
+/// Check at most 64 ordering units, or emit at most 64 UTF-16 units with a
+/// crossing surrogate pair. No key hash, substring or unbounded equality scan.
+pub fn advance_ordered_key(
+  cursor : OrderedKeyEmitCursor,
+) -> Bool raise EncodeFailure {
+  if cursor.done {
+    raise ClosedWriter
+  }
+  let w = cursor.writer
+  active(w)
+  if !w.string_active {
+    fail(w, InvalidStructure)
+  }
+  match cursor.phase {
+    0 => {
+      if cursor.previous is Some(previous) {
+        for _ in 0..<64 {
+          if cursor.position == previous.length() ||
+            cursor.position == cursor.text.length() {
+            if previous.length() >= cursor.text.length() {
+              fail(w, InvalidStructure)
+            }
+            cursor.phase = 1
+            break
+          }
+          let left = previous[cursor.position]
+          let right = cursor.text[cursor.position]
+          if left != right {
+            if left > right {
+              fail(w, InvalidStructure)
+            }
+            cursor.phase = 1
+            break
+          }
+          cursor.position += 1
+        }
+      } else {
+        cursor.phase = 1
+      }
+      false
+    }
+    1 => {
+      if cursor.previous is Some(_) {
+        ascii(w, ",")
+      }
+      ascii(w, "\"")
+      cursor.position = 0
+      cursor.phase = 2
+      false
+    }
+    2 => {
+      let end = cursor.position +
+        Int::min(64, cursor.text.length() - cursor.position)
+      cursor.position = quoted_contents(w, cursor.text, cursor.position, end)
+      if cursor.position == cursor.text.length() {
+        ascii(w, "\":")
+        let index = w.frames.length() - 1
+        guard index >= 0 && w.frames[index] is OrderedObjectKey(_) else {
+          fail(w, InvalidStructure)
+        }
+        w.frames[index] = OrderedObjectValue(cursor.text)
+        w.string_active = false
+        cursor.done = true
+        true
+      } else {
+        false
+      }
+    }
+    _ => fail(w, InvalidStructure)
+  }
+}
+
+///|
+pub fn cancel_ordered_key(cursor : OrderedKeyEmitCursor) -> Unit {
+  if !cursor.done {
+    cursor.done = true
+    cancel_writer(cursor.writer)
+  }
+}
+
+///|
+/// Draining form for bounded names. Resumable callers own the same cursor.
+pub fn ordered_key(w : Writer, name : String) -> Unit raise EncodeFailure {
+  let cursor = start_ordered_key(w, name)
+  while !advance_ordered_key(cursor) {
+    ()
+  }
+}
+
+///|
 pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
   idle(w)
   if w.frames.is_empty() {
@@ -597,7 +733,10 @@ pub fn key(w : Writer, name : String) -> Unit raise EncodeFailure {
       keys[name] = ()
       w.frames[index] = ObjectValue(keys)
     }
-    ArrayItems(_) | ObjectValue(_) => fail(w, InvalidStructure)
+    ArrayItems(_)
+    | ObjectValue(_)
+    | OrderedObjectKey(_)
+    | OrderedObjectValue(_) => fail(w, InvalidStructure)
   }
 }
 
@@ -609,8 +748,11 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
       ignore(w.frames.pop())
       ascii(w, "]")
     }
-    Some(ObjectKey(_, _)) | Some(ObjectValue(_)) | None =>
-      fail(w, InvalidStructure)
+    Some(ObjectKey(_, _))
+    | Some(ObjectValue(_))
+    | Some(OrderedObjectKey(_))
+    | Some(OrderedObjectValue(_))
+    | None => fail(w, InvalidStructure)
   }
 }
 
@@ -618,12 +760,14 @@ pub fn end_array(w : Writer) -> Unit raise EncodeFailure {
 pub fn end_object(w : Writer) -> Unit raise EncodeFailure {
   idle(w)
   match w.frames.last() {
-    Some(ObjectKey(_, _)) => {
+    Some(ObjectKey(_, _)) | Some(OrderedObjectKey(_)) => {
       ignore(w.frames.pop())
       ascii(w, "}")
     }
-    Some(ArrayItems(_)) | Some(ObjectValue(_)) | None =>
-      fail(w, InvalidStructure)
+    Some(ArrayItems(_))
+    | Some(ObjectValue(_))
+    | Some(OrderedObjectValue(_))
+    | None => fail(w, InvalidStructure)
   }
 }
 

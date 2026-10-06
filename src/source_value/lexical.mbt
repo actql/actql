@@ -181,6 +181,9 @@ fn Parser::parse_number(
     }
   }
   let number = self.read_binary64(start_offset, path)
+  if self.literal_json {
+    self.check_json_number_precision(start_offset, number, path)
+  }
   { value: Number(number), span: self.span(start), }
 }
 

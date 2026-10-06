@@ -1,8 +1,12 @@
 ///|
 fn bounded_interval_source(
   rows : String,
+  text_key? : Bool = false,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
-  let schema = "{\"key\":{\"type\":\"number\",\"nullable\":true}," +
+  let key_type = if text_key { "string" } else { "number" }
+  let schema = "{\"key\":{\"type\":\"" +
+    key_type +
+    "\",\"nullable\":true}," +
     "\"start\":{\"type\":\"number\",\"nullable\":false}," +
     "\"end\":{\"type\":\"number\",\"nullable\":false}," +
     "\"time\":{\"type\":\"number\",\"nullable\":false}," +
@@ -34,17 +38,35 @@ fn bounded_interval_source(
 fn bounded_interval_fixture_result(
   max_work : Int,
   max_entries? : Int = 10000,
+  text_key? : Bool = false,
 ) -> Result[
   (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]),
   BoundedIntervalJoinIssue,
 ] raise {
+  let key = fn(value : Int) {
+    if text_key {
+      "\"" + String::make(256, 'g') + value.to_string() + "\""
+    } else {
+      value.to_string()
+    }
+  }
   let (left_owner, left_output) = bounded_interval_source(
-    "[{\"key\":1,\"start\":0,\"end\":5,\"time\":2,\"value\":10}," +
-    "{\"key\":2,\"start\":5,\"end\":8,\"time\":7,\"value\":11}]",
+    "[{\"key\":" +
+    key(1) +
+    ",\"start\":0,\"end\":5,\"time\":2,\"value\":10}," +
+    "{\"key\":" +
+    key(2) +
+    ",\"start\":5,\"end\":8,\"time\":7,\"value\":11}]",
+    text_key~,
   )
   let (right_owner, right_output) = bounded_interval_source(
-    "[{\"key\":1,\"start\":0,\"end\":3,\"time\":1,\"value\":20}," +
-    "{\"key\":1,\"start\":2,\"end\":4,\"time\":2,\"value\":21}]",
+    "[{\"key\":" +
+    key(1) +
+    ",\"start\":0,\"end\":3,\"time\":1,\"value\":20}," +
+    "{\"key\":" +
+    key(1) +
+    ",\"start\":2,\"end\":4,\"time\":2,\"value\":21}]",
+    text_key~,
   )
   let left_producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(left_owner)),
@@ -136,8 +158,214 @@ fn bounded_interval_fixture_result(
 fn bounded_interval_fixture(
   max_work? : Int = 100000,
   max_entries? : Int = 10000,
+  text_key? : Bool = false,
 ) -> (@bounded.Control, BoundedIntervalJoinExecution, Array[ProducerRead]) raise {
-  bounded_interval_fixture_result(max_work, max_entries~).unwrap()
+  bounded_interval_fixture_result(max_work, max_entries~, text_key~).unwrap()
+}
+
+///|
+test "interval join yields within long equal and unequal Text keys" {
+  let mut prior_work : Int? = None
+  for quantum in [1, 7] {
+    let (_, execution, inputs) = bounded_interval_fixture(text_key=true)
+    let state = execution.state
+    let mut output : CompletedOutput? = None
+    let mut comparing = 0
+    for _ in 0..<10000 {
+      let before = state.control.remaining
+      let compare_phase = state.phase is CompareKey
+      let poll = advance_bounded_interval_join(execution, quantum).unwrap()
+      if compare_phase {
+        assert_true(before - state.control.remaining <= quantum)
+        comparing += 1
+      }
+      match poll {
+        BoundedIntervalJoinContinue(..) => ()
+        BoundedIntervalJoinComplete(value, ..) => {
+          output = Some(value)
+          break
+        }
+        _ => fail("long Text interval join failed")
+      }
+    }
+    assert_true(comparing > 256)
+    guard output is Some(output) else { fail("interval join did not finish") }
+    assert_eq(completed_row_count(output), 3)
+    for
+      (row, left, right) in [
+        (0, 10.0, Some(20.0)),
+        (1, 10.0, Some(21.0)),
+        (2, 11.0, None),
+      ] {
+      assert_true(
+        completed_cell(output, row, 0) is Some(Number(value)) && value == left,
+      )
+      match right {
+        Some(expected) =>
+          assert_true(
+            completed_cell(output, row, 1) is Some(Number(value)) &&
+            value == expected,
+          )
+        None => assert_true(completed_cell(output, row, 1) is Some(Null))
+      }
+    }
+    assert_true(completed_output_matches_inputs(output, inputs))
+    let spent = 100000 - state.control.remaining
+    if prior_work is Some(prior) {
+      assert_eq(spent, prior)
+    }
+    prior_work = Some(spent)
+    assert_true(cleanup_bounded_interval_join(execution).unwrap())
+    assert_false(cleanup_bounded_interval_join(execution).unwrap())
+    assert_eq(state.workspace.live, 0)
+    assert_true(inputs.all(producer_read_available))
+  }
+}
+
+///|
+test "interval join retains pending Text comparison until confirmed stop" {
+  for target in [1, 3] {
+    let (control, execution, inputs) = bounded_interval_fixture(text_key=true)
+    let state = execution.state
+    let mut reached = false
+    for _ in 0..<3000 {
+      assert_true(
+        advance_bounded_interval_join(execution, 1).unwrap()
+        is BoundedIntervalJoinContinue(..),
+      )
+      if state.comparison is Some(cursor) &&
+        cursor.phase == target &&
+        (if target == 1 { cursor.charge.offset } else { cursor.offset }) > 64 {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    let held = state.workspace.live
+    let remaining = state.control.remaining
+    assert_true(@bounded.request_cancel(control))
+    assert_true(state.comparison is Some(_))
+    assert_eq(state.workspace.live, held)
+    assert_true(
+      advance_bounded_interval_join(execution, 1).unwrap()
+      is BoundedIntervalJoinStopped(@bounded.Cancelled, ..),
+    )
+    assert_true(state.comparison is Some(_))
+    assert_eq(
+      (state.workspace.live, state.control.remaining),
+      (held, remaining),
+    )
+    assert_true(state.rows.val is None)
+    assert_false(state.accepted.val)
+    assert_true(inputs.all(producer_read_available))
+    assert_true(cleanup_bounded_interval_join(execution).unwrap())
+    assert_false(cleanup_bounded_interval_join(execution).unwrap())
+    assert_true(state.comparison is None)
+    assert_eq(state.workspace.live, 0)
+    assert_eq(state.control.remaining, remaining)
+    assert_true(inputs.all(producer_read_available))
+  }
+}
+
+///|
+test "interval Text comparison has fixed control and cursor boundaries" {
+  // Isolate the first production key pair after ordinary preparation. Two
+  // 257-byte Text operands and the complete-value transition cost 515 units.
+  // Four clock entries per side, two key entries and four output mappings
+  // hold 14 metadata slots; the pending comparison borrows two more.
+  // These are comparison boundaries, not the complete Run budget.
+  for (work, slots, failure) in [(515, 16, 0), (514, 16, 1), (515, 15, 2)] {
+    let (control, execution, inputs) = bounded_interval_fixture(
+      text_key=true,
+      max_entries=slots,
+    )
+    let state = execution.state
+    while !(state.phase is CompareKey) {
+      assert_true(
+        advance_bounded_interval_join(execution, 1).unwrap()
+        is BoundedIntervalJoinContinue(..),
+      )
+    }
+    state.control.remaining = work
+    let a = producer_read_cell(inputs[0], 0, state.keys[0].0).unwrap()
+    let b = producer_read_cell(inputs[1], 0, state.keys[0].1).unwrap()
+    let mut result : Result[Int?, RowIssue] = Ok(None)
+    for _ in 0..<2000 {
+      result = bounded_interval_compare_key(state, a, b)
+      if !(result is Ok(None)) {
+        break
+      }
+    }
+    if failure == 0 {
+      assert_true(result is Ok(Some(0)))
+      assert_eq(state.control.remaining, 0)
+      assert_eq(state.workspace.peak, 16)
+      assert_eq(state.workspace.live, 14)
+      assert_true(state.comparison is None)
+    } else {
+      assert_true(result is Err(RowLimit))
+    }
+    let remaining = state.control.remaining
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      advance_bounded_interval_join(execution, 1).unwrap()
+      is BoundedIntervalJoinStopped(@bounded.Cancelled, ..),
+    )
+    assert_true(cleanup_bounded_interval_join(execution).unwrap())
+    assert_false(cleanup_bounded_interval_join(execution).unwrap())
+    assert_true(state.comparison is None)
+    assert_eq(state.workspace.live, 0)
+    assert_eq(state.control.remaining, remaining)
+    assert_true(inputs.all(producer_read_available))
+  }
+}
+
+///|
+test "interval long Text preserves whole-operation exact work and workspace" {
+  // The existing 132-unit scalar fixture has four one-unit key comparisons.
+  // Replacing each with 1 + 257 + 257 adds 4 * 514: exact work is 2188.
+  // Pending comparisons peak at 14 + 2 slots, below the existing output
+  // peak of 18. Neither limit is inferred from a successful execution.
+  for
+    (work, slots, success) in [
+      (2188, 18, true),
+      (2187, 18, false),
+      (2188, 17, false),
+    ] {
+    for quantum in [1, 7] {
+      let (_, execution, inputs) = bounded_interval_fixture(
+        max_work=work,
+        max_entries=slots,
+        text_key=true,
+      )
+      let mut terminal : BoundedIntervalJoinPoll? = None
+      for _ in 0..<10000 {
+        match advance_bounded_interval_join(execution, quantum).unwrap() {
+          BoundedIntervalJoinContinue(..) => ()
+          value => {
+            terminal = Some(value)
+            break
+          }
+        }
+      }
+      if success {
+        assert_true(terminal is Some(BoundedIntervalJoinComplete(_, ..)))
+        assert_eq(execution.state.control.remaining, 0)
+        assert_eq(execution.state.workspace.peak, 18)
+      } else {
+        assert_true(
+          terminal is Some(BoundedIntervalJoinFailed(Rows(RowLimit), ..)),
+        )
+        assert_true(execution.state.rows.val is None)
+        assert_false(execution.state.accepted.val)
+      }
+      assert_true(cleanup_bounded_interval_join(execution).unwrap())
+      assert_false(cleanup_bounded_interval_join(execution).unwrap())
+      assert_eq(execution.state.workspace.live, 0)
+      assert_true(execution.state.comparison is None)
+      assert_true(inputs.all(producer_read_available))
+    }
+  }
 }
 
 ///|

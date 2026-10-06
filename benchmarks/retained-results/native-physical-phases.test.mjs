@@ -1,6 +1,31 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {admitNativePhysicalPhases} from './native-physical-phases.mjs';
+import {admitNativePhysicalPhases, nativePreparationObservations} from './native-physical-phases.mjs';
+
+test('preparation uses operation-start boundaries and binds the observed source-open mode', () => {
+  const names = ['application', 'library', 'database', 'acquisition-start',
+    'acquisition-execute', 'acquisition-output', 'source', 'capture', 'dispatch',
+    'strategy-open', 'strategy-execute', 'output-cid', 'execution-end', 'cleanup-end'];
+  const lines = ['source-open-mode:read-only',
+    ...names.map((name, index) => `phase-time-us:${name}:${index * 1000}`)];
+  const result = nativePreparationObservations(lines.join('\n'), true);
+  assert.equal(result.applicationMs, 1);
+  assert.equal(result.libraryMs, 1);
+  assert.equal(result.databaseMs, 1);
+  assert.equal(result.acquisitionMs, 2);
+  assert.equal(result.computeAndIdentityMs, 2);
+  assert.throws(() => nativePreparationObservations(lines.join('\n'), false), /NativeSourceOpenModeMismatch/);
+  for (const mutate of [
+    lines => lines.splice(3, 1),
+    lines => lines.push(lines[2]),
+    lines => {lines[3] = 'phase-time-us:database:9999999999999999999';},
+    lines => {lines[4] = 'phase-time-us:acquisition-start:0';},
+    lines => {[lines[2], lines[3]] = [lines[3], lines[2]];},
+  ]) {
+    const changed = [...lines]; mutate(changed);
+    assert.throws(() => nativePreparationObservations(changed.join('\n'), true));
+  }
+});
 
 function example(resident = true) {
   const events = [];

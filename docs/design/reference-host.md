@@ -117,3 +117,24 @@ not a requirement to implement a general Run Graph scheduler.
 This editorial split does not relax the existing transaction requirements.
 Replacing them with storage-independent transition guarantees requires a
 separately reviewed semantic change and failure/concurrency evidence.
+
+
+## Installed Effect cleanup
+
+The installed Effect Site retains target-read authorization, input pins,
+physical execution, prepared-payload release and provider-stage disposal as
+separate cleanup duties. Its completion is their conjunction. Revoking further
+use does not prove that a callback, borrow or physical release has finished.
+Consumer pins are released before Compute reclamation; completed child duties
+are not invoked again while another child remains pending.
+
+Target-read gates expose their existing authorization owner's synchronous
+`close`, `cleanup` and `cleanupPending` facts. An in-flight delegated decision
+can outlive timeout or abort, so `close() === false` remains pending until that
+same owner confirms completion. A close-only child must be synchronously
+retryable: a normal return other than `false` confirms release; `false` or an
+exception retains that child for another close attempt. Cleanup never reruns
+Compute, provider dispatch or authorization. Construction failure transfers any
+already-held, unfinished gates through the existing cleanup-handle protocol.
+The dispatch owner may record physical stop and retire custody only after every
+retained child confirms completion.

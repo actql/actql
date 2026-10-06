@@ -19,12 +19,25 @@ type CheckReportExplanation<C extends 'complete' | 'partial'> = Readonly<{
 }>;
 export type CheckOutcomeExplanation = Readonly<{summary: string; hint: string}> & (
   Readonly<{outcome: 'completed'; report: CheckReportExplanation<'complete'>}> |
-  Readonly<{outcome: 'failed'; report?: CheckReportExplanation<'partial'>;
+  Readonly<{outcome: 'failed'; correlationRef: string; report?: CheckReportExplanation<'partial'>;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}> |
   Readonly<{outcome: 'unavailable'; correlationRef: string;
     problem: Readonly<{kind: 'known' | 'unknown'; code: string}>}>);
 /** Safe presentation of a schema-admitted outcome; no input association or execution authority. */
-export declare function explainCheckOutcome(outcome: unknown): CheckOutcomeExplanation | undefined;
+export type CheckExplanationOptions = Readonly<{locale?: string}>;
+/** The selected translation revision, separate from reason/outcome schema identity. */
+export declare function getCheckPresentationInfo(options?: CheckExplanationOptions):
+  Readonly<{locale: 'en' | 'ja'; translationRevision: string}>;
+/** Display formats for an admitted public observation; no execution or edit authority. */
+export type CheckFormatOptions = CheckExplanationOptions & Readonly<{
+  format?: 'text' | 'html' | 'json';
+  maxBytes?: number;
+  currentInputs?: readonly CheckInput[];
+}>;
+/** Undefined for malformed protocol data/options or a budget too small for the observation. */
+export declare function formatCheckOutcome(outcome: unknown, options?: CheckFormatOptions): string | undefined;
+export declare function explainCheckOutcome(outcome: unknown,
+  options?: CheckExplanationOptions): CheckOutcomeExplanation | undefined;
 export type CheckInput = Readonly<{documentId: string; revision: string}> & (
   Readonly<{kind: 'text'; text: string}> | Readonly<{kind: 'structured'; value: unknown}>);
 /** Available only for the exact response of this SDK check call. */
@@ -32,7 +45,7 @@ export declare function getCheckInput(outcome: CheckOutcome, documentId: string,
   revision?: string): CheckInput | undefined;
 type CompletedCheckReport = Extract<CheckOutcome, {outcome: 'completed'}>['report'];
 type ParameterRequirementFacts = Readonly<Pick<Extract<
-  CompletedCheckReport['requirements'][number]['facts'], {expected_type: string}>,
+  CompletedCheckReport['requirements'][number]['facts'], {parameter: string; expected_type: string}>,
   'parameter' | 'expected_type'>>;
 /** The known public parameter Requirements, not a complete future obligation list. */
 export type CheckRequirementFrontier = Readonly<{
@@ -84,6 +97,24 @@ export type SubmissionExplanation = Readonly<{summary: string}> & (
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown): SubmissionExplanation | undefined;
+export type ReadFailureExplanation = Readonly<{
+  observation: 'read_incomplete' | 'cleanup_unknown';
+  cleanup?: 'unknown';
+  attemptId: string;
+  rowsYielded: number;
+  summary: string;
+  hint: string;
+  next: Readonly<{
+    operation: 'deliveryAttempt';
+    ref: Readonly<RunReference>;
+    resultName: string;
+    attemptId: string;
+    lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
+  }>;
+}>;
+/** SDK-observed progress for this exact read error; no opening, Run or release proof. */
+export declare function explainReadFailure(result: unknown): ReadFailureExplanation | undefined;
+
 export type CancellationExplanation = Readonly<{
   summary: string;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
@@ -96,19 +127,43 @@ export declare function explainCancellation(result: unknown): CancellationExplan
 export declare function resolveCheckLocation(outcome: CheckOutcome,
   location: WireCheckLocation, currentInput?: CheckInput):
   (WireCheckLocation & Readonly<{input: CheckInput; text?: string}>) | undefined;
-/** Zero-based UTF-16 coordinates for the original revision; no CRLF-interior position or edits. */
-export declare function resolveCheckTextRange(outcome: CheckOutcome,
-  location: WireCheckLocation, currentInput?: CheckInput):
-  (Extract<WireCheckLocation, {kind: 'text'}> & Readonly<{
+export type CheckPositionEncoding = 'utf-8' | 'utf-16' | 'utf-32';
+export type CheckTextRange<E extends CheckPositionEncoding = CheckPositionEncoding> =
+  Extract<WireCheckLocation, {kind: 'text'}> & Readonly<{
     input: CheckInput & Readonly<{kind: 'text'; text: string}>;
     text: string;
-    positionEncoding: 'utf-16';
+    positionEncoding: E;
     range: Readonly<{
       start: Readonly<{line: number; character: number}>;
       end: Readonly<{line: number; character: number}>;
     }>;
-  }>) | undefined;
-export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>):
+  }>;
+/** Zero-based UTF-16 coordinates for the original revision; no CRLF-interior position or edits. */
+export declare function resolveCheckTextRange(outcome: CheckOutcome,
+  location: WireCheckLocation, currentInput?: CheckInput): CheckTextRange<'utf-16'> | undefined;
+/** Use the already negotiated encoding; undefined for unsupported encodings or inexact boundaries. */
+export declare function resolveCheckTextRangeEncoding<E extends CheckPositionEncoding>(outcome: CheckOutcome,
+  location: WireCheckLocation, encoding: E, currentInput?: CheckInput): CheckTextRange<E> | undefined;
+export type CheckDocumentObservation = Readonly<{
+  outcome: CheckOutcome;
+  version: number;
+  positionEncoding: CheckPositionEncoding;
+}>;
+export interface CheckDocumentSession {
+  /** Full replacement with a strictly increasing signed 32-bit version, including undo/redo. */
+  update(text: string, version: number): void;
+  /** Explicit check of the buffer captured at invocation; no execution or automatic retries. */
+  check(options: Parameters<Client['check']>[1]): Promise<CheckDocumentObservation>;
+  /** Only the newest issued check of this still-open current version may supply editor coordinates. */
+  resolveTextRange(observation: CheckDocumentObservation, location: WireCheckLocation): CheckTextRange | undefined;
+  /** Invalidate editor coordinates and release the current buffer; does not close the shared Client. */
+  close(): void;
+}
+/** One open-buffer scope. Reopening requires a new session; UTF-16 is the default encoding. */
+export declare function createCheckDocumentSession(client: Pick<Client, 'check'>,
+  options: Readonly<{text: string; version: number; positionEncoding?: CheckPositionEncoding}>): CheckDocumentSession;
+export declare function explainCheckReason(reason: Readonly<{code: string; facts?: unknown}>,
+  options?: CheckExplanationOptions):
   Readonly<{kind: 'known' | 'unknown'; summary: string; hint?: string}>;
 
 type ConnectedEndpoint = Readonly<{

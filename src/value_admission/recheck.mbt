@@ -45,14 +45,19 @@ fn recheck_json(value : Value, budget : RecheckBudget, depth : Int) -> Bool {
         return false
       }
       for (name, child) in values.values {
-        if recheck_text(name, budget, identifier=true) is None ||
+        if recheck_text(name, budget) is None ||
           !recheck_json(child, budget, depth + 1) {
           return false
         }
       }
       true
     }
-    Date(_) | Timestamp(_) | Decimal(_) | Vector(_) | Reference(_) => false
+    Date(_)
+    | Timestamp(_)
+    | Decimal(_)
+    | Vector(_)
+    | Reference(_)
+    | JsonData(_) => false
   }
 }
 
@@ -151,7 +156,7 @@ fn recheck_value(
     | (Reference(reference), @contract.ArtifactRef(_)) =>
       reference_available(reference) &&
       reference_compatible(reference, contract)
-    (_, @contract.Json) => {
+    (JsonData(value), @contract.Json) => {
       budget.nodes += 1
       recheck_json(value, budget, depth)
     }

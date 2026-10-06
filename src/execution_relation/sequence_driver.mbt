@@ -999,6 +999,8 @@ fn[T : RelationRows] run_sequence_steps(
       @lower.GraphDiagnosticStep(_) => return Err(InputSet)
       @lower.GraphNormalizeStep(_) => return Err(InputSet)
       @lower.GraphDeltaStep(_) => return Err(InputSet)
+      @lower.GraphUnionStep(_) => return Err(InputSet)
+      @lower.GraphSubtractionStep(_) => return Err(InputSet)
       @lower.PropertyGraphConstructionStep(_) => return Err(InputSet)
       @lower.VectorStep(_) => return Err(InputSet)
       @lower.EventStep(_) => return Err(InputSet)

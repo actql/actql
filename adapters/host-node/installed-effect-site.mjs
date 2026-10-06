@@ -8,7 +8,7 @@ import {completeCapturedEffectRun, completeRecoveredEffectRun,
 import {releaseCompletedRunPreparedPayloads,
   suspendCompletedEffectfulComputation} from
   '../host-common/completed-run-publication.mjs';
-import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -51,7 +51,7 @@ function continuation(facts, stage) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
-  return canonicalJson({version: 'actql-installed-effect-continuation/0.1',
+  return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
     unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
@@ -63,7 +63,7 @@ function continuation(facts, stage) {
 
 function checkContinuation(facts, stage) {
   const expected = continuation(facts, stage);
-  if (canonicalJson(facts.continuation) !== expected) {
+  if (canonicalValueJson(facts.continuation) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
 }
@@ -139,11 +139,32 @@ function finishStatus(result) {
 
 function cleanupCustody(physical, requirePhysical = false) {
   let stage;
-  let readAuthorization;
+  const authorizations = [];
+  let physicalCloseAttempted = false;
+  let physicalReleased = false;
   let disposed = false;
   let release;
   let released = false;
   let inputsReleased = false;
+  const releaseAuthorizations = async () => {
+    let failure;
+    for (const state of authorizations) {
+      if (state.released) continue;
+      try {
+        // A full child owns recovery through cleanup. A close-only child has a
+        // synchronous, retryable close: false or an exception retains custody.
+        const recover = state.closeAttempted &&
+          typeof state.owner.cleanup === 'function';
+        state.closeAttempted = true;
+        const result = await (recover ? state.owner.cleanup() : state.owner.close());
+        state.released = result !== false &&
+          (typeof state.owner.cleanupPending !== 'function' ||
+            state.owner.cleanupPending() === false);
+      } catch (error) { failure ??= error; }
+    }
+    if (failure !== undefined) throw failure;
+    return authorizations.every(state => state.released);
+  };
   const releaseInputs = async () => {
     if (!inputsReleased && typeof stage?.releaseInputs === 'function') {
       await stage.releaseInputs();
@@ -152,11 +173,12 @@ function cleanupCustody(physical, requirePhysical = false) {
   };
   return Object.freeze({
     expectPhysical() { requirePhysical = true; },
-    retainReadAuthorization(owner) {
-      if (readAuthorization !== undefined || typeof owner?.close !== 'function') {
+    retainAuthorization(owner) {
+      if (authorizations.some(state => state.owner === owner) ||
+          typeof owner?.close !== 'function') {
         fail('InstalledEffectCleanupOwnerAlreadySet');
       }
-      readAuthorization = owner;
+      authorizations.push({owner, closeAttempted: false, released: false});
     },
     attachPhysical(value) {
       if (physical !== undefined && physical !== value ||
@@ -177,23 +199,29 @@ function cleanupCustody(physical, requirePhysical = false) {
       }
       release = operation;
     },
+    closeAuthorizations: releaseAuthorizations,
     async close() {
       // Effect execution has stopped before dispatch custody closes. Its
       // consumer pins must go before the borrowed Compute output can reclaim.
       let failure;
-      try { readAuthorization?.close(); } catch (error) { failure = error; }
-      try { await releaseInputs(); } catch (error) { failure = error; }
-      try { await physical?.close(); } catch (error) { failure ??= error; }
+      try { await releaseAuthorizations(); } catch (error) { failure = error; }
+      try { await releaseInputs(); } catch (error) { failure ??= error; }
+      if (physical !== undefined && !physicalCloseAttempted && !physicalReleased) {
+        physicalCloseAttempted = true;
+        try { await physical.close(); } catch (error) { failure ??= error; }
+      }
       if (failure !== undefined) throw failure;
     },
     async cleanup() {
       // Opening may have begun physical work before returning an owner.
       // Missing custody is not evidence that the operation stopped.
+      if (!await releaseAuthorizations()) return false;
       if (requirePhysical && physical === undefined) return false;
       await releaseInputs();
-      const cleaned = await physical?.cleanup() ?? true;
-      if (cleaned === false || physical?.cleanupPending() === true) {
-        return false;
+      if (physical !== undefined && !physicalReleased) {
+        const cleaned = await physical.cleanup();
+        if (cleaned === false || physical.cleanupPending() !== false) return false;
+        physicalReleased = true;
       }
       if (release !== undefined && !released) {
         await release();
@@ -206,8 +234,10 @@ function cleanupCustody(physical, requirePhysical = false) {
       return true;
     },
     cleanupPending() {
-      return requirePhysical && physical === undefined ||
-        physical?.cleanupPending() === true ||
+      return authorizations.some(state => !state.released) ||
+        !inputsReleased && typeof stage?.releaseInputs === 'function' ||
+        requirePhysical && physical === undefined ||
+        physical !== undefined && !physicalReleased ||
         release !== undefined && !released ||
         !disposed && stage?.dispose !== undefined;
     },
@@ -262,7 +292,7 @@ export function createInstalledEffectSite({environmentWire,
       const custody = cleanupCustody(undefined);
       retainExecution(custody);
       if (facts.targetReads !== undefined) {
-        custody.retainReadAuthorization(facts.targetReads);
+        custody.retainAuthorization(facts.targetReads);
         let readiness;
         try { readiness = await facts.targetReads.prepare(); }
         catch (error) { facts.observePreEffectFailure?.(); throw error; }
@@ -335,9 +365,9 @@ export function createInstalledEffectSite({environmentWire,
           stage.receipt.commonMoon !== moon) {
         fail('InvalidInstalledEffectCapture');
       }
-      let gate;
+      let failed = false;
       try {
-        gate = await authorization(facts, stage, async () => {
+        const gate = await authorization(facts, stage, async () => {
           // The approved continuation must be able to reconstruct exact
           // claims after process loss. These are durable intents, not send
           // claims; the resumed path still repeats current admission.
@@ -349,6 +379,7 @@ export function createInstalledEffectSite({environmentWire,
             control: facts.control, computation: stage.computation,
             preview: stage.preview});
         });
+        custody.retainAuthorization(gate);
         const options = completionOptions(stage, gate, signal, undefined,
           facts.assertContinuationCurrent);
         let result;
@@ -362,6 +393,15 @@ export function createInstalledEffectSite({environmentWire,
                   releaseCompletedRunPreparedPayloads(
                     stage.storedResults, facts.control));
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
+              }
+              if (error instanceof ExecutionAuthorizationError) {
+                // An unavailable decision grants no send and no terminal
+                // outcome. Keep the durable capture, but attach its live
+                // payload release to this same cleanup owner before leaving.
+                custody.requireRelease(() => suspendCompletedEffectfulComputation({
+                  execution, store: facts.store, storedResults: stage.storedResults,
+                  control: facts.control, computation: stage.computation,
+                  preview: stage.preview}));
               }
               throw error;
             }
@@ -379,8 +419,16 @@ export function createInstalledEffectSite({environmentWire,
         }
         recordUnknown(facts, result, stage);
         return finishStatus(result);
+      } catch (error) {
+        failed = true;
+        throw error;
       } finally {
-        gate?.close();
+        try { await custody.closeAuthorizations(); }
+        catch (error) {
+          // Cleanup remains with the retained owner. Never replace the
+          // application failure or detach any cleanup handle it carries.
+          if (!failed) throw error;
+        }
       }
     },
     async resume(facts) {
@@ -430,7 +478,7 @@ export function createInstalledEffectSite({environmentWire,
         if (facts.prepareTargetReads !== undefined) {
           const targetReads = await facts.prepareTargetReads(claimed);
           if (targetReads !== undefined) {
-            custody.retainReadAuthorization(targetReads);
+            custody.retainAuthorization(targetReads);
             const readiness = await targetReads.prepare();
             if (readiness.status !== 'ready') fail('InstalledEffectRepeatDeferralUnsupported');
             facts = Object.freeze({...facts, targetReads});
@@ -482,11 +530,12 @@ export function createInstalledEffectSite({environmentWire,
       // The resumed operation has no Compute owner. Its provider must still
       // hand over physical stop and cleanup custody before any send.
       custody.attachPhysical(cleanupOwner);
-      let gate;
+      let failed = false;
       try {
-        gate = await authorization(facts, stage, () => {
+        const gate = await authorization(facts, stage, () => {
           fail('InstalledEffectRepeatDeferralUnsupported');
         });
+        custody.retainAuthorization(gate);
         const options = completionOptions(stage, gate, signal,
           Object.freeze({claim: claimed}));
         facts.beginPhysicalWork?.();
@@ -534,8 +583,16 @@ export function createInstalledEffectSite({environmentWire,
           }
         }
         return finishStatus(result);
+      } catch (error) {
+        failed = true;
+        throw error;
       } finally {
-        gate?.close();
+        try { await custody.closeAuthorizations(); }
+        catch (error) {
+          // Cleanup remains with the retained owner. Never replace the
+          // application failure or detach any cleanup handle it carries.
+          if (!failed) throw error;
+        }
       }
     },
   });

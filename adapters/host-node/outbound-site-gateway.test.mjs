@@ -31,7 +31,9 @@ const transferControl = runtime.remoteTransferControl;
 const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
 
 function openssl(root, ...arguments_) {
-  execFileSync('openssl', arguments_, {cwd: root, stdio: 'ignore'});
+  execFileSync('openssl', arguments_, {
+    cwd: root, stdio: ['ignore', 'pipe', 'pipe'],
+  });
 }
 
 function issue(root, name, subject, extension) {
@@ -1538,3 +1540,245 @@ test('outbound poll waits for work admitted during the idle window', async t => 
   );
   await closed;
 });
+
+test('Cancel waiter applies the common retirement projection after durable admission',
+  {timeout: 15_000}, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'cancel-projection-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'),
+      {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    let owner;
+    let admitted = false;
+    const projected = [];
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]),
+      control: {...control, responseCanRetireCancellationDelivery() {
+        assert.fail('a durable receiver must project its latest owner');
+      }},
+      receiveObservation: async value => {
+        const receipt = await owner.receiveObservation(value);
+        admitted = true;
+        return receipt;
+      },
+    });
+    t.after(() => gateway.close());
+    owner = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+      control: {...control, coordinatorCanRetireCancellationDelivery(record) {
+        assert.equal(admitted, true, 'durability must precede retirement');
+        const value = control.coordinatorCanRetireCancellationDelivery(record);
+        projected.push(value);
+        return value;
+      }}, journal: control.createCoordinatorJournal('coordinator-a'),
+      store: {...store, advance(...args) {
+        const result = store.advance(...args); admitted = true; return result;
+      }}, send: async () => ({revision: 0, state: [0, 0, 0, 0, 0]})});
+    const cases = [
+      [[6, 0, 2, 0, 0], false], [[5, 0, 1, 0, 0], false],
+      [[3, 1, 0, 1, 0], false], [[6, 0, 4, 0, 1], false],
+      [[3, 0, 5, 0, 0], false], [[3, 0, 2, 0, 0], true],
+      [[4, 0, 2, 0, 0], true], [[5, 0, 2, 0, 0], true],
+    ];
+    for (const [index, [state, expected]] of cases.entries()) {
+      const request = dispatch({dispatchId: `retirement-${index}`, taskAttempt: index + 1});
+      await owner.dispatch({dispatch: request});
+      let completed = false;
+      const waiting = gateway.cancel({dispatch: request}).then(value => {
+        completed = true;
+        return value;
+      }).catch(error => error);
+      admitted = false;
+      const reply = JSON.stringify({version: 'actql-remote-dispatch-status/0.1',
+        dispatch_request_cid: control.identity(request), revision: 1, state,
+        evidence: null, subject: null, measurement: null});
+      const response = await post(gateway.origin,
+        '/v1/sites/site-a/generations/1/outbound/observations', siteMaterial, reply);
+      assert.equal(response.status, 200);
+      assert.equal(projected.at(-1), expected);
+      assert.equal(completed, expected);
+      if (expected) assert.deepEqual((await waiting).state, state);
+    }
+    assert.deepEqual(projected, cases.map(([, expected]) => expected));
+  });
+
+// A single physical Site record goes through retained output, release, force
+// loss and late cleanup. The transport consumes the same durable history.
+// This fixture is not the installed public Effect Host's separate Run path.
+for (const boundary of ['already admitted', 'receiver await', 'lost newer commit']) {
+test(`integrated Cancel ignores an old released reply after later recovered loss: ${boundary}`,
+  {timeout: 15_000}, async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'cancel-current-history-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const material = await certificates(root);
+  const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+    key: material.siteKey};
+  const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'),
+    {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  let coordinator, gateway, observations = 0, sends = 0, cancellations = 0;
+  let pausedWire, resumeReceipt, receiptEntered;
+  const receiptHeld = new Promise(resolve => { resumeReceipt = resolve; });
+  const entered = new Promise(resolve => { receiptEntered = resolve; });
+  t.after(() => resumeReceipt());
+  gateway = await startHttpsOutboundSiteGateway({
+    key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+    siteAuthorities: new Map([[material.siteFingerprint,
+      {siteKey: 'site-a', siteGeneration: 1}]]), control,
+    receiveObservation: async value => {
+      const receipt = await coordinator.receiveObservation(value);
+      observations++;
+      if (value.body === pausedWire) { receiptEntered(); await receiptHeld; }
+      return receipt;
+    }});
+  t.after(() => gateway.close());
+  coordinator = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+    control, journal: control.createCoordinatorJournal('coordinator-a'), store,
+    send: value => { sends++; return gateway.dispatch(value); },
+    cancel: value => { cancellations++; return gateway.cancel(value); }});
+  const request = dispatch({dispatchId: 'integrated-current-cancel'});
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const started = coordinator.dispatch({dispatch: request, inputBindingBody: '{}'});
+  started.catch(() => {});
+  const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
+  assert.equal(polled.status, 200);
+  const received = control.pollDispatchRequest(control.admitPollDispatch(polled.body));
+  assert.equal(control.identity(received), control.identity(request));
+  const site = runtime.siteControl.create({key: 'site-a', generation: 1,
+    runtimeRevision: cid('a'), maxConcurrentOperations: 4,
+    maxConcurrentTransfers: 4, maxRetainedBytes: 1_048_576n,
+    maxExecutionBytes: 1_048_576n});
+  const journal = control.createJournal(site);
+  const siteStore = openSqliteDispatchJournal(join(root, 'site'),
+    {siteKey: 'site-a', siteGeneration: 1, runtimeRevision: cid('a')});
+  t.after(() => siteStore.close());
+  const record = siteStore.accept(control.prepareAdmission(journal, received),
+    received, control);
+  siteStore.advance(control.prepareProvisioning(record,
+    control.registerExecutionCapability({site, runtimeBundleCid: cid('a'),
+      connectorRegistration: 'local', connectorRevision: 'local/1',
+      strategyRevision: 'strategy/1', operationCapabilityCid: cid('4')})), record, control);
+  siteStore.advance(control.prepareExecution(record), record, control);
+  const postStatus = body => post(gateway.origin, `${path}/observations`, siteMaterial, body);
+  assert.equal((await postStatus(control.replyJson(record))).status, 200);
+  await started;
+  const oldRunning = control.statusJson(record, undefined, undefined, undefined);
+  siteStore.advance(control.prepareSettled(record), record, control);
+  const holding = control.outputHoldingEvidenceIdentity(request, 'integrated-material', 8n);
+  siteStore.advance(control.prepareRetained(record, 'integrated-material', holding), record, control);
+  const held = control.statusJson(record, undefined, undefined, undefined);
+  assert.equal((await postStatus(held)).status, 200);
+  assert.equal(control.responseCanRetireCancellationDelivery(
+    control.admitResponseJson(held, request, true)), false);
+  siteStore.advance(control.prepareRelease(record), record, control);
+  siteStore.advance(control.prepareReleased(record), record, control);
+  const released = control.statusJson(record, undefined, undefined, undefined);
+  assert.equal((await postStatus(released)).status, 200);
+  // The Site persists its quarantine then later physical recovery. Only the
+  // recovered status reaches the Coordinator; skipped intermediate replies
+  // are normal for a disconnected Site and must not restore success.
+  siteStore.forceLoss(control.prepareForceLoss(journal, record, true), record, control);
+  const quarantined = control.statusJson(record, undefined, undefined, undefined);
+  assert.equal(control.responseCanRetireCancellationDelivery(
+    control.admitResponseJson(quarantined, request, true)), false);
+  siteStore.advance(control.prepareLossRecovery(record), record, control);
+  const recovered = control.statusJson(record, undefined, undefined, undefined);
+  assert.deepEqual(control.status(record), [6, 1, 5, 0, 0]);
+  if (boundary === 'already admitted') {
+    assert.equal((await postStatus(recovered)).status, 200);
+  }
+  assert.equal(control.responseCanRetireCancellationDelivery(
+    control.admitResponseJson(recovered, request, true)), false);
+  let latest = store.inspectState(request, control);
+  let completed = false;
+  const cancellation = coordinator.cancel({dispatch: request}).then(value => {
+    completed = true; return value;
+  }).catch(error => error);
+  assert.equal((await post(gateway.origin, `${path}/poll`, siteMaterial)).body,
+    control.pollCancelJson(request));
+  if (boundary === 'already admitted') {
+    assert.equal((await postStatus(oldRunning)).status, 200);
+    assert.equal(completed, false);
+    assert.deepEqual(store.inspectState(request, control), latest);
+    assert.equal((await postStatus(released)).status, 200);
+  } else {
+    pausedWire = released;
+    const oldReply = postStatus(released);
+    await entered;
+    const exec = DatabaseSync.prototype.exec;
+    let injected = false;
+    if (boundary === 'lost newer commit') {
+      DatabaseSync.prototype.exec = function(sql) {
+        const result = exec.call(this, sql);
+        if (sql === 'COMMIT' && !injected) {
+          injected = true;
+          throw new Error('INTEGRATED_NEWER_COMMIT_ACK_LOST');
+        }
+        return result;
+      };
+    }
+    try {
+      assert.equal((await postStatus(recovered)).status,
+        boundary === 'lost newer commit' ? 503 : 200);
+    } finally { DatabaseSync.prototype.exec = exec; }
+    assert.equal(injected, boundary === 'lost newer commit');
+    latest = store.inspectState(request, control);
+    resumeReceipt();
+    assert.equal((await oldReply).status, 200);
+    assert.equal(completed, false, 'an overtaken receipt cannot retire delivery');
+    if (boundary === 'lost newer commit') {
+      assert.equal((await postStatus(recovered)).status, 200);
+    }
+  }
+  assert.deepEqual(store.inspectState(request, control), latest,
+    'the exact replay cannot replace the latest durable observation');
+  assert.equal(completed, false, 'old release cannot retire current loss responsibility');
+  assert.equal(gateway.pending(), 1);
+  assert.equal(sends, 1);
+  assert.equal(cancellations, 1);
+  await gateway.close();
+  await cancellation;
+  t.diagnostic(JSON.stringify({observations, sends, cancellations,
+    finalSiteState: control.status(record), originalDispatchCid: control.identity(request)}));
+});
+
+}
+
+for (const mode of ['transport', 'missing', 'asynchronous', 'denied']) {
+  test(`Cancel retirement requires a synchronous durable receipt: ${mode}`, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'cancel-receipt-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const material = await certificates(root);
+    const siteMaterial = {ca: material.ca, cert: material.siteCertificate,
+      key: material.siteKey};
+    const gateway = await startHttpsOutboundSiteGateway({
+      key: material.serverKey, cert: material.serverCertificate, ca: material.ca,
+      siteAuthorities: new Map([[material.siteFingerprint,
+        {siteKey: 'site-a', siteGeneration: 1}]]), control,
+      ...(mode === 'transport' ? {} : {receiveObservation: () =>
+        mode === 'missing' ? {} : {canRetireCancellationDelivery:
+          mode === 'asynchronous' ? async () => true : () => false}})});
+    t.after(() => gateway.close());
+    const request = dispatch({dispatchId: 'receipt-' + mode});
+    let completed = false;
+    const waiting = gateway.cancel({dispatch: request}).then(value => {
+      completed = true; return value;
+    }).catch(error => error);
+    const body = JSON.stringify({version: 'actql-remote-dispatch-status/0.1',
+      dispatch_request_cid: control.identity(request), revision: 1,
+      state: [5, 0, 2, 0, 0], evidence: null, subject: null, measurement: null});
+    assert.equal((await post(gateway.origin,
+      '/v1/sites/site-a/generations/1/outbound/observations', siteMaterial, body)).status, 200);
+    assert.equal(completed, mode === 'transport');
+    assert.equal(gateway.pending(), mode === 'transport' ? 0 : 1);
+    await gateway.close();
+    await waiting;
+  });
+}

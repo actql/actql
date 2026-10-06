@@ -766,6 +766,15 @@ selection resolves respectively to `actql-json/0.1`, `actql-jsonl/0.1`, or
 `actql-csv/0.1`; it does not change Program Definition, Invocation, or the
 logical Result Artifacts produced by the Run.
 
+<!-- requirement-block: result-delivery.typed-json-wire-profile -->
+Each Result serialization profile preimage MUST contain its `version` and
+`json_value_wire_contract_cid`, identifying the common
+[typed JSON wire](../language.md#value-construction) law. A non-SQL-NULL JSON
+cell uses `{"$json":payload}`; SQL NULL uses `null`. JSON properties inside
+closed objects and arrays retain the same typed-cell encoding. The selected
+profile CID changes when that wire law changes. Delivery never infers the
+JSON domain from a row's spelling or an untagged scalar.
+
 JSON and JSONL use UTF-8, exact retained string values, AoA canonical number spelling, minimal JSON escaping, and
 no insignificant whitespace. Top-level relation-row keys follow the selected
 ResultDefinition's resolved `fields` exactly. Nested object keys use

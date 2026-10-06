@@ -1,10 +1,10 @@
 {
   "version": "actql-policy-candidates-vectors/0.1",
   "description": "Independent complete projection for captured_graph_fixture and search_offers: three ordered Compute tasks, two offers per task, eight lexicographic assignments. Serial latency is 10 ms for local and 21 ms for DuckDB, transfer sums, retained peak includes all three outputs before task 1 is released, and execution capacity is the maximum. The Program Definition is independently reconstructed from the four source-stage semantic envelopes, using the current expression contract. The projection preserves null acquisition position, original offer lines and absent resident profiles.",
-  "expected_cid": "sha256:3b27925bc3825f25900149da977c41ebabe11875b6ea1015eb1f794fcadb6383",
+  "expected_cid": "sha256:0f5328366d73f5b2befbd8220a64d84352b0f14764b09dbe81c87acb14742f1a",
   "body": [
     "actql-policy-candidates/0.1",
-    "sha256:22b766a5be18af70012d1dae9fc1ef973cfb136d7bb68f7308642d44ded144db",
+    "sha256:32f00da0dc3db17382296539ee3b0715eb5b5006c8c6b252b9db7181e59142e2",
     0,
     1,
     true,

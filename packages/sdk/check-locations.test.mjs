@@ -1,6 +1,6 @@
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
-import {checkReasonSchemaCid} from '@actql/client-wire';
+import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
 import {connect, getCheckInput, resolveCheckLocation, resolveCheckTextRange} from './index.mjs';
 
 const revision = 'rev:' + '4'.repeat(64);
@@ -13,7 +13,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'remote', owner: 'remot
 async function checkedInput(t, text, byteLength) {
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: byteLength}],
         reasons: [{code: 'query_syntax_invalid', location: {kind: 'text',
@@ -91,7 +91,7 @@ async function checkedStructuredInput(t) {
     pointer: ''};
   mock.method(globalThis, 'fetch', async url => url.pathname.endsWith('/connect')
     ? Response.json(profile) : Response.json({version: 'actql-check-outcome/0.1',
-      reason_schema_cid: checkReasonSchemaCid, outcome: 'completed', report: {
+      reason_schema_cid: checkReasonSchemaCid, outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
         context_ref: 'ctx:fixture', scope: {kind: 'bound_input'}, verdict: 'invalid',
         inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 13},
           {document_id: 'parameters', kind: 'structured', revision, byte_length: 135}],
@@ -146,4 +146,28 @@ test('structured check pointers refuse stale revisions, changed inputs and copie
   }
   assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
   assert.equal(resolveCheckLocation(outcome, {...location, revision: undefined}), undefined);
+});
+
+
+test('resolved check locations return the owned input after validating a matching current input', async t => {
+  const {outcome, location} = await checkedInput(t, 'é😀', 6);
+  const original = getCheckInput(outcome, 'source');
+  const current = {...original};
+  const resolved = resolveCheckTextRange(outcome, location, current);
+  assert.equal(resolved.input, original, '[check-mutation:location-owned-input]');
+  current.text = 'edited';
+  assert.equal(resolved.input.text, 'é😀');
+  assert.equal(Object.isFrozen(resolved.input), true);
+});
+
+
+test('structured locations return the owned submitted value after current-input validation', async t => {
+  const {outcome, location} = await checkedStructuredInput(t);
+  const original = getCheckInput(outcome, 'parameters');
+  const current = {...original};
+  const resolved = resolveCheckLocation(outcome, location, current);
+  assert.equal(resolved.input, original, '[check-mutation:location-owned-input]');
+  current.value = {replacement: true};
+  assert.equal(resolved.input.value, original.value);
+  assert.equal(Object.isFrozen(resolved.input), true);
 });
