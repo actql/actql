@@ -116,6 +116,8 @@ pub fn result_serialization_contract_cid(
   }
   try {
     @encode.begin_object(writer)
+    @encode.key(writer, "json_value_wire_contract_cid")
+    @encode.string_value(writer, json_value_wire_contract_cid())
     @encode.key(writer, "version")
     @encode.string_value(writer, version)
     @encode.end_object(writer)

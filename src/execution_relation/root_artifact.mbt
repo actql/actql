@@ -72,8 +72,16 @@ fn canonicalize_generated_artifact(
     _ => return Err(GeneratedDecodeFailure)
   }
   // UTF-16 units of strings/keys cannot exceed the already bounded UTF-8 JSON
-  // bytes. Keep the shared canonicalizer as the sole normalization/sort owner.
-  let value = @identity.from_json(json, max_nodes, max_depth, max_bytes) catch {
+  // bytes. The typed emitter has already checked identifier fields, while
+  // JSON payload keys are exact data. Re-normalizing this mixed artifact would
+  // collapse distinct payload keys or change the value bound by its identity.
+  let value = @identity.from_json(
+    json,
+    max_nodes,
+    max_depth,
+    max_bytes,
+    data_keys=true,
+  ) catch {
     _ => return Err(CanonicalizationFailure)
   }
   let usage = try {

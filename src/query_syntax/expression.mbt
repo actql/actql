@@ -20,8 +20,10 @@ pub(all) enum ExpressionKind {
   Boolean(Bool)
   Number(String)
   StringLiteral(String)
+  JsonLiteral(String)
   Reference(Array[NamePart])
   ParameterReference(String)
+  Property(Int, NamePart)
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
@@ -103,8 +105,10 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
     }
     reachable[next] = true
     match expression.nodes[next].kind {
-      Unary(_, child) | Parenthesized(child) | Cast(child, _) =>
-        pending.push(child)
+      Unary(_, child)
+      | Parenthesized(child)
+      | Cast(child, _)
+      | Property(child, _) => pending.push(child)
       Binary(_, left, right) => {
         pending.push(left)
         pending.push(right)
@@ -142,6 +146,7 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
       Binary(op, left, right) => Binary(op, remap[left], remap[right])
       Parenthesized(child) => Parenthesized(remap[child])
       Cast(child, target) => Cast(remap[child], target)
+      Property(child, name) => Property(remap[child], name)
       Call(path, arguments) =>
         Call(path.copy(), arguments.map(argument => remap[argument]))
       Predicate(op, arguments) =>
@@ -199,6 +204,7 @@ priv struct ExpressionParser {
   source : Tokens
   limits : ExpressionLimits
   nodes : Array[ExpressionNode]
+  depths : Array[Int]
   mut offset : Int
   mut work : Int
 }
@@ -252,8 +258,36 @@ fn ExpressionParser::add(
   if self.nodes.length() >= self.limits.max_nodes {
     raise ExpressionAbort("Expression node limit", start)
   }
+  // Postfix chains do not enter a recursive Pratt continuation. Measure their
+  // actual source tree depth from the already admitted children instead.
+  let mut child_depth = 0
+  match kind {
+    Unary(_, child)
+    | Parenthesized(child)
+    | Cast(child, _)
+    | Property(child, _) => child_depth = self.depths[child]
+    Binary(_, left, right) =>
+      child_depth = self.depths[left].max(self.depths[right])
+    Call(_, arguments) | Predicate(_, arguments) =>
+      for child in arguments {
+        child_depth = child_depth.max(self.depths[child])
+      }
+    SearchedCase(branches, otherwise) => {
+      child_depth = self.depths[otherwise]
+      for (condition, value) in branches {
+        child_depth = child_depth
+          .max(self.depths[condition])
+          .max(self.depths[value])
+      }
+    }
+    _ => ()
+  }
+  if child_depth >= self.limits.max_depth {
+    raise ExpressionAbort("Expression depth limit", start)
+  }
   let index = self.nodes.length()
   self.nodes.push({ kind, start, end, })
+  self.depths.push(child_depth + 1)
   index
 }
 
@@ -354,6 +388,32 @@ fn ExpressionParser::path(
 }
 
 ///|
+// A typed literal shares ordinary decoded String chunks. JSON parsing happens
+// after lexical decoding; it does not reinterpret the source's escape syntax.
+fn ExpressionParser::string_chunks(
+  self : ExpressionParser,
+  first : Token,
+) -> (String, Int) raise ExpressionAbort {
+  guard first.value is Text(value) else {
+    raise ExpressionAbort("Expected String literal", first.start)
+  }
+  let chunks = StringBuilder()
+  chunks.write_string(value)
+  let mut end = first.end
+  while self.peek().value is Text(next) {
+    let token = self.peek()
+    if token.start == end {
+      raise ExpressionAbort("Literal chunks require separation", token.start)
+    }
+    self.spend()
+    ignore(self.advance())
+    chunks.write_string(next)
+    end = token.end
+  }
+  (chunks.to_string(), end)
+}
+
+///|
 // Explicit Pratt continuations bound heap work without recursive native calls.
 fn ExpressionParser::expression(
   self : ExpressionParser,
@@ -370,26 +430,14 @@ fn ExpressionParser::expression(
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
         match t.value {
-          Text(value) => {
-            let chunks = StringBuilder()
-            chunks.write_string(value)
-            let mut end = t.end
-            while self.peek().value is Text(next) {
-              let token = self.peek()
-              // GoogleSQL chunks need intervening whitespace or a comment.
-              // Identifiers and Graph annotation tokens never concatenate.
-              if token.start == end {
-                raise ExpressionAbort(
-                  "Literal chunks require separation",
-                  token.start,
-                )
-              }
-              self.spend()
-              ignore(self.advance())
-              chunks.write_string(next)
-              end = token.end
-            }
-            result = self.add(StringLiteral(chunks.to_string()), t.start, end)
+          Text(_) => {
+            let (value, end) = self.string_chunks(t)
+            result = self.add(StringLiteral(value), t.start, end)
+          }
+          Word(name) if upper_ascii(name) == "JSON" &&
+            self.peek().value is Text(_) => {
+            let (value, end) = self.string_chunks(self.advance())
+            result = self.add(JsonLiteral(value), t.start, end)
           }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
@@ -470,6 +518,26 @@ fn ExpressionParser::expression(
       Tail(left, minimum, depth) => {
         let left = if left < 0 { result } else { left }
         let token = self.peek()
+        if token.value == Symbol(46) {
+          ignore(self.advance())
+          let property_token = self.advance()
+          let name = match property_token.value {
+            Word(value) => { value, quoted: false, }
+            QuotedName(value) => { value, quoted: true, }
+            _ =>
+              raise ExpressionAbort(
+                "Expected property name",
+                property_token.start,
+              )
+          }
+          result = self.add(
+            Property(left, name),
+            self.nodes[left].start,
+            property_token.end,
+          )
+          frames.push(Tail(result, minimum, depth))
+          continue
+        }
         let mut negated = false
         if minimum <= 4 && keyword(token, "NOT") {
           ignore(self.advance())
@@ -769,6 +837,7 @@ fn parse_fragment(
     source,
     limits,
     nodes: [],
+    depths: [],
     offset,
     work: 0,
   }

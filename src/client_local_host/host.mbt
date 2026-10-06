@@ -26,6 +26,26 @@ pub fn client_local_import_limits(
 }
 
 ///|
+/// The same export envelope is used for pre-start Run capacity and dispatch.
+fn client_local_export_limits(
+  max_rows : Int,
+  values : @execution.ValueLimits,
+) -> @local.LocalExportLimits {
+  {
+    max_rows,
+    values,
+    wire: {
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 64,
+    },
+    max_batch_bytes: 65536,
+  }
+}
+
+///|
 fn reject_client_local_run(
   run : @strategy.CapturedDAG,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
@@ -229,7 +249,25 @@ fn open_checked_local_host(
     compute_sequences.push(generated[task])
   }
   let (values, execution, measurement) = client_local_execution_limits()
-  guard client_local_sequence_capacity(compute_sequences, task_count)
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let retained_inputs = if retained_output {
+    let inputs = Array::make(compute_sequences.length(), 0)
+    for index in 0..<@strategy.graph_data_count(graph) {
+      let edge = @strategy.graph_data_at(graph, index).unwrap()
+      let consumer = @strategy.data_edge_consumer(edge) - first_compute
+      if consumer >= 0 && consumer < inputs.length() {
+        inputs[consumer] += 1
+      }
+    }
+    Some(inputs)
+  } else {
+    None
+  }
+  guard client_local_sequence_capacity(
+      compute_sequences,
+      task_count,
+      retained_inputs~,
+    )
     is Some((limits, retained_bytes, execution_bytes)) else {
     return None
   }
@@ -253,7 +291,6 @@ fn open_checked_local_host(
     Ok(value) => value
     Err(_) => return None
   }
-  let graph = @publication_host.prepared_client_graph(prepared)
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
     max_rows: 100,
@@ -341,18 +378,7 @@ fn open_checked_local_host(
     match
       @local_driver.configure_local_retained_output(
         installed,
-        {
-          max_rows: capacity.max_rows,
-          values,
-          wire: {
-            max_columns: 100,
-            max_order_work: 1000000,
-            max_bytes: 1000000,
-            max_nodes: 100000,
-            max_depth: 64,
-          },
-          max_batch_bytes: 65536,
-        },
+        client_local_export_limits(capacity.max_rows, values),
         Some(0L),
       ) {
       Ok(_) => ()

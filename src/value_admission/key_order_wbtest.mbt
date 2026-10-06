@@ -4,6 +4,61 @@ fn checked_key(contract : @contract.Contract, value : Value) -> CheckedValue {
 }
 
 ///|
+fn nullable_bounded_order(
+  left : CheckedValue,
+  right : CheckedValue,
+  author : Bool,
+  quantum : Int,
+) -> Result[(Int, Int), KeyOrderIssue] {
+  let active = match
+    (if author {
+      start_bounded_author_order_comparison(left, right)
+    } else {
+      start_bounded_group_key_comparison(left, right)
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let mut total = 0
+  while true {
+    match advance_bounded_key_comparison(active, quantum) {
+      Ok(KeyComparisonContinue(work~)) => total += work
+      Ok(KeyComparisonComplete(order~, work~)) =>
+        return Ok((order, total + work))
+      Err(issue) => return Err(issue)
+    }
+  } nobreak {
+    Err(InvalidKey)
+  }
+}
+
+///|
+test "bounded nullable order preserves domain and null placement" {
+  let nullable = @contract.primitive(@contract.StringType, nullable=true)
+  let required = @contract.primitive(@contract.StringType, nullable=false)
+  let prefix = String::make(512, 'x')
+  let text = checked_key(nullable, Text(prefix + "a"))
+  let null = checked_key(nullable, Null)
+  for quantum in [1, 7, 256] {
+    assert_eq(nullable_bounded_order(text, null, false, quantum), Ok((1, 513)))
+    assert_eq(nullable_bounded_order(null, text, false, quantum), Ok((-1, 513)))
+    assert_eq(nullable_bounded_order(text, null, true, quantum), Ok((-1, 513)))
+    assert_eq(nullable_bounded_order(null, text, true, quantum), Ok((1, 513)))
+    assert_eq(nullable_bounded_order(null, null, true, quantum), Ok((0, 1)))
+    assert_eq(
+      nullable_bounded_order(checked_key(required, Null), text, false, quantum),
+      Err(InvalidKey),
+    )
+  }
+  let number = checked_key(
+    @contract.primitive(@contract.NumberType, nullable=false),
+    Number(1.0),
+  )
+  assert_eq(nullable_bounded_order(text, number, false, 1), Err(InvalidKey))
+  assert_eq(nullable_bounded_order(text, number, true, 1), Err(InvalidKey))
+}
+
+///|
 fn bounded_key_order(
   left : CheckedValue,
   right : CheckedValue,

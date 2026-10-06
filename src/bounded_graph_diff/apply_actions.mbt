@@ -66,7 +66,10 @@ fn advance_action_key(key : ActionKeyAdmission) -> ActionKeyPoll {
             )
             @encode.begin_array(writer)
             key.writer = Some(writer)
-            key.emitter = Some(@value.start_wire_emit(checked.value, writer))
+            guard @value.json_payload(checked.value) is Some(payload) else {
+              return ActionKeyFailed
+            }
+            key.emitter = Some(@value.start_wire_emit(payload, writer))
             key.phase = EmitActionKey
             ActionKeyContinue
           } catch {

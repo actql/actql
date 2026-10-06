@@ -2146,7 +2146,9 @@ test "standard Host validates empty nearest queries" {
 }
 
 ///|
-fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
+fn direct_nearest_vector_carrier(
+  text_identity? : Bool = false,
+) -> @carrier_contract.Carrier {
   @carrier_contract.vectors(
     @carrier_contract.rows(
       [
@@ -2154,7 +2156,11 @@ fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
           @schema.Unqualified("id"),
           Some(
             @value_contract.primitive(
-              @value_contract.NumberType,
+              if text_identity {
+                @value_contract.StringType
+              } else {
+                @value_contract.NumberType
+              },
               nullable=false,
             ),
           ),
@@ -2175,8 +2181,10 @@ fn direct_nearest_vector_carrier() -> @carrier_contract.Carrier {
 }
 
 ///|
-fn direct_nearest_relation_carrier() -> @carrier_contract.Carrier {
-  guard direct_nearest_vector_carrier()
+fn direct_nearest_relation_carrier(
+  text_identity? : Bool = false,
+) -> @carrier_contract.Carrier {
+  guard direct_nearest_vector_carrier(text_identity~)
     is @carrier_contract.VectorValue(vectors) else {
     abort("vectors")
   }
@@ -2201,14 +2209,16 @@ fn direct_nearest_bind(
 }
 
 ///|
-fn direct_nearest_vector_owner() -> @lower.BoundPrepared {
+fn direct_nearest_vector_owner(
+  text_identity? : Bool = false,
+) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_carriers(
       input_cursor(
         "[{\"from\":\"rows\",\"to_vectors\":{" +
         "\"id\":\"id\",\"vector\":\"embedding\"}}]",
       ),
-      [("rows", direct_nearest_relation_carrier())],
+      [("rows", direct_nearest_relation_carrier(text_identity~))],
       None,
       None,
       {
@@ -3246,6 +3256,7 @@ fn direct_ranking_number(
 fn direct_ranking_output(
   owner : @lower.BoundPrepared,
   rows : Array[(Double, Double, Double)],
+  unused? : @admitted.CheckedValue? = None,
 ) -> @execution.CompletedOutput raise {
   let values = @execution.prepare_admitted_output(
     owner,
@@ -3262,6 +3273,9 @@ fn direct_ranking_output(
       let name = @schema.reference_name(
         @schema.field_at(schema, column).unwrap().name,
       )
+      if name == "zz_unused" {
+        return unused.unwrap()
+      }
       let value = if name == "q" {
         row.0
       } else if name == "id" {
@@ -3405,6 +3419,7 @@ fn direct_nullable_ranking_fusion_owner(
 fn direct_nullable_ranking_output(
   owner : @lower.BoundPrepared,
   rows : Array[(Double?, String?, Double, Double, String?)],
+  text_limit? : Int = 10,
 ) -> @execution.CompletedOutput raise {
   let values = @execution.prepare_admitted_output(
     owner,
@@ -3430,7 +3445,7 @@ fn direct_nullable_ranking_output(
               None => "null"
             },
           ),
-          { max_nodes: 1, max_depth: 1, max_text_bytes: 10, },
+          { max_nodes: 1, max_depth: 1, max_text_bytes: text_limit, },
         ).unwrap()
       } else if name == "q" {
         @admitted.admit(
@@ -4361,7 +4376,9 @@ test "standard Host executes supplied scored rankings through two consumers" {
 }
 
 ///|
-fn direct_rrf_carrier() -> @carrier_contract.Carrier {
+fn direct_rrf_carrier(
+  unused? : @value_contract.Contract? = None,
+) -> @carrier_contract.Carrier {
   let number = @value_contract.primitive(
     @value_contract.NumberType,
     nullable=false,
@@ -4370,16 +4387,20 @@ fn direct_rrf_carrier() -> @carrier_contract.Carrier {
     @value_contract.NumberType,
     nullable=true,
   )
+  let fields = [
+    (@schema.Unqualified("q"), Some(nullable_number)),
+    (@schema.Unqualified("id"), Some(number)),
+    (@schema.Unqualified("rank"), Some(number)),
+  ]
+  if unused is Some(contract) {
+    fields.push((@schema.Unqualified("zz_unused"), Some(contract)))
+  }
   @carrier_contract.relation(
     @carrier_contract.rows(
-      [
-        (@schema.Unqualified("q"), Some(nullable_number)),
-        (@schema.Unqualified("id"), Some(number)),
-        (@schema.Unqualified("rank"), Some(number)),
-      ],
+      fields,
       field_set=@carrier_contract.Closed,
-      max_fields=3,
-      max_name_bytes=7,
+      max_fields=4,
+      max_name_bytes=16,
     ).unwrap(),
   )
 }
@@ -4446,14 +4467,24 @@ fn direct_nullable_rrf_output(
 }
 
 ///|
-fn direct_rrf_owner() -> @lower.BoundPrepared {
+fn direct_rrf_owner(
+  unused? : @value_contract.Contract? = None,
+) -> @lower.BoundPrepared {
   direct_nearest_bind(
     @pipeline.check_with_evidence(
-      input_cursor("[{\"select\":[\"q\",\"id\",\"rank\"]}]"),
+      input_cursor(
+        if unused is Some(_) {
+          "[{\"select\":[\"q\",\"id\",\"rank\",\"zz_unused\"]}]"
+        } else {
+          "[{\"select\":[\"q\",\"id\",\"rank\"]}]"
+        },
+      ),
       [
         (
           "rows",
-          @pipeline.RankingInput(@vector.ranking_relation(direct_rrf_carrier())),
+          @pipeline.RankingInput(
+            @vector.ranking_relation(direct_rrf_carrier(unused~)),
+          ),
         ),
       ],
       None,
@@ -4817,6 +4848,570 @@ test "ranking bounds scratch and output assembly within quantum" {
 }
 
 ///|
+test "ranking input recheck yields inside unused arrays with exact limits" {
+  let contract = @value_contract.array_contract(
+    @value_contract.primitive(@value_contract.NumberType, nullable=false),
+    nullable=false,
+    max_items=Some(257L),
+  ).unwrap()
+  let raw = @admitted.array_value(
+    Array::make(257, @admitted.number_value(1.0).unwrap()),
+  )
+  let unused = @admitted.recheck_runtime_value(raw, contract, {
+    max_nodes: 258,
+    max_text_bytes: 0,
+    max_depth: 1,
+  }).unwrap()
+  let left = direct_rrf_owner(unused=Some(contract))
+  let right = direct_rrf_owner(unused=Some(contract))
+  let owner = direct_rrf_fusion_owner(left, right)
+  let left_output = direct_ranking_output(
+    left,
+    [(1.0, 1.0, 1.0)],
+    unused=Some(unused),
+  )
+  let right_output = direct_ranking_output(right, [], unused=Some(unused))
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+  // Input: by initialization 1, four reads, scalar rechecks 6 and array
+  // recheck 2*257+3=517, then group/candidate/policy/store 4: 532.
+  // Three scratch entries + duplicate/rank checks 4 + fusion 4 +
+  // fused scratch 1 + output/finish 30 = 42. Total control work: 574.
+  // One record: 17 slots. Input ports 6, fixed width 45, row scope 6,
+  // depth-two recheck scope 4: 78. Unused array nodes remain validated.
+  for
+    (work, slots, nodes, quantum, succeeds) in [
+      (574, 78, 258, 1, true),
+      (574, 78, 258, 7, true),
+      (574, 78, 258, 256, true),
+      (573, 78, 258, 1, false),
+      (574, 78, 257, 1, false),
+    ] {
+    let execution = @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      { max_nodes: nodes, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+      slots,
+      1000,
+      10000,
+      control_work_limit=Some(work),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<600 {
+      if terminal {
+        break
+      }
+      match @local_veca.advance_ranking(execution, quantum).unwrap() {
+        @local_veca.RankingContinue(..) => ()
+        @local_veca.RankingComplete(output, work=charged, ..) => {
+          assert_true(succeeds)
+          assert_eq(charged, 574L)
+          assert_eq(@local_veca.ranking_input_value_units(execution), 523)
+          assert_eq(@execution.completed_row_count(output), 1)
+          let schema = @pipeline.schema_at(
+            @lower.pipeline(@lower.bound_preparation(owner)),
+            @pipeline.Step(0),
+          ).unwrap()
+          for column in 0..<@schema.field_count(schema) {
+            let name = @schema.reference_name(
+              @schema.field_at(schema, column).unwrap().name,
+            )
+            let expected = if name == "score" { 0.5 } else { 1.0 }
+            assert_true(
+              @execution.completed_cell(output, 0, column)
+              is Some(Number(value)) &&
+              value == expected,
+            )
+          }
+          terminal = true
+        }
+        @local_veca.RankingFailed(
+          @local_veca.RankingWorkLimit,
+          work=charged,
+          ..
+        ) => {
+          assert_eq(work, 573)
+          assert_eq(charged, 573L)
+          terminal = true
+        }
+        @local_veca.RankingFailed(@local_veca.InvalidRankingRecord(0, 0), ..) => {
+          assert_eq(nodes, 257)
+          terminal = true
+        }
+        _ => fail("unused ranking input missed its typed boundary")
+      }
+    }
+    assert_true(terminal)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_input_value_units(execution), 0)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+    assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+  assert_true(
+    @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+      77,
+      1000,
+      10000,
+    )
+    is Err(@local_veca.RankingWorkspaceLimit),
+  )
+  let control = @bounded.control()
+  let execution = @local_veca.start_ranking(
+    control,
+    task_test_completion(owner),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    10,
+    { max_nodes: 258, max_text_bytes: 1000, max_depth: 2, max_work: 10000, },
+    78,
+    1000,
+    10000,
+    control_work_limit=Some(574),
+  ).unwrap()
+  for _ in 0..<100 {
+    if @local_veca.ranking_input_value_units(execution) == 64 {
+      break
+    }
+    assert_true(
+      @local_veca.advance_ranking(execution, 1).unwrap()
+      is @local_veca.RankingContinue(progress=0L, ..),
+    )
+  }
+  assert_eq(@local_veca.ranking_input_value_units(execution), 64)
+  assert_true(@bounded.request_cancel(control))
+  assert_false(@local_veca.ranking_stopped(execution))
+  assert_eq(
+    @local_veca.cleanup_ranking(execution),
+    Err(@local_veca.RankingExecutionIssue(@bounded.NotStopped)),
+  )
+  assert_eq(@local_veca.ranking_input_value_units(execution), 64)
+  assert_true(@execution.producer_read_available(inputs[0]))
+  assert_true(@execution.producer_read_available(inputs[1]))
+  assert_true(
+    @local_veca.advance_ranking(execution, 1).unwrap()
+    is @local_veca.RankingStopped(@bounded.Cancelled, progress=0L, ..),
+  )
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+  assert_eq(@local_veca.ranking_input_value_units(execution), 0)
+  assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+  assert_true(@execution.completed_output_available(left_output))
+  assert_true(@execution.completed_output_available(right_output))
+}
+
+///|
+test "ranking yields within long group and tie comparisons" {
+  let prefix = String::make(512, 'x')
+  let segment = prefix + "s"
+  let left = direct_nullable_ranking_owner()
+  let right = direct_nullable_ranking_owner()
+  let left_output = direct_nullable_ranking_output(
+    left,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let right_output = direct_nullable_ranking_output(
+    right,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  for policy in ["\"max\"", "{\"weighted_sum\":{\"left\":0.5,\"right\":0.5}}"] {
+    let owner = direct_nullable_ranking_fusion_owner(left, right, policy)
+    let inputs = [
+      @execution.prepare_producer_read(
+        owner,
+        @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+        1000,
+        10000,
+      ).unwrap(),
+      @execution.prepare_producer_read(
+        owner,
+        @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+        1000,
+        10000,
+      ).unwrap(),
+    ]
+    let limits : @execution.ValueLimits = {
+      max_nodes: 1000,
+      max_text_bytes: 10000,
+      max_depth: 10,
+      max_work: 10000,
+    }
+    // Independently count four 1066-unit input rows, record sorts 1048+2590,
+    // duplicate checks 1033, candidate folds 3600, output sort 1032, and
+    // two emitted rows plus finalization 626. Total control work is 14193.
+    // Workspace: 4*11+4 + 4*8+4 + (2+2*2) + (3+44) + 7 + 12 = 156.
+    for
+      (quantum, control_limit) in [
+        (1, 14193),
+        (7, 14193),
+        (256, 14193),
+        (1, 14192),
+      ] {
+      let execution = @local_veca.start_ranking(
+        @bounded.control(),
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        inputs,
+        10,
+        limits,
+        156,
+        1000,
+        10000,
+        control_work_limit=Some(control_limit),
+      ).unwrap()
+      let mut terminal = false
+      for _ in 0..<15000 {
+        if terminal {
+          break
+        }
+        match @local_veca.advance_ranking(execution, quantum).unwrap() {
+          @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
+          @local_veca.RankingComplete(output, work~, ..) => {
+            assert_eq(control_limit, 14193)
+            assert_eq(work, 14193L)
+            assert_eq(@execution.completed_row_count(output), 2)
+            let schema = @pipeline.schema_at(
+              @lower.pipeline(@lower.bound_preparation(owner)),
+              @pipeline.Step(0),
+            ).unwrap()
+            for row in 0..<2 {
+              for column in 0..<@schema.field_count(schema) {
+                let name = @schema.reference_name(
+                  @schema.field_at(schema, column).unwrap().name,
+                )
+                let cell = @execution.completed_cell(output, row, column)
+                if name == "q" {
+                  assert_true(cell is Some(Null))
+                } else if name == "segment" {
+                  assert_true(cell is Some(Text(actual)) && actual == segment)
+                } else {
+                  let expected = if name == "score" {
+                    0.5
+                  } else {
+                    (row + 1).to_double()
+                  }
+                  assert_true(
+                    cell is Some(Number(actual)) && actual == expected,
+                  )
+                }
+              }
+            }
+            terminal = true
+          }
+          @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
+            assert_eq(control_limit, 14192)
+            assert_eq(work, 14192L)
+            terminal = true
+          }
+          _ => fail("long ranking missed its typed boundary")
+        }
+      }
+      assert_true(terminal)
+      assert_true(@local_veca.ranking_stopped(execution))
+      assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+      assert_eq(@local_veca.ranking_comparison_units(execution), 0)
+      assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+      assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+      assert_true(@execution.completed_output_available(left_output))
+      assert_true(@execution.completed_output_available(right_output))
+    }
+    assert_true(
+      @local_veca.start_ranking(
+        @bounded.control(),
+        task_test_completion(owner),
+        prepared_sequence(owner),
+        0,
+        inputs,
+        10,
+        limits,
+        155,
+        1000,
+        10000,
+      )
+      is Err(@local_veca.RankingWorkspaceLimit),
+    )
+    let control = @bounded.control()
+    let execution = @local_veca.start_ranking(
+      control,
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      limits,
+      156,
+      1000,
+      10000,
+      control_work_limit=Some(14193),
+    ).unwrap()
+    for _ in 0..<1000 {
+      if @local_veca.ranking_comparison_units(execution) == 257 {
+        break
+      }
+      assert_true(
+        @local_veca.advance_ranking(execution, 1).unwrap()
+        is @local_veca.RankingContinue(progress=0L, ..),
+      )
+    }
+    assert_eq(@local_veca.ranking_comparison_units(execution), 257)
+    assert_true(@bounded.request_cancel(control))
+    assert_false(@local_veca.ranking_stopped(execution))
+    assert_eq(
+      @local_veca.cleanup_ranking(execution),
+      Err(@local_veca.RankingExecutionIssue(@bounded.NotStopped)),
+    )
+    assert_eq(@local_veca.ranking_comparison_units(execution), 257)
+    assert_true(@execution.producer_read_available(inputs[0]))
+    assert_true(@execution.producer_read_available(inputs[1]))
+    assert_true(
+      @local_veca.advance_ranking(execution, 1).unwrap()
+      is @local_veca.RankingStopped(@bounded.Cancelled, progress=0L, ..),
+    )
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_comparison_units(execution), 0)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
+test "ranking output rows keep independent logical value limits" {
+  let prefix = String::make(512, 'x')
+  let segment = prefix + "s"
+  let left = direct_nullable_ranking_owner()
+  let right = direct_nullable_ranking_owner()
+  let left_output = direct_nullable_ranking_output(
+    left,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let right_output = direct_nullable_ranking_output(
+    right,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let owner = direct_nullable_ranking_fusion_owner(left, right, "\"max\"")
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+
+  // Two rows contain twelve value/outer nodes and 2*(513+19) text bytes.
+  // The logical work is nodes plus text: 1076, independent of control work.
+  for
+    (nodes, text, logical_work, quantum, succeeds) in [
+      (12, 1064, 1076, 1, true),
+      (12, 1064, 1076, 7, true),
+      (12, 1064, 1076, 256, true),
+      (11, 1064, 1076, 1, false),
+      (12, 1063, 1076, 1, false),
+      (12, 1064, 1075, 1, false),
+    ] {
+    let execution = @local_veca.start_ranking(
+      @bounded.control(),
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      {
+        max_nodes: nodes,
+        max_text_bytes: text,
+        max_depth: 10,
+        max_work: logical_work,
+      },
+      156,
+      1000,
+      10000,
+      control_work_limit=Some(14193),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<15000 {
+      if terminal {
+        break
+      }
+      match @local_veca.advance_ranking(execution, quantum).unwrap() {
+        @local_veca.RankingContinue(..) => ()
+        @local_veca.RankingComplete(output, progress~, work~) => {
+          assert_true(succeeds)
+          assert_eq(progress, 2L)
+          assert_eq(work, 14193L)
+          assert_eq(@execution.completed_row_count(output), 2)
+          assert_eq(@local_veca.ranking_output_row_units(execution), 92)
+          terminal = true
+        }
+        @local_veca.RankingFailed(
+          @local_veca.RankingOutput(@execution.CaptureLimit),
+          progress~,
+          ..
+        ) => {
+          assert_false(succeeds)
+          assert_eq(progress, 1L)
+          terminal = true
+        }
+        _ => fail("ranking output missed its logical value boundary")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_veca.ranking_stopped(execution))
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_output_row_units(execution), 0)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+    assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
+test "ranking output recheck and charge retain custody until stopped" {
+  let prefix = String::make(512, 'x')
+  let segment = prefix + "s"
+  let left = direct_nullable_ranking_owner()
+  let right = direct_nullable_ranking_owner()
+  let left_output = direct_nullable_ranking_output(
+    left,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let right_output = direct_nullable_ranking_output(
+    right,
+    [
+      (None, Some(segment), 1.0, 0.5, Some(prefix + "a")),
+      (None, Some(segment), 2.0, 0.5, Some(prefix + "b")),
+    ],
+    text_limit=513,
+  )
+  let owner = direct_nullable_ranking_fusion_owner(left, right, "\"max\"")
+  let inputs = [
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 0, left, left_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+    @execution.prepare_producer_read(
+      owner,
+      @execution.bind_completed_input(owner, 1, right, right_output).unwrap(),
+      1000,
+      10000,
+    ).unwrap(),
+  ]
+
+  // Five cells: id/q/rank/score need 12 polls. Segment reads at 13,
+  // rechecks its node at 14 and text in 15..23. Logical charging starts
+  // at 25 and visits segment text in 37..45. Row commit is poll 46.
+  // The third barrier is in the next row, after the first has committed.
+  for (barrier, expected_progress) in [(16, 0L), (38, 0L), (62, 1L)] {
+    let control = @bounded.control()
+    let execution = @local_veca.start_ranking(
+      control,
+      task_test_completion(owner),
+      prepared_sequence(owner),
+      0,
+      inputs,
+      10,
+      { max_nodes: 12, max_text_bytes: 1064, max_depth: 10, max_work: 1076, },
+      156,
+      1000,
+      10000,
+      control_work_limit=Some(14193),
+    ).unwrap()
+    let mut progress = 0L
+    for _ in 0..<15000 {
+      if @local_veca.ranking_output_row_units(execution) == barrier {
+        break
+      }
+      match @local_veca.advance_ranking(execution, 1).unwrap() {
+        @local_veca.RankingContinue(progress=current, ..) => progress = current
+        _ => fail("ranking did not yield inside output admission")
+      }
+    }
+    assert_eq(@local_veca.ranking_output_row_units(execution), barrier)
+    assert_eq(progress, expected_progress)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 5)
+    let scratch = @local_veca.ranking_scratch_slots(execution)
+    assert_true(@bounded.request_cancel(control))
+    assert_false(@local_veca.ranking_stopped(execution))
+    assert_eq(
+      @local_veca.cleanup_ranking(execution),
+      Err(@local_veca.RankingExecutionIssue(@bounded.NotStopped)),
+    )
+    assert_eq(@local_veca.ranking_output_row_units(execution), barrier)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 5)
+    assert_eq(@local_veca.ranking_scratch_slots(execution), scratch)
+    assert_true(@execution.producer_read_available(inputs[0]))
+    assert_true(@execution.producer_read_available(inputs[1]))
+    assert_true(
+      @local_veca.advance_ranking(execution, 1).unwrap()
+      is @local_veca.RankingStopped(@bounded.Cancelled, progress=current, ..) &&
+      current == expected_progress,
+    )
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(true))
+    assert_eq(@local_veca.ranking_output_row_units(execution), 0)
+    assert_eq(@local_veca.ranking_output_field_slots(execution), 0)
+    assert_eq(@local_veca.ranking_scratch_slots(execution), 0)
+    assert_eq(@local_veca.cleanup_ranking(execution), Ok(false))
+    assert_true(@execution.completed_output_available(left_output))
+    assert_true(@execution.completed_output_available(right_output))
+  }
+}
+
+///|
 test "ranking producer path admits exact work and workspace" {
   let left = direct_rrf_owner()
   let right = direct_rrf_owner()
@@ -4857,10 +5452,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    91,
+    137,
     1000,
     10000,
-    control_work_limit=Some(153),
+    control_work_limit=Some(236),
   ).unwrap()
   let mut exact_done = false
   for _ in 0..<1000 {
@@ -4870,7 +5465,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(exact, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingComplete(output, work~, ..) => {
-        assert_eq(work, 153L)
+        assert_eq(work, 236L)
         assert_eq(@execution.completed_row_count(output), 2)
         exact_done = true
       }
@@ -4889,10 +5484,10 @@ test "ranking producer path admits exact work and workspace" {
     inputs,
     10,
     limits,
-    91,
+    137,
     1000,
     10000,
-    control_work_limit=Some(152),
+    control_work_limit=Some(235),
   ).unwrap()
   let mut work_failed = false
   for _ in 0..<1000 {
@@ -4902,7 +5497,7 @@ test "ranking producer path admits exact work and workspace" {
     match @local_veca.advance_ranking(one_short_work, 1).unwrap() {
       @local_veca.RankingContinue(work~, ..) => assert_true(work > 0L)
       @local_veca.RankingFailed(@local_veca.RankingWorkLimit, work~, ..) => {
-        assert_eq(work, 152L)
+        assert_eq(work, 235L)
         work_failed = true
       }
       _ => fail("one-short ranking work was accepted")
@@ -4921,7 +5516,7 @@ test "ranking producer path admits exact work and workspace" {
       inputs,
       10,
       limits,
-      90,
+      136,
       1000,
       10000,
     )
@@ -4963,15 +5558,20 @@ test "registered ranking provider enforces exact work and workspace" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // Four three-field input rows cost 32 units; four stable sort passes cost
-  // 80; duplicate/rank validation costs 10; four two-input folds cost 16;
-  // four output visits, two four-field rows, and finalization cost 15.
-  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+16) = 91 slots.
+  // Four three-field input rows cost 56 units; four stable sort passes cost
+  // 88 (six additional record comparisons and two output comparisons);
+  // duplicate/rank validation costs 12; fusion-boundary comparisons add 3;
+  // four two-input folds cost 16;
+  // four output visits, two four-field rows, and finalization cost 61.
+  // Workspace is 4*9 + 4 + 4*6 + 4 + (2+2*2) + (1+44) + 6 + 12 = 137 slots.
+  // Fixed state, row scope and depth-bounded recheck frames remain reserved.
   for
-    (work, slots, outcome) in [
-      (153, 91, "complete"),
-      (152, 91, "work"),
-      (153, 90, "workspace"),
+    (work, slots, outcome, quantum) in [
+      (236, 137, "complete", 1),
+      (236, 137, "complete", 7),
+      (236, 137, "complete", 256),
+      (235, 137, "work", 1),
+      (236, 136, "workspace", 1),
     ] {
     let provider = @local_veca_provider.provider(
       {
@@ -4991,7 +5591,8 @@ test "registered ranking provider enforces exact work and workspace" {
       if terminal {
         break
       }
-      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
+      match
+        @local_connector.advance_managed_provider(execution, quantum).unwrap() {
         @local_connector.Continue(work~, ..) => {
           assert_true(work > 0L)
           charged += work
@@ -5016,9 +5617,9 @@ test "registered ranking provider enforces exact work and workspace" {
       if outcome == "workspace" {
         0L
       } else if outcome == "work" {
-        152L
+        235L
       } else {
-        153L
+        236L
       },
     )
     assert_true(@local_connector.managed_provider_stopped(execution))
@@ -5295,10 +5896,12 @@ test "nearest charges incremental initialization and cumulative work" {
   // Each input: one identity slot, two field reads, two identity matches,
   // one record finish, and three component checks = nine units. Two record
   // scratch slots and two uniqueness checks bring the total to 22. One
-  // score scratch slot, two component folds, score finish, output emission,
-  // and completion bring the independent total to 28 units.
+  // score scratch slot, two component folds, score finish, a 25-unit output
+  // row and completion bring the independent total to 52 units. The output
+  // uses two identity picks, row start, twelve scalar read/recheck units,
+  // charge start, four name/value pairs and commit.
   // Workspace: two three-slot records, four score slots, three record-sort
-  // slots, two identity slots, and eight fixed slots = 23.
+  // slots, two identity slots, and sixteen fixed slots = 31.
   let short_candidate_view = @carrier_runtime.material_prepare_view(
     candidate_material, owner, 0, candidates,
   ).unwrap()
@@ -5315,14 +5918,14 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(short_query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      30,
       1000,
       1000,
-      28,
+      52,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  for (ceiling, accepted) in [(52, true), (51, false)] {
     let candidate_view = @carrier_runtime.material_prepare_view(
       candidate_material, owner, 0, candidates,
     ).unwrap()
@@ -5338,14 +5941,14 @@ test "nearest charges incremental initialization and cumulative work" {
       @local_veca.nearest_carrier_producer(query_view),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      31,
       1000,
       1000,
       ceiling,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<64 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -5404,10 +6007,10 @@ test "nearest stops during incremental identity initialization" {
     @local_veca.nearest_carrier_producer(query_view),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    23,
+    31,
     1000,
     1000,
-    28,
+    52,
   ).unwrap()
   assert_true(
     @local_veca.advance_nearest(execution, 1).unwrap()
@@ -5444,7 +6047,9 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  // Each Relation adds scalar (2) and two-component Vector (5) rechecks:
+  // 52+2*7=66. One shared depth-ten cursor reserves 8+10+2=20 slots.
+  for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -5458,7 +6063,7 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       1000,
     ).unwrap()
     // Two three-slot records, four score slots, three ordering slots,
-    // two identity slots, and eight fixed slots require 23 workspace slots.
+    // two identity slots, sixteen fixed slots, and twenty cursor slots: 51.
     let execution = @local_veca.start_nearest_inputs_with_control_work_limit(
       @bounded.control(),
       @execution.generated_completion_preparation(generated),
@@ -5468,14 +6073,14 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      51,
       1000,
       1000,
       ceiling,
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<80 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -5528,10 +6133,10 @@ test "direct nearest Relation inputs keep exact work and workspace bounds" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      50,
       1000,
       1000,
-      28,
+      66,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -5661,7 +6266,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     }
     let limits = dispatch_test_limits()
     let provider = @local_veca_provider.provider(
-      direct_relation_pool_limits(18, 32),
+      direct_relation_pool_limits(83, 72),
       4096L,
       @execution.generated_sequence_capacity(
         generated,
@@ -5678,7 +6283,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
     ).unwrap()
     let mut material = None
     let mut charged = 0L
-    for _ in 0..<40 {
+    for _ in 0..<100 {
       if material is None {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -5694,7 +6299,7 @@ test "registered Relation pool returns a standalone Vectors generation" {
       }
     }
     let material = material.unwrap()
-    assert_eq(charged, 32L)
+    assert_eq(charged, 72L)
     assert_true(@carrier_runtime.material_available(material))
     assert_true(@local_connector.managed_provider_stopped(execution))
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -5730,13 +6335,13 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     limits.local_execution,
     limits.guards,
   ).unwrap()
-  // The same Relation kernel requires 32 work units and 18 workspace slots,
+  // The same Relation kernel requires 72 work units and 83 workspace slots,
   // independently itemized in the adjacent direct-kernel boundary fixture.
   for
     (work, workspace, stopping) in [
-      (31, 18, false),
-      (32, 17, false),
-      (32, 18, true),
+      (71, 83, false),
+      (72, 82, false),
+      (72, 83, true),
     ] {
     let provider = @local_veca_provider.provider(
       direct_relation_pool_limits(workspace, work),
@@ -5752,7 +6357,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     ).unwrap()
     let mut charged = 0L
     let mut terminal = false
-    for _ in 0..<40 {
+    for _ in 0..<100 {
       if !terminal {
         match @local_connector.advance_managed_provider(execution, 1).unwrap() {
           @local_connector.Continue(work~, ..) => {
@@ -5784,12 +6389,12 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     assert_true(terminal)
     assert_eq(
       charged,
-      if workspace == 17 {
+      if workspace == 82 {
         0L
       } else if stopping {
         1L
       } else {
-        31L
+        71L
       },
     )
     assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
@@ -5803,7 +6408,7 @@ test "registered Relation pool retains exact limits and stopped cleanup" {
     1000,
   ).unwrap()
   let provider = @local_veca_provider.provider(
-    direct_relation_pool_limits(18, 32),
+    direct_relation_pool_limits(83, 72),
     4096L,
     capacity,
   )
@@ -5840,13 +6445,15 @@ test "relation pool enforces exact work and workspace boundaries" {
   ).unwrap()
   // One five-slot record in each ordering array (10), three output fields,
   // two vector components, and three key slots require 18 workspace slots.
+  // The Relation recheck adds twenty slots, append snapshot/map and depth
+  // stacks add 8+6+1+30=45: 18+20+45=83.
   assert_true(
     @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(17, 1000),
+      direct_relation_pool_limits(82, 1000),
       4096L,
       fn() { true },
     )
@@ -5859,7 +6466,7 @@ test "relation pool enforces exact work and workspace boundaries" {
     @execution.generated_prepared_sequence(task_test_generated(owner)),
     0,
     read,
-    direct_relation_pool_limits(18, 1000),
+    direct_relation_pool_limits(83, 1000),
     4096L,
     fn() { true },
   ).unwrap()
@@ -5877,20 +6484,23 @@ test "relation pool enforces exact work and workspace boundaries" {
   // One record: setup 3, three field scans 9, group/identity checks 2,
   // identity encoding 2, component validation 2, collection/scratch 2,
   // group boundaries 2, component build/fold/finish 6, output fields 3,
-  // and output commit 1. The independent total is 32 control units.
-  for (ceiling, accepted) in [(32, true), (31, false)] {
+  // and output commit 1. Recheck two scalars (4) and a Vector (5) before
+  // binding. Existing total 32+9=41. Append polls are fields/required/
+  // identities 10, key 3, record start 1, tuples 7+4+4, finish/commit 2:
+  // 31. The independent total is 41+31=72 control units.
+  for (ceiling, accepted) in [(72, true), (71, false)] {
     let bounded = @local_veca.start_relation_pool(
       @bounded.control(),
       @execution.generated_prepared_sequence(task_test_generated(owner)),
       0,
       read,
-      direct_relation_pool_limits(18, ceiling),
+      direct_relation_pool_limits(83, ceiling),
       4096L,
       fn() { true },
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<40 {
+    for _ in 0..<100 {
       if !terminal {
         match @local_veca.advance_pool(bounded, 1).unwrap() {
           @local_veca.PoolContinue(work~, ..) => {
@@ -5938,7 +6548,9 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
   let candidate_output = direct_nearest_relation_output(candidates)
   let query_output = direct_nearest_relation_output(queries)
   let generated = task_test_generated(owner)
-  for (ceiling, accepted) in [(28, true), (27, false)] {
+  // Same common Relation rechecks and shared cursor as direct nearest:
+  // existing 52 plus fourteen input polls, existing 31 plus twenty slots.
+  for (ceiling, accepted) in [(66, true), (65, false)] {
     let candidate_read = @execution.prepare_producer_read(
       owner,
       @execution.bind_completed_input(owner, 0, candidates, candidate_output).unwrap(),
@@ -5961,7 +6573,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      23,
+      51,
       1000,
       1000,
       [candidate_read, query_read],
@@ -5969,7 +6581,7 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     ).unwrap()
     let mut terminal = false
     let mut charged = 0L
-    for _ in 0..<32 {
+    for _ in 0..<80 {
       if !terminal {
         match @local_veca.advance_nearest(execution, 1).unwrap() {
           @local_veca.NearestContinue(work~, ..) => {
@@ -6022,11 +6634,11 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
       @local_veca.nearest_relation_producer(query_read),
       10,
       { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-      22,
+      50,
       1000,
       1000,
       [candidate_read, query_read],
-      28,
+      66,
     )
     is Err(@local_veca.NearestWorkspaceLimit),
   )
@@ -6042,11 +6654,11 @@ test "fused nearest charges exact Relation inputs and reclaims cancellation" {
     @local_veca.nearest_relation_producer(query_read),
     10,
     { max_nodes: 100, max_text_bytes: 1000, max_depth: 10, max_work: 1000, },
-    23,
+    51,
     1000,
     1000,
     [candidate_read, query_read],
-    28,
+    52,
   ).unwrap()
   assert_true(
     @local_veca.advance_nearest(cancel_execution, 1).unwrap()

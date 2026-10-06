@@ -16,9 +16,13 @@ test('one existing two-child registered case fixes the native startup scope', ()
 });
 test('the parent observation borrows source roots and rejects a missing constructor site', () => {
   const overlay = parentOverlay(read);
-  assert(overlay[helper].includes('#borrow(parent, children, previous, current'));
+  assert(overlay[helper].includes('#borrow(parent, children, completed, current'));
+  assert(overlay[helper].includes('completed : Ref[Array[@execution.CompletedOutput?]]'));
+  assert(overlay['src/execution_relation/capacity_map_probe_native.mbt']
+    .includes('output.completion.result_identity'));
   const provider = 'src/connectors/local/selected_relation_provider.mbt';
   assert.equal(overlay[provider].split('println(parent_control_probe(').length, 2);
+  assert.equal(overlay[provider].split('@execution.parent_completed_identity_observation(output)').length, 2);
   assert.throws(() => parentOverlay(path => path === provider ? '' : read(path)), /Missing exact chain constructor/);
 });
 

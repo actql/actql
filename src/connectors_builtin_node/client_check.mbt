@@ -10,9 +10,13 @@ priv enum CheckFinding {
   SyntaxViolation(Int, Int)
   LexicalViolation(String, (Int, Int)?)
   ExpressionViolation(String, (Int, Int)?)
+  FrameViolation
+  ExpressionTypeViolation(String)
+  OperationScalarViolation(String, String, (String, String)?)
   GraphViolation(String, String)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
+  SuppliedParseViolation(String?)
   SuppliedViolation(String?)
   DeclarationViolation(String?)
   ConstraintViolation(String, String, String?)
@@ -50,12 +54,13 @@ pub fn client_program_check_source(
   source_revision : String,
   declarations_revision : String?,
   parameters_revision : String?,
+  correlation_ref : String,
 ) -> String {
   let findings : Array[CheckFinding] = []
   let stop = check_source_findings(
     findings, document, format, environment, visible_publication, declarations, parameters,
   )
-  check_outcome_json(findings, stop, context_ref, {
+  check_outcome_json(findings, stop, context_ref, correlation_ref, {
     source_revision,
     source_bytes: @utf8.encode(document).length(),
     declarations_revision,
@@ -88,6 +93,8 @@ pub fn client_program_check_unavailable(correlation_ref : String) -> String {
     @encode.end_object(writer)
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
@@ -179,12 +186,23 @@ fn check_source_findings(
   let (supplied, supplied_admitted) = match
     client_program_input("json", parameters) {
     Ok((_, supplied)) => (supplied, true)
-    Err(SuppliedSyntax({ issue, .. })) => {
+    Err(SuppliedSyntax(error)) => {
+      let issue = error.issue
       findings.push(
         if check_parse_budget(issue) {
           Limit("analysis_budget_exhausted")
         } else {
-          Violation("supplied_parameters_invalid")
+          SuppliedParseViolation(
+            if parameters is Some(body) {
+              check_parse_original_pointer(body, error, {
+                max_input_bytes: 65536,
+                max_nodes: 8192,
+                max_depth: 64,
+              })
+            } else {
+              None
+            },
+          )
         },
       )
       (None, false)
@@ -201,6 +219,7 @@ fn check_source_findings(
     }
     Err(_) => return Failed("check_internal")
   }
+  let mut explanation_bindings : @parameter_binding.BoundValues? = None
   if supplied_admitted {
     // Omitted declarations admit the binder's empty set; an authored empty
     // declaration map was rejected above and must not be substituted here.
@@ -234,7 +253,7 @@ fn check_source_findings(
           }
         }
       }
-      Ok(Ready(_)) => ()
+      Ok(Ready(bound)) => explanation_bindings = Some(bound)
       Err(issue) =>
         match check_binding_fault(issue) {
           Budget => findings.push(Limit("analysis_budget_exhausted"))
@@ -368,9 +387,13 @@ fn check_source_findings(
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | FrameViolation
+      | ExpressionTypeViolation(_)
+      | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -419,7 +442,11 @@ fn check_source_findings(
             is Some(finding) {
             findings.push(finding)
           } else {
-            findings.push(check_program_finding(diagnostic))
+            findings.push(
+              check_program_finding(
+                diagnostic, explanation_bindings, supplied, parameters, declarations,
+              ),
+            )
           }
         MissingInput => findings.push(Limit("bound_values_missing"))
         UnsupportedImplementation =>
@@ -504,16 +531,28 @@ fn check_declarations(
       max_depth: 32,
     }) {
     Ok(node) => node
-    Err({ issue, .. }) =>
+    Err(error) => {
+      let issue = error.issue
       return Err({
         kind: if check_parse_budget(issue) {
           Budget
         } else {
           Invalid
         },
-        pointer: None,
+        // The parser owns this original structural path, not a SQL range.
+        // A preflight/unknown path stays absent; budgets produce no violation.
+        pointer: if check_parse_budget(issue) {
+          None
+        } else {
+          check_parse_original_pointer(body, error, {
+            max_input_bytes: 1048576,
+            max_nodes: 16384,
+            max_depth: 32,
+          })
+        },
         finding: None,
       })
+    }
   }
   let cursor = match
     @decode.admit(node, {
@@ -569,9 +608,115 @@ fn check_declarations(
 }
 
 ///|
+/// Project an existing scalar rejection, without rechecking the supplied value.
+/// The first admitted binder retains whether this call supplied the value or
+/// selected its default. Internal requirement indexes are never input positions.
+fn check_operation_scalar_finding(
+  diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
+) -> CheckFinding? {
+  guard @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Scalars(InvalidValue(_, demand)))) else {
+    return None
+  }
+  let name = match demand {
+    SafeInteger(name, ..)
+    | Fraction(name)
+    | Finite(name)
+    | Duration(name)
+    | Milliseconds(name, ..)
+    | Timestamp(name) => name
+  }
+  guard name.length() <= 256 else { return None }
+  let domain = match demand {
+    SafeInteger(_, minimum=1L) => Some("positive_safe_integer")
+    SafeInteger(_, minimum=0L) => Some("nonnegative_safe_integer")
+    SafeInteger(_, ..) => None
+    Fraction(_) => Some("unit_fraction")
+    Finite(_) => Some("finite_number")
+    Duration(_) => Some("duration")
+    Milliseconds(_, signed=false) => Some("positive_milliseconds")
+    Milliseconds(_, signed=true) => Some("signed_milliseconds")
+    Timestamp(_) => Some("timestamp")
+  }
+  guard domain is Some(domain) else { return None }
+  guard bindings is Some(bound) else { return None }
+  let mut original_parameter = None
+  for index in 0..<@parameter_binding.bound_value_count(bound) {
+    let parameter = @parameter_binding.bound_value_at(bound, index).unwrap()
+    if parameter.name == name {
+      original_parameter = Some(parameter)
+      break
+    }
+  }
+  // A generated or differently scoped name is not a caller-owned parameter.
+  guard original_parameter is Some(parameter) else { return None }
+  let mut location = None
+  match parameter.origin {
+    Supplied =>
+      if supplied is Some(cursor) &&
+        parameters is Some(body) &&
+        check_supplied_cursor(cursor, [@source.Key(name)]) is Some(_) &&
+        check_original_pointer(body, cursor, [@source.Key(name)])
+        is Some(pointer) {
+        location = Some(("parameters", pointer))
+      }
+    Default =>
+      if declarations is Some(body) {
+        let original = @parameter_binding.bound_declarations(bound)
+        for declaration in @parameter_binding.declarations(original) {
+          if declaration.name != name {
+            continue
+          }
+          let cursor = @parameter_binding.declaration_source(declaration)
+          let path = @decode.cursor_path(cursor)
+          if path.length() == 1 &&
+            path[0] is @source.Key(key) &&
+            key == name &&
+            check_supplied_cursor(cursor, [@source.Key("default")]) is Some(_) &&
+            check_original_pointer(body, cursor, [@source.Key("default")])
+            is Some(relative) &&
+            check_supplied_pointer(path) is Some(prefix) {
+            location = Some(("parameter_declarations", prefix + relative))
+          }
+          break
+        }
+      }
+  }
+  Some(OperationScalarViolation(name, domain, location))
+}
+
+///|
 fn check_program_finding(
   diagnostic : @program_check.CheckDiagnostic,
+  bindings : @parameter_binding.BoundValues?,
+  supplied : @decode.Cursor?,
+  parameters : String?,
+  declarations : String?,
 ) -> CheckFinding {
+  if check_operation_scalar_finding(
+      diagnostic, bindings, supplied, parameters, declarations,
+    )
+    is Some(finding) {
+    return finding
+  }
+  if @program_check.diagnostic_cause(diagnostic)
+    is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
+    issue.kind is Operation(Expression(TypeMismatch(expected))) &&
+    ["number", "boolean", "string"].contains(expected) {
+    // These are the checker's closed required-type tags, not formatted messages.
+    // The flattened location has no authored/generated kind, so omit SQL bytes.
+    return ExpressionTypeViolation(expected)
+  }
+  if @program_check.diagnostic_cause(diagnostic)
+    is Closure(Operations(Frames(InvalidFrame(_)))) {
+    // The existing closure Owner proves the bound frame violation. Its
+    // requirement index is not an authored span or a public input pointer.
+    return FrameViolation
+  }
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.path.length() >= 6 &&
@@ -657,9 +802,13 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | SyntaxViolation(_, _)
       | LexicalViolation(_, _)
       | ExpressionViolation(_, _)
+      | FrameViolation
+      | ExpressionTypeViolation(_)
+      | OperationScalarViolation(_, _, _)
       | GraphViolation(_, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
+      | SuppliedParseViolation(_)
       | SuppliedViolation(_)
       | DeclarationViolation(_)
       | ConstraintViolation(_, _, _)
@@ -704,10 +853,14 @@ fn write_check_report(
       SyntaxViolation(_, _) => Some("query_syntax_invalid")
       LexicalViolation(_, _) => Some("query_lexical_invalid")
       ExpressionViolation(_, _) => Some("query_expression_invalid")
+      FrameViolation => Some("query_frame_invalid")
+      ExpressionTypeViolation(_) => Some("expression_type_mismatch")
+      OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
       GraphViolation(_, _) => Some("graph_operation_invalid")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
       DefaultTypeViolation(_, _, _, _) =>
         Some("parameter_default_type_mismatch")
+      SuppliedParseViolation(_) => Some("supplied_parameters_invalid")
       SuppliedViolation(_) => Some("supplied_value_invalid")
       DeclarationViolation(_) => Some("parameter_declarations_invalid")
       ConstraintViolation(_, _, _) =>
@@ -829,6 +982,13 @@ fn write_check_report(
         }
       }
     }
+    if code == "query_frame_invalid" {
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "issue")
+      @encode.string_value(writer, "invalid_bounds")
+      @encode.end_object(writer)
+    }
     if code == "graph_operation_invalid" {
       for finding in findings {
         if finding is GraphViolation(operation, issue) {
@@ -937,6 +1097,17 @@ fn write_check_report(
         }
       }
     }
+    if code == "supplied_parameters_invalid" {
+      for finding in findings {
+        if finding is SuppliedParseViolation(Some(pointer)) &&
+          documents.parameters_revision is Some(revision) {
+          write_check_structured_location(
+            writer, "parameters", revision, pointer,
+          )
+          break
+        }
+      }
+    }
     if code == "supplied_value_invalid" {
       for finding in findings {
         if finding is SuppliedViolation(pointer) {
@@ -957,6 +1128,44 @@ fn write_check_report(
           write_check_structured_location(
             writer, "parameter_declarations", revision, pointer,
           )
+          break
+        }
+      }
+    }
+    if code == "expression_type_mismatch" {
+      for finding in findings {
+        if finding is ExpressionTypeViolation(expected) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "expected_type")
+          @encode.string_value(writer, expected)
+          @encode.end_object(writer)
+          break
+        }
+      }
+    }
+    if code == "operation_parameter_invalid" {
+      for finding in findings {
+        if finding is OperationScalarViolation(name, domain, location) {
+          @encode.key(writer, "facts")
+          @encode.begin_object(writer)
+          @encode.key(writer, "domain")
+          @encode.string_value(writer, domain)
+          @encode.key(writer, "parameter")
+          @encode.string_value(writer, name)
+          @encode.end_object(writer)
+          if location is Some((document_id, pointer)) {
+            let revision = if document_id == "parameters" {
+              documents.parameters_revision
+            } else {
+              documents.declarations_revision
+            }
+            if revision is Some(revision) {
+              write_check_structured_location(
+                writer, document_id, revision, pointer,
+              )
+            }
+          }
           break
         }
       }
@@ -1040,6 +1249,7 @@ fn check_outcome_json(
   findings : Array[CheckFinding],
   stop : CheckStop,
   context_ref : String,
+  correlation_ref : String,
   documents : CheckDocuments,
 ) -> String {
   try {
@@ -1059,6 +1269,8 @@ fn check_outcome_json(
         )
       }
       Failed(problem) => {
+        @encode.key(writer, "correlation_ref")
+        @encode.string_value(writer, correlation_ref)
         @encode.key(writer, "outcome")
         @encode.string_value(writer, "failed")
         // A partial report is only ever invalid, never verified or a guess.
@@ -1077,17 +1289,43 @@ fn check_outcome_json(
     }
     @encode.key(writer, "reason_schema_cid")
     @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
     @encode.key(writer, "version")
     @encode.string_value(writer, check_outcome_version)
     @encode.end_object(writer)
     @encode.finish(writer)
   } catch {
-    _ =>
-      "{\"outcome\":\"failed\",\"problem\":{\"code\":\"check_report_unbounded\"},\"reason_schema_cid\":\"" +
-      check_reason_schema_cid +
-      "\",\"version\":\"" +
-      check_outcome_version +
-      "\"}"
+    _ => check_failed_json("check_report_unbounded", correlation_ref)
+  }
+}
+
+///|
+/// A separately bounded Problem envelope survives report-budget exhaustion.
+/// The correlation reference was allocated by the Host for this attempt.
+fn check_failed_json(problem : String, correlation_ref : String) -> String {
+  try {
+    let writer = @encode.writer(1024, 16, 4)
+    @encode.begin_object(writer)
+    @encode.key(writer, "correlation_ref")
+    @encode.string_value(writer, correlation_ref)
+    @encode.key(writer, "outcome")
+    @encode.string_value(writer, "failed")
+    @encode.key(writer, "problem")
+    @encode.begin_object(writer)
+    @encode.key(writer, "code")
+    @encode.string_value(writer, problem)
+    @encode.end_object(writer)
+    @encode.key(writer, "reason_schema_cid")
+    @encode.string_value(writer, check_reason_schema_cid)
+    @encode.key(writer, "outcome_schema_cid")
+    @encode.string_value(writer, check_outcome_schema_cid)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, check_outcome_version)
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => abort("CheckFailedEncoding")
   }
 }
 
@@ -1215,6 +1453,35 @@ fn check_supplied_pointer(path : Array[@decode.PathSegment]) -> String? {
     pointer += "/" + token
   }
   Some(pointer)
+}
+
+///|
+/// Canonical parser paths contain admitted keys. Reuse the existing preserving
+/// reader solely for original-path material after an authoritative failure.
+/// A different failure, budget or unknown path cannot supply a location.
+fn check_parse_original_pointer(
+  body : String,
+  original : @source.ParseError,
+  limits : @source.ParseLimits,
+) -> String? {
+  guard !check_parse_budget(original.issue) && original.path is Some(_) else {
+    return None
+  }
+  match
+    @source.parse_json_bytes_preserving(
+      @utf8.encode(body),
+      limits,
+      source_path=original.source_path,
+    ) {
+    Err(preserved) => {
+      guard preserved.issue == original.issue &&
+        preserved.location == original.location else {
+        return None
+      }
+      preserved.path.bind(check_supplied_pointer)
+    }
+    Ok(_) => None
+  }
 }
 
 ///|

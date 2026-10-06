@@ -213,7 +213,7 @@ test "keyed TRAIL retains exact Graph and Relation selector owners through stop 
     if !empty {
       assert_eq(
         @execution.completed_output_row_wire(seed_output, 0, 10000, 10000, 50).unwrap(),
-        "{\"key\":" + identity + "}",
+        "{\"key\":" + property_graph_expected_json_wire(identity) + "}",
       )
     }
     assert_true(@local_sga.cleanup_match_nodes(seed_run).unwrap())
@@ -302,19 +302,19 @@ test "keyed TRAIL retains exact Graph and Relation selector owners through stop 
           "],\"key_types\":[{\"kind\":\"number\"}]}"
         }
         let expected = "{\"edge_ids\":[" +
-          edge(10 + row) +
+          property_graph_expected_json_wire(edge(10 + row)) +
           "," +
-          edge(11 - row) +
+          property_graph_expected_json_wire(edge(11 - row)) +
           "],\"end_id\":" +
-          identity +
+          property_graph_expected_json_wire(identity) +
           ",\"hop_count\":2,\"node_ids\":[" +
-          identity +
+          property_graph_expected_json_wire(identity) +
           "," +
-          identity +
+          property_graph_expected_json_wire(identity) +
           "," +
-          identity +
+          property_graph_expected_json_wire(identity) +
           "],\"start_id\":" +
-          identity +
+          property_graph_expected_json_wire(identity) +
           "}"
         assert_eq(
           @execution.completed_output_row_wire(output, row, 10000, 10000, 50).unwrap(),
