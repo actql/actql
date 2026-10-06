@@ -104,7 +104,7 @@ export function getCheckPresentationInfo(options) {
     const requested = options?.locale;
     if (requested === 'ja' || requested === 'ja-JP') locale = 'ja';
   } catch { /* Locale lookup cannot hide a validated observation. */ }
-  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.4`});
+  return Object.freeze({locale, translationRevision: `2026-10-06.${locale}.5`});
 }
 
 export function localizeCheck(key, english, options) {

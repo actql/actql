@@ -209,6 +209,12 @@ test('VecA Relation input requires nested limits, shared scans and public custod
 });
 
 test('Pool output requires shared append accounting and public stop custody evidence', () => {
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.boundary_tests.find(item =>
+      item.role === 'pool_qualified_name_wire_sinks').suite = 'moon:local_veca';
+  }), /VecA pool_vectors: boundary evidence must be suite-connected on all targets/u);
   for (const role of ['pool_output_limits_stop_cleanup',
     'pool_output_record_limits', 'pool_output_record_cleanup',
     'pool_output_owner_exclusion', 'pool_identity_hash_limits',
@@ -218,7 +224,13 @@ test('Pool output requires shared append accounting and public stop custody evid
     'pool_record_contract_pair_limits', 'pool_record_contract_binding',
     'pool_member_encoding_limits_stop', 'pool_member_encoding_shared_text',
     'pool_member_encoding_shared_cleanup', 'pool_object_name_limits_stop',
-    'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation']) {
+    'pool_object_name_shared_limits', 'pool_object_identifier_json_data_separation',
+    'pool_field_binding_limits_stop', 'pool_field_binding_shared_limits',
+    'pool_field_binding_collision', 'pool_field_binding_prior_cleanup',
+    'pool_field_binding_public_barrier', 'pool_field_binding_bucket_yield',
+    'pool_field_binding_typed_role', 'pool_qualified_name_limits',
+    'pool_qualified_name_cleanup', 'pool_qualified_name_wire_sinks',
+    'pool_qualified_name_wire_unicode']) {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'VecA' &&
         entry.operation === 'pool_vectors');
@@ -231,6 +243,12 @@ test('Pool output requires shared append accounting and public stop custody evid
     route.environment_tests = route.environment_tests.filter(item =>
       item.role !== 'pool_output_public_store');
   }), /VecA pool_vectors: Pool output public Store fixture is missing/u);
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(entry => entry.family === 'VecA' &&
+      entry.operation === 'pool_vectors');
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'pool_field_binding_public_store');
+  }), /VecA pool_vectors: Pool field binding public Store fixture is missing/u);
   assert.match(run(undefined, routes => {
     const route = routes.routes.find(entry => entry.family === 'VecA' &&
       entry.operation === 'pool_vectors');

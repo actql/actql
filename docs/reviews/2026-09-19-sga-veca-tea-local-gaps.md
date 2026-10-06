@@ -5889,3 +5889,39 @@ matching/byte scans, not every name/Map/schema boundary. Legacy drains,
 runtime buffer assembly, whole-Run physical accounting and unexecuted
 target/packed campaigns remain distinct. See the
 [Object-name evidence](2026-10-06-local-object-name-rechecks.md).
+
+### Retained record field-name binding
+
+Stepped record append now yields while hashing/comparing long field names,
+searching typed Carrier Knowledge, checking required fields and resolving
+current/prior identity names. Numeric fingerprints never replace exact UTF-16
+equality or typed qualification. A new fixed eight-slot name reservation and
+one collision-link slot per field are admitted before allocation. Historical
+Pool workspace figures above belong to their original source revisions;
+current three-field depth-three input cases need 66/65 slots, while the
+depth-ten scalar Carrier case needs 71/70. Construction work is unchanged.
+
+Independent fixtures cover name collisions, omission/refusal, mutation during
+yield, prior-row custody and quantum-independent 943/942 and 314/313 control.
+The latter fixes the ordinary retained Host cancellation boundary at 256.
+This does not close preparation/input-matching name scans, qualified wire-name
+assembly, JSON normalization, legacy drains, runtime buffer assembly,
+aggregate intermediate bytes or whole-Run physical accounting. See the
+[field-binding evidence](2026-10-06-local-record-field-binding.md) for actual
+executed checks and unverified target/packed/public coverage.
+
+### Borrowed qualified record-name emission
+
+Stepped record append now passes the virtual qualification prefix and spelling
+to the existing String emitter without constructing a complete reference name.
+The shared writer preserves escaping, bytes/nodes/depth, hash, surrogate-pair
+handling and exclusive unfinished-output custody. Construction work, append
+workspace and poll counts remain unchanged; limit and cleanup fixtures retain
+independently derived 143/142 bytes, 6/5 work and 28/27 workspace.
+
+Focused common/consumer JS and existing installed retained Host regressions
+are recorded in the [qualified-name evidence](2026-10-06-local-qualified-name-emission.md).
+The Host regression has unqualified published fields and is not a new qualified
+public Program acceptance claim. Preparation/input/output name matching, legacy
+drains, JSON normalization, runtime buffer assembly, aggregate intermediate
+bytes, whole-Run accounting and unexecuted packed/target campaigns remain open.

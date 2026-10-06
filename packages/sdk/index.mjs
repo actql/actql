@@ -273,6 +273,11 @@ export function createCheckDocumentSession(client, options) {
       !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding)) fail('InvalidCheckDocument');
   let current = {text, version}, checker = client, issued = 0n;
   const observations = new WeakMap();
+  const currentRecord = observation => {
+    const record = observations.get(observation);
+    return current && record?.input && record.ticket === issued &&
+      observation.version === current.version && record.input.text === current.text ? record : undefined;
+  };
   return Object.freeze({
     update(text, version) {
       if (!current) fail('CheckDocumentClosed');
@@ -291,12 +296,28 @@ export function createCheckDocumentSession(client, options) {
       return observation;
     },
     resolveTextRange(observation, location) {
-      const record = observations.get(observation);
-      if (!current || !record?.input || record.ticket !== issued ||
-          observation.version !== current.version || record.input.text !== current.text ||
+      const record = currentRecord(observation);
+      if (!record ||
           location?.document_id !== 'source' || location?.kind !== 'text') return undefined;
       return resolveCheckTextRangeEncoding(observation.outcome, location,
         positionEncoding, record.input);
+    },
+    format(observation, options) {
+      let outcome, selected;
+      try {
+        outcome = observation?.outcome;
+        selected = {format: options?.format, maxBytes: options?.maxBytes,
+          currentInputs: options?.currentInputs, positionEncoding};
+      } catch { return undefined; }
+      try { selected.locale = options?.locale; } catch { selected.locale = 'en'; }
+      // Read application options before deciding whether editor positions are current.
+      const record = currentRecord(observation);
+      if (!record) selected.currentInputs = [];
+      else if (selected.currentInputs === undefined) selected.currentInputs = [...checkInputs.get(outcome).values()];
+      const rendered = formatCheckOutcome(outcome, selected);
+      // Input accessors can edit, close or issue a newer check while rendering.
+      return record && currentRecord(observation) !== record
+        ? formatCheckOutcome(outcome, {...selected, currentInputs: []}) : rendered;
     },
     close() {
       current = undefined;
@@ -373,14 +394,15 @@ export function formatCheckOutcome(outcome, options) {
     snapshot = JSON.parse(JSON.stringify(outcome));
     if (!validCheckOutcome(snapshot)) return undefined;
   } catch { return undefined; }
-  let format, maxBytes, currentInputs, locale;
+  let format, maxBytes, currentInputs, locale, positionEncoding;
   try {
     format = options?.format ?? 'text';
     maxBytes = options?.maxBytes ?? 65536;
     currentInputs = options?.currentInputs;
+    positionEncoding = options?.positionEncoding ?? 'utf-16';
   } catch { return undefined; }
   try { locale = options?.locale; } catch { locale = 'en'; }
-  if (!['text', 'html', 'json'].includes(format) || !Number.isSafeInteger(maxBytes) ||
+  if (!['text', 'html', 'json'].includes(format) || !['utf-8', 'utf-16', 'utf-32'].includes(positionEncoding) || !Number.isSafeInteger(maxBytes) ||
       maxBytes < 1024 || maxBytes > 1048576) return undefined;
   const presentation = getCheckPresentationInfo({locale});
   const observation = explainCheckOutcome(snapshot, {locale: presentation.locale});
@@ -434,7 +456,7 @@ export function formatCheckOutcome(outcome, options) {
         entry.location = {kind: resolved.kind, documentId: resolved.document_id, revision: resolved.revision,
           ...(resolved.kind === 'structured' ? {pointer: resolved.pointer} :
             {startByte: resolved.start_byte, endByte: resolved.end_byte, precision: resolved.precision})};
-        const range = resolved.kind === 'text' && resolveCheckTextRange(outcome, location, current);
+        const range = resolved.kind === 'text' && resolveCheckTextRangeEncoding(outcome, location, positionEncoding, current);
         if (range) Object.assign(entry.location, {positionEncoding: range.positionEncoding, range: range.range});
       }
     } catch { /* Missing or malformed editor input cannot hide safe explanations. */ }
@@ -522,6 +544,28 @@ export function explainCheckReason(reason, options) {
     invalid_parameter: ['A parameter reference lacks a valid name.', 'Provide a valid parameter name after @.'],
   };
   const issue = reason?.facts?.issue;
+  const jsonExplanations = {
+    invalid_unicode: ['The binding JSON contains invalid Unicode text.', 'Use valid Unicode scalar values in member names and string values.'],
+    unexpected_end: ['The binding JSON ends before a value is complete.', 'Complete the JSON value and its closing delimiters.'],
+    unexpected_token: ['The binding JSON contains an unexpected token.', 'Use a token allowed by JSON at the reported input location.'],
+    invalid_string: ['A binding JSON string is invalid.', 'Quote the string and escape control characters using JSON syntax.'],
+    invalid_escape: ['A binding JSON escape is invalid.', 'Use an escape sequence allowed by JSON.'],
+    invalid_number: ['A binding JSON number has invalid spelling.', 'Use a valid JSON number, including a complete exponent when present.'],
+    number_out_of_range: ['A binding JSON number is outside the admitted numeric range.', 'Use a number within the selected input numeric contract.'],
+    negative_zero: ['The binding JSON contains inadmissible negative zero.', 'Use an admitted numeric value; negative zero is not admitted.'],
+    expected_colon: ['A binding JSON member is missing its colon.', 'Separate the member name and value with a colon.'],
+    expected_array_separator: ['Binding JSON array elements are not separated correctly.', 'Use commas between array elements and a closing bracket.'],
+    expected_object_separator: ['Binding JSON object members are not separated correctly.', 'Use commas between object members and a closing brace.'],
+    duplicate_key: ['Two binding JSON member names compare equal under the admitted key rules.', 'Choose distinct member names under the input normalization rules.'],
+    trailing_content: ['Unexpected content follows the binding JSON value.', 'Submit one complete JSON value without trailing content.'],
+  };
+  if (reason?.code === 'binding_json_invalid' &&
+      ['parameters', 'parameter_declarations'].includes(reason?.facts?.document) &&
+      typeof issue === 'string' && Object.hasOwn(jsonExplanations, issue)) {
+    const [summary, hint] = localizeCheck(`binding_json.${issue}`, jsonExplanations[issue], options);
+    return Object.freeze({kind: 'known', summary, hint});
+  }
+
   if (reason?.code === 'query_lexical_invalid' && typeof issue === 'string' &&
       Object.hasOwn(lexicalExplanations, issue)) {
     const [summary, hint] = localizeCheck(`lexical.${issue}`, lexicalExplanations[issue], options);

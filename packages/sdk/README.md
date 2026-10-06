@@ -779,7 +779,7 @@ cleanup uncertainty proves neither Run failure, Result publication nor resource
 release.
 
 
-`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?})`
+`formatCheckOutcome(outcome, {format: 'text' | 'html' | 'json', locale?, maxBytes?, currentInputs?, positionEncoding?})`
 formats the validated public check observation for terminal output, HTML display,
 or structured agent data. Text is the default. It delegates summaries to the
 existing explanation helpers and preserves the Owner verdict, scope, completeness
@@ -820,3 +820,39 @@ const display = formatCheckOutcome(outcome, {format: 'text'});
 if (display === undefined) throw new Error('CheckDisplayUnavailable');
 console.log(display);
 ```
+
+`positionEncoding` selects the already negotiated `utf-8`, `utf-16` or `utf-32`
+text coordinates. UTF-16 is the default; an unknown encoding refuses the display.
+The formatter reuses the SDK's original-byte coordinate conversion. Structured
+input pointers stay structured locations and have no text encoding.
+
+For an open unsaved document, `session.format(observation, options?)` uses the
+session's negotiated encoding and the same current-observation gate as
+`session.resolveTextRange`. It keeps safe explanations, facts, verdict and the
+original context for old, closed, foreign or copied observations, while omitting
+their positions. A newer pending check invalidates older positions even when
+the text and document version are equal. It reads application options before
+checking currency and checks again after rendering, because a supplied input
+accessor can edit or close the session. An explicitly supplied current-input set
+is respected; malformed or missing current entries do not restore older positions.
+The session retains no additional input, sends no request for formatting and
+applies no edit.
+
+```js
+const session = createCheckDocumentSession(client, {
+  text: unsavedText, version: documentVersion, positionEncoding: 'utf-8',
+});
+const observation = await session.check({format: 'sql'});
+const display = session.format(observation, {format: 'json'});
+// Call session.update(newText, newVersion) for edits and session.close() on close.
+```
+
+`binding_json_invalid` explains the existing parser's failure to admit submitted
+parameter declarations or values. Closed `facts.document` identifies which
+original input failed, and `facts.issue` identifies the parser family without
+including member names, values or messages. Unicode scalar failures and member
+names that collide under the admitted normalization rules are distinct. Exact
+owned structured pointers remain optional; a location recovery read cannot
+substitute another issue. Budgets are checking limits, not invalid JSON. Correct
+the submitted input and explicitly check again; these hints apply no edit and
+grant no execution authority.

@@ -1137,3 +1137,28 @@ explanation. The verdict continues to come from the existing classification.
 The current flattened checker location does not retain an authored/generated
 origin kind; this projection omits its location instead of treating a decoded
 expression range or generated Program path as the original SQL position.
+
+### Binding JSON admission explanations
+
+The public projector retains the existing JSON parser's closed issue family as
+`binding_json_invalid` with `facts.document` and `facts.issue`. Declaration and
+supplied-value inputs use distinct submitted identities. Duplicate names and
+string values remain private input data, not diagnostic facts. An original
+structured pointer is optional: a preserving path read cannot replace the
+primary parser's issue, and a mismatch leaves the reason unlocated. Budgets
+remain `analysis_budget_exhausted`; other admission/decode failures keep their
+generic reasons. SDK explanations are advisory and never change the verdict.
+
+### Current document presentation
+
+The formatter's optional position encoding delegates to the same original-byte
+coordinate converter as document sessions. A document session formats its own
+check observation with the negotiated encoding; the exact input custody and
+current version/latest-issued-request gate remain authoritative for positions.
+Historical, copied, foreign and closed observations can still display admitted
+facts and safe explanations, but cannot supply current editor coordinates.
+Application-owned format options are captured before checking currency. Currency
+is rechecked after rendering so an input accessor cannot edit the buffer during
+rendering and publish a stale position. On such a change, the same safe observation
+is formatted with all positions omitted. Formatting performs no Host lookup,
+check, execution, cancellation or edit and retains no additional source buffer.
