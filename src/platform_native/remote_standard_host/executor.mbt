@@ -1025,6 +1025,29 @@ pub fn prepare_native_remote_standard_output_from_export(
       return remote_standard_release_failure(release_run, "output-generation")
     }
   }
+  let file_custody = match retained_file {
+    None => None
+    Some(file) => {
+      guard file.sealed_custody() is Some((occurrence, generation, sealed_cid)) else {
+        output_export.cancel()
+        return remote_standard_release_failure(
+          release_run, "output-file-custody",
+        )
+      }
+      match
+        @journal.prepare_native_output_file_custody(
+          request, occurrence, generation, sealed_cid, material_generation, manifest,
+        ) {
+        Ok(value) => Some(value)
+        Err(_) => {
+          output_export.cancel()
+          return remote_standard_release_failure(
+            release_run, "output-file-custody",
+          )
+        }
+      }
+    }
+  }
   let owner : NativeRemoteStandardOutputOwner = {
     output_export,
     release_run,
@@ -1051,6 +1074,7 @@ pub fn prepare_native_remote_standard_output_from_export(
       () => owner.open_reader(),
       () => owner.open_manifest_reader(),
       () => owner.release(),
+      file_custody~,
     ) {
     Ok(value) => value
     Err(_) =>

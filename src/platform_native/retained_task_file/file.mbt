@@ -217,6 +217,21 @@ pub fn NativeRetainedTaskFile::sealed_generation(
 }
 
 ///|
+/// One availability check for the exact physical snapshot persisted alongside
+/// the original task observation. The caller still owns journal durability.
+pub fn NativeRetainedTaskFile::sealed_custody(
+  self : NativeRetainedTaskFile,
+) -> (String, @filesystem.NativeFileGeneration, String)? {
+  if self.available() &&
+    self.generation is Some(generation) &&
+    self.cid is Some(cid) {
+    Some((self.name[7:].to_owned(), generation, cid))
+  } else {
+    None
+  }
+}
+
+///|
 /// The common execution may return reserved holding capacity only after this
 /// owner confirms removal and directory durability.
 pub fn NativeRetainedTaskFile::release_confirmed(
