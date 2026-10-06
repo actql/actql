@@ -9,7 +9,13 @@ import {
 }
 
 // Values
+pub fn advance_append(AppendCursor) -> Result[Bool, Issue]
+
 pub fn append(Builder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[Unit, Issue]
+
+pub fn append_workspace_slots(Int, Int, Int) -> Int?
+
+pub fn builder_append_pending(Builder) -> Bool
 
 pub fn builder_construction_work(Builder) -> Int
 
@@ -24,6 +30,8 @@ pub fn builder_workspace_slots(Builder) -> Int
 pub fn cancel(Builder) -> Bool
 
 pub fn carrier(Storage) -> @carrier_contract.Carrier
+
+pub fn cleanup_append(AppendCursor) -> Bool
 
 pub fn construction_work(Storage) -> Int
 
@@ -53,9 +61,13 @@ pub fn retained_value_bytes(Storage) -> Int
 
 pub fn retained_workspace_slots(Storage) -> Int
 
+pub fn start_append(Builder, Array[(@relation_schema.FieldName, @value_admission.CheckedValue)]) -> Result[AppendCursor, Issue]
+
 // Errors
 
 // Types and methods
+type AppendCursor
+
 type Builder
 
 pub(all) enum Issue {

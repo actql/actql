@@ -100,6 +100,8 @@ pub fn commit_force_loss(ForceLossTransition, Bool) -> Result[Unit, DispatchIssu
 
 pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int, DispatchIssue]
 
+pub fn coordinator_can_retire_cancellation_delivery(CoordinatorDispatchIntentRecord) -> Bool
+
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 
 pub fn coordinator_delivery_context_current(DispatchRequest, String, String, Int, Bool, Bool) -> Result[Bool, DispatchIssue]
@@ -407,6 +409,8 @@ pub fn remote_dispatch_budget_cid(RemoteDispatchBudget) -> String
 pub fn remote_dispatch_budget_json(RemoteDispatchBudget) -> Result[String, DispatchIssue]
 
 pub fn remote_dispatch_reply_json(DispatchRecord) -> Result[String, DispatchIssue]
+
+pub fn remote_dispatch_response_can_retire_cancellation_delivery(RemoteDispatchResponse) -> Bool
 
 pub fn remote_dispatch_response_evidence(RemoteDispatchResponse) -> RemoteExecutionEvidence?
 

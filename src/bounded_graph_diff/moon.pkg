@@ -16,6 +16,7 @@ import {
 }
 
 import {
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/managed_graph_runtime" @graph_runtime,
   "actql/actql/lowering_relation" @lower,
   "actql/actql/pipeline_typing" @pipeline,

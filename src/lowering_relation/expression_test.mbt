@@ -284,7 +284,7 @@ test "literal objects are opaque business data and normalized text expressions r
   let expr = @lowering_relation.lower_expression(p, 1, 0, expression_limits()).unwrap()
   assert_eq(
     expression_wire(expr),
-    "{\"body\":{\"$param\":\"business-name\"},\"op\":\"literal\"}",
+    "{\"body\":{\"$json\":{\"$param\":\"business-name\"}},\"op\":\"typed_literal\"}",
   )
   let text = expression_pipeline(",{\"derive\":{\"v\":\"id + 2\"}}")
   let expr = @lowering_relation.lower_expression(

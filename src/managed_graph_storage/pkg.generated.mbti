@@ -25,6 +25,8 @@ pub fn builder_accepts_output(Builder, @carrier_contract.Graph, Limits) -> Bool
 
 pub fn builder_construction_work(Builder) -> Int
 
+pub fn builder_contains_node_identity_order_key(Builder, String) -> Bool?
+
 pub fn builder_edge_count(Builder) -> Int
 
 pub fn builder_measured_input_value_bytes(Builder) -> Int
@@ -96,6 +98,8 @@ pub fn property_snapshot_append_workspace_slots(@carrier_contract.Graph, Limits)
 pub fn retained_value_bytes(Storage) -> Int
 
 pub fn retained_workspace_slots(Storage) -> Int
+
+pub fn start_property_record_append(Builder, Int, @value_admission.CheckedValue, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], edge~ : Bool, source? : @value_admission.CheckedValue?, target? : @value_admission.CheckedValue?) -> Result[PropertySnapshotAppend, Issue]
 
 pub fn start_property_snapshot_append(Builder, @decode_core.Cursor, edge~ : Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[PropertySnapshotAppend, Issue]
 

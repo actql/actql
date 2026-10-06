@@ -1526,6 +1526,8 @@ pub fn strategy_remote_bundle_transition_key(@remote_bundle.RemoteBundleTransiti
 
 pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleTransition) -> (Array[String], Array[String])
 
+pub fn strategy_remote_coordinator_can_retire_cancellation_delivery(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
+
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
 pub fn strategy_remote_coordinator_delivery_context_current(@remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool) -> Bool raise NodeHostFailure
@@ -1665,6 +1667,8 @@ pub fn strategy_remote_dispatch_prepare(String, String, String, Int, String, Str
 pub fn strategy_remote_dispatch_reply_json(@remote_site_protocol.DispatchRecord) -> String raise NodeHostFailure
 
 pub fn strategy_remote_dispatch_response_admit_json(String, @remote_site_protocol.DispatchRequest, Bool) -> @remote_site_protocol.RemoteDispatchResponse raise NodeHostFailure
+
+pub fn strategy_remote_dispatch_response_can_retire_cancellation_delivery(@remote_site_protocol.RemoteDispatchResponse) -> Bool
 
 pub fn strategy_remote_dispatch_response_evidence(@remote_site_protocol.RemoteDispatchResponse) -> @remote_site_protocol.RemoteExecutionEvidence?
 

@@ -888,7 +888,9 @@ test "constructor snapshot reload feeds existing MATCH and TRAIL with independen
   assert_eq(@execution.completed_row_count(matched_output), 1)
   assert_eq(
     @execution.completed_output_row_wire(matched_output, 0, 10000, 10000, 50).unwrap(),
-    "{\"display\":\"one\",\"element\":" + node + "}",
+    "{\"display\":\"one\",\"element\":" +
+    property_graph_expected_json_wire(node) +
+    "}",
   )
   assert_true(@local_sga.cleanup_match_nodes(matched).unwrap())
   let read = @graphs.prepare_producer_read(path_owner, 0, graph_owner, restored).unwrap()
@@ -924,19 +926,19 @@ test "constructor snapshot reload feeds existing MATCH and TRAIL with independen
     assert_eq(
       @execution.completed_output_row_wire(output, row, 10000, 10000, 50).unwrap(),
       "{\"edge_ids\":[" +
-      edge(first) +
+      property_graph_expected_json_wire(edge(first)) +
       "," +
-      edge(second) +
+      property_graph_expected_json_wire(edge(second)) +
       "],\"end_id\":" +
-      node +
+      property_graph_expected_json_wire(node) +
       ",\"hop_count\":2,\"node_ids\":[" +
-      node +
+      property_graph_expected_json_wire(node) +
       "," +
-      node +
+      property_graph_expected_json_wire(node) +
       "," +
-      node +
+      property_graph_expected_json_wire(node) +
       "],\"start_id\":" +
-      node +
+      property_graph_expected_json_wire(node) +
       "}",
     )
   }

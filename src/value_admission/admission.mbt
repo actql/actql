@@ -6,13 +6,6 @@ priv struct Budget {
 }
 
 ///|
-priv enum Work {
-  Read(@decode.Cursor, @contract.Contract?, Int)
-  BuildArray(Int)
-  BuildObject(Array[String])
-}
-
-///|
 fn[T] fail(cursor : @decode.Cursor, kind : IssueKind) -> T raise Abort {
   raise Abort(
     ValueIssue(
@@ -157,180 +150,6 @@ fn cursor_key_text(
 }
 
 ///|
-fn take(values : Array[Value], count : Int) -> Array[Value] {
-  let result : Array[Value] = []
-  for index = 0; index < count; index = index + 1 {
-    result.push(values.pop().unwrap())
-  }
-  for left = 0; left < count / 2; left = left + 1 {
-    let right = count - 1 - left
-    let saved = result[left]
-    result[left] = result[right]
-    result[right] = saved
-  }
-  result
-}
-
-///|
-fn run(
-  root : @decode.Cursor,
-  contract : @contract.Contract,
-  budget : Budget,
-  reference_issuer? : ReferenceIssuer,
-  reference_limits? : ReferenceLimits,
-) -> Value raise Abort {
-  reserve(root, 1, budget)
-  let work : Array[Work] = [Read(root, Some(contract), 0)]
-  let values : Array[Value] = []
-  while !work.is_empty() {
-    match work.pop().unwrap() {
-      BuildArray(count) => values.push(Array({ values: take(values, count), }))
-      BuildObject(names) => {
-        let children = take(values, names.length())
-        let entries : Array[(String, Value)] = []
-        for index = 0; index < names.length(); index = index + 1 {
-          entries.push((names[index], children[index]))
-        }
-        values.push(Object({ values: entries, }))
-      }
-      Read(cursor, expected, parent_depth) => {
-        if @decode.is_null(cursor) {
-          if expected is Some(c) && !c.nullable {
-            fail(cursor, UnexpectedNull)
-          }
-          values.push(Null)
-          continue
-        }
-        let input = @decode.view(cursor)
-        let container = input
-          is (@decode.ArrayValue(_) | @decode.ObjectValue(_))
-        if container && parent_depth >= budget.max_depth {
-          fail(cursor, BudgetExceeded)
-        }
-        let depth = parent_depth + (if container { 1 } else { 0 })
-        let shape = expected.map(c => c.shape)
-        match shape {
-          Some(@contract.Text(_))
-          | Some(@contract.Number)
-          | Some(@contract.Boolean)
-          | Some(@contract.Decimal(..))
-          | Some(@contract.Date)
-          | Some(@contract.Timestamp) =>
-            values.push(read_scalar(cursor, expected.unwrap().shape, budget))
-          Some(@contract.Vector(dimensions~)) => {
-            let items = decoded(@decode.elements(cursor))
-            if items.length().to_double() != dimensions {
-              fail(cursor, VectorDimension)
-            }
-            reserve(cursor, items.length(), budget)
-            let components : Array[Double] = []
-            for item in items {
-              components.push(number(item))
-            }
-            values.push(Vector({ values: components, }))
-          }
-          Some(@contract.ResourceRef(_)) | Some(@contract.ArtifactRef(_)) => {
-            guard reference_issuer is Some(issuer) &&
-              reference_limits is Some(limits) &&
-              expected is Some(reference_contract) else {
-              fail(cursor, UnsupportedReference)
-            }
-            let issued = match
-              issue_reference_cursor_usage(issuer, reference_contract, cursor, {
-                ..limits,
-                max_depth: Int::min(
-                  limits.max_depth,
-                  budget.max_depth - parent_depth,
-                ),
-              }) {
-              Ok(value) => value
-              Err(Unauthorized) => fail(cursor, UnauthorizedReference)
-              Err(_) => fail(cursor, InvalidReference)
-            }
-            let (checked, nodes, text) = issued
-            if nodes < 1 || nodes - 1 > budget.nodes || text > budget.text {
-              fail(cursor, BudgetExceeded)
-            }
-            budget.nodes -= nodes - 1
-            budget.text -= text
-            values.push(checked.value)
-          }
-          Some(@contract.Array(_, max_items~)) => {
-            let items = decoded(@decode.elements(cursor))
-            if max_items is Some(n) && items.length().to_int64() > n {
-              fail(cursor, ArrayConstraint)
-            }
-            reserve(cursor, items.length(), budget)
-            let child = match shape {
-              Some(@contract.Array(child, ..)) => Some(child)
-              _ => None
-            }
-            work.push(BuildArray(items.length()))
-            for index = items.length() - 1; index >= 0; index = index - 1 {
-              work.push(Read(items[index], child, depth))
-            }
-          }
-          Some(@contract.Object(fields)) => {
-            let fields = @contract.fields(fields)
-            let names = fields.map(f => f.name)
-            let view = decoded(@decode.closed_object(cursor, names))
-            reserve(cursor, fields.length(), budget)
-            let children : Array[(@decode.Cursor, @contract.Contract)] = []
-            for field in fields {
-              // lookup preserves explicit null; required() intentionally does not.
-              let child = match @decode.lookup(view, field.name) {
-                Some(child) => child
-                None => decoded(@decode.required(view, field.name))
-              }
-              cursor_key_text(field.name, child, budget)
-              children.push((child, field.contract))
-            }
-            work.push(BuildObject(names))
-            for index = children.length() - 1; index >= 0; index = index - 1 {
-              let (child, contract) = children[index]
-              work.push(Read(child, Some(contract), depth))
-            }
-          }
-          Some(@contract.Json) | None =>
-            match input {
-              @decode.NullValue => values.push(Null)
-              @decode.BoolValue(value) => values.push(Boolean(value))
-              @decode.NumberValue(_) => values.push(Number(number(cursor)))
-              @decode.TextValue(text) => {
-                ignore(text_size(text, cursor, budget))
-                values.push(Text(text))
-              }
-              @decode.ArrayValue(items) => {
-                reserve(cursor, items.length(), budget)
-                work.push(BuildArray(items.length()))
-                for index = items.length() - 1; index >= 0; index = index - 1 {
-                  work.push(Read(items[index], None, depth))
-                }
-              }
-              @decode.ObjectValue(view) => {
-                let names = decoded(@decode.object_field_names(cursor))
-                reserve(cursor, names.length(), budget)
-                names.sort_by(@canonical.compare_utf16)
-                let children : Array[@decode.Cursor] = []
-                for name in names {
-                  let child = @decode.lookup(view, name).unwrap()
-                  cursor_key_text(name, child, budget)
-                  children.push(child)
-                }
-                work.push(BuildObject(names))
-                for index = children.length() - 1; index >= 0; index = index - 1 {
-                  work.push(Read(children[index], None, depth))
-                }
-              }
-            }
-        }
-      }
-    }
-  }
-  values.pop().unwrap()
-}
-
-///|
 /// Check exact decoded source values without coercion, repair or authority claims.
 pub fn admit(
   contract : @contract.Contract,
@@ -340,6 +159,31 @@ pub fn admit(
   match admit_usage(contract, cursor, limits) {
     Ok((value, _, _)) => Ok(value)
     Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Explicit typed-wire entry. JSON envelopes are decoded only where the
+/// checked contract says JSON; payload keys never select a type or authority.
+pub fn admit_wire(
+  contract : @contract.Contract,
+  cursor : @decode.Cursor,
+  limits : Limits,
+) -> Result[CheckedValue, Issue] {
+  let admission = match
+    start_typed_admission(contract, cursor, limits, wire=true) {
+    Ok(admission) => admission
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_typed_admission(admission) {
+      TypedAdmissionContinue => ()
+      TypedAdmissionComplete(value, _, _) => return Ok(value)
+      TypedAdmissionFailed(issue) => return Err(issue)
+      TypedAdmissionTerminal => abort("wire admission terminated")
+    }
+  } nobreak {
+    abort("wire admission stopped")
   }
 }
 
@@ -432,8 +276,10 @@ pub fn admit_host(
   cursor : @decode.Cursor,
   limits : Limits,
   reference_limits : ReferenceLimits,
+  wire? : Bool = false,
 ) -> Result[CheckedValue, Issue] {
-  match admit_host_usage(issuer, contract, cursor, limits, reference_limits) {
+  match
+    admit_host_usage(issuer, contract, cursor, limits, reference_limits, wire~) {
     Ok((value, _, _)) => Ok(value)
     Err(issue) => Err(issue)
   }
@@ -447,43 +293,30 @@ pub fn admit_host_usage(
   cursor : @decode.Cursor,
   limits : Limits,
   reference_limits : ReferenceLimits,
+  wire? : Bool = false,
 ) -> Result[(CheckedValue, Int, Int), Issue] {
-  if limits.max_nodes < 0 ||
-    limits.max_depth < 0 ||
-    limits.max_text_bytes < 0 ||
-    reference_limits.max_bytes < 0 ||
-    reference_limits.max_nodes < 1 ||
-    reference_limits.max_depth < 0 ||
-    reference_limits.max_text_units < 0 {
-    return Err(
-      ValueIssue(
-        InvalidLimits,
-        path=@decode.cursor_path(cursor),
-        span=@decode.cursor_span(cursor),
-      ),
-    )
-  }
-  try {
-    let budget : Budget = {
-      nodes: limits.max_nodes,
-      text: limits.max_text_bytes,
-      max_depth: limits.max_depth,
-    }
-    let value = run(
-      cursor,
+  let admission = match
+    start_host_typed_admission(
+      issuer,
       contract,
-      budget,
-      reference_issuer=issuer,
-      reference_limits~,
-    )
-    Ok(
-      (
-        { contract, value, },
-        limits.max_nodes - budget.nodes,
-        limits.max_text_bytes - budget.text,
-      ),
-    )
-  } catch {
-    Abort(issue) => Err(issue)
+      cursor,
+      limits,
+      reference_limits,
+      wire~,
+    ) {
+    Ok(admission) => admission
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_typed_admission(admission) {
+      TypedAdmissionContinue => ()
+      TypedAdmissionComplete(value, nodes, bytes) =>
+        return Ok((value, nodes, bytes))
+      TypedAdmissionFailed(issue) => return Err(issue)
+      TypedAdmissionTerminal =>
+        abort("terminal typed admission without a result")
+    }
+  } nobreak {
+    abort("host typed admission stopped without a result")
   }
 }
