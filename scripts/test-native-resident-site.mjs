@@ -1001,12 +1001,13 @@ try {
         assert.equal((await entries()).length, 1, 'holder recreation cannot reacquire Source');
       }
       const physicalTransfer = within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
-        'physical retained input transfer');
+        'physical retained input transfer').catch(error => error);
       if (retainedHandoffInterruption === 'receiver-committed') {
         interruptedReceiver = await waitForHandoffInterruption();
         assert.deepEqual(interruptedReceiver.readers, []);
       }
       let result = await physicalTransfer;
+      if (result instanceof Error) throw result;
       if (retainedHandoffInterruption === 'receiver-committed') {
         assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
           interruptedReceiver.allocations, 'committed receiver allocations are not rewritten');
@@ -1136,14 +1137,22 @@ try {
       } else {
         assert.equal(prepareTaskStart(consumerDispatch, 1), true,
           'checked dependency proof admits only the saved consumer intent');
-        await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
-          dispatchEnvelope: consumerEnvelope}), 'retained consumer actual holder relay');
+        const consumerDelivery = within(gateway.dispatch({dispatch: consumerDispatch,
+          inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
+        'retained consumer actual holder relay').catch(error => error);
         if (retainedHandoffInterruption === 'consumer-borrowed') {
           interruptedReceiver = await waitForHandoffInterruption();
           assert.equal(interruptedReceiver.readers.length, 1);
           assert.equal(interruptedReceiver.readers[0].revision, 0);
           assert.equal(interruptedReceiver.readers[0].body.split('\n')[3], issued.cid);
           assert.equal(interruptedReceiver.readers[0].body.split('\n')[4], 'active');
+          // The accepted consumer has not entered execution. Stop its old
+          // transport waiter before reconstructing the completed producer;
+          // otherwise FIFO delivery keeps offering it to an absent holder.
+          // Its original intent and active borrow remain in the Site journal.
+          assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
+          const interruptedDelivery = await consumerDelivery;
+          assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
           const replay = await within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
             'recreate original holder and committed receiver');
           assert.deepEqual(runHost.retainedInputResultFacts(replay), runHost.retainedInputResultFacts(result));
@@ -1151,6 +1160,9 @@ try {
             interruptedReceiver.allocations, 'committed handoff is not physically retransferred');
           await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
             dispatchEnvelope: consumerEnvelope}), 'same accepted consumer with original borrow');
+        } else {
+          const delivered = await consumerDelivery;
+          if (delivered instanceof Error) throw delivered;
         }
         const terminal = await settledQuery(consumerDispatch, 'retained consumer');
         assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
