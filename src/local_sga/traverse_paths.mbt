@@ -1573,6 +1573,7 @@ fn start_traverse_paths_read(
     hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     (match source {
+      Accumulated(_) => false
       Stored(read) =>
         @graph.producer_read_matches_operation_input(read, owner, step, 0)
       Viewed(view) =>
@@ -1657,6 +1658,7 @@ fn start_traverse_paths_read(
   let value_item_attempts = Ref(0)
   let predicate_starts = Ref(0)
   let port_result = match source {
+    Accumulated(_) => return Err(InvalidTraversePathsKernel)
     Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,

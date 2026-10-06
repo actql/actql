@@ -41,6 +41,15 @@ pub fn operation_profile_requirement(
         | AdmitDeltaActions
         | VerifyDeltaBaseBeforeTarget => None
       }
+    UnionRequirement(o) =>
+      match o {
+        AdmitUnionInputs => Some(PropertyGraph)
+        PreserveUnionIdentities
+        | CheckUnionEdgeEndpoints
+        | ApplyUnionPropertyStrategies
+        | CanonicalUnionOrder
+        | ResolveUnionResources => None
+      }
     ComponentsRequirement(o) =>
       match o {
         AdmitComponentGraph => Some(PropertyGraph)

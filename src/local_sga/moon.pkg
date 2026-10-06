@@ -10,6 +10,8 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/graph_typing" @graph_type,
   "actql/actql/graph_contract",
+  "actql/actql/exact_binary64" @exact,
+  "actql/actql/canonical_value" @canonical,
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
@@ -21,5 +23,5 @@ import {
 }
 
 import {
-  "actql/actql/canonical_value" @canonical,
+  "moonbitlang/core/debug",
 } for "wbtest"

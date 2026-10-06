@@ -69,6 +69,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(GraphUnionExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(SequenceExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

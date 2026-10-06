@@ -400,7 +400,25 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 62 production routes mapped, 7 typed pre-execution refusals \(not execution success\), 62 with operation-specific boundary records, 62 with four-role boundary evidence, 62 with full work\/workspace assurance, 114 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 63 production routes mapped, 6 typed pre-execution refusals \(not execution success\), 63 with operation-specific boundary records, 63 with four-role boundary evidence, 63 with full work\/workspace assurance, 115 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('union resource route retains independent work and actual Host cleanup custody evidence', () => {
+  const roleNames = ['union_empty_work_exact_one_short_active_cancel_cleanup',
+    'union_positive_work_cancel_cleanup', 'union_host_cleanup_failure_retry_custody'];
+  for (const removed of roleNames) {
+    const result = run(undefined, routes => {
+      const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'union_graphs');
+      route.boundary_tests = route.boundary_tests.filter(value => value.role !== removed);
+    });
+    assert.match(result, removed === roleNames[0]
+      ? /SGA union_graphs: structural Graph cumulative-work evidence is missing/
+      : /SGA union_graphs: union positive-work cancellation and cleanup evidence is missing/);
+  }
+  assert.match(run(undefined, routes => {
+    const route = routes.routes.find(value => value.family === 'SGA' && value.operation === 'union_graphs');
+    route.dispatch.marker = '@sga.uninstalled_union(';
+  }), /SGA union_graphs: dispatch marker does not reach production source/);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -1356,7 +1374,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 114 |',
+    '| Path-scoped work/workspace assurance | 115 |',
     '| Path-scoped work/workspace assurance | 54 |',
   );
   assert.notEqual(stale, gaps);
@@ -3410,4 +3428,13 @@ test('resource snapshots are explicit per-run source bytes rather than validatio
     rmSync(directory, {recursive: true, force: true});
   }
   assert.equal(existsSync(directory), false);
+});
+
+
+test('union cannot claim its logical workspace assurance without the independent boundary', () => {
+  assert.match(run(undefined, routes => {
+    const union = routes.routes.find(route => route.operation === 'union_graphs');
+    union.boundary_tests = union.boundary_tests.filter(item =>
+      item.role !== 'union_workspace_exact_one_short_before_fold');
+  }), /SGA union_graphs: entrypoint operation workspace lacks an executable fixture/);
 });

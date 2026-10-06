@@ -937,13 +937,86 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "graft_graph" || key == "union_graphs" || key == "subtract_graphs" {
+    if key == "union_graphs" {
+      let object = match
+        @decode.closed_object(operation_body, ["with", "merge"]) {
+        Ok(object) => object
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let at = match @decode.required(object, "with") {
+        Ok(at) => at
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let peers = if @decode.array_length(at) is Some(count) {
+        if count == 0 {
+          fail(at, InvalidBody)
+        }
+        spend(b, at, count)
+        @decode.elements(at).unwrap()
+      } else {
+        [at]
+      }
+      let operands = [input]
+      let carriers = [carrier(input, inputs, steps)]
+      for peer in peers {
+        let target = resolve_target(b, peer, names)
+        operands.push(target)
+        carriers.push(carrier(target, inputs, steps))
+      }
+      let checked = match
+        @graph.check_union(operation_body, carriers, {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+          max_depth: limits.max_depth,
+        }) {
+        Ok(checked) => checked
+        Err(issue) =>
+          raise Stop({
+            kind: Graph(issue.kind),
+            source: operation_body,
+            path: issue.path.copy(),
+            span: issue.span,
+            range: None,
+          })
+      }
+      let used = @graph.union_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: GraphUnion(inputs=operands, checked~),
+        output: @graph.union_output(checked),
+        connections: {
+          entries: operands.mapi((index, target) => {
+            role: if index == 0 {
+              Primary
+            } else {
+              Sample(index)
+            },
+            target,
+          }),
+        },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
+    }
+    if key == "graft_graph" || key == "subtract_graphs" {
       let object = match
         @decode.closed_object(
           operation_body,
           if key == "apply_graph_delta" {
             ["with", "field"]
-          } else if key == "union_graphs" || key == "subtract_graphs" {
+          } else if key == "subtract_graphs" {
             ["with", "merge"]
           } else {
             ["with"]
@@ -956,19 +1029,7 @@ fn check_impl(
         Ok(at) => at
         Err(_) => fail(operation_body, InvalidBody)
       }
-      if key == "union_graphs" && @decode.array_length(at) is Some(count) {
-        if count == 0 {
-          fail(at, InvalidBody)
-        }
-        spend(b, at, count)
-        for index in 0..<count {
-          ignore(
-            resolve_target(b, @decode.element_at(at, index).unwrap(), names),
-          )
-        }
-      } else {
-        ignore(resolve_target(b, at, names))
-      }
+      ignore(resolve_target(b, at, names))
       if key == "apply_graph_delta" {
         let field = match @decode.required(object, "field") {
           Ok(field) => field
@@ -2162,7 +2223,7 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
-        PropertyGraphConstruction(inputs~, ..) =>
+        PropertyGraphConstruction(inputs~, ..) | GraphUnion(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>

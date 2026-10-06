@@ -97,6 +97,8 @@ pub fn retained_value_bytes(Storage) -> Int
 
 pub fn retained_workspace_slots(Storage) -> Int
 
+pub fn start_property_record_append(Builder, Int, @value_admission.CheckedValue, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], edge~ : Bool, source? : @value_admission.CheckedValue?, target? : @value_admission.CheckedValue?) -> Result[PropertySnapshotAppend, Issue]
+
 pub fn start_property_snapshot_append(Builder, @decode_core.Cursor, edge~ : Bool, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[PropertySnapshotAppend, Issue]
 
 // Errors

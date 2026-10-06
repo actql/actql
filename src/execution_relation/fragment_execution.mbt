@@ -51,6 +51,7 @@ fn attach_fragment_budgets(
       @lower.GraphEqualityStep(_) => ()
       @lower.GraphNormalizeStep(_) => ()
       @lower.GraphDeltaStep(_) => ()
+      @lower.GraphUnionStep(_) => ()
       @lower.PropertyGraphConstructionStep(_) => ()
       @lower.VectorStep(_) => ()
       @lower.EventStep(_) => ()

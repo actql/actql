@@ -53,7 +53,8 @@ be referenced normally; this does not complete conditional Result delivery.
 | graphs_equal | src/graph_typing/property_equality_test.mbt | src/query_integration/property_graph_equal_wbtest.mbt | scripts/graph-schema.mjs |
 | graph_diff | src/lowering_relation/graph_delta_test.mbt | src/query_integration/property_graph_diff_provider_wbtest.mbt | scripts/graph-schema.mjs |
 | apply_graph_delta | src/pipeline_typing/delta_test.mbt | src/query_integration/property_graph_delta_plan_wbtest.mbt | scripts/graph-schema.mjs |
-| graft_graph, union_graphs, subtract_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| union_graphs | src/graph_typing/union_test.mbt | src/query_integration/property_graph_union_wbtest.mbt | scripts/graph-schema.mjs |
+| graft_graph, subtract_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | mean_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mjs |
 | normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mjs |
