@@ -320,6 +320,14 @@ fn append_resolved(
           literal = Some(raw)
           lowering.form("literal", raw)
         }
+        JsonLiteral(text) =>
+          lowering.form(
+            "typed_literal",
+            lowering.object([
+              ("type", lowering.add(String("json"))),
+              ("value", lowering.add(String(text))),
+            ]),
+          )
         Reference(parts) =>
           match macro_children[i] {
             Some(Field(name)) =>

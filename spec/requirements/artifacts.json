@@ -355,6 +355,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.artifacts/result-delivery.typed-json-wire-profile",
+      "statement_sha256": "a050a5f1e82146769b9431445cd54c33d739b5c22bd21088d2a3d2ead8636be1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "result-delivery",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.artifacts/result-delivery.a-job-that-needs-a-custom-csv-dialect-or-an",
       "statement_sha256": "c93eec683e953e4605a2e3430ff3313b460a2784b82612c3b8a4aa1dba587352",
       "status": "pending",

@@ -29,7 +29,9 @@ const domain = producer => cid({constructor: definitionMapping,
   producer_definitions: [producer], version: 'actql-property-graph-definition/0.1'});
 const sourceDomain = domain(sourceNodeDefinition);
 const jsonDomain = domain({body: {values: nodeValues}, dependencies: []});
-const identity = domain => ({definition: 'N', domain, key: [1], key_types: [{kind: 'number'}]});
+// Public JSON cells use the common typed wire; the definition preimage above
+// remains semantic data rather than a Result cell.
+const identity = domain => ({$json: {definition: 'N', domain, key: [1], key_types: [{kind: 'number'}]}});
 const columns = [
   ...['start_id', 'node_id'].map(name => ({name, contract: {type: 'json', nullable: false}})),
   {name: 'depth', contract: number},

@@ -2170,8 +2170,30 @@
       }
     },
     {
+      "requirement_id": "actql.language/common-expression-contract.typed-json-literal",
+      "statement_sha256": "835300047f2dd851723e8a28cb6cd3ff5b554de50240f44ffaae7d8a00fd90b2",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "common-expression-contract",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/common-expression-contract.typed-json-wire",
+      "statement_sha256": "582e91a0582503d28ed135bc65340e852d9dc4e13bcc6f4fa42963f9f5f15058",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "common-expression-contract",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/common-expression-contract.canonical-nodes",
-      "statement_sha256": "87d0f8c2aecaf9c3e4876bbff27a70c85e562a65cde2d29244fe85f66e42e90e",
+      "statement_sha256": "c706a8383be018007d0ee80b650a5e1cba2dac76d19c87747b6c4ffb88eb6a1b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8628,7 +8650,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "106b92a1f3ecb96bb42a7b8817fe854f163ed566777ac905e794efad2a6953f5",
+      "statement_sha256": "c65aed6df7eb9a972feccf90c1bf8a0d301677678af8c0ad4b747464f6bcdb5e",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

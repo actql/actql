@@ -14,10 +14,13 @@ test('SDK package inventory includes its current check translation module', t =>
     cwd: fileURLToPath(new URL('./', import.meta.url)), encoding: 'utf8', timeout: 30000,
     stdio: ['ignore', 'pipe', 'pipe'],
   }));
-  assert.equal(result.length, 1);
-  assert.equal(result[0].name, '@actql/sdk');
-  assert.equal(result[0].files.filter(file => file.path === 'check-presentation.mjs').length, 1);
-  assert.equal(result[0].files.some(file => file.path.endsWith('.test.mjs')), false);
+  // npm can key workspace reports by package name instead of returning a list.
+  const packages = Array.isArray(result) ? result : Object.values(result);
+  assert.equal(packages.length, 1);
+  assert.equal(packages[0].name, '@actql/sdk');
+  assert.equal(packages[0].files.filter(file => file.path === 'check-presentation.mjs').length, 1);
+  assert.equal(packages[0].files.filter(file => file.path === 'json-value-wire.generated.mjs').length, 1);
+  assert.equal(packages[0].files.some(file => file.path.endsWith('.test.mjs')), false);
 });
 
 test('browser SDK consumer localizes a pinned Problem without I/O or input custody', async t => {
@@ -25,6 +28,8 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
   t.after(() => mock.restoreAll());
   const root = fileURLToPath(new URL('../../', import.meta.url));
   const bundle = buildSync({absWorkingDir: root, entryPoints: ['packages/sdk/index.mjs'],
+    // Shared node_modules may link another worktree; check this source's wire.
+    alias: {'@actql/client-wire': join(root, 'packages/client-wire/index.mjs')},
     bundle: true, platform: 'browser', format: 'esm', target: 'es2022',
     write: false, metafile: true});
   assert.deepEqual(Object.keys(bundle.metafile.inputs).sort(), [
@@ -34,6 +39,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/check-presentation.mjs',
     'packages/sdk/checkpoints.mjs',
     'packages/sdk/index.mjs',
+    'packages/sdk/json-value-wire.generated.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
   const sdk = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].contents).toString('base64')}`);

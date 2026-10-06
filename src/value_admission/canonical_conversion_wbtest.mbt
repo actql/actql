@@ -39,6 +39,47 @@ test "canonical conversion builds nested data in finite individual frames" {
 }
 
 ///|
+test "canonical capture restores JSON null and scalar domains without key normalization" {
+  let contract = @contract.primitive(@contract.JsonType, nullable=true)
+  for
+    wire in [
+      "{\"$json\":null}", "{\"$json\":true}", "{\"$json\":1}", "{\"$json\":\"x\"}",
+      "{\"$json\":{\"e\u{301}\":null,\"é\":1}}", "null",
+    ] {
+    let source = @source.parse_json_bytes_preserving(@utf8.encode(wire), {
+      max_input_bytes: 1000,
+      max_nodes: 100,
+      max_depth: 10,
+    }).unwrap()
+    let canonical = @identity.from_source(source, 100, 10, 1000, data_keys=true)
+    let limits = { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, }
+    let cursor = start_canonical_conversion(
+      canonical,
+      limits,
+      contract=Some(contract),
+      wire=true,
+    ).unwrap()
+    let mut complete = false
+    for _ in 0..<100 {
+      match advance_canonical_conversion(cursor) {
+        CanonicalConversionContinue => ()
+        CanonicalConversionFailed => abort("canonical JSON restore failed")
+        CanonicalConversionComplete(value) => {
+          assert_true(recheck_runtime_value(value, contract, limits) is Some(_))
+          let writer = @encode.writer(1000, 100, 10)
+          emit_wire_value(value, writer)
+          assert_eq(@encode.finish(writer), wire)
+          assert_eq(value is Null, wire == "null")
+          complete = true
+          break
+        }
+      }
+    }
+    assert_true(complete)
+  }
+}
+
+///|
 test "canonical conversion can stop while a large array is still private" {
   let value = @identity.from_json(
     Json::array(Array::make(2048, Json::number(1))),

@@ -39,7 +39,9 @@ fn parse_plan_identity_value(
   if bytes.length() > max_wire_bytes {
     return None
   }
-  guard @source.parse_json_bytes(bytes, {
+  // Identifier names in owner-emitted material have already been checked.
+  // Re-admission must preserve JSON data keys nested inside typed cells.
+  guard @source.parse_json_bytes_preserving(bytes, {
       max_input_bytes: max_wire_bytes,
       max_nodes,
       max_depth,
@@ -47,7 +49,15 @@ fn parse_plan_identity_value(
     is Ok(source) else {
     return None
   }
-  Some(@canonical.from_source(source, max_nodes, max_depth, max_wire_bytes)) catch {
+  Some(
+    @canonical.from_source(
+      source,
+      max_nodes,
+      max_depth,
+      max_wire_bytes,
+      data_keys=true,
+    ),
+  ) catch {
     _ => None
   }
 }
