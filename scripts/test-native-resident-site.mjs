@@ -185,13 +185,15 @@ try {
         try {
           const hint = JSON.parse(value.body);
           if (retainedConsumerMode &&
-              ['actql-remote-retained-input-plan/0.1', 'actql-remote-retained-input-result/0.1']
+              ['actql-remote-retained-input-plan/0.1', 'actql-remote-retained-input-result/0.1',
+                'actql-remote-retained-input-current-reply/0.1']
                 .includes(hint.version)) {
             // A queued duplicate can arrive after its transport waiter has
             // settled. Confirm the exact admitted report custody and current
             // authenticated Site; never ACK an unadmitted report here.
             const operation = hint.version === 'actql-remote-retained-input-plan/0.1'
-              ? 'retained-plan' : 'retained-transfer';
+              ? 'retained-plan' : hint.version === 'actql-remote-retained-input-result/0.1'
+                ? 'retained-transfer' : 'retained-current';
             const saved = await readFile(join(root,
               `${operation}-${createHash('sha256').update(value.body).digest('hex')}.json`), 'utf8');
             assert.equal(saved, value.body);
@@ -1007,19 +1009,21 @@ try {
         assert.equal((await entries()).length, 1, 'reconstruction cannot reacquire Source or start Compute');
       }
       const receipt = runHost.retainedInputResultFacts(result).receipt;
-      const transferCid = runHost.retainedInputPlanFacts(plan).transfer.cid;
+      const entriesBeforeQuery = (await entries()).length;
+      const currentReply = await within(gateway.retainedCurrent({dispatch: producerDispatch, plan,
+        queryId: 'receiver-after-reconstruction', limits: {maxChunks: limits.maxChunks,
+          maxManifestBytes: limits.maxManifestBytes, maxReferencedBytes: limits.maxReferencedBytes}}), 'current actual receiver query');
+      const receiverFacts = runHost.retainedInputCurrentReplyFacts(currentReply);
+      assert.deepEqual(receiverFacts.receipt, receipt);
+      assert.equal(JSON.parse(receiverFacts.transferRecordWire).request_cid,
+        runHost.retainedInputPlanFacts(plan).transfer.cid);
+      assert.equal((await entries()).length, entriesBeforeQuery,
+        'current receiver query cannot enter an executor');
+      // This response came from the current authenticated Site Owner. It is
+      // consumed within this preparation boundary, never restored as live
+      // authority from the saved historical result or Coordinator snapshot.
       const input = runHost.prepareRetainedTaskInput(producer, receipt, 'direct-destination', {
-        ...current,
-        readTransfer: () => {
-          const database = new DatabaseSync(join(root, 'site-transfer.sqlite3'), {readOnly: true});
-          try {
-            const rows = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
-              .all('remote_transfer');
-            const row = rows.find(row => JSON.parse(row.body).request_cid === transferCid);
-            assert.ok(row, 'current actual Native receiver record must exist');
-            return row.body;
-          } finally { database.close(); }
-        },
+        ...current, readTransfer: () => receiverFacts.transferRecordWire,
       }, limits);
       const consumerBinding = runHost.retainedTaskInputFacts(input).wire;
       const issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
@@ -1139,6 +1143,7 @@ try {
         typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
         pendingIntents: 0, siteCapacity: capacity,
         coordinatorReconstructed: retainedCoordinatorReconstruction,
+        receiverCurrentQueried: true, receiverDatabaseReadForBinding: false,
         checkedRunProjection: true,
         checkedTaskStart: true, cloudRunStartCas: false,
         publicationReady: inspectProgress().publicationReady,

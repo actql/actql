@@ -68,9 +68,13 @@ pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, Dispatc
 
 pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
+pub fn admit_remote_poll_retained_input_current_json(String) -> Result[RemotePollRetainedCurrent, DispatchIssue]
+
 pub fn admit_remote_poll_retained_input_plan_json(String) -> Result[RemotePollRetainedInput, DispatchIssue]
 
 pub fn admit_remote_poll_retained_input_transfer_json(String) -> Result[RemotePollRetainedTransfer, DispatchIssue]
+
+pub fn admit_remote_retained_input_current_reply_json(String, String, RemotePollRetainedCurrent, Int, Int, Int64) -> Result[RemoteRetainedCurrentReply, DispatchIssue]
 
 pub fn admit_remote_retained_input_intent_json(String, String, DispatchRequest) -> Result[RemoteRetainedInputIntent, DispatchIssue]
 
@@ -374,6 +378,8 @@ pub fn prepare_remote_output_report_custody(RemotePollOutput, @publication_paylo
 
 pub fn prepare_remote_output_result(RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> Result[RemoteOutputResult, DispatchIssue]
 
+pub fn prepare_remote_retained_input_current_reply(RemotePollRetainedCurrent, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt) -> Result[RemoteRetainedCurrentReply, DispatchIssue]
+
 pub fn prepare_remote_retained_input_intent(DispatchRequest, RemoteRetainedInputIntentProjection) -> Result[RemoteRetainedInputIntent, DispatchIssue]
 
 pub fn prepare_remote_retained_input_plan(RemoteRetainedInputIntent, RemoteManagedOutputSubject, RemoteExecutionEvidence, @remote_transfer.RemoteTransferRequest) -> Result[RemoteRetainedInputPlan, DispatchIssue]
@@ -540,6 +546,8 @@ pub fn remote_poll_operation_is_query(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_release(RemotePollOperation) -> Bool
 
+pub fn remote_poll_operation_is_retained_input_current(RemotePollOperation) -> Bool
+
 pub fn remote_poll_operation_is_retained_input_plan(RemotePollOperation) -> Bool
 
 pub fn remote_poll_operation_is_retained_input_transfer(RemotePollOperation) -> Bool
@@ -558,6 +566,8 @@ pub fn remote_poll_query_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_release_json(DispatchRequest) -> Result[String, DispatchIssue]
 
+pub fn remote_poll_retained_input_current_json(RemoteRetainedInputPlan, String) -> Result[String, DispatchIssue]
+
 pub fn remote_poll_retained_input_intent(RemotePollRetainedInput) -> RemoteRetainedInputIntent
 
 pub fn remote_poll_retained_input_plan_json(RemoteRetainedInputIntent) -> Result[String, DispatchIssue]
@@ -567,6 +577,20 @@ pub fn remote_poll_retained_input_transfer_json(RemoteRetainedInputPlan) -> Resu
 pub fn remote_poll_retained_transfer_intent(RemotePollRetainedTransfer) -> RemoteRetainedInputIntent
 
 pub fn remote_poll_retained_transfer_plan(RemotePollRetainedTransfer) -> RemoteRetainedInputPlan
+
+pub fn remote_retained_input_current_plan(RemotePollRetainedCurrent) -> RemoteRetainedInputPlan
+
+pub fn remote_retained_input_current_query_identity(RemotePollRetainedCurrent) -> String
+
+pub fn remote_retained_input_current_reply_identity(RemoteRetainedCurrentReply) -> String
+
+pub fn remote_retained_input_current_reply_json(RemoteRetainedCurrentReply) -> String
+
+pub fn remote_retained_input_current_reply_receipt(RemoteRetainedCurrentReply) -> @remote_transfer.RemoteTransferDestinationReceipt
+
+pub fn remote_retained_input_current_reply_transfer_record_json(RemoteRetainedCurrentReply) -> String
+
+pub fn remote_retained_input_current_request(RemotePollRetainedCurrent) -> DispatchRequest
 
 pub fn remote_retained_input_intent_identity(RemoteRetainedInputIntent) -> String
 
@@ -859,6 +883,7 @@ pub(all) enum RemotePollOperation {
   Plan(RemotePollOutput)
   RetainedPlan(RemotePollRetainedInput)
   RetainedTransfer(RemotePollRetainedTransfer)
+  RetainedCurrent(RemotePollRetainedCurrent)
   Output(RemotePollOutput)
   Query(DispatchRequest)
   Cancel(DispatchRequest)
@@ -866,6 +891,11 @@ pub(all) enum RemotePollOperation {
 }
 
 type RemotePollOutput
+
+pub struct RemotePollRetainedCurrent {
+  handoff : RemotePollRetainedTransfer
+  query_id : String
+}
 
 pub struct RemotePollRetainedInput {
   request : DispatchRequest
@@ -875,6 +905,14 @@ pub struct RemotePollRetainedInput {
 pub struct RemotePollRetainedTransfer {
   intent : RemoteRetainedInputIntent
   plan : RemoteRetainedInputPlan
+}
+
+pub struct RemoteRetainedCurrentReply {
+  query : RemotePollRetainedCurrent
+  transfer_record_json : String
+  receipt : @remote_transfer.RemoteTransferDestinationReceipt
+  body : String
+  cid : String
 }
 
 pub struct RemoteRetainedInputIntent {

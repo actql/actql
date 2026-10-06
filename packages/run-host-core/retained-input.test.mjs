@@ -16,7 +16,8 @@ import {admitEnvironment, prepare, compileTasks, taskExecutionShape, taskKeys,
   prepareRetainedInputIntent, admitRetainedInputIntent, retainedInputIntentFacts,
   retainedInputPlanEnvelope, admitRetainedInputPlan, validateRetainedInputPlan,
   retainedInputPlanFacts, retainedInputTransferEnvelope, admitRetainedInputResult,
-  retainedInputResultFacts,
+  retainedInputResultFacts, prepareRetainedInputCurrentQuery, retainedInputCurrentEnvelope,
+  admitRetainedInputCurrentReply, retainedInputCurrentReplyFacts,
   prepareRetainedTaskInput, admitRetainedTaskInput, validateRetainedTaskInput,
   retainedTaskInputFacts, issueRetainedTaskDispatch, inspectTaskProgress, projectTaskSiteRun, projectSiteRun,
   prepareTaskPhysicalStart}
@@ -934,4 +935,61 @@ test('checked task physical start uses producer proof for the exact dependent co
   assert.equal(start([producer, consumer], {...changes, cancelled: true}), false);
   consumer.observe([1, 0, 0, 0, 0], 1, false);
   assert.equal(start([producer, consumer], changes), false);
+});
+
+function retainedCurrentReplyFixture(fixture, queryId, changes = {}) {
+  return identifyRetainedWire({destination_receipt_cid: fixture.receipt.cid,
+    destination_receipt_json: fixture.receipt.wire,
+    dispatch_request_cid: fixture.completed.issued.cid,
+    plan_cid: fixture.reply.cid, query_id: queryId,
+    transfer_record_json: fixture.wire(),
+    version: 'actql-remote-retained-input-current-reply/0.1', ...changes});
+}
+
+test('retained current query joins actual durable protocol record and rejects stale challenges', () => {
+  const fixture = retainedPlanFixture(run());
+  const plan = admitRetainedInputPlan(fixture.intent, fixture.reply, fixture.planCurrent, planLimits);
+  const query = prepareRetainedInputCurrentQuery(plan, 'e\u0301\r\n');
+  assert.deepEqual(JSON.parse(retainedInputCurrentEnvelope(query)), {
+    dispatch_request_cid: fixture.completed.issued.cid,
+    handoff_json: retainedInputTransferEnvelope(plan), plan_cid: fixture.reply.cid,
+    query_id: 'e\u0301\r\n', version: 'actql-remote-poll-retained-input-current/0.1'});
+  const incomplete = retainedCurrentReplyFixture(fixture, 'e\u0301\r\n');
+  assert.throws(() => admitRetainedInputCurrentReply(query, incomplete, planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  fixture.commit();
+  const before = fixture.wire();
+  const saved = retainedCurrentReplyFixture(fixture, 'e\u0301\r\n');
+  const reply = admitRetainedInputCurrentReply(query, saved, planLimits);
+  assert.deepEqual(retainedInputCurrentReplyFacts(reply), {...saved,
+    transferRecordWire: before, receipt: fixture.receipt});
+  assert.equal(fixture.wire(), before);
+  const newer = prepareRetainedInputCurrentQuery(plan, 'next-live-query');
+  assert.throws(() => admitRetainedInputCurrentReply(newer, saved, planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  for (const change of [{plan_cid: cid('f')}, {dispatch_request_cid: cid('f')},
+    {destination_receipt_cid: cid('f')}]) {
+    assert.throws(() => admitRetainedInputCurrentReply(query,
+      retainedCurrentReplyFixture(fixture, 'e\u0301\r\n', change), planLimits),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  }
+  for (const forged of [plan, {}, retainedInputPlanFacts(plan)]) {
+    assert.throws(() => retainedInputCurrentEnvelope(forged), {message: 'ForeignRunHostHandle'});
+  }
+  assert.throws(() => prepareRetainedInputCurrentQuery(plan, 'x'.repeat(257)),
+    {code: 'RunHostRetainedInputCurrentRejected'});
+  for (const [set, value] of [[fixture.siteCurrent, false], [fixture.authorized, false],
+    [fixture.clock, 2000000000000n]]) {
+    set(value);
+    assert.throws(() => retainedInputCurrentEnvelope(query), {code: 'RunHostRetainedInputCurrentRejected'});
+    assert.throws(() => admitRetainedInputCurrentReply(query, saved, planLimits),
+      {code: 'RunHostRetainedInputCurrentRejected'});
+    fixture.siteCurrent(true); fixture.authorized(true); fixture.clock(1900000000000n);
+  }
+  for (const limits of [{...planLimits, maxChunks: 2147483648},
+    {...planLimits, maxReferencedBytes: 8}, {...planLimits, extra: 1}]) {
+    assert.throws(() => admitRetainedInputCurrentReply(query, saved, limits),
+      {message: 'InvalidRunHostRetainedInputCurrentLimits'});
+  }
+  assert.deepEqual(retainedInputCurrentReplyFacts(reply).transferRecordWire, before);
 });
