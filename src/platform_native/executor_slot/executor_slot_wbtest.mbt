@@ -128,3 +128,82 @@ test "executor slot current observation cannot acquire or follow a replacement" 
   assert_true(owner.close())
   assert_true(owner.verify_current_hold() is Err(Closed))
 }
+
+///|
+test "holder channel retains at most one unread frame" {
+  let ends = open_channel_ffi()
+  assert_true(ends >= 0)
+  let reader = ends >> 16
+  let writer = ends & 0xFFFF
+  let frame = @utf8.encode("retained-transfer original-envelope\n")
+  assert_eq(
+    channel_write_ffi(writer, reader, frame, frame.length(), 0),
+    frame.length(),
+  )
+  for _ in 0..<8 {
+    assert_eq(channel_write_ffi(writer, reader, frame, frame.length(), 0), -2)
+  }
+  // Unavailable inspection must not append another frame either.
+  assert_eq(channel_write_ffi(writer, -1, frame, frame.length(), 0), -1)
+  assert_eq(slot_close_ffi(writer), 0)
+  assert_eq(slot_close_ffi(reader), 0)
+}
+
+///|
+test "holder channel refuses relay after observed exit and closes both ends" {
+  guard slot_test_root() is Some(root) else { return }
+  let slot = open_native_executor_slot(root + "/channel-exit.lock").unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  let (child, channel) = slot
+    .spawn_holder_with_channel("/bin/sh", ["-c", "exit 0"])
+    .unwrap()
+  assert_eq(child.wait(true).unwrap(), Some(Exited(0)))
+  assert_false(channel.send("release"))
+  assert_true(channel.close())
+  assert_eq(channel.descriptor, -1)
+  assert_eq(channel.inspection_descriptor, -1)
+  assert_true(channel.close())
+  assert_false(channel.send("release"))
+  // The same child observation remains available to the slot Owner.
+  assert_eq(child.wait(false).unwrap(), Some(Exited(0)))
+}
+
+///|
+test "holder channel returns backpressure for a partial large frame" {
+  let ends = open_channel_ffi()
+  assert_true(ends >= 0)
+  let reader = ends >> 16
+  let writer = ends & 0xFFFF
+  let frame = Bytes::make(1024 * 1024, 0x78)
+  let written = channel_write_ffi(writer, reader, frame, frame.length(), 0)
+  assert_true(written > 0 && written < frame.length())
+  assert_eq(
+    channel_write_ffi(writer, reader, frame, frame.length(), written),
+    -2,
+  )
+  assert_eq(slot_close_ffi(writer), 0)
+  assert_eq(slot_close_ffi(reader), 0)
+}
+
+///|
+test "holder channel keeps an unfinished original frame across other offers" {
+  guard slot_test_root() is Some(root) else { return }
+  let slot = open_native_executor_slot(root + "/channel-partial.lock").unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  let (child, channel) = slot
+    .spawn_holder_with_channel("/bin/sh", ["-c", "sleep 1"])
+    .unwrap()
+  let original = @utf8.decode_lossy(Bytes::make(1024 * 1024, 0x78))
+  assert_false(channel.send(original))
+  let (saved, bytes) = channel.pending_frame.unwrap()
+  assert_eq(saved, original)
+  assert_true(channel.offset > 0 && channel.offset < bytes.length())
+  let offset = channel.offset
+  assert_false(channel.send("release"))
+  assert_eq(channel.offset, offset)
+  let (still_saved, _) = channel.pending_frame.unwrap()
+  assert_eq(still_saved, original)
+  assert_eq(child.wait(true).unwrap(), Some(Exited(0)))
+  assert_false(channel.send(original))
+  assert_true(channel.close())
+}
