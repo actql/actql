@@ -148,7 +148,7 @@ async function testValuesHttps(tls, environment, transferControl) {
   // not be mistaken for an unavailable Site during its first observation.
   execFileSync(moon, ['test',
     'src/query_integration/client_source_free_root_wbtest.mbt',
-    '--target', 'native', '--build-only'], {
+    '--target', 'native', '--strip', '--build-only'], {
     cwd: repositoryRoot, env: environment, stdio: 'inherit',
   });
   let destinationChild;
@@ -233,7 +233,7 @@ async function testValuesHttps(tls, environment, transferControl) {
   }
   const child = spawn(moon, [
     'test', 'src/query_integration/client_source_free_root_wbtest.mbt',
-    '--target', 'native',
+    '--target', 'native', '--strip',
   ], {cwd: repositoryRoot, env: destination === undefined &&
     externalDestinationOrigin === undefined ? environment : {
     ...environment,
@@ -448,6 +448,7 @@ if (targetTriple === undefined) {
   );
 }
 
+let verificationSucceeded = false;
 try {
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',
@@ -481,7 +482,7 @@ try {
     const slotRoot = join(root, 'executor-slot');
     await mkdir(slotRoot, {recursive: true, mode: 0o700});
     execFileSync(moon, [
-      'test', 'src/platform_native/executor_slot', '--target', 'native',
+      'test', 'src/platform_native/executor_slot', '--target', 'native', '--strip',
     ], {
       cwd: repositoryRoot,
       env: {...process.env, ACTQL_TEST_NATIVE_EXECUTOR_SLOT_ROOT: slotRoot},
@@ -490,7 +491,7 @@ try {
   }
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_runtime/native_test',
-    '--target', 'native',
+    '--target', 'native', '--strip',
   ], {
     cwd: repositoryRoot,
     env: {
@@ -544,7 +545,7 @@ try {
   }, runtimeCore(moonModule).remoteTransferControl);
   if (!valuesHttpsOnly) execFileSync(moon, [
     'test', 'src/platform_native/remote_agent/native_test',
-    '--target', 'native',
+    '--target', 'native', '--strip',
   ], {
     cwd: repositoryRoot,
     env: {
@@ -561,6 +562,11 @@ try {
     },
     stdio: 'inherit',
   });
+  verificationSucceeded = true;
 } finally {
-  await rm(root, {recursive: true, force: true});
+  if (verificationSucceeded && process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {
+    await rm(root, {recursive: true, force: true});
+  } else {
+    console.log(`Native remote runtime scratch kept: ${root}`);
+  }
 }

@@ -465,15 +465,23 @@ fn advance_aggregate_array_impl(s : AggregateArray) -> Result[Value?, RowIssue] 
 ///|
 /// Build a `string_agg` value with the checks and charges of
 /// `evaluate_string_aggregate`: each separator and item's UTF-8 bytes are
-/// paid one unit per advance. The final join is bounded by the output limit.
+/// paid one unit per advance. Sizing and exact-capacity construction also yield
+/// between scalars, without a final whole-input join or a second byte charge.
 priv struct AggregateString {
   values : Array[Value]
   delimiter : String
-  delimiter_bytes : Int64
+  mut delimiter_bytes : Int64
   maximum : Int64
   control : ControlBudget
-  strings : Array[String]
-  pending : PendingUnits
+  workspace : RowWorkspace
+  mut builder : StringBuilder?
+  mut pending : Int64
+  mut bytes : Int64
+  mut units : Int64
+  mut allocated : Int
+  mut offset : Int
+  mut emitted : Int
+  mut separator : Bool
   mut total : Int64
   mut index : Int
   mut phase : Int
@@ -484,23 +492,44 @@ priv struct AggregateString {
 fn start_aggregate_string(
   values : Array[Value],
   delimiter : String,
-  delimiter_bytes : Int64,
   maximum : Int64,
   control : ControlBudget,
-) -> AggregateString {
-  {
+  workspace : RowWorkspace,
+) -> Result[AggregateString, RowIssue] {
+  if !reserve_slots(workspace, 2) {
+    return Err(RowLimit)
+  }
+  Ok({
     values,
     delimiter,
-    delimiter_bytes,
+    delimiter_bytes: 0L,
     maximum,
     control,
-    strings: [],
-    pending: { remaining: 0, },
+    workspace,
+    builder: None,
+    pending: 0L,
+    bytes: 0L,
+    units: 0L,
+    allocated: 0,
+    offset: 0,
+    emitted: 0,
+    separator: false,
     total: 0L,
     index: 0,
     phase: 0,
     closed: false,
+  })
+}
+
+///|
+fn close_aggregate_string(state : AggregateString) -> Unit {
+  if state.closed {
+    return
   }
+  state.builder = None
+  release_slots(state.workspace, state.allocated + 2)
+  state.allocated = 0
+  state.closed = true
 }
 
 ///|
@@ -512,7 +541,8 @@ fn advance_aggregate_string(
   }
   let result = advance_aggregate_string_impl(state)
   match result {
-    Err(_) | Ok(Some(_)) => state.closed = true
+    Err(_) => close_aggregate_string(state)
+    Ok(Some(_)) => state.closed = true
     Ok(None) => ()
   }
   result
@@ -523,37 +553,139 @@ fn advance_aggregate_string_impl(
   s : AggregateString,
 ) -> Result[Value?, RowIssue] {
   match s.phase {
+    // Delimiters are undemanded for zero/singleton contributors.
     0 => {
-      if s.index >= s.values.length() {
-        return Ok(Some(Text(s.strings.join(s.delimiter))))
+      if s.values.length() <= 1 {
+        s.phase = 1
+        return Ok(None)
       }
-      guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
-      let bytes = match @scalar.admit_utf8_length64(text, s.maximum) {
-        Ok(bytes) => bytes
-        Err(_) => return Err(RowLimit)
-      }
-      let separator = if s.index == 0 { 0L } else { s.delimiter_bytes }
-      if separator > s.maximum - s.total ||
-        bytes > s.maximum - s.total - separator ||
-        separator > s.control.remaining.to_int64() {
+      if s.maximum < 0 || s.delimiter.length().to_int64() > s.maximum {
         return Err(RowLimit)
       }
-      s.pending.remaining = (separator + bytes).to_int()
-      s.total += separator + bytes
+      if s.offset < s.delimiter.length() {
+        guard text_function_scalar(s.delimiter, s.offset)
+          is Some((_, next, width, _)) &&
+          width.to_int64() <= s.maximum - s.delimiter_bytes else {
+          return Err(RowLimit)
+        }
+        s.delimiter_bytes += width.to_int64()
+        s.offset = next
+        return Ok(None)
+      }
+      s.offset = 0
       s.phase = 1
       Ok(None)
     }
-    _ =>
-      match pay_pending_unit(s.pending, s.control) {
-        Err(issue) => Err(issue)
-        Ok(false) => Ok(None)
-        Ok(true) => {
-          guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
-          s.strings.push(text)
-          s.index += 1
-          s.phase = 0
-          Ok(None)
-        }
+    1 => {
+      if s.index >= s.values.length() {
+        s.phase = 4
+        return Ok(None)
       }
+      guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
+      if s.maximum < 0 || text.length().to_int64() > s.maximum {
+        return Err(RowLimit)
+      }
+      s.offset = 0
+      s.bytes = 0L
+      s.phase = 2
+      Ok(None)
+    }
+    2 => {
+      guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
+      if s.offset < text.length() {
+        guard text_function_scalar(text, s.offset) is Some((_, next, width, _)) &&
+          width.to_int64() <= s.maximum - s.bytes else {
+          return Err(RowLimit)
+        }
+        s.bytes += width.to_int64()
+        s.offset = next
+        return Ok(None)
+      }
+      let separator = if s.index == 0 { 0L } else { s.delimiter_bytes }
+      if separator > s.maximum - s.total ||
+        s.bytes > s.maximum - s.total - separator ||
+        separator > s.control.remaining.to_int64() {
+        return Err(RowLimit)
+      }
+      s.pending = separator + s.bytes
+      s.total += s.pending
+      s.units += text.length().to_int64() +
+        (if s.index == 0 { 0L } else { s.delimiter.length().to_int64() })
+      s.phase = 3
+      Ok(None)
+    }
+    3 => {
+      if s.pending > 0L {
+        if !spend_control(s.control, 1) {
+          return Err(RowLimit)
+        }
+        s.pending -= 1L
+        return Ok(None)
+      }
+      s.index += 1
+      s.phase = 1
+      Ok(None)
+    }
+    4 => {
+      // The pinned Native builder takes a byte-sized Int hint. Reject physical
+      // capacity overflow before allocation, not by narrowing the String type.
+      if s.units > 1073741823L {
+        return Err(RowLimit)
+      }
+      let allocated = Int::max(1, s.units.to_int())
+      if !reserve_slots(s.workspace, allocated) {
+        return Err(RowLimit)
+      }
+      s.allocated = allocated
+      s.builder = Some(StringBuilder(size_hint=s.units.to_int() * 2))
+      s.index = 0
+      s.offset = 0
+      s.separator = false
+      s.phase = 5
+      Ok(None)
+    }
+    5 => {
+      guard s.builder is Some(builder) else { return Err(InvalidRows) }
+      if s.index >= s.values.length() {
+        if s.emitted.to_int64() != s.units {
+          return Err(InvalidRows)
+        }
+        let value = builder.to_string()
+        s.builder = None
+        // The completed buffer goes to the enclosing row scope. Only temporary
+        // state/builder handles are returned here; stop cannot revoke output.
+        if s.units == 0L {
+          release_slots(s.workspace, s.allocated)
+        }
+        s.allocated = 0
+        release_slots(s.workspace, 2)
+        return Ok(Some(Text(value)))
+      }
+      let text = if s.separator {
+        s.delimiter
+      } else {
+        guard s.values[s.index] is Text(text) else { return Err(InvalidRows) }
+        text
+      }
+      if s.offset == text.length() {
+        if s.separator {
+          s.separator = false
+        } else {
+          s.index += 1
+          s.separator = true
+        }
+        s.offset = 0
+        return Ok(None)
+      }
+      guard text_function_scalar(text, s.offset) is Some((scalar, next, _, _)) &&
+        next - s.offset <= s.allocated - s.emitted else {
+        return Err(RowLimit)
+      }
+      builder.write_char(scalar)
+      s.emitted += next - s.offset
+      s.offset = next
+      Ok(None)
+    }
+    _ => Err(InvalidRows)
   }
 }

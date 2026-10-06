@@ -1827,6 +1827,12 @@ export function validateResourceAccounting({
       }
     }
     if (route.family === 'RelA' && route.operation === 'group') {
+      for (const role of ['group_string_cursor_limits','group_string_cursor_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('group_string_cursor_public')) {
+        fail(`${label}: string cursor public fixture is missing`);
+      }
       if (!boundaryRoles.has('group_raw_text_array_limits_stop')) {
         fail(`${label}: raw Text array limits/stop fixture is missing`);
       }

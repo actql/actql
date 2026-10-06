@@ -1,5 +1,5 @@
 // Translation data is separate from wire semantics and checking authority.
-// English defaults remain at the semantic call site; a missing or malformed
+// English Reason defaults come from the generated public catalog; a missing or malformed
 // translation uses that same safe default without changing the observation.
 const japanese = Object.freeze(Object.fromEntries(Object.entries({
   'protocol.unknown_outcome': ['このSDKでは検査応答のoutcomeを解釈できません。',
