@@ -94,7 +94,7 @@ pub(all) enum QueryOperation {
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
   Group(Array[Expression], Array[Projection], GroupingScope)
-  Having(Expression)
+  Having(Expression, Array[(NamePart, AggregateCall)])
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
@@ -398,7 +398,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
       Some(Group(keys.copy(), copy_projections(projections), scope))
-    Having(e) => Some(Having(e))
+    Having(e, calls) =>
+      Some(Having(e, calls.map(pair => { (pair.0, { ..pair.1, order_by: pair.1.order_by.copy(), }) })))
     Analytic(projections) => Some(Analytic(copy_projections(projections)))
     Select(xs, distinct) => Some(Select(copy_projections(xs), distinct))
     Order(xs) => Some(Order(xs.copy()))
@@ -577,6 +578,78 @@ fn QueryParser::expression(self : QueryParser) -> Expression raise QueryAbort {
       self.expression_nodes += expression.nodes.length()
       self.index = next
       expression
+    }
+    Err(error) => raise QueryExpression(error)
+  }
+}
+
+///|
+///|
+fn QueryParser::having_expression(
+  self : QueryParser,
+) -> (Expression, Array[(NamePart, AggregateCall)]) raise QueryAbort {
+  let calls : Array[(NamePart, AggregateCall)] = []
+  let serial = [self.synthetic_sources]
+  let syntax_nodes = [0]
+  let limits = {
+    ..self.limits.expression,
+    max_nodes: self.limits.expression.max_nodes - self.expression_nodes,
+    max_work: self.limits.expression.max_work.min(
+      self.limits.max_work - self.work,
+    ),
+  }
+  let primary = fn(
+    index : Int,
+    limits : ExpressionLimits,
+  ) -> Result[(NamePart, Int, Int, Int)?, Diagnostic] {
+    let parser : QueryParser = {
+      source: self.source,
+      limits: {
+        ..self.limits,
+        expression: limits,
+        max_work: limits.max_work,
+        max_syntax_nodes: self.limits.max_syntax_nodes -
+        self.syntax_nodes -
+        syntax_nodes[0],
+      },
+      index,
+      work: 0,
+      expression_nodes: 0,
+      syntax_nodes: 0,
+      source_depth: 0,
+      synthetic_sources: serial[0],
+      cte_scopes: [],
+    }
+    if !parser.aggregate_head() {
+      return Ok(None)
+    }
+    try {
+      let call = parser.aggregate()
+      let name = parser.fresh_producer("aql_having_aggregate_")
+      serial[0] = parser.synthetic_sources
+      syntax_nodes[0] += parser.syntax_nodes
+      calls.push((name, call))
+      Ok(Some((name, parser.index, parser.work, parser.expression_nodes)))
+    } catch {
+      QueryExpression(error) => Err(error)
+      QueryAbort(message, at) =>
+        Err({
+          issue: Syntax(message),
+          span: Some(
+            @origin.span(@origin.range(self.source.document, at, at).unwrap()),
+          ),
+        })
+    }
+  }
+  match
+    parse_fragment_resolved(self.source, self.index, limits, Some(primary)) {
+    Ok((expression, next, embedded_nodes)) => {
+      self.spend(expression.work)
+      self.expression_nodes += expression.nodes.length() + embedded_nodes
+      self.syntax_nodes += syntax_nodes[0]
+      self.index = next
+      self.synthetic_sources = serial[0]
+      (expression, calls)
     }
     Err(error) => raise QueryExpression(error)
   }
@@ -1286,11 +1359,15 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     operations.push(Group([], projections, SqlSelect))
   }
   if self.has("HAVING") {
-    if !grouped {
-      raise QueryAbort("HAVING requires grouping", self.peek().start)
-    }
     self.keyword("HAVING")
-    operations.push(Having(self.expression()))
+    let (predicate, calls) = self.having_expression()
+    if !grouped {
+      if calls.is_empty() {
+        raise QueryAbort("HAVING requires grouping", self.peek().start)
+      }
+      operations.push(Group([], projections, SqlSelect))
+    }
+    operations.push(Having(predicate, calls))
   }
   if projections.any(projection => projection.analytic is Some(_)) {
     operations.push(Analytic(projections))
