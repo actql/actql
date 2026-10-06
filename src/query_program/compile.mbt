@@ -3630,6 +3630,18 @@ pub fn compile(
     // checker; the Script frontend supplies that definition-scoped path.
     return Err(UnsupportedGraph)
   }
+  if @query.join_part_count(query) > 0 &&
+    join_requires_group_scope(query) &&
+    context.captured_stage is Some(_) {
+    // The Host requested a capture boundary. Reuse the script's existing
+    // producer binding for raw/shared sources and derived-table CTEs, rather
+    // than sending captured inputs to the Values-only standalone JOIN path.
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+    )
+  }
   if @query.cte_count(query) > 0 {
     return compile_cte_query(query, context, limits)
   }
@@ -3637,7 +3649,7 @@ pub fn compile(
     return compile_set_query(query, context, limits)
   }
   if @query.join_part_count(query) > 0 {
-    if @query.join_part_count(query) > 1 {
+    if @query.join_part_count(query) > 1 || join_requires_group_scope(query) {
       return compile_join_chain_query(query, context, limits)
     }
     return compile_join_query(query, context, limits)
@@ -4092,7 +4104,8 @@ fn compile_cte_query(
       let (outer_steps, output, outer_inputs, outer_from) = if @query.join_part_count(
           query,
         ) >
-        1 {
+        1 ||
+        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) {
         compile_join_chain_stage_body(
           construction,
           query,
@@ -4210,7 +4223,8 @@ fn compile_cte_stage(
   if @query.set_part_count(body) != 0 || @query.cte_count(body) != 0 {
     raise Abort(UnsupportedCte)
   }
-  if @query.join_part_count(body) > 1 {
+  if @query.join_part_count(body) > 1 ||
+    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) {
     let (steps, output, inputs, from) = compile_join_chain_stage_body(
       construction,
       body,

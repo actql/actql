@@ -22,6 +22,9 @@ export const havingAggregateProgram = {version: 'actql/0.1', id: 'fixture.having
     results: {rows: {from: 'ordered', fields: ['id']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const query = 'SELECT id FROM records WHERE id > 0 GROUP BY id HAVING COUNT(*) > 1 ORDER BY id';
+// Exact source that previously failed before acceptance. Its expectation is
+// retained when the existing scoped single-JOIN path becomes available.
+const singleJoinSource = 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.id = seed.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING COUNT(*) > 1 ORDER BY id';
 const success = (name, text, extra = {}) => ({name: 'having-aggregate-' + name,
   format: 'sql', text, sourceRows: rows, expected, columns: columns(['id']),
   sourceReadSessionCount: 1, ...extra});
@@ -62,6 +65,8 @@ export const havingAggregateSuccesses = [
     {expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
   success('single-join-json-control', JSON.stringify(havingSingleJoinProgram),
     {format: 'json', expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
+  success('scoped-cte-single-join', singleJoinSource,
+    {expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
   success('empty-grouped', query, {sourceRows: [], expected: []}),
   success('empty-global', 'SELECT COUNT(*) AS n FROM records HAVING COUNT(*) = 0',
     {sourceRows: [], expected: [{n: 0}], columns: columns(['n'])}),
@@ -73,17 +78,31 @@ export const havingAggregateRefusals = [
   'SELECT id, COUNT(*) AS n FROM records GROUP BY id HAVING SUM(n) > 0',
   'SELECT id FROM records GROUP BY id HAVING COUNT(DISTINCT *) > 0',
 ].map((text, index) => ({name: 'having-aggregate-refuse-' + index, format: 'sql', text}));
-// This valid query is an existing single-JOIN lowering gap, not a language
-// restriction or a completed positive acceptance. Keep the failed source.
-havingAggregateRefusals.push({name: 'having-aggregate-known-single-join-gap', format: 'sql',
-  text: 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n FROM picked AS p JOIN (SELECT 1 AS k) AS seed ON p.id = seed.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING COUNT(*) > 1 ORDER BY id',
-  expectedCode: 'ClientProgramUnsupported',
-  knownImplementationGap: true, intendedExpected: [{id: 1, n: 2}]});
 export const havingAggregateExecutionFailures = [{
   name: 'having-aggregate-demanded-expression-failure', format: 'sql',
   text: 'SELECT id FROM records GROUP BY id HAVING SUM(1 / 0) > 0',
   resultNames: ['answer'], sourceReadSessionCount: 1,
 }];
+
+havingAggregateSuccesses.push(
+  success('single-join-shared-source', 'SELECT l.id, COUNT(*) AS n FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 WHERE l.id > 0 GROUP BY l.id HAVING n > 1 ORDER BY id',
+    {expected: [{id: 1, n: 4}, {id: 3, n: 4}], columns: columns(['id', 'n'])}),
+  success('single-left-join-null-count', 'WITH picked AS (SELECT id FROM records WHERE id > 0) SELECT p.id, COUNT(*) AS n, COUNT(s.k) AS matched FROM picked AS p LEFT JOIN (SELECT 1 AS k) AS s ON p.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY p.id HAVING n > 1 ORDER BY id',
+    {expected: [{id: 1, n: 2, matched: 2}, {id: 3, n: 2, matched: 0}], columns: columns(['id', 'n', 'matched'])}),
+  success('single-cross-join-global', 'SELECT COUNT(*) AS n FROM records CROSS JOIN (SELECT 1 AS k) AS s MAX_OUTPUT_ROWS 10 WHERE records.id > 0 HAVING COUNT(*) > 1',
+    {expected: [{n: 6}], columns: columns(['n'])}),
+  success('single-join-cte-body', 'WITH picked AS (SELECT id FROM records WHERE id > 0), seed AS (SELECT 1 AS k), summary AS (SELECT picked.id, COUNT(*) AS n FROM picked JOIN seed ON picked.id = seed.k MAX_OUTPUT_ROWS 10 GROUP BY picked.id HAVING n > 1) SELECT id, n FROM summary ORDER BY id',
+    {expected: [{id: 1, n: 2}], columns: columns(['id', 'n'])}),
+  success('single-join-empty-global', 'SELECT COUNT(*) AS n FROM records LEFT JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 HAVING COUNT(*) = 0',
+    {sourceRows: [], expected: [{n: 0}], columns: columns(['n'])}),
+);
+havingAggregateRefusals.push(...[
+  'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id > s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
+  'SELECT records.amount, COUNT(*) AS n FROM records JOIN (SELECT 1 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 10 GROUP BY records.id',
+].map((text, index) => ({name: 'single-join-group-refuse-' + index, format: 'sql', text})));
+havingAggregateExecutionFailures.push({name: 'single-join-group-authored-ceiling', format: 'sql',
+  text: 'SELECT records.id, COUNT(*) AS n FROM records JOIN (SELECT 3 AS k) AS s ON records.id = s.k MAX_OUTPUT_ROWS 1 GROUP BY records.id ORDER BY id',
+  resultNames: ['answer'], sourceReadSessionCount: 1});
 
 // Reuse the unchanged authored object/NULL input fixture, not product output.
 // Selected aggregate orders see input payload; HAVING orders prefer its alias.

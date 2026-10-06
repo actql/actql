@@ -16,9 +16,19 @@ test('HAVING fixtures distinguish input multiplicity, NULL and pre-group alias v
   assert.deepEqual(cases.get('having-aggregate-empty-global').expected, [{n: 0}]);
   assert.deepEqual(cases.get('having-aggregate-scoped-cte-join-chain').expected,
     [{id: 1, n: 2}]);
-  const gap = havingAggregateRefusals.find(item => item.knownImplementationGap);
-  assert.deepEqual(gap.intendedExpected, [{id: 1, n: 2}]);
-  assert.match(gap.text, /HAVING COUNT\(\*\) > 1/u);
+  const resolved = cases.get('having-aggregate-scoped-cte-single-join');
+  assert.deepEqual(resolved.expected, [{id: 1, n: 2}]);
+  assert.match(resolved.text, /HAVING COUNT\(\*\) > 1/u);
+  assert.equal(havingAggregateRefusals.some(item => item.knownImplementationGap), false);
+  assert.deepEqual(cases.get('having-aggregate-single-join-shared-source').expected,
+    [{id: 1, n: 4}, {id: 3, n: 4}]);
+  assert.deepEqual(cases.get('having-aggregate-single-left-join-null-count').expected,
+    [{id: 1, n: 2, matched: 2}, {id: 3, n: 2, matched: 0}]);
+  // ID 3 occurs twice in the existing execution-failure source fixture; the
+  // output ceiling remains one and must not be replaced by a default.
+  assert.match(havingAggregateExecutionFailures.find(item =>
+    item.name === 'single-join-group-authored-ceiling').text,
+  /SELECT 3 AS k.*MAX_OUTPUT_ROWS 1/u);
   assert.deepEqual(JSON.parse(cases.get('having-aggregate-single-join-json-control').text),
     havingSingleJoinProgram);
   assert.equal(havingSingleJoinProgram.stages[2].steps[0].join.max_output_rows, 10);
