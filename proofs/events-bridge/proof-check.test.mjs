@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {checkEventsBridge, proofInput, runLean} from './check.mjs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {proofInput, runLean} from './check.mjs';
+import {bridgeModelAction} from './evidence.mjs';
+import {observationUnits} from '../ci-evidence/receipts.mjs';
 
 test('ActQL composition laws and the admitted Events instance have exact types and audited axioms', () => {
-  assert.equal(checkEventsBridge().theorems.length, 16);
+  const result = spawnSync(process.execPath, bridgeModelAction.command.slice(1), {
+    cwd: fileURLToPath(new URL('../../', import.meta.url)), encoding: 'utf8', timeout: 40000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(observationUnits(bridgeModelAction, result.stdout, result.status), 16);
+  assert.throws(() => observationUnits(bridgeModelAction,
+    result.stdout.replace('Checked 16 theorems', 'Checked 14 theorems'), 0), /typed theorem/iu);
 });
 
 test('the common composition claim rejects replacing its conclusion with True', () => {

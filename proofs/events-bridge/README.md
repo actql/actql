@@ -81,8 +81,11 @@ The fixture does not claim that cleanup success means its allocation disappeared
    observable errors; do not normalize data to obtain equality.
 3. Add the exact claim types and residual implementation/resource obligations.
    Review the local proof source; do not update a hash instead of reviewing a law.
-4. Run the focused proof admission and affected real Bridge fixture. State the
-   target and source revision. Three-target integration remains a CI obligation.
+4. Register the exact proof command and each target-specific fixture in the
+   existing action catalog/recipes. Bind proof inputs, fixture/package closure,
+   prerequisites and residual obligations. Run the focused proof admission and
+   affected real Bridge fixture; state target and revision. Three-target
+   integration remains a CI obligation.
 5. Keep physical/provider acceptance where its scope differs. Do not copy the
    common Session protocol suite for each new semantic operation.
 
@@ -94,10 +97,41 @@ node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src
 node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_integration/local_carrier_events_wbtest.mbt --filter 'rows to Events rejects duplicate semantic identities' --deny-warn
 ```
 
+## Executed evidence admission
+
+`evidence.mjs` defines one conditional Bridge claim per target. The existing
+Session runner executes `events-model` once and `events-connection-{target}`
+alongside every previous obligation. The original 26 action descriptors remain
+unchanged; four additive actions make the current inventory 30. Their required
+commands, counts, scope and prerequisites are checked against the same recipes
+at collection and final admission. All four new actions execute fresh.
+
+The producer binds the Bridge proof source separately from the common Session
+snapshot and derives the claim only after the exact 16-theorem/type/axiom check,
+target-specific real fixture, source/artifact identity and Session evidence
+pass. Git source membership includes new files and excludes ignored generated
+outputs; missing required proofs and symlinks reject. Immutable action receipts
+also bind file modes and recursive directory membership through the existing
+input extractor. An ignored local cache is not a proof input.
+
+The dependency is the direct bounded Session, not the managed adapter. The
+existing adapter actions still execute, but their cumulative-to-delta or cleanup
+completion guarantees are not attached to this Bridge. The claim keeps both
+semantic preservation premises, intermediate admission and every residual
+obligation above; it cannot upgrade finite tests into verified refinement.
+
+Existing producer collection and the final archive consumer require all 30
+receipts. A focused controlled-receipt regression sends this actual inventory
+through the executed Lean plan checker and bound final certificate; removing
+any of the four new obligations or substituting Native for JS is refused.
+That regression tests admission, not physical execution of those fixtures.
+Actual three-target execution and authenticated hosted acceptance remain CI
+evidence. No additional reusable action or dispatcher is introduced.
+
 The existing Session proof-admission suite imports the concrete instance's
 positive and weakened-proposition rejection tests. A deliberately incorrect
 clock mapping is also refused by the real model proof; this is model admission,
 not a claimed mutation detection in MoonBit product code. The normal Core target loop
-discovers the new real fixture. This is an additive admission boundary, not an
-extra reusable-action registration or new CI dispatcher. A model proof or a
+discovers the new real fixture. This is an additive fresh admission boundary.
+A model proof or a
 selected local JS pass is not a three-target integration result.

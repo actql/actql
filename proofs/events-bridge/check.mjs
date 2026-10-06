@@ -57,5 +57,5 @@ export function checkEventsBridge() {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const result = checkEventsBridge();
   process.stdout.write(result.output);
-  console.log(`Checked ${result.theorems.length} common/instance theorems; no implementation proof claimed`);
+  console.log(`Checked ${result.theorems.length} theorems, expected claim types and axiom dependencies`);
 }

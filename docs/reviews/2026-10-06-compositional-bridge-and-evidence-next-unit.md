@@ -9,8 +9,9 @@ Historical progress estimates are not acceptance evidence for this revision.
 connects local observation-composition laws to an admitted semantic
 instance and the existing real typed Bridge. It keeps the separate independent
 checked-schema, input/occurrence binding and runtime cell/order observations.
-It does not alter product code, capacity/work budgets, provider lifetime tests,
-the 26-action inventory or reuse authorization.
+It does not alter product code, capacity/work budgets, provider lifetime tests
+or reuse authorization. The original 26 action descriptors are preserved; the
+existing runner now adds the model and three Bridge target obligations (30 total).
 
 All proof development, admission and source inputs are owned here. The six
 common composition laws use explicit stage-preservation premises and the Lean
@@ -18,8 +19,12 @@ standard prelude. There is no external theory repository dependency, source
 copy, integration prerequisite or build. Exact proposition checks and the
 existing axiom audit remain mandatory.
 
-Common infrastructure change: the existing Session proof-admission test suite
-also admits the concrete instance. This is not a claim of zero common changes.
+Common infrastructure changes: the existing Session proof-admission test suite
+also admits the concrete instance. Execution recipes, action inputs and receipts
+register its exact theorem and target commands. The producer's conditional claim
+checks Session evidence, proof identity, independent fixture/artifact, premises
+and residual obligations. The existing collector and final consumer require all
+30 actions. This is not a claim of zero common changes or measured savings.
 No protocol model, common Session state-history suite, generator, shrinker,
 runtime Owner, ledger or CI selection policy is copied or replaced.
 
