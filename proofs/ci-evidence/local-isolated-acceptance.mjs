@@ -73,9 +73,11 @@ function prepareLinux(descriptorFile) {
   const prepared = prepareLocalIsolatedMutation({root: '/candidate', tree, owner: descriptor.owner, directory: '/out', profile});
   json('/out/prepared.json', prepared);
   if (profile === 'pipeline-pristine') {
-    mkdirSync('/out/normal');
-    stagePipelinePristineSource({tree, destination: '/out/normal'});
-    const directory = '/out/normal/source', start = performance.now();
+    // Both phases build in private Linux tmpfs. The preparation output mount
+    // receives only evidence, not the normal source/build tree.
+    mkdirSync('/tmp/pipeline-normal');
+    stagePipelinePristineSource({tree, destination: '/tmp/pipeline-normal'});
+    const directory = '/tmp/pipeline-normal/source', start = performance.now();
     const result = spawnSync(process.execPath, ['proofs/relation-pipeline/pristine-replay.mjs'], {
       cwd: directory, env: process.env, encoding: 'utf8', timeout: 480000, maxBuffer: 32 * 1024 * 1024,
     });
