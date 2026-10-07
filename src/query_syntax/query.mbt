@@ -1244,12 +1244,15 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     Some(self.expression())
   }
   let delimiter = if function_name == "STRING_AGG" {
-    if self.advance().value != Symbol(44) {
-      raise QueryAbort("STRING_AGG requires a delimiter", token.start)
-    }
-    match self.advance().value {
-      Text(value) => Some(value)
-      _ => raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+    if self.peek().value == Symbol(44) {
+      ignore(self.advance())
+      match self.advance().value {
+        Text(value) => Some(value)
+        _ =>
+          raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+      }
+    } else {
+      Some(",")
     }
   } else {
     None
