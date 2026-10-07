@@ -5,7 +5,7 @@ const recovery: RequestRecovery = client.recoverRequest(original);
 const target: RequestLookupTarget = recovery.target;
 const restored = client.recoverRequest(JSON.parse(JSON.stringify(target)));
 const observation = await restored.lookup({signal: new AbortController().signal});
-if (observation.kind === 'found') {
+if (observation.kind === 'found' || observation.kind === 'ready') {
   const execution = await restored.attach(observation);
   const run: RunReference = execution.ref;
   void run;

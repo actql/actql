@@ -394,6 +394,7 @@ const submissionObservationHint = 'Keep the original submission reference and us
 const submissionTarget = context => ({operation: 'lookupSubmission',
   submissionRef: context.submissionRef, lookupContext: context.lookupContext});
 const retainSubmissionExplanation = (result, outcome, context) => {
+  requestLookupContexts.set(result, context);
   // Called only after admitting the exact Owner response and its binding.
   // Acceptance phase follows its typed branch, never its problem code.
   let explanation;
@@ -429,6 +430,7 @@ const retainSubmissionLookupFailure = (cause, context, observation) => {
   let error;
   try {error = requestCancellationCause(cause);}
   catch {error = new ClientError('ClientTransportUnknown');}
+  requestLookupContexts.set(error, context);
   submissionExplanations.set(error, freezeInput({observation,
     summary: observation === 'lookup_unavailable'
       ? 'The submission lookup could not be completed. Acceptance and execution remain unresolved.'
@@ -917,12 +919,23 @@ const recoveryData = (value, keys) => {
 };
 const requestRecoveryTarget = value => {
   const retained = submissionInputs.get(value) ?? requestLookupContexts.get(value);
-  if (retained) return {operation: 'lookupRequest', requestId: retained.requestId,
-    lookupContext: retained.lookupContext};
+  if (retained) return retained.submissionRef === undefined
+    ? {operation: 'lookupRequest', requestId: retained.requestId, lookupContext: retained.lookupContext}
+    : {operation: 'lookupSubmission', submissionRef: retained.submissionRef,
+      lookupContext: retained.lookupContext};
   try {
-    const target = recoveryData(value, ['operation', 'requestId', 'lookupContext']);
+    const submitted = recoveryData(value, ['operation', 'submissionRef', 'lookupContext']);
+    const target = submitted ?? recoveryData(value, ['operation', 'requestId', 'lookupContext']);
     const context = recoveryData(target?.lookupContext, ['endpoint', 'scopeRef']);
-    if (target?.operation !== 'lookupRequest' || !context) return undefined;
+    if (!context) return undefined;
+    if (submitted?.operation === 'lookupSubmission') {
+      const ref = recoveryData(submitted.submissionRef, ['epoch', 'nonce']);
+      const epoch = recoveryData(ref?.epoch, ['version', 'authorityScopeCid', 'epochNonce',
+        'notBefore', 'expiresAt', 'authenticator']);
+      if (!epoch || !validSubmissionRef({...ref, epoch})) return undefined;
+      return {...submitted, submissionRef: {...ref, epoch}, lookupContext: context};
+    }
+    if (target?.operation !== 'lookupRequest') return undefined;
     return {...target, lookupContext: context};
   } catch { return undefined; }
 };
@@ -2244,9 +2257,9 @@ async function connectSelected(selected, port) {
       if (closed) fail('ClientClosed');
       const captured = requestRecoveryTarget(observationOrTarget);
       if (closed) fail('ClientClosed');
-      if (!captured || typeof captured.requestId !== 'string' ||
-          captured.requestId.length < 1 || captured.requestId.length > 256 ||
-          /[\u0000-\u001f\u007f]/u.test(captured.requestId) ||
+      if (!captured || (captured.operation === 'lookupRequest' &&
+          (typeof captured.requestId !== 'string' || captured.requestId.length < 1 ||
+          captured.requestId.length > 256 || /[\u0000-\u001f\u007f]/u.test(captured.requestId))) ||
           typeof captured.lookupContext.endpoint !== 'string' ||
           typeof captured.lookupContext.scopeRef !== 'string') {
         fail('InvalidRequestRecoveryTarget');
@@ -2255,20 +2268,21 @@ async function connectSelected(selected, port) {
           captured.lookupContext.scopeRef !== confirmed.scopeRef) {
         fail('RequestRecoveryScopeMismatch');
       }
-      const target = freezeInput({operation: 'lookupRequest', requestId: captured.requestId,
-        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+      const target = freezeInput(captured);
       const found = new WeakSet();
       return Object.freeze({target,
         lookup: async options => {
-          const observation = await client.lookupRequest(target.requestId, options);
-          if (observation.kind === 'found') found.add(observation);
+          const observation = target.operation === 'lookupSubmission'
+            ? await client.lookupSubmission(target.submissionRef, options)
+            : await client.lookupRequest(target.requestId, options);
+          if (observation.kind === 'found' || observation.kind === 'ready') found.add(observation);
           return observation;
         },
         attach: async (observation, options) => {
           if (closed) fail('ClientClosed');
           if (!found.has(observation)) fail('InvalidRequestRecoveryObservation');
           // Custody of a lookup is not authority: attach rechecks the Host now.
-          return client.attach(observation.ref, options);
+          return client.attach(observation.kind === 'ready' ? observation.admission.ref : observation.ref, options);
         },
       });
     },

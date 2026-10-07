@@ -16,7 +16,7 @@ const recovery: RequestRecovery = client.recoverRequest(result);
 const savedTarget: RequestLookupTarget = recovery.target;
 const restoredRecovery = client.recoverRequest(savedTarget);
 const recoveredLookup = await restoredRecovery.lookup();
-if (recoveredLookup.kind === 'found') await restoredRecovery.attach(recoveredLookup);
+if (recoveredLookup.kind === 'found' || recoveredLookup.kind === 'ready') await restoredRecovery.attach(recoveredLookup);
 else {
   // @ts-expect-error Unresolved/pre-Run branches cannot attach as a Run.
   restoredRecovery.attach(recoveredLookup);

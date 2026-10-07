@@ -133,8 +133,7 @@ export type SubmissionInput = Readonly<{
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
 /** Persistable lookup data, not an authenticated identity, acceptance or retry grant.
  * Restoring it requires the same endpoint and confirmed connection scope. */
-export type RequestLookupTarget = Readonly<{operation: 'lookupRequest'; requestId: string;
-  lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+export type RequestLookupTarget = RequestObservationTarget;
 /** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
 export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
 type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
@@ -330,10 +329,10 @@ export type RequestLookup = WireRequestLookup;
 /** Lookup-only recovery of an existing request; never submits or resumes work. */
 export interface RequestRecovery {
   readonly target: RequestLookupTarget;
-  lookup(options?: {signal?: AbortSignal}): Promise<RequestLookup>;
-  /** Only a found observation from this handle's lookup is accepted.
+  lookup(options?: {signal?: AbortSignal}): Promise<RequestLookup | SubmissionLookup>;
+  /** Only a found/ready observation from this handle's lookup is accepted.
    * The Host checks current authorization again when attaching. */
-  attach(observation: Extract<RequestLookup, {kind: 'found'}>,
+  attach(observation: Extract<RequestLookup, {kind: 'found'}> | Extract<SubmissionLookup, {kind: 'ready'}>,
     options?: {signal?: AbortSignal}): Promise<Execution>;
 }
 

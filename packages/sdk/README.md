@@ -538,7 +538,7 @@ attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
 
-## Historical held requests and Run Checkpoints
+## Original request recovery
 
 `client.recoverRequest(observationOrTarget)` creates a lookup-only recovery
 handle. It performs no I/O, submission, approval or resumption. It accepts an
@@ -547,12 +547,16 @@ received Execution or successful short-query Result, or an original request
 lookup response/error. Mutable error properties and copied observations do
 not supply the original request context.
 
-The handle's frozen `target` is the existing `lookupRequest` candidate:
-`{operation, requestId, lookupContext: {endpoint, scopeRef}}`. An application
+For an epoch-bound submission, the frozen `target` retains
+`{operation: 'lookupSubmission', submissionRef: {epoch, nonce}, lookupContext: {endpoint, scopeRef}}`.
+An explicit original `lookupRequest` observation retains that operation and
+request ID instead. Recovery never substitutes the reconnect's epoch or falls
+back to a bare nonce lookup. An application
 can save this JSON and restore it with `recoverRequest(savedTarget)` after
 connecting again to the same endpoint and confirmed scope. Saved targets are
-untrusted lookup data, not authenticated references, durable acceptance,
-epochs or permission to retry. The SDK captures only exact own data fields
+untrusted lookup data, not authenticated references, durable acceptance or
+permission to retry. The original epoch is retained as lookup material,
+not reissued by the SDK. The SDK captures only exact own data fields
 without invoking getters, `toJSON` or conversion hooks. It refuses mismatches
 before lookup instead of translating an older context into a different scope.
 
@@ -560,16 +564,16 @@ before lookup instead of translating an older context into a different scope.
 const recovery = client.recoverRequest(originalSubmissionError);
 const savedTarget = JSON.stringify(recovery.target); // application-owned storage
 const observation = await recovery.lookup();
-if (observation.kind === 'found') {
+if (observation.kind === 'ready' || observation.kind === 'found') {
   const execution = await recovery.attach(observation);
   const state = await execution.status();
 }
 // After reconnecting: client.recoverRequest(JSON.parse(savedTarget)).
 ```
 
-`lookup()` returns the existing `RequestLookup` union unchanged. A held request
+`lookup()` returns the selected operation's existing `SubmissionLookup` or `RequestLookup` union unchanged. A held request
 still has no Run; `not_found` and `unknown` do not establish nonexecution.
-`attach()` accepts only a `found` observation returned by that same handle's
+`attach()` accepts only a `ready` or `found` observation returned by that same handle's
 `lookup()`. A direct lookup, another handle or a serialized copy does not have
 that association. This local check is not authority: the ordinary Host attach
 operation checks current access again. Each call is explicit; there is no
@@ -584,6 +588,8 @@ explicit policy connections. Reopen the same state root and configuration;
 another root with the same request ID is a different scope. Older
 principal-only lookup contexts are refused, not reinterpreted. No state path,
 input, credential or private review is added to the saved target.
+
+## Historical held requests and Run Checkpoints
 
 The initial epoch-bound standard Host path does not create pre-Run approval
 waits. Delegated preparation or Source-read authorization without an immediate

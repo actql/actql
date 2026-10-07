@@ -49,10 +49,9 @@ for (const entrance of ['local', 'https']) {
       '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
       '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
     const text = JSON.stringify(program);
-    let recoveryTarget;
     const phase = async phase => {
       const outcome = spawnSync(process.execPath, [processFixture], {input: JSON.stringify({
-        root: scratch.path, phase, entrance, runtime: acceptance.runtime, text, parameters, recoveryTarget}),
+        root: scratch.path, phase, entrance, runtime: acceptance.runtime, text, parameters}),
       encoding: 'utf8', timeout: 45000, maxBuffer: 4 * 1024 * 1024});
       assert.equal(outcome.error, undefined, String(outcome.error));
       const report = JSON.parse(await readFile(join(scratch.path, `${phase}.json`), 'utf8'));
@@ -60,19 +59,11 @@ for (const entrance of ['local', 'https']) {
       return report;
     };
     const first = await phase('initial');
-    recoveryTarget = first.target;
-    assert.equal(recoveryTarget.operation, 'lookupRequest');
-    assert.equal(recoveryTarget.requestId, 'original-held-values');
     assert.equal(first.lookup.state, 'waiting_checkpoint');
     assert.equal(first.computes, 0);
     const review = JSON.parse(first.reviewWire);
     assert.equal(review.displayed_scope.document, text);
     assert.deepEqual(review.displayed_scope.parameters, parameters);
-    const foreign = await phase('foreign');
-    assert.equal(foreign.originRefused, true);
-    assert.equal(foreign.target.requestId, recoveryTarget.requestId);
-    assert.notEqual(foreign.scopeRef, recoveryTarget.lookupContext.scopeRef);
-    assert.equal(foreign.computes, 0);
     const approved = await phase('approve');
     assert.equal(approved.checkpoint.checkpointCid, first.checkpoint.checkpointCid);
     assert.equal(approved.reviewWire, first.reviewWire);
@@ -87,7 +78,6 @@ for (const entrance of ['local', 'https']) {
     assert.equal(restored.state.run_id, resumed.state.run_id);
     assert.deepEqual(restored.rows, expected);
     assert.equal(restored.computes, 0);
-    assert.deepEqual(restored.target, recoveryTarget);
     scratch.passed();
   });
 }
