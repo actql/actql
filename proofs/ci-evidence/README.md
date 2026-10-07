@@ -20,6 +20,20 @@ no Actions admission or reuse authority. See the
 [implementation and physical originals](../../docs/reviews/2026-10-07-pipeline-pristine-isolation.md).
 Default Session execution and every full pipeline obligation remain unchanged.
 
+Session's collector/final/image utilities load the pipeline scientific consumers
+only after selecting a registered local pipeline profile. Session action keys
+therefore exclude the separate pipeline oracle/receipt directory; changing its
+bytes or membership does not invalidate Session evidence. The one remaining
+eager import, `relation-pipeline/inventory.mjs`, is still bound by bytes/mode and
+an exact reviewed import/effect fingerprint. Missing or changed inventory bytes
+leave the action unresolved until its boundary is reviewed. The current module
+imports only Node built-ins and has no top-level filesystem reads. This is a
+limited manual dependency boundary, not a general JavaScript dependency parser.
+The pipeline profiles still stage their full own snapshot and use the same
+scientific validators. Session/pipeline, target and local/Actions authority
+cannot be substituted. Input equality alone never authenticates an original,
+qualifies an action for reuse or establishes net CI savings.
+
 Run it from a clean committed checkout using the repository's checked-in
 toolchain pin, a Linux x64 Moon distribution matching that pin, and an immutable
 Linux x64 Node builder image. The existing entry point checks their actual bytes,

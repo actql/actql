@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {parse as yaml} from 'yaml';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog} from './actions.mjs';
-import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {hash, actionInputs, compareInputs, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
 import {canonicalReceipt, sealReceipt, mutationIds} from './receipts.mjs';
 import {checkApplications} from './applications.mjs';
 import {checkPlan} from './check.mjs';
@@ -41,6 +41,7 @@ function familyFixture({mixed = false, changed = false, originEvent = 'workflow_
   const context = {candidateRevision: 'a'.repeat(40), runHeadRevision: 'a'.repeat(40),
     repository: 'actql/actql', repositoryId: 1, workflowId: 2, runId: 30, runAttempt: 1, ancestors: ['b'.repeat(40)]};
   const source = new Map([...sharedFiles, ...mutationSnapshotExtras].map(path => [path, path]));
+  source.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   source.set('proofs/ci-evidence/bounded-session-actions.json', encode(catalog));
   for (const directory of ['proofs/bounded-session', 'proofs/events-bridge'])
     for (const file of ['check.mjs', 'Session.lean', 'Composition.lean', 'CompositionClaims.lean',

@@ -84,6 +84,13 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
+pipe_group_clause = "GROUP", [ "AND", "ORDER" ], "BY", ( "(", ")" | pipe_group_item, { ",", pipe_group_item } ) ;
+pipe_group_item = expression, [ [ "AS" ], identifier ], [ pipe_group_order ] ;
+pipe_group_order = [ "ASC" | "DESC" ], "NULLS", ( "FIRST" | "LAST" )
+                 | "ASC" | "DESC" ;
+pipe_aggregate_list = pipe_aggregate_item, { ",", pipe_aggregate_item } ;
+pipe_aggregate_item = expression, [ [ "AS" ], identifier ], [ pipe_aggregate_order ] ;
+pipe_aggregate_order = ( "ASC" | "DESC" ), [ "NULLS", ( "FIRST" | "LAST" ) ] ;
 having_clause = "HAVING", expression ;
 qualify_clause = "QUALIFY", expression ;
 window_clause = "WINDOW", window_definition, { ",", window_definition } ;
@@ -138,7 +145,7 @@ relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" 
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
-              | "AGGREGATE", ( select_list, [ group_clause ] | group_clause )
+              | "AGGREGATE", ( pipe_aggregate_list, [ pipe_group_clause ] | pipe_group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",

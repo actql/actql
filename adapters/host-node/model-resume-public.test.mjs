@@ -46,7 +46,7 @@ async function fixture(t, options = {}) {
   // profile. macOS /var and /private/var aliases must not confuse observation.
   const scratch = await realpath(acceptance.scratch ?? tmpdir());
   const root = await mkdtemp(join(scratch, 'actql-public-model-resume-'));
-  if (acceptance.preserveArtifacts === true) t.diagnostic(`Model recovery artifacts: ${root}`);
+  if (acceptance.preserveArtifacts === true || process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') t.diagnostic(`Model recovery artifacts: ${root}`);
   else t.after(() => rm(root, {recursive: true, force: true}));
   if (options.transport === 'https') execFileSync('openssl', [
     'req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
