@@ -200,15 +200,20 @@ fn QueryParser::graph_edge(
   let quantified = self.peek().value == Symbol(123)
   if quantified {
     self.graph_symbol(123)
-    min_hops = self.safe_integer(true)
-    self.graph_symbol(44)
-    if self.peek().value == Symbol(125) {
-      raise QueryAbort(
-        "GRAPH_PATTERN_UNSUPPORTED_SHAPE: open quantifier",
-        self.peek().start,
-      )
+    let omitted_lower = self.peek().value == Symbol(44)
+    min_hops = if omitted_lower { 0L } else { self.safe_integer(true) }
+    if !omitted_lower && self.peek().value == Symbol(125) {
+      max_hops = min_hops
+    } else {
+      self.graph_symbol(44)
+      if self.peek().value == Symbol(125) {
+        raise QueryAbort(
+          "GRAPH_PATTERN_UNSUPPORTED_SHAPE: open quantifier",
+          self.peek().start,
+        )
+      }
+      max_hops = self.safe_integer(true)
     }
-    max_hops = self.safe_integer(true)
     self.graph_symbol(125)
     if variable is Some(_) || min_hops > max_hops || max_hops == 0L {
       raise QueryAbort(
