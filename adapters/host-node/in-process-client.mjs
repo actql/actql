@@ -6,7 +6,7 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validCheckpointPage, validCheckpointReview, validClientAdmission,
-  validClientBody, validClientProfile, validDeliveryAttemptLookup,
+  validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
@@ -43,7 +43,7 @@ function publicResultRows(response) {
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
-  cancel, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
+  cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
@@ -192,7 +192,18 @@ export function createNodeInProcessClientHost({
         }
         return answer;
       }
-      if (operation === 'cancel') return await invoke(cancel);
+      if (operation === 'cancel') {
+        const answer = await invoke(cancel);
+        if (!validCancellation(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellation');
+        return answer;
+      }
+      if (operation === 'lookup-cancellation') {
+        const answer = await invoke(lookupCancellation);
+        if (!validCancellationLookup(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellationLookup');
+        return answer;
+      }
       if (operation === 'result-describe') {
         const answer = await describeAuthorizedResult(resultService, {
           indexKey: ref, principalId, purpose: 'inspect',
