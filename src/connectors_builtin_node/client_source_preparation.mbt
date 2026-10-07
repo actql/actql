@@ -31,6 +31,7 @@ fn client_source_preparation_issue_code(
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
+            UnknownRelation => "source_unresolved"
             UnsupportedProjection
             | UnsupportedGrouping
             | UnsupportedAggregate
@@ -41,6 +42,15 @@ fn client_source_preparation_issue_code(
             | UnsupportedJoin
             | UnsupportedCte
             | UnsupportedGraph => "source_unsupported"
+            // These typed facts come from the existing lowerer. The public
+            // submission projection must still establish audience disclosure.
+            UnknownColumn
+            | AmbiguousColumn
+            | AmbiguousRelation
+            | DuplicateOutput
+            | Expression(
+              { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
+            ) => "source_invalid_input"
             _ => "source_rejected"
           }
         QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
