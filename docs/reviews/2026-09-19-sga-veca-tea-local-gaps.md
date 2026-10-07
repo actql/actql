@@ -6876,3 +6876,22 @@ blocking Native consumers and trusted callbacks remain separate boundaries.
 A narrower projected producer Result still fails checked inter-task contract
 matching before Compute and is not claimed as supported by this unit.
 This is not packed/all-target or whole-Local completion.
+
+### Checked schema traversal follow-up (2026-10-08)
+
+The existing checked contract emitter now visits object children one at a time
+and uses the shared ordered-key/Text writer cursors. Relation schema identity
+polls hash emission, wire emission and private field-name collection; retained
+Result metadata polls that owner before issuing a stream. Canonical schema
+CIDs, conditional presence and aggregate byte/node/depth limits remain unchanged.
+
+Independent frame and writer boundaries, hash/wire cancellation, and actual
+Host cancellation during recursive schema traversal are recorded in the
+[schema preparation evidence](2026-10-08-local-bounded-schema-preparation.md):
+clean-source JS 32/32 and focused Host 4/4 with matching runtime inputs.
+This depends on #904 until the Result preparation parent is adopted by main.
+
+Blocking convenience publication callers, snapshot copies, physical chunk
+admission and runtime allocation/contiguous-string latency remain separate
+boundaries. The existing asynchronous Result transformation route is covered;
+all retained Local paths and all-target/packed completion are not claimed.

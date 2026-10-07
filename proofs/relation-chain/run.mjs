@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, bindings, stopBindings, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
+import { artifacts, bindings, stopBindings, pauseBindings, pauseFixture, executedPauseCoverage, stopFixture, checkBindings, executedCoverage, executedStopCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -12,7 +12,7 @@ const pin = JSON.parse(readFileSync(join(root, 'toolchain.json'), 'utf8'));
 const home = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
 const moon = join(home, 'bin/moon');
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
-const requested = [...bindings(), ...stopBindings()];
+const requested = [...bindings(), ...stopBindings(), ...pauseBindings()];
 checkBindings(root, requested);
 const source = snapshot(root);
 const directory = join(root, '.artifacts/relation-chain');
@@ -54,6 +54,9 @@ for (const target of selected === 'all' ? targets : [selected]) {
   runs[`stop-connection-${target}`] = run(`stop-connection-${target}`, moon,
     ['test', stopFixture, '--target', target, '--deny-warn'], target, 'query_integration');
   runs[`stop-connection-${target}`].coverage = executedStopCoverage();
+  runs[`pause-connection-${target}`] = run(`pause-connection-${target}`, moon,
+    ['test', pauseFixture, '--target', target, '--deny-warn'], target, 'query_integration');
+  runs[`pause-connection-${target}`].coverage = executedPauseCoverage();
   const report = {
     version: 'actql-relation-chain-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
     source, toolchain: pin, target, runs, claims: graph(requested, target),
