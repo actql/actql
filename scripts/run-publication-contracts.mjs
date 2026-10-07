@@ -92,7 +92,6 @@ export function effectSourceArtifactSchema() {
   const artifact = resultArtifactSchema();
   artifact.required = artifact.required.map(field =>
     field === 'result_definition_cid' ? 'source_binding_cid' : field);
-  artifact.required.splice(2, 0, 'source_result');
   artifact.required.push('store_authority_cid');
   artifact.required = artifact.required.filter(field =>
     field !== 'ordering_evidence_cid');
@@ -101,6 +100,11 @@ export function effectSourceArtifactSchema() {
   delete artifact.properties.ordering_evidence_cid;
   artifact.properties.source_binding_cid = clone(cid);
   artifact.properties.source_result = {type: 'string', minLength: 1};
+  artifact.properties.source_table_input = {type: 'string', minLength: 1};
+  artifact.oneOf = [
+    {required: ['source_result'], not: {required: ['source_table_input']}},
+    {required: ['source_table_input'], not: {required: ['source_result']}},
+  ];
   artifact.properties.store_authority_cid = clone(cid);
   return artifact;
 }

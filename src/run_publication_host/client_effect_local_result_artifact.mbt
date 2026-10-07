@@ -402,7 +402,6 @@ pub fn client_effect_local_source_matches(
   artifact : ClientEffectLocalResultArtifact,
   source : @publication.CapturedEffectSourceArtifact,
 ) -> Bool {
-  guard artifact.source is ResultSource(_, definition) else { return false }
   let mut owns_artifact = false
   for candidate in manifest.artifacts {
     if physical_equal(candidate, artifact) {
@@ -421,20 +420,44 @@ pub fn client_effect_local_source_matches(
     ) {
     return false
   }
-  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
-    return false
+  match artifact.source {
+    ResultSource(_, definition) => {
+      guard @strategy.captured_effect_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      let unit = @strategy.captured_effect_input_stage(input)
+      let name = @execution.managed_result_occurrence_name(
+        @strategy.captured_effect_input_occurrence(input),
+      )
+      client_effect_local_result_definition_matches(
+        definition, owner, unit, name,
+      ) &&
+      client_effect_local_invocation_matches(invocation, owner, unit) &&
+      @publication.captured_effect_source_matches_result_facts(
+        source,
+        artifact.artifact,
+        name,
+      )
+    }
+    TableSource(_, definition) => {
+      guard @strategy.captured_effect_table_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      client_effect_local_table_definition_matches(definition, owner, input) &&
+      client_effect_local_invocation_matches(
+        invocation,
+        owner,
+        @strategy.captured_effect_table_input_stage(input),
+      ) &&
+      @publication.captured_effect_source_matches_table_input_facts(
+        source,
+        artifact.artifact,
+        definition.name,
+      )
+    }
   }
-  let unit = @strategy.captured_effect_input_stage(input)
-  let name = @execution.managed_result_occurrence_name(
-    @strategy.captured_effect_input_occurrence(input),
-  )
-  client_effect_local_result_definition_matches(definition, owner, unit, name) &&
-  client_effect_local_invocation_matches(invocation, owner, unit) &&
-  @publication.captured_effect_source_matches_result_facts(
-    source,
-    artifact.artifact,
-    name,
-  )
 }
 
 ///|

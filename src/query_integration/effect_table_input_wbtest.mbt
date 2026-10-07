@@ -554,6 +554,151 @@ fn verify_captured_private_table_input(
     scope,
   )
   let run_cid = @publication.publication_contract_identity(run_definition)
+  let source_binding = @publication.effect_preview_member_source_binding_cid(
+    preview, 0,
+  ).unwrap()
+  let store_authority = native_publication_cid("private-table-store-authority")
+  let logical_cid = @execution.logical_relation_cid(
+    @execution.completed_relation_export_identity(receipt),
+  )
+  let schema_cid = @execution.relation_schema_cid(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+  let physical_artifact = @publication.issue_effect_table_input_artifact(
+    run_invocation,
+    retention,
+    "out",
+    source_binding,
+    store_authority,
+    logical_cid,
+    schema_cid,
+    if empty {
+      0
+    } else {
+      1
+    },
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let semantic_artifact = @publication.admit_publication_contract(
+    "result_artifact",
+    @publication_host.client_effect_local_result_artifact_json(artifact),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let physical_source = @publication.admit_captured_effect_source_from_table_input(
+    preview, 0, run_invocation, physical_artifact, semantic_artifact, store_authority,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 0, manifest, invocation, artifact, physical_source,
+    ),
+  )
+  assert_false(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 1, manifest, invocation, artifact, physical_source,
+    ),
+  )
+  assert_false(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 0, manifest, invocation, ordinary_artifact, physical_source,
+    ),
+  )
+  assert_true(
+    @publication.captured_effect_source_matches_table_input_facts(
+      physical_source, semantic_artifact, "out",
+    ),
+  )
+  assert_false(
+    @publication.captured_effect_source_matches_result_facts(
+      physical_source, semantic_artifact, "out",
+    ),
+  )
+  assert_true(
+    @publication.admit_captured_effect_source_from_result(
+      preview, 0, run_invocation, physical_artifact, semantic_artifact, store_authority,
+    )
+    is Err(_),
+  )
+  let ordinary_physical = @publication.issue_effect_source_artifact(
+    run_invocation,
+    retention,
+    "out",
+    source_binding,
+    store_authority,
+    logical_cid,
+    schema_cid,
+    if empty {
+      0
+    } else {
+      1
+    },
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  assert_true(
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, 0, run_invocation, ordinary_physical, semantic_artifact, store_authority,
+    )
+    is Err(_),
+  )
+  let ordinary_semantic = @publication.admit_publication_contract(
+    "result_artifact",
+    @publication_host.client_effect_local_result_artifact_json(
+      ordinary_artifact,
+    ),
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let ordinary_source_artifact = @publication.issue_effect_source_artifact(
+    run_invocation,
+    retention,
+    "other",
+    @publication.effect_preview_member_source_binding_cid(preview, 1).unwrap(),
+    store_authority,
+    @execution.logical_relation_cid(
+      @execution.completed_relation_export_identity(ordinary_receipt),
+    ),
+    @execution.relation_schema_cid(
+      @execution.completed_relation_export_schema_identity(ordinary_receipt),
+    ),
+    if empty {
+      0
+    } else {
+      1
+    },
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let ordinary_source = @publication.admit_captured_effect_source_from_result(
+    preview, 1, run_invocation, ordinary_source_artifact, ordinary_semantic, store_authority,
+  ).unwrap()
+  assert_true(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 1, manifest, invocation, ordinary_artifact, ordinary_source,
+    ),
+  )
+  assert_true(
+    @publication.captured_effect_source_inventory_from_artifacts_valid(
+      preview,
+      [0, 1],
+      [physical_artifact, ordinary_source_artifact],
+      [semantic_artifact, ordinary_semantic],
+    ),
+  )
+  assert_false(
+    @publication.captured_effect_source_inventory_from_artifacts_valid(
+      preview,
+      [1, 0],
+      [physical_artifact, ordinary_source_artifact],
+      [semantic_artifact, ordinary_semantic],
+    ),
+  )
   assert_eq(
     @publication.effect_preview_member_relation_source(preview, 0),
     Some(@publication.TableInput("out")),
@@ -694,6 +839,16 @@ fn verify_captured_private_table_input(
     @publication_host.client_table_preview_input_available(table_preview),
   )
   assert_true(@strategy.captured_effect_table_input_at(inputs, 0) is None)
+  assert_false(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 1, manifest, invocation, ordinary_artifact, ordinary_source,
+    ),
+  )
+  assert_false(
+    @publication_host.client_effect_local_source_matches(
+      prepared, inputs, 0, manifest, invocation, artifact, physical_source,
+    ),
+  )
   // Release revokes the whole capture capability before source lookup.
   assert_true(issue(receipt) is Err(@publication_host.ForeignOwner))
   assert_false(@strategy.captured_table_input_borrow_available(borrow))

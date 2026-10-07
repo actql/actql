@@ -226,10 +226,29 @@ test('independent Effect-source Artifact and holding 0.1 vectors', () => {
     'sha256:9f02433c84d076d9e0ee3f99c347850248ac8632da29f411c1788ded9a40a073');
   assert.notEqual(hash({...holdingBody, run_identity_cid: cid('9')}),
     hash(holdingBody));
+  const {source_result, ...common} = body;
+  const privateBody = {...common, source_table_input: source_result};
+  // Canonical field order differs from insertion order; this is an authored
+  // preimage with fixed facts, independent of the MoonBit issuer's output.
+  const privateCid = `sha256:${createHash('sha256')
+    .update(canonicalText(privateBody)).digest('hex')}`;
+  assert.equal(privateCid,
+    'sha256:76a24711b5a15b32bcd38473ad1002de41635dd6576fdc51634de6f2ccb34d93');
+  assert.notEqual(privateCid, artifactCid);
+  assert.equal(hash({...holdingBody, result_artifact_cid: privateCid}),
+    'sha256:cc4bcee73c59f409d982ddc39d2d882e5237b0011f12b556c46dc394cfa2645c');
   const registry = read('spec/contracts/actql-protocol-schemas.json');
   const schema = effectSourceArtifactSchema();
   assert.deepEqual(schema.required.toSorted(),
-    [...Object.keys(body), 'result_artifact_cid'].toSorted());
+    [...Object.keys(body).filter(field => field !== 'source_result'),
+      'result_artifact_cid'].toSorted());
+  assert.deepEqual(schema.oneOf, [
+    {required: ['source_result'], not: {required: ['source_table_input']}},
+    {required: ['source_table_input'], not: {required: ['source_result']}},
+  ]);
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.properties.source_table_input,
+    {type: 'string', minLength: 1});
   assert.equal(registry.artifact_schema_cids.effect_source_artifact,
     machineCid(schema));
 });
@@ -395,13 +414,26 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e',
       captured_run:
-        'sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d',
+        'sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231',
     },
   );
-  // Independently recomputed from the fixed 58404afe source schema with only
-  // the authored private Manifest map added. Removing that exact extension
-  // must still reproduce the historical schema pin; unrelated changes fail.
+  // Independently recomputed from fixed 77ff0982 with the authored physical
+  // source discriminant added. Remove it before checking the previous private
+  // Manifest extension and the unchanged historical schema.
   const previous = structuredClone(registry.artifact_schemas.captured_run);
+  const physical = previous.properties.effect_context.properties
+    .effect_source_artifacts.additionalProperties;
+  assert.deepEqual(physical.oneOf, [
+    {required: ['source_result'], not: {required: ['source_table_input']}},
+    {required: ['source_table_input'], not: {required: ['source_result']}},
+  ]);
+  assert.deepEqual(physical.properties.source_table_input,
+    {type: 'string', minLength: 1});
+  delete physical.oneOf;
+  delete physical.properties.source_table_input;
+  physical.required.splice(2, 0, 'source_result');
+  assert.equal(machineCid(previous),
+    'sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d');
   const manifest = previous.properties.effect_context.properties
     .effect_source_local_inventory.additionalProperties.properties.manifest;
   assert.deepEqual(manifest.properties.table_inputs, {

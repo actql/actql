@@ -24,6 +24,67 @@ pub fn issue_effect_source_artifact(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, EffectSourceArtifactIssue] {
+  issue_effect_relation_source_artifact(
+    invocation,
+    retention,
+    Result(source_result),
+    source_binding_cid,
+    store_authority_cid,
+    logical_result_cid,
+    result_schema_cid,
+    row_count,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Issue a physical source for a checked private Table input. The separate
+/// source namespace preserves Conditional presence without publishing a Result.
+/// Export facts do not establish live Store custody or permission to commit.
+pub fn issue_effect_table_input_artifact(
+  invocation : PublicationContract,
+  retention : PublicationContract,
+  table_input : String,
+  source_binding_cid : String,
+  store_authority_cid : String,
+  logical_result_cid : String,
+  result_schema_cid : String,
+  row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectSourceArtifactIssue] {
+  issue_effect_relation_source_artifact(
+    invocation,
+    retention,
+    TableInput(table_input),
+    source_binding_cid,
+    store_authority_cid,
+    logical_result_cid,
+    result_schema_cid,
+    row_count,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_effect_relation_source_artifact(
+  invocation : PublicationContract,
+  retention : PublicationContract,
+  source : EffectPreviewRelationSource,
+  source_binding_cid : String,
+  store_authority_cid : String,
+  logical_result_cid : String,
+  result_schema_cid : String,
+  row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, EffectSourceArtifactIssue] {
   if invocation.name != "run_invocation" ||
     retention.name != "result_retention_policy" {
     return Err(EffectSourceWrongContract)
@@ -32,11 +93,15 @@ pub fn issue_effect_source_artifact(
     is Some(data_policy_cid) else {
     return Err(EffectSourceWrongContract)
   }
-  guard @canonical.normalize_nfc_lf(source_result) is Ok(normalized) else {
+  let (source_field, source_name) = match source {
+    Result(name) => ("source_result", name)
+    TableInput(name) => ("source_table_input", name)
+  }
+  guard @canonical.normalize_nfc_lf(source_name) is Ok(normalized) else {
     return Err(EffectSourceInvalidBinding)
   }
-  if source_result.is_empty() ||
-    normalized != source_result ||
+  if source_name.is_empty() ||
+    normalized != source_name ||
     !valid_contract_cid(source_binding_cid) ||
     !valid_contract_cid(store_authority_cid) ||
     !valid_contract_cid(logical_result_cid) ||
@@ -70,8 +135,8 @@ pub fn issue_effect_source_artifact(
     @encode.string_value(writer, result_schema_cid)
     @encode.key(writer, "source_binding_cid")
     @encode.string_value(writer, source_binding_cid)
-    @encode.key(writer, "source_result")
-    @encode.string_value(writer, source_result)
+    @encode.key(writer, source_field)
+    @encode.string_value(writer, source_name)
     @encode.key(writer, "store_authority_cid")
     @encode.string_value(writer, store_authority_cid)
     @encode.key(writer, "version")
@@ -102,11 +167,59 @@ pub fn effect_source_artifact_preview_binding(
   source_result : String,
   store_authority_cid : String,
 ) -> Result[(String, String), EffectSourceArtifactIssue] {
+  effect_relation_source_artifact_preview_binding(
+    artifact,
+    invocation_cid,
+    Result(source_result),
+    store_authority_cid,
+  )
+}
+
+///|
+pub fn effect_table_input_artifact_preview_binding(
+  artifact : PublicationContract,
+  invocation_cid : String,
+  table_input : String,
+  store_authority_cid : String,
+) -> Result[(String, String), EffectSourceArtifactIssue] {
+  effect_relation_source_artifact_preview_binding(
+    artifact,
+    invocation_cid,
+    TableInput(table_input),
+    store_authority_cid,
+  )
+}
+
+///|
+fn effect_source_artifact_relation_source(
+  artifact : PublicationContract,
+) -> EffectPreviewRelationSource? {
+  if artifact.name != "effect_source_artifact" {
+    return None
+  }
+  match
+    (
+      contract_string(artifact, "source_result"),
+      contract_string(artifact, "source_table_input"),
+    ) {
+    (Some(name), None) => Some(Result(name))
+    (None, Some(name)) => Some(TableInput(name))
+    _ => None
+  }
+}
+
+///|
+fn effect_relation_source_artifact_preview_binding(
+  artifact : PublicationContract,
+  invocation_cid : String,
+  source : EffectPreviewRelationSource,
+  store_authority_cid : String,
+) -> Result[(String, String), EffectSourceArtifactIssue] {
   if artifact.name != "effect_source_artifact" ||
     !valid_contract_cid(invocation_cid) ||
     !valid_contract_cid(store_authority_cid) ||
     contract_string(artifact, "invocation_cid") != Some(invocation_cid) ||
-    contract_string(artifact, "source_result") != Some(source_result) ||
+    effect_source_artifact_relation_source(artifact) != Some(source) ||
     contract_string(artifact, "store_authority_cid") !=
     Some(store_authority_cid) {
     return Err(EffectSourceWrongContract)

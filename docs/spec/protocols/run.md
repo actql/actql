@@ -309,6 +309,16 @@ current authority, or permission to send. Recovery MUST account for every
 source-consuming member, including private inputs; an unsupported private
 source MUST NOT be reinterpreted as source-free.
 
+<!-- requirement-block: preview-row-state.physical-source-namespace preview-row-state.physical-source-exact-binding -->
+A physical `actql-effect-source-artifact/0.1` MUST contain exactly one of
+`source_result` or `source_table_input`. The source namespace is part of its
+canonical preimage; equal names and logical content do not permit substitution.
+The physical Artifact MUST match the admitted Preview's typed source, source
+binding, Run Invocation, Store authority and semantic Artifact facts, including
+schema, logical content, completeness, row count and effective policies. This
+binding does not itself establish live custody, durable recovery or permission
+to commit; those obligations remain with the existing capture and Effect owners.
+
 <!-- requirement-block: preview-row-state.for-every-preview-row-implementations-must-first-compute-row-preview-cid preview-row-state.common-preview-admission-must-recompute-every-row-cid -->
 For every preview row, implementations MUST first compute
 `row_preview_cid = CID({version, program_definition_cid, invocation_cid, effect_identity_cid,
@@ -720,7 +730,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_capture_bundle sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_preview sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_source_artifact sha256:58e2c6121d2089cc025f14a863664ab9bbc64f219b594f6416b16fd83c685bdc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_row_outcome_receipt sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/review_projection sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/approval_attestation sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9
@@ -743,7 +753,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:9aca3664e28a690ef22c34a577e2089631b01a45a3b80df92ebae276db47b596
 ```
 
