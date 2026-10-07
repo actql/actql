@@ -132,7 +132,7 @@ async function fixture(t, entrance, loss) {
   const submission = installNodeClientSubmission({journal, moon,
     authorizedScope: () => authorized ? scope : undefined,
     prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
-    lookupRequest: configuration.lookupRequest});
+    lookupRequest: configuration.lookupRequest, checkSubmissionInput: check});
   Object.assign(configuration, {submitIntent: submission.submitIntent,
     lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;

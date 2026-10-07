@@ -263,6 +263,19 @@ is inferred from an HTTP error, message or missing record. `preparing` is not a
 Run admission. `SubmissionNotSent` reports a local failure before dispatch and
 has no Owner outcome; a lost response is `SubmissionUnknown`.
 
+`explainSubmission` and `formatSubmission` use those admitted branches for
+both submission results and `lookupSubmission` results. They distinguish
+durable `not_accepted`, accepted `preparation_failed`, accepted `preparing`,
+and a validated Run reference. Only the two terminal preparation branches
+include their disclosed typed problem. An `unresolvable` lookup establishes
+neither nonacceptance nor permission to submit again. A failed exchange or
+uninterpretable lookup retains the exact original epoch/nonce and a passive
+lookup candidate without acquiring rejected response fields or borrowed causes.
+Known unsent attempts describe dispatch only, not the identity's Owner outcome.
+These immutable weak associations exist only on the original SDK result or
+error; copying or parsing it does not acquire explanatory custody. Formatting
+and localization perform no I/O and cannot change the acceptance phase.
+
 `check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
 Program values, declaration defaults, boxed Numbers and `toJSON` results.
