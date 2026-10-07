@@ -134,6 +134,7 @@ export function validate(report, current, registry) {
 }
 export function reviewRoute(root) {
   checkBaseline(root);
-  // checkBaseline freezes the common laws; production connection checking is
+  // checkBaseline retains original laws and authenticates the integrated model
+  // extension; production connection checking is
   // supported by the newly executed registered child/kernel/chain witness.
 }
