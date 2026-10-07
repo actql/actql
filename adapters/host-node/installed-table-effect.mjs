@@ -316,7 +316,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
         captureEvidence: plan.captureEvidence, preview, plans: [], effectSourceHoldings: retained.holdings,
         connectorRecovery: authored.tableInputs.map((tableInput,index) =>
           capturedTableRecoveryRecord({control, tableInput, tablePreview: authored.tablePreviews[index]})),
-        contractLimits: plan.contractLimits});
+        contractLimits: plan.contractLimits, signal});
       for (const [index,holding] of retained.holdings.entries()) {
         // A private input schema differs from the public Result projection.
         // Keep its exact checked bytes under the existing Store schema lease;

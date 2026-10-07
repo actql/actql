@@ -1,0 +1,15 @@
+{
+  "package": "fixture/external_numeric/driver",
+  "resource_policy": null,
+  "estimate_policy": null,
+  "module": "Contribution",
+  "dispatch": "dispatch",
+  "completion_dispatch": "dispatch_with_completion_admission",
+  "dispatch_result": "Unit",
+  "configuration": "Configuration",
+  "configure": "configure",
+  "registration": "registration",
+  "contribution": "contribution",
+  "dispatch_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"},
+  "estimate_error": {"package": "actql/actql/physical_strategy", "type": "RunIssue"}
+}
