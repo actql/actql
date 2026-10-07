@@ -1,9 +1,10 @@
+import {originalSubmission, readySubmission, heldSubmission} from '../packages/sdk/submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {clientWireCorpus, connection, profile, ref}
   from './fixtures/client-wire-contract-corpus.mjs';
 import {validClientProfile, validClientAdmission, validRunRef,
-  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply}
+  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef}
   from '../packages/client-wire/index.mjs';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
@@ -66,7 +67,9 @@ await writeFile(join(root, 'token.txt'), 'scoped-token');
 let reply = profile;
 let active;
 const requests = [];
-function responseValue(entry) {
+function responseValue(entry, body) {
+  if (entry.kind === 'admission') return readySubmission(body, entry.value);
+  if (entry.operation === 'start' && entry.kind === 'held') return heldSubmission(body, entry.value);
   return entry.kind === 'run_ref'
     ? {kind: 'found', requestId: 'fixed-request', ref: entry.value,
       durability: 'durable', lookupExpiresAt: '2026-10-04T10:00:00Z'}
@@ -84,7 +87,7 @@ const server = createServer({
     authorization: request.headers.authorization, body: JSON.parse(raw)});
   response.writeHead(200, {'content-type': 'application/json'});
   response.end(JSON.stringify(request.url.endsWith('/connect')
-    ? reply : responseValue(active)));
+    ? reply : responseValue(active, JSON.parse(raw))));
 });
 const builtExecutable = new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
@@ -117,7 +120,14 @@ function runProcess(command, commandArgs) {
     child.once('close', (code, signal) => resolve({code, signal, stdout, stderr}));
   });
 }
-const run = (...args) => runProcess(executable, [...common, ...args]);
+const run = async (...args) => {
+  if (args[0] === 'start') {
+    const nonce = args[args.indexOf('--request-id') + 1];
+    await writeFile(join(root, 'submission.json'), JSON.stringify(originalSubmission(nonce)));
+    args.push('--submission-ref-file', 'submission.json');
+  }
+  return runProcess(executable, [...common, ...args]);
+};
 
 function jsOutcomes(entry, selected) {
   const {value, requestId} = entry;
@@ -152,7 +162,7 @@ function commandArgs(entry) {
   return ['connect'];
 }
 function assertResponseBoundary(entry, selected, actual) {
-  const route = entry.operation === 'start' ? 'submit' : 'lookup-request';
+  const route = entry.operation === 'start' ? 'submit-intent' : 'lookup-request';
   assert.equal(actual.signal, null, 'Native must finish normally');
   assert.deepEqual(requests.map(request => request.url),
     ['/actql/client/0.1/connect', `/actql/client/0.1/${route}`],
@@ -162,9 +172,9 @@ function assertResponseBoundary(entry, selected, actual) {
     assert.equal(request.authorization, 'Bearer scoped-token');
     assert.deepEqual(request.body.connection, selected);
   }
-  assert.equal(requests[1].body.requestId, entry.requestId,
+  assert.equal(route === 'submit-intent' ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
     'the requested identity must reach the response endpoint unchanged');
-  if (route === 'submit') assert.equal(requests[1].body.kind, 'program');
+  if (route === 'submit-intent') assert.equal(requests[1].body.kind, 'program');
   if (entry.expected) {
     assert.equal(actual.code, 0,
       `Native must accept the independent positive control: ${actual.stderr}`);
@@ -175,7 +185,7 @@ function assertResponseBoundary(entry, selected, actual) {
     assert.equal(actual.code, 1,
       `Native must reject at response validation: ${actual.stderr}`);
     const diagnostic = entry.failureCode === 'SubmissionUnknown'
-      ? `${entry.failureCode} request-id=${entry.requestId}` : entry.failureCode;
+      ? `SubmissionUnknown submission-ref-file=submission.json` : entry.failureCode;
     assert.equal(actual.stderr, `actql-native-client: ${diagnostic}\n`,
       'argument, profile, transport, and spawn failures are not rejections');
     assert.equal(actual.stdout, '', 'a rejected response must not escape');
@@ -200,7 +210,11 @@ try {
       assert.equal(accepted, entry.expected,
         `${validator} matches the independent expected outcome`);
     }
-    if (entry.kind === 'lookup' || entry.kind === 'held') {
+    if (entry.operation === 'start' && !validSubmissionRef(originalSubmission(entry.requestId))) {
+      assert.equal(actual.code, 1, actual.stderr);
+      assert.match(actual.stderr, /InvalidSubmissionRef/);
+      assert.equal(requests.length, 0, 'the new nonce contract rejects before I/O; historical held observation remains on lookup-request');
+    } else if (entry.kind === 'lookup' || entry.kind === 'held') {
       assertResponseBoundary(entry, selected, actual);
     } else {
       assert.equal(actual.code === 0, entry.expected,

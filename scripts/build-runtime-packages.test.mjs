@@ -78,6 +78,7 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
+    'connector-manifest-selection',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }
@@ -85,8 +86,8 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
-      `src/${entry.providerBundle}/moon.pkg`, entry.source.module,
-      ...(entry.effect === undefined ? [] : [entry.effect.module]), ...entry.assets]) {
+      `src/${entry.providerBundle}/moon.pkg`,
+      ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
   }
@@ -299,6 +300,9 @@ distribution.splice(distribution.indexOf('node scripts/test-node-client-package.
 expectedGates['check:local-node-assets'].splice(3, 0,
   'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs');
 expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs');
+
+// The epoch-bound submission chain uses the same prepared distribution gate.
+distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs packages/sdk/submission-identity.test.mjs';
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

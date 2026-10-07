@@ -36,7 +36,7 @@ pub fn[P, T] prepare_managed_view_output_port(
   stream : ManagedOutputValues,
   verify : (P) -> ManagedViewOutputFacts?,
 ) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue] {
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   // This issuer accepts aggregate column facts, not per-row index material.
@@ -56,7 +56,7 @@ pub fn[P, T] prepare_managed_view_output_port(
   }
   // Reserve the stream against append/finish during verifier re-entry. Store
   // retention must be installed before this reservation, using the same stream.
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   if stream.row_measurements is Some(_) {
