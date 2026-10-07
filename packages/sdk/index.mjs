@@ -1,7 +1,8 @@
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCancellation, validCheckpointPage,
+import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCancellation,
+  validCancellationRef, validCancellationLookup, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
@@ -303,7 +304,9 @@ const retainCancellationExplanation = (result, context, observation, revision) =
   };
   cancellationExplanations.set(result, freezeInput({observation,
     ...(revision === undefined ? {} : {revision}), summary: summaries[observation],
-    next: {operation: 'status', ref: context.ref}}));
+    next: observation === 'outcome_unknown'
+      ? {operation: 'lookupCancellation', cancelRef: context.cancelRef}
+      : {operation: 'status', ref: context.ref}}));
   return result;
 };
 
@@ -1013,6 +1016,7 @@ export async function connectInProcess(options, port) {
 
 async function connectSelected(selected, port) {
   let closed = false;
+  const dispatchedCancellations = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
     if (port !== undefined) {
@@ -1020,6 +1024,10 @@ async function connectSelected(selected, port) {
       try { request = structuredClone({connection: selected.wire, ...body}); }
       catch { fail('InvalidClientPayload'); }
       try {
+        if (cancellationContext !== undefined) {
+          signal?.throwIfAborted();
+          dispatchedCancellations.add(cancellationContext);
+        }
         const value = await port.perform(operation, request, signal);
         if (value instanceof Response) {
           throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
@@ -1050,6 +1058,10 @@ async function connectSelected(selected, port) {
     if (typeof credential !== 'string' || !credential ||
         /[\r\n]/u.test(credential)) fail('InvalidConnectionToken');
     let response;
+    if (cancellationContext !== undefined) {
+      signal?.throwIfAborted();
+      dispatchedCancellations.add(cancellationContext);
+    }
     try {
       response = await fetch(new URL(
         `actql/client/0.1/${operation}`, selected.endpoint,
@@ -1428,32 +1440,78 @@ async function connectSelected(selected, port) {
       wait: async ({until, signal} = {}) => {
         return readRunObservation('wait', {until: until ?? null}, signal);
       },
-      cancel: async ({signal} = {}) => {
-        const context = freezeInput({ref: {...ref}});
-        const response = await readControl('cancel', {}, signal, context);
-        if (!validCancellation(response) ||
-            response.ref.namespaceId !== ref.namespaceId ||
-            response.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            response.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
-            context, 'outcome_unknown');
+      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision} = {}) => {
+        if (!validCancellationRef({...ref, cancelId,
+          expectedRevision: expectedRevision === undefined ? 0 : expectedRevision})) {
+          fail('InvalidCancellationReference');
         }
-        // Local ports may reuse their response object across operations.
+        // A fresh operation may first observe the current control revision.
+        // Replay/lookup must use the revision retained in the original ref.
+        if (expectedRevision === undefined) {
+          const state = await readRunObservation('status', {}, signal);
+          if (state.control === undefined) fail('CancellationRevisionUnavailable');
+          expectedRevision = state.control.revision;
+        }
+        const cancelRef = freezeInput({...ref, cancelId, expectedRevision});
+        if (!validCancellationRef(cancelRef)) fail('InvalidCancellationReference');
+        const context = freezeInput({ref: {...ref}, cancelRef});
+        let response;
+        try { response = await readControl('cancel', {cancelId, expectedRevision}, signal, context); }
+        catch (cause) {
+          // Local validation, Client closure and credential failure before
+          // dispatch cannot have admitted this cancellation operation.
+          if (!dispatchedCancellations.has(context)) throw cause;
+          // Each invocation owns its immutable reference. Borrowed errors and
+          // old Host failure metadata never establish non-acceptance.
+          const refusal = cause instanceof ClientError && [
+            'ClientAuthenticationDenied', 'ClientConnectionDenied', 'ClientCancellationDenied',
+            'ClientCancellationIntentConflict', 'ClientCancellationRevisionConflict',
+            'InvalidClientRequest', 'InvalidClientCancellationOperation', 'ClientOperationUnavailable',
+          ].includes(cause.code);
+          const error = new ClientError(refusal ? cause.code : 'CancellationUnknown', {
+            cancelRef, cause: requestCancellationCause(cause),
+            ...(refusal && Number.isInteger(cause.status) ? {status: cause.status} : {}),
+          });
+          throw refusal ? error : retainCancellationExplanation(error, context, 'outcome_unknown');
+        }
         let received;
-        try { received = structuredClone(response); }
-        catch {
-          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
-            context, 'outcome_unknown');
+        try {
+          if (!validCancellation(response, cancelRef)) fail('InvalidHostCancellation');
+          received = structuredClone(response);
+          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+        } catch {
+          throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
+            cancelRef, cause: new ClientError('InvalidHostCancellation'),
+          }), context, 'outcome_unknown');
         }
-        // Cloning may reject a Local value or drop/change its validated fields.
-        if (!validCancellation(received) ||
-            received.ref.namespaceId !== ref.namespaceId ||
-            received.ref.authorityScopeCid !== ref.authorityScopeCid ||
-            received.ref.runDefinitionCid !== ref.runDefinitionCid) {
-          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
-            context, 'outcome_unknown');
+        return retainCancellationExplanation(freezeInput(received), context, received.kind, received.revision);
+      },
+      lookupCancellation: async (reference, {signal} = {}) => {
+        let cancelRef;
+        try {
+          if (!validCancellationRef(reference)) fail('InvalidCancellationReference');
+          cancelRef = freezeInput(structuredClone(reference));
+          if (!validCancellationRef(cancelRef) ||
+              ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key] !== ref[key])) {
+            fail('InvalidCancellationReference');
+          }
+        } catch { fail('InvalidCancellationReference'); }
+        let response;
+        try {
+          response = await readControl('lookup-cancellation', {
+            cancelId: cancelRef.cancelId, expectedRevision: cancelRef.expectedRevision,
+          }, signal);
+        } catch (cause) {
+          const safe = requestCancellationCause(cause);
+          throw new ClientError(safe.code, {cancelRef,
+            ...(safe.status === undefined ? {} : {status: safe.status})});
         }
-        return retainCancellationExplanation(received, context, received.kind, received.revision);
+        try {
+          if (!validCancellationLookup(response, cancelRef)) fail('InvalidHostCancellationLookup');
+          const owned = structuredClone(response);
+          if (!validCancellationLookup(owned, cancelRef)) fail('InvalidHostCancellationLookup');
+          return freezeInput(owned);
+        } catch { throw new ClientError('InvalidHostCancellationLookup', {cancelRef}); }
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host

@@ -4,7 +4,8 @@ export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runSt
 import {validDeliveryAttempt, validDeliveryRecord,
   validHostReleaseReceipt} from './publication.generated.js';
 import {clientHostOperations, clientHostRequestKeys,
-  validProfileContract, validAdmissionContract, validCancellationShape, validCheckpointReviewShape,
+  validProfileContract, validAdmissionContract, validCancellationShape,
+  validCancellationRefShape, validCancellationLookupShape, validCheckpointReviewShape,
   validCheckpointSummaryShape, validConnectionShape, validHeldContract,
   validRequestLookupContract,
   validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
@@ -266,6 +267,10 @@ export function validClientBody(operation, body) {
         body.items.length;
   }
   if (!validRunRef(body.ref)) return false;
+  if (operation === 'cancel' || operation === 'lookup-cancellation') {
+    return validCancellationRef({...body.ref, cancelId: body.cancelId,
+      expectedRevision: body.expectedRevision});
+  }
   if (operation === 'result-describe') return boundedText(body.resultName) &&
     boundedText(body.attemptId) && ['json', 'jsonl', 'csv'].includes(body.format) &&
     Object.keys(resultDescriptionLimits).every(key =>
@@ -385,7 +390,23 @@ export function validDeliveryAttemptLookup(value, expected) {
     .every(key => attempt[key] === receipt[key]);
 }
 
-export const validCancellation = value => validCancellationShape(value);
+export const validCancellationRef = value => validCancellationRefShape(value) &&
+  value.namespaceId.isWellFormed() && value.cancelId.isWellFormed();
+const sameRunRef = (left, right) => ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+  .every(key => left[key] === right[key]);
+const sameCancellationRef = (left, right) => sameRunRef(left, right) &&
+  left.cancelId === right.cancelId && left.expectedRevision === right.expectedRevision;
+export const validCancellation = (value, expected) => validCancellationShape(value) &&
+  validCancellationRef(value.cancelRef) && sameRunRef(value.ref, value.cancelRef) &&
+  value.revision >= value.cancelRef.expectedRevision &&
+  (value.kind !== 'accepted' || value.revision > value.cancelRef.expectedRevision) &&
+  (expected === undefined || validCancellationRef(expected) &&
+    sameCancellationRef(value.cancelRef, expected));
+export function validCancellationLookup(value, expected) {
+  return validCancellationRef(expected) && validCancellationLookupShape(value) &&
+    (value.kind === 'found' ? validCancellation(value.cancellation, expected) :
+      validCancellationRef(value.cancelRef) && sameCancellationRef(value.cancelRef, expected));
+}
 
 // The reply to a request cancellation. `accepted` means the cancellation is
 // durable, not that anything stopped or was cleaned up. A reply for a

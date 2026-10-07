@@ -8,7 +8,7 @@ import {observeClientAuthorizationFailure} from
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {clientHostOperations, validCheckpointPage, validCheckpointReview,
-  validClientAdmission, validClientBody, validClientProfile,
+  validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
@@ -47,6 +47,7 @@ function responseCode(error) {
       error?.code === 'ClientRequestLookupDenied' ||
       error?.code === 'ClientRunStartDenied' ||
       error?.code === 'ClientRunCancellationDenied' ||
+      error?.code === 'ClientCancellationDenied' ||
       error?.code === 'ClientRunAttachDenied' ||
       error?.code === 'CheckpointListDenied' ||
       error?.code === 'CheckpointReviewDenied' ||
@@ -63,13 +64,17 @@ function responseCode(error) {
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
-  if (error?.code === 'ClientRequestIntentConflict') return 409;
+  if (error?.code === 'ClientRequestIntentConflict' ||
+      error?.code === 'ClientCancellationIntentConflict' ||
+      error?.code === 'ClientCancellationRevisionConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
   if (error?.code === 'ResultDescriptionUnavailable') return 410;
   if (error?.code === 'ResultDescriptionTooLarge') return 413;
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'InvalidClientCancellationOperation' ||
+      error?.code === 'InvalidClientCancellationLookup' ||
       error?.code === 'ClientProgramInvalidInput' ||
       error?.code === 'ClientParametersInvalid' ||
       error?.code === 'InvalidRunStateRequest' ||
@@ -147,7 +152,7 @@ function observationAttempt(response) {
 
 export function createClientHttpHandler({
   authenticate, authorizeConnection, stateService, resultService,
-  negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
+  negotiate, submit, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
   check, maxRequestBytes = 65536, observe,
@@ -347,7 +352,15 @@ export function createClientHttpHandler({
           sendJson(answer);
         } finally { observer.release(); }
       } else if (operation === 'cancel') {
-        sendJson(await invoke(cancel));
+        const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
+        const cancelled = await invoke(cancel);
+        if (!validCancellation(cancelled, expected)) invalid('InvalidClientHostCancellation');
+        sendJson(cancelled);
+      } else if (operation === 'lookup-cancellation') {
+        const expected = {...ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision};
+        const found = await invoke(lookupCancellation);
+        if (!validCancellationLookup(found, expected)) invalid('InvalidClientHostCancellationLookup');
+        sendJson(found);
       } else if (operation === 'reconcile') {
         // The reply is the Run's current state after the Host's
         // reconciliation attempt; an unknown outcome stays unknown.

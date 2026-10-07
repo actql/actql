@@ -228,24 +228,34 @@ are `SubmissionUnknown` with the original request ID and lookup context, even
 when the in-process exception is a `ClientError`. A public-looking error code
 is not by itself a refusal contract. Neither transport retries submission.
 
-`execution.cancel()` retains the existing `execution.ref` and sends one Run
-cancellation request. A transport error or Host failure does not establish
-whether cancellation was recorded; the SDK does not automatically resend it
-or start another Run. Keep the original Host connection and Run reference.
-After access is restored, `status()` on that handle, or `attach(ref)` followed
-by `status()`, can observe the same Run. A Host that supplies `control` reports
-its retained `revision`, `cancellation_requested` and `physical_stop`; absence
-of `control` supplies no cancellation observation. Accepted cancellation alone
-never proves physical stop. Current authorization applies to these operations.
+`execution.cancel({cancelId, expectedRevision})` submits one cancellation
+operation bound to the existing Run. The Host compares the expected Run-control
+revision atomically on first admission. An omitted ID is generated once for
+this call; an omitted revision is observed through `status()` before dispatch.
+Without a control revision the SDK refuses with `CancellationRevisionUnavailable`.
+For durable caller custody, choose and save both fields before sending.
 
-This existing Run observation is not a lookup of a distinct cancellation
-operation. `Execution.cancel()` currently has no cancellation-operation ID,
-operation-scoped lookup or dedicated unknown-outcome error carrying recovery
-context. In particular, a later `cancellation_requested: true` does not identify
-which caller's cancellation was recorded. Do not infer automatic retry or
-operation-specific reconciliation from it. The separate `cancelRequest` and
-Checkpoint recovery contracts below remain unchanged. See the
-[bounded write-response-loss inventory](../../docs/reviews/2026-10-02-sdk-write-response-loss.md).
+A lost, malformed or foreign response raises `CancellationUnknown` carrying
+the immutable original `cancelRef`: the Run reference, cancellation ID and
+expected revision. Retain the original Host selection and use
+`execution.lookupCancellation(error.cancelRef)` after reconnecting and
+attaching that same Run. Lookup does not issue another cancellation, fence,
+dispatch or Compute request. Neither submission nor lookup retries automatically.
+
+The existing request journal retains the operation before the Model fence.
+Pending custody is `unknown`; it is not accepted and absence does not establish
+non-acceptance. The final operation result and Run cancellation request commit
+together. A `found` lookup returns that original result even after later Run
+revisions. Reusing the same ID in the same namespace and authority scope with
+another target or expected revision is refused. The bounded journal refuses
+new admission at capacity and does not evict operation custody to admit it.
+
+After a recorded outcome, `status()` separately observes the Run's
+`cancellation_requested`, `physical_stop` and retained control revision.
+Cancellation acceptance alone establishes no physical stop, Effect outcome or
+release. A later Run flag alone does not identify the original operation.
+Current authorization applies to cancellation, exact lookup and Run observation.
+The separate `cancelRequest` and Checkpoint contracts below are unchanged.
 
 The read limits use separate byte measures:
 
@@ -734,9 +744,9 @@ response or uncertain error produced by this SDK's `Execution.cancel()` call.
 The SDK detaches each validated cancellation response, so a Local port reusing
 its response object cannot change an earlier result's Run, kind, revision or
 explanation.
-The detached value is revalidated against the response schema and all three
-original Run fields. Clone failures or changed fields raise
-`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+The detached value is revalidated against the response schema, original Run,
+cancellation ID and expected revision. Clone failures or changed fields raise
+`CancellationUnknown` with the original operation's `outcome_unknown` advice;
 they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
@@ -746,16 +756,17 @@ reference. Cancellation acceptance establishes no physical-stop, external
 Effect outcome or resource-release fact.
 
 Transport loss, malformed replies and differently bound replies retain an
-`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
-`Response` object returned through Local is also an invalid representation with
-an unknown cancellation outcome; its existing SDK error is preserved. Changing
+`outcome_unknown` explanation without a fabricated recorded revision. Its
+`next` names `lookupCancellation` and the immutable original `cancelRef`.
+An HTTP `Response` object returned through Local is also an invalid
+representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
 association. Local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
-The association lasts only while its SDK result is retained; no timeout or
-persistent Host custody is added.
+The presentation association lasts only while its SDK result is retained.
+The Host's separate durable operation custody is owned by its existing journal.
 
 This is presentation over the existing Client–Host cancellation contract.
 No wire/schema/CID, cancellation ledger or execution semantics is replaced.
