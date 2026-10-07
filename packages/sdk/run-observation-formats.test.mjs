@@ -43,7 +43,7 @@ for (const operation of ['status', 'wait', 'reconcile']) {
         '[check-mutation:run-format-facts]');
       for (const format of ['text', 'html']) {
         const output = sdk.formatRunObservationFailure(error, {format});
-        assert.ok(output.includes(`observation/${kind}:`), '[check-mutation:run-format-kind]');
+        assert.equal(output.includes(`observation/${kind}:`), true, '[check-mutation:run-format-kind]');
         assert.ok(output.includes(problem));
         assert.ok(output.includes(ref.runDefinitionCid));
       }
