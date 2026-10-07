@@ -48,6 +48,7 @@ fn bounded_asof_fixture_result(
   text_tie? : Bool = false,
   empty_left? : Bool = false,
   name_bytes? : Int = 10000,
+  left_rows_override? : String? = None,
 ) -> Result[
   (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
   BoundedAsOfJoinIssue,
@@ -128,7 +129,7 @@ fn bounded_asof_fixture_result(
     if empty_left {
       "[]"
     } else {
-      left_rows
+      left_rows_override.unwrap_or(left_rows)
     },
     text_key~,
     text_id~,

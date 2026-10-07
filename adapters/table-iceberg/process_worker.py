@@ -136,9 +136,10 @@ def dispatch(body, catalog_factory=None):
     if any(type(value) is not int or not 1 <= value <= 9007199254740991
            for value in config["limits"].values()):
         raise ProtocolRefusal("TableProcessConfiguration")
-    shapes = {"write": {"operation", "mapping", "rows", "reservation"},
+    shapes = {"write": {"operation", "mapping", "rows", "reservation", "schema_wire"},
               "reconcile": {"operation"}, "read": {"receipt", "mapping"},
-              "cleanup": {"operation"}, "inspect": {"operation"}}
+              "cleanup": {"operation"}, "inspect": {"operation"},
+              "resolve_generation": {"selector"}}
     if command not in shapes:
         raise ProtocolRefusal("TableProcessCommand")
     exact_keys(payload, shapes[command])
@@ -148,13 +149,15 @@ def dispatch(body, catalog_factory=None):
         try:
             if command == "write":
                 result = catalog.write_claimed(payload["operation"], payload["mapping"],
-                                               payload["rows"], payload["reservation"])
+                                               payload["rows"], payload["reservation"], payload["schema_wire"])
             elif command == "reconcile":
                 result = catalog.reconcile(payload["operation"])
             elif command == "read":
                 result = catalog.read_generation(payload["receipt"], payload["mapping"])
             elif command == "inspect":
                 result = catalog.inspect_target(payload["operation"])
+            elif command == "resolve_generation":
+                result = catalog.resolve_generation(payload["selector"])
             else:
                 result = catalog.cleanup_after_stop(payload["operation"])
             return {"ok": True, "result": result}

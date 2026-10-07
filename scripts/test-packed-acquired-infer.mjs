@@ -5,7 +5,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
-import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
@@ -26,7 +26,7 @@ async ({root, directory, run, recordTarball}) => {
   }
   await writeFile(join(root, 'package.json'),
     '{"private":true,"type":"module"}\n');
-  run('npm', ['install', '--ignore-scripts', '--no-save', ...names.map(name =>
+  run('npm', ['install', '--ignore-scripts', '--no-save', await pinnedDuckDBPackage(repository), ...names.map(name =>
     join(root, `actql-${name}-0.0.0-development.tgz`))],
   {cwd: root, env, timeout: 240000});
   for (const [source, name] of [

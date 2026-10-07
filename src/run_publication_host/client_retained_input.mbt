@@ -49,6 +49,23 @@ pub fn prepare_client_retained_input_edge(
     Ok(value) => value
     Err(issue) => return Err(Run(issue))
   }
+  resolve_client_retained_input_edge(
+    prepared,
+    client_task_run_binding_definition_cid(run),
+    consumer_task,
+    input_index,
+  )
+}
+
+///|
+// Resolve only the checked relationship. Callers must separately establish
+// ordinary Run binding or exact recorded cleanup binding before reaching here.
+fn resolve_client_retained_input_edge(
+  prepared : PreparedClientProgram,
+  run_definition_cid : String,
+  consumer_task : Int,
+  input_index : Int,
+) -> Result[ClientRetainedInputEdge, ClientRetainedInputIssue] {
   let graph = prepared_client_graph(prepared)
   if consumer_task < 0 ||
     input_index < 0 ||
@@ -125,7 +142,7 @@ pub fn prepare_client_retained_input_edge(
     return Err(MissingEdge)
   }
   Ok({
-    run_definition_cid: client_task_run_binding_definition_cid(run),
+    run_definition_cid,
     producer,
     consumer,
     input_port,

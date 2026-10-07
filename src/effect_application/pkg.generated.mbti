@@ -45,7 +45,7 @@ pub fn check_effect_set_footprint_conflicts_from_codes(Array[String], Array[Int]
 
 pub fn check_recovered_effect_target_guards(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, RecoveredEffectTargetGuards, Array[EffectTargetVersionObservation], Int, Int) -> Result[Unit, EffectPreviewTargetGuardIssue]
 
-pub fn check_table_operation_preview(TableOperation, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, TablePreviewIssue]
+pub fn check_table_operation_preview(TableOperation, @run_publication.EffectPreviewIdentity, Int, @logical_request_scope.LogicalRequestScope) -> Result[Unit, TablePreviewIssue]
 
 pub fn effect_apply_capability_idempotency_mode(EffectApplyCapabilityObservation) -> String
 
@@ -573,6 +573,8 @@ pub(all) enum TablePreviewIssue {
   ForeignRequest
   ForeignGuard
   ForeignState
+  ForeignScope
+  ForeignKey
 } derive(Eq, @debug.Debug)
 
 pub struct TableReceipt {

@@ -32,6 +32,7 @@ import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
+import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.mjs';
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
@@ -122,7 +123,8 @@ export async function installedSourceIdentity(path) {
   return `sha256:${hash.digest('hex')}`;
 }
 
-function duckdbAdapter(profile, moon, {root, principalId}) {
+async function duckdbAdapter(profile, moon, {root, principalId}) {
+  await loadDuckDBNativeRuntime();
   const common = {moon, database: profile.database, schema: profile.schema,
     table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
   const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs

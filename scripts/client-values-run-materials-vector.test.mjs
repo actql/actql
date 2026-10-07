@@ -4,8 +4,14 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {copyFile, mkdir} from 'node:fs/promises';
+import {join} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import test from 'node:test';
-import {valuesDependencyOracle, valuesProgramOracle} from './client-values-dependency-oracle.mjs';
+import {valuesDependencyOracle, valuesProgramOracle, valuesPublicationOracle} from './client-values-dependency-oracle.mjs';
+import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
+  './fixtures/string-contract-identities.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const canonical = value => JSON.stringify(normalize(value));
 function normalize(value) {
@@ -134,6 +140,47 @@ const program = {version: 'actql/0.1', id: 'client-values',
   stages: [{id: 'source', inputs: {}, steps: [{as: 'selected', values: {schema, rows}}],
     results: {rows: {fields: ['id'], from: 'selected'}}}],
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+
+test('Values bridge identities retain the pre-String closure and follow current contracts separately', () => {
+  const historical = valuesPublicationOracle({legacy: true});
+  const oldUnit = valuesUnitIdentity(program, true);
+  assert.equal(oldUnit,
+    pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9'));
+  assert.equal(oldUnit, historical.unit);
+  assert.equal(valuesResultPlan(oldUnit).result_plan_logical_cid,
+    pin('8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'));
+  assert.deepEqual(['rows', 'bytes'].map(measure =>
+    valuesPublicationRowsBinding(oldUnit, 'rows', measure)), historical.bindings);
+  const current = valuesPublicationOracle();
+  const currentUnit = valuesUnitIdentity(program);
+  assert.equal(currentUnit, current.unit);
+  assert.notEqual(currentUnit, oldUnit);
+  assert.equal(valuesResultPlan(currentUnit).result_plan_logical_cid,
+    current.resultPlan);
+  assert.deepEqual(['rows', 'bytes'].map(measure =>
+    valuesPublicationRowsBinding(currentUnit, 'rows', measure)), current.bindings);
+});
+
+test('pre-String Values identities need no installed contract files', async () => {
+  const scratch = await createOwnedScratch({parent: '_build/values-history-tests',
+    prefix: 'isolated-', label: 'pre-String Values identity'});
+  const fixtureRoot = join(scratch.path, 'scripts/fixtures');
+  await mkdir(fixtureRoot, {recursive: true});
+  for (const name of ['string-contract-identities.mjs', 'pre-string-values-contracts.json']) {
+    await copyFile(new URL('./fixtures/' + name, import.meta.url), join(fixtureRoot, name));
+  }
+  const isolated = await import(pathToFileURL(join(fixtureRoot, 'string-contract-identities.mjs')));
+  assert.equal(isolated.valuesUnitIdentity(program, true),
+    pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9'));
+  const renamed = structuredClone(program);
+  renamed.stages[0].results = {'a~/b': renamed.stages[0].results.rows};
+  assert.equal(isolated.valuesUnitIdentity(renamed, true),
+    pin('87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0'));
+  // The current oracle still requires actual installed normative inputs.
+  assert.throws(() => isolated.valuesUnitIdentity(program), {code: 'ENOENT'});
+  scratch.passed();
+});
+
 const ceiling = measure => seal({version: 'actql-bound-witness/0.1',
   dependencies: [policy], derivation: {op: 'source'},
   law_id: `actql.host.artifact-${measure}`, role: 'host_ceiling',
@@ -630,8 +677,13 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
+  // The preceding grammar is evaluated under the same current dependency
+  // closure, independently of older fixtures' different closure.
+  assert.equal(vector(pin('1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
   assert.equal(current.run.run_definition_cid,
-    pin('153db85cd63535b928be69f85e7f043df52b8dc02f96b80dba8dedb5f5266ba5'));
+    pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

@@ -8,9 +8,9 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {preparePinnedEffectSourceHoldings} from './effect-input-export.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
-import {capturedTableRecoveryRecord} from './table-capture-recovery.mjs';
+import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
 import {issueCompletedEffectfulComputationEvidence,
-  storeCompletedRunResultSet, suspendCompletedEffectfulComputation,
+  suspendCompletedEffectfulComputation,
   retireCompletedEffectfulCapture} from '../host-common/completed-run-publication.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -89,6 +89,17 @@ await assert.rejects(prepareRecoveredTableInput({...options,
   requestScope: effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'another-request', 128)}),
   {code: 'MoonBitHostFailure'});
 const original = recovered.connectorRecovery[0];
+assert.equal(table.schemaWire, '{"id":{"nullable":false,"type":"number"}}');
+for (const schema_wire of ['{}', table.schemaWire + ' ']) {
+  await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
+    connectorRecovery: [{...original, wire: JSON.stringify({...JSON.parse(original.wire), schema_wire})}]}}),
+    {code: 'MoonBitHostFailure'});
+}
+const missingSchema = JSON.parse(original.wire);
+delete missingSchema.schema_wire;
+await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
+  connectorRecovery: [{...original, wire: JSON.stringify(missingSchema)}]}}),
+  {code: 'InvalidTableRecoveryMaterial'});
 const changed = JSON.parse(original.wire);
 changed.operation_wire = changed.operation_wire.replace('rows_0', 'another_table');
 await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
@@ -112,7 +123,7 @@ for (const source of inventory.effectSources) {
 const result = {captureCid: recovered.computation.capturedRun.identity,
   previewWire: control.effectComputationPreviewWire(recovered.preview),
   execution: recovered.execution, holdings, table: {operationWire: table.operationWire,
-    mappingWire: table.mappingWire, subjectCid: table.tablePreview.subjectCid,
+    mappingWire: table.mappingWire, schemaWire: table.schemaWire, subjectCid: table.tablePreview.subjectCid,
     memberIndex: tableBinding.memberIndex, rowPreviewCid: tableBinding.rowPreviewCid,
     rows: tableRows}};
 const firstHolding = control.capturedEffectSourceHoldingCid(inventory.effectSources[0]);
@@ -156,30 +167,8 @@ for (const empty of [false, true]) {
         store: f.store, control, preview, invocation: context.runInvocation,
         resultArtifacts: f.sources.members.map(({payload}) => payload.localResultArtifact)});
       await retained.commit();
-      const storedResults = await storeCompletedRunResultSet({
-        // The source-export counter belongs to grouped source preparation.
-        // Named Result export is a separate existing owner in the same Store.
-        execution: f.execution, store: f.physicalStore, control,
-        runDefinition: context.runDefinition, invocation: context.runInvocation,
-        results: f.execution.resultInventory.map(() => ({retention: f.options.retention,
-          evidenceContext: {computationContractCid: cid('2'), inputRelationCids: [],
-            scopeCid: cid('3'), effectiveDataPolicyCid: cid('d'), authorityScopeCid: cid('a')}})),
-        outputLimits: f.outputLimits,
-        contractLimits: limits,
-      });
-      const normalizationJournal = control.sealRunEvidence('normalization_journal',
-        JSON.stringify({version: 'actql-normalization-journal/0.1',
-          rule_catalog_cid: cid('1'), entries: []}), limits);
-      const options = {execution: f.execution, store: f.physicalStore, storedResults, control,
-        admission: context.admission, runDefinition: context.runDefinition,
-        invocation: context.runInvocation, observation: context.observation,
-        normalizationJournal, authoringContext: authoring,
-        receiptEvidence: {bindings: [], sourceEvidence: [], modelEvidence: [],
-          barrierAttemptReceiptCids: []},
-        captureEvidence: {pendingSourceStateAdvances: [], modelEvidence: []},
-        preview, plans: [], effectSourceHoldings: retained.holdings,
-        connectorRecovery: [capturedTableRecoveryRecord({control,
-          tableInput: f.tableInput, tablePreview: f.tablePreview})], contractLimits: limits};
+      const options = await completedTableCaptureOptions({fixture: f, retained, preview});
+      const {storedResults} = options;
       let computation;
       let retirementStore = f.physicalStore;
       let storeClosed = false;
@@ -227,7 +216,8 @@ for (const empty of [false, true]) {
         assert.deepEqual(recovered.holdings.map(({manifestCid}) => manifestCid),
           retained.holdings.map(holding => holding.artifact.identity));
         assert.deepEqual(recovered.table, {operationWire: f.tableInput.wire,
-          mappingWire: f.storage.wire, subjectCid: f.tablePreview.subjectCid,
+          mappingWire: f.storage.wire, schemaWire: '{"id":{"nullable":false,"type":"number"}}',
+          subjectCid: f.tablePreview.subjectCid,
           memberIndex: 0,
           rowPreviewCid: control.tablePreviewLedgerBinding(f.tablePreview).rowPreviewCid,
           rows: empty ? [] : [{id: 1}, {id: 2}]});

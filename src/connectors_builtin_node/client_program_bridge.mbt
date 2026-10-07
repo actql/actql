@@ -3265,6 +3265,28 @@ pub fn client_program_bind_recovered_table_preview(
 }
 
 ///|
+#export_name("clientProgramTableInputSchemaWire")
+pub fn client_program_table_input_schema_wire(
+  value : @publication_host.ClientTableInput,
+) -> String {
+  @publication_host.client_table_input_schema_wire(value)
+}
+
+///|
+#export_name("clientProgramCheckRecoveredTableSchemaWire")
+pub fn client_program_check_recovered_table_schema_wire(
+  value : @publication_host.RecoveredClientTablePreview,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, @publication_host.ClientTableInputIssue] {
+  @publication_host.check_recovered_client_table_schema_wire(
+    value, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
 #export_name("clientProgramRecoveredTablePreviewOperationJson")
 pub fn client_program_recovered_table_preview_operation_json(
   value : @publication_host.RecoveredClientTablePreview,

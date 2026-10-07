@@ -236,11 +236,19 @@ fn bounded_unpivot_step(
             let rows = state.rows
             state.port = match
               finish_trusted_output_preparation(cursor, fn(_) {
-                if live.val { rows.val } else { None }
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
               }) {
               Ok(port) => Some(port)
               Err(issue) =>
-                return fail_bounded_unpivot(Completion(issue), progress, used + 1)
+                return fail_bounded_unpivot(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
             }
             state.port_preparation = None
             state.phase = ResolveInputField

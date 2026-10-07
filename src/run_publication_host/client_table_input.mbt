@@ -20,6 +20,7 @@ struct ClientTableInput {
   identity : ClientEffectLocalIdentity
   mapping : @effect.TableStorageMapping
   operation : @effect.TableOperation
+  scope : @request_scope.LogicalRequestScope
 }
 
 ///|
@@ -119,7 +120,7 @@ pub fn bind_client_table_input(
     ) {
     return Err(ForeignInput)
   }
-  Ok({ artifact, identity, mapping, operation, })
+  Ok({ artifact, identity, mapping, operation, scope, })
 }
 
 ///|
@@ -134,6 +135,17 @@ pub fn client_table_input_mapping(
   value : ClientTableInput,
 ) -> @effect.TableStorageMapping {
   value.mapping
+}
+
+///|
+/// Exact schema bytes from the completed export, not a physical-type inference.
+/// This projection grants neither source availability nor commit authority.
+pub fn client_table_input_schema_wire(value : ClientTableInput) -> String {
+  @execution.relation_schema_wire(
+    @execution.completed_relation_export_schema_identity(
+      value.artifact.export_receipt,
+    ),
+  )
 }
 
 ///|
@@ -175,6 +187,7 @@ pub fn bind_client_table_preview(
       input.operation,
       identity,
       member_index,
+      input.scope,
     ) {
     Ok(_) => Ok({ input, preview, member_index, })
     Err(issue) => Err(Preview(issue))

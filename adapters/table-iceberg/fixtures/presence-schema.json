@@ -1,0 +1,1 @@
+{"id":{"nullable":false,"type":"number"},"p":{"contract":{"nullable":true,"type":"string"},"presence":"conditional"}}

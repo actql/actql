@@ -42,7 +42,9 @@ pub fn bind_recovered_client_table_preview(
     Err(issue) => return Err(Operation(issue))
   }
   match
-    @effect.check_table_operation_preview(operation, preview, member_index) {
+    @effect.check_table_operation_preview(
+      operation, preview, member_index, scope,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(Preview(issue))
   }
@@ -124,6 +126,25 @@ pub fn recovered_client_table_preview_mapping(
   value : RecoveredClientTablePreview,
 ) -> @effect.TableStorageMapping {
   value.mapping
+}
+
+///|
+/// Recovered schema material must reproduce the exact common-issued schema CID
+/// already bound to this member's original operation and captured Result.
+pub fn check_recovered_client_table_schema_wire(
+  value : RecoveredClientTablePreview,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Unit, ClientTableInputIssue] {
+  @publication.validate_result_schema_wire(
+    @effect.table_storage_mapping_schema_cid(value.mapping),
+    wire,
+    max_bytes,
+    max_nodes,
+    max_depth,
+  ).map_err(_ => ForeignInput)
 }
 
 ///|
