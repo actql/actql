@@ -6339,3 +6339,17 @@ partial publication. The evidence gate requires these connected fixtures.
 This dependent unit follows #704/#708; it does not close initial preparation,
 availability validation, projected-read capacity or Native correspondence.
 See the [generated metadata record](2026-10-07-local-generated-row-metadata.md).
+
+### Borrowed JSON Pick path (2026-10-07)
+
+Local capability, obligation, selected-provider inspection and bounded start
+use an opaque read-only JSON Pick view rather than copying its complete path.
+The original defensive body API and logical entry admission remain intact.
+The existing scalar field-probe cursor preserves NULL demand, segment order,
+Unicode work and cancellation; no new evaluator or policy is introduced.
+Independent 15/14 NULL and 555/554 Unicode work limits, a later-segment stop
+and normal retained-Store publication are connected to the evidence gate.
+
+This dependent unit follows #717. Other copied kernel views, initial producer
+preparation, availability/static analysis and Native capacity correspondence
+remain distinct. See the [borrowed path record](2026-10-07-local-borrowed-json-path.md).

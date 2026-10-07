@@ -21,12 +21,15 @@ fn run_limits() -> SequenceRunLimits {
 }
 
 ///|
-fn prepared_sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
+fn prepared_sequence(
+  owner : @lower.BoundPrepared,
+  max_bindings? : Int = 100,
+) -> @lower.PreparedSequence {
   @lower.prepare_sequence(owner, {
     max_steps: 100,
     max_rows: 100,
     max_cells: 10000,
-    max_bindings: 100,
+    max_bindings,
     max_name_bytes: 10000,
     expressions: {
       max_nodes: 10000,
