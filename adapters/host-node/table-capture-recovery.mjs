@@ -16,7 +16,8 @@ export function capturedTableRecoveryRecord({control, tableInput, tablePreview})
   const mappingWire = control.tableInputStorageMappingWire(tableInput);
   return Object.freeze({memberIndex: binding.memberIndex, kind: 'table_commit',
     observationCid: JSON.parse(binding.operationWire).request_cid,
-    wire: JSON.stringify({mapping_wire: mappingWire, operation_wire: binding.operationWire})});
+    wire: JSON.stringify({mapping_wire: mappingWire, operation_wire: binding.operationWire,
+      schema_wire: control.tableInputSchemaWire(tableInput)})});
 }
 
 export async function prepareRecoveredTableInput({recovered, store, control,
@@ -33,8 +34,9 @@ export async function prepareRecoveredTableInput({recovered, store, control,
     fail('MissingTableRecoveryMaterial');
   }
   const saved = JSON.parse(records[0].wire);
-  if (!exactKeys(saved, ['mapping_wire', 'operation_wire']) ||
-      typeof saved.mapping_wire !== 'string' || typeof saved.operation_wire !== 'string') {
+  if (!exactKeys(saved, ['mapping_wire', 'operation_wire', 'schema_wire']) ||
+      typeof saved.mapping_wire !== 'string' || typeof saved.operation_wire !== 'string' ||
+      typeof saved.schema_wire !== 'string') {
     fail('InvalidTableRecoveryMaterial');
   }
   const tablePreview = control.bindRecoveredTablePreview(inventory.preview, memberIndex,
@@ -44,6 +46,8 @@ export async function prepareRecoveredTableInput({recovered, store, control,
       records[0].observationCid !== JSON.parse(tablePreview.operationWire).request_cid) {
     fail('ForeignTableRecoveryOperation');
   }
+  const schemaWire = control.checkRecoveredTableSchemaWire(tablePreview,
+    saved.schema_wire, tableLimits);
   await confirmCompletedEffectfulApplySources({store, control,
     computation: recovered.computation, preview: recovered.preview});
   prepareCompletedEffectfulPublication({execution: null, store, control,
@@ -51,9 +55,22 @@ export async function prepareRecoveredTableInput({recovered, store, control,
     preview: recovered.preview});
   signal?.throwIfAborted();
   const prepared = Object.freeze({tablePreview,
-    operationWire: tablePreview.operationWire, mappingWire: tablePreview.mappingWire});
+    operationWire: tablePreview.operationWire, mappingWire: tablePreview.mappingWire,
+    schemaWire});
   owners.set(prepared, {recovered, store, control, source});
   return prepared;
+}
+
+// Synchronous current-owner validation at the final dispatch boundary. This
+// is not a physical custody observation or authorization; preparation/read and
+// the recovered apply owner separately confirm the actual Store holdings.
+export function assertRecoveredTableInputAvailable(prepared) {
+  const owner = owners.get(prepared);
+  if (owner === undefined) fail('ForeignRecoveredTableInput');
+  const {recovered, store, control} = owner;
+  prepareCompletedEffectfulPublication({execution: null, store, control,
+    storedResults: recovered.storedResults, computation: recovered.computation,
+    preview: recovered.preview});
 }
 
 export async function readRecoveredTableInput({prepared, maxBytes, signal}) {
@@ -61,14 +78,10 @@ export async function readRecoveredTableInput({prepared, maxBytes, signal}) {
   if (owner === undefined) fail('ForeignRecoveredTableInput');
   const {recovered, store, control, source} = owner;
   // Recheck current owners and custody after awaits and before physical read.
-  prepareCompletedEffectfulPublication({execution: null, store, control,
-    storedResults: recovered.storedResults, computation: recovered.computation,
-    preview: recovered.preview});
+  assertRecoveredTableInputAvailable(prepared);
   await confirmCompletedEffectfulApplySources({store, control,
     computation: recovered.computation, preview: recovered.preview});
-  const assertAvailable = () => prepareCompletedEffectfulPublication({execution: null,
-    store, control, storedResults: recovered.storedResults,
-    computation: recovered.computation, preview: recovered.preview});
+  const assertAvailable = () => assertRecoveredTableInputAvailable(prepared);
   assertAvailable();
   return readRecoveredEffectTableInput({store, control, source: source.source,
     artifact: source.artifact, tablePreview: prepared.tablePreview, maxBytes, signal,

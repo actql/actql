@@ -47,7 +47,7 @@ this record.
 
 ## Independent semantic fixture
 
-[Keyed parallel self-loops](../../spec/frontend/fixtures/property-graph/keyed-parallel-self-loops.json)
+[Keyed parallel self-loops](../../spec/frontend/fixtures/graph/keyed-parallel-self-loops.json)
 contains independently authored producer rows and expectations for the adopted
 model. It is **not** a Program, wire schema, lowerer output or executed result.
 Its classification explicitly remains `runtime_executed: false` and

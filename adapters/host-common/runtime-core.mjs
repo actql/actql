@@ -2680,6 +2680,21 @@ function publicationControl(moon) {
       if (owned === undefined) throw new TypeError('Foreign Table input');
       return moon.clientProgramTableInputStorageMappingJson(owned);
     },
+    tableInputSchemaWire(input) {
+      const owned = tableInputTokens.get(input);
+      if (owned === undefined) throw new TypeError('Foreign Table input');
+      return moon.clientProgramTableInputSchemaWire(owned);
+    },
+    checkRecoveredTableSchemaWire(preview, wire, limits) {
+      issuanceLimits(limits, 'recovered Table schema');
+      const owned = recoveredTablePreviewTokens.get(preview);
+      if (owned === undefined || typeof wire !== 'string') {
+        throw new TypeError('Foreign recovered Table schema');
+      }
+      checked(moon.clientProgramCheckRecoveredTableSchemaWire(owned, wire,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return wire;
+    },
     bindRecoveredTablePreview(preview, memberIndex, invocation, source,
       capturedRun, scope, mappingWire, storeAuthorityCid, limits, tableLimits) {
       issuanceLimits(limits, 'recovered Table Preview');
@@ -2763,6 +2778,12 @@ function publicationControl(moon) {
         rowPreviewCid: moon.strategyEffectPreviewOrderedRowCid(identity, memberIndex, 0),
         operationWire: moon.clientProgramTablePreviewOperationJson(owned),
       });
+    },
+    admitTablePreviewClaim(preview, claim) {
+      const binding = control.tablePreviewLedgerBinding(preview);
+      return checked(moon.strategyEffectMemberRowAdmit(binding.preview,
+        binding.memberIndex, 0, 'store', claim.scope, binding.rowPreviewCid,
+        claim.locator, claim.key));
     },
     checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
       runIdentityCid, authoringContextCid, identities, limits) {

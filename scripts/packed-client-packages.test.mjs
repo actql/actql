@@ -7,12 +7,24 @@ import {appendFile, mkdir, mkdtemp, readFile, rm, writeFile} from
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {packClientPackages, packedClientPackage} from
+import {packClientPackages, packedClientPackage, pinnedDuckDBPackage} from
   './packed-client-packages.mjs';
 
 const tarball = name => `actql-${name}-0.0.0-development.tgz`;
 const git = (repository, ...args) => execFileSync('git', args,
   {cwd: repository, encoding: 'utf8'});
+
+test('acquired-source consumers read the native adapter pin explicitly', async t => {
+  const repository = await mkdtemp(join(tmpdir(), 'actql-duckdb-pin-'));
+  t.after(() => rm(repository, {recursive: true, force: true}));
+  const adapter = join(repository, 'adapters/connectors/duckdb/node');
+  await mkdir(adapter, {recursive: true});
+  const manifest = join(adapter, 'package.json');
+  await writeFile(manifest, JSON.stringify({dependencies: {'@duckdb/node-api': '1.2.3-r.4'}}));
+  assert.equal(await pinnedDuckDBPackage(repository), '@duckdb/node-api@1.2.3-r.4');
+  await writeFile(manifest, '{}');
+  await assert.rejects(pinnedDuckDBPackage(repository), /MissingPinnedDuckDBDependency/u);
+});
 
 test('packed public-query staging covers every eagerly loaded Graph fixture', async () => {
   const consumer = await readFile(new URL('./graph-public-host.test.mjs', import.meta.url), 'utf8');

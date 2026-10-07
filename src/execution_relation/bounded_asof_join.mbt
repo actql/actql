@@ -183,7 +183,18 @@ fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
     state.output_charge = None
   }
   if state.sort is Some(active) {
-    cleanup_bounded_index_sort(active) |> ignore
+    // Parent stop does not confirm the child's physical stop. Keep its
+    // callback state and borrowed cells until stop and reclamation succeed.
+    if !bounded_index_sort_stopped(active) {
+      @bounded.request_cancel(state.engine) |> ignore
+      match advance_bounded_index_sort(active, 1) {
+        Ok(BoundedIndexSortStopped(_)) => ()
+        _ => return false
+      }
+    }
+    if !cleanup_bounded_index_sort(active) {
+      return false
+    }
     state.sort = None
   }
   if state.output is Some(output) {

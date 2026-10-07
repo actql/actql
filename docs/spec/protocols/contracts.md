@@ -201,8 +201,17 @@ type declarations, not actual values, Ref issuers or execution authority.
 
 <!-- requirement-block: check-environment.carrier-schema-bodies -->
 Each supplied `carrier_schema` body MUST use exactly one of the following closed
-forms, including unused envelopes. Relation uses the non-null canonical checked
-object value contract, including `fields: {}`. Graph uses the ActQL-owned
+forms, including unused envelopes. Relation uses either the non-null canonical
+checked object value contract, including `fields: {}`, or the closed
+`{version: "actql-relation-schema/0.1", fields}` schema body. The latter's finite
+field map uses the existing Relation schema identity representation: a Required
+field contains its complete canonical checked value contract; a Conditional field
+contains exactly `{contract, presence: "conditional"}`. Presence and value
+nullability are independent, and constraints are retained even for empty input.
+Ordinary object value contracts still require every declared field; the Relation
+form does not add optional object fields or a Missing scalar. Its bare body CID
+and Contract Envelope CID are distinct from the logical schema CID of the field
+map alone. Graph uses the ActQL-owned
 `actql-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
 The retired endpoint-tuple body is rejected, not converted or interpreted as
 the keyed contract. Structural admission preserves the declared definition
@@ -1330,7 +1339,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:953d1448ee4747dd3da787f95ce06182b4322006cbe1273ab65759508790f207 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:d47f24b87e06cc460b9b19c17d2e68a704d617d027fbf44756f94b4858f4f44a -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
@@ -1899,7 +1908,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:d69036f2a12e048f26d8b622a6f4a9ca53ff2ac82f9660dea9ddcb48f63c6fbb
+../../../spec/contracts/actql-check-environment.json# sha256:5c384f7f3b7b007a4ef642c4f0a06544d34649e40a7ca89756dc3580d4f4e505
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

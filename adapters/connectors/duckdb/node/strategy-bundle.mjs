@@ -1,15 +1,19 @@
 // DuckDB-specific execution and resident session lifetime. The common serial
 // driver never interprets this resource policy, tables, imports or SQL.
-import { runStrategyHostCompute, runRetainedStrategyHostCompute,
-  runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
-  openResidentStrategyEnvironment,
-  importResidentStrategyInput, runResidentStrategyHostCompute } from './host.mjs';
+import {loadDuckDBNativeRuntime} from './native-runtime.mjs';
 
 import {preparedStrategyConfiguration} from './configuration.mjs';
 import {managedInputCodecContractCid} from '../../../store-local/managed-representations.mjs';
 import {managedColumnCodecContractCid} from './managed-column-codec.mjs';
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {computePhysicalCapacity} from './physical-capacity.mjs';
+
+// The standard contribution loader imports this module only after selection.
+const {host: {runStrategyHostCompute, runRetainedStrategyHostCompute,
+  runManagedRetainedStrategyHostCompute, runManagedColumnStrategyHostCompute,
+  openResidentStrategyEnvironment,
+  importResidentStrategyInput, runResidentStrategyHostCompute}} =
+  await loadDuckDBNativeRuntime();
 
 const managedSiteCapacity = value => Array.isArray(value)
   ? value

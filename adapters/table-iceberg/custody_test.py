@@ -15,7 +15,7 @@ import catalog_test
 from catalog_test import expected, request
 from custody import reserve
 from physical import PhysicalRefusal, canonical_envelope
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 
 
 class ConcurrentCatalog(TableCatalog):
@@ -176,7 +176,7 @@ class CustodyTests(unittest.TestCase):
 import faulthandler, json, select, sys
 faulthandler.dump_traceback_later(10)
 from catalog import TableCatalog
-from physical_test import mapping
+from physical_test import mapping, schema_wire
 class Staged(TableCatalog):
     def before_publication(self):
         faulthandler.cancel_dump_traceback_later()
@@ -186,7 +186,7 @@ class Staged(TableCatalog):
 root, wire = sys.argv[1:]
 c = Staged(root + '/catalog.db', root + '/warehouse', 'sha256:' + '3'*64,
            {'bytes':16777216, 'files':256, 'operations':32})
-c.write_claimed(json.loads(wire), mapping(), [{'id':1}], {'bytes':1048576, 'files':16})
+c.write_claimed(json.loads(wire), mapping(), [{'id':1}], {'bytes':1048576, 'files':16}, schema_wire())
 """
             child = subprocess.Popen([sys.executable, "-c", script, root, canonical_envelope(operation)],
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
