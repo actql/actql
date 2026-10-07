@@ -69,6 +69,10 @@ test('STRUCT stars use declared fields and a distinct original value receiver', 
   }
   assert.deepEqual(control.columns.map(value => value.name), ['id', 'label', 'position']);
   assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.type, 'object');
+  const nonNullString = byName.get('unnest-struct-non-null-string');
+  assert.deepEqual(nonNullString.expected, [{id: 2, label: 'kept', position: 0},
+    {id: null, label: null, position: 1}, {id: 2, label: null, position: 2}]);
+  assert.deepEqual(nonNullString.columns, control.columns);
   assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.additional_properties, false);
   assert.equal(byName.get('unnest-struct-nested-top-level').columns[1].contract.additional_properties, false);
   assert.deepEqual(byName.get('unnest-struct-immutable-range').expected[0],

@@ -34,6 +34,14 @@ NULL elements propagate through the common property evaluator. Nested object
 fields remain object columns rather than recursively flattening. Columns are
 resolved from declarations even on empty input, never from sampled values.
 
+The connected value type is the existing named-object parameter contract,
+whose fields are sorted by the common contract's UTF-16 canonical ordering
+(`value_contract/parameters.mbt` and `value_contract/admission.mbt`). The new
+independent lowering check reverses authored `label`/`id` JSON members and
+requires the same Program and `id,label,position` output. This is not
+author-selected STRUCT order. The ordered/anonymous/duplicate-field STRUCT
+dependency remains recorded in [the common-contract gap](2026-10-07-struct-contract-gap.md).
+
 ## Minimal repair
 
 The UNNEST lowering branch derives declared object fields into private slots,
@@ -96,3 +104,23 @@ object vectors in `value_contract/corpus.generated_test.mbt`. Add that field to
 whole-object and nested-object expectations from this common contract, without
 changing input values, expected rows, nullability, order or product code.
 The failed probe remains historical evidence, not completed public acceptance.
+
+## Submitted execution and supplemental completion
+
+At `f405e2749705e897f08156b742bfd04c833f7052`, ordinary fresh five-package
+acceptance completed 24 Local positives and all 11 refusals, then 21 HTTPS
+positives before its unchanged 900,000 ms command deadline. Receipt
+`public-query-evidence-yEclOZ` records `ETIMEDOUT`/`SIGKILL` and remains
+incomplete, rather than a successful campaign. No row/schema failure appeared.
+
+The unchanged remaining HTTPS fixtures (`immutable-range`, `data-binding`,
+`nested-top-level`) and every refusal passed with the same five producer
+tarballs in a fresh external installation. The supplement reused the ordinary
+fixture, public assertions, Host setup/capacity, admission and native-I/O
+observations without product overlays or Program corrections. Receipt
+`public-query-evidence-IeZhqY` is complete/passed, with 3 accepted Runs and
+provider I/O 0. Its earlier sandbox invocation stopped at loopback listen
+`EPERM` before source submission (`public-query-evidence-oUhep3`); that is not
+a product rejection. The final fixture additionally checks a non-NULL string
+property beside a NULL element and NULL property; final-revision execution is
+recorded separately, not inferred from the earlier receipts.

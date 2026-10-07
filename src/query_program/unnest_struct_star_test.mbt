@@ -66,6 +66,32 @@ test "STRUCT UNNEST stars match an independent nullable property Program" {
       msg=text,
     )
   }
+  // Common object fields have canonical order, independently of author JSON
+  // member order. This is not the missing ordered GoogleSQL STRUCT contract.
+  let reversed = @parameters.read_declarations(
+    Some(
+      unnest_value_cursor(
+        (
+          #|{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"object","nullable":true,"fields":{"label":{"type":"string","nullable":true},"id":{"type":"number","nullable":false}}}}}
+        ),
+      ),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let actual = compile(
+    @query.parse_query(
+      "SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position",
+      syntax_limits(),
+    ).unwrap(),
+    { ..fixture_context(), inputs: [], parameter_declarations: Some(reversed), },
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
 }
 
 ///|

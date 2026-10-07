@@ -73,7 +73,7 @@ export const unnestRefusals = [
 ];
 
 // Independently authored STRUCT value-table control: field expansion preserves
-// declaration order and common property nullability, including NULL elements.
+// admitted object field order and common property nullability, including NULL elements.
 const structDeclarations = {items: {type: 'array', nullable: true, max_items: 3,
   items: {type: 'object', nullable: true, fields: {
     id: {type: 'number', nullable: false}, label: {type: 'string', nullable: true},
@@ -106,6 +106,10 @@ unnestSuccesses.push(
   structSuccess('qualified-star', 'SELECT element.*, position FROM UNNEST((@items)) element WITH OFFSET position ORDER BY position'),
   structSuccess('empty', 'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position', [], structColumns, {parameters: {items: []}}),
   structSuccess('null-array', 'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position', [], structColumns, {parameters: {items: null}}),
+  structSuccess('non-null-string', 'SELECT * FROM UNNEST(@items) element WITH OFFSET position ORDER BY position',
+    [{id: 2, label: 'kept', position: 0}, {id: null, label: null, position: 1},
+      {id: 2, label: null, position: 2}], structColumns,
+    {parameters: {items: [{id: 2, label: 'kept'}, null, {id: 2, label: null}]}}),
   structSuccess('whole-value', 'SELECT element AS original, position FROM UNNEST(@items) element WITH OFFSET position ORDER BY position',
     structValues.map((original, position) => ({original, position})),
     [{name: 'original', contract: {...structDeclarations.items.items,
