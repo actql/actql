@@ -182,7 +182,7 @@ distribution[3] = distribution[3].replace(
 // Original-attempt recovery shares that runtime and distribution job.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-read-progress.test.mjs ',
-  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs ',
+  'adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs ',
 );
 
 // Model Checkpoint signing reuses the prepared SDK/Host distribution gate.
@@ -226,6 +226,14 @@ distribution.splice(4, 0, 'node scripts/test-packed-read-opening.mjs',
   'node scripts/check-read-row-mutations.mjs',
   'node scripts/check-submission-input-mutations.mjs',
   'node scripts/check-effect-uncertainty-mutations.mjs');
+
+// Retain main's reviewed registration order, including refusal settlement,
+// alongside the independent actual 121-row read regressions.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/remote-checkpoint-host.test.mjs ',
+  'adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs ',
+);
+distribution[3] += ' packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs';
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

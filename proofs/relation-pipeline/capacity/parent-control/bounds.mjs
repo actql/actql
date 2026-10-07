@@ -4,6 +4,7 @@ import { currentSlotsCeiling } from '../backing/model.mjs';
 import { parentStartupLayout } from '../backing/parent-layout.mjs';
 import { providerConstructionBound } from './provider-construction.mjs';
 import {checkChainSource} from './chain-source.mjs';
+import {checkDriverRetirementSource} from './driver-retirement-source.mjs';
 const inventory = JSON.parse(readFileSync(new URL('./allocations.json', import.meta.url)));
 function fields(source, name) {
   const body = source.match(new RegExp(`(?:priv )?struct ${name} \\{\\n([\\s\\S]*?)\\n\\}`))?.[1];
@@ -32,6 +33,7 @@ export function checkChainCensus(read) {
 }
 export function checkParentCensus(read) {
   checkChainCensus(read);
+  checkDriverRetirementSource(read);
   const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
   const issues = read('src/connectors/local/managed_provider.mbt').toString()
     .match(/enum ManagedProviderWorkIssue \{\n([\s\S]*?)\n\}/)?.[1];
