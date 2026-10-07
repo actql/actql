@@ -13043,6 +13043,34 @@
       },
       "boundary_tests": [
         {
+          "role": "sequence_position_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence positions preserve independent rows and logical work across quanta"
+        },
+        {
+          "role": "sequence_position_workspace",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence position reserve rejects one short before copying"
+        },
+        {
+          "role": "sequence_position_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence cancels position copying and collection release without losing custody"
+        },
+        {
+          "role": "sequence_position_cleanup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/sequence_position_cursor_wbtest.mbt",
+          "fixture": "sequence match position copy yields before publishing a complete match"
+        },
+        {
           "role": "sequence_compound_metadata_limit",
           "suite": "moon:execution_relation",
           "targets": [
@@ -13297,6 +13325,14 @@
         }
       ],
       "environment_tests": [
+        {
+          "role": "sequence_position_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained sequence ${overlap} position copies preserve results and cleanup custody",
+          "case": "sequencePositionProgram"
+        },
         {
           "role": "sequence_compound_metadata_public",
           "suite": "node:embedded_property_names",

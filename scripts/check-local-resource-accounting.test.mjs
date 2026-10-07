@@ -3920,6 +3920,44 @@ test('compound output ports require operation-specific limit quantum stop and pu
   }
 });
 
+test('sequence position assurance requires boundary and retained public evidence', () => {
+  for (const part of ['quantum','workspace','stop','cleanup','public']) {
+    const role=`sequence_position_${part}`;
+    assert.match(run(undefined,routes=>{
+      const route=routes.routes.find(entry=>entry.operation==='sequence');
+      const collection=part==='public'?'environment_tests':'boundary_tests';
+      route[collection]=route[collection].filter(entry=>entry.role!==role);
+    }),new RegExp(`${role} fixture is missing`,'u'));
+  }
+});
+
+test('sequence position assurance rejects missing copy release and pending connections', () => {
+  const baseline=validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('sequence position')),[]);
+  for (const [relative,markers] of [
+    ['src/execution_relation/bounded_sequence_match.mbt',
+      ['CopyPositions =>','ReleaseGroup =>','ReleaseMatches =>',
+        'ReleasePredicateInput =>','state.copy_positions.push(source[state.copy_index])',
+        'for _ in 0..<64']],
+    ['src/local_tea_provider/sequence_match.mbt',
+      ['@execution.bounded_sequence_match_cleanup_pending(']],
+  ]) {
+    const file=join(root,relative);
+    for (const marker of markers) {
+      const text=sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources=Object.freeze({...sourceTemplate,
+        [file]:Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker,'missing_position_connection(')})});
+      const result=validateResourceAccounting({root,manifest:manifestTemplate,
+        routes:routesTemplate,sources});
+      assert.match(result.errors.join('\n'),
+        /sequence position copying or cleanup connection is missing/u);
+    }
+  }
+});
+
 test('compound metadata requires operation-connected boundary and public evidence', () => {
   for (const [operation,kind] of [['join','join'], ['nest','nest'], ['interval_join','interval'],
     ['asof_join','asof'], ['group','count'], ['sequence','sequence']]) {

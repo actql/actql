@@ -297,6 +297,28 @@ function compoundCompletionProgram(id, kind, longInput=false) {
 }
 
 const completionColumn='x'.repeat(256)+'😀';
+function sequencePositionProgram(id,overlap){
+  const value=compoundCompletionProgram(id,'sequence');
+  const source=value.stages[0].steps[0].values;
+  source.rows=Array.from({length:16},(_,index)=>({id:index+1,clock:1,value:index===0?1:2}));
+  source.schema={id:{type:'number',nullable:false},clock:{type:'number',nullable:false},
+    value:{type:'number',nullable:false}};
+  value.stages[0].results.rows.fields=['id','clock','value'];
+  const producer=value.stages[1];
+  producer.steps[0].sequence={by:[],id:'id',time:'clock',within:10,overlap,
+    contiguity:'adjacent',pattern:Array.from({length:16},(_,index)=>({
+      as:`p${index}`,where:index===0?'value = 1':'value = 2'}))};
+  producer.steps[1].select=[{id:'p0_id'},{value:'p15_id'}];
+  return value;
+}
+
+for(const overlap of ['allow','disallow']){
+  test(`public retained sequence ${overlap} position copies preserve results and cleanup custody`,
+    {timeout:90_000},t=>verifyRetainedNames(t,`sequence-position-${overlap}`,
+      id=>sequencePositionProgram(id,overlap),[{id:1,value:16}],
+      {type:'number',nullable:false}));
+}
+
 function completionProgram(id,kind='values',duplicates='all') {
   const schema={id:{type:'number',nullable:false},
     [completionColumn]:{type:'number',nullable:true}};

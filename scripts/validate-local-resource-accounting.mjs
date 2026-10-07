@@ -1861,6 +1861,28 @@ export function validateResourceAccounting({
     }
     const metadataKinds = {join:'join', nest:'nest', interval_join:'interval',
       asof_join:'asof', group:'count', sequence:'sequence'};
+    if (route.family === 'TEA' && route.operation === 'sequence') {
+      const file = path.join(root,'src/execution_relation/bounded_sequence_match.mbt');
+      const source = fs.existsSync(file) ? fs.readFileSync(file,'utf8') : '';
+      const providerFile = path.join(root,'src/local_tea_provider/sequence_match.mbt');
+      const provider = fs.existsSync(providerFile) ? fs.readFileSync(providerFile,'utf8') : '';
+      if (['CopyPositions =>', 'ReleaseSelected =>', 'ReleaseGroup =>',
+        'ReleaseMatches =>', 'ReleasePredicateInput =>',
+        'bounded_sequence_pop_partial(', 'bounded_sequence_pop_match(',
+        'state.copy_positions.push(source[state.copy_index])',
+        'for _ in 0..<64', 'state.copy_reserved'].some(marker=>!source.includes(marker)) ||
+        /positions\.copy\s*\(|for (?:predicate|patterns|partial|match_) in state\./u.test(source) ||
+        !provider.includes('@execution.bounded_sequence_match_cleanup_pending(')) {
+        fail(`${label}: sequence position copying or cleanup connection is missing`);
+      }
+      for (const part of ['quantum','workspace','stop','cleanup']) {
+        const role = `sequence_position_${part}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('sequence_position_public')) {
+        fail(`${label}: sequence_position_public fixture is missing`);
+      }
+    }
     if (metadataKinds[route.operation] && ['RelA','TEA'].includes(route.family)) {
       const kind = metadataKinds[route.operation];
       const kernel = {group:'global_count', sequence:'sequence_match'}[route.operation] ?? route.operation;

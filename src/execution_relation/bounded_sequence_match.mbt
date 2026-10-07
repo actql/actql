@@ -4,6 +4,13 @@ priv struct BoundedSequencePartial {
 }
 
 ///|
+priv enum BoundedSequenceCopy {
+  ExtendPartial
+  MatchAllow
+  MatchDisallow
+}
+
+///|
 priv enum BoundedSequenceResume {
   ResumeDisallowFirst
   ResumeDisallowNext
@@ -73,6 +80,12 @@ priv enum BoundedSequencePhase {
   ScanAllowAdjacency
   AllowPattern
   ExtendAllowPattern
+  CopyPositions
+  ReleaseSelected
+  ReleaseGroup
+  ReleaseMatches
+  ReleaseRowMatches
+  ReleasePredicateInput
   SeedAllowPattern
   BuildPredicateInput
   EvaluatePredicate
@@ -91,12 +104,12 @@ priv struct BoundedSequenceState {
   input : BoundedSequenceInput
   input_schema : @schema.Schema
   kernel : @lower.PreparedSequenceMatch
-  mut key_columns : Array[Int]
+  key_columns : Array[Int]
   mut identity_column : Int
   mut time_column : Int
-  mut input_names : Array[String]
+  input_names : Array[String]
   output_schema : @schema.Schema
-  mut output_names : Array[String]
+  output_names : Array[String]
   mut resolve_field : Int
   mut metadata_lookup : ChargedRowMetadataLookup?
   mut name_charge : RowNameCharge?
@@ -124,8 +137,8 @@ priv struct BoundedSequenceState {
   mut compare_column : Int
   mut identity_order : Array[Int]
   mut ordered : Array[Int]
-  mut clocks : Array[Int64]
-  mut predicates : Array[Array[Int]]
+  clocks : Array[Int64]
+  predicates : Array[Array[Int]]
   predicate_entries : Ref[Int]
   mut predicate_initialize_pattern : Int
   mut predicate_initialize_row : Int
@@ -139,10 +152,16 @@ priv struct BoundedSequenceState {
   mut pattern : Int
   mut prior_index : Int
   mut per_key_start : Int
-  mut selected : Array[Int]
-  mut partials : Array[Array[BoundedSequencePartial]]
-  mut row_matches : Array[Bool]
-  mut matches : Array[BoundedSequencePartial]
+  selected : Array[Int]
+  partials : Array[Array[BoundedSequencePartial]]
+  row_matches : Array[Bool]
+  matches : Array[BoundedSequencePartial]
+  mut copy_source : Array[Int]?
+  mut copy_positions : Array[Int]
+  mut copy_index : Int
+  mut copy_extra : Int?
+  mut copy_kind : BoundedSequenceCopy
+  mut copy_reserved : Int
   predicate_input : Array[(String, Value)]
   mut predicate_field : Int
   mut predicate_position : Int
@@ -268,43 +287,61 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
     cancel_admitted_output(output) |> ignore
     state.output = None
   }
-  state.input_names = []
-  state.key_columns = []
-  state.output_names = []
-  state.identity_order = []
-  state.ordered = []
-  state.clocks = []
-  for predicate in state.predicates {
-    predicate.clear()
-  }
-  state.predicates = []
-  state.predicate_entries.val = 0
-  state.selected = []
-  for patterns in state.partials {
-    for partial in patterns {
-      partial.positions.clear()
-    }
-    patterns.clear()
-  }
-  state.partials = []
-  state.row_matches = []
-  for match_ in state.matches {
-    match_.positions.clear()
-  }
-  state.matches = []
   if state.output_scope is Some(scope) {
     scope.close() |> ignore
     state.output_scope = None
   }
-  state.output_row = []
-  state.checked_row = []
-  clear_bounded_sequence_predicate_input(state)
-  state.workspace.live = 0
-  if !state.accepted.val {
-    state.rows.val = None
-    state.live.val = false
+  // Sources remain owned by selected/partials until stop is confirmed. Keep
+  // the parent reservation until all scratch collections have been drained.
+  state.copy_source = None
+  for _ in 0..<64 {
+    if !state.copy_positions.is_empty() {
+      state.copy_positions.pop() |> ignore
+    } else if !state.selected.is_empty() {
+      state.selected.pop() |> ignore
+    } else if bounded_sequence_pop_partial(state) {
+      ()
+    } else if bounded_sequence_pop_match(state) {
+      ()
+    } else if !state.predicates.is_empty() {
+      let cells = state.predicates[state.predicates.length() - 1]
+      if cells.is_empty() {
+        state.predicates.pop() |> ignore
+      } else {
+        cells.pop() |> ignore
+      }
+    } else if !state.row_matches.is_empty() {
+      state.row_matches.pop() |> ignore
+    } else if !state.predicate_input.is_empty() {
+      state.predicate_input.pop() |> ignore
+    } else if !state.input_names.is_empty() {
+      state.input_names.pop() |> ignore
+    } else if !state.output_names.is_empty() {
+      state.output_names.pop() |> ignore
+    } else if !state.key_columns.is_empty() {
+      state.key_columns.pop() |> ignore
+    } else if !state.identity_order.is_empty() {
+      state.identity_order.pop() |> ignore
+    } else if !state.ordered.is_empty() {
+      state.ordered.pop() |> ignore
+    } else if !state.clocks.is_empty() {
+      state.clocks.pop() |> ignore
+    } else if !state.output_row.is_empty() {
+      state.output_row.pop() |> ignore
+    } else if !state.checked_row.is_empty() {
+      state.checked_row.pop() |> ignore
+    } else {
+      state.copy_reserved = 0
+      state.predicate_entries.val = 0
+      state.workspace.live = 0
+      if !state.accepted.val {
+        state.rows.val = None
+        state.live.val = false
+      }
+      return true
+    }
   }
-  true
+  false
 }
 
 ///|
@@ -502,15 +539,8 @@ fn bounded_sequence_request_predicate(
   state.predicate_position = position
   state.predicate_pattern = pattern
   state.predicate_field = 0
-  clear_bounded_sequence_predicate_input(state)
   state.continuation = continuation
   state.phase = BuildPredicateInput
-}
-
-///|
-fn clear_bounded_sequence_predicate_input(state : BoundedSequenceState) -> Unit {
-  release_slots(state.workspace, state.predicate_input.length())
-  state.predicate_input.clear()
 }
 
 ///|
@@ -571,30 +601,65 @@ fn bounded_sequence_append_match(
     !reserve_slots(state.workspace, positions.length() + 1) {
     return Err(Rows(RowLimit))
   }
-  state.matches.push({ positions: positions.copy(), })
+  state.copy_source = Some(positions)
+  state.copy_positions = []
+  state.copy_index = 0
+  state.copy_extra = None
+  state.copy_reserved = positions.length() + 1
+  state.copy_kind = if state.phase is DisallowNext {
+    MatchDisallow
+  } else {
+    MatchAllow
+  }
+  state.phase = CopyPositions
   Ok(())
 }
 
 ///|
 fn bounded_sequence_advance_group(state : BoundedSequenceState) -> Unit {
-  let mut released = state.partials.length() + state.row_matches.length()
-  for patterns in state.partials {
-    for partial in patterns {
-      released += partial.positions.length()
-    }
-  }
-  released += state.selected.length()
-  release_slots(state.workspace, released)
   state.group_start = state.group_end
   state.group_end = state.group_start
   state.cursor = state.group_start
   state.position = state.group_start
   state.pattern = 0
   state.prior_index = 0
-  state.selected = []
-  state.partials = []
-  state.row_matches = []
   state.phase = StartGroup
+}
+
+///|
+// Drop at most one position or container. Partial records have no separate
+// slot in the existing accounting contract; their positions and outer
+// pattern containers do. Cleanup retains the whole reservation until done.
+fn bounded_sequence_pop_partial(state : BoundedSequenceState) -> Bool {
+  if state.partials.is_empty() {
+    return false
+  }
+  let patterns = state.partials[state.partials.length() - 1]
+  if patterns.is_empty() {
+    state.partials.pop() |> ignore
+  } else {
+    let positions = patterns[patterns.length() - 1].positions
+    if positions.is_empty() {
+      patterns.pop() |> ignore
+    } else {
+      positions.pop() |> ignore
+    }
+  }
+  true
+}
+
+///|
+fn bounded_sequence_pop_match(state : BoundedSequenceState) -> Bool {
+  if state.matches.is_empty() {
+    return false
+  }
+  let positions = state.matches[state.matches.length() - 1].positions
+  if positions.is_empty() {
+    state.matches.pop() |> ignore
+  } else {
+    positions.pop() |> ignore
+  }
+  true
 }
 
 ///|
@@ -607,16 +672,6 @@ fn bounded_sequence_within(first : Int64, last : Int64, within : Int64) -> Bool 
   } else {
     last <= first + within
   }
-}
-
-///|
-fn bounded_sequence_release_matches(state : BoundedSequenceState) -> Unit {
-  let mut released = state.matches.length()
-  for match_ in state.matches {
-    released += match_.positions.length()
-  }
-  state.matches.clear()
-  release_slots(state.workspace, released)
 }
 
 ///|
@@ -972,7 +1027,7 @@ fn bounded_sequence_step(
       }
       DisallowFirst => {
         if state.cursor >= state.group_end {
-          bounded_sequence_advance_group(state)
+          state.phase = ReleaseGroup
           continue
         }
         match bounded_sequence_cached_predicate(state, state.cursor, 0) {
@@ -990,10 +1045,10 @@ fn bounded_sequence_step(
             state.group_match_start = state.cursor
             state.position = state.cursor
             state.pattern = 1
-            state.selected = [state.cursor]
             if !reserve_slots(state.workspace, 1) {
               return bounded_sequence_failure(Rows(RowLimit), progress, used)
             }
+            state.selected.push(state.cursor)
             state.phase = DisallowNext
           }
         }
@@ -1007,20 +1062,15 @@ fn bounded_sequence_step(
             Err(issue) =>
               return bounded_sequence_failure(issue, progress, used + 1)
           }
-          release_slots(state.workspace, state.selected.length())
           state.cursor = state.position + 1
-          state.selected = []
-          state.phase = DisallowFirst
           used += 1
           progress += 1
           continue
         }
         let next = state.position + 1
         if next >= state.group_end {
-          release_slots(state.workspace, state.selected.length())
-          state.selected = []
           state.cursor = state.group_match_start + 1
-          state.phase = DisallowFirst
+          state.phase = ReleaseSelected
           continue
         }
         if @lower.sequence_match_contiguity(state.kernel) ==
@@ -1041,10 +1091,8 @@ fn bounded_sequence_step(
           Some(false) =>
             if @lower.sequence_match_contiguity(state.kernel) ==
               @relation.SequenceContiguity::Adjacent {
-              release_slots(state.workspace, state.selected.length())
-              state.selected = []
               state.cursor = state.group_match_start + 1
-              state.phase = DisallowFirst
+              state.phase = ReleaseSelected
             } else {
               state.position = next
             }
@@ -1056,10 +1104,8 @@ fn bounded_sequence_step(
                 state.clocks[row],
                 @lower.sequence_match_within(state.kernel),
               ) {
-              release_slots(state.workspace, state.selected.length())
-              state.selected = []
               state.cursor = state.group_match_start + 1
-              state.phase = DisallowFirst
+              state.phase = ReleaseSelected
             } else if !reserve_slots(state.workspace, 1) {
               return bounded_sequence_failure(Rows(RowLimit), progress, used)
             } else {
@@ -1078,7 +1124,7 @@ fn bounded_sequence_step(
           continue
         }
         if state.position == state.group_end {
-          bounded_sequence_advance_group(state)
+          state.phase = ReleaseGroup
           continue
         }
         if state.row_matches.is_empty() {
@@ -1208,16 +1254,13 @@ fn bounded_sequence_step(
           if !reserve_slots(state.workspace, needed) {
             return bounded_sequence_failure(Rows(RowLimit), progress, used)
           }
-          let extended = partial.positions.copy()
-          extended.push(state.position)
-          state.partials[state.pattern].push({ positions: extended, })
-          if state.pattern == state.pattern_count - 1 {
-            match bounded_sequence_append_match(state, extended) {
-              Ok(_) => ()
-              Err(issue) =>
-                return bounded_sequence_failure(issue, progress, used + 1)
-            }
-          }
+          state.copy_source = Some(partial.positions)
+          state.copy_positions = []
+          state.copy_index = 0
+          state.copy_extra = Some(state.position)
+          state.copy_reserved = needed
+          state.copy_kind = ExtendPartial
+          state.phase = CopyPositions
         }
         used += 1
         progress += 1
@@ -1229,12 +1272,122 @@ fn bounded_sequence_step(
           }
           state.partials[0].push({ positions: [state.position], })
         }
-        release_slots(state.workspace, state.row_matches.length())
-        state.row_matches = []
         state.position += 1
         state.pattern = 0
         state.prior_index = 0
-        state.phase = PrepareAllowPattern
+        state.phase = ReleaseRowMatches
+        used += 1
+        progress += 1
+      }
+      CopyPositions => {
+        guard state.copy_source is Some(source) else {
+          return bounded_sequence_failure(InvalidExecution, progress, used)
+        }
+        // Destination capacity was reserved once before any append. The
+        // added physical resume work does not alter logical control charges.
+        if state.copy_index < source.length() {
+          if state.copy_positions.length() >= state.copy_reserved {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          }
+          state.copy_positions.push(source[state.copy_index])
+          state.copy_index += 1
+        } else if state.copy_extra is Some(extra) {
+          if state.copy_positions.length() >= state.copy_reserved {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          }
+          state.copy_positions.push(extra)
+          state.copy_extra = None
+        } else {
+          let positions = state.copy_positions
+          state.copy_positions = []
+          state.copy_source = None
+          state.copy_reserved = 0
+          match state.copy_kind {
+            ExtendPartial => {
+              state.partials[state.pattern].push({ positions, })
+              if state.pattern == state.pattern_count - 1 {
+                match bounded_sequence_append_match(state, positions) {
+                  Ok(_) => ()
+                  Err(issue) =>
+                    return bounded_sequence_failure(issue, progress, used + 1)
+                }
+              } else {
+                state.phase = ExtendAllowPattern
+              }
+            }
+            MatchAllow => {
+              state.matches.push({ positions, })
+              state.phase = ExtendAllowPattern
+            }
+            MatchDisallow => {
+              state.matches.push({ positions, })
+              state.phase = ReleaseSelected
+            }
+          }
+        }
+        used += 1
+        progress += 1
+      }
+      ReleaseSelected => {
+        if state.selected.is_empty() {
+          state.phase = DisallowFirst
+          continue
+        }
+        state.selected.pop() |> ignore
+        release_slots(state.workspace, 1)
+        used += 1
+        progress += 1
+      }
+      ReleaseGroup => {
+        if !state.partials.is_empty() {
+          let patterns = state.partials[state.partials.length() - 1]
+          let slots = if patterns.is_empty() ||
+            !patterns[patterns.length() - 1].positions.is_empty() {
+            1
+          } else {
+            0
+          }
+          bounded_sequence_pop_partial(state) |> ignore
+          release_slots(state.workspace, slots)
+        } else if !state.row_matches.is_empty() {
+          state.row_matches.pop() |> ignore
+          release_slots(state.workspace, 1)
+        } else if !state.selected.is_empty() {
+          state.selected.pop() |> ignore
+          release_slots(state.workspace, 1)
+        } else {
+          bounded_sequence_advance_group(state)
+          continue
+        }
+        used += 1
+        progress += 1
+      }
+      ReleaseMatches => {
+        if !bounded_sequence_pop_match(state) {
+          state.phase = FinishOutput
+          continue
+        }
+        release_slots(state.workspace, 1)
+        used += 1
+        progress += 1
+      }
+      ReleaseRowMatches => {
+        if state.row_matches.is_empty() {
+          state.phase = PrepareAllowPattern
+          continue
+        }
+        state.row_matches.pop() |> ignore
+        release_slots(state.workspace, 1)
+        used += 1
+        progress += 1
+      }
+      ReleasePredicateInput => {
+        if state.predicate_input.is_empty() {
+          bounded_sequence_resume_predicate(state)
+          continue
+        }
+        state.predicate_input.pop() |> ignore
+        release_slots(state.workspace, 1)
         used += 1
         progress += 1
       }
@@ -1328,8 +1481,7 @@ fn bounded_sequence_step(
             } else {
               0
             }
-            clear_bounded_sequence_predicate_input(state)
-            bounded_sequence_resume_predicate(state)
+            state.phase = ReleasePredicateInput
           }
         }
         used += 1
@@ -1337,8 +1489,7 @@ fn bounded_sequence_step(
       }
       PrepareOutput => {
         if state.output_match == state.matches.length() {
-          bounded_sequence_release_matches(state)
-          state.phase = FinishOutput
+          state.phase = ReleaseMatches
           continue
         }
         guard charge_row(
@@ -1819,6 +1970,12 @@ fn start_bounded_sequence_match_input(
     partials: [],
     row_matches: [],
     matches: [],
+    copy_source: None,
+    copy_positions: [],
+    copy_index: 0,
+    copy_extra: None,
+    copy_kind: MatchDisallow,
+    copy_reserved: 0,
     predicate_input: [],
     predicate_field: 0,
     predicate_position: 0,
