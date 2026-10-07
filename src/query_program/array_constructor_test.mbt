@@ -44,6 +44,8 @@ test "array source expansion preserves duplicate elements and explicit offsets" 
     text in [
       "SELECT element, position FROM UNNEST([2, 1, 2]) element WITH OFFSET position ORDER BY position",
       "FROM UNNEST(ARRAY[2, 1, 2]) element WITH OFFSET position |> SELECT element, position |> ORDER BY position",
+      "SELECT * FROM UNNEST([2, 1, 2]) element WITH OFFSET position ORDER BY position",
+      "FROM UNNEST(ARRAY[2, 1, 2]) element WITH OFFSET position |> SELECT * |> ORDER BY position",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
