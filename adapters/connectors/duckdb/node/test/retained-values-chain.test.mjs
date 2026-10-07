@@ -272,6 +272,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   const exportPreparationTrace = [];
   let completedDispatches = 0, resultPreparationSteps = 0;
   let resultOrderReached = false, resultPreparationCancels = 0;
+  let resultSchemaReached = false;
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
@@ -349,6 +350,20 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
             // Read the real common cursor only to place cancellation. This
             // whitebox observation creates no replacement execution state.
             const rows = value.core.preparation.preparation.rows;
+            const schema = value.core.preparation.preparation.metadata?.schema_cursor;
+            if (route.observeSchemaPreparation && schema?.phase === 4 &&
+                schema.contract?.pending.some(frame =>
+                  typeof frame._1 === 'number' &&
+                  Array.isArray(frame._0?.values) && frame._1 >= 4)) {
+              resultSchemaReached = true;
+              if (mode === 'cancel-during-result-schema' && !scheduled) {
+                assert.equal(completedDispatches, 3);
+                assert.equal(complete, false);
+                assert.notEqual(value.core.borrow, undefined);
+                scheduled = true;
+                setTimeout(() => cancellation.abort(), 0);
+              }
+            }
             if (rows.comparison.phase === 3 && rows.comparison.offset > 20) {
               resultOrderReached = true;
               if (mode === 'cancel-during-result-order' && !scheduled) {
@@ -574,7 +589,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
         exportTrace, exportSteps, exportPreparationTrace, exportPreparationSteps,
         completedDispatches, resultPreparationSteps, resultOrderReached,
-        resultPreparationCancels,
+        resultPreparationCancels, resultSchemaReached,
         abortReason: cancellation.signal.reason,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
@@ -770,6 +785,58 @@ for (const mode of ['success', 'cancel-during-result-order']) {
       }
       assert.equal(observations().dispatches, 3);
     }, mode, undefined, undefined, false, {observeResultPreparation: true});
+  });
+}
+
+for (const mode of ['success', 'cancel-during-result-schema']) {
+  test(`retained Named Result schema yields within recursive contracts: ${mode}`, async () => {
+    const fields = Object.fromEntries(Array.from({length: 65}, (_, index) =>
+      [`k${1000 + index}`, {type: 'number', nullable: false}]));
+    const payload = first => Object.fromEntries(Object.keys(fields).map((name, index) =>
+      [name, first + index]));
+    const first = {id: 1, payload: payload(100)};
+    const second = {id: 2, payload: payload(200)};
+    const document = JSON.parse(program([first, second], 'true'));
+    document.id = 'retained-result-schema-progress';
+    document.stages[0].steps[0].values.schema.payload = {
+      type: 'object', nullable: false, fields,
+    };
+    document.stages[0].steps[2].select = ['id', 'payload'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 'payload'];
+      stage.results.out.order_by = [{id: 'desc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 'payload'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().resultSchemaReached, true);
+        await assertPublishedRows(publication, plan, owner.execution, [second, first]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause.code, 'DurableResultPayloadFailed');
+          assert.equal(error.cause.primaryFailure, observations().abortReason);
+          assert.equal(error.cause.cause, observations().abortReason);
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().resultSchemaReached, true);
+        assert.equal(observations().resultPreparationCancels, 1);
+        assert.deepEqual(execution.completed.map(task => task.task), [0, 1, 2]);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(observations().dispatches, 3);
+      assert.equal(observations().completedDispatches, 3);
+    }, mode, undefined, undefined, false,
+    {observeResultPreparation: true, observeSchemaPreparation: true});
   });
 }
 
