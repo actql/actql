@@ -116,7 +116,7 @@ export function getCheckFixes(outcome) {
   return Object.freeze(outcome.report.reasons.flatMap(reason => reason.fixes ?? []));
 }
 
-// Compare typed public obligations, never translated explanations or severity.
+// Compare admitted public facts with exact strings, never translated prose or severity.
 const structuralKey = value => value !== null && typeof value === 'object'
   ? Array.isArray(value) ? '[' + value.map(structuralKey).join(',') + ']'
     : '{' + Object.keys(value).sort().map(key =>
@@ -274,14 +274,8 @@ export function explainEffectUncertainty(state, options) {
 const retainEffectUncertainty = (state, ref) => {
   if (state.status === 'needs_reconciliation' &&
       state.next_action.kind === 'reconcile') {
-    // A Local port may reuse a cached object for another observation/Run.
-    // Each returned SDK response must keep its own original association.
-    try { state = structuredClone(state); }
-    catch { fail('InvalidHostRunState'); }
-    // A Local value can lose fields when copied. Retain only a validated
-    // copied reconciliation state, before reading or explaining its facts.
-    if (!validRunState(state) || state.status !== 'needs_reconciliation' ||
-        state.next_action.kind !== 'reconcile') fail('InvalidHostRunState');
+    // The observation reader has admitted and detached these exact facts.
+    // Presentation must not make another copy that can replace their meaning.
     effectUncertainties.set(state, freezeInput({
       observation: 'effect_outcome_unknown',
       summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
@@ -1126,8 +1120,12 @@ async function connectSelected(selected, port) {
       try {
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         // Each observation owns its value even if a Local port reuses a reply.
+        const observedKey = structuralKey(state);
         state = structuredClone(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
+        if (structuralKey(state) !== observedKey) {
+          throw rejectedRunObservation(ref, operation, 'malformed_response');
+        }
         return retainEffectUncertainty(state, ref);
       } catch (cause) {
         if (runObservationFailures.has(cause)) throw cause;
