@@ -3212,26 +3212,28 @@ test('C5: a cancellation after the physical start reservation releases nothing e
     await heldRequests(x.client, ['started-a']);
     await approveAll(x.reviewer, await allCheckpoints(x.reviewer));
     await waitFor(() => x.steps.includes('physical_start_reserved'));
-    const cancelled = await x.client.cancelRequest('started-a');
-    assert.equal(cancelled.kind, 'accepted');
-    assert.ok(cancelled.ref !== undefined);
-    const explanation = explainRequestCancellation(cancelled);
-    assert.deepEqual({observation: explanation.observation, next: explanation.next,
-      revision: explanation.revision}, {observation: 'accepted',
-      next: {operation: 'status', ref: cancelled.ref}, revision: cancelled.revision},
-    '[check-mutation:request-cancel-preparation]');
-    for (const field of ['physicalStop', 'stopped', 'resourcesReleased', 'cleanupComplete']) {
-      assert.equal(Object.hasOwn(explanation, field), false);
-    }
-    // The start was reserved first: the Run is not settled or released by
-    // the request alone.
-    await new Promise(resolve => setTimeout(resolve, 300));
-    assert.deepEqual(journalRows(x.directory,
-      'SELECT status FROM preparations'), [{status: 'run_created'}]);
-    assert.deepEqual(journalRows(x.directory, 'SELECT status FROM runs'),
-      [{status: 'running'}]);
-    assert.deepEqual(await holdingStates(x.directory), ['held']);
-    x.release();
+    let cancelled;
+    try {
+      cancelled = await x.client.cancelRequest('started-a');
+      assert.equal(cancelled.kind, 'accepted');
+      assert.ok(cancelled.ref !== undefined);
+      const explanation = explainRequestCancellation(cancelled);
+      assert.deepEqual({observation: explanation.observation, next: explanation.next,
+        revision: explanation.revision}, {observation: 'accepted',
+        next: {operation: 'status', ref: cancelled.ref}, revision: cancelled.revision},
+      '[check-mutation:request-cancel-preparation]');
+      for (const field of ['physicalStop', 'stopped', 'resourcesReleased', 'cleanupComplete']) {
+        assert.equal(Object.hasOwn(explanation, field), false);
+      }
+      // The start was reserved first: the Run is not settled or released by
+      // the request alone.
+      await new Promise(resolve => setTimeout(resolve, 300));
+      assert.deepEqual(journalRows(x.directory,
+        'SELECT status FROM preparations'), [{status: 'run_created'}]);
+      assert.deepEqual(journalRows(x.directory, 'SELECT status FROM runs'),
+        [{status: 'running'}]);
+      assert.deepEqual(await holdingStates(x.directory), ['held']);
+    } finally { x.release(); }
     // The existing stop and publication owners decide its end. The held
     // request's journal Run ends and its evidence is released only when the
     // Run is observed terminal; with its physical stop unknown both stay.
