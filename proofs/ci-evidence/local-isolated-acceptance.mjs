@@ -9,8 +9,8 @@ import {join, resolve, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {gitTree, hash} from './inputs.mjs';
 import {checkIsolatedInputs} from './isolated-runtime.mjs';
-import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation} from './isolated-execution.mjs';
-import {stagePipelinePristineSource} from './isolation.mjs';
+import {prepareLocalIsolatedMutation, executeLocalIsolatedMutation, validatePipelinePristineOriginal} from './isolated-execution.mjs';
+import {stagePipelinePristineSource, pipelinePristineSourcePaths} from './isolation.mjs';
 import {snapshot} from '../relation-pipeline/inventory.mjs';
 import {validatePristineReport, readPristineFiles, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
@@ -75,9 +75,11 @@ function prepareLinux(descriptorFile) {
   if (profile === 'pipeline-pristine') {
     // Both phases build in private Linux tmpfs. The preparation output mount
     // receives only evidence, not the normal source/build tree.
+    const normalPreparationStart = performance.now();
     mkdirSync('/tmp/pipeline-normal');
     stagePipelinePristineSource({tree, destination: '/tmp/pipeline-normal'});
     const directory = '/tmp/pipeline-normal/source', start = performance.now();
+    const sourcePreparationMilliseconds = Math.round(start - normalPreparationStart);
     const result = spawnSync(process.execPath, ['proofs/relation-pipeline/pristine-replay.mjs'], {
       cwd: directory, env: process.env, encoding: 'utf8', timeout: 480000, maxBuffer: 32 * 1024 * 1024,
     });
@@ -89,7 +91,7 @@ function prepareLinux(descriptorFile) {
     assert(summary.path.startsWith(`${directory}/.artifacts/pipeline-pristine/replay-`));
     const report = JSON.parse(readFileSync(summary.path)), files = readPristineFiles(directory, report);
     validatePristineReport(report, snapshot(directory), files);
-    json('/out/normal.json', {report, files, milliseconds: Math.round(performance.now() - start)});
+    json('/out/normal.json', {report, files, sourcePreparationMilliseconds, milliseconds: Math.round(performance.now() - start)});
   }
 
 }
@@ -102,6 +104,7 @@ export function checkOwnedPreparation(container, {cid, imageId, owner}) {
 }
 
 function worker(options) {
+  const workerStarted = performance.now();
   assert.equal(git(['rev-parse', 'HEAD']), options.revision, 'Candidate HEAD changed');
   assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '', 'Use a clean tracked candidate');
   const tree = gitTree(root, options.revision);
@@ -149,12 +152,15 @@ function worker(options) {
   assert.equal(prepared.owner, owner);
   assert(/^\/out\/isolated-build-[A-Za-z0-9]+$/u.test(prepared.context), 'Unexpected owned context');
   prepared.context = join(directory, prepared.context.slice('/out/'.length));
+  // The Linux preparer has its own Git descriptor, so prime this host tree
+  // through the existing bounded, object-checked cat-file batches.
+  if (profile === 'pipeline-pristine') tree.prefetch(pipelinePristineSourcePaths(tree));
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true, profile});
   const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine, profile});
   let comparison = null;
   if (profile === 'pipeline-pristine') {
     const normal = JSON.parse(readFileSync(join(directory, 'normal.json')));
-    validatePristineReport(normal.report, answer.payload.report.source, normal.files);
+    validatePipelinePristineOriginal(normal.report, answer.payload.report.source, normal.files);
     const scientific = pristineScientificObservation(answer.payload.report);
     assert.deepEqual(scientific, pristineScientificObservation(normal.report), 'Normal/image scientific observations differ');
     // Reconsume actual captured evidence with independently altered grounds.
@@ -174,7 +180,8 @@ function worker(options) {
       assert.throws(() => validatePristineReport(changed.report, answer.payload.report.source, changed.files), name);
       rejected.push(name);
     }
-    comparison = {normalMilliseconds: normal.milliseconds, isolatedCosts: answer.costs,
+    comparison = {normalMilliseconds: normal.milliseconds, normalSourcePreparationMilliseconds: normal.sourcePreparationMilliseconds,
+      localElapsedMilliseconds: Math.round(performance.now() - workerStarted), isolatedCosts: answer.costs,
       scientificDigest: hash(JSON.stringify(scientific)), units: scientific.length,
       matched: true, rejected, scope: 'two local fresh pristine JS phases; not mutation detection, Actions qualification or net CI savings'};
   }

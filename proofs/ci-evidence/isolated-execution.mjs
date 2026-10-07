@@ -13,6 +13,8 @@ import {copyRegular, stageDistribution, stageMutationSource, stagePipelinePristi
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
+import {program} from '../relation-pipeline/engine.mjs';
+import {registry} from '../relation-pipeline/registry.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 const command = (program, args, options = {}) => {
@@ -115,6 +117,7 @@ export function executeLocalIsolatedMutation({root, tree, prepared, engine, prof
 }
 
 function execute({root, tree, prepared, execution, profile = 'session'}) {
+  const inputStarted = performance.now();
   const docker = args => command(execution.engine, args);
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true, profile});
   // Both observations cover the physically staged cohort. The existing
@@ -122,7 +125,7 @@ function execute({root, tree, prepared, execution, profile = 'session'}) {
   const before = checkMutationCheckout({root, tree, profile}), tag = `actql-session-${prepared.owner.replaceAll(':', '-')}:latest`;
   const cidFile = join(prepared.context, 'container.id'), iidFile = join(prepared.context, 'image.id');
   const costs = {preparationMilliseconds: prepared.preparationMilliseconds, buildMilliseconds: 0, executionMilliseconds: 0,
-    inspectionMilliseconds: 0, closeMilliseconds: 0};
+    inspectionMilliseconds: 0, closeMilliseconds: 0, inputInspectionMilliseconds: Math.round(performance.now() - inputStarted)};
   let imageId, failure, answer;
   try {
     let start = performance.now();
@@ -188,5 +191,16 @@ export function checkPipelinePristineResult({payload, manifest, before}) {
     assert.equal(encode(payload[field]), encode(manifest[field]), 'Changed physical pipeline input');
   assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.shellStartupConfirmed, true);
   assert.equal(payload.sourcePreserved, true); assert.equal(payload.reuseAuthorized, false);
-  return validatePristineReport(payload.report, before, payload.files);
+  return validatePipelinePristineOriginal(payload.report, before, payload.files);
+}
+
+export function validatePipelinePristineOriginal(report, source, files) {
+  validatePristineReport(report, source, files);
+  for (const {receipt} of report.receipts) for (const entry of receipt.cases) {
+    const expected = program(entry.testCase, registry);
+    assert.deepEqual(entry.program, expected, 'Requested pipeline Program differs from independent minimum');
+    assert.equal(entry.observation.source, expected.source, 'Executed Source differs from requested Program');
+    assert.equal(entry.observation.steps, expected.steps, 'Executed steps differ from requested Program');
+  }
+  return true;
 }
