@@ -110,6 +110,41 @@ semantic CID and item dispatch-key owner bind that content without introducing
 a Table approval or Ledger owner. Before/after row states are not applicable:
 the item describes a whole-Relation operation, not a fabricated data row.
 
+The Table installation's pure authoring connection resolves each member from
+the checked Program descriptor and matches its target, Mapping reference and
+Mapping contract to the installed binding. It derives operation input facts
+from the actual captured local Result Artifact and issued storage mapping,
+then uses the common Preview authoring and captured-input binding owners.
+The member count is one even for zero input rows. The request CID correlation,
+required approval and expected-generation guard are sealed before apply.
+Authoring does not stage files, dispatch, establish current authorization or
+replace the installed capability's separate admission.
+
+The Table Preview's `result_artifact_cid` names the semantic completed Result
+Artifact bound by the operation. Its separate source binding comes from the
+actual Run-bound physical source Artifact. Substituting the physical Artifact
+CID for the semantic one is a foreign-input refusal, not a transport fallback.
+Durable source holdings retain both through the existing result-aware capture
+owner. Installations must not obtain their requests from per-row write mapping
+or invent a row to represent an empty Table.
+
+The installed Table hooks project the completed computation and recovered
+capture into the existing installed Effect Site. Installation metadata binds
+each checked Effect member and Mapping to one Catalog/name and create or
+expected-generation replace action. Capability identity also binds the runtime,
+installation and these exact targets; a changed capability cannot resume a
+saved Preview. Member ordering comes from checked ordinals, not installation
+array order. Source-free authoring does not fabricate Model provenance.
+
+Capture prepares bounded physical material but performs no Catalog observation
+or write. Recovery reads the original Catalog operation under current authority
+before using the common durable frontier. Only Ready members refresh current
+target guards; a committed create is not rejected merely because its name now
+exists. Dispatching/Unknown members reconcile rather than claim another send.
+The same Site cleanup custody serializes concurrent retries, retains pending
+physical handles, and closes the Ledger only after verified cleanup. Immutable
+Table generations remain Catalog-owned after temporary Run handles are released.
+
 The Table input binding is paired with the existing checked captured Preview,
 including its exact live source occurrence. A different member, substituted
 operation, row-oriented inventory, missing approval requirement or different
@@ -136,12 +171,34 @@ captured row count after release, without allowing another dispatch. Approval,
 current target authority, durable claims and Catalog reconciliation remain the
 existing apply owners' separate responsibilities.
 
+Recovered Table dispatch uses the same physical preparation and approved
+whole-set dispatch binder as live execution. The recovered input is read only
+through its exact capture/Store handle. Current process-local owners are
+rechecked synchronously after target observation and immediately before the
+durable dispatch claim; the recovered apply owner separately confirms physical
+holdings and current authorization. The immutable Table view itself is never
+used as an availability or permission getter. Terminal release also relinquishes
+the recovered Result/schema leases through the existing result owner; deleting
+durable capture records alone is not release of live prepared handles.
+
 Prepared request and captured input are retained by existing owners before any
 dispatch. Table staging, metadata publication and Table writes require approval
 and current write authority; pre-approval Table writes are zero. Retaining Run
 input is not Table publication. Dispatching/Unknown never authorize another
 commit. Recovery reads the original operation's durable Catalog evidence under
 current read/reconciliation authority and uses existing Effect transitions.
+
+Original-operation reconciliation uses the exact checked Table Preview and the
+validated complete history of its original possible dispatch. It does not create
+an intent or claim another send. Current evidence-read authority precedes the
+Catalog lookup and is checked again after it; the physical reader needs only the
+sealed original operation, not reconstructed input or a new writer. An absent
+original record remains unknown. A positive receipt is checked against the
+immutable operation and row count before durable evidence custody, then the
+existing Table outcome and terminal Ledger owners settle that saved evidence.
+Concurrent or delayed observers cannot overwrite the first saved response or
+create a second terminal revision. Saved malformed evidence is retained rather
+than replaced by a lookup; that case remains a separate recovery obligation.
 
 Catalog head publication, the original operation's immutable commit record and
 storage reservation transfer form one durable Catalog transaction. The record

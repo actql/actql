@@ -20,6 +20,7 @@ struct ClientTableInput {
   identity : ClientEffectLocalIdentity
   mapping : @effect.TableStorageMapping
   operation : @effect.TableOperation
+  scope : @request_scope.LogicalRequestScope
 }
 
 ///|
@@ -119,7 +120,7 @@ pub fn bind_client_table_input(
     ) {
     return Err(ForeignInput)
   }
-  Ok({ artifact, identity, mapping, operation, })
+  Ok({ artifact, identity, mapping, operation, scope, })
 }
 
 ///|
@@ -175,6 +176,7 @@ pub fn bind_client_table_preview(
       input.operation,
       identity,
       member_index,
+      input.scope,
     ) {
     Ok(_) => Ok({ input, preview, member_index, })
     Err(issue) => Err(Preview(issue))

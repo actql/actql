@@ -3,7 +3,7 @@ import {explainReadFailure, type ReadFailureExplanation} from '@actql/sdk';
 declare const error: unknown;
 const explanation: ReadFailureExplanation | undefined = explainReadFailure(error);
 if (explanation) {
-  const observation: 'read_incomplete' | 'cleanup_unknown' = explanation.observation;
+  const observation: 'read_open_unknown' | 'read_incomplete' | 'cleanup_unknown' = explanation.observation;
   const count: number = explanation.rowsYielded;
   const cleanup: 'unknown' | undefined = explanation.cleanup;
   void cleanup;
