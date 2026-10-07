@@ -39,11 +39,15 @@ pub fn confirm_model_invocation_grant(ModelCheckpointBinding, PersistedCheckpoin
 
 pub fn confirm_model_invocation_grant_wire(ModelCheckpointBinding, PersistedCheckpoint, String, String, WireLimits) -> Result[ModelInvocationGrant, ResolutionIssue]
 
+pub fn decide_effect_resume_claim(ResumeIntentView, String, Int64, Int64, ResumeBinding, ResumeBinding, Bool) -> Result[ResumeClaimAction, ResumeIssue]
+
 pub fn decide_resolution_commit(SealedCheckpoint, CheckpointClosure, VerifiedResolution) -> ResolutionCommitAction
 
 pub fn decide_resume_claim(ResumeIntentView, String, Int64, Int64, ResumeBinding, ResumeBinding) -> Result[ResumeClaimAction, ResumeIssue]
 
 pub fn decide_resume_fence(ResumeIntentView, ResumeClaim, Int64) -> ResumeFenceAction
+
+pub fn effect_settlement_completion_allowed(@run_publication.RunOutcomeStatus) -> Bool
 
 pub fn issue_lifecycle_run_state(String, @run_publication.RunOutcomeStatus, String, Array[String], WireLimits) -> Result[String, RunStateWireIssue]
 
@@ -273,6 +277,7 @@ pub(all) enum ResumeClaimAction {
   ClaimBusy
   ClaimCompleted
   ClaimInvalidated(Int64)
+  ClaimSettlement(Int64, Int64)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ResumeFenceAction {

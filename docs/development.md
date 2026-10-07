@@ -13,6 +13,46 @@ is developed in MoonBit; see the [implementation guide](design/implementation-po
 Specification checks also verify generated connector code using the pinned
 MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
 
+### Checkpoint Effect settlement layout
+
+The Node Checkpoint journal uses the private layout
+`actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1`.
+The [settlement design](design/effect-refusal-settlement.md) explains the
+observation-only claim and its authority boundary. Existing journals with the
+preceding `actql-checkpoint-journal/0.1;model-call-provenance=1` layout are
+refused by ordinary startup; they are never silently recreated or upgraded.
+
+To update one such journal, stop **every** Host and other process using it,
+including old binaries. Use Node 24 with the checked-out upgrade tool:
+
+```sh
+node scripts/upgrade-checkpoint-effect-settlement.mjs --offline --root JOURNAL_DIRECTORY --backup NEW_BACKUP_FILE
+```
+
+`JOURNAL_DIRECTORY` is the directory containing
+`checkpoint-journal.sqlite3`, not an arbitrary parent Host directory. The
+backup path must be new, separate from that database, and on storage where
+the operator can retain it. `--offline` explicitly confirms that all users of
+the journal have stopped. A SQLite writer lock cannot revoke an already-open
+old connection, so it does not replace that shutdown requirement.
+
+The tool checks the exact old marker and SQLite integrity, checkpoints WAL,
+acquires an exclusive writer transaction, and refuses concurrent WAL changes.
+It creates and synchronizes a private standalone backup before adding the
+empty settlement table and changing the marker in one transaction. It prints
+the backup path and SHA-256. Existing Run, Checkpoint, Resolution, claim,
+admission, Model, and Effect evidence records are retained without rewriting.
+An existing backup, missing journal, unknown layout, or active writer is a
+refusal. A failed transaction leaves the old layout and any completed backup
+available for inspection.
+
+Restart only binaries supporting the new marker. Reverting the marker or
+dropping the settlement table is unsafe: it would discard persisted refusal
+decisions. An offline restoration of the full pre-upgrade backup is possible
+only before new activity is accepted; once new activity exists, restoring that
+backup would lose newer evidence and requires a separate recovery decision.
+The tool never performs that restoration or modifies any other journal.
+
 ### MoonBit
 
 Development supports Apple Silicon macOS and x86-64 Linux, with Linux CI on
