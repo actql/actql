@@ -1,0 +1,9 @@
+{
+  "version": "actql-foundation-single-base-normalization/0.1",
+  "id": "normalize-read-receipt-single-base-650cbe2d",
+  "target": {
+    "id": "read-receipt-packed-main-integration",
+    "digest": "ad2910f84f6a2ade07c987a05164a0f697b0e9b68451028036f995e058ef3a26"
+  },
+  "reason": "The preserved read-receipt registration integration declares its correct singleton merge base. Apply the existing singleton normalization without modifying the published record, source identities, input closure, merge obligations, or validator."
+}
