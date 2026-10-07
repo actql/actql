@@ -140,3 +140,18 @@ This is a finite diagnostic budget correction, not an automatic retry/limit
 escalation or verification reduction. Actual process status, signal, error code,
 elapsed time and captured output are now saved before normal phase admission, so
 a future timeout remains distinguishable from a semantic/compiler failure.
+
+The partial original is published as
+`evidence/2026-10-08-pipeline-fixed-js-partial-bafcdb7dc.json.gz`
+(raw 3,545,265 bytes; SHA-256
+`1872895e0ba66a66176faa1ff162f4c1e98c09932aeb3a458fb7268555c35245`). It contains eight actual
+executions and their raw grounds, expressly labeled `local-partial-diagnostic`.
+It is not a completed campaign, restoration receipt or image acceptance.
+
+At `b6ca1f961dedf623134a523ca483eabd27d28877`, the changed bounded local
+consumer/cleanup selection passed 13/13 (`run-W8Plma`,
+`focused-test-n7p3iF`). The actual same-scope restart was refused before execution
+by another worktree's live heavy lock (`run-YvDRa1`). No lock or other-owner
+resource was removed; that attempt is not a performance/mutation failure.
+Actual image acceptance and actual retained history remain pending available
+shared execution custody, independently of Actions availability.
