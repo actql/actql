@@ -3882,6 +3882,19 @@ test('borrowed JSON path assurance requires limits stop and public evidence', ()
   }
 });
 
+test('borrowed row bindings assurance requires values shadow stop and public evidence', () => {
+  for (const [kind, role] of [['boundary_tests', 'derive_borrowed_bindings_values'],
+    ['boundary_tests', 'derive_borrowed_bindings_shadow'],
+    ['boundary_tests', 'derive_borrowed_bindings_stop'],
+    ['environment_tests', 'derive_borrowed_bindings_public']]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'derive');
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:derive_borrowed_bindings_(?:values|shadow|stop)|borrowed bindings public) fixture is missing/u);
+  }
+});
+
 test('string aggregation assurance requires limits stop and public evidence', () => {
   for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
     ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {

@@ -6312,8 +6312,9 @@ A normal retained-Store sort -> take -> derive -> select Program publishes
 three fixed ordered Named Results, feeds two consumers, reuses a repeated
 request and delivers cancellation after positive progress. This does not
 close initial preparation, availability, JSON/window metadata or Native
-physical capacity correspondence. The unmerged #704 owner remains a
-dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).
+physical capacity correspondence. The #704 owner is now adopted by main;
+#708 remains independently unmerged. See the
+[order metadata record](2026-10-07-local-row-order-metadata.md).
 
 ### Resumable generated row metadata (2026-10-07)
 
@@ -6345,3 +6346,25 @@ and normal retained-Store publication are connected to the evidence gate.
 This dependent unit follows #717. Other copied kernel views, initial producer
 preparation, availability/static analysis and Native capacity correspondence
 remain distinct. See the [borrowed path record](2026-10-07-local-borrowed-json-path.md).
+
+### Borrowed bindings, unique keys and lowered projections (2026-10-07)
+
+Selected row start, capability and obligation inspection borrow typed metadata
+without exporting complete binding/key/projection arrays. The existing
+expression owner reads one prepared binding per transition; map order,
+authored prior slots, shadow winners, unique tuples and projection aliases
+remain unchanged. Checked rename/drop use the actual lowered projection view,
+including wide/long-name consumers. Original entry, work and workspace limits
+remain in force; this is not a physical-capacity reduction claim.
+
+Independent 64-binding and shadow results, later-binding cancellation and
+long rename/drop supplement the unchanged exact/one-short caller fixtures.
+The affected JS batch passed 100/100. The nine-binding map derive publishes
+through the normal Host and real Store; its public test and evidence gate
+passed 2/2. Ordered derive still fails public Plan encoding before execution;
+private ordered execution does not certify that public connection. Submitted-SHA
+evidence is recorded separately in the dependent PR. Native observer/census
+correspondence for the new opaque views remains unreviewed; #723/#717/#708
+remain dependencies. Initial preparation and availability checks are not
+certified by this unit. See the
+[borrowed row record](2026-10-07-local-borrowed-row-bindings.md).
