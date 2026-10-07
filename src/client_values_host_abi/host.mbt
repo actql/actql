@@ -2443,6 +2443,60 @@ pub fn client_values_host_prepare_cancellation(
 }
 
 ///|
+/// Cancellation identity and decisions reuse the existing Run Owner. The
+/// physical adapter must persist the original outcome in its existing CAS.
+#export_name("clientValuesHostPrepareCancellationIdentity")
+pub fn client_values_host_prepare_cancellation_identity(
+  namespace_id : String,
+  authority_scope_cid : String,
+  cancel_id : String,
+  definition : @publication.PublicationContract,
+  expected_revision : Int,
+) -> Result[
+  @host.ClientCancellationIdentity,
+  @host.ClientCancellationIdentityIssue,
+] {
+  @host.prepare_client_cancellation_identity(
+    namespace_id, authority_scope_cid, cancel_id, definition, expected_revision,
+  )
+}
+
+///|
+#export_name("clientValuesHostCancellationIntentCid")
+pub fn client_values_host_cancellation_intent_cid(
+  value : @host.ClientCancellationIdentity,
+) -> String {
+  @host.client_cancellation_intent_cid(value)
+}
+
+///|
+#export_name("clientValuesHostPrepareCancellationOperation")
+pub fn client_values_host_prepare_cancellation_operation(
+  requested : @host.ClientCancellationIdentity,
+  retained : @host.ClientCancellationIdentity?,
+  definition : @publication.PublicationContract,
+  current_revision : Int,
+  authorized : Bool,
+  terminal : Bool,
+  cancellation_requested : Bool,
+) -> Result[String, String] {
+  match
+    @host.prepare_client_cancellation_operation(
+      requested, retained, definition, current_revision, authorized, terminal, cancellation_requested,
+    ) {
+    Ok(RecordCancellation(AcceptCancellation)) => Ok("accepted")
+    Ok(RecordCancellation(AlreadyRequested)) => Ok("already_requested")
+    Ok(RecordCancellation(AlreadyTerminal)) => Ok("already_terminal")
+    Ok(ReplayOriginalCancellation) => Ok("replay_original")
+    Err(ChangedIntent) => Err("ClientCancellationIntentConflict")
+    Err(DifferentOperation) => Err("ClientCancellationOperationMismatch")
+    Err(RevisionConflict) => Err("ClientCancellationRevisionConflict")
+    Err(AuthorizationDenied) => Err("ClientCancellationDenied")
+    Err(ForeignRunDefinition) => Err("ClientCancellationRunMismatch")
+  }
+}
+
+///|
 #export_name("clientValuesHostRunControlObservation")
 pub fn client_values_host_run_control_observation(
   revision : Int,

@@ -85,6 +85,10 @@ pub fn advance_bounded_unpivot(BoundedUnpivotExecution, Int) -> Result[BoundedUn
 
 pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValuesPoll, BoundedValuesIssue]
 
+pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Bool
+
+pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
+
 pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
@@ -96,6 +100,12 @@ pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExe
 pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_execution.Observation[FixedInputGuardMeasureLimits, FixedInputGuardIssue], @bounded_execution.Issue]
 
 pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[InferRowsPreparationPoll, InferPreparationIssue]
+
+pub fn advance_managed_output_values_finish(ManagedOutputValues, Int) -> Result[ManagedOutputFinishAdvance, ManagedOutputValueIssue]
+
+pub fn advance_managed_output_values_reclamation(ManagedOutputValues, Int) -> Bool
+
+pub fn[P, T] advance_managed_view_output_finish(ManagedViewOutputPort[P, T], P, Int) -> Result[ManagedOutputFinishAdvance, ManagedViewOutputIssue]
 
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
@@ -903,7 +913,7 @@ pub fn prepare_carrier_managed_producer_read(@lowering_relation.BoundPrepared, I
 
 pub fn prepare_completed_output_export(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
-pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+pub fn prepare_completed_output_import(CompletedOutput, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
 pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
@@ -937,7 +947,7 @@ pub fn[P, T] prepare_managed_output_retention_port(ManagedOutputValues, (P) -> (
 
 pub fn prepare_managed_output_values(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits, Int, FixedInputGuardMeasureLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
 
-pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
+pub fn[T] prepare_managed_producer_bridge(ManagedProducerRead[T], Int, ValueLimits, Int, Int, deferred_reclamation? : Bool) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue]
 
 pub fn[T] prepare_managed_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, ManagedCompletedOutput[T], Int, Int) -> Result[ManagedProducerRead[T], ManagedProducerReadIssue]
 
@@ -957,7 +967,7 @@ pub fn[T] prepare_managed_view_slice(ManagedViewPlan[T], Int, Int, Int, Int) -> 
 
 pub fn prepare_ordered_params(RegisteredOrderedContract, @lowering_relation.OrderedReferences) -> OrderedParams
 
-pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputImport, CompletedImportIssue]
+pub fn prepare_producer_output_import(ProducerRead, Int, ValueLimits, RowWireLimits, Int, deferred_reclamation? : Bool) -> Result[CompletedOutputImport, CompletedImportIssue]
 
 pub fn prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerRead, ProducerReadIssue]
 
@@ -2028,6 +2038,11 @@ pub(all) enum ManagedObligationIssue {
 } derive(Eq, @debug.Debug)
 
 type ManagedObligations
+
+pub(all) struct ManagedOutputFinishAdvance {
+  receipt : ManagedOutputValueReceipt?
+  steps : Int
+}
 
 pub(all) enum ManagedOutputRetentionIssue {
   Closed

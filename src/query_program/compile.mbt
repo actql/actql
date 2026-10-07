@@ -379,6 +379,14 @@ fn same_expression(
           pending.push((ax[i], ay[i]))
         }
       }
+      (ArrayConstructor(ax, tx), ArrayConstructor(ay, ty)) => {
+        if tx != ty || ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          pending.push((ax[i], ay[i]))
+        }
+      }
       (Unary(x, child_a), Unary(y, child_b)) => {
         if x != y {
           return false
@@ -1617,6 +1625,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  source_limits : @builder.Limits,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   start_at : Int,
@@ -1735,8 +1744,8 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        let element_contract = unnest_parameter_element(
-          expression, parameter_declarations,
+        let element_contract = unnest_source_element(
+          expression, parameter_declarations, source_limits, max_work,
         )
         if selected_projections(query).any(projection => {
             projection.star is Some(_)
@@ -4325,6 +4334,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       start_at,
@@ -4698,6 +4708,7 @@ fn compile_cte_query(
           cte_input,
           body_output,
           limits.max_expression_work,
+          limits.source,
           limits.max_collection_items,
           limits.max_collection_bytes,
           0,
@@ -4936,6 +4947,7 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     body_start,
@@ -5643,6 +5655,7 @@ fn compile_set_stages(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       if common_capture_filter {
@@ -6260,7 +6273,7 @@ fn join_reference_paths(
         pending.push(right)
         pending.push(left)
       }
-      Call(_, args) | Predicate(_, args) => {
+      Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) => {
         let mut next = args.length() - 1
         while next >= 0 {
           pending.push(args[next])
@@ -6799,6 +6812,7 @@ fn append_join_order_steps(
       input,
       visible_names,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       next,

@@ -78,16 +78,16 @@ test('public retained chain prepares long producer names before child start and 
         },
       }}});
     const source = JSON.stringify(program('metadata-success'));
-    const run = await client.aql(source, {format: 'json', requestId: 'metadata-success'});
+    const run = await client.startSource(source, {format: 'json', requestId: 'metadata-success'});
     const state = await run.wait({signal: AbortSignal.timeout(60_000)});
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(Object.keys(state.result_availability).sort(), names.toSorted());
     for (const name of names) assert.deepEqual(await run.result(name).all(), expected);
     const before = dispatches;
-    assert.deepEqual((await client.aql(source, {format: 'json', requestId: 'metadata-success'})).ref, run.ref);
+    assert.deepEqual((await client.startSource(source, {format: 'json', requestId: 'metadata-success'})).ref, run.ref);
     assert.equal(dispatches, before);
     cancelling = true;
-    const stopped = await client.aql(JSON.stringify(program('metadata-cancel')),
+    const stopped = await client.startSource(JSON.stringify(program('metadata-cancel')),
       {format: 'json', requestId: 'metadata-cancel'});
     await Promise.race([reached.promise,
       stopped.wait({signal: AbortSignal.timeout(20_000)}).then(state => {

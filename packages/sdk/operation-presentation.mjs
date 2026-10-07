@@ -2,6 +2,7 @@
 import {getCheckPresentationInfo} from './check-presentation.mjs';
 
 const summaries = Object.freeze({
+  'observation.observation_unavailable': 'Runの観測を完了できませんでした。この失敗は実行・Effect・公開・解放の結果を確定しません。',
   'observation.unknown_state': 'このSDKではRun応答の状態を解釈できません。',
   'observation.contract_mismatch': 'Run応答がこのSDKの登録済み状態契約と一致しません。',
   'observation.malformed_response': 'Run応答が登録済み状態契約に違反しています。',
@@ -37,7 +38,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.6`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.7`});
 }
 
 export function localizeOperation(explanation, domain, options) {

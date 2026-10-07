@@ -177,7 +177,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {directory: join(f.root, name), effectProfilePath, authorization}};
     const client = await connectEmbeddedLocal(options);
     opened.push(client);
-    const run = await client.aql(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
+    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
     await waiting(run, observations, t);
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
@@ -351,7 +351,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
   let client = await connectEmbeddedLocal(options);
   try {
     const input = JSON.stringify(program(expectedRows, 'table-lost-reply'));
-    let run = await client.aql(input, {format: 'json', requestId: 'table-lost-reply'});
+    let run = await client.startSource(input, {format: 'json', requestId: 'table-lost-reply'});
     await waiting(run, observations, t);
     assert.equal(commits(f.catalog).length, 0, 'No write before approval');
     const checkpoint = (await client.checkpoints()).items[0];
@@ -418,7 +418,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {...options.installation,
         directory: join(f.root, 'replacement-host'), effectProfilePath: replacementPath}});
     try {
-      const replaced = await replacement.aql(JSON.stringify(program([{id: 9, tag: null}],
+      const replaced = await replacement.startSource(JSON.stringify(program([{id: 9, tag: null}],
         'table-later-replacement')), {format: 'json', requestId: 'table-later-replacement'});
       await waiting(replaced, observations, t);
       const laterCheckpoint = (await replacement.checkpoints()).items[0];
@@ -730,7 +730,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   });
   try {
     const input = JSON.stringify(program(rows));
-    let run = await client.aql(input, {format: 'json', requestId: 'table-create-1'}).catch(error => {
+    let run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'}).catch(error => {
       t.diagnostic(inspect(error, {depth: 10}));
       t.diagnostic(inspect(observations, {depth: 10}));
       throw error;
@@ -755,7 +755,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     const originalRef = run.ref;
     await client.close();
     client = await connectEmbeddedLocal(options);
-    run = await client.aql(input, {format: 'json', requestId: 'table-create-1'});
+    run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
     assert.deepEqual(run.ref, originalRef);
     assert.deepEqual(commits(f.catalog), [], 'Restart does not approve or send');
     assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
@@ -770,7 +770,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     assert.deepEqual(commits(f.catalog)[0].operation, operation);
     assert.equal(commits(f.catalog)[0].receipt.row_count, rows.length);
     assert.deepEqual(multiset(await run.result('answer').all()), multiset(rows));
-    const repeated = await client.aql(input, {format: 'json', requestId: 'table-create-1'});
+    const repeated = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(multiset(await (await client.attach(run.ref)).result('answer').all()), multiset(rows));
     assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
@@ -823,7 +823,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
       const before = commits(f.catalog).length;
       let operation;
       try {
-        let run = await replacing.aql(input, {format: 'json', requestId});
+        let run = await replacing.startSource(input, {format: 'json', requestId});
         await waiting(run, observations, t);
         assert.equal(commits(f.catalog).length, before, 'No replacement before approval');
         const checkpoint = (await replacing.checkpoints()).items[0];
@@ -839,7 +839,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         const originalRef = run.ref;
         await replacing.close();
         replacing = await connectEmbeddedLocal(replaceOptions);
-        run = await replacing.aql(input, {format: 'json', requestId});
+        run = await replacing.startSource(input, {format: 'json', requestId});
         assert.deepEqual(run.ref, originalRef);
         assert.equal((await replacing.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
         assert.equal(commits(f.catalog).length, before, 'Restart does not send the replacement');

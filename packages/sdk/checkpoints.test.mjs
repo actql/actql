@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {createPrivateKey, generateKeyPairSync, sign, verify} from
@@ -12,7 +13,7 @@ const vectors = JSON.parse(readFileSync(new URL(
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const profile = Object.freeze({version: 'actql-client-host/0.1',
   mode: 'remote', owner: 'remote', durability: 'durable',
-  scopeRef: 'scope-a', capabilities: ['result-jsonl'],
+  scopeRef: 'scope-a', capabilities: ['result-jsonl'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}});
@@ -120,13 +121,13 @@ test('a held submit is a control result, not a failure or unknown submission',
         checkpointCid: summary.checkpointCid, kind: 'run_scope',
         expiresAt: summary.expiresAt}};
     const requests = host(t, {
-      submit: () => Response.json(held),
+      'submit-intent': body => Response.json(heldSubmission(body, held)),
       'lookup-request': () => Response.json(held),
     });
     const client = await connect(options);
     let error;
-    try { await client.aql('version: actql/0.1\n', {format: 'yaml',
-      requestId: 'saved-a'}); }
+    try { await client.startSource('version: actql/0.1\n', {format: 'yaml',
+      submissionRef: originalSubmission('saved-a')}); }
     catch (cause) { error = cause; }
     assert.equal(error instanceof RequestHeld, true);
     assert.equal(error instanceof ClientError, true);
@@ -141,11 +142,14 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.equal(Object.isFrozen(getSubmissionInput(error)), true);
     const explanation = explainSubmission(error);
     assert.deepEqual(explainSubmission(error, {locale: 'ja'}), {...explanation,
-      summary: 'Hostは保留中の要求を返しました。元の要求の現在状態を確認してください。'},
+      summary: 'Hostは要求を耐久保持し、準備はCheckpointを待っています。Run参照は返されていません。',
+      hint: '元の要求参照を保持し、認可された照会を使ってください。この観測は再送信・実行・Checkpointへの回答・資源解放を許可しません。'},
     '[check-mutation:operation-held-locale]');
     assert.deepEqual(explanation, {observation: 'request_held',
-      summary: 'The Host returned a held-request response. Look up the current request state.',
-      next: {operation: 'lookupRequest', requestId: 'saved-a',
+      preparationState: 'waiting_checkpoint', prepareAttemptId: 'prepare-a', durability: 'durable',
+      summary: 'The Host durably holds this request while preparation waits for a Checkpoint. No Run reference was returned.',
+      hint: 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.',
+      next: {operation: 'lookupSubmission', submissionRef: originalSubmission('saved-a'),
         lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope-a'}}});
     error.code = 'SubmissionUnknown';
     error.held = {kind: 'found', ref: {runDefinitionCid: cid('9')}};
@@ -154,11 +158,11 @@ test('a held submit is a control result, not a failure or unknown submission',
     assert.deepEqual(await client.lookupRequest('saved-a'), held);
     // A held reply for another request is not accepted as held.
     mock.restoreAll();
-    host(t, {submit: () => Response.json({...held, requestId: 'saved-b'})});
+    host(t, {'submit-intent': body => Response.json(heldSubmission(body, {...held, requestId: 'saved-b'}))});
     const other = await connect(options);
-    await assert.rejects(other.aql('version: actql/0.1\n', {format: 'yaml',
-      requestId: 'saved-a'}), {code: 'SubmissionUnknown'});
-    assert.equal(requests.filter(item => item.operation === 'submit').length,
+    await assert.rejects(other.startSource('version: actql/0.1\n', {format: 'yaml',
+      submissionRef: originalSubmission('saved-a')}), {code: 'SubmissionUnknown'});
+    assert.equal(requests.filter(item => item.operation === 'submit-intent').length,
       1);
   });
 

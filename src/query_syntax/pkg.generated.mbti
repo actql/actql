@@ -134,6 +134,14 @@ pub(all) struct AnalyticWindow {
   frame : AnalyticFrame?
 }
 
+pub(all) enum ArrayElementType {
+  Boolean
+  String
+  Number
+  Timestamp
+  Json
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CastType {
   Boolean
   String
@@ -180,6 +188,7 @@ pub(all) enum ExpressionKind {
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
+  ArrayConstructor(Array[Int], ArrayElementType?)
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)

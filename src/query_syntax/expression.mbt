@@ -27,10 +27,20 @@ pub(all) enum ExpressionKind {
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
+  ArrayConstructor(Array[Int], ArrayElementType?)
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
   Cast(Int, CastType)
+} derive(Eq, Debug)
+
+///|
+pub(all) enum ArrayElementType {
+  Boolean
+  String
+  Number
+  Timestamp
+  Json
 } derive(Eq, Debug)
 
 ///|
@@ -82,6 +92,7 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
   let kind = match node.kind {
     Reference(parts) => Reference(parts.copy())
     Call(parts, args) => Call(parts.copy(), args.copy())
+    ArrayConstructor(items, target) => ArrayConstructor(items.copy(), target)
     Predicate(op, args) => Predicate(op, args.copy())
     SearchedCase(branches, otherwise) =>
       SearchedCase(branches.copy(), otherwise)
@@ -113,7 +124,9 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
         pending.push(left)
         pending.push(right)
       }
-      Call(_, arguments) | Predicate(_, arguments) =>
+      Call(_, arguments)
+      | Predicate(_, arguments)
+      | ArrayConstructor(arguments, _) =>
         for argument in arguments {
           pending.push(argument)
         }
@@ -149,6 +162,8 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
       Property(child, name) => Property(remap[child], name)
       Call(path, arguments) =>
         Call(path.copy(), arguments.map(argument => remap[argument]))
+      ArrayConstructor(items, target) =>
+        ArrayConstructor(items.map(item => remap[item]), target)
       Predicate(op, arguments) =>
         Predicate(op, arguments.map(argument => remap[argument]))
       SearchedCase(branches, otherwise) =>
@@ -184,6 +199,7 @@ priv enum ExpressionFrame {
   BinaryRight(String, Int, Int, Int)
   CloseGroup(Int)
   Argument(Array[NamePart], Array[Int], Int, Int)
+  ArrayItem(Array[Int], ArrayElementType?, Int, Int)
   BetweenLower(Int, Bool, Int, Int)
   BetweenUpper(Int, Int, Bool, Int, Int)
   InItem(Int, Bool, Array[Int], Int, Int)
@@ -275,7 +291,9 @@ fn ExpressionParser::add(
     | Property(child, _) => child_depth = self.depths[child]
     Binary(_, left, right) =>
       child_depth = self.depths[left].max(self.depths[right])
-    Call(_, arguments) | Predicate(_, arguments) =>
+    Call(_, arguments)
+    | Predicate(_, arguments)
+    | ArrayConstructor(arguments, _) =>
       for child in arguments {
         child_depth = child_depth.max(self.depths[child])
       }
@@ -475,6 +493,62 @@ fn ExpressionParser::expression(
             self.peek().value is Text(_) => {
             let (value, end) = self.string_chunks(self.advance())
             result = self.add(JsonLiteral(value), t.start, end)
+          }
+          value if value == Symbol(91) || keyword(t, "ARRAY") => {
+            let mut target : ArrayElementType? = None
+            if t.value != Symbol(91) {
+              if self.peek().value == Operator("<") {
+                ignore(self.advance())
+                let name = self.advance()
+                target = Some(
+                  match name.value {
+                    Word(word) =>
+                      match upper_ascii(word) {
+                        "BOOL" | "BOOLEAN" => ArrayElementType::Boolean
+                        "STRING" => ArrayElementType::String
+                        "FLOAT64" => ArrayElementType::Number
+                        "TIMESTAMP" => ArrayElementType::Timestamp
+                        "JSON" => ArrayElementType::Json
+                        _ =>
+                          raise ExpressionAbort(
+                            "Unsupported ARRAY element type",
+                            name.start,
+                          )
+                      }
+                    _ =>
+                      raise ExpressionAbort(
+                        "Expected ARRAY element type",
+                        name.start,
+                      )
+                  },
+                )
+                let close = self.advance()
+                if close.value != Operator(">") {
+                  raise ExpressionAbort(
+                    "Expected ARRAY type closing angle bracket",
+                    close.start,
+                  )
+                }
+              }
+              let open = self.advance()
+              if open.value != Symbol(91) {
+                raise ExpressionAbort(
+                  "Expected ARRAY opening bracket",
+                  open.start,
+                )
+              }
+            }
+            if self.peek().value == Symbol(93) {
+              let close = self.advance()
+              result = self.add(
+                ArrayConstructor([], target),
+                t.start,
+                close.end,
+              )
+            } else {
+              frames.push(ArrayItem([], target, t.start, depth))
+              frames.push(Enter(1, depth + 1))
+            }
           }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
@@ -844,6 +918,21 @@ fn ExpressionParser::expression(
         } else {
           raise ExpressionAbort(
             "Expected comma or closing parenthesis",
+            token.start,
+          )
+        }
+      }
+      ArrayItem(items, target, start, depth) => {
+        items.push(result)
+        let token = self.advance()
+        if token.value == Symbol(44) {
+          frames.push(ArrayItem(items, target, start, depth))
+          frames.push(Enter(1, depth + 1))
+        } else if token.value == Symbol(93) {
+          result = self.add(ArrayConstructor(items, target), start, token.end)
+        } else {
+          raise ExpressionAbort(
+            "Expected comma or closing bracket",
             token.start,
           )
         }

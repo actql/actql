@@ -28,7 +28,7 @@ const expected = (physicalStop, controlRevision) => ({
   summary: 'External Effect outcomes are unknown. Computation stop does not establish their outcome or resource release.',
   effects: ['save', 'notify'], physicalStop,
   ...(controlRevision === undefined ? {} : {controlRevision}),
-  next: {operation: 'status', ref},
+  next: {operation: 'reconcile', ref},
 });
 
 for (const operation of ['status', 'wait', 'reconcile']) {
@@ -108,12 +108,12 @@ test('Local response reuse cannot rebind an earlier Effect explanation to anothe
     '[check-mutation:effect-custody]');
   assert.deepEqual(explainEffectUncertainty(second), {
     ...expected('unknown', 7), effects: ['other-write'],
-    next: {operation: 'status', ref: otherRef}}, '[check-mutation:effect-custody]');
+    next: {operation: 'reconcile', ref: otherRef}}, '[check-mutation:effect-custody]');
   assert.equal(first.run_id, 'run-a', '[check-mutation:effect-custody]');
   assert.equal(second.run_id, 'run-b');
 });
 
-test('typed Effect explanations separate physical stop, owner revision and read-only advice', () => {
+test('typed Effect explanations separate physical stop, owner revision and reconciliation advice', () => {
   execFileSync(process.execPath, [fileURLToPath(new URL(
     '../../node_modules/typescript/bin/tsc', import.meta.url)),
   '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext',

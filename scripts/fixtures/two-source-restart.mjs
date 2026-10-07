@@ -101,7 +101,7 @@ if (action === 'public-success') {
           .records.find(item => item.mode === mode)
         : undefined;
       const execution = previous === undefined
-        ? await client.aql(fixture.program, {format: 'json', requestId})
+        ? await client.startSource(fixture.program, {format: 'json', requestId})
         : await client.attach(previous.ref);
       assert.equal((await execution.wait({signal: AbortSignal.timeout(30_000)})).status, 'succeeded');
       const expected = expectedTwoSourceResults(fixture, 'distinct').joined;
@@ -115,7 +115,7 @@ if (action === 'public-success') {
       const before = provider.snapshot();
       const attached = await client.attach(execution.ref);
       assert.deepEqual(await attached.result('joined').all(), expected.rows);
-      const resent = await client.aql(fixture.program, {format: 'json', requestId});
+      const resent = await client.startSource(fixture.program, {format: 'json', requestId});
       assert.deepEqual(resent.ref, execution.ref);
       assert.deepEqual(provider.snapshot(), before, 'Result reuse never reacquires either source');
       records.push({mode, ref: execution.ref});
@@ -181,7 +181,7 @@ if (action === 'public-success') {
         }}});
     const client = await preflight.connect();
     try {
-      const execution = await client.aql(fixture.program, {format: 'json', requestId: 'generation-preflight'});
+      const execution = await client.startSource(fixture.program, {format: 'json', requestId: 'generation-preflight'});
       assert.equal((await execution.wait({signal: AbortSignal.timeout(30_000)})).status, 'failed');
       assert.equal(prepared, true, 'changed source generation itself admits and prepares');
       noIo();
@@ -230,7 +230,7 @@ if (action === 'public-success') {
       const attached = await client.attach(crash.ref);
       noIo();
       if (action.startsWith('recover-changed-')) {
-        await assert.rejects(client.aql(fixture.program, {format: 'json', requestId}), error => {
+        await assert.rejects(client.startSource(fixture.program, {format: 'json', requestId}), error => {
           assert.ok(['ClientRunStartDenied', 'ClientRequestIntentConflict'].includes(error.code), String(error.code));
           refusalCode = error.code;
           return true;
@@ -246,7 +246,7 @@ if (action === 'public-success') {
         assert.deepEqual(state.ref, crash.ref);
         const status = await attached.status();
         assert.ok(!['succeeded', 'failed', 'cancelled'].includes(status.status), JSON.stringify(status));
-        const resent = await client.aql(fixture.program, {format: 'json', requestId});
+        const resent = await client.startSource(fixture.program, {format: 'json', requestId});
         assert.deepEqual(resent.ref, crash.ref);
         assert.equal((await running.host.inspectAcquisition({requestId,
           principalId: userInfo().username, connection: {mode: 'remote', owner: 'remote'}})).state, 'started_unknown');
@@ -255,7 +255,7 @@ if (action === 'public-success') {
         assert.deepEqual(readTwoSourceJournal(directory), crash.journal, 'unknown start is never reset or silently reacquired');
       } else {
         assert.equal(action, 'recover-exact');
-        const resent = await client.aql(fixture.program, {format: 'json', requestId});
+        const resent = await client.startSource(fixture.program, {format: 'json', requestId});
         assert.deepEqual(resent.ref, crash.ref);
         assert.equal((await resent.wait({signal: AbortSignal.timeout(30_000)})).status, 'succeeded');
         assert.deepEqual(await resent.result('joined').all(), fixture.expected.rows);
@@ -265,7 +265,7 @@ if (action === 'public-success') {
       await report({journal: readTwoSourceJournal(directory), provider: provider.snapshot(),
         ...(refusalCode === undefined ? {} : {refusalCode}), events, faults});
     } else {
-      const execution = await client.aql(fixture.program, {format: 'json', requestId});
+      const execution = await client.startSource(fixture.program, {format: 'json', requestId});
       if (action === 'cancel-second-boundary') {
         await secondReached;
         assert.equal(provider.snapshot().sourceReadSessions, 1);
@@ -324,7 +324,7 @@ if (action === 'public-success') {
         await assert.rejects(execution.result('joined').all(), {code: 'ResultAccessDenied'});
         assert.equal((await (await client.attach(execution.ref)).status()).status, expected);
         assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
-        assert.deepEqual((await client.aql(fixture.program, {format: 'json', requestId})).ref, execution.ref);
+        assert.deepEqual((await client.startSource(fixture.program, {format: 'json', requestId})).ref, execution.ref);
         assert.deepEqual(provider.snapshot(), beforeRead);
         if (action === 'cancel-second-boundary') {
           assert.ok(provider.snapshot().sourceProviderOpens.every(database => database === installation.databases.left),

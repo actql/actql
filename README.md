@@ -122,15 +122,17 @@ import {connect} from '@actql/node';
 const client = await connect({mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('actql-state')}});
 try {
-  const execution = await client.aql(await readFile('query.aql', 'utf8'),
-    {format: 'yaml', requestId: 'customer-open-orders'});
+  const submissionRef = client.newSubmission({nonce: 'customer-open-orders'});
+  await writeFile('submission.json', JSON.stringify(submissionRef) + '\n');
+  const execution = await client.startSource(await readFile('query.aql', 'utf8'),
+    {format: 'yaml', submissionRef});
   const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
   if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));
   const rows = await execution.result('main').all();
   await writeFile('answer.jsonl', rows.map(row => JSON.stringify(row)).join('\n') + '\n');
   await writeFile('run.json', JSON.stringify(execution.ref) + '\n');
 } finally {
-  client.close();
+  await client.close();
 }
 ```
 

@@ -15,7 +15,18 @@ struct ManagedViewOutputPort[P, T] {
   verify : (P) -> ManagedViewOutputFacts?
   mut index : ManagedRowMeasurements?
   mut open : Bool
+  mut phase : ManagedViewFinishPhase
+  mut facts_cursor : ManagedOutputFactsCursor?
 }
+
+///|
+priv enum ManagedViewFinishPhase {
+  Ready
+  Verifying
+  Facts
+  Receipt
+  Complete
+} derive(Eq)
 
 ///|
 pub(all) enum ManagedViewOutputIssue {
@@ -36,7 +47,7 @@ pub fn[P, T] prepare_managed_view_output_port(
   stream : ManagedOutputValues,
   verify : (P) -> ManagedViewOutputFacts?,
 ) -> Result[ManagedViewOutputPort[P, T], ManagedViewOutputIssue] {
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   // This issuer accepts aggregate column facts, not per-row index material.
@@ -56,14 +67,22 @@ pub fn[P, T] prepare_managed_view_output_port(
   }
   // Reserve the stream against append/finish during verifier re-entry. Store
   // retention must be installed before this reservation, using the same stream.
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   if stream.row_measurements is Some(_) {
     return Err(OutputRepresentationRequired)
   }
   stream.reading = true
-  Ok({ plan, stream, verify, index: None, open: true, })
+  Ok({
+    plan,
+    stream,
+    verify,
+    index: None,
+    open: true,
+    phase: Ready,
+    facts_cursor: None,
+  })
 }
 
 ///|
@@ -77,6 +96,8 @@ pub fn[P, T] cancel_managed_view_output_port(
   port.open = false
   cancel_managed_output_values(port.stream) |> ignore
   discard_managed_view_output_index(port)
+  port.facts_cursor = None
+  port.phase = Complete
   true
 }
 
@@ -97,58 +118,115 @@ pub fn[P, T] finish_managed_view_output(
   port : ManagedViewOutputPort[P, T],
   proof : P,
 ) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue] {
-  if port.stream.active_uses != 0 {
+  if !port.open || port.stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  while true {
+    match advance_managed_view_output_finish(port, proof, 64) {
+      Err(issue) => return Err(issue)
+      Ok(poll) => if poll.receipt is Some(receipt) { return Ok(receipt) }
+    }
+  }
+  Err(Closed)
+}
+
+///|
+/// Verify once, then resume finite summary admission and the common receipt
+/// cursor. The reserved stream remains unavailable to competing issuers.
+pub fn[P, T] advance_managed_view_output_finish(
+  port : ManagedViewOutputPort[P, T],
+  proof : P,
+  quantum : Int,
+) -> Result[ManagedOutputFinishAdvance, ManagedViewOutputIssue] {
+  if quantum <= 0 || port.stream.active_uses != 0 {
     return Err(Closed)
   }
   with_managed_output_scratch_use(port.stream, fn() {
-    finish_managed_view_output_active(port, proof)
+    let result = advance_managed_view_output_finish_active(port, proof, quantum)
+    if result is Err(_) && port.phase != Verifying {
+      cancel_managed_output_values(port.stream) |> ignore
+      discard_managed_view_output_index(port)
+      port.facts_cursor = None
+      port.phase = Complete
+    }
+    result
   })
 }
 
 ///|
-fn[P, T] finish_managed_view_output_active(
+fn[P, T] advance_managed_view_output_finish_active(
   port : ManagedViewOutputPort[P, T],
   proof : P,
-) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue] {
-  if !port.open || !port.stream.open {
-    // A reentrant finish during verification is not a terminal transition.
-    if !port.stream.open {
-      discard_managed_view_output_index(port)
-    }
+  quantum : Int,
+) -> Result[ManagedOutputFinishAdvance, ManagedViewOutputIssue] {
+  let stream = port.stream
+  if !stream.open {
     return Err(Closed)
   }
-  port.open = false
-  let stream = port.stream
-  let result = managed_view_output_verify(port, proof)
-  match result {
-    Err(issue) => {
-      cancel_managed_output_values(stream) |> ignore
-      discard_managed_view_output_index(port)
-      Err(issue)
+  if !managed_producer_read_available(port.plan.input) {
+    return Err(ForeignBinding)
+  }
+  for step in 0..<quantum {
+    if !stream.open {
+      return Err(Closed)
     }
-    Ok(_) => {
-      stream.reading = false
-      match finish_managed_output_values_scoped(stream) {
-        Ok(receipt) => {
-          // Ownership was transferred to the receipt. A later cancellation
-          // of this consumed port must never clear that receipt's index.
+    match port.phase {
+      Ready => {
+        if !port.open {
+          return Err(Closed)
+        }
+        port.open = false
+        port.phase = Verifying
+        let cursor = match managed_view_output_verify(port, proof) {
+          Ok(cursor) => cursor
+          Err(issue) => {
+            port.phase = Complete
+            return Err(issue)
+          }
+        }
+        port.facts_cursor = Some(cursor)
+        port.phase = Facts
+      }
+      Verifying | Complete => return Err(Closed)
+      Facts =>
+        match
+          advance_managed_output_facts_cursor(port.facts_cursor.unwrap(), 1) {
+          Err(issue) => return Err(issue)
+          Ok((true, _)) => {
+            port.facts_cursor = None
+            port.phase = Receipt
+          }
+          Ok((false, _)) => ()
+        }
+      Receipt => {
+        if !managed_producer_read_available(port.plan.input) {
+          return Err(ForeignBinding)
+        }
+        // The enclosing scratch use prevents reentrant disposal. Keep the
+        // reservation across yields, but allow this owner to issue internally.
+        stream.reading = true
+        let poll = match
+          advance_managed_output_finish_active(stream, quantum - step) {
+          Ok(poll) => poll
+          Err(issue) => return Err(Values(issue))
+        }
+        if poll.receipt is Some(_) {
+          stream.reading = false
           port.index = None
-          Ok(receipt)
+          port.phase = Complete
         }
-        Err(issue) => {
-          discard_managed_view_output_index(port)
-          Err(Values(issue))
-        }
+        return Ok({ ..poll, steps: step + poll.steps, })
       }
     }
   }
+  Ok({ receipt: None, steps: quantum, })
 }
 
 ///|
 fn[P, T] managed_view_output_verify(
   port : ManagedViewOutputPort[P, T],
   proof : P,
-) -> Result[Unit, ManagedViewOutputIssue] {
+) -> Result[ManagedOutputFactsCursor, ManagedViewOutputIssue] {
   let stream = port.stream
   let plan = port.plan
   if !managed_producer_read_available(plan.input) {
@@ -185,7 +263,12 @@ fn[P, T] managed_view_output_verify(
       None => true
     }
   }
-  apply_managed_output_facts(stream, facts, inherited_valid, port.index)
+  prepare_managed_output_facts_cursor(
+    stream,
+    facts,
+    inherited_valid,
+    port.index,
+  )
 }
 
 ///|
@@ -198,148 +281,17 @@ fn apply_managed_output_facts(
   validate_column : (Int, ManagedColumnMeasurement) -> Bool,
   index : ManagedRowMeasurements?,
 ) -> Result[Unit, ManagedViewOutputIssue] {
-  if !stream.open ||
-    facts.rows < 0 ||
-    facts.columns.length() != @schema.field_count(stream.buffer.schema) {
-    return Err(if !stream.open { Closed } else { InconsistentFacts })
+  let cursor = match
+    prepare_managed_output_facts_cursor(stream, facts, validate_column, index) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(issue)
   }
-  let usage = facts.admission_usage
-  let limits = stream.buffer.budget.limits
-  if usage.nodes < 0 || usage.text_bytes < 0 || usage.work < 0 {
-    return Err(InconsistentFacts)
-  }
-  // Summary failure does not identify the first offending row/field. Do not
-  // fabricate its diagnostic; an ordered path is needed before publication.
-  if facts.rows > stream.max_rows ||
-    usage.nodes > limits.max_nodes ||
-    usage.text_bytes > limits.max_text_bytes ||
-    usage.work > limits.max_work {
-    return Err(OutputRepresentationRequired)
-  }
-  let budget = stream.measurement
-  let mut work = budget.work
-  let mut bytes = budget.bytes
-  let mut nodes = budget.nodes
-  let mut needs_ordered = false
-  if facts.rows > work {
-    needs_ordered = true
-  } else {
-    work -= facts.rows
-  }
-  for index, column in facts.columns {
-    if column.rows != facts.rows ||
-      column.bytes < 0 ||
-      column.nodes < 0 ||
-      column.max_value_bytes < 0 ||
-      column.null_rows < 0 ||
-      column.null_rows > facts.rows ||
-      column.admitted_depth < 0 ||
-      column.max_value_bytes > column.bytes ||
-      (facts.rows == 0 && (column.bytes != 0 || column.nodes != 0)) {
-      return Err(InconsistentFacts)
-    }
-    if !validate_column(index, column) {
-      return Err(InconsistentFacts)
-    }
-    if facts.rows > 0 &&
-      (
-        column.admitted_depth > budget.depth ||
-        column.admitted_depth > limits.max_depth
-      ) {
-      return Err(OutputRepresentationRequired)
-    }
-    if !needs_ordered {
-      if column.max_value_bytes > stream.max_value_bytes ||
-        facts.rows > work ||
-        column.bytes > bytes ||
-        column.nodes > nodes {
-        needs_ordered = true
-      } else {
-        work -= facts.rows
-        bytes -= column.bytes
-        nodes -= column.nodes
-      }
+  while true {
+    match advance_managed_output_facts_cursor(cursor, 64) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return Ok(())
+      Ok((false, _)) => ()
     }
   }
-  if !stream.open {
-    return Err(Closed)
-  }
-  if needs_ordered {
-    guard index is Some(index) else { return Err(OutputRepresentationRequired) }
-    match
-      measure_managed_output_index(
-        index,
-        facts.rows,
-        facts.columns.length(),
-        stream.max_value_bytes,
-        budget,
-      ) {
-      // Exact index and exact aggregate facts must agree. An aggregate
-      // violation followed by successful indexed measurement is corruption,
-      // never permission to publish contradictory evidence.
-      Ok(_) => return Err(InconsistentFacts)
-      Err(issue) => return Err(Values(Guard(issue)))
-    }
-  } else {
-    // The normal success path stays O(columns), even when an index is held.
-    budget.work = work
-    budget.bytes = bytes
-    budget.nodes = nodes
-  }
-  stream.buffer.budget.nodes = usage.nodes
-  stream.buffer.budget.text = usage.text_bytes
-  stream.buffer.budget.work = usage.work
-  stream.rows = facts.rows
-  stream.row_measurements = index
-  for index, column in facts.columns {
-    stream.column_usage[index] = (column.bytes, column.nodes)
-    stream.column_maxima[index] = column.max_value_bytes
-    stream.column_nulls[index] = column.null_rows
-  }
-  Ok(())
-}
-
-///|
-/// Resolve only an otherwise ambiguous rejection, using sealed exact cell
-/// measurements in the same row/column order as measure_input_values. All
-/// depth and value-validity obligations must already have been established.
-fn measure_managed_output_index(
-  index : ManagedRowMeasurements,
-  rows : Int,
-  width : Int,
-  ceiling : Int,
-  budget : FixedInputGuardBudget,
-) -> Result[Unit, FixedInputGuardIssue] {
-  if (width == 0 && index.count != 0) ||
-    (width > 0 && (index.count / width != rows || index.count % width != 0)) {
-    return Err(InvalidLayout)
-  }
-  for row in 0..<rows {
-    if budget.work <= 0 {
-      return Err(MeasurementWork)
-    }
-    budget.work -= 1
-    for column in 0..<width {
-      if budget.work <= 0 {
-        return Err(MeasurementWork)
-      }
-      budget.work -= 1
-      let (bytes, nodes, _) = managed_row_measurement_get(
-        index,
-        row * width + column,
-      ).unwrap()
-      if bytes <= 0 || nodes <= 0 {
-        return Err(InvalidLayout)
-      }
-      if bytes > budget.bytes || nodes > budget.nodes {
-        return Err(Measurement(Output, row, column, @encode.OutputLimit))
-      }
-      budget.bytes -= bytes
-      budget.nodes -= nodes
-      if bytes > ceiling {
-        return Err(ValueBytes(Output, row, column))
-      }
-    }
-  }
-  Ok(())
+  Err(Closed)
 }

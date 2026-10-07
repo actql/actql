@@ -738,6 +738,7 @@ pub fn[T] start_local_managed_dispatch(
   let finalization_ready = Ref(false)
   let finalization_cancelled = Ref(false)
   let finalization_row = Ref(0)
+  let finalization_receipt_steps = Ref(0L)
   let finalization_identity = Ref(0)
   let finalization_issuer = Ref(0)
   let finalization_established = Ref(0)
@@ -780,7 +781,8 @@ pub fn[T] start_local_managed_dispatch(
     finalization_issuer.val +
     (if finalization_completed.val is Some(_) { 1 } else { 0 }) +
     finalization_established.val +
-    finalization_deadline.val).to_int64()
+    finalization_deadline.val).to_int64() +
+    finalization_receipt_steps.val
   }
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
@@ -826,8 +828,8 @@ pub fn[T] start_local_managed_dispatch(
       input_stop,
       bridges,
       retained_imports,
-      @execution.close_managed_producer_bridge,
-      importer => @execution.cancel_completed_output_import(importer) |> ignore,
+      bridge => @execution.advance_close_managed_producer_bridge(bridge, 1),
+      importer => @execution.advance_cancel_completed_output_import(importer, 1),
     )
   }
   // These are the driver's charged scratch roots. Returned transfer handles
@@ -851,6 +853,9 @@ pub fn[T] start_local_managed_dispatch(
     // transferred to material; disposing this buffer does not revoke it.
     if finalization_values.val is Some(values) {
       @execution.dispose_managed_output_values_scratch(values)
+      if !@execution.managed_output_values_scratch_released(values) {
+        return
+      }
     }
     finalization_values.val = None
     finalization_retention.val = None
@@ -887,6 +892,7 @@ pub fn[T] start_local_managed_dispatch(
                   setup.imports.values,
                   setup.imports.wire.max_nodes,
                   setup.imports.wire.max_bytes,
+                  deferred_reclamation=true,
                 ) {
                 Ok(value) => value
                 Err(_) =>
@@ -899,7 +905,7 @@ pub fn[T] start_local_managed_dispatch(
             SuppliedRelationInput(_) => reads.push(None)
           }
         }
-        let operations : @connector.ManagedExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
         ] = {
           cancel: fn() {
@@ -1103,6 +1109,7 @@ pub fn[T] start_local_managed_dispatch(
             setup.imports.values,
             setup.imports.wire,
             setup.imports.max_batch_bytes,
+            deferred_reclamation=true,
           ) {
           Ok(value) => value
           Err(_) => return Err(Configuration(InputUnavailable))
@@ -1520,16 +1527,40 @@ pub fn[T] start_local_managed_dispatch(
           work: work.to_int64(),
         })
       }
-      if finalization_material.val is None {
+      if finalization_receipt.val is None {
         if finalization_work_remaining.val < 1 {
           return Err(Configuration(InvalidLimits))
         }
-        let receipt = match @execution.finish_managed_output_values(values) {
+        let poll = match
+          @execution.advance_managed_output_values_finish(
+            values,
+            Int::min(quantum - work, finalization_work_remaining.val),
+          ) {
           Ok(value) => value
           // The finished output exceeds its value limits: keep the cause.
           Err(issue) => return Err(ManagedValues(issue))
         }
-        finalization_receipt.val = Some(receipt)
+        finalization_work_remaining.val -= poll.steps
+        finalization_receipt_steps.val += poll.steps.to_int64()
+        work += poll.steps
+        finalization_receipt.val = poll.receipt
+        if poll.receipt is None || work == quantum {
+          return Ok({
+            complete: false,
+            waiting: false,
+            settlement: None,
+            progress: finalization_progress(),
+            work: work.to_int64(),
+          })
+        }
+      }
+      if finalization_material.val is None {
+        if finalization_work_remaining.val < 1 {
+          return Err(Configuration(InvalidLimits))
+        }
+        guard finalization_receipt.val is Some(receipt) else {
+          return Err(Configuration(InvalidLimits))
+        }
         guard finalization_payload.val is Some(payload) else {
           return Err(Configuration(InvalidLimits))
         }
@@ -2119,6 +2150,9 @@ pub fn[T] start_local_managed_dispatch(
       let receipt : Ref[@execution.CompletedOutputExportReceipt?] = Ref(None)
       let stored : Ref[@execution.CompletedOutput?] = Ref(None)
       let importing : Ref[@execution.CompletedOutputImport?] = Ref(None)
+      // Reuse the input-stop cursor for a cancelled snapshot reload. The
+      // private importer must survive its closure's cancellation callback.
+      retained_imports.push(importing)
       let restored : Ref[@execution.CompletedOutput?] = Ref(None)
       let phase = Ref(SnapshotPhase::Saving)
       let remaining = Ref(0L)
@@ -2155,7 +2189,6 @@ pub fn[T] start_local_managed_dispatch(
         stream.val = None
         receipt.val = None
         stored.val = None
-        importing.val = None
         restored.val = None
         phase.val = Failed
       })
@@ -2240,6 +2273,7 @@ pub fn[T] start_local_managed_dispatch(
                 setup.imports.values,
                 wire,
                 frames.maxFrameBytes,
+                deferred_reclamation=true,
               ) {
               Ok(result) => result
               Err(_) => return Err(Configuration(InputUnavailable))

@@ -56,7 +56,8 @@ const sdkFiles = (await readdir(join(root, 'node_modules/@actql/sdk'))).sort();
 assert.deepEqual(sdkFiles.filter(name => /\.(m?js|json)$/u.test(name)),
   ['check-presentation.mjs', 'check-reason-catalog.generated.js', 'checkpoints.mjs',
     'host-port.mjs', 'index.mjs', 'json-value-wire.generated.mjs',
-    'operation-formats.mjs', 'operation-presentation.mjs', 'package.json']);
+    'operation-formats.mjs', 'operation-presentation.mjs', 'package.json',
+    'result-schema.mjs', 'source-query.mjs']);
 
 async function heldValueAcceptance() {
   for (const name of ['adapters/host-node/held-submission-value-public.test.mjs',
@@ -272,7 +273,7 @@ const submitOptions = acquired ? {parameters: {minimum: 1}} : {};
 async function held() {
   const owner = await as('owner-token');
   try {
-    await owner.aql(text, {format: 'json', requestId, ...submitOptions});
+    await owner.startSource(text, {format: 'json', requestId, ...submitOptions});
   } catch (error) {
     assert.equal(error instanceof RequestHeld, true, String(error?.code));
     assert.equal(error.code, 'RequestHeld');
@@ -316,7 +317,7 @@ async function finished(id = requestId) {
 const steps = {
   async allowed() {
     const owner = await as('owner-token');
-    const execution = await owner.aql(text, {format: 'json', requestId});
+    const execution = await owner.startSource(text, {format: 'json', requestId});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), expected);
     assert.deepEqual((await (await as('reviewer-token')).checkpoints())
@@ -324,7 +325,7 @@ const steps = {
   },
   async refused() {
     const owner = await as('owner-token');
-    await assert.rejects(owner.aql(text, {format: 'json', requestId}),
+    await assert.rejects(owner.startSource(text, {format: 'json', requestId}),
       {code: process.env.CODE});
     assert.deepEqual(await owner.lookupRequest(requestId),
       {kind: 'not_found'});
@@ -445,7 +446,7 @@ const steps = {
   // Host's resumed authorization may start.
   async resubmitted() {
     const owner = await as('owner-token');
-    const execution = await owner.aql(text, {format: 'json', requestId});
+    const execution = await owner.startSource(text, {format: 'json', requestId});
     let state;
     for (let attempt = 0; attempt < 400; attempt++) {
       state = await execution.wait();

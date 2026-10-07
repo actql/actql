@@ -2009,8 +2009,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             report("release-recovered", [("request_cid", identity)])
           }
         }
+        // Recovery commits through a separate journal Owner. The pre-recovery
+        // view has already restored this dispatch and cannot admit its newer
+        // cleanup revision. Report only from a new exact durable view, as the
+        // cancellation recovery path does; do not relax reconstruction.
+        guard fresh_journal(environment) is Some(current) else {
+          report("release-failed", [("reason", "journal")])
+          ignore(journal.close())
+          continue
+        }
         match
-          @client.acknowledge_status(journal, client, observation_url, request) {
+          @client.acknowledge_status(current, client, observation_url, request) {
           Ok(_) =>
             report("release-observed", [
               ("request_cid", @remote.dispatch_request_identity(request)),
@@ -2018,6 +2027,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Err(issue) =>
             report("release-failed", [("reason", client_code(issue))])
         }
+        ignore(current.close())
       }
       Ok(Some(@remote.RetainedPlan(input))) => {
         backoff_ms = 0
@@ -4203,6 +4213,14 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("consumer-attempt", required=true),
         @argparse.OptionArg("expect-consumer-dispatch", required=true),
       ]),
+      @argparse.Command("recover-cancelled-receiver", options=[
+        @argparse.OptionArg("producer-attempt", required=true),
+        @argparse.OptionArg("expect-producer-dispatch", required=true),
+        @argparse.OptionArg("consumer-attempt", required=true),
+        @argparse.OptionArg("expect-consumer-dispatch", required=true),
+        @argparse.OptionArg("recovery-materials-root", required=true),
+        @argparse.OptionArg("publication-custody-root", required=true),
+      ]),
       @argparse.Command("recover-source-output", options=[
         @argparse.OptionArg("producer-attempt", required=true),
         @argparse.OptionArg("expect-producer-dispatch", required=true),
@@ -4236,6 +4254,8 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
+    Some(("recover-cancelled-receiver", child)) =>
+      recover_retained_input_command(matches, child, cancelled_receiver=true)
     Some(("recover-source-output", child)) =>
       recover_retained_input_command(matches, child, source_output=true)
     Some(("recover-release", child)) => recover_release_command(matches, child)

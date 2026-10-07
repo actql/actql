@@ -1,10 +1,11 @@
 // Rebuild-time assembly only. Concrete module references come from manifests
 // owned by connector packages; the common Host has no provider imports.
-import {readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync} from 'node:fs';
+import {readFileSync, existsSync, writeFileSync, mkdirSync, lstatSync, realpathSync} from 'node:fs';
 import {dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
+import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 // The same reserved names the typed exchange refuses at run time.
 import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
 
@@ -19,13 +20,17 @@ const selectedFamilies = options.selectedFamilies ??
 if (!['selected', 'static'].includes(loading)) throw new Error('Invalid module loading profile');
 if (![assembly, bridgePackage].every(value => /^[a-z][a-z0-9_]*$/.test(value)) ||
     !/^[a-z][a-z0-9_-]*$/.test(adapter)) throw new Error('Invalid bridge output');
+const selected = connectorManifestSelection(root, {names: options.names});
+for (const entry of selected) {
+  if (entry.node !== undefined && entry.compute === undefined) {
+    throw new Error(`Node strategy requires its Compute manifest: ${entry.name}`);
+  }
+}
 checkComputeAssembly(root, write, {names:options.names, directory:assembly});
 const output = join(root, 'adapters', adapter, 'strategy.generated.mjs');
 const entries = [];
-for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
-  if (options.names && !options.names.includes(name)) continue;
-  const path = join(root, 'src/connectors', name, 'node-bundle.json');
-  if (!existsSync(path)) continue;
+for (const {name, node: path, compute: computePath} of selected) {
+  if (path === undefined) continue;
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
   if (Object.keys(manifest).join() !== 'strategy' ||
       Object.keys(manifest.strategy).sort().join() !== 'export,module') {
@@ -40,19 +45,14 @@ for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
       !/^[A-Za-z_]\w*$/.test(entry.export) || !existsSync(join(root, entry.module))) {
     throw new Error(`Invalid strategy contribution: ${path}`);
   }
-  const compute = JSON.parse(readFileSync(join(root, 'src/connectors', name, 'compute-bundle.json'), 'utf8'));
+  const compute = JSON.parse(readFileSync(computePath, 'utf8'));
   entries.push({name, module: relative(dirname(output), join(root, entry.module)), symbol: entry.export, compute});
 }
 // Only the standard installed Node Host binds installed sources; other
 // compositions (RelA, Workers) have no installation table.
 const withInstallations = options.installations ?? adapter === 'connectors-builtin';
-const installations = [];
-for (const name of withInstallations ? readdirSync(join(root, 'src/connectors')).sort() : []) {
-  if (options.names && !options.names.includes(name)) continue;
-  const path = join(root, 'src/connectors', name, 'host-bundle.json');
-  if (!existsSync(path)) continue;
-  installations.push(checkHostBundle(root, name, path));
-}
+const installations = withInstallations
+  ? readHostBundles(root, {names: options.names}) : [];
 const installationOutput = join(root, 'adapters', adapter, 'installations.generated.mjs');
 const installationSource = withInstallations
   ? generateInstallations(installations, installationOutput, root) : undefined;
@@ -354,14 +354,14 @@ return entries.length;
 }
 
 // Installed Host bindings. A connector that the standard Host can install
-// as a source declares, in its own `host-bundle.json`, the Host profile
+// for Source and/or Effect declares, in its own `host-bundle.json`, the Host profile
 // version it answers to, the module exporting its installation entries, its
 // registration/revision, its compiled provider bundle and the response
 // header names its drivers read. The common Host selects one entry by the
 // installed profile's version; it never branches on a provider name.
 const hostBundleKeys = ['installation'];
-const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision', 'source'];
-const optionalInstallationKeys = ['effect'];
+const installationKeys = ['providerBundle', 'registration', 'responseHeaders', 'revision'];
+const optionalInstallationKeys = ['assets', 'effect', 'source'];
 const sourceKeys = ['exports', 'module', 'profileVersion'];
 // An Effect section may register the identity profile of its durable Effect
 // records: the version of each identity the common installed row Effect
@@ -389,7 +389,8 @@ export function checkHostBundle(root, name, path) {
       declaredKeys.some(key => !installationKeys.includes(key) && !optionalInstallationKeys.includes(key))) {
     throw invalid('keys');
   }
-  const {registration, revision, providerBundle, responseHeaders, source, effect} = manifest.installation;
+  const {registration, revision, providerBundle, responseHeaders, source, effect, assets = []} = manifest.installation;
+  if (source === undefined && effect === undefined) throw invalid('Host roles');
   if (registration !== name || !/^[a-z][a-z0-9_]*$/.test(name)) throw invalid('registration');
   if (typeof revision !== 'string' || !new RegExp(`^${name}/\\d+\\.\\d+$`).test(revision)) throw invalid('revision');
   if (typeof providerBundle !== 'string' ||
@@ -437,15 +438,39 @@ export function checkHostBundle(root, name, path) {
     return {profileVersion: section.profileVersion, module: section.module, exports: {...section.exports},
       ...(identityProfile === undefined || label !== 'effect' ? {} : {identityProfile: {...identityProfile}})};
   };
-  const checkedSource = checkSection(source, 'source');
+  // Only connector-owned static declarations are copied as data. Resolve
+  // their actual location as well as their spelling before packaging.
+  const prefix = `src/connectors/${name}/`;
+  const connectorDirectory = join(root, prefix);
+  if (!lstatSync(connectorDirectory).isDirectory() ||
+      realpathSync(connectorDirectory) !== resolve(realpathSync(root), prefix) ||
+      !Array.isArray(assets) || new Set(assets).size !== assets.length ||
+      assets.some(asset => typeof asset !== 'string' || !asset.startsWith(prefix) ||
+        !asset.endsWith('.json') || asset.includes('\\') ||
+        asset.split('/').some(part => !part || part === '.' || part === '..') ||
+        !existsSync(join(root, asset)) || !lstatSync(join(root, asset)).isFile() ||
+        !realpathSync(join(root, asset)).startsWith(realpathSync(connectorDirectory) + '/'))) {
+    throw invalid('assets');
+  }
+  const checkedSource = source === undefined ? undefined : checkSection(source, 'source');
   const checkedEffect = effect === undefined ? undefined : checkSection(effect, 'effect');
-  if (checkedEffect?.profileVersion === checkedSource.profileVersion) throw invalid('effect profileVersion');
-  return {name, registration, revision, providerBundle, responseHeaders: [...responseHeaders],
-    source: checkedSource, ...(checkedEffect === undefined ? {} : {effect: checkedEffect})};
+  if (checkedEffect !== undefined && checkedEffect.profileVersion === checkedSource?.profileVersion) throw invalid('effect profileVersion');
+  return {name, registration, revision, providerBundle, responseHeaders: [...responseHeaders], assets: [...assets],
+    ...(checkedSource === undefined ? {} : {source: checkedSource}),
+    ...(checkedEffect === undefined ? {} : {effect: checkedEffect})};
+}
+
+// Generation and distribution read exactly the same checked declarations.
+// Selecting installed Host contributions does not require Compute support.
+export function readHostBundles(root, {names} = {}) {
+  return connectorManifestSelection(root, {names})
+    .filter(entry => entry.host !== undefined)
+    .map(entry => checkHostBundle(root, entry.name, entry.host));
 }
 
 export function generateInstallations(installations, output, root) {
-  const versions = installations.map(entry => entry.source.profileVersion);
+  const versions = installations.filter(entry => entry.source !== undefined)
+    .map(entry => entry.source.profileVersion);
   if (new Set(versions).size !== versions.length) throw new Error('Duplicate installed source profile version');
   const effectVersions = installations.filter(entry => entry.effect !== undefined)
     .map(entry => entry.effect.profileVersion);
@@ -473,7 +498,7 @@ export function generateInstallations(installations, output, root) {
         `    revision: ${literal(entry.revision)},\n` +
         `    providerBundle: ${literal(entry.providerBundle)},\n` +
         `    responseHeaders: Object.freeze(${literal(entry.responseHeaders)}),\n` +
-        section(entry.source, 'source') +
+        (entry.source === undefined ? '' : section(entry.source, 'source')) +
         (entry.effect === undefined ? '' : section(entry.effect, 'effect')) +
         `  }),\n`).join('') +
     ']);\n';

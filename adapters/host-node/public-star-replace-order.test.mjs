@@ -58,7 +58,7 @@ for (const item of [
       [item.projections[1], '`x`'], [item.projections[2], '`x`']];
     for (const [index, [projection, order]] of cases.entries()) {
       const text = `${source}SELECT ${projection} FROM t GROUP BY y ORDER BY ${order}`;
-      const run = await client.aql(text, {format: 'sql', requestId: `case-${index}`, ...input});
+      const run = await client.startSource(text, {format: 'sql', requestId: `case-${index}`, ...input});
       const state = await run.wait({signal: AbortSignal.timeout(15_000)});
       assert.equal(state.status, 'succeeded', text + ': ' + JSON.stringify(state));
       const result = run.result('answer');

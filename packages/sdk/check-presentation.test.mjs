@@ -44,7 +44,8 @@ test('packed SDK public exports and browser bundle include their presentation mo
     }
   `]);
   for (const name of ['check-presentation.mjs', 'operation-presentation.mjs',
-    'operation-formats.mjs', 'json-value-wire.generated.mjs',
+    'operation-formats.mjs', 'json-value-wire.generated.mjs', 'connection-string.mjs',
+    'loopback-http.mjs', 'loopback-http-unavailable.mjs',
     'check-reason-catalog.generated.js', 'check-reason-catalog.generated.d.ts']) {
     assert.equal(packages[1].files.filter(file => file.path === name).length, 1);
   }
@@ -59,10 +60,14 @@ test('packed SDK public exports and browser bundle include their presentation mo
     'node_modules/@actql/sdk/check-presentation.mjs',
     'node_modules/@actql/sdk/check-reason-catalog.generated.js',
     'node_modules/@actql/sdk/checkpoints.mjs',
+    'node_modules/@actql/sdk/connection-string.mjs',
     'node_modules/@actql/sdk/index.mjs',
     'node_modules/@actql/sdk/json-value-wire.generated.mjs',
+    'node_modules/@actql/sdk/loopback-http-unavailable.mjs',
     'node_modules/@actql/sdk/operation-formats.mjs',
     'node_modules/@actql/sdk/operation-presentation.mjs',
+    'node_modules/@actql/sdk/result-schema.mjs',
+    'node_modules/@actql/sdk/source-query.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
 });
@@ -83,10 +88,14 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/check-presentation.mjs',
     'packages/sdk/check-reason-catalog.generated.js',
     'packages/sdk/checkpoints.mjs',
+    'packages/sdk/connection-string.mjs',
     'packages/sdk/index.mjs',
     'packages/sdk/json-value-wire.generated.mjs',
+    'packages/sdk/loopback-http-unavailable.mjs',
     'packages/sdk/operation-formats.mjs',
     'packages/sdk/operation-presentation.mjs',
+    'packages/sdk/result-schema.mjs',
+    'packages/sdk/source-query.mjs',
   ]);
   assert(Object.values(bundle.metafile.outputs).every(output => output.imports.length === 0));
   const sdk = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].contents).toString('base64')}`);

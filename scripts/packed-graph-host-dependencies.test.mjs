@@ -85,3 +85,100 @@ test('fixed-hop node predicate source controls are copied and included in normal
   assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].node_where.gt[1].literal, 10);
   assert.equal(controls[1].stages[0].steps[4].traverse.hops[1].node_where.eq[1].literal, 2);
 });
+
+test('any-direction Graph controls are staged and exercised in normal and focused acceptance', async () => {
+  const {graphAnyDirectionSuccesses: successes, graphAnyDirectionRefusals: refusals,
+    graphAnyDirectionExecutionFailures: failures, graphAnyDirectionOverCeiling: overCeiling}
+    = await import('./fixtures/graph-any-direction-source-input.mjs');
+  assert.equal(successes.length, 12);
+  assert.equal(refusals.length, 7);
+  assert.equal(failures.length, 1);
+  assert.equal(new Set([...successes, ...refusals, ...failures].map(item => item.name)).size, 20);
+  assert.equal(overCeiling.results.matched.rows.length, 20);
+  assert.equal(failures[0].text, overCeiling.text);
+  assert.deepEqual(failures[0].parameters, overCeiling.parameters);
+  // A lower bound from the declared JSON identity fields alone: domain CID,
+  // element definition, object keys and number key type. No product meter.
+  const identityText = 71 + 1 + 'definitiondomainkeykey_typeskindnumber'.length;
+  const identityOccurrences = 3 + 6 * 5 + 13 * 7;
+  assert.ok(identityText * identityOccurrences > 10000);
+  for (const [mode, depths] of [
+    ['walk', [0, 1, 1, 2, 2, 2, 2]], ['trail', [0, 1, 1, 2, 2]], ['acyclic', [0]],
+  ]) {
+    const bounded = successes.find(item => item.name === 'graph-any-direction-bounded-' + mode);
+    assert.deepEqual(bounded.results.matched.rows, depths.map(depth => ({depth})));
+    assert.deepEqual(bounded.parameters.edges,
+      [{key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1}]);
+  }
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  assert.ok(driver.includes("['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs']"));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ANY_DIRECTION_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphAnyDirectionSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAnyDirectionRefusals)'));
+  assert.ok(consumer.includes('scopeInputs.executionFailures.push(...graphAnyDirectionExecutionFailures)'));
+  const scopeOnly = /const scopeOnly = ([^\n]+);/u.exec(consumer)?.[1];
+  assert.ok(scopeOnly?.split(/\s+\|\|\s+/u).includes('graphAnyDirectionOnly'));
+  const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
+  assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].direction, 'both');
+  assert.equal(controls[1].stages[0].steps[4].traverse.direction, 'both');
+  assert.equal(controls[1].stages[0].steps[4].traverse.path_mode, 'trail');
+});
+
+test('abbreviated edge controls preserve unfiltered keyed multiplicity and normal acceptance', async () => {
+  const {graphAbbreviatedSuccesses: successes, graphAbbreviatedRefusals: refusals}
+    = await import('./fixtures/graph-abbreviated-edge-source-input.mjs');
+  assert.equal(successes.length, 17);
+  assert.equal(refusals.length, 8);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 25);
+  for (const [direction, count] of [['out', 4], ['in', 2], ['both', 5]]) {
+    const control = successes.find(item => item.name === 'graph-abbreviated-json-' + direction);
+    const program = JSON.parse(control.text);
+    const hop = program.stages[0].steps[5].traverse.hops[0];
+    assert.deepEqual(hop, {direction});
+    assert.deepEqual(program.stages[0].steps[3].graph.edges.map(edge => edge.labels[0].name), ['R', 'S']);
+    assert.deepEqual(control.results.matched.rows, Array.from({length: count}, () => ({depth: 1})));
+    for (const form of [direction, 'full-' + direction]) {
+      assert.deepEqual(successes.find(item => item.name === 'graph-abbreviated-' + form).results,
+        control.results);
+    }
+  }
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  assert.ok(driver.includes("['scripts/fixtures/graph-abbreviated-edge-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']"));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ABBREVIATED_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphAbbreviatedSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAbbreviatedRefusals)'));
+  assert.ok(consumer.includes('graphAbbreviatedOnly ? {successes: graphAbbreviatedSuccesses, refusals: graphAbbreviatedRefusals}'));
+});
+
+test('finite quantifier source and JSON controls retain exact bounds and transitive staging', async () => {
+  const {graphQuantifierFormsSuccesses: successes, graphQuantifierFormsRefusals: refusals}
+    = await import('./fixtures/graph-quantifier-forms-source-input.mjs');
+  assert.equal(successes.length, 11);
+  assert.equal(refusals.length, 9);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 20);
+  const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
+  assert.deepEqual(controls.map(item => {
+    const t = item.stages[0].steps[5].traverse;
+    return [t.min_hops, t.max_hops, t.path_mode];
+  }), [[2, 2, 'walk'], [0, 2, 'walk']]);
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-fixed-trail').results.matched.rows,
+    [{depth: 2}, {depth: 2}]);
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-fixed-acyclic-empty').results.matched,
+    {rows: [], columns: [{name: 'depth', contract: {type: 'number', nullable: false}}]});
+  assert.deepEqual(successes.find(item => item.name === 'graph-quantifier-full-label-fixed').results.matched.rows,
+    [{depth: 2}]);
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  for (const name of ['graph-quantifier-forms-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs']) {
+    assert.ok(driver.includes(`['scripts/fixtures/${name}', '${name}']`));
+  }
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_QUANTIFIER_FORMS_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphQuantifierFormsSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphQuantifierFormsRefusals)'));
+  assert.ok(consumer.includes('graphQuantifierFormsOnly ? {successes: graphQuantifierFormsSuccesses, refusals: graphQuantifierFormsRefusals}'));
+});

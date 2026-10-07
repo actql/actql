@@ -9,6 +9,43 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'short query drops its existing Run observation explanation', path: 'packages/sdk/index.mjs',
+    file: 'adapters/host-node/client-short-query-observation-failure.test.mjs',
+    from: '    if (failure) runObservationFailures.set(error, failure);',
+    to: '    if (failure) void error;',
+    targets: ['local', 'https'].flatMap(entrance => ['sql', 'aql'].map(language => target(
+      `${entrance}/${language}: short query observation failure preserves the original published Run without retry`,
+      'query-run-public', 'deepStrictEqual')))},
+  {name: 'short query changes the original lookup into a submit candidate', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/source-query-observation-failure.test.mjs',
+    from: '    if (failure) runObservationFailures.set(error, failure);',
+    to: "    if (failure) runObservationFailures.set(error, {...failure, next: {operation: 'submit'}});",
+    targets: ['sql', 'aql'].flatMap(language => ['observation_unavailable', 'unknown_state', 'contract_mismatch', 'malformed_response'].map(problem => target(
+      `${language}: short query retains ${problem} Run observation without retry`, 'query-run-failure', 'deepStrictEqual')))},
+  {name: 'short query loses its original submission input', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/source-query-observation-failure.test.mjs',
+    from: '    retainQueryResult(execution, error);', to: '    void execution;',
+    targets: [target('short query valid failed state retains input without claiming failed observation',
+      'query-failure-input', 'deepStrictEqual')]},
+  {name: 'Run observation display drops the original lookup target', path,
+    file: 'adapters/host-node/client-run-observation-unavailable.test.mjs',
+    from: '  const presentation = getOperationPresentationInfo({locale});',
+    to: "  if (domain === 'observation') delete snapshot.next;\n  const presentation = getOperationPresentationInfo({locale});",
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: unavailable Run observations preserve publication and original lookup`, 'run-format-public', 'deepStrictEqual'))},
+  {name: 'Run observation display copies gain custody', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/run-observation-formats.test.mjs',
+    from: "formatOperationExplanation(explainRunObservationFailure(error), 'observation', options)",
+    to: "formatOperationExplanation(explainRunObservationFailure(error) ?? error, 'observation', options)",
+    targets: ['status', 'wait', 'reconcile'].map(operation => target(
+      `${operation}: Run failure formats preserve original classification and lookup without I/O`, 'run-format-custody'))},
+  {name: 'Run observation display rewrites failure classification', path,
+    file: 'packages/sdk/run-observation-formats.test.mjs',
+    from: "const classification = domain === 'observation' ? facts.kind : facts.observation;",
+    to: "const classification = domain === 'observation' ? 'success' : facts.observation;",
+    targets: ['status', 'wait', 'reconcile'].map(operation => target(
+      `${operation}: Run failure formats preserve original classification and lookup without I/O`, 'run-format-kind'))},
+
   {name: 'original lookup facts dropped for display', path, file: unit,
     from: '  const presentation = getOperationPresentationInfo({locale});',
     to: '  delete snapshot.next;\n  const presentation = getOperationPresentationInfo({locale});',

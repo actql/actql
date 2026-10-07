@@ -8,6 +8,7 @@ import {registerManagedInput, withManagedInputFiles} from
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
+import {finishManagedOutputReceipt} from './managed-output-finish.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
   managedColumnTransferEstimate,
   managedColumnRowProvider} from './managed-column-codec.mjs';
@@ -220,7 +221,8 @@ export async function runManagedColumnStrategyHostCompute(
         });
         if (!preservesCheckedValues) {
           if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
-          checked(moon.managedStrategyOutputFinish(run, output));
+          await finishManagedOutputReceipt(quantum => checked(
+            moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
         }
         return fields;
       }, signal, accounting, [
@@ -244,7 +246,8 @@ export async function runManagedColumnStrategyHostCompute(
     if (preservesCheckedValues) {
       const selection = checked(moon.managedStrategySelection(run, occurrences));
       output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
-      checked(moon.managedStrategyOutputFinish(run, output));
+      await finishManagedOutputReceipt(quantum => checked(
+        moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
     }
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));

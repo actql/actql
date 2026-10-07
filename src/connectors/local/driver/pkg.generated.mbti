@@ -114,6 +114,7 @@ pub struct LocalDispatchOperations {
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
   close : () -> Unit
+  cleanup_refresh : () -> Bool
 }
 
 pub(all) enum LocalEstimateIssue {

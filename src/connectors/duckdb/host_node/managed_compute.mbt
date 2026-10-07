@@ -507,6 +507,17 @@ pub fn managed_strategy_output_finish(
   run : ManagedComputeNodeRun,
   output : ManagedNodeOutput,
 ) -> Unit raise NodeHostFailure {
+  require_managed_strategy_output_binding(run, output)
+  managed_output_finish(output)
+  guard output.receipt is Some(receipt) else { raise InvalidCommand }
+  run.receipt.val = Some(receipt)
+}
+
+///|
+fn require_managed_strategy_output_binding(
+  run : ManagedComputeNodeRun,
+  output : ManagedNodeOutput,
+) -> Unit raise NodeHostFailure {
   guard !run.closed &&
     output.strategy_allocation is Some((graph, execution, _)) &&
     physical_equal(graph, @duckdb_driver.captured_managed_duckdb_run(run.task)) &&
@@ -516,9 +527,22 @@ pub fn managed_strategy_output_finish(
     ) else {
     raise InvalidCommand
   }
-  managed_output_finish(output)
-  guard output.receipt is Some(receipt) else { raise InvalidCommand }
-  run.receipt.val = Some(receipt)
+}
+
+///|
+#export_name("managedStrategyOutputAdvanceFinish")
+pub fn managed_strategy_output_advance_finish(
+  run : ManagedComputeNodeRun,
+  output : ManagedNodeOutput,
+  quantum : Int,
+) -> (Bool, Int) raise NodeHostFailure {
+  require_managed_strategy_output_binding(run, output)
+  let poll = managed_output_advance_finish(output, quantum)
+  if poll.0 {
+    guard output.receipt is Some(receipt) else { raise InvalidCommand }
+    run.receipt.val = Some(receipt)
+  }
+  poll
 }
 
 ///|
@@ -637,10 +661,7 @@ pub fn managed_strategy_refresh_retention(run : ManagedComputeNodeRun) -> Unit {
 pub fn managed_strategy_cleanup_refresh(
   run : ManagedComputeNodeRun,
 ) -> Result[Bool, @resources.LedgerIssue] {
-  @strategy.refresh_task_execution_cleanup(
-    @duckdb_driver.captured_managed_duckdb_run(run.task),
-    @duckdb_driver.captured_managed_duckdb_execution(run.task),
-  )
+  @duckdb_driver.refresh_captured_managed_duckdb_cleanup(run.task)
 }
 
 ///|

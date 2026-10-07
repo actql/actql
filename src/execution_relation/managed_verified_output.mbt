@@ -27,7 +27,7 @@ pub fn[P] prepare_managed_verified_output_port(
   stream : ManagedOutputValues,
   verify : (P) -> ManagedViewOutputFacts?,
 ) -> Result[ManagedVerifiedOutputPort[P], ManagedVerifiedOutputIssue] {
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   if stream.row_measurements is Some(_) {

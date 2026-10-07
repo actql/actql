@@ -2,14 +2,16 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 export const hash = value => createHash('sha256').update(value).digest('hex');
+export const snapshotDirectories = Object.freeze(['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline']);
+export const snapshotFiles = Object.freeze(['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md']);
 function files(path) {
   return readdirSync(path, { withFileTypes: true }).flatMap(e => e.isDirectory()
     ? files(join(path, e.name)) : e.isFile() ? [join(path, e.name)] : []);
 }
 export function snapshot(root) {
-  const paths = ['src', 'vendor', 'proofs/bounded-session', 'proofs/relation-chain', 'proofs/relation-capacity', 'proofs/relation-pipeline']
+  const paths = snapshotDirectories
     .flatMap(p => files(join(root, p)))
-    .concat(['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'toolchain.json', 'moon.mod', 'package.json', 'package-lock.json', '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'].map(p => join(root, p)))
+    .concat(snapshotFiles.map(p => join(root, p)))
     .filter(p => relative(root, p) !== 'src/query_integration/relation_pipeline_batch_wbtest.mbt').sort();
   const sources = Object.fromEntries(paths.map(p => [relative(root, p), hash(readFileSync(p))]));
   return { sources, digest: hash(JSON.stringify(sources)) };
