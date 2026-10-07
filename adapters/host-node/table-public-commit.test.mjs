@@ -115,23 +115,27 @@ test('Table public lost commit reply reconciles the original Run without another
   // The configured optional Python executable runs the product worker. Only
   // the real Catalog's post-commit hook is faulted; no receipt is fabricated.
   await writeFile(launcher, `#!${python}
-import os, runpy, sys
+import os, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(sys.argv[1]).parent))
-import catalog
+from process_worker import serve
 root = Path(__file__).parent
-class LostReplyCatalog(catalog.TableCatalog):
-    def write_claimed(self, *args, **kwargs):
-        with (root / "writes.log").open("a") as stream:
-            stream.write("write\\n")
-        return super().write_claimed(*args, **kwargs)
-    def after_publication(self):
-        marker = root / "lost-reply"
-        if not marker.exists():
-            marker.write_text("committed")
-            os._exit(9)
-catalog.TableCatalog = LostReplyCatalog
-runpy.run_path(sys.argv[1], run_name="__main__")
+def factory(*args):
+    # Match the product worker: optional heavy libraries load after handshake.
+    from catalog import TableCatalog
+    class LostReplyCatalog(TableCatalog):
+        def write_claimed(self, *args, **kwargs):
+            with (root / "writes.log").open("a") as stream:
+                stream.write("write\\n")
+            return super().write_claimed(*args, **kwargs)
+        def after_publication(self):
+            marker = root / "lost-reply"
+            if not marker.exists():
+                marker.write_text("committed")
+                os._exit(9)
+    return LostReplyCatalog(*args)
+with os.fdopen(3, "r+b", buffering=0) as channel:
+    serve(channel, factory)
 `, {mode: 0o700});
   const effectProfilePath = join(f.root, 'table-effect.json');
   const profile = {version: 'actql-installed-table-effect/0.1',
@@ -167,6 +171,13 @@ runpy.run_path(sys.argv[1], run_name="__main__")
       sign: bytes => sign(null, bytes, keys.privateKey)}});
     assert.equal((await terminal(run, observations, t)).status, 'needs_reconciliation');
     const original = commits(f.catalog);
+    if (original.length !== 1) {
+      const read = name => readFile(join(f.root, name), 'utf8')
+        .catch(error => ({unavailable: error.code}));
+      t.diagnostic(inspect({phase: 'fault-not-reached', state: await run.status(),
+        commits: original, writes: await read('writes.log'),
+        fault: await read('lost-reply'), observations}, {depth: 10}));
+    }
     assert.equal(original.length, 1, 'Catalog actually committed before reply loss');
     assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\n');
     t.diagnostic(JSON.stringify({phase: 'committed-reply-lost', ref: run.ref,
