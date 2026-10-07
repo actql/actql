@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync, writeFileSync, mkdirSync, existsSync, unlinkSync} from 'node:fs';
 import {join} from 'node:path';
-import {spawnSync} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {root, environment, toolchain} from '../../execute.mjs';
 import {snapshot, hash} from '../../inventory.mjs';
 import {artifacts} from '../../../bounded-session/evidence.mjs';
@@ -15,10 +15,12 @@ const git = args => {
 assert.equal(git(['status', '--porcelain']), '', 'Requires clean submitted HEAD');
 const revision = git(['rev-parse', 'HEAD']), source = snapshot(root), read = p => readFileSync(join(root,p));
 const runtime = checkNativeRuntime(environment.MOON_HOME, toolchain);
-const originals = Object.fromEntries(retirementPaths.map(p => [p,read(p)]));
 const {overlay, boundary, buildIdentity} = retirementOverlay(read,source);
 const temporary = [retirementHelper, retirementStub, retirementFixture];
 assert(temporary.every(p => !existsSync(join(root,p))), 'Foreign observation overlay');
+const changedPaths = Object.keys(overlay).filter(p => !temporary.includes(p));
+assert(retirementPaths.every(p => changedPaths.includes(p)));
+const originals = Object.fromEntries(changedPaths.map(p => [p,read(p)]));
 const directory = '.artifacts/relation-pipeline/driver-retirement-native';
 mkdirSync(join(root,directory), {recursive:true});
 function archive(bytes, group, extension = '') {
@@ -28,15 +30,34 @@ function archive(bytes, group, extension = '') {
   assert.equal(hash(read(path)),hash(bytes)); return path;
 }
 let log, exit, executedSource, binaries;
+async function executeFixture() {
+  const child = spawn(process.execPath,['--input-type=module','-e',
+    `import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',['--target','native','${retirementFixture}','--deny-warn'],{cwd:process.cwd()});`],
+    {cwd:root,env:environment,stdio:['ignore','pipe','pipe']});
+  let text = '', exceeded = false, interrupted = false;
+  const capture = bytes => {
+    if (text.length + bytes.length > 32*1024*1024) { exceeded = true; child.kill('SIGTERM'); }
+    else text += bytes.toString();
+  };
+  child.stdout.on('data',capture); child.stderr.on('data',capture);
+  const terminate = () => { interrupted = true; child.kill('SIGTERM'); };
+  // The bounded guard signals the process group. Keep this producer alive long
+  // enough to restore owned source after the compiler terminates.
+  process.once('SIGTERM',terminate);
+  try {
+    const status = await new Promise((resolve,reject) => {
+      child.once('error',reject); child.once('close',code => resolve(code));
+    });
+    return {text,status,exceeded,interrupted};
+  } finally { process.removeListener('SIGTERM',terminate); }
+}
 try {
   for (const p of temporary) writeFileSync(join(root,p),overlay[p],{flag:'wx'});
-  for (const p of retirementPaths) writeFileSync(join(root,p),overlay[p]);
+  for (const p of changedPaths) writeFileSync(join(root,p),overlay[p]);
   executedSource = snapshot(root);
-  const r = spawnSync(process.execPath,['--input-type=module','-e',
-    `import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode=runFocusedTests('moon',['--target','native','${retirementFixture}','--deny-warn'],{cwd:process.cwd()});`],
-    {cwd:root,env:environment,encoding:'utf8',maxBuffer:32*1024*1024});
-  const text = (r.stdout ?? '')+(r.stderr ?? '');
+  const r = await executeFixture(), text = r.text;
   log = {path:archive(Buffer.from(text),'logs','.log'),digest:hash(text)};
+  assert(!r.interrupted && !r.exceeded, `Interrupted/incomplete Native fixture; ${log.path}`);
   assert.equal(r.status,0,`Focused Native Host fixture failed; ${log.path}\n${text}`);
   exit = r.status;
   binaries = Object.fromEntries(Object.entries(artifacts(root,'native','query_integration')).filter(([p])=>p.endsWith('/query_integration.whitebox_test.exe')).map(([p,digest]) =>
@@ -60,6 +81,6 @@ for (const change of negativeChanges) {
   const bad = structuredClone(receipt); change(bad);
   assert.throws(()=>acceptDriverRetirement(bad,{root,revision,runtime,read}),'Negative original substitution accepted');
 }
-const final = {...accepted,originalPath,consumerNegativeCases:negativeChanges.length};
+const final = {...accepted,originalPath,originalReceiptDigest:hash(read(originalPath)),consumerNegativeCases:negativeChanges.length};
 const acceptedPath = archive(Buffer.from(JSON.stringify(final,null,2)+'\n'),'accepted','.json');
 console.log(JSON.stringify({originalPath,acceptedPath,...final},null,2));

@@ -27,7 +27,8 @@ export function acceptDriverRetirement(receipt, {root, revision, runtime, read})
   const text = log.toString();
   assert.deepEqual(text.split('\n').filter(l => l.startsWith('ACTQL_DRIVER_BUILD:')), ['ACTQL_DRIVER_BUILD:'+buildIdentity]);
   const execution = parseTestExecution('moon', text);
-  assert(execution.success && execution.counts.passed === 1 && execution.counts.failed === 0 && execution.counts.skipped === 0);
+  assert(execution.success && execution.counts.tests === 1 && execution.counts.passed === 1 && execution.counts.failed === 0);
+  assert.equal(execution.counts.skipped,null, 'Pinned Moon summary does not report skipped cases');
   const binaries = Object.entries(receipt.binaries);
   assert.equal(binaries.length, 1, 'Expected one actual Native whitebox executable');
   for (const [path, binary] of binaries) {
@@ -38,6 +39,6 @@ export function acceptDriverRetirement(receipt, {root, revision, runtime, read})
     assert(bytes.includes(Buffer.from('ACTQL_DRIVER_BUILD:'+buildIdentity, 'utf16le')), 'Binary not built from this observation overlay');
   }
   return {version: 'actql-native-driver-retirement-acceptance/0.1', revision, sourceDigest: source.digest,
-    originalReceiptDigest: hash(JSON.stringify(receipt)), execution: execution.counts,
+    receiptValueDigest: hash(JSON.stringify(receipt)), execution: execution.counts,
     observation: inspectDriverRetirement(text), reuseAuthorized: false};
 }

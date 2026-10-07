@@ -5,6 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {checkDriverRetirementSource, driverPath, strategyPath} from './driver-retirement-source.mjs';
 import {retirementOverlay} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
+import {snapshot,hash} from '../../inventory.mjs';
+import {omitUnselectedTests} from './driver-retirement-compilation.mjs';
 const root = fileURLToPath(new URL('../../../../',import.meta.url));
 const read = p => readFileSync(root+p);
 const changed = (path, from, to) => {
@@ -14,7 +16,9 @@ const changed = (path, from, to) => {
 };
 test('current driver/common owner source and additive Native overlay are admitted', () => {
   assert.equal(checkDriverRetirementSource(read).clearsProviderAfterCleanupSuccess,true);
-  const {overlay} = retirementOverlay(read,{digest:'a'.repeat(64)});
+  const {overlay,boundary} = retirementOverlay(read,snapshot(root));
+  assert(boundary.compilation.omittedTests > 0);
+  assert.equal(boundary.compilation.repositoryTestsRemoved,false);
   assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, 0, 3\)\)/);
   assert.equal((overlay[driverPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
     (read(driverPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
@@ -26,6 +30,26 @@ test('current driver/common owner source and additive Native overlay are admitte
   assert.equal((overlay[host].match(/assert_(?:true|eq)\(/g)??[]).length,
     (read(host).toString().match(/assert_(?:true|eq)\(/g)??[]).length);
 });
+
+test('local compilation preserves helpers and ignores braces in literals, interpolation and comments',()=>{
+  const helper = 'fn helper() { assert_eq("}", "}") }\n';
+  const first = 'test "omit { name }" { let x = "\\{if true { "}" } else { "{" }}"\n /* { /* } */ } */\n let y = \'{\'\n // }\n helper() }';
+  const second = 'test {\n  let raw =\n    #|{ "test": "}" }\n  helper()\n}';
+  const after = '\nfn last() { helper() }\n';
+  const input = helper+first+'\n'+second+after;
+  const result = omitUnselectedTests(input);
+  assert.equal(result.omitted.length,2);
+  assert(result.text.startsWith(helper)); assert(result.text.endsWith(after));
+  assert.deepEqual(result.omitted.map(r=>r.digest),[hash(first),hash(second)]);
+  for (let i=0;i<input.length;i++) {
+    if (!result.omitted.some(r=>i>=r.begin&&i<r.end) || /[\r\n]/.test(input[i])) assert.equal(result.text[i],input[i]);
+  }
+});
+for (const source of ['test "bad" {', 'test fn x() {}', 'fn x() { "unterminated }', 'test { /* never ends }', 'test {\n $|\\{x}\n}', '#[ignore]\ntest { }']) {
+  test('compilation refuses ambiguous input '+JSON.stringify(source),()=>{
+    assert.throws(()=>omitUnselectedTests(source));
+  });
+}
 for (const [name,path,from,to] of [
   ['ignore cleanup error',driverPath,'!@local.cleanup_managed_provider(active).unwrap_or(false)','false'],
   ['ignore physical stop',driverPath,'!@local.managed_provider_stopped(active) ||','false ||'],

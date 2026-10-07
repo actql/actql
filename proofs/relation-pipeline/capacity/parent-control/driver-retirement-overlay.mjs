@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {hash} from '../../inventory.mjs';
 import {blockAfter,checkDriverRetirementSource,driverPath} from './driver-retirement-source.mjs';
+import {retirementCompilation} from './driver-retirement-compilation.mjs';
 export const retirementHelper='src/connectors/local/driver/driver_retirement_native.mbt';
 export const retirementStub='src/connectors/local/driver/driver_retirement_stub.c';
 export const retirementFixture='src/query_integration/driver_retirement_native_wbtest.mbt';
@@ -33,8 +34,9 @@ export function retirementOverlay(read,source) {
   // The generated fixture is selected only on Native; no other backend gains
   // a declaration referencing the Native-only borrowed observer.
   overlay['src/query_integration/moon.pkg']=once(read('src/query_integration/moon.pkg').toString(), 'options(\n', 'options(\n  targets: {"driver_retirement_native_wbtest.mbt": ["native"]},\n');
+  const compilation = retirementCompilation(read,source,overlay);
   const boundary={sourceDigest:source.digest,target:'native',command:['moon','test','--target','native',retirementFixture,'--deny-warn'],
-    observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
+    compilation,observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
   const buildIdentity=hash(JSON.stringify(boundary));
   overlay[retirementFixture]=once(overlay[retirementFixture],'  for variant','  println("ACTQL_DRIVER_BUILD:'+buildIdentity+'")\n  for variant');
   return {overlay,boundary,buildIdentity};
