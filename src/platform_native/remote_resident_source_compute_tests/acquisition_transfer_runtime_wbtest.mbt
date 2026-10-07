@@ -23,6 +23,7 @@ fn acquisition_runtime_transfer_consumer(
   consumer_task? : Int = 1,
   chain_context? : RetainedNativeChainContext? = None,
   cancel_consumer_before_start? : Bool = false,
+  consumer_output_unavailable? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
@@ -587,9 +588,11 @@ fn acquisition_runtime_transfer_consumer(
         None
       },
       chain_context~,
+      output_unavailable=consumer_output_unavailable,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
-    if chain_context is Some(_) {
+    if chain_context is Some(_) ||
+      (!cancel_consumer_before_start && !consumer_output_unavailable) {
       // Durable file handoff or confirmed pre-start cancellation already
       // reclaimed this receiver through its existing Owner.
       assert_false(transfer.reclaim().unwrap())

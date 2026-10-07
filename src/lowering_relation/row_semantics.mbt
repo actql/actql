@@ -36,6 +36,15 @@ pub fn projection_fields(
 }
 
 ///|
+/// Indexed immutable view for bounded consumers; no projection-array copy.
+pub fn projection_field_at(
+  view : PreparedProjection,
+  index : Int,
+) -> @relation.ProjectionField? {
+  @relation.projection_field_at(view.checked, index)
+}
+
+///|
 pub fn preparation_input_projection(
   prepared : Prepared,
   index : Int,
@@ -201,6 +210,17 @@ pub fn kernel_unpivot_outputs(kernel : PreparedKernel) -> (String, String)? {
 ///|
 pub fn kernel_is_projection(kernel : PreparedKernel) -> Bool {
   kernel.body is Select(_)
+}
+
+///|
+/// The exact lowered projection includes checked rename/drop consumers as
+/// well as Select. Do not rediscover its kind from the author's spelling.
+pub fn kernel_projection(kernel : PreparedKernel) -> PreparedProjection? {
+  if kernel.body is Select(_) {
+    Some({ checked: kernel.checked, })
+  } else {
+    None
+  }
 }
 
 ///|

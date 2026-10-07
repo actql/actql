@@ -26,6 +26,7 @@ This document owns capture, admission, run-identity-model, checkpoint-invariants
 - [Run states and transitions](#run-states)
 - [Checkpoints and Resolutions](#checkpoints)
 - [Effect preview, approval, and application](#effect-application)
+- [Catalog-backed Table actions](#table-actions)
 - [Account authorization routing](#policy-routing)
 - [Logical request and item recovery](#logical-request)
 - [Preview renewal and template authorization](#approval-renewal)
@@ -1644,13 +1645,24 @@ CID({
 For `update`, `upsert`, and `delete`, `target_row_identity` is the validated
 target primary-key value. For `command` the item key binds Command semantics,
 target ResourceRef identity and canonical payload CID, not the target alone.
-For `create` and relation-valued
+For `create` and row-oriented relation-valued
 `store`, preview rows are first ordered by `content_cid`; their identity is
 `{content_cid, occurrence}`, where `content_cid` is the CID
 of `{version: "actql-effect-content-row/0.1", value: after}` and `occurrence`
 is the zero-based count among canonical-content-identical rows. This makes batch
 order and idempotency independent of provider enumeration without collapsing
 intentional duplicate rows.
+
+Catalog-backed Table create/replace is a whole-Relation `store` profile, not
+row-oriented store: it occupies exactly one Preview item even for empty typed
+input. The item correlation is the sealed Table request CID string and
+`intended_changes.value` is the complete sealed operation. `count` and
+`max_items` are both 1, and `approval` is `required`. Before/after row states are
+`not_applicable`. Replace's version guard is its expected immutable generation;
+create has a `not_applicable` guard and still checks name absence atomically at
+commit. The existing Preview and item-key preimages govern this slot; no input
+row is synthesized. The whole-Relation Table contract is defined in
+[Catalog-backed Table Effects](../design/table-materialization.md).
 
 <!-- requirement-block: effect-application.two-conforming-implementations-must-produce-the-same-row-key-for -->
 `effect_identity_cid` binds the local Unit Definition CID and local Invocation,
@@ -1669,7 +1681,7 @@ view, local Invocation, and live local Result Artifact owner. A matching CID
 string without those owners is not an apply permit.
 Physical Run identity is excluded. Recovery across workers or physical
 attempts reuses logical request scope and the original ledger Preview/key.
-Create/store rows use only `{content_cid, occurrence}` as row identity;
+Create/row-oriented store rows use only `{content_cid, occurrence}` as row identity;
 there is no second ordinal identity. Two conforming
 implementations MUST produce the same row key for the same canonical preview.
 
@@ -2306,3 +2318,67 @@ and coverage evidence without changing ordinary join or inference failures.
 ../../spec/contracts/actql-stage-contracts.json#/schemas/commit_eligibility sha256:9d90efc4c81d15691e3c26d4a10a7252ff04c781a88afc387a69cdd22869d967
 ```
 <!-- stage-contract-pins:end -->
+
+<a id="table-actions"></a>
+
+## Catalog-backed Table actions
+
+These provider envelopes define one Relation-wide operation, not record-oriented
+create/update or per-row receipt semantics. Contract admission alone establishes
+neither checked Program execution nor a physical writer installation.
+
+<!-- requirement-block: table-actions.binding -->
+A Table operation MUST bind the original logical request scope and checked
+Effect identity, installed Catalog and namespace/name, action, expected Table
+UUID/generation, captured input Artifact and logical Relation, complete schema,
+storage mapping and data policy. Repeated operations remain distinct even when
+their target and content are equal.
+
+<!-- requirement-block: table-actions.create-precondition table-actions.replace-precondition -->
+Catalog create MUST publish only under a name-absent precondition; whole-table
+replace MUST preserve Table UUID and schema CID and publish only against the
+approved exact expected generation. Conflicts are typed failures, not automatic
+rebase, renewed approval or replacement against another head.
+
+<!-- requirement-block: table-actions.publication -->
+Success MUST require durable Catalog publication and an immutable original
+operation commit record retained separately from current head. The record and
+head publication are atomic, and identify the request and exact published
+Iceberg metadata generation. Empty typed Tables remain valid with zero rows and
+a nullable data snapshot ID. Staging or HTTP admission is not success.
+
+<!-- requirement-block: table-actions.governance -->
+Table staging and publication MUST use the existing approval, current authority,
+durable dispatch and Effect reconciliation owners. An uncertain operation is
+not resent; recovery uses the original recorded request and operation evidence,
+including after process restart or a later unrelated commit. Row item keys and
+row-level write decomposition are not used for bulk Table actions.
+
+<!-- requirement-block: table-actions.presence -->
+Storage MUST preserve logical types, duplicate rows, column order and
+Required/Conditional separately from nullable. Conditional value/presence fields
+are bound by Iceberg field IDs: false/NULL restores omission, true/NULL restores
+present NULL and true/value restores a value. Missing or NULL companions,
+false/value, missing value fields, changed field-ID/type mappings and logical
+type/nullability violations are rejected before default projection. Unsupported
+types are refused before Table writes; sample rows and empty data do not infer
+schema or presence.
+
+<!-- requirement-block: table-actions.custody -->
+Cleanup MUST retain potentially published files and reservations while commit
+is unknown. Authoritative noncommit evidence is required for reclaiming exactly
+owned staged files; cleanup failure retains responsibility until retry confirms
+release. An absent lookup or different current head does not prove noncommit.
+
+<!-- requirement-block: table-actions.lifetime -->
+Table reads MUST bind an immutable generation, independent of later replace.
+Table data and original commit evidence outlive the originating Run's release
+and Named Result TTL. Finite storage limits include retained generations,
+metadata, presence, staging and uncertain operations; exhaustion rejects new
+commit without deleting live or uncertain data. Initial automatic old-generation
+GC and external writers are unsupported.
+
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json# sha256:8d682a4829f35589e7c1f6baf95fe8952d7deb5fdd6a2446155971c8f4adebe4 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/operation sha256:10b0ef06b14951fb148c84efac69ae2841cd607b8b81f94863cd30169f9f650a -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/receipt sha256:9cd3c006109871d974554e9916b774246ba3dfdb687889e3c2993976eabdb259 -->
+<!-- machine-import: ../../spec/contracts/actql-table-effect.json#/schemas/storage_mapping sha256:32df7edd7b5ee065d2540d0b225e7acd4ff5a23bf47bcbb22346aa83dfbd2384 -->

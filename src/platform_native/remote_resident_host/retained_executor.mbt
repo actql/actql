@@ -61,15 +61,19 @@ pub fn install_resident_retained_compute_executor(
     !@remote.remote_input_binding_matches_dispatch(binding, dispatch) {
     return Err(Source(ForeignInput))
   }
-  let output_storage = configuration.source.retained_output_root.map(root => {
-    () => {
-      @retained_file.begin_native_retained_task_file(
-        root,
-        @remote.dispatch_request_identity(dispatch)[7:].to_owned(),
-        output_limits.max_retained_bytes,
-      ).map_err(_ => "retained-output-storage")
-    }
-  })
+  // A completed consumer must retain its exact output independently of the
+  // process-local Compute owner. Reuse the same physical file/custody path as
+  // the producer; never reacquire input to reconstruct a lost completion.
+  guard configuration.source.retained_output_root is Some(output_root) else {
+    return Err(Source(UnsupportedSource))
+  }
+  let output_storage = () => {
+    @retained_file.begin_native_retained_task_file(
+      output_root,
+      @remote.dispatch_request_identity(dispatch)[7:].to_owned(),
+      output_limits.max_retained_bytes,
+    ).map_err(_ => "consumer-output-storage")
+  }
   let factory = match
     @output.register_native_remote_standard_dispatch_run_factory(
       dispatch,
@@ -91,20 +95,14 @@ pub fn install_resident_retained_compute_executor(
         }
         // The independent file must be durably handed off before retiring the
         // Compute/input owner. A pending cleanup remains owned by the output.
-        // The in-memory profile retains its original output lifetime.
         Ok(
           @output.prepare_native_remote_standard_captured_run_owner(
             consumer.compute,
-            () => {
-              consumer.close() &&
-              (match (output_storage, release_retired_input) {
-                (Some(_), Some(release)) => release()
-                _ => true
-              })
-            },
+            () => consumer.close(),
             () => true,
-            output_storage~,
-            retire_run_after_file_handoff=output_storage is Some(_),
+            output_storage=Some(output_storage),
+            retire_run_after_file_handoff=release_retired_input is Some(_),
+            retired_input_cleanup=release_retired_input,
           ),
         )
       },

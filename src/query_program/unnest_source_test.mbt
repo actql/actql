@@ -44,6 +44,9 @@ test "UNNEST source matches a complete independent checked Program" {
   )
   for
     text in [
+      "SELECT * FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position",
+      "SELECT * FROM UNNEST((@items)) AS element WITH OFFSET AS position ORDER BY position",
+      "FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT * |> ORDER BY position",
       "SELECT element, position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position",
       "SELECT ALL element element, position position FROM UNNEST(@items) AS element WITH OFFSET AS position ORDER BY position",
       "FROM UNNEST(@items) AS element WITH OFFSET AS position |> SELECT element, position |> ORDER BY position",
@@ -107,7 +110,7 @@ test "UNNEST source does not expose its witness or synthesize value-table star s
       (
         "SELECT element FROM UNNEST(@items) AS element WITH OFFSET AS ELEMENT", "collision",
       ),
-      ("SELECT * FROM UNNEST(@items) AS element", "projection"),
+      ("SELECT element.* FROM UNNEST(@items) AS element", "qualifier"),
     ] {
     let result = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
@@ -123,10 +126,61 @@ test "UNNEST source does not expose its witness or synthesize value-table star s
         (Err(Expression(diagnostic)), "column") =>
           diagnostic.issue is @expression.UnknownReference
         (Err(DuplicateOutput), "collision") => true
-        (Err(UnsupportedProjection), "projection") => true
+        (Err(UnknownColumn), "qualifier") => true
         _ => false
       },
       msg=text,
     )
+  }
+}
+
+///|
+test "UNNEST scalar star is decided by the declared element type on empty input" {
+  for
+    (element_type, accepted) in [
+      ("{\"type\":\"boolean\",\"nullable\":true}", true),
+      ("{\"type\":\"string\",\"nullable\":true}", true),
+      ("{\"type\":\"object\",\"fields\":{\"id\":{\"type\":\"number\"}}}", false),
+    ] {
+    let declarations = @parameters.read_declarations(
+      Some(
+        unnest_value_cursor(
+          "{\"items\":{\"type\":\"array\",\"max_items\":3,\"items\":" +
+          element_type +
+          "}}",
+        ),
+      ),
+      {
+        max_parameters: 10,
+        max_nodes: 1000,
+        max_depth: 100,
+        max_text_bytes: 10000,
+      },
+    ).unwrap()
+    let result = compile(
+      @query.parse_query(
+        "SELECT * FROM UNNEST(@items) element",
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..fixture_context(),
+        inputs: [],
+        parameter_declarations: Some(declarations),
+      },
+      construction_limits(),
+    )
+    if accepted {
+      assert_true(
+        @check.check_parsed(
+          result.unwrap(),
+          check_environment(),
+          Some(unnest_value_cursor("{\"items\":[]}")),
+          check_limits(),
+        )
+        is Checked(_),
+      )
+    } else {
+      assert_true(result is Err(UnsupportedProjection))
+    }
   }
 }

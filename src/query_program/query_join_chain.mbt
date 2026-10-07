@@ -8,20 +8,34 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP and star projections consume the complete joined row. The
-// projection-only specialization cannot supply that scope or HAVING values.
+// GROUP, star and DISTINCT projections need the shared joined-row scope.
+// DISTINCT ORDER expressions resolve after materialization, using evaluated
+// output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
+  let mut has_full = false
   for index in 0..<@query.join_part_count(query) {
-    if @query.join_part_at(query, index).unwrap().kind == "right" {
+    let part = @query.join_part_at(query, index).unwrap()
+    let kind = part.kind
+    if kind == "right" {
       return true
+    }
+    if kind == "full" {
+      if !part.using_columns.is_empty() {
+        return true
+      }
+      has_full = true
     }
   }
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
       return true
     }
-    if @query.operation_at(query, index) is Some(Select(projections, _)) &&
-      projections.any(projection => projection.star is Some(_)) {
+    if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
+      (
+        projections.any(projection => projection.star is Some(_)) ||
+        // FULL ON retains its existing projection specialization.
+        (distinct && !has_full)
+      ) {
       return true
     }
   }
@@ -159,11 +173,6 @@ fn compile_join_chain_steps(
   }
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
-    // FULL still requires the common stable-row identity/coalescence path.
-    // Do not replace it with a left join or invent row identities here.
-    if part.kind == "full" {
-      raise Abort(UnsupportedJoin)
-    }
     let right = inputs[index + 1]
     let right_fields = columns(right.0)
     let qualifier = part.source_alias.unwrap_or(part.relation.last().unwrap())
@@ -197,7 +206,7 @@ fn compile_join_chain_steps(
     let right_side = if reversed { "left." } else { "right." }
     let projected : Array[(String, @builder.Node)] = []
     // Qualified references keep both USING columns. Only the unqualified
-    // visible row coalesces that key for the supported INNER/LEFT profiles.
+    // visible row merges that key according to the join kind.
     if index == 0 {
       for (field, slot) in visible {
         projected.push((slot, construction.text(left_side + field)))
@@ -226,6 +235,7 @@ fn compile_join_chain_steps(
         next_visible.push((field, slot))
       }
     }
+    let coalesced : Array[(String, @builder.Node)] = []
     if !part.using_columns.is_empty() {
       // USING keys lead the visible row in authored order. Qualified ranges
       // retain both originals; RIGHT uses its preserved right key unqualified.
@@ -251,7 +261,33 @@ fn compile_join_chain_steps(
         let display = next_visible.filter(entry => {
             same_name(name, { value: entry.0, quoted: false, })
           })[0].0
-        merged.push((display, slot))
+        let merged_slot = if part.kind == "full" {
+          guard pipe_slot([name], right_range, []) is Some(right_slot) else {
+            raise Abort(AmbiguousColumn)
+          }
+          let merged_slot = pipe_physical_name(physical, "aql_chain_column_")
+          physical.push(merged_slot)
+          coalesced.push(
+            (
+              merged_slot,
+              construction.object([
+                (
+                  "coalesce",
+                  construction.array([
+                    construction.object([("field", construction.text(slot))]),
+                    construction.object([
+                      ("field", construction.text(right_slot)),
+                    ]),
+                  ]),
+                ),
+              ]),
+            ),
+          )
+          merged_slot
+        } else {
+          slot
+        }
+        merged.push((display, merged_slot))
       }
       next_visible = merged +
         next_visible.filter(entry => {
@@ -305,6 +341,21 @@ fn compile_join_chain_steps(
       ]),
     )
     from = joined
+    if !coalesced.is_empty() {
+      // Coalescing changes only the unqualified current row. The original
+      // qualified keys remain carried, with typing and evidence checked by
+      // the common operation owners.
+      let merged = pipe_physical_name(reserved, "aql_chain_merged_")
+      reserved.push(merged)
+      steps.push(
+        construction.object([
+          ("from", construction.text(from)),
+          ("derive", construction.object(coalesced)),
+          ("as", construction.text(merged)),
+        ]),
+      )
+      from = merged
+    }
     scope = {
       visible: next_visible,
       ranges: (if index == 0 {
@@ -362,33 +413,37 @@ fn compile_join_chain_stage_body(
   let declarations : Array[(String, @builder.Node)] = []
   let inputs : Array[(Input, String)] = []
   let reserved : Array[String] = []
+  let seeds : Array[@builder.Node] = []
   for index in 0..<selected.length() {
     let input = selected[index]
-    guard input.source is StageResult(stage, result) else {
-      raise Abort(UnsupportedJoin)
-    }
     let name = "aql_chain_input_" + index.to_string()
     reserved.push(name)
-    declarations.push(
-      (
-        name,
-        construction.object([
+    match input.source {
+      StageResult(stage, result) =>
+        declarations.push(
           (
-            "result",
+            name,
             construction.object([
-              ("stage", construction.text(stage)),
-              ("result", construction.text(result)),
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(stage)),
+                  ("result", construction.text(result)),
+                ]),
+              ),
             ]),
           ),
-        ]),
-      ),
-    )
+        )
+      GeneratedValues(source) =>
+        seeds.push(import_script_seed(construction, source, name))
+      _ => raise Abort(UnsupportedJoin)
+    }
     inputs.push((input, name))
   }
   let (steps, output, from) = compile_join_chain_steps(
     construction, query, inputs, limits, reserved, retained,
   )
-  (steps, output, declarations, from)
+  (seeds + steps, output, declarations, from)
 }
 
 ///|

@@ -140,13 +140,19 @@ test "native retained file handoff preserves output while original cleanup waits
   file.append(output_export.finish().unwrap()).unwrap()
   file.seal("sha256:" + @sha.hex(b"[{\"id\":3}]"), 10).unwrap()
   let attempts = Ref(0)
+  let retirements = Ref(0)
   let allow_cleanup = Ref(false)
+  let allow_retirement = Ref(false)
   let owner : NativeRemoteStandardOutputOwner = {
     output_export: Some(output_export),
     release_run: retain_standard_output_cleanup(Some(file), () => true),
     handoff_cleanup: Some(() => {
       attempts.val += 1
       allow_cleanup.val && release_run()
+    }),
+    retired_input_cleanup: Some(() => {
+      retirements.val += 1
+      closes.val == 1 && allow_retirement.val
     }),
     handoff_committed: false,
     retained_file: Some(file),
@@ -159,6 +165,7 @@ test "native retained file handoff preserves output while original cleanup waits
   )
   assert_eq(attempts.val, 0)
   assert_eq(closes.val, 0)
+  assert_eq(retirements.val, 0)
   owner.confirm_file_handoff()
   assert_eq(attempts.val, 1)
   assert_eq(closes.val, 0)
@@ -174,14 +181,61 @@ test "native retained file handoff preserves output while original cleanup waits
   assert_true(reader.next(100).unwrap().eof)
   reader.finish().unwrap()
   allow_cleanup.val = true
-  assert_true(owner.open_manifest_reader() is Ok(_))
+  assert_true(
+    owner.open_manifest_reader() is Err("output-input-cleanup-pending"),
+  )
   assert_eq(attempts.val, 3)
   assert_eq(closes.val, 1)
+  assert_eq(retirements.val, 1)
   assert_eq(captures.val, 1)
   assert_true(owner.handoff_cleanup is None)
+  assert_true(owner.retired_input_cleanup is Some(_))
+  assert_false(owner.release())
+  assert_false(owner.released)
+  assert_true(owner.retired_input_cleanup is Some(_))
+  assert_eq(retirements.val, 2)
+  allow_retirement.val = true
   assert_true(owner.release())
   assert_true(owner.release())
+  assert_eq(retirements.val, 3)
+  assert_true(owner.retired_input_cleanup is None)
   assert_eq(attempts.val, 3)
+  assert_true(file.release_confirmed())
+}
+
+///|
+test "native retained file abandonment does not retire an uncommitted input" {
+  let (output_export, _, release_run, captures, closes) = retained_output_acquired_fixture()
+  let file = @retained_file.begin_native_retained_task_file(
+    retained_output_test_root(),
+    "handoff-uncommitted-" + @env.now().to_string(),
+    1000L,
+  ).unwrap()
+  while output_export.next().unwrap() is Some(text) {
+    file.append(text).unwrap()
+  }
+  file.append(output_export.finish().unwrap()).unwrap()
+  file.seal("sha256:" + @sha.hex(b"[{\"id\":3}]"), 10).unwrap()
+  let retirements = Ref(0)
+  let owner : NativeRemoteStandardOutputOwner = {
+    output_export: Some(output_export),
+    release_run: retain_standard_output_cleanup(Some(file), () => true),
+    handoff_cleanup: Some(release_run),
+    retired_input_cleanup: Some(() => {
+      retirements.val += 1
+      false
+    }),
+    handoff_committed: false,
+    retained_file: Some(file),
+    chunk_byte_lengths: [10L],
+    export_cancelled: false,
+    released: false,
+  }
+  assert_true(owner.release())
+  assert_true(owner.release())
+  assert_eq(retirements.val, 0)
+  assert_eq(captures.val, 1)
+  assert_eq(closes.val, 1)
   assert_true(file.release_confirmed())
 }
 

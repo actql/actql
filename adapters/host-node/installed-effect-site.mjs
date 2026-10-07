@@ -3,7 +3,7 @@
 // the common Effect application, receipt, publication and recovery order stays
 // here. The Host's durable Run-start and Checkpoint owners remain external.
 import {completeCapturedEffectRun, completeRecoveredEffectRun,
-  completeInterruptedEffectRun} from
+  completeInterruptedEffectRun, settleRefusedEffectRun} from
   './entry.mjs';
 import {releaseCompletedRunPreparedPayloads,
   suspendCompletedEffectfulComputation} from
@@ -15,7 +15,8 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {isEffectApplyPreflightRejection} from './effect-run-apply.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {isEffectCaptureRecoveryRefusal} from './effect-run-recovery.mjs';
-import {isEffectTargetReadRefusal} from './effect-target-read-continuation.mjs';
+import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from
+  './effect-target-read-continuation.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -47,22 +48,28 @@ function effectUnitId(facts) {
   return unit;
 }
 
-function continuation(facts, stage) {
+function continuation(facts, stage, settlementOnly = false) {
   let provider;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
+  let targetBinding = facts.targetReads?.captureBinding();
+  if (settlementOnly && facts.continuation?.target_read_binding !== undefined) {
+    // This authenticated historical binding identifies the original capture.
+    // Observing that capture does not reopen its target-read authorization.
+    targetBinding = facts.continuation.target_read_binding;
+    assertEffectTargetReadBinding(targetBinding);
+  }
   return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
     unit_id: effectUnitId(facts),
     preview_cid: facts.control.effectComputationPreviewSemanticCid(
       stage.preview),
-    ...(facts.targetReads === undefined ? {} : {
-      target_read_binding: facts.targetReads.captureBinding()}),
+    ...(targetBinding === undefined ? {} : {target_read_binding: targetBinding}),
     provider}, {dataKeys: true});
 }
 
-function checkContinuation(facts, stage) {
-  const expected = continuation(facts, stage);
+function checkContinuation(facts, stage, settlementOnly = false) {
+  const expected = continuation(facts, stage, settlementOnly);
   if (canonicalValueJson(facts.continuation, {dataKeys: true}) !== expected) {
     fail('InstalledEffectContinuationMismatch');
   }
@@ -114,14 +121,16 @@ function noEffectRowWasSent(options) {
   return receipt.members.every(member => member.rowOwners.every(owner => {
     const entry = apply.ledger.currentAdmitted(
       control.logicalItemLocatorCid(owner.claim.locator));
-    return entry !== undefined && control.ledgerEntryStateCode(entry) === 0;
+    // The physical owner records a dispatch claim before invoking a provider.
+    // An absent head and a Prepared intent are both unattempted states.
+    return entry === undefined || control.ledgerEntryStateCode(entry) === 0;
   }));
 }
 
 function terminalPreSendRefusal(error, options) {
-  return error instanceof ExecutionAuthorizationError &&
+  return (error instanceof ExecutionAuthorizationError &&
       error.authorization?.action === 'deny' ||
-    (isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error) ||
+    isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error) ||
       isEffectTargetReadRefusal(error)) &&
       noEffectRowWasSent(options);
 }
@@ -401,7 +410,7 @@ export function createInstalledEffectSite({environmentWire,
         catch (error) {
           try { result = await completeInterruptedEffectRun(options, false); }
           catch (completionError) {
-            if (completionError?.code === 'EffectRunNoUncertainSend') {
+            if (completionError?.code === 'EffectRunNoAttemptedSend') {
               if (terminalPreSendRefusal(error, options)) {
                 releaseMode = 'retire';
                 return Object.freeze({status: 'failed_without_effect_dispatch'});
@@ -465,7 +474,9 @@ export function createInstalledEffectSite({environmentWire,
           preview: recovered.computation.preview}));
       checkContinuationBinding(facts, recovered.computation);
       const claimed = checkpointJournal.claimResume(view.runId, {
-        claimant, leaseMs, binding: checkpointBinding});
+        claimant, leaseMs, binding: checkpointBinding,
+        expectedCheckpointCid: view.checkpointCid,
+        settleEffectRevalidation: true});
       if (claimed.action === 'invalidated') {
         // The journal has durably failed this Run before any Effect send.
         // Transfer the recovered capture's cleanup before reporting that
@@ -476,10 +487,11 @@ export function createInstalledEffectSite({environmentWire,
         // failed; the Checkpoint journal already owns the failed Run state.
         return Object.freeze({status: 'failed'});
       }
-      if (claimed.action !== 'claimed') return claimed;
+      const settling = claimed.action === 'settlement';
+      if (claimed.action !== 'claimed' && !settling) return claimed;
       let stage;
       try {
-        if (facts.prepareTargetReads !== undefined) {
+        if (!settling && facts.prepareTargetReads !== undefined) {
           const targetReads = await facts.prepareTargetReads(claimed);
           if (targetReads !== undefined) {
             custody.retainAuthorization(targetReads);
@@ -492,9 +504,9 @@ export function createInstalledEffectSite({environmentWire,
           recovered,
           retainRecoveryOwner: owner => custody.attachPhysical(owner)}));
       } catch (error) {
-        if (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
+        if (!settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
             error instanceof ExecutionAuthorizationError &&
-              error.authorization?.action === 'deny') {
+              error.authorization?.action === 'deny')) {
           const refused = checkpointJournal.refuseUnsentEffectResume(
             view.checkpointCid, ref.runDefinitionCid);
           if (refused.outcome === 'failed') releaseMode = 'retire';
@@ -523,7 +535,7 @@ export function createInstalledEffectSite({environmentWire,
           stage.receipt.commonMoon !== facts.moon) {
         fail('InvalidInstalledEffectRecovery');
       }
-      checkContinuation(facts, stage);
+      checkContinuation(facts, stage, settling);
       const cleanupOwner = stage.cleanupOwner;
       if (typeof facts.retainExecution !== 'function' ||
           typeof cleanupOwner?.close !== 'function' ||
@@ -534,6 +546,19 @@ export function createInstalledEffectSite({environmentWire,
       // The resumed operation has no Compute owner. Its provider must still
       // hand over physical stop and cleanup custody before any send.
       custody.attachPhysical(cleanupOwner);
+      if (settling) {
+        const result = await settleRefusedEffectRun(
+          completionOptions(stage, undefined, signal));
+        if (result.status === 'needs_reconciliation') {
+          const state = recordUnknown(facts, result, stage);
+          checkpointJournal.completeResume(claimed.claim,
+            {runStateWire: JSON.stringify(state)});
+        } else {
+          checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
+          releaseMode = 'retire';
+        }
+        return finishStatus(result);
+      }
       let failed = false;
       try {
         const gate = await authorization(facts, stage, () => {
@@ -548,7 +573,7 @@ export function createInstalledEffectSite({environmentWire,
         catch (error) {
           try { result = await completeInterruptedEffectRun(options, true); }
           catch (completionError) {
-            if (completionError?.code === 'EffectRunNoUncertainSend') {
+            if (completionError?.code === 'EffectRunNoAttemptedSend') {
               if (terminalPreSendRefusal(error, options)) {
                 checkpointJournal.completeResume(claimed.claim,
                   {status: 'failed'});

@@ -8,7 +8,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription, validCheckOutcome, snapshotCheckRequest, checkOutcomeProtocol, runStateProtocol} from
+  validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
   '@actql/client-wire';
 import {reviewBytesMatchCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 import {jsonValueWireContractCid} from './json-value-wire.generated.mjs';
@@ -85,12 +85,15 @@ const submissionInputs = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
+const requestLookupExplanations = new WeakMap();
+const requestCancellationExplanations = new WeakMap();
 // Validated observations keep only a weak, immutable presentation snapshot.
 // This is not an Effect ledger or a certificate joining Owner revisions.
 const effectUncertainties = new WeakMap();
 // Presentation retains validated Run-control observations, not another owner.
 const cancellationExplanations = new WeakMap();
 const readExplanations = new WeakMap();
+const deliveryExplanations = new WeakMap();
 const readerContexts = new WeakMap();
 const utf8 = new TextEncoder();
 const freezeInput = value => {
@@ -130,6 +133,12 @@ export function getCheckParameterAdmission(outcome, parameter) {
       typeof parameter !== 'string') return undefined;
   return outcome.report.requirements.find(reason => reason.code === 'parameter_value_required' &&
     reason.facts.parameter === parameter)?.facts.admission;
+}
+
+// Existing caller-owned response custody; this advice grants no configuration write.
+export function getCheckContextRequirements(outcome) {
+  if (!checkInputs.has(outcome) || outcome.outcome !== 'completed') return undefined;
+  return Object.freeze(outcome.report.requirements.filter(reason => ['host_capacity_policy_required', 'numeric_reduction_profile_required'].includes(reason.code)));
 }
 
 export function getCheckRequirementFrontier(outcome) {
@@ -205,8 +214,57 @@ export function explainReadFailure(result, options) {
   return localizeOperation(readExplanations.get(result), 'read', options);
 }
 
+// Only this call's admitted Owner lookup supplies Delivery facts. No row count,
+// Run outcome or application persistence is inferred from a release receipt.
+export function explainDeliveryAttempt(result, options) {
+  return localizeOperation(deliveryExplanations.get(result), 'delivery', options);
+}
+
+const retainDeliveryExplanation = (answer, next) => {
+  const record = answer.kind === 'found' ? answer.record : null;
+  const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
+    record === null ? 'attempt_recorded' : {
+      streaming: 'delivery_streaming', succeeded: 'host_delivery_succeeded',
+      failed: 'delivery_failed', cancelled: 'delivery_cancelled',
+    }[record.state];
+  const summaries = {
+    lookup_unresolved: 'This lookup found no DeliveryAttempt; whether the read opened remains unresolved.',
+    attempt_recorded: 'The Host recorded this DeliveryAttempt; no delivery outcome is available yet.',
+    delivery_streaming: 'The Host reports that this Delivery is streaming; completion is not confirmed.',
+    host_delivery_succeeded: 'The Host confirmed this Delivery and issued its release receipt.',
+    delivery_failed: 'The Host reports that this Delivery failed; this does not fail the Run.',
+    delivery_cancelled: 'The Host reports that this Delivery was cancelled; this does not cancel the Run.',
+  };
+  deliveryExplanations.set(answer, freezeInput({observation, summary: summaries[observation],
+    hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+    ...(record === null ? {} : {
+      recordSequence: record.sequence, hostConfirmedByteCount: record.confirmed_byte_count,
+      exposure: record.exposure,
+      ...(record.possible_unconfirmed_max_bytes === undefined ? {} :
+        {possibleUnconfirmedMaxBytes: record.possible_unconfirmed_max_bytes}),
+      ...(record.cleanup_owner_cids.length ? {cleanup: 'unresolved'} : {}),
+    }),
+    ...(record?.state === 'succeeded' ? {
+      hostReleaseReceiptCid: answer.hostReleaseReceipt.result_delivery_receipt_cid,
+      deliveredSha256: answer.hostReleaseReceipt.delivered_sha256,
+    } : {}),
+    next,
+  }));
+  return answer;
+};
+
 export function explainSubmission(result, options) {
   return localizeOperation(submissionExplanations.get(result), 'submission', options);
+}
+
+// Only this call's admitted lookup supplies Owner facts. A rejected observation
+// retains its original lookup target, never unvalidated response fields.
+export function explainRequestLookup(result, options) {
+  return localizeOperation(requestLookupExplanations.get(result), 'request', options);
+}
+
+export function explainRequestCancellation(result, options) {
+  return localizeOperation(requestCancellationExplanations.get(result), 'requestCancellation', options);
 }
 
 export function explainEffectUncertainty(state, options) {
@@ -257,12 +315,89 @@ const retainCancellationExplanation = (result, context, observation, revision) =
 
 const submissionLookupExplanation = (observation, input) => freezeInput({
   observation,
-  summary: observation === 'acceptance_unknown'
-    ? 'Submission acceptance is unknown. Work may already have started.'
-    : 'The Host returned a held-request response. Look up the current request state.',
+  summary: 'Submission acceptance is unknown. Work may already have started.',
   next: {operation: 'lookupRequest', requestId: input.requestId,
     lookupContext: input.lookupContext},
 });
+
+const requestObservationHint = 'Keep the original request reference and use an authorized lookup. This observation grants no permission to resubmit, execute, answer a Checkpoint or release resources.';
+const heldRequestExplanation = (answer, context) => freezeInput({
+  observation: 'request_held', preparationState: answer.state,
+  prepareAttemptId: answer.prepareAttemptId, durability: answer.durability,
+  summary: {
+    waiting_checkpoint: 'The Host durably holds this request while preparation waits for a Checkpoint. No Run reference was returned.',
+    resuming: 'The Host reports that preparation of this held request is resuming. No Run reference was returned.',
+    ended: 'The Host reports that preparation of this held request ended. No Run reference was returned.',
+  }[answer.state], hint: requestObservationHint,
+  next: {operation: 'lookupRequest', requestId: context.requestId,
+    lookupContext: context.lookupContext},
+});
+const retainRequestLookupExplanation = (answer, context) => {
+  const observation = answer.kind === 'found' ? 'run_reference_received' :
+    answer.kind === 'not_found' ? 'lookup_unresolved' : 'lookup_unavailable';
+  requestLookupExplanations.set(answer, answer.kind === 'held'
+    ? heldRequestExplanation(answer, context) : freezeInput({observation,
+      summary: {
+        lookup_unresolved: 'This lookup does not establish whether the submission was accepted.',
+        lookup_unavailable: 'The Host could not supply a request lookup observation. Acceptance remains unresolved.',
+        run_reference_received: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+      }[observation], hint: requestObservationHint,
+      ...(answer.kind === 'found' ? {durability: answer.durability} : {}),
+      next: answer.kind === 'found' ? {operation: 'status', ref: {...answer.ref}} :
+        {operation: 'lookupRequest', requestId: context.requestId,
+          lookupContext: context.lookupContext},
+    }));
+  return answer;
+};
+const retainRequestLookupFailure = (error, context, observation) => {
+  // Borrowed exceptions may be reused by credentials or a Local port. Each
+  // call owns its error; code/status are metadata, never outcome evidence.
+  const code = error instanceof ClientError ? error.code : 'ClientTransportUnknown';
+  const status = error instanceof ClientError ? error.status : undefined;
+  const retained = new ClientError(code,
+    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+  requestLookupExplanations.set(retained, freezeInput({observation,
+    summary: observation === 'lookup_uninterpretable'
+      ? 'This SDK could not interpret the request lookup response. Acceptance and execution remain unresolved.'
+      : 'The request lookup could not be completed. Acceptance and execution remain unresolved.',
+    hint: requestObservationHint,
+    next: {operation: 'lookupRequest', requestId: context.requestId,
+      lookupContext: context.lookupContext},
+  }));
+  return retained;
+};
+
+const requestCancellationCause = cause => {
+  // Preserve only already public Client metadata, not borrowed source or
+  // credential messages, nested causes, locators or cleanup handles.
+  const code = cause instanceof ClientError ? cause.code : 'ClientTransportUnknown';
+  const status = cause instanceof ClientError ? cause.status : undefined;
+  return new ClientError(code,
+    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+};
+const requestCancellationHint = 'Keep the original request reference and inspect the current request or named Run under current authorization. This observation grants no permission to resubmit, release resources or repeat an external Effect.';
+const retainRequestCancellationExplanation = (result, context, observation, problem) => {
+  const summaries = {
+    accepted: 'The Host recorded cancellation of this request. This response does not establish physical stop or resource release.',
+    already_requested: 'The Host reports a previously recorded cancellation of this request. This response does not establish physical stop or resource release.',
+    already_terminal: 'The Host reports that this request is already terminal. This response does not establish its execution outcome, physical stop or resource release.',
+    outcome_unknown: 'No usable observation of this request cancellation was returned. Durable recording, physical stop and resource release are not established by this observation.',
+  };
+  requestCancellationExplanations.set(result, freezeInput({observation,
+    requestId: context.requestId, ...(problem === undefined ? {} : {problem}),
+    summary: summaries[observation], hint: requestCancellationHint,
+    ...(problem === undefined && result.ref !== undefined ? {revision: result.revision} : {}),
+    next: problem === undefined && result.ref !== undefined
+      ? {operation: 'status', ref: {...result.ref}}
+      : {operation: 'lookupRequest', requestId: context.requestId,
+        lookupContext: context.lookupContext},
+  }));
+  return result;
+};
+const uninterpretableRequestCancellation = context => retainRequestCancellationExplanation(
+  new ClientError('CancellationUnknown', {requestId: context.requestId,
+    cause: new ClientError('InvalidHostRequestCancellation')}),
+  context, 'outcome_unknown', 'response_uninterpretable');
 
 const structuredNodeExists = (value, pointer) => {
   if (typeof pointer !== 'string' || pointer.length > 4096 ||
@@ -683,7 +818,9 @@ const retainReadExplanation = (result, context, rowsYielded, observation, cleanu
   readExplanations.set(result, freezeInput({observation,
     ...(cleanupUnknown ? {cleanup: 'unknown'} : {}),
     attemptId: context.attemptId, rowsYielded,
-    summary: observation === 'cleanup_unknown'
+    summary: observation === 'read_open_unknown'
+      ? 'Opening this read could not be confirmed. The DeliveryAttempt may already have been recorded.'
+      : observation === 'cleanup_unknown'
       ? `Reader cleanup could not be confirmed after returning ${quantity}.`
       : `This read stopped after returning ${quantity}.`,
     hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
@@ -1016,7 +1153,7 @@ async function connectSelected(selected, port) {
         const controller = new AbortController();
         const iterate = async function* () {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
-          state = 'prefix';
+          state = 'opening';
           const abort = () => controller.abort();
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
@@ -1047,6 +1184,7 @@ async function connectSelected(selected, port) {
                 if (retainedValueBytes(frame.value) >
                     maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
                 const row = structuredClone(frame.value);
+                state = 'prefix';
                 rowsYielded++;
                 yield row;
               }
@@ -1055,6 +1193,9 @@ async function connectSelected(selected, port) {
             } else {
               stream = response.body?.getReader();
               if (!stream) fail('InvalidResultStream');
+              // The successful HTTP opening response was received. Local
+              // frames open lazily, so their first accepted row is the ack.
+              state = 'prefix';
               const decoder = new TextDecoder('utf-8', {fatal: true});
               const acceptText = function* (text) {
                 line += text;
@@ -1104,8 +1245,12 @@ async function connectSelected(selected, port) {
               state = 'complete';
             }
           } catch (cause) {
-            failure = readFailure(cause, context, rowsYielded);
+            failure = readFailure(cause, context, rowsYielded,
+              state === 'opening' ? {observation: 'read_open_unknown'} : undefined);
           } finally {
+            // A failed opening has no authoritative no-send proof. Keep the
+            // original attempt for lookup, even when no row was received.
+            if (state === 'opening') state = 'open_unknown';
             options.signal?.removeEventListener('abort', abort);
             if (stream) {
               try {
@@ -1259,11 +1404,21 @@ async function connectSelected(selected, port) {
           catch (cause) {
             throw new ClientError('InvalidHostAttemptLookup', {cause});
           }
-          if (!validDeliveryAttemptLookup(answer, {
+          const expected = {
             attemptId, runDefinitionCid: ref.runDefinitionCid,
             resultName: name,
-          })) fail('InvalidHostAttemptLookup');
-          return Object.freeze(answer);
+          };
+          try {
+            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            answer = structuredClone(answer);
+            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            return retainDeliveryExplanation(freezeInput(answer), {
+              operation: 'deliveryAttempt', ref, resultName: name, attemptId,
+              lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
+            });
+          } catch {
+            fail('InvalidHostAttemptLookup');
+          }
         },
       });
     };
@@ -1319,8 +1474,8 @@ async function connectSelected(selected, port) {
     })};
     let body;
     try {
-      body = freezeInput(JSON.parse(JSON.stringify({requestId, kind, input,
-        parameters: options.parameters ?? null})));
+      body = freezeInput(snapshotClientRequest({requestId, kind, input,
+        parameters: options.parameters ?? null}));
     } catch { fail('InvalidClientPayload'); }
     const snapshot = freezeInput({...body, connection: selected.wire,
       lookupContext: context.lookupContext});
@@ -1333,13 +1488,13 @@ async function connectSelected(selected, port) {
     }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
-      const held = new RequestHeld(Object.freeze({...admitted,
-        ...(admitted.checkpoint === undefined ? {} :
-          {checkpoint: Object.freeze({...admitted.checkpoint})})}),
-      context.lookupContext);
+      try {
+        admitted = structuredClone(admitted);
+        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');
+      } catch (cause) { throw submissionUnknown(context, cause); }
+      const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
       submissionInputs.set(held, snapshot);
-      submissionExplanations.set(held,
-        submissionLookupExplanation('request_held', snapshot));
+      submissionExplanations.set(held, heldRequestExplanation(admitted, snapshot));
       throw held;
     }
     let result;
@@ -1380,7 +1535,7 @@ async function connectSelected(selected, port) {
       let body;
       try {
         // Detach caller-owned objects synchronously, before credentials or I/O.
-        body = freezeInput(snapshotCheckRequest({input: {text, format: options.format,
+        body = freezeInput(snapshotClientRequest({input: {text, format: options.format,
           ...(options.parameterDeclarations === undefined ? {} :
             {parameterDeclarations: options.parameterDeclarations})},
           parameters: options.parameters ?? null}));
@@ -1461,19 +1616,23 @@ async function connectSelected(selected, port) {
     },
     lookupRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
-      const response = await exchange('lookup-request', {requestId}, signal);
+      const context = freezeInput({requestId,
+        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+      let response;
+      try { response = await exchange('lookup-request', {requestId}, signal); }
+      catch (cause) { throw retainRequestLookupFailure(cause, context, 'lookup_unavailable'); }
       let answer;
       try { answer = await controlValue(response); }
       catch (cause) {
-        throw new ClientError('InvalidHostRequestLookup', {cause});
+        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
       if (!validRequestLookup(answer, requestId)) {
-        fail('InvalidHostRequestLookup');
+        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      if (answer.kind === 'found') {
-        return Object.freeze({...answer, ref: Object.freeze({...answer.ref})});
-      }
-      return Object.freeze(answer);
+      try { answer = structuredClone(answer); }
+      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
+      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -1485,23 +1644,40 @@ async function connectSelected(selected, port) {
     // withdraws a cancellation the Host already recorded.
     cancelRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
-      let answer;
+      const context = freezeInput({requestId,
+        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+      let response, answer;
       try {
-        const response = await exchange('cancel-request', {requestId},
-          signal);
-        answer = await controlValue(response);
+        response = await exchange('cancel-request', {requestId}, signal);
       } catch (cause) {
-        if (cause instanceof ClientError &&
-            cause.code !== 'ClientTransportUnknown' &&
-            !(cause.status >= 500)) throw cause;
-        throw new ClientError('CancellationUnknown', {requestId, cause});
+        // Preserve the existing Client error contract in a per-call wrapper.
+        // Code/status select no Owner outcome or explanation permission.
+        const error = cause instanceof ClientError &&
+            cause.code !== 'ClientTransportUnknown' && !(cause.status >= 500)
+          ? new ClientError(cause.code, {
+            ...(cause.status === undefined ? {} : {status: cause.status}),
+            ...(cause.cause === undefined ? {} : {cause: requestCancellationCause(cause.cause)}),
+          }) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});
+        throw retainRequestCancellationExplanation(error, context,
+          'outcome_unknown', 'exchange_failed');
       }
+      try { answer = await controlValue(response); }
+      catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
-        throw new ClientError('CancellationUnknown', {requestId,
-          cause: new ClientError('InvalidHostRequestCancellation')});
+        throw uninterpretableRequestCancellation(context);
       }
-      return Object.freeze({...answer, ...(answer.ref === undefined ? {} :
-        {ref: Object.freeze({...answer.ref})})});
+      const original = {kind: answer.kind, revision: answer.revision,
+        ref: answer.ref === undefined ? undefined : {...answer.ref}};
+      try {
+        answer = structuredClone(answer);
+        if (!validRequestCancellation(answer, requestId) ||
+            answer.kind !== original.kind || answer.revision !== original.revision ||
+            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>
+              answer.ref?.[field] !== original.ref?.[field])) {
+          throw new ClientError('InvalidHostRequestCancellation');
+        }
+      } catch { throw uninterpretableRequestCancellation(context); }
+      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
     },
     // Resources an installed connection shows to this caller, from the
     // Host's current Catalog observation. A listing is display material:
@@ -1685,11 +1861,20 @@ async function connectSelected(selected, port) {
 export function formatSubmission(result, options) {
   return formatOperationExplanation(explainSubmission(result), 'submission', options);
 }
+export function formatRequestLookup(result, options) {
+  return formatOperationExplanation(explainRequestLookup(result), 'request', options);
+}
+export function formatRequestCancellation(result, options) {
+  return formatOperationExplanation(explainRequestCancellation(result), 'requestCancellation', options);
+}
 export function formatCancellation(result, options) {
   return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
 }
 export function formatReadFailure(result, options) {
   return formatOperationExplanation(explainReadFailure(result), 'read', options);
+}
+export function formatDeliveryAttempt(result, options) {
+  return formatOperationExplanation(explainDeliveryAttempt(result), 'delivery', options);
 }
 export function formatEffectUncertainty(result, options) {
   return formatOperationExplanation(explainEffectUncertainty(result), 'effect', options);

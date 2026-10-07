@@ -320,6 +320,14 @@ evidence and unverified performance/target/distribution coverage.
 
 ## Status interpretation (2026-09-28)
 
+The bounded receiving-input follow-up on 2026-10-07 retains long producer-name
+measurement/comparison inside the existing same-task chain owner. Partial maps
+never authorize a child; cancellation keeps inputs/private outputs until stop
+and cleanup. Common metadata limits, the independently counted 19-poll handoff,
+and the ordinary retained Append/select/two-consumer Program have limited JS
+evidence. Existing Native source/census pins require G review before this unit
+is merge-ready; old receipts are not adopted as new-source evidence. See the
+[receiving-input record](2026-10-07-local-producer-read-preparation.md).
 The 2026-10-07 string aggregation follow-up replaces demanded delimiter/item
 whole-Text sizing and final join with the same finisher's scalar phases and
 existing exact-capacity StringBuilder. Original byte/control totals, raw data,
@@ -6262,3 +6270,153 @@ assembly, aggregate physical byte custody and unexecuted target/packed
 campaigns remain distinct. See the
 [JSON-name record](2026-10-07-local-json-name-rechecks.md) for the fixed main,
 counterexample, fixture connection and verification limitations.
+
+### Indexed retained row snapshots (2026-10-07)
+
+The existing Relation owner no longer hashes every input spelling into a new
+Map per row. Indexed snapshots use the existing field-name expression cursor
+for wide/long-name inputs. Input, snapshot, output and capture name accounting
+now yields between scalars; atomic Value charges and borrowed input custody
+remain unchanged. Output-cell sources are cached with admitted metadata slots.
+Small-row exact budgets retain their existing bounded metadata footprint.
+
+A normal nine-field Values -> derive -> select Program publishes three
+independent Named Results through the real Store and delivers cancellation
+after positive fused-task progress. Common fixtures additionally stop inside
+each of the four name phases. The evidence gate requires these fixtures.
+
+Initial metadata/map preparation, sort/key setup, availability scans and the
+installed projected-read metadata ceiling remain separate. This is neither
+all-start boundedness nor Native physical capacity certification. See the
+[indexed row record](2026-10-07-local-indexed-row-snapshots.md) for the
+counterexample, independent budgets, public shape and unverified coverage.
+
+### Resumable row metadata preparation (2026-10-07)
+
+SnapshotMap, OrderedBindings, Filter, AssertAll and Select prepare wide/long
+input names, output names and cached sources in the existing bounded owner.
+Binding/projection comparison and schema lookup retain UTF-16 cursors and
+borrow immutable admitted names rather than hashing all names during start.
+Partial preparation observes cancellation and releases its own workspace
+once while preserving borrowed inputs and spent work. Short metadata retains
+its existing bounded footprint and logical charging remains unchanged.
+
+This is a dependent unit after the indexed row change, not main adoption or
+all-start boundedness. KernelBody copies, other kernel metadata, availability
+validation and the installed projected-read ceiling remain. See the
+[metadata cursor record](2026-10-07-local-row-metadata-cursor.md) for the
+counterexample, implemented shapes, shared evidence and unverified coverage.
+
+### Resumable order and key metadata (2026-10-07)
+
+Sort, take, distinct, dedupe, unique assertion and top-k now reach the same
+wide/long-name metadata preparation owner. Term lookup and schema-name
+charging retain cursors across resumes; reservation and entry charges occur
+once. The bounded small lane, typed ordering and cumulative work are preserved.
+Independent temporary limits, Unicode/NULL/duplicate rows, resume quanta and
+stopped cleanup supplement the existing operation-wide evidence.
+
+A normal retained-Store sort -> take -> derive -> select Program publishes
+three fixed ordered Named Results, feeds two consumers, reuses a repeated
+request and delivers cancellation after positive progress. This does not
+close initial preparation, availability, JSON/window metadata or Native
+physical capacity correspondence. The #704 owner is now adopted by main;
+#708 remains independently unmerged. See the
+[order metadata record](2026-10-07-local-row-order-metadata.md).
+
+### Resumable generated row metadata (2026-10-07)
+
+JSON Pick, fixed Watermark rows and Lag prepare wide/long-name schemas and
+operation sources in the existing bounded Relation owner. Exact generated
+roles are matched once with retained UTF-16 cursors and cached for output
+copying. Canonical schema order no longer requires generated columns last.
+Short-lane budgets, cumulative logical work and borrowed-input custody remain
+unchanged. Independent JSON preparation/work limits and stops inside role
+matching/source lookup supplement existing whole-operation evidence.
+
+Normal real-Store Programs publish three fixed Named Results, use two
+consumers and deliver post-progress cancellation without early release or
+partial publication. The evidence gate requires these connected fixtures.
+This dependent unit follows #704/#708; it does not close initial preparation,
+availability validation, projected-read capacity or Native correspondence.
+See the [generated metadata record](2026-10-07-local-generated-row-metadata.md).
+
+### Borrowed JSON Pick path (2026-10-07)
+
+Local capability, obligation, selected-provider inspection and bounded start
+use an opaque read-only JSON Pick view rather than copying its complete path.
+The original defensive body API and logical entry admission remain intact.
+The existing scalar field-probe cursor preserves NULL demand, segment order,
+Unicode work and cancellation; no new evaluator or policy is introduced.
+Independent 15/14 NULL and 555/554 Unicode work limits, a later-segment stop
+and normal retained-Store publication are connected to the evidence gate.
+
+This dependent unit follows #717. Other copied kernel views, initial producer
+preparation, availability/static analysis and Native capacity correspondence
+remain distinct. See the [borrowed path record](2026-10-07-local-borrowed-json-path.md).
+
+### Borrowed bindings, unique keys and lowered projections (2026-10-07)
+
+Selected row start, capability and obligation inspection borrow typed metadata
+without exporting complete binding/key/projection arrays. The existing
+expression owner reads one prepared binding per transition; map order,
+authored prior slots, shadow winners, unique tuples and projection aliases
+remain unchanged. Checked rename/drop use the actual lowered projection view,
+including wide/long-name consumers. Original entry, work and workspace limits
+remain in force; this is not a physical-capacity reduction claim.
+
+Independent 64-binding and shadow results, later-binding cancellation and
+long rename/drop supplement the unchanged exact/one-short caller fixtures.
+The affected JS batch passed 100/100. The nine-binding map derive publishes
+through the normal Host and real Store; its public test and evidence gate
+passed 2/2. At #731, ordered derive failed public Plan encoding before execution;
+private ordered execution does not certify that public connection. Submitted-SHA
+evidence is recorded separately in the dependent PR. Native observer/census
+correspondence for the new opaque views remains unreviewed; #723/#717/#708
+remain dependencies. Initial preparation and availability checks are not
+certified by this unit. See the
+[borrowed row record](2026-10-07-local-borrowed-row-bindings.md).
+
+### Public retained ordered binding compilation (2026-10-07)
+
+The former ordered Plan refusal is closed through the existing selected-body,
+OrderedParams and fragment owners. Logical nodes retain their checked input
+edges; fragment-local preimages and complete runtime evidence stay unchanged.
+Raw lowering without registered params still refuses. The normal retained
+Store Host publishes ten-binding ordered shadow/relay results to the producer
+and two consumers, with fixed NULL/order/schema expectations, request reuse,
+post-progress cancellation and final reclamation. The resource gate requires
+this public evidence separately from the map and private ordered cases.
+Plan output limits are independent of finite selected-body admission; a
+hand-assembled small Plan verifies exact bytes and one-short refusal. Frozen
+historical registry bodies retain their original CIDs rather than attempting
+to reconstruct them from the current Graph identity domain.
+
+Focused JS passed 18/18 and targeted Node passed 5/5 on the working tree.
+These do not certify packed/HTTPS or Native Host cancellation, initial
+metadata preparation, or the parent's Native allocation correspondence.
+After #731 merged, main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was
+integrated, including the reviewed observer/census alignment. No unmerged
+parent remains. Its source alignment is not a Native campaign result. See the
+[public ordered binding record](2026-10-07-local-retained-ordered-bindings.md).
+
+### Resumable retained output-port preparation (2026-10-07)
+
+The bounded Relation owner now prepares its trusted completion port inside
+resume, before reading rows. Exact receiving bindings remain admitted by the
+existing owner. Target identity and canonical output names are validated one
+Unicode scalar/code unit at a time with unchanged entry/name limits. Pending
+preparation observes stop, retains borrowed inputs and clears its own names
+once; successful transfer preserves the completed output's name array.
+
+Independent 278/277 ASCII and 282-byte Unicode admission, quanta 1/7/256,
+phase-specific stops and incomplete-port rejection supplement the unchanged
+logical work/workspace boundaries. This dependent unit follows #744 and
+normally merges main `0f3ce2083bbdfca6a5f7de6eb34f8dfb8157d88b`. After
+#744 reached main, its final integration at
+`98718f21f6e8c0993189ccde098ed66fa455e54c` was normally merged too; no
+unmerged parent remains.
+The new fixed cursor/state shape is recorded, not certified as Native byte
+correspondence. General producer preparation, other kernel metadata and
+installed availability callbacks remain separate. See the
+[output-port record](2026-10-07-local-output-port-preparation.md).

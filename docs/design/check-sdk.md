@@ -1042,7 +1042,7 @@ retrieval API. Existing per-call input custody and destruction conditions apply.
 ### Known Requirement frontier and bounded check supplementation
 
 The SDK exposes a comparable observation only for an exact completed check
-response retained by that SDK call. Current public Requirements are declared
+response retained by that SDK call. The comparable frontier supports declared
 parameter values: their obligation key and expected type are typed facts;
 constraints and supplied bindings remain bound by the existing opaque
 `context_ref`. Compare bound scope/context, reason schema, the unordered typed
@@ -1410,3 +1410,169 @@ and family data without authorization or action claims. Unknown codes retain
 safe fallback; malformed known transported facts still reject through the
 existing wire/SDK admission. No legacy compiler catalog or operation outcome
 is relabelled as this public check catalog.
+
+
+### Known checking-context capacity requirement
+
+The existing checker can stop at `NeedsInputs(HostCapacityPolicy)`. Public check
+projects that known, disclosable selection as `host_capacity_policy_required`
+in `report.requirements`, with `checking_context_missing` in coverage limits.
+The complete bound-input scope stays `undetermined`; the unvisited remainder is
+not certified. A missing Host policy is not a caller parameter violation.
+
+The closed facts identify the existing `actql-capacity-host-policy/0.1` contract
+and its `/schema` by independent contract/schema CIDs, with supplier
+`checking_context_owner` and stage `checking`. They convey the admission
+condition, not private policy values, an environment path, authority to change
+configuration, or a SQL location. Source disclosure runs before projection;
+protected Source resolution cannot expose this selection or fabricate a position.
+Other checker requests still need their own reviewed public projection.
+
+`getCheckContextRequirements(outcome)` returns immutable selections only for the
+original completed response held by that SDK call. Copies do not acquire input
+custody. The parameter supplementation frontier deliberately remains unavailable
+for nonparameter requirements; adding a parameter cannot satisfy this obligation.
+A separately supplied admitted environment leads to ordinary rechecking of the
+whole input under a different context reference. No Host mutation or input
+persistence API is added.
+
+This extends the public check Reason facts and outcome requirement schemas,
+their content identities, validators, generated types, catalog and fixtures.
+Requirement codes are rejected in the violation list. Previous schema pins are
+rejected explicitly, including an older SDK paired with a new Host. The separate
+`actql-diagnostics/0.1` contract and its frozen evidence are unchanged; no
+compatibility adapter or legacy execution path is introduced.
+
+### Known numeric reduction profile requirement
+
+An aggregate slot can cause the existing checker to return
+`NeedsInputs(NumericReductionProfile)`. Public check projects only that actual
+request as `numeric_reduction_profile_required`, with a closed `profile_cid`
+admission condition, supplier `checking_context_owner`, stage `checking` and
+`checking_context_missing` coverage. SUM/AVG require the repository-pinned
+numeric profile; COUNT does not acquire a fabricated numeric obligation.
+The installed Host's existing numeric-profile admission hook supplies the
+context and invokes ordinary whole-input checking again. The earlier report
+stays undetermined and bound to its original context. Profile membership is
+neither reduction-member selection nor execution/capture permission.
+
+The owner's request carries a generated Program cursor for the aggregate slot.
+That cursor is not a SQL location. This projection publishes no generated path,
+contributor value, selected member, location or edit. Protected Source resolution
+can stop checking before the numeric obligation is known; missing/denied/delegated
+publications then retain the same generic protected observation. Independent
+parameter violations remain input errors without exposing actual values.
+
+`getCheckContextRequirements` retains the discriminated capacity/schema and
+numeric/profile conditions from original SDK response custody. A copy does not
+acquire custody; parameter supplementation stops at either nonparameter condition.
+Malformed numeric facts, unadmitted pins, extra data, generated positions or a
+Requirement moved into the violation list are protocol failures. This extends
+the closed public check schemas/CIDs and their coordinated Host, wire, SDK,
+catalog and fixtures. `actql-diagnostics/0.1` and historical evidence are unchanged.
+No compatibility execution, automatic profile installation or input persistence
+API is added.
+
+The current public text lowerer does not yet connect REGEX_MATCH, NFKC or
+PARSE_TIMESTAMP to the common Program expression owner. Those allowed calls
+retain implementation-limit diagnostics before a text-time policy request can
+be known. Diagnosis must not infer a Requirement by reparsing the function name
+or by reading the environment independently of the checker. Other profile,
+artifact, bounded-row and template obligations remain separate extensions.
+
+`Result.deliveryAttempt` admits the existing Owner's lookup response against
+the requested attempt, Run and Result, copies it, and validates the copy again
+before recursively freezing it. Each call returns a detached observation:
+reuse of a Host response container or a later terminal observation cannot
+change an earlier streaming record. A clone failure or a copy that no longer
+satisfies the wire contract is `InvalidHostAttemptLookup`, never an empty or
+successful observation. This boundary adds no lookup, delivery, cancellation
+or execution operation and changes no wire schema or identity domain.
+
+An immutable lookup snapshot proves only the admitted observation received by
+that call. It does not by itself establish authoritative Delivery opening or
+receipt-backed read completion, nor successful publication of a submitted Run.
+
+`explainDeliveryAttempt` and `formatDeliveryAttempt` consume only an original
+admitted SDK lookup snapshot. An authorized `not_found` remains
+`lookup_unresolved`: absence is not proof that no opening or grant commit
+occurred. A recorded attempt without a record remains `attempt_recorded`.
+The SDK's existing `opening` state also supplies `read_open_unknown` on an
+unacknowledged opening failure. This explanation preserves zero caller rows
+and the same lookup target without asserting physical stop or non-acceptance;
+array/batch wrappers retain the same observation. Error text does not select it.
+Streaming, failed and cancelled Delivery records preserve their separate
+observations; neither read failure nor read cancellation changes a Run outcome.
+`host_delivery_succeeded` requires the existing lookup validator's matching
+terminal record and Host release receipt. Sink-confirmed bytes, exposure bounds
+and the record sequence remain Owner observations, never inferred caller row
+counts. Unresolved cleanup references do not become cleanup success, and an
+omitted cleanup field does not certify another Owner's release.
+
+All explanations retain this call's original attempt, Run, Result and connection
+scope as a read-only lookup candidate. A copied DTO or an error constructed from
+a success-like string has no explanation custody. Rendering performs no lookup,
+new read, grant admission, Compute or cancellation. English/Japanese text and
+text/HTML/JSON forms preserve the same disclosed facts; a Host receipt never
+proves application receipt or persistence. These SDK presentation additions
+change no wire contract, public check schema, identity domain or historical pin.
+
+The HTTPS payload terminator still precedes receipt/terminal-record persistence.
+Its transport completion alone does not establish the receipt-backed Complete
+outcome. Opening reconciliation and immutable lookup presentation are useful
+parts of that boundary, not a replacement for its remaining Owner connection.
+
+`explainRequestLookup` and `formatRequestLookup` render this call's original
+admitted lookup or its rejected observation. The existing lookup validator runs
+before and after cloning; recursively frozen snapshots detach nested Checkpoint
+references from reusable Local Host objects. Clone or contract failures retain
+only `lookup_uninterpretable` and the original read-only lookup target. A
+transport failure retains `lookup_unavailable`; neither observation admits raw
+response fields or establishes an acceptance or execution outcome.
+
+An admitted absent record remains `lookup_unresolved`, not NotAccepted. A found
+Run reference supplies `run_reference_received`, not Run success. Durable held
+responses preserve the existing Owner's closed preparation state, attempt ID
+and durability. `waiting_checkpoint`, `resuming` and `ended` describe preparation;
+none establishes physical stop, resource release or a new permission. The
+absence of a returned Run reference does not prove that no internal definition
+was ever created. Open `endReason`, `terminalErrorCode` and store-reason strings
+are not used to classify or render these explanations. Authoritative meanings
+such as PreparationFailed require the owning contract's typed evidence.
+
+Held submit responses are also cloned and revalidated as the same held branch
+before they receive submission explanation custody. Failure retains the
+original submission input and unknown acceptance, never a fabricated held or
+Run result. Lookup responses have no association to a submitted input; copying
+one cannot recover that input or acquire original explanation custody. Snapshots
+and explanations remain in memory while their application references are held;
+weak associations add no fixed retention period, Host persistence or retrieval
+API. Subsequent lookups recheck current authorization. English/Japanese and
+text/HTML/JSON presentation preserve the same facts and perform no I/O.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.
+
+### Request cancellation observations
+
+Request cancellation presentation follows the existing closed
+`request_cancellation` response, independently from Run cancellation and request
+preparation lookup. Its `accepted`, `already_requested` and `already_terminal`
+branches never certify physical stop, Effect certainty or resource release.
+The last branch does not supply a terminal Run outcome. A supplied Run revision
+belongs to that control observation; it is not a composite consistency witness
+or a cancellation-operation identity.
+
+The SDK admits the reply before cloning and revalidates after cloning, retaining
+the same request, branch, reference and revision. Explanations belong weakly to
+the original recursively frozen response or per-call failure wrapper. Failed
+exchanges and uninterpretable responses keep only their observation failure and
+original authorized lookup candidate. Error code/status/cause metadata is not
+used to project an Owner outcome and is not formatted as explanation material.
+Recovery causes preserve public Client code/status metadata only; private
+messages, nested causes, locators and cleanup handles are omitted.
+The existing cancellation operation-identity, Refused/NotAccepted/Conflict and
+lookup contracts require authoritative typed Owner evidence; this presentation
+adds none of those facts, no ledger, no Host storage and no automatic resend.

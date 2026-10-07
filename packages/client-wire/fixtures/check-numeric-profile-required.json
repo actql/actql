@@ -1,0 +1,40 @@
+{
+  "version": "actql-check-outcome/0.1",
+  "reason_schema_cid": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739",
+  "outcome_schema_cid": "sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9",
+  "outcome": "completed",
+  "report": {
+    "context_ref": "ctx:independent-numeric-obligation",
+    "scope": {
+      "kind": "bound_input"
+    },
+    "verdict": "undetermined",
+    "inputs": [
+      {
+        "document_id": "source",
+        "revision": "rev:1111111111111111111111111111111111111111111111111111111111111111",
+        "kind": "text",
+        "byte_length": 18
+      }
+    ],
+    "reasons": [],
+    "requirements": [
+      {
+        "code": "numeric_reduction_profile_required",
+        "facts": {
+          "profile_cid": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+          "supplier": "checking_context_owner",
+          "stage": "checking"
+        }
+      }
+    ],
+    "coverage": {
+      "limits": [
+        {
+          "code": "checking_context_missing"
+        }
+      ],
+      "unresolved": []
+    }
+  }
+}

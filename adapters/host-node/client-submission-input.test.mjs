@@ -13,6 +13,7 @@ import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
+import {installNodeClientCheck} from './client-check.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
@@ -51,7 +52,14 @@ async function fixture(t, entrance, loss) {
   const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
   let client, server, authorized = true, submits = 0, issues = 0;
   let endpoint = 'actql:embedded';
-  const operations = [];
+  const operations = [], received = [];
+  let credentials = 0, authentications = 0, preparations = 0, pause;
+  const beforeBoundary = async () => {
+    const pending = pause; pause = undefined;
+    if (pending) await pending;
+  };
+  const prepare = installNodeClientProgramPreparation({moon, environment});
+  const check = installNodeClientCheck({moon, environment});
   t.after(async () => {
     client?.close();
     if (server) {
@@ -63,10 +71,22 @@ async function fixture(t, entrance, loss) {
     await rm(directory, {recursive: true, force: true});
   });
   const configuration = {
-    authenticate: () => 'principal-a',
+    authenticate: async () => {
+      authentications++;
+      if (entrance === 'local') await beforeBoundary();
+      return 'principal-a';
+    },
     authorizeConnection: () => authorized,
     negotiate: () => profile,
-    prepareSubmit: installNodeClientProgramPreparation({moon, environment}),
+    prepareSubmit: request => {
+      preparations++;
+      received.push(structuredClone({input: request.input, parameters: request.parameters}));
+      return prepare(request);
+    },
+    check: Object.assign(request => {
+      received.push(structuredClone({input: request.input, parameters: request.parameters}));
+      return check(request);
+    }, {unavailable: check.unavailable}),
     async submit({preparedProgram, requestId}) {
       submits++;
       const identity = moon.clientProgramRequestIdentity(preparedProgram,
@@ -122,9 +142,18 @@ async function fixture(t, entrance, loss) {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     endpoint = `https://127.0.0.1:${server.address().port}/`;
     client = await sdk.connect({mode: 'local', owner: 'local',
-      endpoint, token: 'private-token'});
+      endpoint, token: async () => {
+        credentials++;
+        await beforeBoundary();
+        return 'private-token';
+      }});
   }
-  return {client, endpoint, operations, revoke: () => { authorized = false; },
+  return {client, endpoint, operations, received,
+    activity: () => ({credentials, authentications, preparations}),
+    pauseNext: () => {
+      let release; pause = new Promise(resolve => { release = resolve; });
+      return release;
+    }, revoke: () => { authorized = false; },
     counts: () => ({submits, issues}),
     stored: () => observer.prepare(`SELECT caller_request_id, namespace_id,
       authority_scope_cid, program_definition_cid, run_definition_cid,
@@ -222,6 +251,12 @@ for (const entrance of ['local', 'https']) {
         const found = await f.client.lookupRequest(snapshot.requestId);
         assert.equal(found.kind, committed ? 'found' : 'not_found');
         if (committed) assert.equal(found.ref.runDefinitionCid, stored[0].run_definition_cid);
+        const lookupExplanation = sdk.explainRequestLookup(found);
+        assert.equal(lookupExplanation.observation, committed ? 'run_reference_received' : 'lookup_unresolved',
+          '[check-mutation:request-public-observation]');
+        assert.equal(Object.hasOwn(lookupExplanation, 'accepted'), false);
+        assert.equal(sdk.explainRequestLookup({...found}), undefined);
+        assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
         await assert.rejects(f.client.lookupRequest(snapshot.requestId), {code: 'ClientConnectionDenied'});
@@ -329,6 +364,146 @@ for (const entrance of ['local', 'https']) {
       }
       assert.deepEqual(f.counts(), {submits: (index + 1) * 2, issues: (index + 1) * 2});
       assert.equal(f.stored().length, (index + 1) * 2);
+    }
+  });
+}
+
+
+// Independently authored public inputs. The real preparation, checker, Run
+// issuer and SQLite journal above observe only the SDK's one detached request.
+const nestedDeclaration = () => ({type: 'object', fields: {nested:
+  {type: 'array', items: {type: 'number', nullable: true}}}});
+const nestedParameterProgram = declaration => {
+  const program = JSON.parse(document);
+  program.params = {x: declaration};
+  program.stages[0].steps.push({from: 'selected',
+    derive: {value: {$param: 'x'}}, as: 'bound'});
+  program.stages[0].results.rows = {from: 'bound', fields: ['value']};
+  return program;
+};
+const scalarProgram = value => {
+  const program = JSON.parse(document);
+  program.stages[0].steps[0].values.schema.id.nullable = true;
+  program.stages[0].steps[0].values.rows = [{id: value}];
+  return program;
+};
+const numericInputCases = value => {
+  const nested = {nested: [value]};
+  const declaration = nestedDeclaration();
+  const defaultDeclaration = {...nestedDeclaration(), default: nested};
+  return [
+    ['start parameters', 'submit', client => client.start(nestedParameterProgram(declaration),
+      {requestId: 'numeric-start-parameters', parameters: {x: nested}})],
+    ['start Program values', 'submit', client => client.start(scalarProgram(value),
+      {requestId: 'numeric-start-values'})],
+    ['start default', 'submit', client => client.start(nestedParameterProgram(defaultDeclaration),
+      {requestId: 'numeric-start-default', parameters: {}})],
+    ['aql parameters', 'submit', client => client.aql('SELECT @x AS n',
+      {format: 'sql', requestId: 'numeric-aql-parameters',
+        parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
+    ['aql default', 'submit', client => client.aql('SELECT @x AS n',
+      {format: 'sql', requestId: 'numeric-aql-default',
+        parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
+    ['check parameters', 'check', client => client.check('SELECT @x AS n',
+      {format: 'sql', parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
+    ['check default', 'check', client => client.check('SELECT @x AS n',
+      {format: 'sql', parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
+  ];
+};
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: all SDK input paths refuse lossy numbers before credentials and Host admission`, async t => {
+    const f = await fixture(t, entrance), before = f.activity();
+    for (const value of [NaN, Infinity, -Infinity, -0,
+      ...[NaN, Infinity, -Infinity, -0].map(value => new Number(value)),
+      {toJSON: () => Infinity}, {toJSON: () => -0},
+      Object.assign(new Number(1), {valueOf: () => NaN}),
+      Object.assign(new Number(1), {[Symbol.toPrimitive]: () => -0})]) {
+      for (const [name, operation, invoke] of numericInputCases(value)) {
+        await assert.rejects(invoke(f.client), error => {
+          assert.equal(error.code, operation === 'check' ? 'InvalidCheckRequest' : 'InvalidClientPayload',
+            `[request-snapshot:local-refusal] ${name}`);
+          assert.equal(sdk.getSubmissionInput(error), undefined);
+          assert.equal(sdk.explainSubmission(error), undefined);
+          return true;
+        });
+        assert.deepEqual(f.activity(), before, '[request-snapshot:before-credentials]');
+        assert.deepEqual(f.operations, ['connect'], '[request-snapshot:zero-exchange]');
+        assert.deepEqual(f.counts(), {submits: 0, issues: 0}, '[request-snapshot:zero-admission]');
+        assert.deepEqual(f.stored(), []);
+        assert.deepEqual(f.received, []);
+      }
+    }
+  });
+
+  test(`${entrance}: finite and null SDK inputs retain real check and Run acceptance`, async t => {
+    // Each independently authored value gets a fresh request journal so the
+    // fixed request IDs exercise input admission, not request-ID collisions.
+    for (const value of [null, 0, 1.25, -2, Number.MAX_VALUE, Number.MIN_VALUE, new Number(3.5)]) {
+      const f = await fixture(t, entrance);
+      let submits = 0, checks = 0;
+      for (const [name, operation, invoke] of numericInputCases(value)) {
+        const result = await invoke(f.client);
+        if (operation === 'check') {
+          checks++;
+          assert.equal(result.outcome, 'completed', name);
+          assert.equal(result.report.verdict, 'verified', name);
+        } else {
+          submits++;
+          assert.equal(sdk.explainSubmission(result).observation, 'run_reference_received', name);
+          const snapshot = sdk.getSubmissionInput(result);
+          assert.deepEqual(f.received.at(-1), {input: snapshot.input, parameters: snapshot.parameters},
+            '[request-snapshot:received-value]');
+          assert.ok(Object.isFrozen(snapshot.input));
+          assert.ok(snapshot.parameters === null || Object.isFrozen(snapshot.parameters));
+        }
+      }
+      assert.equal(checks, 2);
+      assert.deepEqual(f.counts(), {submits: 5, issues: 5});
+      assert.equal(f.stored().length, 5);
+      assert.equal(f.operations.filter(operation => operation === 'submit').length, submits);
+    }
+  });
+
+  test(`${entrance}: SDK snapshots serialize caller values once before the first await`, async t => {
+    for (const operation of ['start', 'aql', 'check']) {
+      const f = await fixture(t, entrance);
+      let conversions = 0, serializations = 0;
+      const boxed = Object.assign(new Number(1), {valueOf: () => { conversions++; return 3.5; }});
+      const parameters = {x: {toJSON() { serializations++; return {nested: [boxed, null]}; }}};
+      const declarations = {x: nestedDeclaration()};
+      const program = nestedParameterProgram(declarations.x);
+      const expectedInput = operation === 'start' ? structuredClone(program) :
+        {text: 'SELECT @x AS n', format: 'sql', parameterDeclarations: structuredClone(declarations)};
+      const release = f.pauseNext();
+      const pending = operation === 'start'
+        ? f.client.start(program, {requestId: 'one-snapshot', parameters})
+        : f.client[operation]('SELECT @x AS n', {format: 'sql',
+          requestId: 'one-snapshot', parameterDeclarations: declarations, parameters});
+      assert.equal(conversions, 1);
+      assert.equal(serializations, 1);
+      // Mutation during the real Local authentication / HTTPS credential wait
+      // cannot change the already-owned request or introduce a second snapshot.
+      parameters.x = {nested: [Infinity]};
+      declarations.x.type = 'number';
+      program.stages[0].steps[0].values.rows[0].id = -0;
+      release();
+      const result = await pending;
+      assert.equal(conversions, 1, '[request-snapshot:one-conversion]');
+      assert.equal(serializations, 1, '[request-snapshot:one-serialization]');
+      assert.deepEqual(f.received, [{input: expectedInput,
+        parameters: {x: {nested: [3.5, null]}}}], '[request-snapshot:pre-await-custody]');
+      if (operation === 'check') {
+        assert.equal(result.report.verdict, 'verified');
+        assert.deepEqual(sdk.getCheckInput(result, 'parameters').value, {x: {nested: [3.5, null]}});
+        assert.deepEqual(f.counts(), {submits: 0, issues: 0});
+      } else {
+        const snapshot = sdk.getSubmissionInput(result);
+        assert.deepEqual(snapshot.input, expectedInput);
+        assert.deepEqual(snapshot.parameters, {x: {nested: [3.5, null]}});
+        assert.ok(Object.isFrozen(snapshot.parameters.x.nested));
+        assert.deepEqual(f.counts(), {submits: 1, issues: 1});
+      }
     }
   });
 }

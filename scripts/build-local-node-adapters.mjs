@@ -71,6 +71,7 @@ for (const path of [
   'spec/dependencies/actql-graph-laws.json',
   'spec/contracts/actql-aoa.json',
   'spec/contracts/actql-numeric-reduction.json',
+  'spec/contracts/actql-capacity-host-policy.json',
   'spec/local-check-environment.json',
   'spec/contracts/actql-query-acquisition.json',
   'spec/contracts/actql-query-process-evidence.json',

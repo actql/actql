@@ -2,7 +2,11 @@
 /// Historical routing and cleanup facts bound to one checked input edge.
 /// This value owns no current authority, borrow, start claim or reservation.
 struct ClientRetainedTaskRoute {
+  binding : @remote.RemoteInputBinding
+  consumer_request : @remote.DispatchRequest
   producer_request : @remote.DispatchRequest
+  producer_evidence : @remote.RemoteExecutionEvidence
+  producer_subject : @remote.RemoteManagedOutputSubject
   physical : ClientTransferInput
   receipt : @transfer.RemoteTransferDestinationReceipt
 }
@@ -154,7 +158,15 @@ pub fn admit_client_retained_task_route(
   if canonical != @remote.remote_input_binding_body(saved) {
     return Err(InvalidBinding)
   }
-  Ok({ producer_request, physical, receipt, })
+  Ok({
+    binding: saved,
+    consumer_request: consumer,
+    producer_request,
+    producer_evidence: evidence,
+    producer_subject: subject,
+    physical,
+    receipt,
+  })
 }
 
 ///|

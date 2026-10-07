@@ -56,6 +56,8 @@ fn bounded_binding_rows_source(
 ///|
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
+  metadata_operation? : String? = None,
+  metadata_max_depth? : Int = 100,
   source_step? : Int = 0,
   following_step? : Bool = false,
   filter? : Bool = false,
@@ -63,6 +65,7 @@ fn bounded_binding_rows_receiver(
   assert_unique? : Bool = false,
   unique_text? : Bool = false,
   select? : Bool = false,
+  select_name? : String? = None,
   rename? : Bool = false,
   drop? : Bool = false,
   take? : Bool = false,
@@ -75,6 +78,7 @@ fn bounded_binding_rows_receiver(
   dedupe? : Bool = false,
   distinct_keyed? : Bool = false,
   derive_scalar? : Bool = false,
+  derive_name? : String = "next",
   derive_text? : Bool = false,
   compare_text? : Bool = false,
   membership_text? : Bool = false,
@@ -86,7 +90,9 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if dedupe {
+      (if metadata_operation is Some(operation) {
+        operation
+      } else if dedupe {
         "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"tag\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if distinct_keyed {
         "{\"distinct\":[\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
@@ -113,7 +119,12 @@ fn bounded_binding_rows_receiver(
         (if unique_text { "tag" } else { "id" }) +
         "\"]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
-        "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
+        "{\"select\":" +
+        (match select_name {
+          Some(name) => "[\"" + name + "\"]"
+          None => "[\"right\",\"id\"]"
+        }) +
+        ",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if rename {
         "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if drop {
@@ -131,7 +142,9 @@ fn bounded_binding_rows_receiver(
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_scalar {
-        "{\"derive\":{\"next\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
+        "{\"derive\":{\"" +
+        derive_name +
+        "\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_text {
         "{\"derive\":{\"copy\":{\"field\":\"tag\"}},\"from\":\"rows\",\"as\":\"derived\"}"
       } else {
@@ -153,7 +166,7 @@ fn bounded_binding_rows_receiver(
       max_text_bytes: 10000,
       max_nodes: 1000,
       max_tokens: 1000,
-      max_depth: 100,
+      max_depth: metadata_max_depth,
     },
   ).unwrap()
   @lower.bind_parameters(
@@ -2818,6 +2831,9 @@ test "bounded selected take admits exact key-completion work" {
   // Control: input 6, sort names 4, rows 3, term 2, sort polls 15,
   // comparisons 3, sorted rows 9, output names 4, copied row 3. Nine
   // comparison-continuation steps add physical resume work, not control cost.
+  // Completion admission adds 29 physical steps: 16 name scalars (limit_0
+  // twice, n and s), seven identity units and six phase/finish transitions.
+  // The exact logical control budget remains 49; one-short remains 48.
   let (execution, input) = bounded_binding_rows_keyed_take_fixture(49)
   let mut completed = false
   while !completed {
@@ -2826,7 +2842,7 @@ test "bounded selected take admits exact key-completion work" {
       BoundedBindingRowsComplete(output, work~, ..) => {
         assert_eq(completed_row_count(output), 1)
         assert_true(completed_cell(output, 0, 0) is Some(Number(1.0)))
-        assert_eq(work, 61L)
+        assert_eq(work, 90L)
         completed = true
       }
       _ => fail("exact key-completion work failed")

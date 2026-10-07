@@ -16,6 +16,8 @@ pub fn admit_captured_effect_source_artifact(EffectPreviewIdentity, Int, Publica
 
 pub fn admit_captured_effect_source_dependencies(Array[CapturedLocalEffectSourceEvidence], String, Int, Int, Int) -> Result[CapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
+pub fn admit_captured_effect_source_from_result(EffectPreviewIdentity, Int, PublicationContract, PublicationContract, PublicationContract, String) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue]
+
 pub fn admit_captured_local_effect_source(CapturedEffectSourceArtifact, String, String, String, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, Int, Int) -> Result[CapturedLocalEffectSourceEvidence, CapturedLocalEffectSourceIssue]
 
 pub fn admit_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int) -> Result[CapturedResultSnapshot, CapturedRunIssuanceIssue]
@@ -105,6 +107,8 @@ pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInvento
 pub fn captured_effect_source_artifact_cid(CapturedEffectSourceArtifact) -> String
 
 pub fn captured_effect_source_holding_cid(CapturedEffectSourceArtifact) -> String
+
+pub fn captured_effect_source_inventory_from_results_valid(EffectPreviewIdentity, Array[Int], Array[PublicationContract], Array[PublicationContract]) -> Bool
 
 pub fn captured_effect_source_matches_result_facts(CapturedEffectSourceArtifact, PublicationContract, String) -> Bool
 
@@ -202,6 +206,8 @@ pub fn effect_preview_footprint_target_cid(EffectPreviewFootprintIdentity, Int) 
 
 pub fn effect_preview_footprint_target_count(EffectPreviewFootprintIdentity) -> Int
 
+pub fn effect_preview_member_approval(EffectPreviewIdentity, Int) -> String?
+
 pub fn effect_preview_member_authority_scope_cid(EffectPreviewIdentity, Int) -> String?
 
 pub fn effect_preview_member_capability_evidence_cid(EffectPreviewIdentity, Int) -> String?
@@ -263,6 +269,8 @@ pub fn effect_preview_row_intended_changes_wire(EffectPreviewIdentity, Int, Int)
 pub fn effect_preview_row_intended_value_wire(EffectPreviewIdentity, Int, Int) -> String?
 
 pub fn effect_preview_row_key(EffectPreviewIdentity, Int, Int) -> String?
+
+pub fn effect_preview_row_states_not_applicable(EffectPreviewIdentity, Int, Int) -> Bool
 
 pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
@@ -462,6 +470,8 @@ pub fn prepare_publication_setup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) 
 
 pub fn prepare_publication_unknown_retry_step(Bool, Bool, Bool, Bool) -> PublicationUnknownRetryAction
 
+pub fn prepare_recorded_run_publication(RunPublicationAdmission, PublicationContract, ResultDefinition) -> Result[RecordedRunPublication, RunProgramBindingIssue]
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
 
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
@@ -531,6 +541,14 @@ pub fn record_result_access_read_admission(ResultAccessProgress, Bool) -> Result
 pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn recorded_run_publication_current(RecordedRunPublication, String) -> Bool
+
+pub fn recorded_run_publication_has_original_evidence(RecordedRunPublication, String, String) -> Bool
+
+pub fn recorded_run_publication_result_cid(RecordedRunPublication) -> String
+
+pub fn recorded_run_publication_run_cid(RecordedRunPublication) -> String
 
 pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
@@ -956,6 +974,7 @@ pub struct EffectPreviewIdentity {
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
   member_failure_policies : Array[String]
+  member_approvals : Array[String]
   member_footprints : Array[EffectPreviewFootprintIdentity]
   row_keys : Array[Array[String]]
   row_cids : Array[Array[String]]
@@ -964,6 +983,7 @@ pub struct EffectPreviewIdentity {
   row_intended_change_states : Array[Array[String]]
   row_intended_value_wires : Array[Array[String]]
   row_guard_version_cids : Array[Array[String]]
+  row_nonrow_states : Array[Array[Bool]]
   ordered_row_correlation_wires : Array[Array[String]]
   ordered_row_intended_change_states : Array[Array[String]]
   ordered_row_intended_value_wires : Array[Array[String]]
@@ -1297,6 +1317,8 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationUnknownRetryFinished
   PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
+
+type RecordedRunPublication
 
 type ResultAccessProgress
 

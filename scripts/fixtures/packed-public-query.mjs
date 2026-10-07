@@ -1,7 +1,10 @@
+import {unnestSuccesses, unnestRefusals} from './unnest-source-input.mjs';
+import {fullJoinScopeSuccesses, fullJoinScopeRefusals} from './full-join-scope-source-input.mjs';
 import {characterLengthSuccesses, characterLengthRefusals} from './character-length-source-input.mjs';
 import {qualifiedStarSuccesses, qualifiedStarRefusals} from './qualified-star-source-input.mjs';
 import {rightJoinSuccesses, rightJoinRefusals} from './right-join-source-input.mjs';
 import {joinStarSuccesses, joinStarRefusals} from './join-star-source-input.mjs';
+import {pipeJoinInputSuccesses, pipeJoinInputRefusals} from './pipe-join-input.mjs';
 import {starReplaceSuccesses, starReplaceRefusals} from './star-replace-source-input.mjs';
 import {qualifySuccesses, qualifyRefusals, qualifyExecutionFailures} from './qualify-source-input.mjs';
 import {namedWindowSuccesses, namedWindowRefusals} from './named-window-source-input.mjs';
@@ -18,6 +21,8 @@ import {graphUnionSourceSuccesses, graphUnionSourceRefusals, graphUnionSourceExe
 import {statisticalAggregateSuccesses, statisticalAggregateRefusals, statisticalAggregateExecutionFailures}
   from './statistical-aggregate-source-input.mjs';
 import {limitParameterSuccesses, limitParameterRefusals} from './limit-parameter-source-input.mjs';
+import {ceilingSuccesses, ceilingRefusals, ceilingExecutionFailures}
+  from './ceiling-source-input.mjs';
 import {unaryPlusSuccesses, unaryPlusRefusals, unaryPlusExecutionFailures}
   from './unary-plus-source-input.mjs';
 import {ifnullSuccesses, ifnullRefusals, ifnullExecutionFailures}
@@ -146,6 +151,7 @@ const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '
 const graphTraverseOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_ONLY === '1';
 const graphTraversePathsOnly = process.env.ACTQL_TEST_GRAPH_TRAVERSE_PATHS_ONLY === '1';
 const scopedOrderOnly = process.env.ACTQL_TEST_SCOPED_ORDER_ONLY === '1';
+const unnestOnly = process.env.ACTQL_TEST_UNNEST_SOURCE_ONLY === '1';
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
@@ -178,14 +184,17 @@ const selectAllOnly = process.env.ACTQL_TEST_SELECT_ALL_ONLY === '1';
 const starExclusionOnly = process.env.ACTQL_TEST_STAR_EXCLUSION_ONLY === '1';
 const characterLengthOnly = process.env.ACTQL_TEST_CHARACTER_LENGTH_ONLY === '1';
 const replaceCallOnly = process.env.ACTQL_TEST_REPLACE_CALL_ONLY === '1';
+const ceilingOnly = process.env.ACTQL_TEST_CEILING_ONLY === '1';
 const unaryPlusOnly = process.env.ACTQL_TEST_UNARY_PLUS_ONLY === '1';
 const qualifiedStarOnly = process.env.ACTQL_TEST_QUALIFIED_STAR_ONLY === '1';
+const fullJoinScopeOnly = process.env.ACTQL_TEST_FULL_JOIN_SCOPE_ONLY === '1';
 const rightJoinOnly = process.env.ACTQL_TEST_RIGHT_JOIN_ONLY === '1';
 const joinStarOnly = process.env.ACTQL_TEST_JOIN_STAR_ONLY === '1';
+const pipeJoinInputOnly = process.env.ACTQL_TEST_PIPE_JOIN_INPUT_ONLY === '1';
 const starReplaceOnly = process.env.ACTQL_TEST_STAR_REPLACE_ONLY === '1';
 const qualifyOnly = process.env.ACTQL_TEST_QUALIFY_ONLY === '1';
 const namedWindowOnly = process.env.ACTQL_TEST_NAMED_WINDOW_ONLY === '1';
-const scopeOnly = orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly;
+const scopeOnly = pipeJoinInputOnly || unnestOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -206,7 +215,10 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = namedWindowOnly ? {successes: namedWindowSuccesses, refusals: namedWindowRefusals}
+const scopeInputs = pipeJoinInputOnly ? {successes: pipeJoinInputSuccesses, refusals: pipeJoinInputRefusals}
+  : unnestOnly ? {successes: unnestSuccesses, refusals: unnestRefusals}
+  : fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses, refusals: fullJoinScopeRefusals}
+  : namedWindowOnly ? {successes: namedWindowSuccesses, refusals: namedWindowRefusals}
   : qualifyOnly ? {successes: qualifySuccesses, refusals: qualifyRefusals, executionFailures: qualifyExecutionFailures}
   : joinStarOnly ? {successes: joinStarSuccesses, refusals: joinStarRefusals}
   : rightJoinOnly ? {successes: rightJoinSuccesses, refusals: rightJoinRefusals}
@@ -215,6 +227,7 @@ const scopeInputs = namedWindowOnly ? {successes: namedWindowSuccesses, refusals
   : starReplaceOnly ? {successes: starReplaceSuccesses, refusals: starReplaceRefusals}
   : selectAggregateExpressionOnly ? {successes: selectAggregateExpressionSuccesses, refusals: selectAggregateExpressionRefusals, executionFailures: selectAggregateExpressionExecutionFailures}
   : havingAggregateOnly ? {successes: havingAggregateSuccesses, refusals: havingAggregateRefusals, executionFailures: havingAggregateExecutionFailures}
+  : ceilingOnly ? {successes: ceilingSuccesses, refusals: ceilingRefusals, executionFailures: ceilingExecutionFailures}
   : unaryPlusOnly ? {successes: unaryPlusSuccesses, refusals: unaryPlusRefusals, executionFailures: unaryPlusExecutionFailures}
   : replaceCallOnly ? {successes: replaceCallSuccesses, refusals: replaceCallRefusals, executionFailures: replaceCallExecutionFailures}
   : characterLengthOnly ? {successes: characterLengthSuccesses, refusals: characterLengthRefusals}
@@ -277,11 +290,17 @@ const scopeInputs = namedWindowOnly ? {successes: namedWindowSuccesses, refusals
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...unnestSuccesses);
+  scopeInputs.refusals.push(...unnestRefusals);
+  scopeInputs.successes.push(...fullJoinScopeSuccesses);
+  scopeInputs.refusals.push(...fullJoinScopeRefusals);
   scopeInputs.successes.push(...namedWindowSuccesses);
   scopeInputs.refusals.push(...namedWindowRefusals);
   scopeInputs.successes.push(...qualifySuccesses);
   scopeInputs.refusals.push(...qualifyRefusals);
   scopeInputs.executionFailures.push(...qualifyExecutionFailures);
+  scopeInputs.successes.push(...pipeJoinInputSuccesses);
+  scopeInputs.refusals.push(...pipeJoinInputRefusals);
   scopeInputs.successes.push(...joinStarSuccesses);
   scopeInputs.refusals.push(...joinStarRefusals);
   scopeInputs.successes.push(...rightJoinSuccesses);
@@ -299,6 +318,9 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...havingAggregateSuccesses);
   scopeInputs.refusals.push(...havingAggregateRefusals);
   scopeInputs.executionFailures.push(...havingAggregateExecutionFailures);
+  scopeInputs.successes.push(...ceilingSuccesses);
+  scopeInputs.refusals.push(...ceilingRefusals);
+  scopeInputs.executionFailures.push(...ceilingExecutionFailures);
   scopeInputs.successes.push(...unaryPlusSuccesses);
   scopeInputs.refusals.push(...unaryPlusRefusals);
   scopeInputs.executionFailures.push(...unaryPlusExecutionFailures);
@@ -434,8 +456,8 @@ const canonical = value => Array.isArray(value)
     : JSON.stringify(value);
 const environment = JSON.parse(await readFile('source-environment.json', 'utf8'));
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
-environment.host_policy_profile = {...base.host_policy_profile,
-  capacity: {...base.host_policy_profile.capacity, ...analyticCapacity}};
+const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};
+environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};
 environment.connector_capabilities[0].capability_contract_cids.push(
   'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
 environment.connector_capabilities[0].capability_contract_cids.sort();
@@ -596,7 +618,7 @@ async function exercisePublicCheck(options) {
   console.log(`packed public check ${options.mode} passed`);
 }
 await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
-  installation: {directory: localDirectory, sourceProfilePath}});
+  installation: {directory: localDirectory, sourceProfilePath, hostCapacityPolicy}});
 // Extend the same public harness; no second lifecycle/fault matrix. Each
 // physical spelling has independently authored rows and its own explicit Host.
 async function exerciseExactPhysicalTargets() {
@@ -605,7 +627,7 @@ async function exerciseExactPhysicalTargets() {
     const path = resolve(`exact-${field}-source.json`);
     const firstDirectory = resolve(`exact-${field}-local-0`);
     const firstOptions = {mode: 'local', owner: 'local', durability: 'durable',
-      installation: {directory: firstDirectory, sourceProfilePath: path}};
+      installation: {directory: firstDirectory, sourceProfilePath: path, hostCapacityPolicy}};
     for (const [index, target] of targets.entries()) {
       const profile = {...baseProfile, schema: target.schema, table: target.table};
       await writeFile(path, JSON.stringify(profile));
@@ -617,7 +639,7 @@ async function exerciseExactPhysicalTargets() {
           'changing only the physical target must refuse without provider I/O');
       }
       const directory = resolve(`exact-${field}-local-${index}`);
-      const options = {...firstOptions, installation: {directory, sourceProfilePath: path}};
+      const options = {...firstOptions, installation: {directory, sourceProfilePath: path, hostCapacityPolicy}};
       const fixture = {name: `exact-${field}-${index}`, format: 'sql',
         text: 'SELECT id, amount FROM records ORDER BY id',
         expected: target.rows, columns: [
@@ -636,7 +658,7 @@ async function exerciseExactPhysicalTargets() {
         'unchanged target with reordered JSON must reuse without provider I/O');
       const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
       const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
-        sourceProfilePath: path, authenticate: header => header === 'Bearer fixture-token'
+        sourceProfilePath: path, hostCapacityPolicy, authenticate: header => header === 'Bearer fixture-token'
           ? userInfo().username : undefined});
       const remoteServer = createServer({key: await readFile('remote.key'),
         cert: await readFile('remote.crt')}, remoteHost.handler);
@@ -661,14 +683,14 @@ const recordString = mode => item => {
 };
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: localDirectory,
-    sourceProfilePath}}, {requestPrefix: 'packed-local',
+    sourceProfilePath, hostCapacityPolicy}}, {requestPrefix: 'packed-local',
   observe: observe(localDirectory), prepareCase, completedCase: recordString('local'), ...scopeInputs});
 assert.equal(observe(localDirectory)().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log(`packed raw SQL/Pipe Embedded Local ${profileName} acceptance passed`);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
-  directory: remoteDirectory, sourceProfilePath,
+  directory: remoteDirectory, sourceProfilePath, hostCapacityPolicy,
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
 });

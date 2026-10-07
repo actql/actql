@@ -1,5 +1,7 @@
 supported_targets = "+js+wasm+native"
 
+formatter(ignore: [ "table_vectors.generated_wbtest.mbt" ])
+
 import {
   "actql/actql/canonical_value" @canonical,
   "actql/actql/canonical_json" @json,
@@ -8,5 +10,8 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/run_publication" @publication,
   "actql/actql/logical_request_scope" @request_scope,
+  "actql/actql/execution_relation" @execution,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/value_contract" @contract,
   "moonbitlang/core/encoding/utf8",
 }

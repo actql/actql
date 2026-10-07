@@ -28,6 +28,52 @@ async function result(t, respond) {
   return {result: (await client.attach(ref)).result('answer'), reads};
 }
 
+test('a pending opening and a lost response retain one immutable attempt without retry', async t => {
+  let reject, started;
+  const invoked = new Promise(resolve => {started = resolve;});
+  const pending = new Promise((_resolve, refuse) => {reject = refuse;});
+  const f = await result(t, () => {started(); return pending;});
+  const reader = f.result.rows();
+  const attemptId = reader.attemptId;
+  assert.equal(reader.state(), 'not_started');
+  const next = reader[Symbol.asyncIterator]().next();
+  await invoked;
+  assert.equal(reader.state(), 'opening');
+  assert.equal(reader.rowsYielded(), 0);
+  assert.deepEqual(f.reads, [attemptId]);
+  let failure;
+  const refused = assert.rejects(next, error => {
+    failure = error;
+    return error.attemptId === attemptId && error.rowsYielded === 0;
+  });
+  reject(new TypeError('opening response lost'));
+  await refused;
+  assert.equal(reader.state(), 'open_unknown');
+  assert.equal(explainReadFailure(failure).observation, 'read_open_unknown');
+  assert.equal(explainReadFailure(failure).summary,
+    'Opening this read could not be confirmed. The DeliveryAttempt may already have been recorded.');
+  await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
+  assert.deepEqual(f.reads, [attemptId]);
+});
+
+for (const operation of ['batches', 'all', 'one', 'scalar']) {
+  test(`${operation} preserves opening uncertainty without another read`, async t => {
+    const f = await result(t, () => {throw new TypeError('private-opening-loss');});
+    let failure;
+    try {
+      const value = f.result[operation]();
+      if (operation === 'batches') await Array.fromAsync(value);
+      else await value;
+    } catch (error) {failure = error;}
+    const explanation = explainReadFailure(failure);
+    assert.equal(explanation.observation, 'read_open_unknown');
+    assert.equal(explanation.rowsYielded, 0);
+    assert.equal(explanation.attemptId, f.reads[0]);
+    assert.equal(f.reads.length, 1);
+    assert.doesNotMatch(JSON.stringify(explanation), /private-opening-loss/);
+  });
+}
+
 test('120 yielded rows remain a prefix and a fresh read does not append or retry', async t => {
   const text = Array.from({length: 120}, (_, index) => `{"value":${index + 1}}\n`).join('');
   const f = await result(t, number => new Response(text + (number === 1 ? '' : '\x1e')));

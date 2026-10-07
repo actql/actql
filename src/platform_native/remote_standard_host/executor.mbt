@@ -47,6 +47,7 @@ struct NativeRemoteStandardRunOwner {
   mut input_finished : Bool
   output_storage : (() -> Result[@retained_file.NativeRetainedTaskFile, String])?
   retire_run_after_file_handoff : Bool
+  retired_input_cleanup : (() -> Bool)?
   source_observation : ((@remote.DispatchRequest) -> Result[
     @remote.RemoteSourceObservation,
     @remote.DispatchIssue,
@@ -190,6 +191,7 @@ pub fn prepare_native_remote_standard_captured_run_owner(
   finish_input_owner : () -> Bool,
   output_storage? : (() -> Result[@retained_file.NativeRetainedTaskFile, String])? = None,
   retire_run_after_file_handoff? : Bool = false,
+  retired_input_cleanup? : (() -> Bool)? = None,
 ) -> NativeRemoteStandardRunOwner {
   {
     run: Compute(run),
@@ -201,6 +203,7 @@ pub fn prepare_native_remote_standard_captured_run_owner(
     source_observation: None,
     output_storage,
     retire_run_after_file_handoff,
+    retired_input_cleanup,
   }
 }
 
@@ -234,6 +237,7 @@ pub fn prepare_native_remote_standard_acquired_run_owner(
     source_observation,
     output_storage,
     retire_run_after_file_handoff: false,
+    retired_input_cleanup: None,
   })
 }
 
@@ -265,6 +269,7 @@ pub fn prepare_native_remote_standard_acquired_task_owner(
     source_observation,
     output_storage,
     retire_run_after_file_handoff: false,
+    retired_input_cleanup: None,
   })
 }
 
@@ -408,6 +413,7 @@ priv struct NativeRemoteStandardOutputOwner {
   mut output_export : @publication_host.PublicationOutputExport?
   release_run : () -> Bool
   mut handoff_cleanup : (() -> Bool)?
+  mut retired_input_cleanup : (() -> Bool)?
   mut handoff_committed : Bool
   retained_file : @retained_file.NativeRetainedTaskFile?
   chunk_byte_lengths : Array[Int64]
@@ -511,6 +517,9 @@ fn NativeRemoteStandardOutputOwner::release(
   }
   self.cancel_export()
   if (self.release_run)() && self.finish_handoff_cleanup() {
+    // Before commitment the incoming receiver still belongs to its original
+    // holder. Generic failure cleanup cannot claim its durable handoff.
+    self.retired_input_cleanup = None
     self.released = true
     true
   } else {
@@ -540,6 +549,12 @@ fn NativeRemoteStandardOutputOwner::finish_handoff_cleanup(
     // Drop the closure as well as its resource claims: it owns the original
     // captured rows and Compute Run, which a later task must not retain.
     self.handoff_cleanup = None
+  }
+  if self.handoff_committed && self.retired_input_cleanup is Some(cleanup) {
+    if !cleanup() {
+      return false
+    }
+    self.retired_input_cleanup = None
   }
   true
 }
@@ -704,7 +719,9 @@ fn NativeRemoteStandardOutputOwner::open_manifest_reader(
   if self.retained_file is Some(file) {
     // Do not grow a retained chain while its replaced input or Compute owner
     // still has unconfirmed cleanup. Ordinary output reads remain independent.
-    if self.handoff_cleanup is Some(_) &&
+    if (
+        self.handoff_cleanup is Some(_) || self.retired_input_cleanup is Some(_)
+      ) &&
       (!self.handoff_committed || !self.finish_handoff_cleanup()) {
       return Err("output-input-cleanup-pending")
     }
@@ -764,8 +781,14 @@ fn execute_native_remote_standard_task(
     Ok(value) => value
     Err(failure) => return remote_standard_rejection(failure)
   }
-  if bound.owner.retire_run_after_file_handoff &&
-    bound.owner.output_storage is None {
+  if (
+      bound.owner.retire_run_after_file_handoff &&
+      bound.owner.output_storage is None
+    ) ||
+    (
+      bound.owner.retired_input_cleanup is Some(_) &&
+      !bound.owner.retire_run_after_file_handoff
+    ) {
     return remote_standard_failure(bound, "output-handoff-configuration")
   }
   if bound.request_cid != @remote.dispatch_request_identity(request) ||
@@ -864,6 +887,7 @@ fn execute_native_remote_standard_task(
     budget,
     retained_file~,
     retire_run_after_file_handoff=bound.owner.retire_run_after_file_handoff,
+    retired_input_cleanup=bound.owner.retired_input_cleanup,
   )
   match observation {
     Some(value) =>
@@ -891,6 +915,7 @@ pub fn prepare_native_remote_standard_output_from_export(
   budget : @remote.RemoteDispatchBudget,
   retained_file? : @retained_file.NativeRetainedTaskFile? = None,
   retire_run_after_file_handoff? : Bool = false,
+  retired_input_cleanup? : (() -> Bool)? = None,
 ) -> @runtime.NativeRemotePhysicalExecution {
   // The same cleanup callback is retained on every failure, including append
   // and seal failures. Run cleanup cannot hide unconfirmed physical custody.
@@ -898,6 +923,7 @@ pub fn prepare_native_remote_standard_output_from_export(
   let release_run = retain_standard_output_cleanup(retained_file, release_run)
   if expected_task < 0 ||
     (retire_run_after_file_handoff && retained_file is None) ||
+    (retired_input_cleanup is Some(_) && !retire_run_after_file_handoff) ||
     limits.max_manifest_bytes < 1 ||
     limits.max_retained_bytes < 0L ||
     limits.output_export.max_batch_bytes < 1 ||
@@ -1127,6 +1153,7 @@ pub fn prepare_native_remote_standard_output_from_export(
     } else {
       None
     },
+    retired_input_cleanup,
     handoff_committed: false,
     retained_file,
     chunk_byte_lengths,

@@ -3,12 +3,11 @@
 extern "C" fn map_layout(map : Map[String, Int], selector : Int) -> UInt64 = "actql_proof_map_layout"
 
 ///|
-#borrow(input, binding, projection, snapshot)
+#borrow(input, binding, projection)
 extern "C" fn map_json(
   input : Map[String, Int],
   binding : Map[String, Int],
   projection : Map[String, Int],
-  snapshot : Map[String, Int],
 ) -> String = "actql_proof_map_json"
 
 ///|
@@ -39,7 +38,7 @@ test "native Map extent and backing identity come from actual objects" {
   assert_eq(map_layout(fields, 5), 144UL)
   assert_eq(map_layout(fields, 6), 264UL)
   assert_true(
-    map_json(fields, other, Map([]), Map([])).contains(
+    map_json(fields, other, Map([])).contains(
       "\"requestedBytes\":\"264\"",
     ),
   )

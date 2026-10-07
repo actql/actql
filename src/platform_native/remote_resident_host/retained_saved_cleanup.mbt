@@ -77,67 +77,45 @@ pub fn prepare_resident_saved_input_cleanup(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let physical = @host.client_retained_task_route_physical(route)
-  let transfer = @host.client_transfer_request(physical)
-  let receipt = @host.client_retained_task_route_receipt(route)
-  if @transfer.request_route(transfer) != @transfer.DirectStream ||
-    @host.client_transfer_destination_use_id(physical) != "direct-destination" {
-    return Err(Refused(@resident.ForeignSource))
+  let producer = @host.client_retained_task_route_producer_dispatch(route)
+  let observation = match journal.observation(producer) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
   }
-  // This durable record must exist under the same bound request before this
-  // caller can inherit its cleanup; absence is not successful reclamation.
-  if transfer_journal.require(transfer) is Err(_) {
-    return Err(Refused(@resident.NotCurrent))
+  guard @journal.recovered_site_dispatch_evidence(observation) is Some(evidence) &&
+    @journal.recovered_site_dispatch_subject(observation) is Some(subject) &&
+    @journal.recovered_site_dispatch_measurement(observation)
+    is Some(measurement) else {
+    return Err(Runtime(@runtime.CompletedRestorationPending))
   }
-  let reader = @remote.dispatch_request_identity(request)
-  let returned = Ref(false)
-  let reclaimed = Ref(false)
-  let owner : Ref[@transfer_client.NativeRemoteDestinationMaterialUse?] = Ref(
-    None,
-  )
-  Ok(
-    Some(() => {
-      if reclaimed.val {
-        return true
-      }
-      if !cleanup_current() {
-        return false
-      }
-      if !returned.val {
-        match
-          transfer_journal.release_destination_reader(transfer, receipt, reader) {
-          Ok(_) => returned.val = true
-          Err(@transfer_journal.Physical(@sqlite.NotFound)) =>
-            // Reader creation is an atomic durable operation. The exact missing
-            // key proves this accepted consumer never acquired that borrow.
-            returned.val = true
-          Err(_) => return false
-        }
-      }
-      if owner.val is None {
-        match
-          @transfer_client.recover_durable_direct_destination_cleanup(
-            transfer_journal,
-            root,
-            transfer,
-            @transfer.destination_receipt_cid(receipt),
-          ) {
-          Ok(value) => owner.val = Some(value)
-          Err(_) => return false
-        }
-      }
-      match
-        @transfer_client.reclaim_durable_destination_material(
-          owner.val.unwrap(),
-        ) {
-        Ok(_) => {
-          reclaimed.val = true
-          true
-        }
-        Err(_) => false
-      }
-    }),
-  )
+  let consumer_record = match journal.require(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  let cleanup = match
+    @host.prepare_client_retained_input_cleanup_for_route(
+      route,
+      @journal.recovered_site_dispatch_record(observation),
+      evidence,
+      subject,
+      measurement,
+      consumer_record,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Refused(@resident.ForeignSource))
+  }
+  let retry = match
+    prepare_resident_retained_input_cleanup_retry(
+      cleanup,
+      transfer_journal,
+      root,
+      cleanup_current,
+      allow_unborrowed=true,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Refused(@resident.NotCurrent))
+  }
+  Ok(Some(() => retry() is Ok(_)))
 }
 
 ///|

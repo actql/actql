@@ -13,6 +13,15 @@ test "prepared map kernel preserves canonical binding order and defensive access
   assert_true(physical_equal(@lowering_relation.kernel_owner(kernel), owner))
   assert_eq(@lowering_relation.kernel_step(kernel), 1)
   assert_eq(@lowering_relation.kernel_input(kernel), "values_0")
+  assert_true(@lowering_relation.kernel_json_pick(kernel) is None)
+  let view = @lowering_relation.kernel_bindings(kernel).unwrap()
+  assert_false(@lowering_relation.bindings_ordered(view))
+  assert_eq(@lowering_relation.bindings_count(view), 2)
+  assert_eq(@lowering_relation.binding_at(view, 0).unwrap().0, "a")
+  assert_eq(@lowering_relation.binding_at(view, 1).unwrap().0, "z")
+  assert_true(@lowering_relation.binding_at(view, -1) is None)
+  assert_true(@lowering_relation.binding_at(view, 2) is None)
+  assert_true(@lowering_relation.kernel_unique_keys(kernel) is None)
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.SnapshotMap(bindings) else {
     fail("map")
@@ -23,6 +32,7 @@ test "prepared map kernel preserves canonical binding order and defensive access
     "{\"body\":[{\"body\":\"id\",\"op\":\"field\"},{\"body\":1,\"op\":\"literal\"}],\"op\":\"add\"}",
   )
   bindings.clear()
+  assert_eq(@lowering_relation.bindings_count(view), 2)
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.SnapshotMap(again) else {
     fail("map")
@@ -59,7 +69,26 @@ test "empty map remains a kernel and select keeps authored column order" {
     fail("select")
   }
   assert_eq(fields.map(f => @schema.reference_name(f.output)), ["z", "id"])
+  let view = @lowering_relation.prepare_projection(
+    @lowering_relation.kernel_checked(projection),
+  ).unwrap()
+  let first = @lowering_relation.projection_field_at(view, 0).unwrap()
+  assert_eq(
+    (first.output, first.input),
+    (@schema.Unqualified("z"), @schema.Unqualified("z")),
+  )
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 1).unwrap().output,
+    @schema.Unqualified("id"),
+  )
+  assert_true(@lowering_relation.projection_field_at(view, -1) is None)
+  assert_true(@lowering_relation.projection_field_at(view, 2) is None)
   fields.clear()
+  assert_eq(@lowering_relation.projection_field_count(view), 2)
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 0).unwrap().output,
+    @schema.Unqualified("z"),
+  )
   guard @lowering_relation.kernel_body(projection)
     is @lowering_relation.Select(again) else {
     fail("select")
@@ -134,6 +163,9 @@ test "ordered preparation preserves authored slots and checked shadow references
     is @lowering_relation.OrderedBindings(bindings) else {
     fail("ordered")
   }
+  let view = @lowering_relation.kernel_bindings(kernel).unwrap()
+  assert_true(@lowering_relation.bindings_ordered(view))
+  assert_eq(@lowering_relation.bindings_count(view), 3)
   assert_eq(bindings.map(b => b.0), ["z", "id", "a"])
   assert_true(
     @lowering_relation.expression_body(bindings[0].1)
@@ -148,6 +180,13 @@ test "ordered preparation preserves authored slots and checked shadow references
     is @lowering_relation.Field("id", @relation.PriorSlot(1)),
   )
   bindings.clear()
+  assert_eq(@lowering_relation.binding_at(view, 1).unwrap().0, "id")
+  assert_true(
+    @lowering_relation.expression_body(
+      @lowering_relation.binding_at(view, 1).unwrap().1,
+    )
+    is @lowering_relation.Field("z", @relation.PriorSlot(0)),
+  )
   assert_eq(@lowering_relation.kernel_view_entries(kernel), 3)
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.OrderedBindings(again) else {
@@ -215,12 +254,22 @@ test "assertion kernels preserve checked predicate and authored unique tuple" {
     max_name_bytes=2,
     expression_limits(),
   ).unwrap()
+  let view = @lowering_relation.kernel_unique_keys(unique).unwrap()
+  assert_eq(@lowering_relation.unique_key_count(view), 1)
+  assert_eq(
+    @lowering_relation.unique_key_at(view, 0),
+    Some(@schema.Unqualified("id")),
+  )
+  assert_true(@lowering_relation.unique_key_at(view, -1) is None)
+  assert_true(@lowering_relation.unique_key_at(view, 1) is None)
+  assert_true(@lowering_relation.kernel_bindings(unique) is None)
   guard @lowering_relation.kernel_body(unique)
     is @lowering_relation.AssertUnique(keys) else {
     fail("assert unique")
   }
   assert_eq(keys, [@schema.Unqualified("id")])
   keys.clear()
+  assert_eq(@lowering_relation.unique_key_count(view), 1)
   guard @lowering_relation.kernel_body(unique)
     is @lowering_relation.AssertUnique(again) else {
     fail("assert unique")
@@ -266,7 +315,18 @@ test "json pick kernel retains exact checked field path and output" {
   assert_eq(column, @schema.Unqualified("payload"))
   assert_eq(path, ["inner", "leaf"])
   assert_eq(output, "picked")
+  let view = @lowering_relation.kernel_json_pick(kernel).unwrap()
+  assert_eq(@lowering_relation.json_pick_column(view), column)
+  assert_eq(@lowering_relation.json_pick_output(view), output)
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 0), Some("inner"))
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
+  assert_true(@lowering_relation.json_pick_path_at(view, -1) is None)
+  assert_true(@lowering_relation.json_pick_path_at(view, 2) is None)
   path.clear()
+  // Mutating the defensive legacy export cannot alter the read-only view.
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.JsonPick(_, again, _) else {
     fail("json pick")

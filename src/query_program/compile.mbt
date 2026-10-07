@@ -1012,11 +1012,12 @@ fn selected_projections(query : @query.Query) -> Array[@query.Projection] {
 ///|
 // SQL's parser records ORDER-only calls as private Group projections. Their
 // references occur in ORDER, never as authored SELECT aliases or inputs.
+// SELECT ownership must use the same expanded replacement projections as Group.
 fn order_aggregate_calls(
   query : @query.Query,
   projections : Array[@query.Projection],
+  selected : Array[@query.Projection],
 ) -> Array[(@query.NamePart, @query.AggregateCall)] {
-  let selected = selected_projections(query)
   let references : Array[Array[@query.NamePart]] = []
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Order(terms)) {
@@ -1028,7 +1029,11 @@ fn order_aggregate_calls(
   projections.filter_map(projection => {
     guard projection.name is Some(name) &&
       projection.aggregate is Some(call) &&
-      !selected.any(item => item.name == Some(name)) &&
+      !selected.any(item => {
+        item.aggregate is Some(_) &&
+        item.name is Some(selected_name) &&
+        same_name(selected_name, name)
+      }) &&
       references.any(path => path.length() == 1 && path[0] == name) else {
       return None
     }
@@ -1621,6 +1626,7 @@ fn compile_steps(
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
+  parameter_declarations? : @parameters.Declarations? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1666,9 +1672,9 @@ fn compile_steps(
     ranges: pipe_ranges.copy(),
   }
   let mut pipe_changed = initial_scope is Some(_)
-  // Materializing a SELECT resets private slots, not the replacement of
-  // range variables. Never resolve subsequent operators through the source
-  // alias again after Pipe AS has established a new scope.
+  // Materializing a SELECT resets private slots, not the current row scope.
+  // Once AS or SELECT replaces the source scope, later operators must not
+  // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
   let mut distinct_order_scope = false
@@ -1725,11 +1731,12 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        // Value-table star expansion depends on the admitted element type;
-        // do not reinterpret a STRUCT value table as one object column.
+        // Use declared element contracts, not payload samples, to distinguish
+        // a scalar value column from STRUCT field expansion.
         if selected_projections(query).any(projection => {
             projection.star is Some(_)
-          }) {
+          }) &&
+          !unnest_scalar_parameter(expression, parameter_declarations) {
           raise Abort(UnsupportedProjection)
         }
         let physical = ["aql_source_free_unit", element.value]
@@ -2114,27 +2121,6 @@ fn compile_steps(
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
-        let hidden_calls = match @query.operation_at(query, i + 1) {
-          Some(Having(_, calls)) => calls.copy()
-          _ => []
-        }
-        for next in (i + 1)..<@query.operation_count(query) {
-          match @query.operation_at(query, next) {
-            Some(Qualify(_, calls)) => hidden_calls.append(calls)
-            Some(Select(_, _)) => break
-            _ => ()
-          }
-        }
-        let order_calls = if grouping_scope == @query.SqlSelect {
-          order_aggregate_calls(query, projections)
-        } else {
-          []
-        }
-        hidden_calls.append(order_calls)
-        grouped_keys.clear()
-        having_values.clear()
-        having_aggregate_slots.clear()
-        order_aggregate_slots.clear()
         sql_group_projection = grouping_scope == @query.SqlSelect
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
@@ -2149,6 +2135,30 @@ fn compile_steps(
             max_work,
           )
         }
+        let hidden_calls = match @query.operation_at(query, i + 1) {
+          Some(Having(_, calls)) => calls.copy()
+          _ => []
+        }
+        for next in (i + 1)..<@query.operation_count(query) {
+          match @query.operation_at(query, next) {
+            Some(Qualify(_, calls)) => hidden_calls.append(calls)
+            Some(Select(_, _)) => break
+            _ => ()
+          }
+        }
+        // Classify against expanded SELECT aggregates, preserving input aliases.
+        let order_calls = if grouping_scope == @query.SqlSelect {
+          order_aggregate_calls(
+            query, projections, sql_group_selected_projections,
+          )
+        } else {
+          []
+        }
+        hidden_calls.append(order_calls)
+        grouped_keys.clear()
+        having_values.clear()
+        having_aggregate_slots.clear()
+        order_aggregate_slots.clear()
         // A sole global DISTINCT ARRAY_AGG ordered by the same referenced
         // value can obtain its candidate key from ordinary row DISTINCT.
         // Project the value first so no unrelated column supplies a chosen
@@ -3898,6 +3908,14 @@ fn compile_steps(
         // while the query's deferred ORDER still consumes the input snapshot.
         pipe_ranges = []
       }
+      // Preserve the existing deferred query ORDER exception for the directly
+      // following ORDER, including an elided identity projection.
+      // Every other continuation uses only the materialized output scope.
+      if !(@query.operation_at(query, i + 1) is Some(Order(_))) {
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+      }
     }
     if add_distinct {
       step_entries.push([
@@ -3908,6 +3926,13 @@ fn compile_steps(
       ])
     }
     if operation is Order(_) {
+      if i > 0 && @query.operation_at(query, i - 1) is Some(Select(_, _)) {
+        // The SELECT-owned ORDER has consumed its input snapshot. Neither
+        // initial-range fallback nor selected-expression reuse may revive it.
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+      }
       match pending_select {
         Some(selection) => {
           step_entries.push(selection)
@@ -4050,7 +4075,7 @@ pub fn compile(
     return Err(UnsupportedGraph)
   }
   if @query.join_part_count(query) > 0 &&
-    join_requires_group_scope(query) &&
+    (@query.join_part_count(query) > 1 || join_requires_group_scope(query)) &&
     context.captured_stage is Some(_) {
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, rather
@@ -4209,6 +4234,7 @@ pub fn compile(
       nearest_inputs=[input] +
         dependencies.filter(other => other.name != input.name),
       retained=Some(retained),
+      parameter_declarations=context.parameter_declarations,
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -4524,7 +4550,8 @@ fn compile_cte_query(
           query,
         ) >
         1 ||
-        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) {
+        (@query.join_part_count(query) > 0 && join_requires_group_scope(query)) ||
+        join_requires_input_binding(query, { ..context, inputs: known, }) {
         compile_join_chain_stage_body(
           construction,
           query,
@@ -4643,7 +4670,8 @@ fn compile_cte_stage(
     raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(body) > 1 ||
-    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) {
+    (@query.join_part_count(body) > 0 && join_requires_group_scope(body)) ||
+    join_requires_input_binding(body, { ..context, inputs: known, }) {
     let (steps, output, inputs, from) = compile_join_chain_stage_body(
       construction,
       body,
@@ -4814,6 +4842,7 @@ fn compile_cte_stage(
     body_start,
     input.source is Captured(_),
     final_alias,
+    parameter_declarations=context.parameter_declarations,
   )
   // A CTE with no remaining computation binds the existing producer after
   // scope validation. compile_steps may emit a synthetic identity projection
