@@ -1,5 +1,59 @@
 # `@actql/sdk` development artifact
 
+## Workspace connection strings
+
+An installed Host can expose an explicit service Workspace. Connect with the
+application's secret connection string:
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect(process.env.ACTQL_URL);
+// ACTQL_URL: actql://token:<percent-encoded-bearer>@host/workspace-id
+```
+
+Or keep the credential separate:
+
+```js
+const client = await connect('actql://host/workspace-id', {
+  token: getAccessToken,
+});
+```
+
+The Workspace must match the credential's authenticated target on every
+request. A token getter can refresh a credential for that same target; it
+does not acquire renewal permission or switch Workspaces. An embedded DSN
+credential and a separate token conflict. Credentials must be percent-encoded
+as a component, never by encoding or decoding the entire URL. Do not log the
+connection string or commit it to source control.
+
+`actql://localhost:port/workspace-id` connects to an already running HTTPS
+Host with normal certificate verification. It does not open a directory or
+start a server. Node applications can explicitly select loopback HTTP:
+
+```js
+const client = await connect('actql://localhost:8080/workspace-id?transport=http', {
+  token: getAccessToken,
+});
+```
+
+Only the exact `?transport=http` query is accepted. `localhost` is pinned to
+`127.0.0.1` without DNS or IPv6 fallback; canonical `127.x.x.x` literals and
+IPv6 `::1` literals also work. Remote hosts, port zero and alternate query
+forms are refused before a token callback or network request. HTTP uses a
+private direct Node connection, not global Fetch/proxy configuration. Browser
+builds contain only an unavailable stub and reject this mode before fetching
+a credential. HTTPS behavior and certificate checks are unchanged.
+
+This plaintext mode trusts the local OS/process boundary; it provides no TLS
+server authentication. Configure the Host's `loopbackHttp: true` ingress and
+explicitly bind its caller-owned HTTP server to a numeric loopback address.
+Bearer authentication and Workspace checks remain required on every request.
+There is no automatic downgrade, redirect, daemon, alternate port or directory.
+Existing
+`connect({mode: 'remote', endpoint, token})` remains available. This is a
+development artifact, not a registry release or a deployed Cloud endpoint.
+See [the connection contract](../../docs/design/client-workspace-connections.md).
+
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
 kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its
@@ -154,13 +208,16 @@ import {explainEffectUncertainty} from '@actql/sdk';
 const state = await execution.status();
 const explanation = explainEffectUncertainty(state);
 // Display the unresolved Effects and physical stop separately. Any explicit
-// follow-up status request must use the original Client and current authority.
+// reconciliation must use the original Client and current authority.
 ```
 
-The helper performs no transport or write, and its only advice is to observe
-the original Run's current status. It does not promise that the Host offers
-reconciliation, authorize resubmission, infer rollback or assert resource
-release. The immutable explanation preserves what this response reported;
+The helper performs no transport or write. Its `next` candidate is the existing
+`Execution.reconcile()` operation on the original Run. The Host checks current
+authority and original Effect custody when explicitly called. Inconclusive
+evidence leaves the Effect outcome unknown. This candidate does not guarantee
+that reconciliation will resolve the outcome, authorize resubmission, infer
+rollback or assert resource release. The immutable explanation preserves what
+this response reported;
 later observations do not rewrite it. Copied/deserialized states, malformed
 responses, other Run-state branches and user-created errors have no association
 and return `undefined`. This weak association adds no Host storage, execution
@@ -1177,9 +1234,16 @@ are omitted from the protocol error. Explanation/locale edits confer no write
 retry, cancellation, Compute restart or reconciliation authority. Status lookup
 continues to enforce current Host authorization; the retained reference grants
 no access. Copies, serialized or forged errors have no explanation custody.
-Credential and transport refusals retain their existing separate behavior and
-are not labelled as received malformed state observations. No automatic lookup
-or additional operation is performed by presentation.
+Failure to obtain an observation, including credential, transport or closed-Client
+refusal, retains `unavailable/observation_unavailable` separately from received
+malformed facts. The error preserves only public Client code/status metadata;
+borrowed messages, nested causes and provider details are discarded. Unreadable
+error metadata retains only generic `ClientTransportUnknown`, without its cause.
+A fresh error owns each call's original target even if the transport reuses an
+exception.
+No dispatch, acceptance, Run outcome or current access is certified by this
+classification. No automatic lookup or additional operation is performed by
+presentation.
 
 This SDK weak association lasts only while its original error remains reachable;
 there is no timed retention guarantee or new Host persistence/retrieval API.

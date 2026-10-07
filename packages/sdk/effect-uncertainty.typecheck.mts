@@ -6,7 +6,7 @@ if (explanation) {
   const observation: 'effect_outcome_unknown' = explanation.observation;
   const stop: 'confirmed' | 'unknown' = explanation.physicalStop;
   const revision: number | undefined = explanation.controlRevision;
-  const operation: 'status' = explanation.next.operation;
+  const operation: 'reconcile' = explanation.next.operation;
   const runDefinitionCid: string = explanation.next.ref.runDefinitionCid;
   const effects: readonly string[] = explanation.effects;
   void observation; void stop; void revision; void operation;

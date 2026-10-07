@@ -31,12 +31,15 @@ const mutations = [
     "observation: 'effect_outcome_unknown',", "observation: 'succeeded',", boundary, publicCases],
   ['the retained Effect names are erased',
     'effects: [...state.next_action.effects],', 'effects: [],', boundary, publicCases],
-  ['read-only advice becomes permission to submit again',
-    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref}},",
+  ['reconciliation advice becomes permission to submit again',
+    "controlRevision: state.control.revision}),\n      next: {operation: 'reconcile', ref: {...ref}},",
     "controlRevision: state.control.revision}),\n      next: {operation: 'submit', ref: {...ref}},", boundary, publicCases],
   ['the original Run reference is replaced',
-    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref}},",
-    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref, namespaceId: 'wrong-run'}},", boundary, publicCases],
+    "controlRevision: state.control.revision}),\n      next: {operation: 'reconcile', ref: {...ref}},",
+    "controlRevision: state.control.revision}),\n      next: {operation: 'reconcile', ref: {...ref, namespaceId: 'wrong-run'}},", boundary, publicCases],
+  ['the original Effect reconciliation candidate becomes a status lookup',
+    "controlRevision: state.control.revision}),\n      next: {operation: 'reconcile', ref: {...ref}},",
+    "controlRevision: state.control.revision}),\n      next: {operation: 'status', ref: {...ref}},", unit, controlCases],
   ['absent or unknown physical stop is presented as confirmed',
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
@@ -64,12 +67,18 @@ const accepted = (file, expected) => {
 };
 const original = readFileSync(path, 'utf8');
 const results = [];
+const args = process.argv.slice(2);
+if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
+  throw new Error('Usage: check-effect-uncertainty-mutations.mjs [--match name-substring]');
+}
+const selected = mutations.filter(([name]) => !args.length || name.includes(args[1]));
+if (!selected.length) throw new Error('No Effect uncertainty mutations selected');
 // Refuse stale anchors before starting any actual acceptance processes.
 for (const [name, from] of mutations) {
   if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
 }
 try {
-  for (const [name, from, to, file, expected, bypassLaterCopy] of mutations) {
+  for (const [name, from, to, file, expected, bypassLaterCopy] of selected) {
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
     let altered = original.replace(from, to);
     if (bypassLaterCopy) {
@@ -81,8 +90,9 @@ try {
     results.push({name, rejected: !accepted(file, expected)});
   }
 } finally { writeFileSync(path, original); }
-const restoredAccepted = accepted(boundary, publicCases) &&
-  accepted(unit, controlCases) && accepted(unit, custodyCases) &&
-  accepted(unit, copiedShapeCases(['proxy', 'date', 'control-date', 'action-date']));
+const restorations = new Map(selected.map(([, , , file, expected]) =>
+  [JSON.stringify([file, expected]), {file, expected}]));
+const restoredAccepted = [...restorations.values()]
+  .every(({file, expected}) => accepted(file, expected));
 console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
 if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;

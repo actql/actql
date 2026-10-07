@@ -1,6 +1,6 @@
 import type {HostCapacityPolicy} from '@actql/local-node';
 export type {HostCapacityPolicy} from '@actql/local-node';
-import type {Client, ConnectionOptions, Durability} from '@actql/sdk';
+import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
@@ -49,3 +49,5 @@ export type NodeConnectionOptions = ConnectionOptions |
   EmbeddedLocalOptions | EmbeddedLocalHybridOptions;
 
 export declare function connect(options: NodeConnectionOptions): Promise<Client>;
+export declare function connect(connectionString: string,
+  options?: ConnectionStringOptions): Promise<Client>;

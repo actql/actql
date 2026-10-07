@@ -22,7 +22,9 @@ async function localProvider() {
   return provider;
 }
 
-export async function connect(options) {
+export async function connect(options, stringOptions) {
+  if (typeof options === 'string') return connectHost(options, stringOptions);
+  if (stringOptions !== undefined) throw new ClientError('InvalidConnectionOptions');
   if ((options?.mode === 'local' || options?.mode === 'hybrid' &&
       options?.owner === 'local') && options.endpoint === undefined) {
     // Detach this new Host-only value before lazy provider loading. Admission
