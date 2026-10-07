@@ -31,26 +31,42 @@ const scope = {namespaceId: 'opening-fixture', authorityScopeCid: cid('a')};
 const control = runtimeCore(moon).publicationControl;
 export const openingProgram = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
 export const openingExpected = [{id: 1}, {id: 2}];
+export function traceReadRecovery(phase, facts = {}) {
+  if (process.env.ACTQL_READ_RECOVERY_TRACE !== '1') return;
+  console.error('ACTQL_READ_RECOVERY_TRACE ' + JSON.stringify({
+    phase, pid: process.pid, at: Date.now(), ...facts}));
+}
 export async function openReadOpeningFixture(directory, loss,
   {valuesMaxRows, expectedRowCount = 2, expressionFragment = false,
     observeSubmission = () => {}} = {}) {
+  traceReadRecovery('store-open:start', {expectedRowCount});
   const store = await openLocalPublicationStore({directory: join(directory, 'publication'),
     storeAuthorityCid: cid('7'), capacityBytes: 512 * 1024 * 1024,
     maxObjectBytes: localOutputLimits.maxWireBytes, maxObjects: 10000,
     maxContractNodes: 100000, maxContractDepth: 64}, control);
+  traceReadRecovery('store-open:finished');
   const journal = openClientRequestJournal(join(directory, 'requests'));
+  traceReadRecovery('journal-open:finished');
   const counts = {admissions: 0, readers: 0, computes: 0, definitions: 0};
   let allowed = true, armed = loss, loseReply, beforeSuccessRecord, beforeRow;
   const observed = {...store,
     async appendDeliveryRecord(wire) {
-      if (JSON.parse(wire).state === 'succeeded') await beforeSuccessRecord?.();
-      return store.appendDeliveryRecord(wire);
+      const state = JSON.parse(wire).state;
+      traceReadRecovery('delivery-record:start', {state});
+      if (state === 'succeeded') await beforeSuccessRecord?.();
+      const recording = store.appendDeliveryRecord(wire);
+      if (process.env.ACTQL_READ_RECOVERY_TRACE !== '1') return recording;
+      const recorded = await recording;
+      traceReadRecovery('delivery-record:finished', {state});
+      return recorded;
     },
     async createDeliveryAttempt(wire, grantWire) {
       counts.admissions++;
       const phase = armed; armed = undefined;
+      traceReadRecovery('delivery-admission:start', {loss: phase ?? null});
       if (phase === 'before-commit') { loseReply?.(); throw new Error('InjectedOpeningReplyLoss'); }
       const committed = await store.createDeliveryAttempt(wire, grantWire);
+      traceReadRecovery('delivery-admission:committed', {loss: phase ?? null});
       if (phase === 'after-commit') { loseReply?.(); throw new Error('InjectedOpeningReplyLoss'); }
       return committed;
     },

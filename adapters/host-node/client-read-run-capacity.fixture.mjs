@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
 import * as sdk from '../../packages/sdk/index.mjs';
-import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.fixture.mjs';
+import {openReadOpeningFixture, connectOpeningHost, traceReadRecovery} from './client-read-opening.fixture.mjs';
 
 const program = JSON.parse(await readFile(new URL('./fixtures/read-121.program.json', import.meta.url), 'utf8'));
 const expected = JSON.parse(await readFile(new URL('./fixtures/read-121.expected.json', import.meta.url), 'utf8'));
@@ -51,6 +51,7 @@ function assertReadExplanation(failure, consumer, ref, endpoint, attemptId) {
 }
 
 async function initialRead({directory, entrance, consumer}) {
+  traceReadRecovery('initial-121-process:start', {entrance, consumer});
   const fixture = await openReadOpeningFixture(directory, undefined,
     {valuesMaxRows: 121, expectedRowCount: 121,
       observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
@@ -73,6 +74,7 @@ async function initialRead({directory, entrance, consumer}) {
     assert.deepEqual((await host.client.lookupSubmission(submissionRef)).admission.ref, ref);
     const result = run.result('answer');
     const description = await result.describe();
+    traceReadRecovery('result-description:finished', {entrance});
     assert.deepEqual(description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
     const reader = consumer === 'rows' ? result.rows() : undefined;
     attemptId = reader?.attemptId;
@@ -89,6 +91,7 @@ async function initialRead({directory, entrance, consumer}) {
       return typeof attemptId === 'string' && error.attemptId === attemptId &&
         error.rowsYielded === (consumer === 'rows' ? 120 : 0);
     });
+    traceReadRecovery('interrupted-read:finished', {entrance, consumer});
     release(); await host.settled();
     assert.deepEqual(seen, consumer === 'rows' ? expected.slice(0, 120) : []);
     if (reader) {
@@ -108,6 +111,7 @@ async function initialRead({directory, entrance, consumer}) {
     assert.deepEqual(await result.deliveryAttempt(attemptId), observed);
     assert.deepEqual(await attemptBytes(directory), bytes);
     assert.deepEqual(fixture.counts, {admissions: 1, readers: 1, computes: 1, definitions: 1});
+    traceReadRecovery('interrupted-lookup:finished', {entrance});
     if (reader) await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
     fixture.authorize(false);
     await assert.rejects(Array.fromAsync(result.rows()));
@@ -116,14 +120,17 @@ async function initialRead({directory, entrance, consumer}) {
     assert.deepEqual(await attemptBytes(directory), bytes);
     fixture.authorize(true);
     const fresh = result.rows();
+    traceReadRecovery('fresh-read:start', {entrance});
     assert.notEqual(fresh.attemptId, attemptId);
     assert.deepEqual(await Array.fromAsync(fresh), expected);
+    traceReadRecovery('fresh-read:finished', {entrance});
     assert.equal(fresh.rowsYielded(), 121);
     assert.equal(fresh.state(), 'complete');
     assert.deepEqual(sdk.explainReadFailure(failure), explanation);
     assert.equal((await run.status()).status, 'succeeded');
     await host.settled();
     completeAttempt = await result.deliveryAttempt(fresh.attemptId);
+    traceReadRecovery('fresh-receipt:finished', {entrance});
     assertSameResult(completeAttempt, observed);
     assert.equal(completeAttempt.record.state, 'succeeded');
     assert.notEqual(completeAttempt.hostReleaseReceipt, null);
@@ -140,7 +147,11 @@ async function initialRead({directory, entrance, consumer}) {
     originalPolicy = fixture.retainedAdmission(ref).valuesHostPolicyOriginal;
     assert.deepEqual(JSON.parse(originalPolicy.wire), {max_rows: 121,
       name: 'source-free-values', version: 'actql-installed-local-policy/0.1'});
-  } finally {release(); await host.close(); await fixture.close();}
+  } finally {
+    traceReadRecovery('initial-121-close:start', {entrance});
+    release(); await host.close(); await fixture.close();
+    traceReadRecovery('initial-121-close:finished', {entrance});
+  }
   return {pid: process.pid, ref, submissionRef, attemptId, observed, originalPolicy,
     completeAttempt, explanation, counts: {...fixture.counts}};
 }
