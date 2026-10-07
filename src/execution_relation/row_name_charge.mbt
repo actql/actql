@@ -73,6 +73,41 @@ priv enum RowNameIssue {
 }
 
 ///|
+/// The caller pays the entry charge once. Text bytes retain their prior
+/// control cost, independently of the number of physical resume fragments.
+fn advance_binding_name_control_bytes(
+  state : BoundedBindingRowsState,
+  name : String,
+) -> Result[Bool, RowIssue] {
+  if name.length() <= 64 {
+    return if spend_control_text(state.control, name) {
+      Ok(true)
+    } else {
+      Err(RowLimit)
+    }
+  }
+  if state.name_charge is None {
+    guard start_row_name_charge(name, state.workspace) is Some(cursor) else {
+      return Err(RowLimit)
+    }
+    state.name_charge = Some(cursor)
+  }
+  match
+    advance_row_name_charge(
+      state.name_charge.unwrap(),
+      Some(state.control),
+      None,
+    ) {
+    Err(issue) => Err(issue)
+    Ok(false) => Ok(false)
+    Ok(true) => {
+      state.name_charge = None
+      Ok(true)
+    }
+  }
+}
+
+///|
 fn advance_binding_name_value(
   state : BoundedBindingRowsState,
   name : String,

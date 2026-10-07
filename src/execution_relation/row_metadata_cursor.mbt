@@ -76,3 +76,59 @@ fn bounded_small_schema_names(schema : @schema.Schema) -> Bool {
   }
   true
 }
+
+///|
+/// Resolve a checked key once, reserve its eventual entries once, and charge
+/// its original spelling across resumable scalar boundaries. Lookup authority
+/// remains the admitted input schema; absence retains the typed row failure.
+fn advance_row_term_preparation(
+  state : BoundedBindingRowsState,
+  field : @schema.FieldName,
+  slots : Int,
+) -> Result[Int?, RowIssue] {
+  if state.term_column is None {
+    let schema = bounded_binding_input_schema(state.input)
+    let column = if state.stepped_metadata {
+      if state.metadata_lookup is None {
+        guard start_row_metadata_lookup(schema, field, state.workspace)
+          is Some(cursor) else {
+          return Err(RowLimit)
+        }
+        state.metadata_lookup = Some(cursor)
+      }
+      match advance_row_metadata_lookup(state.metadata_lookup.unwrap()) {
+        None => return Ok(None)
+        Some(column) => {
+          state.metadata_lookup = None
+          column
+        }
+      }
+    } else {
+      state.input_ordinals.get(@schema.reference_name(field)).unwrap_or(-1)
+    }
+    if column < 0 {
+      return Err(InvalidRows)
+    }
+    if !reserve_slots(state.workspace, slots) ||
+      !spend_control(state.control, 1) {
+      return Err(RowLimit)
+    }
+    state.term_column = Some(column)
+  }
+  let column = state.term_column.unwrap()
+  guard @schema.field_reference_name_at(
+      bounded_binding_input_schema(state.input),
+      column,
+    )
+    is Some(name) else {
+    return Err(InvalidRows)
+  }
+  match advance_binding_name_control_bytes(state, name) {
+    Err(issue) => Err(issue)
+    Ok(false) => Ok(None)
+    Ok(true) => {
+      state.term_column = None
+      Ok(Some(column))
+    }
+  }
+}
