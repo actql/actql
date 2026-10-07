@@ -8,7 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
-import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -427,7 +427,17 @@ async function exerciseNativeGraphSource(sourceOnly = false) {
       root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
     root, runtimeEnvironment).trimEnd());
 }
+async function installDuckDB() {
+  // Keep the README's source-free run independent of this optional transport.
+  // Repeat the tarballs so npm does not prune the earlier --no-save install.
+  run('npm', ['install', '--ignore-scripts', '--no-save',
+    ...packages.map(name => join(root, `actql-${name}-0.0.0-development.tgz`)),
+    await pinnedDuckDBPackage(repository)]);
+  auditPackedPackages(root, packages);
+  run('npm', ['ls', '--omit=dev', '--all']);
+}
 if (process.argv.includes('--graph-native-only')) {
+  await installDuckDB();
   await exerciseNativeGraphSource(true);
   return;
 }
@@ -437,6 +447,7 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
+await installDuckDB();
 const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--unnest-source-only', '--ceiling-only', '--unary-plus-only', '--replace-call-only', '--character-length-only', '--select-all-only', '--star-exclusion-only', '--typed-json-literal-only', '--analytic-partition-expression-only', '--graph-subtraction-only', '--graph-union-only', '--statistical-aggregate-only', '--limit-parameter-only', '--ifnull-only', '--having-object-property-only', '--analytic-partition-property-only', '--analytic-countif-only', '--analytic-frame-parameter-only', '--grouped-in-only', '--analytic-profiles-only', '--analytic-order-only', '--source-free-only',

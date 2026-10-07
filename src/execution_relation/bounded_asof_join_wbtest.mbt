@@ -48,6 +48,7 @@ fn bounded_asof_fixture_result(
   text_tie? : Bool = false,
   empty_left? : Bool = false,
   name_bytes? : Int = 10000,
+  left_rows_override? : String? = None,
 ) -> Result[
   (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
   BoundedAsOfJoinIssue,
@@ -128,7 +129,7 @@ fn bounded_asof_fixture_result(
     if empty_left {
       "[]"
     } else {
-      left_rows
+      left_rows_override.unwrap_or(left_rows)
     },
     text_key~,
     text_id~,
@@ -239,6 +240,21 @@ test "bounded Relation as-of terminates with empty left input" {
     100000,
     empty_left=true,
   ).unwrap()
+  // Eight checked metadata references, at most five inspected fields each,
+  // have at most eight ASCII name bytes plus fixed cursor transitions. Pay
+  // this bounded preparation before retaining the original algorithm watchdog.
+  let mut prepared = false
+  for _ in 0..<640 {
+    if execution.state.phase is ValidateIdentity {
+      prepared = true
+      break
+    }
+    assert_true(
+      advance_bounded_asof_join(execution, 1).unwrap()
+      is BoundedAsOfJoinContinue(progress=0L, ..),
+    )
+  }
+  assert_true(prepared)
   let mut complete = false
   for _ in 0..<100 {
     if !complete {

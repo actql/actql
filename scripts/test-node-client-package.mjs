@@ -10,7 +10,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
-import {packedClientPackage} from './packed-client-packages.mjs';
+import {packedClientPackage, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {groupedQueryCases} from './fixtures/grouped-query-programs.mjs';
 
@@ -77,7 +77,7 @@ const local = join(root, 'actql-local-node-0.0.0-development.tgz');
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
 run('npm', ['install', '--ignore-scripts', '--no-save',
-  wire, sdk, local, node],
+  wire, sdk, local, node, await pinnedDuckDBPackage(repository)],
   root);
 assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
   ['client-wire', 'local-node', 'node', 'sdk']);

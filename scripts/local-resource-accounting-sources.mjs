@@ -38,6 +38,7 @@ const fixedSources = [
   'src/execution_relation/bounded_interval_join.mbt',
   'src/execution_relation/bounded_asof_join.mbt',
   'src/execution_relation/bounded_sequence_match.mbt',
+  'src/execution_relation/row_metadata_cursor.mbt',
 ];
 
 // Capture input paths, including mutated foreign entrypoints/evidence. Reuse

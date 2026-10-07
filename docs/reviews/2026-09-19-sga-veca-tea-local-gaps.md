@@ -6484,3 +6484,91 @@ This does not certify all provider start work as bounded. Nest input-name array
 creation, temporal metadata setup, installed callbacks and Native correspondence
 remain distinct, as do unexecuted Wasm/Native and packed acceptance. See the
 [compound preparation record](2026-10-07-local-compound-port-preparation.md).
+
+### Resumable compound input metadata (2026-10-07)
+
+Nest no longer copies complete input-name arrays inside start. Its source lookup,
+generated-role comparison and name charges borrow admitted schemas and advance the
+existing cursors. Interval and As-of resolve clocks, keys, identity, ties and output
+columns inside bounded resume, preserving their original per-candidate UTF-8 work.
+The same cleanup owner closes the reserved continuation and partial metadata once;
+borrowed inputs and accepted completed outputs retain their custody.
+
+At `0ee2f1b32dde441d46d99d87cf6eec3f1122dc0e`, selected JS fixtures passed
+42/42 and the public Host/resource/inventory batch passed 7/7. The three real-Store
+Programs use long actual input keys, publish fixed ordered producer/two-consumer
+results, reuse requests and confirm post-progress stop and reclamation. Independent
+282/561 lookup work, one-entry workspace, 118/114 temporal preparation and existing
+whole-operation boundaries are maintained. Private metadata phase cancellation is
+not conflated with the public positive-work barrier.
+
+#774/#769 remain parent dependencies. Main
+`8f4889ef52510063600490211fb46718a006fc97` was normally adopted through both
+parents without importing this child implementation into them. Installed availability
+callbacks, other initial metadata, Native capacity correspondence and unexecuted
+Wasm/Native/packed acceptance remain distinct. See the
+[compound input metadata record](2026-10-07-local-compound-input-metadata.md).
+
+### Resumable Join input metadata (2026-10-07)
+
+Selected bounded Join now borrows checked input/output schema names and uses the
+existing lookup/name-charge cursors instead of whole-string comparison or name
+scans inside resume. The long Unicode regression failed before the production
+change and passes after it. Independent metadata work 23/22, existing whole Join
+work/workspace boundaries, cursor-phase cancellation and once-only cleanup are
+preserved. Public retained Host success, two consumer Results, request reuse and
+post-progress physical stop passed at
+`078caad4e2ddb1649373158e031716ef6ae92709`.
+
+The selected pre-commit JS sources passed 14/14; clean implementation gate and
+public Host selections passed 4/4 and 2/2. The initial seven-root runtime build
+timed out; the narrower two-root build and generator checks passed before public
+acceptance. #780/#774/#769 remain dependencies. COUNT/Sequence name processing,
+installed availability callbacks, Native capacity and unexecuted cross-target or
+packed evidence remain distinct. See the
+[Join input metadata record](2026-10-07-local-join-input-metadata.md).
+
+### Resumable COUNT and Sequence metadata (2026-10-07)
+
+COUNT and Sequence now borrow checked schema spellings and use the existing
+lookup/name-charge cursors instead of synchronous name maps and whole-name scans.
+Sequence predicate snapshots use the common indexed expression input, and
+pattern output roles compare virtual suffixes without concatenating labels.
+Original logical charges, exact/one-short limits, private phase cancellation and
+once-only cursor reclamation are retained. Public retained Host long-input-name
+cases publish independently expected producer/two-consumer Results and confirm
+request reuse, post-progress physical stop and reclamation.
+
+Implementation SHA `2b0717e9b3154fe48b9b7e9c4de4884b5dcc2699` passed the clean
+Host/gate selection 8/8. Pre-commit affected JS passed 44/44; the final metadata
+fixture passed 8/8. Receipts distinguish dirty-source JS from clean-HEAD Node
+acceptance and retain corrected fixture failures. #787/#780/#774/#769 remain
+dependencies. Sequence position-array copying/collection cleanup, installed
+availability callbacks, Native capacity and unexecuted cross-target/packed
+acceptance remain separate. See the
+[COUNT/Sequence metadata record](2026-10-07-local-count-sequence-metadata.md).
+
+### Resumable Sequence positions and scratch cleanup (2026-10-07)
+
+Sequence's partial extension and independent match copies now reserve their
+destination once and append one position per resume. Selected/group/match and
+predicate snapshot release also yields. Scratch cleanup removes at most 64
+entries per callback and retains its parent reservation until complete; the
+provider checks explicit cleanup pending instead of interpreting a changed-state
+Bool as completion. Logical control charges and accepted output custody remain.
+
+The checked sixteen-event `advance(1)` counterexample failed before the fix.
+Independent copy limits 377/376, quanta, private copy/release cancellation and
+bounded scratch cleanup pass. Existing whole-operation work 642/641 and workspace
+58/57 still pass. At implementation SHA
+`9f330a419ab437eae223404fcef8479a19df0e2c`, ordinary real-Store Host allow and
+disallow cases publish exact producer/two-consumer Results, reuse requests and
+confirm post-progress stop and reclamation; the combined Host/gate/index
+selection passed 6/6. Pre-commit affected JS passed 32/32, and the final position
+fixture passed 5/5. #793 and its parents remain dependencies.
+
+Installed availability callbacks, common output-buffer disposal, Native capacity
+correspondence and unexecuted cross-target/packed acceptance remain distinct.
+The earlier metadata record describes its historical boundary; the explicit
+position/scratch walks it listed are now closed by this child. See the
+[Sequence position cursor record](2026-10-07-local-sequence-position-cursors.md).

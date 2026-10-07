@@ -4,11 +4,13 @@ fn bounded_sequence_source(
   unicode? : Bool = false,
   extra_columns? : Int = 0,
   text_keys? : Bool = false,
+  key_name? : String? = None,
+  source_rows? : String? = None,
 ) -> (@lower.BoundPrepared, CompletedOutput) raise {
   if extra_columns < 0 || (extra_columns > 0 && !empty) {
     fail("wide sequence source requires empty rows")
   }
-  let key = if unicode { "clé" } else { "key" }
+  let key = key_name.unwrap_or(if unicode { "clé" } else { "key" })
   let mut extra_schema = ""
   for index in 0..<extra_columns {
     extra_schema += ",\"z" +
@@ -61,6 +63,7 @@ fn bounded_sequence_source(
     key +
     "\":2,\"clock\":3,\"value\":1}]"
   }
+  let rows = source_rows.unwrap_or(rows)
   let owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"" +
     (if text_keys { "string" } else { "number" }) +
@@ -116,6 +119,9 @@ fn bounded_sequence_try_fixture(
   text_keys? : Bool = false,
   constrain? : (GeneratedSequence) -> GeneratedSequence = value => value,
   name_bytes? : Int = 10000,
+  key_name? : String? = None,
+  start_name? : String = "start",
+  source_rows? : String? = None,
 ) -> (
   @bounded.Control,
   Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue],
@@ -126,6 +132,8 @@ fn bounded_sequence_try_fixture(
     unicode~,
     extra_columns~,
     text_keys~,
+    key_name~,
+    source_rows~,
   )
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -135,7 +143,7 @@ fn bounded_sequence_try_fixture(
     Some(limit) => ",\"max_output_rows\":" + limit.to_string()
     None => ""
   }
-  let key = if unicode { "clé" } else { "key" }
+  let key = key_name.unwrap_or(if unicode { "clé" } else { "key" })
   let mut pattern_tail = ""
   for index in 0..<extra_patterns {
     pattern_tail += ",{\"as\":\"extra_" +
@@ -152,7 +160,9 @@ fn bounded_sequence_try_fixture(
       }) +
       "," +
       "\"id\":\"id\",\"time\":\"clock\",\"pattern\":[{" +
-      "\"as\":\"start\",\"where\":\"value = 1\"},{" +
+      "\"as\":\"" +
+      start_name +
+      "\",\"where\":\"value = 1\"},{" +
       "\"as\":\"end\",\"where\":\"value = 2\"}" +
       pattern_tail +
       "]," +
@@ -397,7 +407,9 @@ test "bounded sequence match cancels without publishing partial rows" {
   finish_sequence_completion_preparation(execution) |> ignore
   assert_eq(bounded_sequence_match_state(execution).predicate_entries.val, 0)
   let mut reached_predicates = false
-  for _ in 0..<64 {
+  // Four input-name transitions, <=46 byte/entry charges, <=12 candidate
+  // comparisons with three cursor transitions, and four phase transitions.
+  for _ in 0..<(4 + 46 + 12 * 3 + 4) {
     if bounded_sequence_match_state(execution).predicate_entries.val > 0 {
       reached_predicates = true
       break
@@ -544,7 +556,9 @@ test "bounded sequence resolves columns in charged resumable steps" {
       assert_eq(state.control.remaining, budget)
       let mut resolved = false
       let mut failed = false
-      for _ in 0..<64 {
+      // Four input-name transitions, one per charged byte/entry, <=12
+      // candidates with three cursor transitions, and four phase transitions.
+      for _ in 0..<(4 + required + 12 * 3 + 4) {
         if state.resolve_field ==
           @lower.sequence_match_key_count(state.kernel) + 2 {
           resolved = true
@@ -678,7 +692,9 @@ test "bounded sequence initializes allow state one pattern per resume" {
     advance_bounded_sequence_match(execution, 1).unwrap()
     is BoundedSequenceMatchStopped(@bounded.Cancelled, ..),
   )
-  assert_true(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_false(cleanup_bounded_sequence_match(execution).unwrap())
+  assert_true(bounded_sequence_match_cleanup_pending(execution))
+  finish_sequence_position_cleanup(execution) |> ignore
   assert_true(producer_read_available(input))
   assert_bounded_sequence_scratch_reclaimed(execution)
 }
