@@ -1,6 +1,6 @@
 // Audit actual installed package graphs, not the monorepo's dependency layout.
 import assert from 'node:assert/strict';
-import {existsSync, readFileSync, realpathSync} from 'node:fs';
+import {existsSync, lstatSync, readFileSync, realpathSync} from 'node:fs';
 import {isBuiltin, createRequire} from 'node:module';
 import {dirname, isAbsolute, join, relative, resolve} from 'node:path';
 import {buildSync} from 'esbuild';
@@ -51,8 +51,15 @@ export function auditPackedPackages(root, names) {
           // with a broken entry point/subpath is still a broken installation.
           const optional = !required && peer &&
             manifest.peerDependenciesMeta?.[dependency]?.optional === true;
-          const absent = require.resolve.paths(dependency).every(directory =>
-            !existsSync(join(directory, dependency, 'package.json')));
+          const absent = require.resolve.paths(dependency).every(directory => {
+            try {
+              lstatSync(join(directory, dependency));
+              return false;
+            } catch (failure) {
+              if (failure.code === 'ENOENT') return true;
+              throw failure;
+            }
+          });
           if (optional && absent && error.code === 'MODULE_NOT_FOUND') continue;
           throw error;
         }
