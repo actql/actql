@@ -13,7 +13,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -177,7 +177,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {directory: join(f.root, name), effectProfilePath, authorization}};
     const client = await connectEmbeddedLocal(options);
     opened.push(client);
-    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
+    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json'});
     await waiting(run, observations, t);
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
@@ -351,7 +351,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
   let client = await connectEmbeddedLocal(options);
   try {
     const input = JSON.stringify(program(expectedRows, 'table-lost-reply'));
-    let run = await client.startSource(input, {format: 'json', requestId: 'table-lost-reply'});
+    let run = await client.startSource(input, {format: 'json'});
     await waiting(run, observations, t);
     assert.equal(commits(f.catalog).length, 0, 'No write before approval');
     const checkpoint = (await client.checkpoints()).items[0];
@@ -419,7 +419,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
         directory: join(f.root, 'replacement-host'), effectProfilePath: replacementPath}});
     try {
       const replaced = await replacement.startSource(JSON.stringify(program([{id: 9, tag: null}],
-        'table-later-replacement')), {format: 'json', requestId: 'table-later-replacement'});
+        'table-later-replacement')), {format: 'json'});
       await waiting(replaced, observations, t);
       const laterCheckpoint = (await replacement.checkpoints()).items[0];
       await replacement.resolveCheckpoints([{checkpoint: laterCheckpoint, decision: 'approved'}], {signer: {
@@ -539,9 +539,13 @@ test(`Table sparse private input commits through ${transport} after approval whi
     // The root public Result exports only guaranteed person_key. The stage's
     // Result-based spelling still requires p. The separate private Table input
     // below must not weaken this ordinary Named Result contract.
-    await assert.rejects(client.aql(JSON.stringify(sparse), {format: 'json', requestId: 'sparse-table-input'}), error => {
+    await assert.rejects(client.startSource(JSON.stringify(sparse), {format: 'json'}), error => {
       t.diagnostic(inspect({phase: 'sparse-table-input', error}, {depth: 8}));
-      assert.equal(error.code, 'ClientProgramRejected');
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      const outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.equal(outcome.problem.code, 'ClientProgramRejected');
+      assert.equal(Object.hasOwn(outcome, 'admission'), false);
       return true;
     });
     assert.deepEqual(commits(f.catalog), [], 'An unpublishable input is not staged or committed');
@@ -563,7 +567,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     // execution, independently of the Effect computation capability boundary.
     delete dense.stages[0].effects;
     dense.results.rows = {from: {stage: 'source', result: 'rows'}};
-    const denseRun = await client.aql(JSON.stringify(dense), {format: 'json', requestId: 'dense-control'});
+    const denseRun = await client.startSource(JSON.stringify(dense), {format: 'json'});
     assert.equal((await terminal(denseRun, [], t)).status, 'succeeded');
     assert.deepEqual(plain(await denseRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2]);
     assert.deepEqual(plain(await denseRun.result('rows').all()).sort((a, b) => a.person_key - b.person_key),
@@ -575,7 +579,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     projection.stages[0].results.answer.from = 'projected';
     projection.stages[0].results.rows.fields = ['person_key'];
     delete projection.stages[0].effects;
-    const projectedRun = await client.aql(JSON.stringify(projection), {format: 'json', requestId: 'projection-control'});
+    const projectedRun = await client.startSource(JSON.stringify(projection), {format: 'json'});
     assert.equal((await terminal(projectedRun, [], t)).status, 'succeeded');
     assert.deepEqual(plain(await projectedRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2, 3]);
     assert.deepEqual(commits(f.catalog), [], 'Read-only Graph controls write no Table');
@@ -590,7 +594,8 @@ test(`Table sparse private input commits through ${transport} after approval whi
     privateStage.table_inputs.rows.from = 'ordered';
     privateStage.results.answer.from = 'ordered';
     const input = JSON.stringify(privateInput);
-    let run = await client.aql(input, {format: 'json', requestId: 'sparse-private-input'});
+    const submissionRef = client.newSubmission();
+    let run = await client.startSource(input, {format: 'json', submissionRef});
     await waiting(run, observations, t);
     assert.deepEqual(commits(f.catalog), [], 'Private capture does not authorize a commit');
     const checkpoint = (await client.checkpoints()).items[0];
@@ -603,7 +608,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     const originalRef = run.ref;
     await client.close();
     client = await openClient(options);
-    run = await client.aql(input, {format: 'json', requestId: 'sparse-private-input'});
+    run = await client.startSource(input, {format: 'json', submissionRef});
     assert.deepEqual(run.ref, originalRef);
     assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
     assert.deepEqual(commits(f.catalog), [], 'Restart does not send a private Table operation');
@@ -653,7 +658,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
           {select: ['person_key'], as: 'output'}],
         results: {rows: {from: 'output', fields: ['person_key']}}}],
       results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
-    const run = await later.start(reader, {requestId: 'read-after-origin-release'});
+    const run = await later.start(reader);
     assert.equal((await terminal(run, observations, t)).status, 'succeeded');
     assert.deepEqual(plain(await run.result('answer').all()),
       [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
@@ -728,9 +733,10 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   let client = await connectEmbeddedLocal(options).catch(error => {
     assert.fail(error.primaryFailure?.stack ?? error.cause?.stack ?? error.stack);
   });
+  const submissionRef = client.newSubmission();
   try {
     const input = JSON.stringify(program(rows));
-    let run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'}).catch(error => {
+    let run = await client.startSource(input, {format: 'json', submissionRef}).catch(error => {
       t.diagnostic(inspect(error, {depth: 10}));
       t.diagnostic(inspect(observations, {depth: 10}));
       throw error;
@@ -755,7 +761,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     const originalRef = run.ref;
     await client.close();
     client = await connectEmbeddedLocal(options);
-    run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
+    run = await client.startSource(input, {format: 'json', submissionRef});
     assert.deepEqual(run.ref, originalRef);
     assert.deepEqual(commits(f.catalog), [], 'Restart does not approve or send');
     assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
@@ -770,7 +776,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     assert.deepEqual(commits(f.catalog)[0].operation, operation);
     assert.equal(commits(f.catalog)[0].receipt.row_count, rows.length);
     assert.deepEqual(multiset(await run.result('answer').all()), multiset(rows));
-    const repeated = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
+    const repeated = await client.startSource(input, {format: 'json', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(multiset(await (await client.attach(run.ref)).result('answer').all()), multiset(rows));
     assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
@@ -796,7 +802,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   try {
     // Read the complete required schema, including nullable text, through the
     // public Source and two-task Relation path after the origin Host closes.
-    const readRun = await later.start(readerProgram(), {requestId: 'new-table-reader'});
+    const readRun = await later.start(readerProgram());
     const state = await terminal(readRun, observations, t);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(multiset(await readRun.result('answer').all()),
@@ -819,11 +825,11 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         directory: join(f.root, `replace-host-${index}`), effectProfilePath: replaceProfilePath}};
       let replacing = await connectEmbeddedLocal(replaceOptions);
       const input = JSON.stringify(program(replacement, `table-public-replace-${index}`));
-      const requestId = `replace-${index}`;
+      const submissionRef = replacing.newSubmission();
       const before = commits(f.catalog).length;
       let operation;
       try {
-        let run = await replacing.startSource(input, {format: 'json', requestId});
+        let run = await replacing.startSource(input, {format: 'json', submissionRef});
         await waiting(run, observations, t);
         assert.equal(commits(f.catalog).length, before, 'No replacement before approval');
         const checkpoint = (await replacing.checkpoints()).items[0];
@@ -839,7 +845,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         const originalRef = run.ref;
         await replacing.close();
         replacing = await connectEmbeddedLocal(replaceOptions);
-        run = await replacing.startSource(input, {format: 'json', requestId});
+        run = await replacing.startSource(input, {format: 'json', submissionRef});
         assert.deepEqual(run.ref, originalRef);
         assert.equal((await replacing.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
         assert.equal(commits(f.catalog).length, before, 'Restart does not send the replacement');
@@ -887,7 +893,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         installation: {directory: join(f.root, `replacement-reader-${index}`),
           sourceProfilePath: currentSourceProfilePath, authorization}});
       try {
-        const run = await reader.start(readerProgram(`read-replacement-${index}`), {requestId: `read-${index}`});
+        const run = await reader.start(readerProgram(`read-replacement-${index}`));
         assert.equal((await terminal(run, observations, t)).status, 'succeeded');
         assert.deepEqual(multiset(await run.result('answer').all()),
           multiset(replacement.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
