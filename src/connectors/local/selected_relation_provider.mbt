@@ -322,10 +322,15 @@ fn relation_chain_reclaims_completed_scratch(
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.JoinStep(_)) => ()
+      // These built-ins detach their accepted completion before cleanup.
+      // Cleanup releases only private scratch; downstream ports keep the
+      // original output generation, including duplicate expansion rows.
+      Some(@lower.ValuesStep(_)) => ()
       Some(@lower.RowStep(kernel)) =>
         if !selected_binding_rows_supported(kernel) &&
           !(@lower.kernel_body(kernel) is @lower.Groups(_)) &&
-          !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) {
+          !(@lower.kernel_body(kernel) is @lower.CountGroups(_)) &&
+          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
           return false
         }
       _ => return false

@@ -463,6 +463,22 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+The same expansion accepts declared parameter property paths, for example
+`FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
+names retain their ordinary expression meaning. The Frontend follows the
+ordinary common expression checker to the ARRAY element contract; it
+does not sample parameter values or fold a nullable receiver to a different type.
+The same lookup admits finite ARRAY constructors, typed empty ARRAYs and
+computed ARRAY expressions such as `IF(TRUE, [], ['x'])` or
+`IF(TRUE, @items, @items)`. It does not invent Frontend-specific types or
+discharge the expression's runtime obligations and required profiles. Ordinary common property and
+UNNEST checking still validates the path, values and declared bounds. A NULL
+object anywhere on this path produces a NULL ARRAY and therefore zero rows,
+with the same element-field contracts and column order as nonempty input.
+Expression lowering and common type inspection use the existing bounded
+construction and expression work limits. Exhaustion remains a work-limit
+error, rather than a guessed or truncated output schema.
+
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
@@ -475,8 +491,9 @@ GoogleSQL's ordered STRUCT type. Reordering that contract's authored JSON keys
 does not change its field order. Anonymous/duplicate STRUCT fields, positional
 STRUCT equality and author-selected STRUCT order remain a common-contract gap,
 not a guarantee supplied by this expansion.
-Unknown array-expression contracts remain explicitly unsupported for star;
-this is not general ARRAY expression or correlated UNNEST support.
+Unresolved, non-ARRAY and inadmissible element contracts remain explicitly
+unsupported for star. This source-free connection does not add correlated
+UNNEST or extend the common ARRAY constructor capability profile.
 
 ## Named intermediate Results
 
