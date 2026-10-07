@@ -1,7 +1,12 @@
 ///|
 /// One imported single-row Local materializing attempt over a retained DuckDB
 /// producer, ready for its bounded provider to run.
-fn provider_work_attempt() -> (
+fn provider_work_attempt(
+  imported_rows? : Int = 1,
+  finish_input? : Bool = true,
+  max_work? : Int = compute_test_limits().max_work,
+  transform_provider? : ((@local_connector.ManagedProvider) -> @local_connector.ManagedProvider)? = None,
+) -> (
   @strategy.CapturedDAG,
   @strategy.TaskExecution,
   @strategy.TaskExecution,
@@ -35,9 +40,21 @@ fn provider_work_attempt() -> (
     common_fragment: None,
   }).unwrap()
   let limits : @local_connector.LocalImportLimits = {
-    max_rows: 2,
-    values: { ..fixed_compute_attempt_limits().retention, max_nodes: 1000, },
-    wire: retained_attempt_wire_limits(),
+    max_rows: Int::max(2, imported_rows),
+    values: {
+      ..fixed_compute_attempt_limits().retention,
+      max_nodes: 1000,
+      max_text_bytes: if imported_rows == 1 {
+        100
+      } else {
+        1000
+      },
+    },
+    wire: if imported_rows == 1 {
+      retained_attempt_wire_limits()
+    } else {
+      { ..retained_attempt_wire_limits(), max_bytes: 10000, max_nodes: 1000, }
+    },
     row: { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, },
     max_batch_bytes: 64,
   }
@@ -45,11 +62,30 @@ fn provider_work_attempt() -> (
     registry,
     @connector.capability_registration_at(registry, 0).unwrap(),
     [task_test_generated(owner)],
-    compute_test_limits(),
+    { ..compute_test_limits(), max_work, },
     { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
     100,
     1,
   ).unwrap()
+  let implementation = match transform_provider {
+    None => implementation
+    Some(transform) => {
+      let provider = @local_connector.local_module_managed_provider(
+        implementation,
+        task_test_generated(owner),
+      ).unwrap()
+      @local_connector.prepare_local_compute_module(
+        registry,
+        @connector.capability_registration_at(registry, 0).unwrap(),
+        [task_test_generated(owner)],
+        { ..compute_test_limits(), max_work, },
+        { max_work: 10000, max_bytes: 10000, max_nodes: 10000, max_depth: 100, },
+        100,
+        1,
+        managed_providers=[transform(provider)],
+      ).unwrap()
+    }
+  }
   let execution = @local_connector.prepare_local_module_materializing_compute(
     implementation,
     0,
@@ -62,9 +98,13 @@ fn provider_work_attempt() -> (
     run, 3, execution,
   ).unwrap()
   @local_connector.begin_local_materializing_input(consumer, 0).unwrap()
-  @strategy.charge_task_execution_transfer(run, ticket, 10L).unwrap()
-  @local_connector.append_local_materializing_input(consumer, 0, "{\"id\":3}").unwrap()
-  @local_connector.finish_local_materializing_input(consumer, 0).unwrap()
+  for _ in 0..<imported_rows {
+    @strategy.charge_task_execution_transfer(run, ticket, 10L).unwrap()
+    @local_connector.append_local_materializing_input(consumer, 0, "{\"id\":3}").unwrap()
+  }
+  if finish_input {
+    @local_connector.finish_local_materializing_input(consumer, 0).unwrap()
+  }
   (run, producer_execution, ticket, consumer)
 }
 
@@ -91,7 +131,17 @@ test "bounded Local provider work is the sum of its advances, counted once" {
     is Some(total) else {
     fail("completed attempt reports no provider work")
   }
-  assert_eq(total, 23L)
+  // One row: filter input/start/root cost 2 + 1, then begin/snapshot,
+  // six binary-predicate transitions, build/check/commit, and finish = 15.
+  // Select costs two input charges, four output steps and finish = 7.
+  // The existing child handoff costs one. Both exact completion ports also
+  // scan their ASCII identifiers and field; this is not execution-meter data.
+  let filter_work = 2 + 1 + (1 + 1 + 6 + 1 + 1 + 1) + 1
+  let select_work = 2 + 4 + 1
+  let preparation = expected_ascii_completion_port_work("where_0", ["id"]) +
+    expected_ascii_completion_port_work("select_1", ["id"])
+  assert_eq((filter_work, select_work, preparation), (15, 7, 59))
+  assert_eq(total, (filter_work + select_work + preparation + 1).to_int64())
   // No value measurement is produced on the bounded path.
   assert_true(@local_connector.local_materializing_guard_usage(drained) is None)
   provider_work_close(run, producer, ticket)
@@ -140,4 +190,49 @@ test "bounded Local provider work is the sum of its advances, counted once" {
     Ok(total),
   )
   provider_work_close(run, producer, ticket)
+}
+
+///|
+test "retained materializing chain preserves its independent work boundary" {
+  // Same phase derivation as above: 15 + 7 + one handoff + 28 + 31 = 82.
+  for quantum in [1, 7, 256] {
+    for max_work in [82, 81] {
+      let (run, producer, ticket, attempt) = provider_work_attempt(max_work~)
+      let mut terminal = false
+      for _ in 0..<85 {
+        if terminal {
+          break
+        }
+        match
+          @local_connector.advance_local_materializing_attempt(attempt, quantum) {
+          Ok(step) =>
+            if step.complete {
+              assert_eq(max_work, 82)
+              assert_eq(
+                @local_connector.local_materializing_cumulative_work(attempt),
+                Ok(82L),
+              )
+              @strategy.settle_task_execution(run, ticket, true).unwrap()
+              let output = @local_connector.local_materializing_completed_output(
+                attempt,
+              ).unwrap()
+              assert_eq(@execution.completed_row_count(output), 1)
+              assert_true(
+                @execution.completed_cell(output, 0, 0) is Some(Number(3.0)),
+              )
+              terminal = true
+            }
+          Err(Candidate(Execution(InputLimit))) => {
+            assert_eq(max_work, 81)
+            assert_false(@strategy.captured_task_completed(run, 3))
+            terminal = true
+          }
+          Err(_) =>
+            fail("materializing work boundary failed for an unrelated cause")
+        }
+      }
+      assert_true(terminal)
+      provider_work_close(run, producer, ticket)
+    }
+  }
 }

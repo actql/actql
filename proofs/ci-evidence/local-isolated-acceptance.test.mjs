@@ -4,9 +4,9 @@ import {createHash} from 'node:crypto';
 import {mkdtempSync, writeFileSync, chmodSync, symlinkSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {checkoutTree, checkBuilder, checkOwnedPreparation, localEngine} from './local-isolated-acceptance.mjs';
+import {checkoutTree, checkBuilder, checkOwnedPreparation, closeOwnedPreparation, localAcceptanceLimits, localEngine} from './local-isolated-acceptance.mjs';
 import {checkLocalImageDefinition, checkImageDefinition, localIsolatedEnvironment,
-  localIsolatedRunArguments, isolatedRunArguments} from './isolation.mjs';
+  localIsolatedRunArguments, isolatedRunArguments, localScratchDockerfile, pipelineChild} from './isolation.mjs';
 import {imageRuntime} from './isolated-runtime.mjs';
 import {prepareIsolatedMutation, executeIsolatedMutation, prepareLocalIsolatedMutation} from './isolated-execution.mjs';
 
@@ -108,4 +108,60 @@ test('local environment inputs never enter the Actions runtime authority', () =>
   assert.throws(() => checkLocalImageDefinition({image: changed, imageId, owner}));
   const altered = image(); altered.Config.Env = altered.Config.Env.map(entry => entry === 'UV_USE_IO_URING=0' ? 'UV_USE_IO_URING=1' : entry);
   assert.throws(() => checkLocalImageDefinition({image: altered, imageId, owner}));
+});
+
+test('pipeline is an explicit registered local profile and cannot be admitted as Session or Actions', () => {
+  const pipeline = image(); pipeline.Config.Entrypoint[1] = `/source/${pipelineChild}`;
+  assert(checkLocalImageDefinition({image: pipeline, imageId, owner, profile: 'pipeline-pristine'}));
+  assert.throws(() => checkLocalImageDefinition({image: pipeline, imageId, owner}));
+  assert.throws(() => checkImageDefinition({image: pipeline, imageId, owner: '1:2:3'}));
+  const args = localIsolatedRunArguments({imageId, cidFile: '/owned/id', owner, profile: 'pipeline-pristine'});
+  assert.equal(args.at(-1), `/source/${pipelineChild}`);
+  assert(args.includes('--read-only') && args.includes('--network=none'));
+  assert(!args.some(arg => /^--(?:env|mount|volume)/u.test(arg)));
+  assert(localScratchDockerfile('pipeline-pristine').includes(pipelineChild));
+  assert(!localScratchDockerfile().includes(pipelineChild));
+  assert.throws(() => localScratchDockerfile('archive-selected-command'));
+  assert.throws(() => imageRuntime({version: 'actql-isolated-pipeline-pristine-inputs/0.1'}, {profile: 'pipeline-pristine'}));
+});
+
+
+test('pipeline preparation includes its separate bounded normal replay without changing Session limits', () => {
+  assert.deepEqual(localAcceptanceLimits(), {preparationMilliseconds: 180000, timeoutSeconds: 1200});
+  const pipeline = localAcceptanceLimits('pipeline-pristine');
+  assert.equal(pipeline.normalReplayMilliseconds, 480000);
+  assert(pipeline.preparationMilliseconds > pipeline.normalReplayMilliseconds);
+  assert(pipeline.timeoutSeconds * 1000 >= pipeline.preparationMilliseconds + 600000);
+  assert.throws(() => localAcceptanceLimits('archive-selected-profile'));
+});
+
+test('owned preparer removal in progress is re-inspected until actual absence', async () => {
+  const cid = 'd'.repeat(64), container = {Id: cid, Image: imageId, Config: {Labels: {'org.actql.local.owner': owner}}};
+  const results = [
+    {status: 0, stdout: JSON.stringify([container])},
+    {status: 1, stderr: `Error response from daemon: removal of container ${cid} is already in progress\n`},
+    {status: 1, stderr: 'Error response from daemon: No such container'},
+  ], commands = [];
+  await closeOwnedPreparation({engine: '/explicit/docker', cid, imageId, owner}, (engine, args, options) => {
+    assert.equal(engine, '/explicit/docker'); assert(options.timeout > 0 && options.timeout <= 5000);
+    commands.push(args); assert(results.length, 'Unexpected extra cleanup operation'); return results.shift();
+  });
+  assert.equal(results.length, 0);
+  assert.deepEqual(commands, [['container', 'inspect', cid], ['container', 'rm', '--force', cid], ['container', 'inspect', cid]]);
+});
+
+test('unknown cleanup errors and a changed owner never count as preparer closure', async () => {
+  const cid = 'd'.repeat(64), container = {Id: cid, Image: imageId, Config: {Labels: {'org.actql.local.owner': owner}}};
+  for (const response of [{status: 1, stderr: 'temporary transport unavailable'}, {status: null, error: new Error('timeout')}]) {
+    let calls = 0;
+    await assert.rejects(closeOwnedPreparation({engine: '/explicit/docker', cid, imageId, owner}, () => {
+      calls++; return calls === 1 ? {status: 0, stdout: JSON.stringify([container])} : response;
+    }), /Unconfirmed owned preparer removal/u);
+    assert.equal(calls, 2);
+  }
+  let calls = 0; const changed = structuredClone(container); changed.Config.Labels['org.actql.local.owner'] = `local-${'e'.repeat(32)}`;
+  await assert.rejects(closeOwnedPreparation({engine: '/explicit/docker', cid, imageId, owner}, () => {
+    calls++; return {status: 0, stdout: JSON.stringify([changed])};
+  }));
+  assert.equal(calls, 1, 'No removal may start after failed owner authentication');
 });

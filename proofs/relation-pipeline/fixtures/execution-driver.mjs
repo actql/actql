@@ -121,7 +121,7 @@ export function minimalRepository(t) {
   return root;
 }
 
-export function runDriver(root, body) {
+export function runDriver(root, body, environment = {}) {
   const url = name => JSON.stringify(pathToFileURL(join(root, 'proofs/relation-pipeline', name)).href);
   const source = `
 import assert from 'node:assert/strict';
@@ -149,7 +149,7 @@ ${body}
     cwd: root, encoding: 'utf8', timeout: 30_000, maxBuffer: 8 * 1024 * 1024,
     env: { ...process.env, MOON_HOME: join(root, '.fake-moon'), CC: 'cc', CXX: 'c++',
       ACTQL_TEST_PRESERVE_SCRATCH: '', ACTQL_TEST_EXECUTION_CONTROL: join(root, '.execution-control.json'),
-      ACTQL_TEST_EXECUTION_CALLS: join(root, '.execution-calls.jsonl') },
+      ACTQL_TEST_EXECUTION_CALLS: join(root, '.execution-calls.jsonl'), ...environment },
   });
   const reports = result.stdout.split('\n').filter(line => line.startsWith('TEST_RESULT='))
     .map(line => JSON.parse(line.slice('TEST_RESULT='.length)));
