@@ -44,6 +44,20 @@ owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
 `@actql/run-host-core` keeps its standalone API and private handle custody.
 
+The source-free, single-task Values profile defaults to 100 rows. A Host may
+explicitly select `installation: {valuesMaxRows: 121}` (or `valuesMaxRows` in
+the HTTP Host options), with a positive integer ceiling up to 10000. The
+already checked Program uses that selected ceiling in compilation,
+compute/import/export capacity and Named Result row-index workspace; cells,
+values, work, wire and the 512 MiB
+ceiling remain independently bounded. Sort scratch still consumes that finite
+workspace and can require more than one index per row. This option does not
+enable acquired, Graph, INFER, multi-task or Effect profiles. A configured
+profile's original is saved with request acceptance and bound into the Run's
+execution context. Restart/attach reads the original successful Run without
+recompiling under the current defaults. A new read uses a new attempt and grant;
+lookup of an interrupted attempt opens no payload and consumes no new grant.
+
 ## HTTP Host
 
 `import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host'`
