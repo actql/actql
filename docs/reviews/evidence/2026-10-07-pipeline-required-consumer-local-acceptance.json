@@ -1,0 +1,389 @@
+{
+  "version": "actql-pipeline-required-consumer-local-acceptance/0.1",
+  "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+  "parentPr": 815,
+  "parentRevision": "ce0da26a89bc044606359225fa07fc3f7e02977d",
+  "authority": "local-only",
+  "actionsRun": null,
+  "reuseAuthorized": false,
+  "evidence": [
+    {
+      "name": "archive-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-archive-summary.gz",
+      "sha256": "6c464683d176ea5b750ab558e54fe92a197af922cb0ee47a4ea9ea3ca39228a9",
+      "uncompressedSha256": "169930cb5a34bb2498699556cdae410ff2355c710a8940cb5b65ebffdc52896e",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "archive-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-archive-stdout.gz",
+      "sha256": "69e156e79fa5d13c39789472da1d89e6f4a662a260174a0d3f64bb45b8893b39",
+      "uncompressedSha256": "81cfe01d35937822b9ee173f3062f09230b20bded969f0ef8204f692b28334c1",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "workflow-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-workflow-summary.gz",
+      "sha256": "e2ee595f786fb8c3c25b56c82bfd83b42102b967f7ef9696e1da814ab252b860",
+      "uncompressedSha256": "8aa183cc74c848b3781eccff4c71364a99bbc48b631a52c6d12387041702160c",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "workflow-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-workflow-stdout.gz",
+      "sha256": "2cbb3989b34418aa8736e73d4abd2b1c0686589d7b4ffccc111d79dac59506c7",
+      "uncompressedSha256": "6e47fddf7084c66506b1ab11fff618f24a7f0b6e55d4fa2fe609620563b95d8a",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "lean-timeout-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-lean-timeout-summary.gz",
+      "sha256": "daf6b10164d9401c7dc0c812ff360ef971685c95e6983e0d96c7f96f2f6a7bbf",
+      "uncompressedSha256": "bc10204acd05001586635a6cfe32287d2d17d2a0d6d778f183b5f67a5991c843",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "lean-timeout-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-lean-timeout-stdout.gz",
+      "sha256": "0ce59509918db431ba5bbe3d8420414b74d10145d6b963138d45a4c839b877f5",
+      "uncompressedSha256": "6b81251fdd419840496d89fca7bf20e263ff4679b7b609bababb74c4c15e357d",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "dirty-diagnostic-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-dirty-diagnostic-summary.gz",
+      "sha256": "ab21e069c9bc1aaaf5ff797e7529dbf09fe66d9f3e21c23263991bd35543ab23",
+      "uncompressedSha256": "2d9d41946b7d57508db3a217013f560bf48f3f2168c843c9d3820d2d95c7b723",
+      "sourceRevision": null,
+      "dirtyDiagnostic": true
+    },
+    {
+      "name": "dirty-diagnostic-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-dirty-diagnostic-stdout.gz",
+      "sha256": "8db54b09132a49e9c00f20252de05ee7e0210830aa40da5efa67db57dd9107ea",
+      "uncompressedSha256": "53fc2ffcee339e3a08baa17c74e5e7f419a39393fa18ae7ade34defd15003ea6",
+      "sourceRevision": null,
+      "dirtyDiagnostic": true
+    },
+    {
+      "name": "history-timeout-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-history-timeout-summary.gz",
+      "sha256": "280d97e3ed119108a88b9729037a315d80b3f73f4a7df048fce4c4652390b225",
+      "uncompressedSha256": "dcfca3305d8a51d646b405a3fb3e83d46b58aa99af4b63659d957e079edbe872",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "history-timeout-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-history-timeout-stdout.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "history-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-history-summary.gz",
+      "sha256": "d2af23f6ac52d216a4b75ba67c3d9eace9cc50a3e6bd11e97388b3a6384f9a50",
+      "uncompressedSha256": "9f7a2dadc09742d11596f0640f5481a03bf6530e85d308c3c56e660de19cd60a",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "history-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-history-stdout.gz",
+      "sha256": "347e1fbc942d9122ee0b47f449b95ec534d91ef869d339a85b0c1fcb75b53a9a",
+      "uncompressedSha256": "bffb4b7a672695f4cabc4d469d3885e97019501ed3f0e369786c5823740f3ca1",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "git-timing-preload",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-git-timing-preload.gz",
+      "sha256": "c642c044840f20fb023610fdc2363a74edb13cfbca81c67a2563781ed15d842e",
+      "uncompressedSha256": "a038a20750e03087e28ad1bc9e4bf7c409336fb55d0f0dda434c98f728f9c005",
+      "sourceRevision": null,
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "foundation",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-required-consumer-foundation.gz",
+      "sha256": "248fe950f60379c967bff26cc58237125d8e775edb9b099f2321f4015a3be764",
+      "uncompressedSha256": "7fc872247d0790614ed682ef12c94c2b7c12061bd4da8a035c8afacaa1cc2b48",
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "dirtyDiagnostic": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "required original/certificate consumer",
+      "passed": 32,
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e"
+    },
+    {
+      "name": "workflow, Draft selection and committed inputs",
+      "passed": 11,
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e"
+    },
+    {
+      "name": "actual full source history",
+      "status": "passed",
+      "complete": true,
+      "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+      "startedAt": "2026-10-07T12:33:45.546Z",
+      "endedAt": "2026-10-07T12:43:30.435Z"
+    }
+  ],
+  "focused": [
+    {
+      "identity": "focused-test-n8Ov6z",
+      "source": {
+        "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+        "dirty": false
+      },
+      "status": "passed",
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity/scripts/test-execution-reporter.mjs",
+            "--test-concurrency=1",
+            "proofs/relation-pipeline/mutation-action-archive.test.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "device": "16777233",
+            "inode": "307428967"
+          },
+          "source": {
+            "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "dirty": false
+          },
+          "startedAt": "2026-10-07T12:25:34.013Z",
+          "endedAt": "2026-10-07T12:26:12.111Z",
+          "elapsedMs": 38083.505,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 0,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 32,
+            "passed": 32,
+            "failed": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "startedAt": "2026-10-07T12:25:33.406Z",
+      "endedAt": "2026-10-07T12:26:12.114Z"
+    },
+    {
+      "identity": "focused-test-nJFxI1",
+      "source": {
+        "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+        "dirty": false
+      },
+      "status": "passed",
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity/scripts/test-execution-reporter.mjs",
+            "--test-concurrency=1",
+            "--test-name-pattern=actual committed|existing final consumer|workflow|global check|Draft cannot|Draft cheap|PR lifecycle|aggregate workflow",
+            "proofs/relation-pipeline/ci-artifacts.test.mjs",
+            "proofs/ci-evidence/final.test.mjs",
+            "proofs/relation-pipeline/mutation-actions.test.mjs",
+            "scripts/ci-targets.test.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "device": "16777233",
+            "inode": "307428967"
+          },
+          "source": {
+            "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "dirty": false
+          },
+          "startedAt": "2026-10-07T12:24:38.975Z",
+          "endedAt": "2026-10-07T12:25:07.187Z",
+          "elapsedMs": 28203.764625,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 0,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 11,
+            "passed": 11,
+            "failed": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "startedAt": "2026-10-07T12:24:38.441Z",
+      "endedAt": "2026-10-07T12:25:07.205Z"
+    },
+    {
+      "identity": "focused-test-yfvmea",
+      "source": {
+        "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+        "dirty": false
+      },
+      "status": "failed",
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity/scripts/test-execution-reporter.mjs",
+            "--test-concurrency=1",
+            "proofs/relation-pipeline/mutation-action-archive.test.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "device": "16777233",
+            "inode": "307428967"
+          },
+          "source": {
+            "revision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "dirty": false
+          },
+          "startedAt": "2026-10-07T12:20:31.363Z",
+          "endedAt": "2026-10-07T12:21:03.522Z",
+          "elapsedMs": 32177.332084,
+          "status": 1,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 1,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 32,
+            "passed": 0,
+            "failed": 32,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "startedAt": "2026-10-07T12:20:31.223Z",
+      "endedAt": "2026-10-07T12:21:03.573Z"
+    },
+    {
+      "identity": "focused-test-fyQ5Zn",
+      "source": {
+        "revision": "59d5753e7ed7eb80efa3ec5d1d28e975b941125f",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+        "dirty": true
+      },
+      "status": "passed",
+      "commands": [
+        {
+          "id": "001",
+          "command": "/Users/t14i/.local/share/mise/installs/node/22.23.2/bin/node",
+          "args": [
+            "--test",
+            "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity/scripts/test-execution-reporter.mjs",
+            "--test-concurrency=1",
+            "proofs/relation-pipeline/mutation-action-archive.test.mjs",
+            "proofs/ci-evidence/transport.test.mjs"
+          ],
+          "cwd": {
+            "path": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "device": "16777233",
+            "inode": "307428967"
+          },
+          "source": {
+            "revision": "59d5753e7ed7eb80efa3ec5d1d28e975b941125f",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-native-chain-state-capacity",
+            "dirty": true
+          },
+          "startedAt": "2026-10-07T12:17:20.098Z",
+          "endedAt": "2026-10-07T12:17:53.499Z",
+          "elapsedMs": 33396.71,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "complete": true,
+          "verificationStatus": 0,
+          "outputComplete": true,
+          "outputLimitBytes": 67108864,
+          "counts": {
+            "tests": 37,
+            "passed": 37,
+            "failed": 0,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0
+          }
+        }
+      ],
+      "startedAt": "2026-10-07T12:17:19.955Z",
+      "endedAt": "2026-10-07T12:17:53.504Z"
+    }
+  ],
+  "failedDiagnostic": {
+    "sourceRevision": "3e76c4458d3ec35e50b8bc10673c01b8ed2b605e",
+    "identity": "focused-test-yfvmea",
+    "reason": "The real pinned Lean startup exceeded the unchanged 30-second checker timeout; the before hook failed all 32 cases. Not mutation detections or accepted evidence.",
+    "resolution": "One bounded rerun passed all 32 without source, timeout, pin or checker changes. Host CPU/memory load was observed; it is not a proved cause."
+  },
+  "runtime": {
+    "node": "22.23.2",
+    "leanPin": "leanprover/lean4:v4.30.0-rc1",
+    "leanWorkers": 1,
+    "host": "local macOS arm64",
+    "productionCheckerTimeoutMs": 30000,
+    "leanBinarySha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37"
+  },
+  "historyDiagnostic": {
+    "firstGuard": "run-cAXCjB",
+    "firstBudgetSeconds": 360,
+    "firstStatus": "timeout",
+    "finalGuard": "run-VeLxOb",
+    "finalBudgetSeconds": 600,
+    "instrumentation": "The retained local preload invokes every original real Git command unchanged and observes timings. It does not change roots, parents, source bytes, modes, declaration rules or verdicts. No CI duration or net savings claim."
+  },
+  "preservedPriorEvidence": "2026-10-07-pipeline-transport-local-acceptance.json binds earlier 7bc3c7a source separately; it is not relabelled as current HEAD.",
+  "artifactCorrespondence": "No compiled product or public acceptance artifact is claimed. Controlled API/ZIP/report fixtures invoke the real Lean checker and actual consumer functions. Raw summaries/stdout and full Git foundation are byte-bound above.",
+  "unverified": [
+    "new full three-target pipeline scientific campaign and Linux guarded publication",
+    "live Actions current producer-to-required-consumer transfer and authentication",
+    "pipeline execution isolation, full-main qualification and fresh shadow comparison",
+    "limited reuse, related-input fresh execution and net runner savings"
+  ],
+  "inheritedResidual": "Owned-version scanner rejects the existing Native negative token at retained_task_input_wbtest.mbt:782; unchanged by this unit. Previous fixed-source failure is preserved in #815, not repeated or waived here."
+}

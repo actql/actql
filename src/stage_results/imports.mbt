@@ -4,6 +4,7 @@ pub(all) enum ImportIssue {
   InvalidStage
   ForeignPipeline
   ForeignResults
+  ForeignTableInputs
   ForeignSource
   NotEarlierStage(Int)
   DuplicateProducer(String)
@@ -17,6 +18,7 @@ pub(all) enum ImportIssue {
 struct StagePorts {
   stage : @parameters.CollectedStage
   ports : @results.ResultPorts
+  table_inputs : @results.CheckedTableInputs?
 }
 
 ///|
@@ -24,6 +26,7 @@ struct StagePorts {
 pub fn bind_ports(
   stage : @parameters.CollectedStage,
   ports : @results.ResultPorts,
+  table_inputs? : @results.CheckedTableInputs? = None,
 ) -> Result[StagePorts, ImportIssue] {
   let checked = @results.publication_orders_results(
     @results.checked_publication_orders(@results.ports_orders(ports)),
@@ -45,7 +48,20 @@ pub fn bind_ports(
     @decode.tree_index(expected, expected) {
     return Err(ForeignResults)
   }
-  Ok({ stage, ports, })
+  match (@decode.lookup(body, "table_inputs"), table_inputs) {
+    (None, None) => ()
+    (Some(expected), Some(inputs)) =>
+      if !physical_equal(
+          @results.table_inputs_pipeline(inputs),
+          @results.pipeline(checked),
+        ) ||
+        @decode.tree_index(expected, @results.table_inputs_source(inputs)) !=
+        @decode.tree_index(expected, expected) {
+        return Err(ForeignTableInputs)
+      }
+    _ => return Err(ForeignTableInputs)
+  }
+  Ok({ stage, ports, table_inputs, })
 }
 
 ///|
@@ -161,6 +177,15 @@ pub fn stage_port_source(value : StagePorts) -> @parameters.CollectedStage {
 ///|
 pub fn stage_port_publications(value : StagePorts) -> @results.ResultPorts {
   value.ports
+}
+
+///|
+/// Private Table declarations are retained by the same exact stage owner, but
+/// never enter its public Result port map or ordinary import/export wiring.
+pub fn stage_port_table_inputs(
+  value : StagePorts,
+) -> @results.CheckedTableInputs? {
+  value.table_inputs
 }
 
 ///|
