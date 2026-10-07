@@ -11,6 +11,7 @@ struct ManagedProducerBridge[T] {
   live : Ref[Bool]
   mut imported_rows : Int
   mut finished : Bool
+  mut handed_off : Bool
 }
 
 ///|
@@ -74,6 +75,7 @@ pub fn[T] prepare_managed_producer_bridge(
   values : ValueLimits,
   max_entries : Int,
   max_name_bytes : Int,
+  deferred_reclamation? : Bool = false,
 ) -> Result[ManagedProducerBridge[T], ManagedProducerBridgeIssue] {
   if !managed_producer_read_available(input) {
     return Err(Unavailable)
@@ -98,6 +100,7 @@ pub fn[T] prepare_managed_producer_bridge(
     Ok(value) => value
     Err(issue) => return Err(Admission(issue))
   }
+  admitted.buffer.deferred_reclamation = deferred_reclamation
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let port = match
@@ -129,6 +132,7 @@ pub fn[T] prepare_managed_producer_bridge(
     live,
     imported_rows: 0,
     finished: false,
+    handed_off: false,
   })
 }
 
@@ -254,10 +258,14 @@ pub fn[T] finish_managed_producer_bridge(
       return Err(Binding(issue))
     }
   }
-  prepare_producer_read(input.receiver, bound, max_entries, max_name_bytes).map_err(issue => {
-      View(issue)
-    },
-  )
+  match
+    prepare_producer_read(input.receiver, bound, max_entries, max_name_bytes) {
+    Ok(read) => {
+      bridge.handed_off = true
+      Ok(read)
+    }
+    Err(issue) => Err(View(issue))
+  }
 }
 
 ///|
@@ -269,7 +277,31 @@ pub fn[T] close_managed_producer_bridge(
   if bridge.live.val {
     bridge.live.val = false
     if !bridge.finished {
-      cancel_admitted_output(bridge.admitted) |> ignore
+      revoke_admitted_buffer(bridge.admitted.buffer)
     }
   }
+}
+
+///|
+/// Revoke the use scope immediately; retain private unfinished rows until
+/// sliced reclamation finishes. A handed-off reader owns immutable sealed rows.
+pub fn[T] advance_close_managed_producer_bridge(
+  bridge : ManagedProducerBridge[T],
+  quantum : Int,
+) -> Bool {
+  bridge.admitted.buffer.deferred_reclamation = true
+  close_managed_producer_bridge(bridge)
+  if bridge.handed_off {
+    return true
+  }
+  if quantum <= 0 || bridge.admitted.buffer.reading {
+    return false
+  }
+  bridge.rows.val = None
+  if bridge.admitted.buffer.open ||
+    !bridge.admitted.buffer.rows.is_empty() ||
+    !bridge.admitted.buffer.presence_rows.is_empty() {
+    revoke_admitted_buffer(bridge.admitted.buffer)
+  }
+  advance_admitted_buffer_reclamation(bridge.admitted.buffer, quantum)
 }

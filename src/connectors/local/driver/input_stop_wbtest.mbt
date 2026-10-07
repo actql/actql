@@ -1,4 +1,10 @@
 ///|
+fn record_stopped_input(values : Array[Int], value : Int) -> Bool {
+  values.push(value)
+  true
+}
+
+///|
 test "managed input stop slices revocation without dropping input custody" {
   let cursor = local_managed_input_stop()
   let bridges = Array::makei(70, index => Ref(Some(index)))
@@ -10,8 +16,8 @@ test "managed input stop slices revocation without dropping input custody" {
       cursor,
       bridges,
       imports,
-      bridge => closed.push(bridge),
-      importer => cancelled.push(importer),
+      bridge => record_stopped_input(closed, bridge),
+      importer => record_stopped_input(cancelled, importer),
     ),
   )
   assert_eq(closed, Array::makei(64, index => index))
@@ -27,8 +33,8 @@ test "managed input stop slices revocation without dropping input custody" {
       cursor,
       bridges,
       imports,
-      bridge => closed.push(bridge),
-      importer => cancelled.push(importer),
+      bridge => record_stopped_input(closed, bridge),
+      importer => record_stopped_input(cancelled, importer),
     ),
   )
   assert_eq(closed, Array::makei(70, index => index))
@@ -38,8 +44,8 @@ test "managed input stop slices revocation without dropping input custody" {
       cursor,
       bridges,
       imports,
-      bridge => closed.push(bridge),
-      importer => cancelled.push(importer),
+      bridge => record_stopped_input(closed, bridge),
+      importer => record_stopped_input(cancelled, importer),
     ),
   )
   assert_eq(closed.length(), 70)
@@ -58,8 +64,14 @@ test "managed input stop counts absent handles and both phase boundaries" {
         cursor,
         bridges,
         imports,
-        _ => calls.val += 1,
-        _ => calls.val += 1,
+        _ => {
+          calls.val += 1
+          true
+        },
+        _ => {
+          calls.val += 1
+          true
+        },
       ),
       count + 2 <= 64,
     )
@@ -69,8 +81,14 @@ test "managed input stop counts absent handles and both phase boundaries" {
         cursor,
         bridges,
         imports,
-        _ => calls.val += 1,
-        _ => calls.val += 1,
+        _ => {
+          calls.val += 1
+          true
+        },
+        _ => {
+          calls.val += 1
+          true
+        },
       ),
     )
     assert_eq(calls.val, 0)
@@ -90,8 +108,8 @@ test "managed input stop keeps a shared owner occurrence at each port" {
       cursor,
       bridges,
       imports,
-      bridge => closed.push(bridge),
-      importer => cancelled.push(importer),
+      bridge => record_stopped_input(closed, bridge),
+      importer => record_stopped_input(cancelled, importer),
     ),
   )
   assert_eq(closed, [7, 7])
@@ -119,12 +137,13 @@ test "managed input stop rejects reentrant advancement until callback returns" {
             cursor,
             bridges,
             imports,
-            value => closed.push(value),
-            value => cancelled.push(value),
+            value => record_stopped_input(closed, value),
+            value => record_stopped_input(cancelled, value),
           ),
         )
+        true
       },
-      importer => cancelled.push(importer),
+      importer => record_stopped_input(cancelled, importer),
     ),
   )
   assert_eq(observations, [false, false])
@@ -132,4 +151,40 @@ test "managed input stop rejects reentrant advancement until callback returns" {
   assert_eq(cancelled, [9])
   assert_false(cursor.advancing)
   assert_eq(bridges.map(handle => handle.val), [Some(7), Some(8)])
+}
+
+///|
+test "managed input stop keeps the same cursor on a pending buffer" {
+  let cursor = local_managed_input_stop()
+  let bridges = [Ref(Some(7)), Ref(Some(8))]
+  let imports = [Ref(Some(9))]
+  let remaining = Ref(100)
+  let closed = []
+  let cancelled = []
+  let close = fn(value) {
+    if value == 7 && remaining.val > 0 {
+      remaining.val -= 1
+      false
+    } else {
+      record_stopped_input(closed, value)
+    }
+  }
+  assert_false(
+    advance_local_managed_input_stop(cursor, bridges, imports, close, value => {
+      record_stopped_input(cancelled, value)
+    }),
+  )
+  assert_eq(cursor.index, 0)
+  assert_eq(remaining.val, 36)
+  assert_true(closed.is_empty())
+  assert_true(cancelled.is_empty())
+  assert_true(
+    advance_local_managed_input_stop(cursor, bridges, imports, close, value => {
+      record_stopped_input(cancelled, value)
+    }),
+  )
+  assert_eq(remaining.val, 0)
+  assert_eq(closed, [7, 8])
+  assert_eq(cancelled, [9])
+  assert_eq(bridges[0].val, Some(7))
 }

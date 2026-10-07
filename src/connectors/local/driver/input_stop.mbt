@@ -25,8 +25,8 @@ fn[B, I] advance_local_managed_input_stop(
   cursor : LocalManagedInputStop,
   bridges : Array[Ref[B?]],
   imports : Array[Ref[I?]],
-  close_bridge : (B) -> Unit,
-  cancel_import : (I) -> Unit,
+  close_bridge : (B) -> Bool,
+  cancel_import : (I) -> Bool,
 ) -> Bool {
   if cursor.advancing {
     return false
@@ -38,9 +38,11 @@ fn[B, I] advance_local_managed_input_stop(
       Bridges =>
         if cursor.index < bridges.length() {
           let input = bridges[cursor.index].val
-          cursor.index += 1
-          if input is Some(bridge) {
-            close_bridge(bridge)
+          if input is Some(bridge) && !close_bridge(bridge) {
+            // The same owner resumes its private buffer; no new input starts.
+            ()
+          } else {
+            cursor.index += 1
           }
         } else {
           cursor.phase = Imports
@@ -49,9 +51,10 @@ fn[B, I] advance_local_managed_input_stop(
       Imports =>
         if cursor.index < imports.length() {
           let input = imports[cursor.index].val
-          cursor.index += 1
-          if input is Some(importer) {
-            cancel_import(importer)
+          if input is Some(importer) && !cancel_import(importer) {
+            ()
+          } else {
+            cursor.index += 1
           }
         } else {
           cursor.phase = Stopped

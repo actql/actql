@@ -643,6 +643,10 @@ jobs:
           PIPELINE_NEEDS: ${{ toJSON(needs) }}
           PIPELINE_STAGING: ${{ runner.temp }}/pipeline-ci
         run: node proofs/relation-pipeline/ci-parts.mjs join
+      - name: Install audited Lean pin for the complete fresh action plan
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Audit complete independent execution records and shrink minima
         run: node proofs/relation-pipeline/audit.mjs
       - name: Reject internally consistent whole-report target substitutions
