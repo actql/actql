@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "submission-recovery-registration-71841fa20824",
+  "kind": "change",
+  "revision": "71841fa208249e28d45a1eea0619b603c462cd64",
+  "parents": [
+    "d3c22a80fdb5a30aa8f9580730a73f8d7d6c050e"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "d3c22a80fdb5a30aa8f9580730a73f8d7d6c050e",
+          "digest": "274ec32241a8fce6464bd5855099a5b80a7439960f1dc1a516d795f19aecb90f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dba07b33d421237d3d8bc917ffc95829de7d1fe535eba25b4d7eed22fdbdf621",
+      "afterMode": "100644",
+      "reason": "Register independent submission identity and durable outcome acceptance through the existing distribution gate; retain its existing verification scope."
+    }
+  ]
+}
