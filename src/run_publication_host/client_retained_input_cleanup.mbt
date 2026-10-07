@@ -1,5 +1,5 @@
 ///|
-/// The exact receiver named by a completed consumer's original binding.
+/// The exact receiver named by an accepted consumer's original binding.
 /// This value grants no execution, current borrow or payload access. The
 /// physical caller must establish exclusive stop before returning the reader.
 struct ClientRetainedInputCleanup {
@@ -27,11 +27,11 @@ pub fn prepare_client_retained_input_cleanup(
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
 ) -> Result[ClientRetainedInputCleanup, ClientRetainedTaskInputIssue] {
-  if @remote.restore_remote_runtime_completed_custody(
+  if @remote.verify_remote_completed_cleanup_observation(
       producer_record, producer_evidence, producer_subject, producer_measurement,
     )
     is Err(_) ||
-    @remote.restore_remote_runtime_completed_custody(
+    @remote.verify_remote_completed_cleanup_observation(
       consumer_record, consumer_evidence, consumer_subject, consumer_measurement,
     )
     is Err(_) {
@@ -50,32 +50,9 @@ pub fn prepare_client_retained_input_cleanup(
     !@remote.remote_input_binding_matches_dispatch(binding, consumer) {
     return Err(InvalidBinding)
   }
-  let node = match
-    @source.parse_json_bytes(
-      @utf8.encode(@remote.remote_input_binding_body(binding)),
-      { max_input_bytes: max_binding_bytes, max_nodes: 32, max_depth: 2, },
-    ) {
+  let fields = match retained_task_binding_fields(binding, max_binding_bytes) {
     Ok(value) => value
-    Err(_) => return Err(InvalidBinding)
-  }
-  let cursor = match
-    @decode.admit(node, {
-      max_nodes: 32,
-      max_depth: 2,
-      max_string_bytes: max_binding_bytes,
-      max_total_string_bytes: max_binding_bytes,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidBinding)
-  }
-  let fields = match
-    @decode.closed_object(cursor, [
-      "consumer_input_port", "consumer_logical_cid", "consumer_task_key", "destination_receipt_json",
-      "physical_input_json", "producer_evidence_json", "producer_logical_cid", "producer_output_port",
-      "producer_request_json", "producer_subject_json", "run_definition_cid", "version",
-    ]) {
-    Ok(value) => value
-    Err(_) => return Err(InvalidBinding)
+    Err(issue) => return Err(issue)
   }
   let text = key => client_transfer_input_text(fields, key)
   for
@@ -152,6 +129,69 @@ pub fn prepare_client_retained_input_cleanup(
     return Err(ForeignTransfer)
   }
   Ok({ physical, reader_id: @remote.dispatch_request_identity(consumer), })
+}
+
+///|
+/// Recover only the cleanup address admitted by the original checked edge and
+/// accepted binding. Consumer completion is not required: an accepted, failed,
+/// cancelled or released occurrence still names the same original reader.
+/// Producer evidence remains bound to its historical durable record after
+/// release; this does not restore live material or grant use/stop authority.
+pub fn prepare_client_retained_input_cleanup_for_route(
+  route : ClientRetainedTaskRoute,
+  producer_record : @remote.DispatchRecord,
+  producer_evidence : @remote.RemoteExecutionEvidence,
+  producer_subject : @remote.RemoteManagedOutputSubject,
+  producer_measurement : @remote.RemoteManagedOutputMeasurement,
+  consumer_record : @remote.DispatchRecord,
+) -> Result[ClientRetainedInputCleanup, ClientRetainedTaskInputIssue] {
+  let consumer = @remote.dispatch_record_request(consumer_record)
+  if !@remote.dispatch_record_matches_request(
+      consumer_record,
+      route.consumer_request,
+    ) ||
+    !@remote.remote_input_binding_matches_dispatch(route.binding, consumer) ||
+    !@remote.dispatch_record_matches_request(
+      producer_record,
+      route.producer_request,
+    ) ||
+    @remote.remote_execution_evidence_cid(producer_evidence) !=
+    @remote.remote_execution_evidence_cid(route.producer_evidence) ||
+    @remote.remote_managed_output_subject_cid(producer_subject) !=
+    @remote.remote_managed_output_subject_cid(route.producer_subject) {
+    return Err(InvalidBinding)
+  }
+  if @transfer.request_route(client_transfer_request(route.physical)) !=
+    @transfer.DirectStream ||
+    client_transfer_destination_use_id(route.physical) != "direct-destination" {
+    return Err(ForeignTransfer)
+  }
+  guard @remote.remote_execution_evidence_json(producer_evidence)
+    is Ok(evidence_body) &&
+    @remote.remote_managed_output_subject_json(producer_subject)
+    is Ok(subject_body) &&
+    @remote.remote_managed_output_measurement_json(producer_measurement)
+    is Ok(measurement_body) else {
+    return Err(ProducerUnavailable)
+  }
+  // Reuse the observation Owner's exact EvidenceDurable binding. The live
+  // completed-custody constructor deliberately keeps its stronger use rules.
+  if @remote.admit_remote_managed_output_observation(
+      producer_record,
+      evidence_body,
+      @remote.remote_execution_evidence_cid(producer_evidence),
+      subject_body,
+      @remote.remote_managed_output_subject_cid(producer_subject),
+      measurement_body,
+      @remote.remote_managed_output_measurement_cid(producer_measurement),
+    )
+    is Err(_) {
+    return Err(ProducerUnavailable)
+  }
+  Ok({
+    physical: route.physical,
+    reader_id: @remote.dispatch_request_identity(consumer),
+  })
 }
 
 ///|

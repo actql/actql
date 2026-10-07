@@ -649,7 +649,11 @@ test "portable retained issuer and Native adapter preserve exact binding bytes" 
 ///|
 test "owned retained input issues only its exact checked consumer dispatch" {
   let (prepared, compilation, allowed, definition) = retained_transfer_run()
-  let (producer, transfer, receipt, site) = retained_transfer_fixture(true)
+  let retired : Ref[(() -> Unit)?] = Ref(None)
+  let (producer, transfer, receipt, site) = retained_transfer_fixture(
+    true,
+    release=Some(retired),
+  )
   let current = retained_transfer_current(
     site,
     standard_transfer_input_cid("c"),
@@ -744,6 +748,76 @@ test "owned retained input issues only its exact checked consumer dispatch" {
       selected,
     )
     is Err(@publication_host.UnsupportedTask),
+  )
+  let saved = @publication_host.client_retained_task_input_binding(input)
+  let edge = @publication_host.client_retained_input_producer_edge(producer)
+  let route = @publication_host.admit_client_retained_task_route(
+    saved, edge, dispatch, 262144, 8, 4096, 8L,
+  ).unwrap()
+  assert_eq(
+    @remote.dispatch_request_identity(
+      @publication_host.client_retained_task_route_producer_dispatch(route),
+    ),
+    @remote.dispatch_request_identity(
+      @publication_host.client_retained_input_producer_dispatch(producer),
+    ),
+  )
+  assert_eq(
+    @transfer.destination_receipt_cid(
+      @publication_host.client_retained_task_route_receipt(route),
+    ),
+    @transfer.destination_receipt_cid(receipt),
+  )
+  // Bind each malformed body to its own otherwise valid consumer request so
+  // refusal exercises the saved facts, not an unrelated input-CID mismatch.
+  for
+    body in [
+      " " + @remote.remote_input_binding_body(saved),
+      @remote.remote_input_binding_body(saved).replace(
+        old="\"consumer_input_port\":\"input\"",
+        new="\"consumer_input_port\":\"other\"",
+      ),
+      @remote.remote_input_binding_body(saved).replace(
+        old="actql-remote-retained-task-input/0.1",
+        new="actql-remote-retained-task-input/0.0",
+      ),
+    ] {
+    assert_false(body == @remote.remote_input_binding_body(saved))
+    let changed = @remote.prepare_remote_input_binding(body, 262144).unwrap()
+    let changed_dispatch = @remote.prepare_dispatch_request(
+      standard_transfer_input_cid("c"),
+      ports[0],
+      ports[5],
+      1,
+      "consumer-dispatch",
+      selected.site_key,
+      selected.site_generation,
+      selected.runtime_bundle_cid,
+      selected.connector_registration,
+      selected.connector_revision,
+      selected.strategy_revision,
+      @remote.remote_input_binding_cid(changed),
+      selected.obligations_cid,
+      selected.budget_cid,
+      selected.evidence_issuer_capability_cid,
+      selected.grant_cid,
+    ).unwrap()
+    assert_true(
+      @publication_host.admit_client_retained_task_route(
+        changed, edge, changed_dispatch, 262144, 8, 4096, 8L,
+      )
+      is Err(_),
+    )
+  }
+  retired.val.unwrap()()
+  assert_false(
+    @publication_host.client_retained_input_producer_available(producer),
+  )
+  assert_true(
+    @publication_host.admit_client_retained_task_route(
+      saved, edge, dispatch, 262144, 8, 4096, 8L,
+    )
+    is Ok(_),
   )
 }
 

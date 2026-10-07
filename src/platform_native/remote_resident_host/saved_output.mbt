@@ -50,13 +50,14 @@ pub fn prepare_resident_saved_output(
   let graph = @host.prepared_client_graph(materials.prepared)
   guard materials.compilation is @host.Tasks(compilation) &&
     admission.source is Some((source_ref, source_contract)) &&
-    @strategy.graph_task_count(graph) == 2 &&
-    !@strategy.graph_program_has_effects(graph) &&
+    resident_linear_graph(graph) &&
+    resident_linear_task_index(materials, request) is Some(task) &&
+    task > 0 &&
     @host.prepared_client_acquisition_count(materials.prepared) == 1 &&
     @host.prepared_client_result_count(materials.prepared) == 1 &&
-    @strategy.graph_result_task(graph, 0) == Some(1) &&
+    @strategy.graph_result_task(graph, 0) == Some(task) &&
     @strategy.graph_task_target(graph, 0) is None &&
-    @strategy.graph_task_target(graph, 1) is Some(_) &&
+    @strategy.graph_task_target(graph, task) is Some(_) &&
     @host.bind_client_task_run(
       materials.prepared,
       compilation,
@@ -75,7 +76,7 @@ pub fn prepare_resident_saved_output(
   let fragment = match
     @host.issue_prepared_client_task_fragment(
       materials.prepared,
-      1,
+      task,
       admission.limits.sequence,
       admission.limits.max_evidence_bytes,
       admission.limits.max_evidence_nodes,

@@ -36,6 +36,7 @@ fn bounded_cross_fixture(
   left_rows? : String = "[{\"id\":1},{\"id\":2}]",
   right_rows? : String = "[{\"tag\":\"a\"},{\"tag\":\"b\"}]",
   self_source? : Bool = false,
+  name_bytes? : Int = 10000,
   output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
@@ -135,7 +136,7 @@ fn bounded_cross_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   )
   (control, execution, [left, right])
 }
@@ -158,6 +159,7 @@ test "bounded cross join admits both inputs before producing pairs" {
   assert_true(cleanup_bounded_cross_join(rejected).unwrap())
   let (_, exact, _) = bounded_cross_fixture(input_nodes=8)
   let admitted = exact.unwrap()
+  finish_binary_port_fixture(Cross(admitted)) |> ignore
   let mut complete = false
   for _ in 0..<100 {
     if !complete {
@@ -204,6 +206,7 @@ test "bounded cross join validates a nonempty input with empty output" {
   assert_true(cleanup_bounded_cross_join(execution).unwrap())
   let (_, started, _) = bounded_cross_fixture(right_rows="[]", input_nodes=4)
   let execution = started.unwrap()
+  finish_binary_port_fixture(Cross(execution)) |> ignore
   let mut complete = false
   let mut polls = 0
   while !complete && polls < 100 {
@@ -246,6 +249,7 @@ test "bounded cross join charges input field and text bytes" {
     input_text=19,
   )
   let execution = exact.unwrap()
+  finish_binary_port_fixture(Cross(execution)) |> ignore
   let mut complete = false
   for _ in 0..<100 {
     if !complete {
@@ -267,6 +271,7 @@ test "bounded cross join charges exact UTF-8 input bytes" {
   let right_rows = "[{\"tag\":\"é\"},{\"tag\":\"😀\"}]"
   let (_, exact, _) = bounded_cross_fixture(right_rows~, input_text=16)
   let execution = exact.unwrap()
+  finish_binary_port_fixture(Cross(execution)) |> ignore
   let mut complete = false
   for _ in 0..<100 {
     if !complete {
@@ -419,10 +424,11 @@ test "bounded cross join advances empty and singleton sides at quantum one" {
 test "bounded cross join stops and reclaims during input admission" {
   let (control, started, inputs) = bounded_cross_fixture()
   let execution = started.unwrap()
+  let preparation_work = finish_binary_port_fixture(Cross(execution))
   match advance_bounded_cross_join(execution, 1).unwrap() {
     BoundedCrossJoinContinue(progress~, work~) => {
       assert_eq(progress, 0L)
-      assert_eq(work, 1L)
+      assert_eq(work, preparation_work + 1L)
     }
     _ => fail("input admission did not yield")
   }

@@ -5,6 +5,7 @@ pub(all) enum TableStorageMappingIssue {
   InvalidColumnName(String)
   ColumnCollision(String)
   UnsupportedType(String)
+  SavedMapping(TableContractIssue)
   Encoding
 } derive(Eq, Debug)
 
@@ -163,6 +164,83 @@ pub fn table_storage_mapping_schema_cid(value : TableStorageMapping) -> String {
 ///|
 pub fn table_storage_mapping_json(value : TableStorageMapping) -> String {
   value.wire
+}
+
+///|
+/// Re-admit an exact saved physical mapping. The operation and captured Result
+/// must separately bind its schema/CID; these bytes do not establish an export,
+/// source availability, approval or Catalog authority.
+pub fn admit_table_storage_mapping(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[TableStorageMapping, TableStorageMappingIssue] {
+  let (value, cid) = match
+    table_sealed_value(
+      wire,
+      "mapping_cid",
+      max_bytes,
+      max_nodes,
+      max_depth,
+      max_allowed_nodes=16384,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedMapping(issue))
+  }
+  guard @json.object_field_count(value) == Some(5) &&
+    ledger_string(value, "version") == Some("actql-table-storage-mapping/0.1") &&
+    ledger_integer(value, "iceberg_format_version", 0L) == Some(2L) &&
+    ledger_cid(value, "schema_cid") is Some(schema_cid) &&
+    @json.object_field(value, "columns") is Some(@json.Array(columns)) else {
+    return Err(SavedMapping(InvalidShape))
+  }
+  let count = @json.array_count(columns)
+  if count < 1 || count > 1024 {
+    return Err(UnsupportedColumnCount)
+  }
+  let names : Map[String, Unit] = Map([])
+  let mut previous : String? = None
+  let mut field_id = 1L
+  for index in 0..<count {
+    let column = @json.array_at(columns, index).unwrap()
+    guard @json.object_field_count(column) == Some(6) &&
+      ledger_string(column, "name") is Some(name) &&
+      @json.object_field(column, "nullable") is Some(@json.Bool(_)) &&
+      ledger_string(column, "physical_type") is Some(kind) &&
+      ledger_string(column, "presence") is Some(presence) &&
+      (presence == "required" || presence == "conditional") &&
+      ledger_integer(column, "value_field_id", 1L) == Some(field_id) else {
+      return Err(SavedMapping(InvalidShape))
+    }
+    if !table_name_valid(name) {
+      return Err(InvalidColumnName(name))
+    }
+    let folded = name.to_lower()
+    if folded.has_prefix("__actql_presence_") || names.contains(folded) {
+      return Err(ColumnCollision(name))
+    }
+    if previous is Some(before) && @canonical.compare_utf16(before, name) >= 0 {
+      return Err(SavedMapping(InvalidShape))
+    }
+    if kind != "boolean" && kind != "double" && kind != "string" {
+      return Err(UnsupportedType(name))
+    }
+    if presence == "conditional" {
+      if ledger_integer(column, "presence_field_id", 1L) != Some(field_id + 1L) {
+        return Err(SavedMapping(InvalidShape))
+      }
+      field_id += 2L
+    } else {
+      guard @json.object_field(column, "presence_field_id") is Some(@json.Null) else {
+        return Err(SavedMapping(InvalidShape))
+      }
+      field_id += 1L
+    }
+    names[folded] = ()
+    previous = Some(name)
+  }
+  Ok({ cid, schema_cid, wire, })
 }
 
 ///|

@@ -56,6 +56,7 @@ pub fn execute_resident_retained_attempt(
   claimant : String,
   current_time : () -> String,
   executor_entry : ((String) -> Bool)?,
+  release_retired_input? : (() -> Bool)? = None,
 ) -> Result[ResidentExecuted, ResidentRetainedExecutionFailure] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
     Ok(Some(value)) => value
@@ -129,23 +130,37 @@ pub fn execute_resident_retained_attempt(
       current,
       execution.limits.output,
       observe_failure=issue => compute_failure.val = Some(issue),
+      release_retired_input~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(retained_execution_failed(Compute(issue)))
   }
-  let inventory = match
-    @publication.prepare_checked_publication_inventory(
-      @host.prepared_client_identity(rebuilt.prepared).program_definition_cid,
-      @host.client_task_compilation_result_names(compilation),
-      [0],
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+  guard resident_linear_task_index(rebuilt, request) is Some(task) else {
+    return Err(
+      retained_execution_failed(Host(Refused(@resident.UnsupportedTask))),
+    )
   }
-  let result_definition_cid = match
-    @publication.checked_publication_inventory_definition_cid(inventory, 0) {
-    Ok(value) => value
-    Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+  let result_definition_cid = if @strategy.graph_result_task(
+      @host.prepared_client_graph(rebuilt.prepared),
+      0,
+    ) ==
+    Some(task) {
+    let inventory = match
+      @publication.prepare_checked_publication_inventory(
+        @host.prepared_client_identity(rebuilt.prepared).program_definition_cid,
+        @host.client_task_compilation_result_names(compilation),
+        [0],
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+    }
+    match
+      @publication.checked_publication_inventory_definition_cid(inventory, 0) {
+      Ok(value) => Some(value)
+      Err(issue) => return Err(retained_execution_failed(Inventory(issue)))
+    }
+  } else {
+    None
   }
   let runtime = match
     @output.open_native_remote_standard_site_runtime(
@@ -201,12 +216,7 @@ pub fn execute_resident_retained_attempt(
   }
   match runtime.start(request, binding) {
     Ok(completion) =>
-      Ok({
-        runtime,
-        completion,
-        request,
-        result_definition_cid: Some(result_definition_cid),
-      })
+      Ok({ runtime, completion, request, result_definition_cid, })
     Err(@runtime.StartAuthorizationRejected) =>
       retained_execution_failed_after_runtime(
         runtime,

@@ -35,6 +35,7 @@ fn bounded_append_fixture(
   left_rows? : String = "[{\"id\":1},{\"id\":2}]",
   right_rows? : String = "[{\"id\":3}]",
   input_nodes? : Int = 1000,
+  name_bytes? : Int = 1000,
   output_values? : ValueLimits = run_limits().output_values,
 ) -> (
   @bounded.Control,
@@ -122,7 +123,7 @@ fn bounded_append_fixture(
     max_work,
     100,
     max_entries,
-    1000,
+    name_bytes,
   )
   (control, execution, [left, right])
 }
@@ -229,6 +230,7 @@ test "bounded append stops during nested input admission" {
     right_rows="[{\"id\":[3,4]}]",
   )
   let execution = started.unwrap()
+  finish_binary_port_fixture(Append(execution)) |> ignore
   for _ in 0..<2 {
     assert_true(
       advance_bounded_append(execution, 1).unwrap() is BoundedAppendContinue(..),
@@ -268,6 +270,7 @@ test "bounded append drops text and vector scan frames after cancellation" {
       right_rows=rows,
     )
     let execution = started.unwrap()
+    finish_binary_port_fixture(Append(execution)) |> ignore
     for _ in 0..<2 {
       assert_true(
         advance_bounded_append(execution, 1).unwrap()
@@ -300,6 +303,7 @@ test "bounded append releases active scan frames on work failure" {
     right_rows="[{\"id\":[3,4]}]",
   )
   let execution = started.unwrap()
+  finish_binary_port_fixture(Append(execution)) |> ignore
   for _ in 0..<2 {
     assert_true(
       advance_bounded_append(execution, 1).unwrap() is BoundedAppendContinue(..),
@@ -327,6 +331,7 @@ test "bounded append releases sibling scan frames on value failure" {
     right_rows="[{\"id\":[[5,6],[7,8]]}]",
   )
   let execution = started.unwrap()
+  finish_binary_port_fixture(Append(execution)) |> ignore
   let scan = bounded_append_state(execution).input_scan
   let mut failed = false
   for _ in 0..<20 {

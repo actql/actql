@@ -1083,3 +1083,18 @@ pub fn native_standard_strategy_run_resident_observation(
     tables,
   }
 }
+
+///|
+/// Original checked coordinate retained by the Owner's execution view.
+/// The caller cannot supply or replace this mapping.
+pub fn native_standard_strategy_original_task(
+  run : NativeStandardStrategyRun,
+  task : Int,
+) -> Int? {
+  @strategy.graph_task_original_index(
+    @strategy.captured_dag_graph(
+      @duckdb_standard_host.dispatch_run(run.dispatch),
+    ),
+    task,
+  )
+}
