@@ -2798,7 +2798,7 @@ pub fn client_program_effect_member_descriptor(
   effect_id : String,
   max_work : Int,
 ) -> Result[
-  (Int, String, String, String, String, String, String?, String),
+  (Int, String, String, String, String, String, String?, String, String?),
   @publication_host.ClientEffectMemberDescriptorIssue,
 ] {
   @publication_host.client_effect_member_descriptor(
@@ -3070,12 +3070,80 @@ pub fn client_program_local_effect_result_definition_json(
 }
 
 ///|
+#export_name("clientProgramIssueCapturedEffectTableInputLocalDefinition")
+pub fn client_program_issue_captured_effect_table_input_local_definition(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalTableDefinition,
+  @publication_host.ClientEffectLocalResultDefinitionIssue,
+] {
+  @publication_host.issue_captured_client_effect_local_table_definition(
+    owner, inputs, member_index, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramLocalEffectTableDefinitionCid")
+pub fn client_program_local_effect_table_definition_cid(
+  value : @publication_host.ClientEffectLocalTableDefinition,
+) -> String {
+  @publication_host.client_effect_local_table_definition_cid(value)
+}
+
+///|
+#export_name("clientProgramLocalEffectTableDefinitionJson")
+pub fn client_program_local_effect_table_definition_json(
+  value : @publication_host.ClientEffectLocalTableDefinition,
+) -> String {
+  @publication_host.client_effect_local_table_definition_json(value)
+}
+
+///|
 /// The checked source-free Unit, captured Result, and export receipt must
 /// remain paired. This does not grant publication or Effect mutation.
 pub(all) enum ClientEffectLocalArtifactBridgeIssue {
   ForeignExport
   Issuance(@publication_host.ClientEffectLocalResultArtifactIssue)
 } derive(Eq, Debug)
+
+///|
+#export_name("clientProgramIssueSourceFreeLocalEffectTableArtifact")
+pub fn client_program_issue_source_free_local_effect_table_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  definition : @publication_host.ClientEffectLocalTableDefinition,
+  invocation : @publication_host.ClientEffectLocalInvocation,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  ClientEffectLocalArtifactBridgeIssue,
+] {
+  guard importing.table_preparation is Some(preparation) &&
+    importing.table_input is Some(input) else {
+    return Err(ForeignExport)
+  }
+  @publication_host.issue_source_free_client_effect_local_table_artifact(
+    owner, inputs, member_index, input, importing.output, importing.bridge,
+    preparation, definition, invocation, receipt, retention, admission,
+    run_definition, run_invocation, observation, max_wire_bytes, max_nodes,
+    max_depth,
+  ).map_err(issue => Issuance(issue))
+}
 
 ///|
 #export_name("clientProgramIssueSourceFreeLocalEffectResultArtifact")
@@ -4330,6 +4398,31 @@ pub fn client_program_effect_input_at(
 }
 
 ///|
+#export_name("clientProgramEffectTableInputAt")
+pub fn client_program_effect_table_input_at(
+  value : @strategy.CapturedEffectInputs,
+  member_index : Int,
+) -> @strategy.CapturedEffectTableInput? {
+  @strategy.captured_effect_table_input_at(value, member_index)
+}
+
+///|
+#export_name("clientProgramEffectTableInputTask")
+pub fn client_program_effect_table_input_task(
+  value : @strategy.CapturedEffectTableInput,
+) -> Int {
+  @strategy.captured_effect_table_input_task(value)
+}
+
+///|
+#export_name("clientProgramEffectTableInputStage")
+pub fn client_program_effect_table_input_stage(
+  value : @strategy.CapturedEffectTableInput,
+) -> Int {
+  @strategy.captured_effect_table_input_stage(value)
+}
+
+///|
 /// Permit one checked export to feed multiple member proposals only for the
 /// same live producer and Result occurrence, not an equal serialized view.
 #export_name("clientProgramEffectInputsShareView")
@@ -4767,6 +4860,19 @@ pub fn client_program_effect_source_artifact_preview_binding(
 }
 
 ///|
+#export_name("clientProgramEffectTableSourceArtifactPreviewBinding")
+pub fn client_program_effect_table_source_artifact_preview_binding(
+  artifact : @publication.PublicationContract,
+  invocation_cid : String,
+  source_table_input : String,
+  store_authority_cid : String,
+) -> Result[(String, String), @publication.EffectSourceArtifactIssue] {
+  @publication.effect_table_input_artifact_preview_binding(
+    artifact, invocation_cid, source_table_input, store_authority_cid,
+  )
+}
+
+///|
 /// Seal row, member and set identities before deriving non-semantic dispatch
 /// keys. This only authors a private Preview wire; checked Run binding,
 /// current authority and apply permission remain separate obligations.
@@ -5200,13 +5306,21 @@ pub fn client_program_effect_local_result_export_matches_receipt(
 ///|
 /// The installed Site supplies the exact resident generation and bounded row
 /// stream. This owner keeps its checked Effect pin and managed import paired.
+priv enum ClientEffectSourceBorrow {
+  Result(@strategy.CapturedAnyResultBorrow)
+  Table(@strategy.CapturedTableInputBorrow)
+}
+
+///|
 struct ClientEffectManagedInputImport {
   input : @strategy.CapturedEffectInput?
-  borrow : @strategy.CapturedAnyResultBorrow
+  table_input : @strategy.CapturedEffectTableInput?
+  borrow : ClientEffectSourceBorrow
   output : @execution.ManagedCompletedOutput[Int]
   bridge : @execution.ManagedPublicationBridge[Int]
   limits : @publication_host.PublicationOutputExportLimits
   mut preparation : @execution.CompletedResultRelationExportPreparation?
+  mut table_preparation : @execution.CompletedTableInputRelationExportPreparation?
   mut open : Bool
 }
 
@@ -5269,7 +5383,8 @@ pub fn client_program_effect_managed_input_begin(
 ) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
   begin_client_effect_result_import(
     Some(input),
-    @strategy.captured_effect_input_borrow(input),
+    None,
+    Result(@strategy.captured_effect_input_borrow(input)),
     output,
     material,
     limits,
@@ -5290,7 +5405,8 @@ pub fn client_program_effect_local_managed_input_begin(
   }
   begin_client_effect_result_import(
     None,
-    @strategy.captured_effect_local_result_borrow(result),
+    None,
+    Result(@strategy.captured_effect_local_result_borrow(result)),
     output,
     material,
     limits,
@@ -5298,14 +5414,40 @@ pub fn client_program_effect_local_managed_input_begin(
 }
 
 ///|
-fn begin_client_effect_result_import(
-  input : @strategy.CapturedEffectInput?,
-  borrow : @strategy.CapturedAnyResultBorrow,
+#export_name("clientProgramEffectTableManagedInputBegin")
+pub fn client_program_effect_table_managed_input_begin(
+  input : @strategy.CapturedEffectTableInput,
   output : @execution.ManagedCompletedOutput[Int],
   material : @execution.ManagedRetainedOutput[Int],
   limits : @publication_host.PublicationOutputExportLimits,
 ) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
-  if !@strategy.captured_any_result_borrow_matches_managed(borrow, output) {
+  begin_client_effect_result_import(
+    None, Some(input), Table(@strategy.captured_effect_table_input_borrow(input)),
+    output, material, limits,
+  )
+}
+
+///|
+fn client_effect_source_borrow_matches(
+  borrow : ClientEffectSourceBorrow,
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Bool {
+  match borrow {
+    Result(value) => @strategy.captured_any_result_borrow_matches_managed(value, output)
+    Table(value) => @strategy.captured_table_input_borrow_matches_managed(value, output)
+  }
+}
+
+///|
+fn begin_client_effect_result_import(
+  input : @strategy.CapturedEffectInput?,
+  table_input : @strategy.CapturedEffectTableInput?,
+  borrow : ClientEffectSourceBorrow,
+  output : @execution.ManagedCompletedOutput[Int],
+  material : @execution.ManagedRetainedOutput[Int],
+  limits : @publication_host.PublicationOutputExportLimits,
+) -> Result[ClientEffectManagedInputImport, ClientEffectManagedInputIssue] {
+  if !client_effect_source_borrow_matches(borrow, output) {
     return Err(ForeignOutput)
   }
   let limits = client_program_own_effect_export_limits(limits)
@@ -5321,7 +5463,8 @@ fn begin_client_effect_result_import(
     Ok(value) => value
     Err(issue) => return Err(Bridge(issue))
   }
-  Ok({ input, borrow, output, bridge, limits, preparation: None, open: true, })
+  Ok({ input, table_input, borrow, output, bridge, limits, preparation: None,
+    table_preparation: None, open: true, })
 }
 
 ///|
@@ -5355,7 +5498,7 @@ pub fn client_program_effect_managed_input_append(
   if !value.open {
     return Err(Closed)
   }
-  if !@strategy.captured_any_result_borrow_matches_managed(
+  if !client_effect_source_borrow_matches(
       value.borrow,
       value.output,
     ) {
@@ -5377,11 +5520,12 @@ pub fn client_program_effect_managed_input_finish(
   @execution.CompletedResultRelationExportPreparation,
   ClientEffectManagedInputIssue,
 ] {
+  guard value.borrow is Result(borrow) else { return Err(ForeignOutput) }
   if !value.open {
     return Err(Closed)
   }
   value.open = false
-  if !@strategy.captured_any_result_borrow_matches_managed(
+  if !client_effect_source_borrow_matches(
       value.borrow,
       value.output,
     ) {
@@ -5399,7 +5543,7 @@ pub fn client_program_effect_managed_input_finish(
   match
     @execution.start_completed_result_relation_export(
       output,
-      @strategy.captured_any_result_borrow_occurrence(value.borrow),
+      @strategy.captured_any_result_borrow_occurrence(borrow),
       {
         max_fields: value.limits.max_result_fields,
         max_mapping_work: value.limits.max_result_mapping_work,
@@ -5425,13 +5569,82 @@ pub fn client_program_effect_managed_input_finish(
 }
 
 ///|
+#export_name("clientProgramEffectTableManagedInputFinish")
+pub fn client_program_effect_table_managed_input_finish(
+  value : ClientEffectManagedInputImport,
+) -> Result[
+  @execution.CompletedTableInputRelationExportPreparation,
+  ClientEffectManagedInputIssue,
+] {
+  guard value.borrow is Table(borrow) else { return Err(ForeignOutput) }
+  if !value.open { return Err(Closed) }
+  value.open = false
+  if !client_effect_source_borrow_matches(value.borrow, value.output) {
+    @execution.close_managed_publication_bridge(value.bridge)
+    return Err(ForeignOutput)
+  }
+  let output = match @execution.finish_managed_publication_bridge(value.bridge) {
+    Ok(value) => value
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      return Err(Bridge(issue))
+    }
+  }
+  match @execution.start_completed_table_input_relation_export(
+    output,
+    @strategy.captured_table_input_borrow_occurrence(borrow),
+    { max_fields: value.limits.max_result_fields,
+      max_mapping_work: value.limits.max_result_mapping_work,
+      max_order_work: value.limits.max_result_order_work,
+      max_workspace_entries: value.limits.max_result_workspace_entries, },
+    value.limits.max_rows, value.limits.values, value.limits.payload_wire,
+    value.limits.logical_wire, value.limits.schema, value.limits.max_batch_bytes,
+  ) {
+    Ok(preparation) => {
+      value.table_preparation = Some(preparation)
+      Ok(preparation)
+    }
+    Err(issue) => {
+      @execution.close_managed_publication_bridge(value.bridge)
+      Err(Export(issue))
+    }
+  }
+}
+
+///|
 #export_name("clientProgramEffectManagedInputCancel")
 pub fn client_program_effect_managed_input_cancel(
   value : ClientEffectManagedInputImport,
 ) -> Unit {
   value.open = false
   value.preparation = None
+  value.table_preparation = None
   @execution.close_managed_publication_bridge(value.bridge)
+}
+
+///|
+#export_name("clientProgramEffectTableInputExportAdvance")
+pub fn client_program_effect_table_input_export_advance(
+  value : @execution.CompletedTableInputRelationExportPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), @execution.CompletedExportIssue] {
+  @execution.advance_completed_table_input_relation_export(value, quantum)
+}
+
+///|
+#export_name("clientProgramEffectTableInputExportReady")
+pub fn client_program_effect_table_input_export_ready(
+  value : @execution.CompletedTableInputRelationExportPreparation,
+) -> Result[@execution.CompletedOutputExport, @execution.CompletedExportIssue] {
+  @execution.finish_completed_table_input_relation_export_preparation(value)
+}
+
+///|
+#export_name("clientProgramEffectTableInputExportCancelPreparation")
+pub fn client_program_effect_table_input_export_cancel_preparation(
+  value : @execution.CompletedTableInputRelationExportPreparation,
+) -> Bool {
+  @execution.cancel_completed_table_input_relation_export(value)
 }
 
 ///|
@@ -5620,6 +5833,29 @@ pub fn client_program_issue_effect_source_artifact(
     max_wire_bytes,
     max_nodes,
     max_depth,
+  )
+}
+
+///|
+#export_name("clientProgramIssueEffectTableSourceArtifact")
+pub fn client_program_issue_effect_table_source_artifact(
+  input : @strategy.CapturedEffectTableInput,
+  receipt : @execution.CompletedRelationExportReceipt,
+  invocation : @publication.PublicationContract,
+  retention : @publication.PublicationContract,
+  source_binding_cid : String,
+  store_authority_cid : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, @publication.EffectSourceArtifactIssue] {
+  @publication.issue_effect_table_input_artifact(
+    invocation, retention, @strategy.captured_effect_table_input_name(input),
+    source_binding_cid, store_authority_cid,
+    client_program_effect_input_export_logical_cid(receipt),
+    client_program_effect_input_export_schema_cid(receipt),
+    client_program_effect_input_export_row_count(receipt),
+    max_wire_bytes, max_nodes, max_depth,
   )
 }
 

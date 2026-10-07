@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { bindings, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
+import { readFileSync } from 'node:fs';
+import { bindings, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const clone = value => structuredClone(value);
 function evidence(target = 'js') {
@@ -22,6 +23,56 @@ test('reviewed actual chain bindings and conditional derived claims', () => {
     const e = evidence(target);
     assert.equal(validate(e.nodes, e.report, e.current, target).length, 3);
   }
+});
+for (const [label, from, to] of [
+  ['receiver step replaced', 'cursor.step,\n            cursor.port,', '0,\n            cursor.port,'],
+  ['receiver port replaced', 'cursor.port,\n            cursor.owner,', '0,\n            cursor.owner,'],
+  ['completion selection replaced', 'cursor.completed.get(position)', 'cursor.completed.get(0)'],
+  ['producer match bypassed', 'step_index_at(cursor.sequence, position) ==\n        Some(producer) {',
+    'step_index_at(cursor.sequence, position) ==\n        Some(0) {'],
+]) test(`current metadata binding refuses ${label}`, () => {
+  const path = 'src/connectors/local/relation_chain_input_preparation.mbt';
+  const source = readFileSync(root + path, 'utf8');
+  assert.equal(source.split(from).length, 2, 'Missing unique binding witness');
+  assert.throws(() => checkBindings(root, bindings(), {
+    read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
+  }), /input cursor route|predecessor completion selection/);
+});
+
+function stoppingEvidence(target = 'js') {
+  const e = evidence(target);
+  e.nodes = graph([...bindings(), ...stopBindings()], target);
+  const original = e.report.runs[`connection-${target}`];
+  e.report.runs[`stop-connection-${target}`] = {...clone(original), count: 6,
+    command: ['moon', 'test', stopFixture, '--target', target, '--deny-warn'],
+    coverage: executedStopCoverage()};
+  return e;
+}
+test('scoped delayed-stop evidence composes with the existing graph without weakening prompt-stop claims', () => {
+  checkBindings(root, [...bindings(), ...stopBindings()]);
+  for (const target of ['js', 'wasm', 'native']) {
+    const e = stoppingEvidence(target);
+    assert.equal(validate(e.nodes, e.report, e.current, target).length, 4);
+    const derived = e.nodes.at(-1);
+    assert.deepEqual(derived.dependencies, ['model', `${derived.id}:connection`]);
+    assert.deepEqual(derived.guarantees, stopGuarantees);
+  }
+});
+for (const [label, change] of [
+  ['ordinary prompt-stop fixture substituted', e => { e.report.runs['stop-connection-js'].command[2] = fixture; }],
+  ['unexecuted stop case', e => { e.report.runs['stop-connection-js'].count = 5; }],
+  ['invented stopping profile', e => { e.nodes.at(-1).scope.stopContract = 'eventual-stop'; }],
+  ['missing stop prerequisite', e => { e.nodes.at(-1).premises = stopPremises.slice(1); }],
+  ['productive and reported budgets conflated', e => { e.nodes.at(-1).guarantees.push('all reported work below max_work'); }],
+  ['missing stop model', e => { e.nodes.at(-1).dependencies.shift(); }],
+  ['missing actual stop coverage', e => { delete e.report.runs['stop-connection-js'].coverage; }],
+  ['stop scope widened on both sides', e => {
+    e.nodes.at(-1).scope.profile = '*';
+    e.report.runs['stop-connection-js'].coverage.scopes[0].profile = '*';
+  }],
+]) test(`refuse delayed-stop evidence: ${label}`, () => {
+  const e = stoppingEvidence(); change(e);
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'));
 });
 for (const [label, change] of [
   ['profile', b => { b.profile = 'UNCHECKED rows with arbitrary field types'; }],

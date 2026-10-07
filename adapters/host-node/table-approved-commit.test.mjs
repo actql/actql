@@ -40,12 +40,14 @@ const mappingRef = 'mapping:table.catalog.v1';
 const scope = Object.freeze({connection: 'table', resource: 'catalog'});
 
 for (const recovery of [false, true]) {
-for (const empty of [false, true]) {
-  test(`approved ${recovery ? 'recovered' : 'captured'} Table ${empty ? 'empty' : 'nonempty'} commit uses one operation per member`,
-    async t => exerciseEffectSourceSet(t, {empty, target, mappingRef,
+for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, true], [true, true]]) {
+  test(`approved ${recovery ? 'recovered' : 'captured'} Table ${empty ? 'empty' : 'nonempty'}${sparseTableInput ? ' sparse private input' : ''} commit uses one operation per member`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput: sparseTableInput,
+      sparseTableInput, target, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         ensureCheckpointRuntime();
         const {moon, sourceControl: control, effect, tableLimits: limits} = f;
+        const originalCompleted = f.execution.completed.slice();
         // Production authoring consumes the actual checked descriptors and
         // captured owners. The independently authored fixture remains the
         // oracle for operation material, not the installed Preview producer.
@@ -112,12 +114,9 @@ for (const empty of [false, true]) {
         const tableInputs = [], tablePreviews = [], materials = [], members = [];
         const preview = JSON.parse(f.authored._0);
         for (const [index, member] of preview.effects.entries()) {
-          const identity = index === 0 ? f.identity : control.issueSourceFreeLocalEffectIdentity(
-            f.prepared, f.inputs, index, f.artifact, limits);
-          const input = index === 0 ? f.tableInput : control.bindTableInput(
-            f.prepared, f.inputs, index, f.artifact, identity, f.scope,
-            canonicalValueJson(f.operations[index], {dataKeys: true}), limits);
-          const tablePreview = index === 0 ? f.tablePreview : control.bindTablePreview(input, f.captured, index);
+          const identity = authored.identities[index];
+          const input = authored.tableInputs[index];
+          const tablePreview = authored.tablePreviews[index];
           tableInputs.push(input);
           tablePreviews.push(tablePreview);
           // The fixture's live source is not re-executed. Its actual retained
@@ -297,9 +296,10 @@ for (const empty of [false, true]) {
             assert.deepEqual(sameData(await cleanupCapturedTableCommit({prepared})),
               {ok: true, result: {retained: true, pending: false, removed: 0}});
           }
-          // Independent values from the shared values.json Program: this
-          // fixture has no split-source/take stage that changes them to 2/3.
-          const expected = empty ? [] : [{id: 1}, {id: 2}];
+          // Independent original-key order and three distinct property states.
+          // The last row omits p; it must not be reconstructed as explicit NULL.
+          const expected = empty ? [] : sparseTableInput
+            ? [{k: 1, p: 7}, {k: 2, p: null}, {k: 3}] : [{id: 1}, {id: 2}];
           const receipts = members.map(member => JSON.parse(
             ledger.readClaimedOutcome(member.claims[0]).outcomeJson).typed_outcome.result);
           ledger.close();
@@ -331,7 +331,8 @@ for (const empty of [false, true]) {
           for (const receipt of receipts) {
             assert.deepEqual(sameData((await bridge.read(receipt, JSON.parse(f.storage.wire))).result), expected);
           }
-          assert.equal(f.execution.completed.length, 1);
+          if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
+          assert.deepEqual(f.execution.completed, originalCompleted);
         } finally {
           gate?.close();
           await installed?.close();

@@ -100,17 +100,39 @@ fn validate_effect_dependency_import_bindings(
         object_fields(results) is Ok(results) else {
         return Err(InvalidBody)
       }
-      for (name, cid_value) in results {
-        guard string_value(cid_value) is Some(cid) &&
-          index.get(dependency_key("result_artifact", cid)) is Some(artifact) &&
-          evidence_string(artifact, "invocation_cid") == Some(invocation) &&
-          referenced(
-            artifact, "result_definition_cid", "local_result_definition",
-          )
-          is Some(definition) &&
-          evidence_string(definition, "unit_definition_cid") == Some(unit) &&
-          evidence_string(definition, "result_name") == Some(name) else {
-          return Err(InvalidBody)
+      for
+        (map_name, artifact_kind, definition_kind, name_field) in [
+          (
+            "results", "result_artifact", "local_result_definition", "result_name",
+          ),
+          (
+            "table_inputs", "table_input_artifact", "local_table_input_definition",
+            "table_input_name",
+          ),
+        ] {
+        let entries = if map_name == "results" {
+          results
+        } else {
+          match @json.object_field(value, map_name) {
+            None => continue
+            Some(map) => {
+              guard object_fields(map) is Ok(entries) else {
+                return Err(InvalidBody)
+              }
+              entries
+            }
+          }
+        }
+        for (name, cid_value) in entries {
+          guard string_value(cid_value) is Some(cid) &&
+            index.get(dependency_key(artifact_kind, cid)) is Some(artifact) &&
+            evidence_string(artifact, "invocation_cid") == Some(invocation) &&
+            referenced(artifact, "result_definition_cid", definition_kind)
+            is Some(definition) &&
+            evidence_string(definition, "unit_definition_cid") == Some(unit) &&
+            evidence_string(definition, name_field) == Some(name) else {
+            return Err(InvalidBody)
+          }
         }
       }
     }

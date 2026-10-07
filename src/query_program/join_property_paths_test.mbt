@@ -125,13 +125,30 @@ test "JOIN property ORDER reuses only the same resolved receiver" {
     ),
   )
   for
-    source in [
-      "SELECT l.id, payload.score AS original_score, r.other AS payload FROM objects AS l JOIN others AS r ON l.id = r.id ORDER BY payload.score NULLS LAST",
-      "SELECT l.id, payload.score AS original_score, r.other AS payload FROM objects AS l JOIN others AS r ON l.id = r.id ORDER BY l.payload.score NULLS LAST",
+    (source, same_receiver) in [
+      (
+        "SELECT l.id, payload.score AS original_score, r.other AS payload FROM objects AS l JOIN others AS r ON l.id = r.id ORDER BY payload.score NULLS LAST",
+        false,
+      ),
+      (
+        "SELECT l.id, payload.score AS original_score, r.other AS payload FROM objects AS l JOIN others AS r ON l.id = r.id ORDER BY l.payload.score NULLS LAST",
+        true,
+      ),
     ] {
     let body = checked_join_property(source)
-    assert_eq(body.split("\"property\":").length(), 3)
-    assert_true(body.contains("aql_join_visible"))
+    if same_receiver {
+      // Bare input payload and qualified l.payload resolve to the same slot.
+      // Reuse its selected score; no additional ORDER property is evaluated.
+      assert_eq(body.split("\"property\":").length(), 2)
+      assert_false(body.contains("aql_join_sort_"))
+      assert_true(
+        body.contains("\"field\":\"original_score\",\"nulls\":\"last\""),
+      )
+    } else {
+      // The output payload alias selects right.other, a different receiver.
+      assert_eq(body.split("\"property\":").length(), 3)
+      assert_true(body.contains("aql_join_visible"))
+    }
     assert_true(
       body.contains("\"fields\":[\"id\",\"original_score\",\"payload\"]"),
     )
