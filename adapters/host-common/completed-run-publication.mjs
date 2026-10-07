@@ -1075,7 +1075,7 @@ export async function recoverCompletedEffectfulComputation(options) {
       fail('CompletedEffectfulCaptureSourceUnavailable');
     }
     await store.commitPhysicalHolding(holding, []);
-    sourceHoldings.push(Object.freeze({source, artifact}));
+    sourceHoldings.push(Object.freeze({source, artifact, memberIndex}));
   }
   const captureHolding = await store.inspectPhysicalHolding(
     captureHoldingCid);
@@ -1201,6 +1201,8 @@ export function prepareCompletedEffectfulPublication(options) {
     capturedRun: computation.capturedRun,
   });
   return Object.freeze({chain, preview,
+    effectSourceMembers: Object.freeze(issued.effectSourceHoldings.map(
+      ({source, artifact, memberIndex}) => Object.freeze({source, artifact, memberIndex}))),
     effectSources: Object.freeze(issued.effectSourceHoldings.map(
       value => value.source)),
     sourceArtifacts: Object.freeze(issued.effectSourceHoldings.map(
