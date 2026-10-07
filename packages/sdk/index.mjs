@@ -122,6 +122,13 @@ const structuralKey = value => value !== null && typeof value === 'object'
     : '{' + Object.keys(value).sort().map(key =>
       JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
   : JSON.stringify(value);
+
+// Capture the borrowed response once with the platform clone fixed at SDK load.
+// Later conversion uses only owned facts; rereading Host getters cannot change
+// admission. Preserve native rejection of proxies and noncloneable values.
+// This is response custody, not the separate request JSON serializer.
+const cloneHostResponse = globalThis.structuredClone.bind(globalThis);
+const captureHostResponse = value => cloneHostResponse(value);
 const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
@@ -1116,6 +1123,8 @@ async function connectSelected(selected, port) {
       let state;
       try { state = await controlValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
+      try { state = captureHostResponse(state); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
       const problem = rejectedRunProblem(state);
       try {
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
@@ -1407,9 +1416,11 @@ async function connectSelected(selected, port) {
             resultName: name,
           };
           try {
+            answer = captureHostResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            const observedKey = structuralKey(answer);
             answer = structuredClone(answer);
-            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
+            if (!validDeliveryAttemptLookup(answer, expected) || structuralKey(answer) !== observedKey) fail('InvalidHostAttemptLookup');
             return retainDeliveryExplanation(freezeInput(answer), {
               operation: 'deliveryAttempt', ref, resultName: name, attemptId,
               lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
@@ -1430,7 +1441,12 @@ async function connectSelected(selected, port) {
       },
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
-        const response = await readControl('cancel', {}, signal, context);
+        let response = await readControl('cancel', {}, signal, context);
+        try { response = captureHostResponse(response); }
+        catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
+            context, 'outcome_unknown');
+        }
         if (!validCancellation(response) ||
             response.ref.namespaceId !== ref.namespaceId ||
             response.ref.authorityScopeCid !== ref.authorityScopeCid ||
@@ -1440,6 +1456,7 @@ async function connectSelected(selected, port) {
         }
         // Local ports may reuse their response object across operations.
         let received;
+        const observedKey = structuralKey(response);
         try { received = structuredClone(response); }
         catch {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
@@ -1447,6 +1464,7 @@ async function connectSelected(selected, port) {
         }
         // Cloning may reject a Local value or drop/change its validated fields.
         if (!validCancellation(received) ||
+            structuralKey(received) !== observedKey ||
             received.ref.namespaceId !== ref.namespaceId ||
             received.ref.authorityScopeCid !== ref.authorityScopeCid ||
             received.ref.runDefinitionCid !== ref.runDefinitionCid) {
@@ -1484,11 +1502,14 @@ async function connectSelected(selected, port) {
     catch (cause) {
       throw submissionUnknown(context, cause);
     }
+    try { admitted = captureHostResponse(admitted); }
+    catch { throw submissionUnknown(context, new ClientError('InvalidHostAdmission')); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
       try {
+        const observedKey = structuralKey(admitted);
         admitted = structuredClone(admitted);
-        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');
+        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
       } catch (cause) { throw submissionUnknown(context, cause); }
       const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
       submissionInputs.set(held, snapshot);
@@ -1548,15 +1569,19 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) throw cause;
         throw rejectedCheck(body, 'malformed_response');
       }
+      try { outcome = captureHostResponse(outcome); }
+      catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
       const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
       try {
         if (!validCheckOutcome(outcome)) reject();
+        const observedKey = structuralKey(outcome);
         // Own this call's value before binding or freezing it. A Local Host may
         // reuse its response object without replacing a previous SDK observation.
         try { outcome = structuredClone(outcome); }
         catch { reject(); }
         if (!validCheckOutcome(outcome)) reject();
+        if (structuralKey(outcome) !== observedKey) reject();
         const report = outcome.report ?? outcome.partial_report;
         if (report) {
           const received = new Map([['source', {kind: 'text', text: body.input.text}]]);
@@ -1624,12 +1649,15 @@ async function connectSelected(selected, port) {
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
+      try { answer = captureHostResponse(answer); }
+      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
       if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
+      const observedKey = structuralKey(answer);
       try { answer = structuredClone(answer); }
       catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
-      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
@@ -1660,6 +1688,8 @@ async function connectSelected(selected, port) {
           'outcome_unknown', 'exchange_failed');
       }
       try { answer = await controlValue(response); }
+      catch { throw uninterpretableRequestCancellation(context); }
+      try { answer = captureHostResponse(answer); }
       catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);

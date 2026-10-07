@@ -13,6 +13,20 @@ const unitTargets = id => ['status', 'wait', 'reconcile'].map(operation => targe
 const publicTargets = ['in-process', 'https'].map(entrance => target(
   `${entrance}: uninterpretable Run observations retain only the original authorized lookup`, 'run-protocol-public-rejection'));
 const mutations = [
+  {name: 'borrowed response getters replace the first captured facts', path, file: unit,
+    from: 'const captureHostResponse = value => cloneHostResponse(value);',
+    to: 'const captureHostResponse = value => value;',
+    targets: ['status', 'wait', 'reconcile', 'lookupRequest', 'held submit', 'cancel', 'deliveryAttempt'].map(operation => target(
+      `${operation}: response fields are captured once before admission`,
+      {status: 'response-capture-run', wait: 'response-capture-run', reconcile: 'response-capture-run',
+        lookupRequest: 'response-capture-lookup', 'held submit': 'response-capture-held',
+        cancel: 'response-capture-cancel', deliveryAttempt: 'response-capture-delivery'}[operation],
+      ['status', 'wait', 'reconcile'].includes(operation) ? 'strictEqual' : 'deepStrictEqual'))},
+  {name: 'first response capture uses a redirected clone', path, file: unit,
+    from: 'const captureHostResponse = value => cloneHostResponse(value);',
+    to: 'const captureHostResponse = value => globalThis.structuredClone(value);',
+    targets: ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].map(operation => target(
+      `${operation}: a well-shaped clone cannot replace captured facts`, 'response-capture-copy'))},
   {name: 'unknown state classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',", targets: unitTargets('run-protocol-kind')},

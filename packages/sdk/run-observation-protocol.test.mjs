@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import * as sdk from './index.mjs';
 import {connectInProcess} from './host-port.mjs';
 import {ClientError, explainRunObservationFailure, explainEffectUncertainty} from './index.mjs';
 import {validRunState} from '../client-wire/index.mjs';
@@ -192,5 +194,132 @@ for (const operation of ['status', 'wait', 'reconcile']) {
       effects: ['e\u0301\r\n', 'é'], physicalStop: 'unknown', controlRevision: 7,
       retainedEffects: ['e\u0301\r\n', 'é'],
     }, '[check-mutation:run-effect-projection-copy]');
+  });
+}
+
+const delivery = JSON.parse(readFileSync(new URL('../client-wire/fixtures/delivery-attempt.found.json', import.meta.url), 'utf8'));
+const checked = JSON.parse(readFileSync(new URL('../client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+const held = () => ({kind: 'held', requestId: 'saved', prepareAttemptId: 'original-attempt',
+  state: 'resuming', durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+const lookup = () => ({kind: 'found', requestId: 'saved', ref: {...ref},
+  durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
+const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7});
+async function responseFixture(t, reply) {
+  const operations = [];
+  const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
+    perform(operation) {
+      operations.push(operation);
+      if (operation === 'connect') return profile;
+      if (operation === 'attach') return {ref: {...ref}, durability: 'durable', revision: 1};
+      if (operation === 'close') return;
+      return reply;
+    },
+  });
+  t.after(() => client.close());
+  return {client, run: await client.attach(ref), operations};
+}
+function changing(object, key, first, later, counts) {
+  Object.defineProperty(object, key, {enumerable: true, configurable: true,
+    get() { counts[key] = (counts[key] ?? 0) + 1; return counts[key] === 1 ? first : later; }});
+}
+const paths = [
+  ...['status', 'wait', 'reconcile'].map(operation => ({name: operation,
+    reply: running, call: f => f.run[operation](), code: 'InvalidHostRunState', key: 'run_id',
+    first: 'original-run', later: 'replacement-run',
+    assert: answer => assert.equal(answer.run_id, 'original-run', '[check-mutation:response-capture-run]')})),
+  {name: 'lookupRequest', reply: lookup, call: f => f.client.lookupRequest('saved'),
+    code: 'InvalidHostRequestLookup', key: 'ref', first: ref, later: {...ref, runDefinitionCid: cid('c')},
+    assert: answer => assert.deepEqual({ref: answer.ref, next: sdk.explainRequestLookup(answer).next},
+      {ref, next: {operation: 'status', ref}}, '[check-mutation:response-capture-lookup]')},
+  {name: 'held submit', reply: held, call: async f => {
+    try { await f.client.start({params: {}, stages: []}, {requestId: 'saved'}); }
+    catch (error) { if (error instanceof sdk.RequestHeld) return error; throw error; }
+    assert.fail('Expected the held branch');
+  }, code: 'SubmissionUnknown', key: 'prepareAttemptId', first: 'original-attempt', later: 'replacement-attempt',
+  assert: answer => assert.deepEqual({held: answer.held.prepareAttemptId,
+    explanation: sdk.explainSubmission(answer).prepareAttemptId},
+  {held: 'original-attempt', explanation: 'original-attempt'}, '[check-mutation:response-capture-held]')},
+  {name: 'cancel', reply: cancellation, call: f => f.run.cancel(), code: 'InvalidHostCancellation',
+    key: 'kind', first: 'accepted', later: 'already_terminal',
+    assert: answer => assert.deepEqual({kind: answer.kind, revision: answer.revision,
+      observation: sdk.explainCancellation(answer).observation},
+    {kind: 'accepted', revision: 7, observation: 'accepted'}, '[check-mutation:response-capture-cancel]')},
+  {name: 'deliveryAttempt', reply: () => structuredClone(delivery),
+    call: f => f.run.result('answer').deliveryAttempt('read-a'), code: 'InvalidHostAttemptLookup',
+    key: 'record', first: (() => { const record = {...delivery.record, state: 'streaming'};
+      delete record.delivered_sha256; delete record.result_delivery_receipt_cid; return record; })(),
+    later: delivery.record,
+    assert: answer => assert.deepEqual({state: answer.record.state, receipt: answer.hostReleaseReceipt,
+      observation: sdk.explainDeliveryAttempt(answer).observation},
+    {state: 'streaming', receipt: null, observation: 'delivery_streaming'}, '[check-mutation:response-capture-delivery]')},
+  {name: 'check', reply: () => structuredClone(checked), call: f => f.client.check('SELECT 1 AS n', {format: 'sql'}),
+    code: 'InvalidHostCheckOutcome', key: 'report', first: checked.report,
+    later: {...checked.report, context_ref: 'ctx:replacement', inputs: [{...checked.report.inputs[0], revision: 'rev:' + '2'.repeat(64)}]},
+    assert: answer => assert.deepEqual({context: answer.report.context_ref,
+      revision: sdk.getCheckInput(answer, 'source').revision},
+    {context: 'ctx:independent-schema-pin', revision: 'rev:' + '1'.repeat(64)}, '[check-mutation:response-capture-check]')},
+  {name: 'cancelRequest', reply: () => ({...cancellation(), requestId: 'saved'}),
+    call: f => f.client.cancelRequest('saved'), code: 'CancellationUnknown',
+    key: 'kind', first: 'accepted', later: 'already_terminal',
+    assert: answer => assert.deepEqual({kind: answer.kind,
+      observation: sdk.explainRequestCancellation(answer).observation},
+    {kind: 'accepted', observation: 'accepted'}, '[check-mutation:response-capture-request-cancel]')},
+];
+for (const path of paths) {
+  test(`${path.name}: response fields are captured once before admission`, async t => {
+    const reply = path.reply(), counts = {};
+    changing(reply, path.key, path.first, path.later, counts);
+    if (path.name === 'cancel') changing(reply, 'revision', 7, 99, counts);
+    if (path.name === 'deliveryAttempt') changing(reply, 'hostReleaseReceipt', null, delivery.hostReleaseReceipt, counts);
+    const f = await responseFixture(t, reply);
+    const answer = await path.call(f);
+    path.assert(answer);
+    assert.deepEqual(counts, Object.fromEntries(Object.keys(counts).map(key => [key, 1])), '[check-mutation:response-capture-once]');
+    const second = await path.call(f);
+    path.assert(answer);
+    assert.notEqual(second, answer);
+    assert.equal(Object.isFrozen(reply), false);
+    assert.equal(f.operations.length, 4);
+    assert.equal(sdk.explainRequestLookup(structuredClone(answer)), undefined);
+    assert.equal(sdk.explainDeliveryAttempt(structuredClone(answer)), undefined);
+    assert.equal(sdk.explainCancellation(structuredClone(answer)), undefined);
+    assert.equal(sdk.getCheckInput(structuredClone(answer), 'source'), undefined);
+    assert.equal(sdk.explainRequestCancellation(structuredClone(answer)), undefined);
+  });
+  test(`${path.name}: throwing response getters produce only safe operation failure`, async t => {
+    const reply = path.reply(); let reads = 0;
+    Object.defineProperty(reply, path.key, {enumerable: true, get() {
+      reads++; throw new Error('private-response-getter');
+    }});
+    const f = await responseFixture(t, reply);
+    let error; try { await path.call(f); } catch (cause) { error = cause; }
+    assert.equal(error?.code, path.code, '[check-mutation:response-capture-failure]');
+    assert.equal(reads, 1);
+    assert.doesNotMatch(JSON.stringify(error), /private-response-getter/);
+    if (path.name === 'lookupRequest') assert.equal(sdk.explainRequestLookup(error).next.requestId, 'saved');
+    if (path.name === 'cancel') assert.equal(sdk.explainCancellation(error).observation, 'outcome_unknown');
+    if (path.name === 'held submit') assert.equal(sdk.getSubmissionInput(error).requestId, 'saved');
+    assert.equal(sdk.explainDeliveryAttempt(error), undefined);
+    assert.equal(f.operations.length, 3);
+  });
+}
+
+for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].includes(value.name))) {
+  test(`${path.name}: a well-shaped clone cannot replace captured facts`, async t => {
+    const reply = path.reply(), f = await responseFixture(t, reply);
+    if (path.name === 'deliveryAttempt') { reply.record = {...path.first}; reply.hostReleaseReceipt = null; }
+    const nativeClone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = nativeClone; });
+    globalThis.structuredClone = value => {
+      const copy = nativeClone(value);
+      if (value?.[path.key] === undefined) return copy;
+      copy[path.key] = nativeClone(path.later);
+      if (path.name === 'cancel') copy.revision = 99;
+      if (path.name === 'deliveryAttempt') copy.hostReleaseReceipt = nativeClone(delivery.hostReleaseReceipt);
+      return copy;
+    };
+    let error; try { await path.call(f); } catch (cause) { error = cause; }
+    assert.equal(error?.code, path.code, '[check-mutation:response-capture-copy]');
+    assert.equal(f.operations.length, 3);
   });
 }
