@@ -14,6 +14,26 @@ fn[A] with_managed_scratch_use(
 }
 
 ///|
+// Readiness is private import bookkeeping, not an availability or authority
+// witness. Call only after the existing exact bridge/import validation.
+fn[T] install_local_managed_input_read(
+  reads : Array[T?],
+  pending : Ref[Int],
+  index : Int,
+  value : T,
+) -> Bool {
+  if index < 0 ||
+    index >= reads.length() ||
+    pending.val <= 0 ||
+    reads[index] is Some(_) {
+    return false
+  }
+  reads[index] = Some(value)
+  pending.val -= 1
+  true
+}
+
+///|
 /// Pure prepared Local managed task. Physical representation access starts
 /// only after common selection, reservation and task registration.
 struct LocalManagedDispatchConfiguration[T] {
@@ -661,6 +681,10 @@ pub fn[T] start_local_managed_dispatch(
   let bridges : Array[Ref[@execution.ManagedProducerBridge[T]?]] = []
   let retained_imports : Array[Ref[@execution.CompletedOutputImport?]] = []
   let reads : Array[@execution.ProducerRead?] = []
+  // Supplied inputs use their own admitted representation, so their empty
+  // read slots do not need an import. Count only required missing reads during
+  // the existing binding pass; never rescan all inputs on provider resume.
+  let pending_reads = Ref(0)
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
   let carrier : Ref[@carrier_runtime.Material?] = Ref(None)
@@ -841,6 +865,7 @@ pub fn[T] start_local_managed_dispatch(
                 reads.push(Some(read))
               } else {
                 reads.push(None)
+                pending_reads.val += 1
               }
             ManagedRelationInput(input) => {
               let bridge = match
@@ -857,6 +882,7 @@ pub fn[T] start_local_managed_dispatch(
               }
               bridges.push(Ref(Some(bridge)))
               reads.push(None)
+              pending_reads.val += 1
             }
             SuppliedRelationInput(_) => reads.push(None)
           }
@@ -1036,7 +1062,11 @@ pub fn[T] start_local_managed_dispatch(
             setup.imports.wire.max_bytes,
           ) {
           Ok(value) => {
-            reads[read_index] = Some(value)
+            guard install_local_managed_input_read(
+              reads, pending_reads, read_index, value,
+            ) else {
+              return Err(Configuration(InputUnavailable))
+            }
             Ok(())
           }
           Err(_) => Err(Configuration(InputUnavailable))
@@ -1114,7 +1144,11 @@ pub fn[T] start_local_managed_dispatch(
         guard @execution.producer_read_has_cell_access(rebound) else {
           return Err(Configuration(InputUnavailable))
         }
-        reads[position] = Some(rebound)
+        guard install_local_managed_input_read(
+          reads, pending_reads, position, rebound,
+        ) else {
+          return Err(Configuration(InputUnavailable))
+        }
         Ok(())
       },
     })
@@ -1135,10 +1169,8 @@ pub fn[T] start_local_managed_dispatch(
         work: 0L,
       })
     }
-    for index, input in relation_inputs {
-      if !(input is SuppliedRelationInput(_)) && reads[index] is None {
-        return Err(Configuration(InputUnavailable))
-      }
+    if pending_reads.val != 0 {
+      return Err(Configuration(InputUnavailable))
     }
     // Disposal prevents starting work, but an already-started bounded
     // provider must still receive one final advance after cancellation so it

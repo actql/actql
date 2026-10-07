@@ -6598,3 +6598,24 @@ runtime reclamation correspondence remain. An earlier narrow Native test passed,
 but a later selection timed out and final Native acceptance is unverified.
 Packed/HTTPS, full Core, proof and complete Store-fault campaigns were not rerun.
 See the [output reclamation record](2026-10-07-local-output-reclamation.md).
+
+### Incremental managed input readiness (2026-10-07)
+
+The managed driver now counts missing required imports during existing binding
+and installs each validated read once at its physical port. Every provider
+resume uses that count rather than scanning all inputs. Supplied inputs keep
+their existing admitted representation; exact binding, availability, physical
+stop and cleanup custody are unchanged. This closes a source-level repeated
+readiness walk, not every installed availability callback.
+
+At `735d4690608fac12fc847f68acfcec3a9cfd8b12`, real retained-Store public
+Values, Append and Cross Join Host cases passed 3/3 with independent Named
+Results, two consumers, request reuse and post-progress cancellation custody.
+The affected JS selection passed 56/61. Its five work/advance/capacity failures
+also reproduce unchanged at parent `5c58a26542327dddde9c971545bfb3c32bb0e766`
+(42/47). They remain unresolved; no expectation or ceiling was increased.
+
+#812 remains a dependency. Independent charge breakdowns, other scratch and
+availability walks, Native correspondence and unexecuted cross-target/packed
+acceptance remain. See the
+[input readiness record](2026-10-07-local-input-readiness.md).
