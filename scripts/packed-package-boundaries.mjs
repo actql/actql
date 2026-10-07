@@ -44,25 +44,21 @@ export function auditPackedPackages(root, names) {
         assert.ok(required || peer,
           `Undeclared dependency: ${manifest.name} -> ${imported.path}`);
         const require = createRequire(path);
-        let resolved;
-        try { resolved = require.resolve(imported.path); }
-        catch (error) {
-          // Only an absent optional peer may be unresolved. A present package
-          // with a broken entry point/subpath is still a broken installation.
-          const optional = !required && peer &&
-            manifest.peerDependenciesMeta?.[dependency]?.optional === true;
-          const absent = require.resolve.paths(dependency).every(directory => {
-            try {
-              lstatSync(join(directory, dependency));
-              return false;
-            } catch (failure) {
-              if (failure.code === 'ENOENT') return true;
-              throw failure;
-            }
-          });
-          if (optional && absent && error.code === 'MODULE_NOT_FOUND') continue;
-          throw error;
-        }
+        const optional = !required && peer &&
+          manifest.peerDependenciesMeta?.[dependency]?.optional === true;
+        // Inspect absence before resolution: Node can cache missing package
+        // metadata across the optional peer's subsequent normal installation.
+        // A present package still must resolve its exact entry/subpath.
+        if (optional && require.resolve.paths(dependency).every(directory => {
+          try {
+            lstatSync(join(directory, dependency));
+            return false;
+          } catch (failure) {
+            if (failure.code === 'ENOENT') return true;
+            throw failure;
+          }
+        })) continue;
+        const resolved = require.resolve(imported.path);
         assert.ok(inside(owned, realpathSync(resolved)),
           `Dependency outside consumer: ${imported.path}`);
       }
