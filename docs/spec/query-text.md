@@ -394,6 +394,34 @@ not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
 
+## Declared UNNEST value tables
+
+Direct `FROM UNNEST(@items) AS element [WITH OFFSET AS position]` accepts
+bounded array parameter contracts. Scalar stars select the value column and
+optional offset. For an admitted closed object element, `SELECT *` expands
+its admitted fields in the common object's canonical field order and appends
+the offset; `element.*` expands only the object fields. Field expansion and the
+separate whole-value range follow the selected
+[GoogleSQL STRUCT UNNEST rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#unnest_operator).
+The range `element` also denotes the original object value without adding a
+public column to star. Field access uses ordinary common `property` expressions;
+the common checker determines nullable receivers and field contracts.
+
+NULL or empty arrays produce zero rows with the same declared schema. NULL
+elements produce rows whose projected properties are NULL. Duplicates remain
+rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
+current columns while the original range retains its value slots. SELECT or AS
+establishes the ordinary new Relation scope and removes that original range,
+except for the existing directly following SELECT-owned ORDER boundary.
+No witness, array, element or property implementation slot is publicly exported.
+This connects the existing named-object parameter contract; it does not add
+GoogleSQL's ordered STRUCT type. Reordering that contract's authored JSON keys
+does not change its field order. Anonymous/duplicate STRUCT fields, positional
+STRUCT equality and author-selected STRUCT order remain a common-contract gap,
+not a guarantee supplied by this expansion.
+Unknown array-expression contracts remain explicitly unsupported for star;
+this is not general ARRAY expression or correlated UNNEST support.
+
 ## Named intermediate Results
 
 `|> RESULT name` registers the complete current Relation as a named Result

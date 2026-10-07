@@ -9,6 +9,7 @@
 /// contract check and logical output charge advance between value nodes and
 /// bounded Text chunks.
 priv enum BoundedNestPhase {
+  PrepareCompletionPort
   ChargeInput
   ResolveKey
   ResolveOrder
@@ -49,7 +50,8 @@ priv struct BoundedNestState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   parent_names : Array[String]
   child_names : Array[String]
   keys : Array[(Int, Int)]
@@ -133,6 +135,10 @@ fn bounded_nest_failure(
 
 ///|
 fn cleanup_bounded_nest_state(state : BoundedNestState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   cleanup_binary_input_scan(state.input_scan)
   if state.sorter is Some(sorter) {
     close_aggregate_merge_sort(sorter)
@@ -315,6 +321,39 @@ fn bounded_nest_step(
       return bounded_nest_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_nest_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_nest_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_nest_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ChargeInput
+          }
+        }
+        used += 1
+      }
       ChargeInput => {
         match advance_binary_input_scan(state.input_scan) {
           Ok(true) => state.phase = ResolveKey
@@ -929,6 +968,9 @@ fn bounded_nest_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_nest_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_nest_failure(InvalidExecution, progress, used)
         }
@@ -941,7 +983,7 @@ fn bounded_nest_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => bounded_nest_failure(Completion(issue), progress, used)
         }
@@ -1034,14 +1076,16 @@ pub fn start_bounded_nest(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[parent, child],
+      Some([
+        trusted_output_relation_input(parent),
+        trusted_output_relation_input(child),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -1076,7 +1120,8 @@ pub fn start_bounded_nest(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     parent_names: names_of(parent),
     child_names: names_of(child),
     keys: [],
@@ -1097,7 +1142,7 @@ pub fn start_bounded_nest(
       tree: None,
     },
     pending: { remaining: 0, },
-    phase: ChargeInput,
+    phase: PrepareCompletionPort,
     index: 0,
     charging: false,
     seed: [],
