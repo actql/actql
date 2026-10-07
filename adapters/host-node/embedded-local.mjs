@@ -1655,7 +1655,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const negotiate = ({connection}) => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable',
     ...(connection.workspaceId === undefined ? {} : {workspaceId}),
-    scopeRef: hostCapacityPolicy === undefined ? principalId : authorityScopeCid,
+    // Project the existing root/principal/policy owner scope consistently.
+    // A principal name alone cannot distinguish two installed state roots.
+    scopeRef: authorityScopeCid,
     capabilities: ['result-jsonl'], limits: {
       maxReadWireBytes: 10 * 1024 * 1024,
       maxRowWireBytes: 1024 * 1024,
