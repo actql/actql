@@ -22,8 +22,9 @@ const targetOf = write => decodeURIComponent(write.path.split('/').at(-1));
 // Submit the acceptance Program and wait until its Set is held for approval.
 async function heldForApproval(setup, host, requestId, options) {
   const client = await host.as('owner-token');
+  const submissionRef = await setup.persistSubmission(client.newSubmission({nonce: requestId}));
   const execution = await submitReadComputeEffect(client,
-    setup.program(options), requestId);
+    setup.program(options), submissionRef);
   await waitFor(async () => (await execution.status()).status ===
     'waiting_checkpoint');
   return execution;
@@ -102,7 +103,8 @@ test('Values-origin: a missing or altered durable Effect input is refused before
         set: {Name: {field: 'id'}}}}},
       [{id: 'a00000000000001'}, {id: 'a00000000000003'}]);
       const execution = await client.startSource(JSON.stringify(program), {
-        format: 'json', requestId: `values-input-${kind}`});
+        format: 'json', submissionRef: await setup.persistSubmission(
+          client.newSubmission({nonce: `values-input-${kind}`}))});
       await waitFor(async () => (await execution.status()).status ===
         'waiting_checkpoint');
       await first.close();
@@ -162,7 +164,8 @@ test('a checked Preview preparation refusal fails without a commit Checkpoint',
     const first = await setup.openHost();
     const client = await first.as('owner-token');
     const execution = await client.startSource(setup.program(), {
-      format: 'json', requestId: 'rce-preview-refused'});
+      format: 'json', submissionRef: await setup.persistSubmission(
+        client.newSubmission({nonce: 'rce-preview-refused'}))});
     await waitFor(async () => (await execution.status()).status === 'failed');
     assert.equal(setup.queries(), 1);
     assert.equal(setup.writes().length, 0);
@@ -428,8 +431,10 @@ test('a denied or deferred source read is refused before any provider request',
       const host = await setup.openHost();
       const client = await host.as('owner-token');
       const before = setup.org.seen.length;
+      const submissionRef = await setup.persistSubmission(
+        client.newSubmission({nonce: `rce-read-${sourceRead}`}));
       const refused = await submitReadComputeEffect(client, setup.program(),
-        `rce-read-${sourceRead}`).then(async execution => {
+        submissionRef).then(async execution => {
         const state = await waitFor(async () => {
           const current = await execution.status();
           return ['failed', 'cancelled'].includes(current.status)
@@ -455,8 +460,10 @@ test('a failure before the capture completes leaves no answerable Checkpoint',
       org: {queryFailureStatus: 503}});
     const first = await setup.openHost();
     const client = await first.as('owner-token');
+    const submissionRef = await setup.persistSubmission(
+      client.newSubmission({nonce: 'rce-pre-capture'}));
     const execution = await submitReadComputeEffect(client, setup.program(),
-      'rce-pre-capture');
+      submissionRef);
     const state = await waitFor(async () => {
       const current = await execution.status();
       return ['failed', 'cancelled', 'needs_reconciliation', 'waiting_checkpoint']
