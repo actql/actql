@@ -20,7 +20,8 @@ for (const entrance of ['local', 'https']) {
         execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048', '-keyout', 'host.key',
           '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
           '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: scratch.path, stdio: 'ignore'});
-        const fixture = await openReadOpeningFixture(scratch.path, undefined, {expectedRowCount: 1});
+        const fixture = await openReadOpeningFixture(scratch.path, undefined,
+          {expectedRowCount: 1, expressionFragment: true});
         const operations = [];
         let allowWait = false;
         fixture.services.authorizeConnection = facts => {
