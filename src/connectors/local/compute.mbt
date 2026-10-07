@@ -255,7 +255,10 @@ pub fn local_managed_sequence_supported(
       @lower.TimeSeriesStep(_) => false
       @lower.WindowStep(_) => true
       @lower.RowStep(kernel) =>
-        if @lower.kernel_json_pick(kernel) is Some(_) {
+        if @lower.kernel_json_pick(kernel) is Some(_) ||
+          @lower.kernel_bindings(kernel) is Some(_) ||
+          @lower.kernel_unique_keys(kernel) is Some(_) ||
+          @lower.kernel_is_projection(kernel) {
           true
         } else {
           match @lower.kernel_body(kernel) {
