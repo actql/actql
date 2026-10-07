@@ -175,3 +175,48 @@ that consumer. Local finite observations are never Actions originals or reuse
 qualification. Whole-parent lifetime/allocator upper bounds, Ledger holding
 **generation** correspondence and physical GC destruction remain unresolved;
 no structural count or point request is promoted to a physical upper bound.
+
+## Exact completed-output holding custody
+
+The optional `--holding-custody` Native diagnostic extends the same two existing
+Host cases. Before closing the producer port it checks the actual committed
+managed completion reference and obtains the existing `TaskRetention.holding`.
+Diagnostic-only Native declarations read its owner, serial, reservation serial,
+bytes and availability. They neither acquire a Result pin nor call release.
+The retained token alias permits inspection after Ledger retirement; it does
+keep the small token object reachable, so this cannot observe GC destruction.
+No production API or second retention Owner is installed.
+
+Six observations bind that same token to acquisition, producer port revocation
+with an in-flight consumer, consumer completion, owner cleanup, last consumer
+close and repeated parent close. They verify original owner/token/bytes, the
+active or completed child dependency, revoked public access, live allocation
+until the last consumer closes, and no second credit. Existing exact Host return
+amount and independent row assertions remain unchanged. Scheduler generation is
+recorded separately and establishes consumer commit progress, never allocation
+identity. The first correspondence uses the real managed completion reference;
+the old output slot is not required after public port revocation.
+The fixture closes its original read predicate after consumer commit but before
+last-consumer close. That unavailable output must still have the original live
+holding: read permission and allocation retirement are different observations.
+
+`holding-custody-source.mjs` fixes the reviewed production retain/release,
+managed completion transfer, task publication and dependency-retention bodies.
+It is source admission, not a proof that all MoonBit implementations satisfy the
+model. Node negative fixtures check altered dependency/release/transfer guards
+and receipt traces with early release, same-sized token replacement, foreign
+owner, different reservation, missing dependency and duplicate credit. These
+source/trace negatives are not executed Native product mutations.
+
+```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/holding-custody.test.mjs proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs proofs/relation-pipeline/capacity/backing/parent-bounds.test.mjs
+node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs --holding-custody
+```
+
+Run the second command through the same bounded, matching Native guard on a
+clean fixed HEAD. The requested profile is independently required by the final
+consumer; a receipt without holding observations cannot satisfy it. Its compiled
+marker, source restoration, immutable original and actual executable/log checks
+remain mandatory. Success establishes only this finite holding-token/retirement
+correspondence. Whole-parent physical bounds, arbitrary retention generations,
+other execution paths, Hosted originals and CI reuse/savings remain separate.
