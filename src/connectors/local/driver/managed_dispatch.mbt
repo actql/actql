@@ -681,6 +681,8 @@ pub fn[T] start_local_managed_dispatch(
   let bridges : Array[Ref[@execution.ManagedProducerBridge[T]?]] = []
   let retained_imports : Array[Ref[@execution.CompletedOutputImport?]] = []
   let reads : Array[@execution.ProducerRead?] = []
+  let scratch_retirement = local_managed_scratch_retirement()
+  let input_stop = local_managed_input_stop()
   // Supplied inputs use their own admitted representation, so their empty
   // read slots do not need an import. Count only required missing reads during
   // the existing binding pass; never rescan all inputs on provider resume.
@@ -811,6 +813,23 @@ pub fn[T] start_local_managed_dispatch(
     finalization_material.val = None
     finalization_completed.val = None
   }
+  let stop_owned_inputs = fn() {
+    if live.val {
+      return true
+    }
+    // Successful scratch retirement already detached every input owner.
+    if scratch_retirement.phase == Retired {
+      input_stop.phase = Stopped
+      return true
+    }
+    advance_local_managed_input_stop(
+      input_stop,
+      bridges,
+      retained_imports,
+      @execution.close_managed_producer_bridge,
+      importer => @execution.cancel_completed_output_import(importer) |> ignore,
+    )
+  }
   // These are the driver's charged scratch roots. Returned transfer handles
   // capture optional owners, so even a finished importer can be detached.
   // Do not clear shared result storage: successful material owns its receipt.
@@ -818,17 +837,15 @@ pub fn[T] start_local_managed_dispatch(
     if !(disposed.val ||
       (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
       scratch_uses.val != 0 ||
-      provider_execution.val is Some(_) {
+      provider_execution.val is Some(_) ||
+      (!live.val && input_stop.phase != Stopped) {
       return
     }
-    for handle in bridges {
-      handle.val = None
-    }
-    for handle in retained_imports {
-      handle.val = None
-    }
-    for index in 0..<reads.length() {
-      reads[index] = None
+    if !advance_local_managed_scratch_retirement(
+        scratch_retirement, bridges, retained_imports, reads, finalization_cids,
+        finalization_issuers,
+      ) {
+      return
     }
     // The checked-value copy is scratch. Its immutable receipt/index was
     // transferred to material; disposing this buffer does not revoke it.
@@ -845,11 +862,6 @@ pub fn[T] start_local_managed_dispatch(
     if disposed.val && retained.val is None {
       release_output_aliases()
     }
-    for index in 0..<finalization_cids.length() {
-      finalization_cids[index] = None
-    }
-    finalization_issuers.clear()
-    finalization_issuers.shrink_to_fit()
   }
   let bound = match
     @connector.bind_prepared_managed_execution(
@@ -896,16 +908,7 @@ pub fn[T] start_local_managed_dispatch(
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
-            for handle in bridges {
-              if handle.val is Some(bridge) {
-                @execution.close_managed_producer_bridge(bridge)
-              }
-            }
-            for handle in retained_imports {
-              if handle.val is Some(importer) {
-                @execution.cancel_completed_output_import(importer) |> ignore
-              }
-            }
+            stop_owned_inputs() |> ignore
           },
           dispose: fn() {
             live.val = false
@@ -913,17 +916,8 @@ pub fn[T] start_local_managed_dispatch(
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
-            for handle in bridges {
-              if handle.val is Some(bridge) {
-                @execution.close_managed_producer_bridge(bridge)
-              }
-            }
-            for handle in retained_imports {
-              if handle.val is Some(importer) {
-                @execution.cancel_completed_output_import(importer) |> ignore
-              }
-            }
             disposed.val = true
+            stop_owned_inputs() |> ignore
             release_owned_scratch()
           },
           settled: fn() {
@@ -944,9 +938,8 @@ pub fn[T] start_local_managed_dispatch(
             ) &&
             scratch_uses.val == 0 &&
             provider_execution.val is None &&
-            bridges.all(handle => handle.val is None) &&
-            retained_imports.all(handle => handle.val is None) &&
-            reads.all(read => read is None) &&
+            (live.val || input_stop.phase == Stopped) &&
+            scratch_retirement.phase == Retired &&
             (
               !disposed.val ||
               retained.val is Some(_) ||
@@ -962,9 +955,7 @@ pub fn[T] start_local_managed_dispatch(
             finalization_values.val is None &&
             finalization_retention.val is None &&
             finalization_stream.val is None &&
-            finalization_result_preparation.val is None &&
-            finalization_cids.all(cid => cid is None) &&
-            finalization_issuers.is_empty()
+            finalization_result_preparation.val is None
           },
           retention_released: fn() {
             let relation_released = retained.val is None ||
@@ -1032,7 +1023,8 @@ pub fn[T] start_local_managed_dispatch(
     transfers.push(LocalManagedInputTransfer::{
       input: managed,
       append: fn(row) {
-        guard handle.val is Some(bridge) && live.val else {
+        guard handle.val is Some(bridge) &&
+          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }
         let bytes = match
@@ -1052,7 +1044,8 @@ pub fn[T] start_local_managed_dispatch(
         }
       },
       finish: fn() {
-        guard handle.val is Some(bridge) && live.val else {
+        guard handle.val is Some(bridge) &&
+          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }
         match
@@ -1095,7 +1088,12 @@ pub fn[T] start_local_managed_dispatch(
         maxFrameBytes: setup.imports.max_batch_bytes,
       },
       begin: fn() {
-        guard live.val && importer.val is None else {
+        guard local_managed_input_writes_open(
+            live.val,
+            settled.val,
+            disposed.val,
+          ) &&
+          importer.val is None else {
           return Err(Configuration(InputUnavailable))
         }
         let prepared = match
@@ -1119,7 +1117,8 @@ pub fn[T] start_local_managed_dispatch(
         )
       },
       append: row => {
-        guard importer.val is Some(active) && live.val else {
+        guard importer.val is Some(active) &&
+          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }
         @execution.append_completed_output_import_wire(
@@ -1129,7 +1128,8 @@ pub fn[T] start_local_managed_dispatch(
         ).map_err(_ => Configuration(InputUnavailable))
       },
       finish: fn() {
-        guard importer.val is Some(active) && live.val else {
+        guard importer.val is Some(active) &&
+          local_managed_input_writes_open(live.val, settled.val, disposed.val) else {
           return Err(Configuration(InputUnavailable))
         }
         let output = match @execution.finish_completed_output_import(active) {
@@ -2497,6 +2497,9 @@ pub fn[T] start_local_managed_dispatch(
     },
     cleanup_refresh: fn() {
       if scratch_uses.val != 0 {
+        return false
+      }
+      if !stop_owned_inputs() {
         return false
       }
       if !release_provider_scratch() {
