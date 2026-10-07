@@ -17,7 +17,7 @@ import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {fileURLToPath} from 'node:url';
-import {connect, RequestHeld, explainRequestLookup, explainSubmission} from '../../packages/sdk/index.mjs';
+import {connect, RequestHeld, explainRequestLookup, explainSubmission, explainRequestCancellation} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
@@ -3103,13 +3103,26 @@ test('C1/C2: a held request is cancelled by its owner and resends match',
       }
       return response;
     };
+    let lost;
     try {
-      await assert.rejects(x.client.cancelRequest('cancel-a'), error =>
-        error.code === 'CancellationUnknown' &&
-          error.requestId === 'cancel-a');
+      await assert.rejects(x.client.cancelRequest('cancel-a'), error => {
+        lost = error;
+        return error.code === 'CancellationUnknown' && error.requestId === 'cancel-a';
+      });
     } finally { globalThis.fetch = real; }
-    assert.deepEqual(await x.client.cancelRequest('cancel-a'),
-      {requestId: 'cancel-a', kind: 'already_requested'});
+    const lostExplanation = explainRequestCancellation(lost);
+    assert.equal(lostExplanation.observation, 'outcome_unknown');
+    assert.equal(lostExplanation.next.operation, 'lookupRequest');
+    assert.equal(lostExplanation.next.requestId, 'cancel-a');
+    const repeated = await x.client.cancelRequest('cancel-a');
+    assert.deepEqual(repeated, {requestId: 'cancel-a', kind: 'already_requested'});
+    const explanation = explainRequestCancellation(repeated);
+    assert.equal(explanation.observation, 'already_requested');
+    assert.equal(explanation.summary, 'The Host reports a previously recorded cancellation of this request. This response does not establish physical stop or resource release.');
+    assert.equal(explanation.next.operation, 'lookupRequest');
+    assert.equal(explanation.next.requestId, 'cancel-a');
+    assert.equal(explainRequestCancellation(structuredClone(repeated)), undefined);
+    assert.equal(explainRequestCancellation(lost), lostExplanation);
     const lookup = await x.client.lookupRequest('cancel-a');
     assert.equal(lookup.state, 'ended');
     assert.equal(lookup.endReason, 'cancelled');
@@ -3201,18 +3214,28 @@ test('C5: a cancellation after the physical start reservation releases nothing e
     await heldRequests(x.client, ['started-a']);
     await approveAll(x.reviewer, await allCheckpoints(x.reviewer));
     await waitFor(() => x.steps.includes('physical_start_reserved'));
-    const cancelled = await x.client.cancelRequest('started-a');
-    assert.equal(cancelled.kind, 'accepted');
-    assert.ok(cancelled.ref !== undefined);
-    // The start was reserved first: the Run is not settled or released by
-    // the request alone.
-    await new Promise(resolve => setTimeout(resolve, 300));
-    assert.deepEqual(journalRows(x.directory,
-      'SELECT status FROM preparations'), [{status: 'run_created'}]);
-    assert.deepEqual(journalRows(x.directory, 'SELECT status FROM runs'),
-      [{status: 'running'}]);
-    assert.deepEqual(await holdingStates(x.directory), ['held']);
-    x.release();
+    let cancelled;
+    try {
+      cancelled = await x.client.cancelRequest('started-a');
+      assert.equal(cancelled.kind, 'accepted');
+      assert.ok(cancelled.ref !== undefined);
+      const explanation = explainRequestCancellation(cancelled);
+      assert.deepEqual({observation: explanation.observation, next: explanation.next,
+        revision: explanation.revision}, {observation: 'accepted',
+        next: {operation: 'status', ref: cancelled.ref}, revision: cancelled.revision},
+      '[check-mutation:request-cancel-preparation]');
+      for (const field of ['physicalStop', 'stopped', 'resourcesReleased', 'cleanupComplete']) {
+        assert.equal(Object.hasOwn(explanation, field), false);
+      }
+      // The start was reserved first: the Run is not settled or released by
+      // the request alone.
+      await new Promise(resolve => setTimeout(resolve, 300));
+      assert.deepEqual(journalRows(x.directory,
+        'SELECT status FROM preparations'), [{status: 'run_created'}]);
+      assert.deepEqual(journalRows(x.directory, 'SELECT status FROM runs'),
+        [{status: 'running'}]);
+      assert.deepEqual(await holdingStates(x.directory), ['held']);
+    } finally { x.release(); }
     // The existing stop and publication owners decide its end. The held
     // request's journal Run ends and its evidence is released only when the
     // Run is observed terminal; with its physical stop unknown both stay.
