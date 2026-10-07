@@ -19,12 +19,12 @@ export function inspectDriverRetirement(log) {
     } else if (line.startsWith('ACTQL_DRIVER_ROOT:')) {
       assert(current, 'Root outside actual Host case');
       const r = JSON.parse(line.slice(18));
-      assert(Number.isInteger(r.task) && r.task > 0 && address(r.root));
+      assert(Number.isInteger(r.task) && r.task >= 0 && address(r.root));
       assert.equal(r.rootRequestedBytes, 16, 'Unreviewed Ref ABI');
       assert(r.provider === null || address(r.provider));
-      let group = current.roots.get(r.task);
+      let group = r.task === 0 ? [...current.roots.values()].find(g => g.root === r.root) : current.roots.get(r.task);
       if (!group) {
-        assert.equal(r.phase, 0, 'Missing initial root');
+        assert(r.task > 0 && r.phase === 0, 'Missing initial root');
         assert.equal(r.provider, null);
         assert(![...current.roots.values()].some(g => g.root === r.root), 'Aliased driver roots');
         group = {root: r.root, started: false, cleared: false, pending: 0, repeated: 0};

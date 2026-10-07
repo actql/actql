@@ -15,11 +15,13 @@ const changed = (path, from, to) => {
 test('current driver/common owner source and additive Native overlay are admitted', () => {
   assert.equal(checkDriverRetirementSource(read).clearsProviderAfterCleanupSuccess,true);
   const {overlay} = retirementOverlay(read,{digest:'a'.repeat(64)});
-  assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, setup.task, 3\)\)/);
+  assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, 0, 3\)\)/);
   assert.equal((overlay[driverPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
     (read(driverPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
   assert.equal(overlay['src/query_integration/moon.pkg'].split('options(').length,2, 'Reuse existing package options');
   assert.match(overlay['src/query_integration/moon.pkg'], /cc-link-flags/);
+  // Cleanup observers reuse the existing provider Ref and add no setup capture.
+  assert(!overlay[driverPath].match(/driver_retirement_probe\(provider_execution, setup.task, [234]\)/));
   const host = 'src/query_integration/graph_host_custody_wbtest.mbt';
   assert.equal((overlay[host].match(/assert_(?:true|eq)\(/g)??[]).length,
     (read(host).toString().match(/assert_(?:true|eq)\(/g)??[]).length);
@@ -37,7 +39,7 @@ for (const [name,path,from,to] of [
 function records() {
   return ['current_filter','current_edge_filter'].flatMap((variant,i)=> {
     const root=String(100+i),provider=String(900+i);
-    const rootRecord=(phase,p)=>'ACTQL_DRIVER_ROOT:'+JSON.stringify({task:3,phase,root,rootRequestedBytes:16,provider:p});
+    const rootRecord=(phase,p)=>'ACTQL_DRIVER_ROOT:'+JSON.stringify({task:phase >= 2 ? 0 : 3,phase,root,rootRequestedBytes:16,provider:p});
     const ledger=(phase,execution)=>'ACTQL_DRIVER_LEDGER:'+JSON.stringify({phase,execution,retention:20,held:40,transfer:0});
     return ['ACTQL_DRIVER_CASE:'+variant,rootRecord(0,null),rootRecord(1,provider),
       rootRecord(2,provider),rootRecord(2,provider),ledger('pending',100),rootRecord(3,null),

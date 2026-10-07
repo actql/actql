@@ -39,7 +39,7 @@ try {
   log = {path:archive(Buffer.from(text),'logs','.log'),digest:hash(text)};
   assert.equal(r.status,0,`Focused Native Host fixture failed; ${log.path}\n${text}`);
   exit = r.status;
-  binaries = Object.fromEntries(Object.entries(artifacts(root,'native','query_integration')).map(([p,digest]) =>
+  binaries = Object.fromEntries(Object.entries(artifacts(root,'native','query_integration')).filter(([p])=>p.endsWith('/query_integration.whitebox_test.exe')).map(([p,digest]) =>
     [p,{digest,path:archive(read(p),'binaries')} ]));
   assert.deepEqual(checkNativeRuntime(environment.MOON_HOME,toolchain),runtime);
 } finally {

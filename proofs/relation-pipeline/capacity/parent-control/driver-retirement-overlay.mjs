@@ -13,9 +13,9 @@ export function retirementOverlay(read,source) {
   checkDriverRetirementSource(read);
   let driver=read(driverPath).toString();
   const body=blockAfter(driver,'let release_provider_scratch = fn()');
-  let observed=once(body,'None => true','None => { println(driver_retirement_probe(provider_execution, setup.task, 4))\n true }');
-  observed=once(observed,'          return false','          println(driver_retirement_probe(provider_execution, setup.task, 2))\n          return false');
-  observed=once(observed,'        provider_execution.val = None','        provider_execution.val = None\n        println(driver_retirement_probe(provider_execution, setup.task, 3))');
+  let observed=once(body,'None => true','None => { println(driver_retirement_probe(provider_execution, 0, 4))\n true }');
+  observed=once(observed,'          return false','          println(driver_retirement_probe(provider_execution, 0, 2))\n          return false');
+  observed=once(observed,'        provider_execution.val = None','        provider_execution.val = None\n        println(driver_retirement_probe(provider_execution, 0, 3))');
   driver=once(driver,body,observed);
   driver=once(driver,'  let retired_carriers :','  println(driver_retirement_probe(provider_execution, setup.task, 0))\n  let retired_carriers :');
   driver=once(driver,'            provider_execution.val = Some(started)','            provider_execution.val = Some(started)\n            println(driver_retirement_probe(provider_execution, setup.task, 1))');
