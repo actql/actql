@@ -46,14 +46,32 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         modelEvidence, namespaceId, sourceEvidence: sources,
         authorityScopeCid, storeAuthorityCid, now})});
     let continuation;
-    const custody = Object.freeze({
-      cleanupPending: captureOwner.custody.cleanupPending,
-      async cleanup() { return captureOwner.custody.cleanup(); },
-      async close() {
-        try { await captureOwner.custody.close(); }
-        finally { continuation?.close(); }
-      },
-    });
+    let captureCloseAttempted = false, captureReleased = false;
+    let continuationCloseAttempted = false, continuationReleased = false;
+    const cleanupPending = () => !captureReleased ||
+      continuation !== undefined && !continuationReleased;
+    const cleanup = async () => {
+      let failure;
+      if (!captureReleased) {
+        const recover = captureCloseAttempted;
+        captureCloseAttempted = true;
+        try {
+          const result = await (recover ? captureOwner.custody.cleanup() : captureOwner.custody.close());
+          captureReleased = result !== false && captureOwner.custody.cleanupPending() === false;
+        } catch (error) { failure = error; }
+      }
+      if (continuation !== undefined && !continuationReleased) {
+        const recover = continuationCloseAttempted;
+        continuationCloseAttempted = true;
+        try {
+          const result = await (recover ? continuation.cleanup() : continuation.close());
+          continuationReleased = result !== false && continuation.cleanupPending() === false;
+        } catch (error) { failure ??= error; }
+      }
+      if (failure !== undefined) throw failure;
+      return !cleanupPending();
+    };
+    const custody = Object.freeze({cleanupPending, cleanup, close: cleanup});
     retainExecution(custody);
     beginPhysicalWork();
     operation.bindRun(control, plan);

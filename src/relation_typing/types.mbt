@@ -232,6 +232,16 @@ pub fn projection(value : CheckedOperation) -> Array[ProjectionField] {
 }
 
 ///|
+/// Borrow one immutable checked projection entry without copying its siblings.
+/// The checked operation remains the only owner of projection authority.
+pub fn projection_field_at(
+  value : CheckedOperation,
+  index : Int,
+) -> ProjectionField? {
+  value.projection.get(index)
+}
+
+///|
 pub fn work_used(value : CheckedOperation) -> Int {
   value.work_used
 }

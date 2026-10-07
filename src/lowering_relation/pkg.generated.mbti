@@ -805,6 +805,8 @@ pub fn prepared_frame_end(PreparedRowsFrame) -> PreparedFrameBoundary
 
 pub fn prepared_frame_start(PreparedRowsFrame) -> PreparedFrameBoundary
 
+pub fn projection_field_at(PreparedProjection, Int) -> @relation_typing.ProjectionField?
+
 pub fn projection_field_count(PreparedProjection) -> Int
 
 pub fn projection_fields(PreparedProjection) -> Array[@relation_typing.ProjectionField]

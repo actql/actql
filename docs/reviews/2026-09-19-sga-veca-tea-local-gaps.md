@@ -6282,3 +6282,35 @@ installed projected-read metadata ceiling remain separate. This is neither
 all-start boundedness nor Native physical capacity certification. See the
 [indexed row record](2026-10-07-local-indexed-row-snapshots.md) for the
 counterexample, independent budgets, public shape and unverified coverage.
+
+### Resumable row metadata preparation (2026-10-07)
+
+SnapshotMap, OrderedBindings, Filter, AssertAll and Select prepare wide/long
+input names, output names and cached sources in the existing bounded owner.
+Binding/projection comparison and schema lookup retain UTF-16 cursors and
+borrow immutable admitted names rather than hashing all names during start.
+Partial preparation observes cancellation and releases its own workspace
+once while preserving borrowed inputs and spent work. Short metadata retains
+its existing bounded footprint and logical charging remains unchanged.
+
+This is a dependent unit after the indexed row change, not main adoption or
+all-start boundedness. KernelBody copies, other kernel metadata, availability
+validation and the installed projected-read ceiling remain. See the
+[metadata cursor record](2026-10-07-local-row-metadata-cursor.md) for the
+counterexample, implemented shapes, shared evidence and unverified coverage.
+
+### Resumable order and key metadata (2026-10-07)
+
+Sort, take, distinct, dedupe, unique assertion and top-k now reach the same
+wide/long-name metadata preparation owner. Term lookup and schema-name
+charging retain cursors across resumes; reservation and entry charges occur
+once. The bounded small lane, typed ordering and cumulative work are preserved.
+Independent temporary limits, Unicode/NULL/duplicate rows, resume quanta and
+stopped cleanup supplement the existing operation-wide evidence.
+
+A normal retained-Store sort -> take -> derive -> select Program publishes
+three fixed ordered Named Results, feeds two consumers, reuses a repeated
+request and delivers cancellation after positive progress. This does not
+close initial preparation, availability, JSON/window metadata or Native
+physical capacity correspondence. The unmerged #704 owner remains a
+dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).

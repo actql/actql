@@ -18,6 +18,10 @@ pub fn admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[Effect
 
 pub fn admit_effect_single_row(@run_publication.EffectPreviewIdentity, Int, Int, String, @logical_request_scope.LogicalRequestScope, String, LogicalItemLocator, EffectDispatchKey) -> Result[Unit, EffectCollectionBatchIssue]
 
+pub fn admit_table_operation(String, Int, Int, Int) -> Result[TableOperation, TableContractIssue]
+
+pub fn admit_table_receipt(TableOperation, String, Int, Int, Int) -> Result[TableReceipt, TableContractIssue]
+
 pub fn check_admitted_effect_preview_apply_keys(@run_publication.EffectPreviewIdentity, @logical_request_scope.LogicalRequestScope, Array[Array[EffectDispatchKey]]) -> Result[Unit, EffectPreviewApplyIdentityIssue]
 
 pub fn check_admitted_effect_preview_footprint_conflicts(@run_publication.EffectPreviewIdentity, Int, Int, Int) -> Result[Unit, EffectFootprintIssue]
@@ -505,6 +509,43 @@ pub struct LogicalItemLocator {
 }
 
 type RecoveredEffectTargetGuards
+
+pub(all) enum TableContractIssue {
+  InvalidLimits
+  InvalidWire
+  InvalidShape
+  InvalidIdentity
+  ForeignOperation
+  Encoding
+} derive(Eq, @debug.Debug)
+
+pub struct TableOperation {
+  wire : String
+  cid : String
+  scope_cid : String
+  effect_cid : String
+  catalog_cid : String
+  replace : Bool
+  expected_uuid : String?
+  expected_generation_cid : String?
+  input_artifact_cid : String
+  input_relation_cid : String
+  schema_cid : String
+  mapping_cid : String
+  data_policy_cid : String
+}
+
+pub struct TableReceipt {
+  wire : String
+  cid : String
+  request_cid : String
+  table_uuid : String
+  generation_cid : String
+  schema_cid : String
+  mapping_cid : String
+  snapshot_id : String?
+  row_count : Int64
+}
 
 // Type aliases
 pub using @logical_request_scope {type LogicalRequestScope}
