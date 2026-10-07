@@ -45,6 +45,7 @@ struct LocalMaterializingAttempt {
   mut publication_output : @execution.CompletedOutput?
   output_limits : LocalExportLimits?
   mut exported : Bool
+  mut export_preparation : @execution.CompletedOutputExportPreparation?
   mut export_stream : @execution.CompletedOutputExport?
   mut export_receipt : @execution.CompletedOutputExportReceipt?
   mut release_check : (() -> Bool)?
@@ -264,6 +265,7 @@ pub fn[E] prepare_local_materializing_execution(
         publication_output: None,
         output_limits,
         exported: false,
+        export_preparation: None,
         export_stream: None,
         export_receipt: None,
         release_check: None,
@@ -742,12 +744,16 @@ fn revoke_local_materializing_attempt(
     return
   }
   attempt.closed = true
+  if attempt.export_preparation is Some(preparation) {
+    @execution.cancel_completed_output_export_preparation(preparation) |> ignore
+  }
   if attempt.export_stream is Some(stream) {
     @execution.cancel_completed_output_export(stream)
   }
   if attempt.export_receipt is Some(receipt) {
     @execution.cancel_completed_export_receipt(receipt)
   }
+  attempt.export_preparation = None
   attempt.export_stream = None
   attempt.export_receipt = None
   if attempt.provider_execution is Some(active) {

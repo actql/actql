@@ -235,6 +235,7 @@ pub struct LocalOutputTransfer {
   limits : @local.LocalExportLimits
   install : (() -> Bool) -> Result[Unit, LocalDispatchIssue]
   begin : () -> Result[Unit, LocalDispatchIssue]
+  prepare : (Int) -> Result[(Bool, Int), LocalDispatchIssue]
   next : () -> Result[String?, LocalDispatchIssue]
   advance : (Int) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalDispatchIssue]
   finish : () -> Result[LocalExportContent, LocalDispatchIssue]

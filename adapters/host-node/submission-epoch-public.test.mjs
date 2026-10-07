@@ -45,7 +45,11 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   t.after(async () => {
     await close();
     if (certificates) setDefaultCACertificates(originalTrust);
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Submission acceptance fixture retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const open = async () => {
     if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
@@ -197,6 +201,44 @@ for (const entrance of ['local', 'https']) {
 }
 
 // Execute only when the matching-target native gate supplies its real binary.
+// A refusal's phase and public input category survive the original lookup.
+// This test uses the installed preparation/check/journal owners, with no Run.
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: durable known-input category survives original submission lookup after Host restart`, async t => {
+    const f = await installedFixture(t, entrance);
+    const submissionRef = f.client.newSubmission({nonce: 'known-input-original'});
+    const pending = f.client.startSource('SELECT missing AS n', {format: 'sql', submissionRef});
+    const original = getSubmissionInput(pending);
+    let outcome;
+    await assert.rejects(pending, error => {
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.deepEqual(outcome.submissionRef, submissionRef);
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      assert.equal('admission' in outcome, false);
+      return true;
+    });
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    assert.equal(f.computes, 0);
+    await f.close(); await f.open();
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    await assert.rejects(f.client.startSource(original.input.text,
+      {format: original.input.format, submissionRef}), error => {
+      assert.deepEqual(getSubmissionOutcome(error), outcome);
+      return true;
+    });
+    // An exchange exception carries no validated admission outcome. Keep the
+    // SDK's uncertainty rule and look up the immutable original fact instead.
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
+      assert.equal(error.code, 'SubmissionUnknown');
+      assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+      return true;
+    });
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), outcome);
+    assert.equal(f.computes, 0, 'lookup/replay never prepares a new Run or performs Model/Effect work');
+  });
+}
+
 // Ordinary Node gates still exercise both public SDK entrances above.
 if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
   test('Native HTTPS: original submission survives a lost reply and Host restart', async t => {

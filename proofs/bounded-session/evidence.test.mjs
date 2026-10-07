@@ -191,3 +191,31 @@ for (const [name, change, expected] of [
     assert.throws(() => validate(state.nodes, state.report, state.current, 'native'), expected);
   });
 }
+
+
+test('Nest does not acquire an unrelated serial-chain checker dependency', () => {
+  const seen = new Set();
+  const obligations = checkNestObligations(root, {read: path => {
+    seen.add(path);
+    if (path.startsWith('proofs/relation-chain/')) throw new Error('Unrelated chain artifact read');
+    return readFileSync(new URL(path, new URL('../../', import.meta.url)));
+  }});
+  assert.equal(obligations.historicalChainComparison.baseline, obligations.baseline);
+  assert.equal(Object.keys(obligations.historicalChainComparison.artifacts).length, 4);
+  assert(seen.has('proofs/bounded-session/Session.lean'));
+  assert(seen.has('proofs/bounded-session/check.mjs'));
+});
+
+test('Nest still rejects changed or missing inherited Session proof inputs', () => {
+  const real = path => readFileSync(new URL(path, new URL('../../', import.meta.url)));
+  assert.throws(() => checkNestObligations(root, {read: path =>
+    path === 'proofs/bounded-session/Session.lean' ? Buffer.from('changed proof') : real(path),
+  }), /Common proof\/protocol artifact changed/);
+  assert.throws(() => checkNestObligations(root, {read: path => {
+    const bytes = real(path);
+    if (path !== 'proofs/bounded-session/nest-obligations.json') return bytes;
+    const obligations = JSON.parse(bytes);
+    delete obligations.unchangedCommon['proofs/bounded-session/Session.lean'];
+    return Buffer.from(JSON.stringify(obligations));
+  }}), /Missing or unrelated inherited Nest common artifact/);
+});
