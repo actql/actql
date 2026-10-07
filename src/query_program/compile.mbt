@@ -2390,6 +2390,7 @@ fn compile_steps(
           key_display_names.push(
             match root.kind {
               Reference(path) => path.last().unwrap().value
+              Property(_, name) => name.value
               _ => name
             },
           )
