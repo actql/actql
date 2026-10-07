@@ -15,7 +15,7 @@ export function arrayStorageExtent(element, slots) {
 // Identity is valid only within one borrowed observation. Do not union these
 // tokens across polls: allocator address reuse would require generation evidence.
 export function inspectNativeArrays(descriptors, capacities, ceilings) {
-  assert.deepEqual(Object.keys(descriptors ?? {}).sort(), ['inputNames', 'outputNames', 'sortedIndices']);
+  assert.deepEqual(Object.keys(descriptors ?? {}).sort(), ['inputNames', 'outputNames', 'rowSources', 'snapshot', 'sortedIndices']);
   const allocations = new Map();
   let upper = 0n;
   function add(token, bytes, immortal, role, backing = null) {
@@ -26,7 +26,7 @@ export function inspectNativeArrays(descriptors, capacities, ceilings) {
     if (allocations.has(token)) assert.deepEqual(allocations.get(token), entry, 'Aliased backing has inconsistent extent or ownership');
     else allocations.set(token, entry);
   }
-  for (const name of ['inputNames', 'outputNames', 'sortedIndices']) {
+  for (const name of ['inputNames', 'outputNames', 'rowSources', 'snapshot', 'sortedIndices']) {
     const d = descriptors[name];
     if (d === null) {
       assert.equal(name, 'sortedIndices', 'Missing required Array');

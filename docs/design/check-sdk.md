@@ -1042,7 +1042,7 @@ retrieval API. Existing per-call input custody and destruction conditions apply.
 ### Known Requirement frontier and bounded check supplementation
 
 The SDK exposes a comparable observation only for an exact completed check
-response retained by that SDK call. Current public Requirements are declared
+response retained by that SDK call. The comparable frontier supports declared
 parameter values: their obligation key and expected type are typed facts;
 constraints and supplied bindings remain bound by the existing opaque
 `context_ref`. Compare bound scope/context, reason schema, the unordered typed
@@ -1410,3 +1410,72 @@ and family data without authorization or action claims. Unknown codes retain
 safe fallback; malformed known transported facts still reject through the
 existing wire/SDK admission. No legacy compiler catalog or operation outcome
 is relabelled as this public check catalog.
+
+
+### Known checking-context capacity requirement
+
+The existing checker can stop at `NeedsInputs(HostCapacityPolicy)`. Public check
+projects that known, disclosable selection as `host_capacity_policy_required`
+in `report.requirements`, with `checking_context_missing` in coverage limits.
+The complete bound-input scope stays `undetermined`; the unvisited remainder is
+not certified. A missing Host policy is not a caller parameter violation.
+
+The closed facts identify the existing `actql-capacity-host-policy/0.1` contract
+and its `/schema` by independent contract/schema CIDs, with supplier
+`checking_context_owner` and stage `checking`. They convey the admission
+condition, not private policy values, an environment path, authority to change
+configuration, or a SQL location. Source disclosure runs before projection;
+protected Source resolution cannot expose this selection or fabricate a position.
+Other checker requests still need their own reviewed public projection.
+
+`getCheckContextRequirements(outcome)` returns immutable selections only for the
+original completed response held by that SDK call. Copies do not acquire input
+custody. The parameter supplementation frontier deliberately remains unavailable
+for nonparameter requirements; adding a parameter cannot satisfy this obligation.
+A separately supplied admitted environment leads to ordinary rechecking of the
+whole input under a different context reference. No Host mutation or input
+persistence API is added.
+
+This extends the public check Reason facts and outcome requirement schemas,
+their content identities, validators, generated types, catalog and fixtures.
+Requirement codes are rejected in the violation list. Previous schema pins are
+rejected explicitly, including an older SDK paired with a new Host. The separate
+`actql-diagnostics/0.1` contract and its frozen evidence are unchanged; no
+compatibility adapter or legacy execution path is introduced.
+
+### Known numeric reduction profile requirement
+
+An aggregate slot can cause the existing checker to return
+`NeedsInputs(NumericReductionProfile)`. Public check projects only that actual
+request as `numeric_reduction_profile_required`, with a closed `profile_cid`
+admission condition, supplier `checking_context_owner`, stage `checking` and
+`checking_context_missing` coverage. SUM/AVG require the repository-pinned
+numeric profile; COUNT does not acquire a fabricated numeric obligation.
+The installed Host's existing numeric-profile admission hook supplies the
+context and invokes ordinary whole-input checking again. The earlier report
+stays undetermined and bound to its original context. Profile membership is
+neither reduction-member selection nor execution/capture permission.
+
+The owner's request carries a generated Program cursor for the aggregate slot.
+That cursor is not a SQL location. This projection publishes no generated path,
+contributor value, selected member, location or edit. Protected Source resolution
+can stop checking before the numeric obligation is known; missing/denied/delegated
+publications then retain the same generic protected observation. Independent
+parameter violations remain input errors without exposing actual values.
+
+`getCheckContextRequirements` retains the discriminated capacity/schema and
+numeric/profile conditions from original SDK response custody. A copy does not
+acquire custody; parameter supplementation stops at either nonparameter condition.
+Malformed numeric facts, unadmitted pins, extra data, generated positions or a
+Requirement moved into the violation list are protocol failures. This extends
+the closed public check schemas/CIDs and their coordinated Host, wire, SDK,
+catalog and fixtures. `actql-diagnostics/0.1` and historical evidence are unchanged.
+No compatibility execution, automatic profile installation or input persistence
+API is added.
+
+The current public text lowerer does not yet connect REGEX_MATCH, NFKC or
+PARSE_TIMESTAMP to the common Program expression owner. Those allowed calls
+retain implementation-limit diagnostics before a text-time policy request can
+be known. Diagnosis must not infer a Requirement by reparsing the function name
+or by reading the environment independently of the checker. Other profile,
+artifact, bounded-row and template obligations remain separate extensions.

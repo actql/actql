@@ -50,7 +50,20 @@ test('collection order cases retain one source acquisition and standard installe
   assert.equal(groups[0].name, 'standard');
   assert.equal(Object.hasOwn(groups[0].capacity, 'max_execution_bytes'), false);
   assert.deepEqual(['successes', 'refusals', 'executionFailures']
-    .map(kind => groups[0].inputs[kind].length), [17, 7, 1]);
+    .map(kind => groups[0].inputs[kind].length), [20, 10, 1]);
+});
+
+test('delimiter chunk expectations distinguish decoded, raw and decomposed values', () => {
+  const get = name => successes.find(item => item.name.endsWith(name));
+  assert.deepEqual(get('delimiter-chunks-sql').expected, [{names: 'b|b|a|c'}]);
+  assert.deepEqual(get('delimiter-chunks-pipe-raw').expected, [{names: 'b\\n\rb\\n\ra\\n\rc'}]);
+  assert.deepEqual(get('delimiter-chunks-decomposed').expected, [{names: 'be\u0301be\u0301ae\u0301c'}]);
+  for (const name of ['delimiter-chunks-sql', 'delimiter-chunks-pipe-raw', 'delimiter-chunks-decomposed']) {
+    assert.deepEqual(get(name).columns, [{name: 'names', contract: {type: 'string', nullable: true}}]);
+  }
+  for (const fragment of ["'a'\"b\"", "'a' '\\400'", "'a' || 'b'"]) {
+    assert.ok(refusals.some(item => item.text.includes(fragment)));
+  }
 });
 
 test('default delimiter keeps duplicates, filter demand, NULL output and nullable Result contract', () => {
