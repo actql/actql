@@ -1127,3 +1127,25 @@ which also checks generated SDK metadata/types and the [reference catalog](../..
 Literal scenario expectations remain independent tests. This public catalog is
 separate from legacy actql-diagnostics/0.1 and runtime operation outcomes; it
 does not claim a legacy compiler catalog body or complete diagnostics coverage.
+
+`explainRequestLookup(lookup)` and `formatRequestLookup(lookup, options)` explain
+only the original SDK lookup or its rejected observation. An absent record does
+not prove non-acceptance; a returned Run reference does not prove Run success.
+Durable held responses retain `preparationState` (`waiting_checkpoint`,
+`resuming`, or `ended`), the preparation attempt ID and durability. An ended
+preparation is separate from physical stop, cleanup, and execution outcomes.
+The helpers ignore open reason/error strings and preserve an original authorized
+lookup candidate without granting permission to resubmit or answer a Checkpoint.
+Held submit results expose the same preparation facts through `explainSubmission`.
+
+Lookup snapshots are cloned, revalidated and recursively frozen. Invalid copies
+and malformed/unknown branches retain an uninterpretable observation and original
+lookup target; transport failures retain lookup uncertainty. Copies receive no
+explanation custody or submitted-input association. Presentation performs no I/O,
+retains the approved English/Japanese localization, and preserves identical facts
+in text, HTML and JSON. There is no new Host storage or timed retention guarantee.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.

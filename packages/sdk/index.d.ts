@@ -120,17 +120,39 @@ export type SubmissionInput = Readonly<{
 }>;
 /** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
+type RequestObservationTarget = Readonly<{operation: 'lookupRequest'; requestId: string;
+  lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+export type HeldRequestExplanation = Readonly<{
+  observation: 'request_held';
+  preparationState: 'waiting_checkpoint' | 'resuming' | 'ended';
+  prepareAttemptId: string;
+  durability: 'durable';
+  summary: string;
+  hint: string;
+  next: RequestObservationTarget;
+}>;
 export type SubmissionExplanation = Readonly<{summary: string}> & (
   Readonly<{
-    observation: 'acceptance_unknown' | 'request_held';
+    observation: 'acceptance_unknown';
     next: Readonly<{operation: 'lookupRequest'; requestId: string;
       lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
-  }> | Readonly<{
+  }> | HeldRequestExplanation | Readonly<{
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
   }>);
 /** Read-only advice for this exact SDK submit result; no retry or execution permission. */
 export declare function explainSubmission(result: unknown, options?: OperationExplanationOptions): SubmissionExplanation | undefined;
+export type RequestLookupExplanation = Readonly<{summary: string; hint: string}> & (
+  HeldRequestExplanation | Readonly<{
+    observation: 'lookup_unresolved' | 'lookup_unavailable' | 'lookup_uninterpretable';
+    next: RequestObservationTarget;
+  }> | Readonly<{
+    observation: 'run_reference_received';
+    durability: 'durable' | 'volatile';
+    next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  }>);
+/** Original admitted lookup or rejected observation; no unvalidated Owner facts or authority. */
+export declare function explainRequestLookup(result: unknown, options?: OperationExplanationOptions): RequestLookupExplanation | undefined;
 export type ReadFailureExplanation = Readonly<{
   observation: 'read_open_unknown' | 'read_incomplete' | 'cleanup_unknown';
   cleanup?: 'unknown';
@@ -453,6 +475,7 @@ export type OperationFormatOptions = OperationExplanationOptions & Readonly<{
   maxBytes?: number;
 }>;
 export declare function formatSubmission(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatRequestLookup(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatCancellation(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions): string | undefined;
