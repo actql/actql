@@ -24,6 +24,24 @@ export const correlatedUnnestProgram = {version: 'actql/0.1', id: 'fixture.corre
     {select: ['id', 'element', 'position'], as: 'selected'},
   ], results: {rows: {from: 'selected', fields: ['id', 'element', 'position']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// Separate common control for the accepted filter/LIMIT execution failure.
+// Its predicate, sort, projection and bound are not compiler-generated.
+export const correlatedUnnestFilterLimitProgram = {version: 'actql/0.1',
+  id: 'fixture.correlated_unnest_filter_limit', params: parameterDeclarations,
+  stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {unit: {type: 'boolean', nullable: false}}, rows: [{unit: true}]}, as: 'seed'},
+    {from: 'seed', derive: {parents: {$param: 'parents'}}},
+    {unnest: {column: 'parents', as: 'parent'}},
+    {derive: {id: {property: {value: {field: 'parent'}, name: 'id'}},
+      original_items: {property: {value: {field: 'parent'}, name: 'items'}}}},
+    {derive: {array: {field: 'original_items'}}},
+    {unnest: {column: 'array', as: 'element', with_index: 'position'}},
+    {filter: {not: {is_null: {field: 'element'}}}},
+    {sort: [{field: 'id', dir: 'asc', nulls: 'first'}, {field: 'position', dir: 'asc', nulls: 'first'}]},
+    {select: ['id', 'element', 'position']},
+    {take: {count: 2, offset: 0}, as: 'limited'},
+  ], results: {rows: {from: 'limited', fields: ['id', 'element', 'position']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const success = (name, text, extra = {}) => ({name: 'correlated-unnest-' + name,
   format: 'sql', text, parameterDeclarations, parameters, columns, expected,
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra});
@@ -41,6 +59,10 @@ export const correlatedUnnestSuccesses = [
   success('empty-arrays', sql, {parameters: {parents: [{id: 1, items: []}, {id: 2, items: null}]}, expected: []}),
   success('filter-limit', sql.replace('ORDER BY', 'WHERE element IS NOT NULL ORDER BY') + ' LIMIT 2',
     {expected: [{id: 1, element: 1, position: 0}, {id: 2, element: 2, position: 0}]}),
+  success('filter-limit-json-control', JSON.stringify(correlatedUnnestFilterLimitProgram), {
+    format: 'json', parameterDeclarations: undefined,
+    expected: [{id: 1, element: 1, position: 0}, {id: 2, element: 2, position: 0}],
+  }),
   success('immutable-range', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS'), {format: 'aql-text'}),
   success('current-column', pipe.replace('|> CROSS', '|> SET items = [9] |> CROSS').replace('UNNEST(p.items)', 'UNNEST(items)'),
     {format: 'aql-text', expected: [{id: 1, element: 9, position: 0}, {id: 2, element: 9, position: 0},

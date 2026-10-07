@@ -49,8 +49,8 @@ contracts do not prevent an unrelated qualified parent star. Common checking
 owns ARRAY admission, NULL propagation, key transfer and expansion capacity.
 The Frontend does not declare a parent key unique after one-to-many expansion.
 
-The public corpus contains thirteen positive cases and eight pre-admission
-refusals. It includes an independent JSON control, row-dependent ARRAYs,
+The public corpus contains fourteen positive cases and eight pre-admission
+refusals. It includes independent JSON controls, row-dependent ARRAYs,
 duplicates/NULL elements, NULL/empty ARRAYs, parent stars, original versus current
 SET values, explicit filtering/LIMIT, DATA, and one-acquisition ordinary and
 joined parents. The normal corpus and focused Local/HTTPS consumer both register
@@ -79,10 +79,54 @@ material boundary passed JS 1/1 (`run-RNPlV6`, `focused-test-h9NElK`).
 Read-only manifest, metadata and canonical-vector checks pass (375 vectors);
 formatting is checked only for the changed MoonBit files.
 
-Fresh five-package production and public acceptance must use the clean committed
-source and `node scripts/test-packed-public-query.mjs --correlated-unnest-only
---keep-artifacts`. At this source commit they are pending, as is submitted-HEAD
-CI. Local checks do not certify all backends or full integration.
+## Fixed-source public execution and common capacity boundary
+
+Normal five-package production at
+`58f39b8b29240f9257a0d534a9ff57d12d363bcc` passed (`run-4yanmF`). The manifest is
+`/private/tmp/actql-b-correlated-unnest-58f39b8b2-pack/packed-client-packages.json`.
+The external consumer (`run-LX1Ab1`) retained its receipt at
+`worktrees/.codex-scratch/public-query-evidence-TlNLmC/summary.json`.
+Its Embedded Local JSON control, SQL, Pipe, quoted aliases, DATA, empty parents
+and empty/NULL arrays reached Named Result with the independent rows, ordered
+columns and complete contracts. The next filter/LIMIT source failed after
+admission; later cases, refusals and the HTTPS corpus were not reached. These
+are evidence for that source SHA, not later integration or complete acceptance.
+
+The independent filter/LIMIT JSON control and source both also failed on the
+same packed HTTPS Host (`run-Di2na4`, `focused-test-yXPF0t`). A direct diagnostic
+of that JSON control through the installed common execution entry
+(`run-9RS6jf`, `focused-test-awONLf`) identified
+`LocalManagedStart(Execution(Physical(ExecutionLimit)))`, before any completion.
+`ACTQL_E_UNPUBLISHED_RUN` and `CapturedRunPublicationFailed` are later symptoms.
+An independent candidate-preparation probe (`run-tgaExh`,
+`focused-test-FC59ZR`) recorded retained capacity 14,240,000 bytes and execution
+capacity 601,097,472 bytes with every ledger usage counter zero. It did not run
+the prepared candidate: that probe's second entry call was refused because
+preparation had already sealed its managed identity policy. Keep that diagnostic
+limitation separate from the preceding verified execution failure.
+
+The common Host execution budget stays 536,870,912 bytes. No overestimate has
+been established. A must distinguish correct capacity refusal from incorrect
+derivation or an admission/dispatch mismatch before changing a common boundary.
+Relevant owners are `client_local_host/captured_ledger.mbt`,
+`connectors/local/driver/managed_dispatch.mbt` and
+`physical_strategy/task_execution.mbt::start_captured_managed_execution`.
+The Frontend neither raises this budget nor duplicates that capacity owner.
+
+The unchanged source is `correlated-unnest-filter-limit` in
+`scripts/fixtures/correlated-unnest-source-input.mjs`. The separate,
+hand-authored `correlatedUnnestFilterLimitProgram` fixes the same filter, ordered
+keys and `take: {count: 2, offset: 0}` for reproduction without Frontend lowering.
+Submit it normally as JSON with that fixture's `parameters`; the expected rows
+remain `[{"id":1,"element":1,"position":0},{"id":2,"element":2,"position":0}]`.
+Both controls remain positive obligations in the normal corpus. Excluding the
+failing case or converting it into an expected failure cannot close this unit.
+
+Fresh integrated packages and complete Local/HTTPS acceptance remain pending.
+Use `node scripts/test-packed-public-query.mjs --correlated-unnest-only
+--keep-artifacts` when the common boundary is resolved. Retain the failed Store,
+logs and package digests for the owner handoff. Local checks do not certify all
+backends or full integration.
 
 ## Remaining coverage
 

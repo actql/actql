@@ -22,6 +22,33 @@ fn correlated_unnest_context() -> Context {
 }
 
 ///|
+test "correlated UNNEST preserves the explicit predicate order and LIMIT" {
+  let expected = @program.parse(
+    "{\"version\":\"actql/0.1\",\"id\":\"fixture.query_pair\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[" +
+    correlated_unnest_seed() +
+    "," +
+    (
+      #|{"from":"parents","derive":{"aql_unnest_array_4":{"field":"items"}}},{"unnest":{"column":"aql_unnest_array_4","as":"aql_unnest_element_5","with_index":"aql_unnest_offset_6"}},{"filter":{"not":{"is_null":{"field":"aql_unnest_element_5"}}}},{"sort":[{"field":"id","dir":"asc","nulls":"first"},{"field":"aql_unnest_offset_6","dir":"asc","nulls":"first"}]},{"select":["id",{"element":"aql_unnest_element_5"},{"position":"aql_unnest_offset_6"}]},{"take":{"count":2,"offset":0},"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","element","position"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    @check.check_parsed(expected, check_environment(), None, check_limits())
+    is Checked(_),
+  )
+  let actual = compile(
+    @query.parse_query(
+      "SELECT p.id, element, position FROM parents p CROSS JOIN UNNEST(p.items) element WITH OFFSET position WHERE element IS NOT NULL ORDER BY p.id, position LIMIT 2",
+      syntax_limits(),
+    ).unwrap(),
+    correlated_unnest_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(actual), semantic(expected))
+}
+
+///|
 test "correlated UNNEST retains parent slots in an independently checked Program" {
   // Copying the array preserves the original input column. Expansion belongs
   // to the common owner; NULL/empty arrays and duplicate elements are not
