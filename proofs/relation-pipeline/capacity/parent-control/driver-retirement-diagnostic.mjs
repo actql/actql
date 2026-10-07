@@ -6,7 +6,7 @@ import {root, environment, toolchain} from '../../execute.mjs';
 import {snapshot, hash} from '../../inventory.mjs';
 import {artifacts} from '../../../bounded-session/evidence.mjs';
 import {checkNativeRuntime} from '../backing/source.mjs';
-import {retirementOverlay, retirementPaths, retirementHelper, retirementStub, retirementFixture} from './driver-retirement-overlay.mjs';
+import {retirementOverlay, retirementPaths, retirementHelper, retirementStub, retirementFixture,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {acceptDriverRetirement} from './driver-retirement-consumer.mjs';
 const git = args => {
   const r = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
@@ -60,7 +60,7 @@ try {
   assert(!r.interrupted && !r.exceeded, `Interrupted/incomplete Native fixture; ${log.path}`);
   assert.equal(r.status,0,`Focused Native Host fixture failed; ${log.path}\n${text}`);
   exit = r.status;
-  binaries = Object.fromEntries(Object.entries(artifacts(root,'native','query_integration')).filter(([p])=>p.endsWith('/query_integration.whitebox_test.exe')).map(([p,digest]) =>
+  binaries = Object.fromEntries(Object.entries(retirementExecutionArtifacts(artifacts(root,'native','query_integration'))).map(([p,digest]) =>
     [p,{digest,path:archive(read(p),'binaries')} ]));
   assert.deepEqual(checkNativeRuntime(environment.MOON_HOME,toolchain),runtime);
 } finally {

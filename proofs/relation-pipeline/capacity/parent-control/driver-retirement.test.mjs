@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {checkDriverRetirementSource, driverPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
-import {retirementOverlay} from './driver-retirement-overlay.mjs';
+import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
 import {omitUnselectedTests,helperCompilation,helperImports} from './driver-retirement-compilation.mjs';
@@ -14,6 +14,12 @@ const changed = (path, from, to) => {
   assert.equal(original.split(from).length,2,'Mutation must reach unique actual boundary');
   return p => p === path ? original.replace(from,to) : read(p);
 };
+test('executed Native artifact excludes same-basename Darwin debug data and missing executable',()=>{
+  const debug=retirementExecutable+'.dSYM/Contents/Resources/DWARF/query_integration.whitebox_test.exe';
+  assert.deepEqual(retirementExecutionArtifacts({[retirementExecutable]:'a'.repeat(64),[debug]:'b'.repeat(64)}),
+    {[retirementExecutable]:'a'.repeat(64)});
+  assert.throws(()=>retirementExecutionArtifacts({[debug]:'b'.repeat(64)}));
+});
 test('current driver/common owner source and additive Native overlay are admitted', () => {
   assert.equal(checkDriverRetirementSource(read).clearsProviderAfterCleanupSuccess,true);
   const {overlay,boundary} = retirementOverlay(read,snapshot(root));

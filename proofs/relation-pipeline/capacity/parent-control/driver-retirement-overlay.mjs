@@ -6,6 +6,13 @@ import {retirementCompilation} from './driver-retirement-compilation.mjs';
 export const retirementHelper='src/connectors/local/driver/driver_retirement_native.mbt';
 export const retirementStub='src/connectors/local/driver/driver_retirement_stub.c';
 export const retirementFixture='src/query_integration/driver_retirement_native_wbtest.mbt';
+export const retirementExecutable='_build/native/debug/test/query_integration/query_integration.whitebox_test.exe';
+export function retirementExecutionArtifacts(inventory) {
+  assert(Object.hasOwn(inventory,retirementExecutable),'Missing selected Native executable');
+  // A Darwin dSYM can contain a DWARF file with exactly the same basename.
+  // It is generated debug data, not a second executed test binary.
+  return {[retirementExecutable]:inventory[retirementExecutable]};
+}
 const hostPath='src/query_integration/graph_host_custody_wbtest.mbt';
 const pkg='src/connectors/local/driver/moon.pkg';
 export const retirementPaths=[driverPath,pkg,hostPath,'src/query_integration/moon.pkg'];

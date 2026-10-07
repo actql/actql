@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {snapshot, hash} from '../../inventory.mjs';
 import {parseTestExecution} from '../../../../scripts/test-execution.mjs';
-import {retirementOverlay} from './driver-retirement-overlay.mjs';
+import {retirementOverlay,retirementExecutable} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 
 export function acceptDriverRetirement(receipt, {root, revision, runtime, read}) {
@@ -32,7 +32,7 @@ export function acceptDriverRetirement(receipt, {root, revision, runtime, read})
   const binaries = Object.entries(receipt.binaries);
   assert.equal(binaries.length, 1, 'Expected one actual Native whitebox executable');
   for (const [path, binary] of binaries) {
-    assert(path.startsWith('_build/native/debug/test/query_integration/') && path.endsWith('.exe'));
+    assert.equal(path,retirementExecutable,'Not the selected executed Native binary');
     assert.equal(binary.path, '.artifacts/relation-pipeline/driver-retirement-native/binaries/'+binary.digest);
     const bytes = read(binary.path);
     assert.equal(hash(bytes), binary.digest, 'Changed executed binary');
