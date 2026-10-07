@@ -10,6 +10,7 @@ fn acquisition_runtime_case(
   through_resident? : Bool = false,
   through_consumer_holder? : Bool = false,
   cancel_consumer_before_start? : Bool = false,
+  cancel_consumer_after_borrow? : Bool = false,
   consumer_output_unavailable? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
@@ -315,6 +316,7 @@ fn acquisition_runtime_case(
       name,
       through_consumer_holder~,
       cancel_consumer_before_start~,
+      cancel_consumer_after_borrow~,
       consumer_output_unavailable~,
       cancel_receiver~,
       deny_after_admission~,
@@ -477,5 +479,15 @@ test "producer holder keeps cleanup after consumer output storage failure" {
     through_resident=true,
     through_consumer_holder=true,
     consumer_output_unavailable=true,
+  )
+}
+
+///|
+test "producer holder returns a borrowed consumer cancelled before its exclusive start" {
+  acquisition_runtime_case(
+    true,
+    through_resident=true,
+    through_consumer_holder=true,
+    cancel_consumer_after_borrow=true,
   )
 }

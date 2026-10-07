@@ -182,8 +182,8 @@ test('public source preparation binds installed aliases before checking a Progra
   for (const [text, format, code] of [
     ['SELECT id FROM', 'sql', 'source_invalid_input'],
     ['FROM records |> SELECT id', 'sql', 'source_invalid_input'],
-    ['SELECT id FROM absent', 'sql', 'source_rejected'],
-    ['SELECT absent FROM records', 'sql', 'source_rejected'],
+    ['SELECT id FROM absent', 'sql', 'source_unresolved'],
+    ['SELECT absent FROM records', 'sql', 'source_invalid_input'],
   ]) {
     const outcome = prepare(text, format);
     assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
@@ -1689,9 +1689,9 @@ test('public submit rejects checker failures before Run admission', async t => {
     };
     for (const [parameters, code, classification] of [
       [null, 'ClientProgramNeedsInputs', 'requirements'],
-      [{n: null}, 'ClientProgramRejected', 'operation_failed'],
-      [{n: 'bad'}, 'ClientProgramRejected', 'operation_failed'],
-      [{n: 2, extra: true}, 'ClientProgramRejected', 'operation_failed'],
+      [{n: null}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 'bad'}, 'ClientProgramInvalidInput', 'invalid_input'],
+      [{n: 2, extra: true}, 'ClientProgramInvalidInput', 'invalid_input'],
       [{n: 'x'.repeat(65536)}, 'ClientParametersTooLarge', 'implementation_limit'],
     ]) {
       const response = await submit(parameters);
@@ -1709,7 +1709,9 @@ test('public submit rejects checker failures before Run admission', async t => {
       await assert.rejects(client.startSource(document, {format: 'json',
         submissionRef: client.newSubmission({nonce: 'sdk-invalid-parameter'}), parameters: {n: null}}),
       error => error.code === 'SubmissionNotAccepted' &&
-        error.outcome.kind === 'not_accepted' && error.outcome.problem.code === 'ClientProgramRejected');
+        error.outcome.kind === 'not_accepted' &&
+        error.outcome.problem.code === 'ClientProgramInvalidInput' &&
+        error.outcome.problem.classification === 'invalid_input');
       assert.equal(admissions, 0);
     } finally {
       client.close();

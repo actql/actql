@@ -350,6 +350,19 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
+to the ordinary group operation with an empty aggregate map: each distinct
+group contributes its grouping columns, in authored key order, with their
+checked types and NULL grouping semantics. Subsequent operators see that new
+output scope, not the previous input range. A nonempty key list on empty input
+produces no groups; `GROUP BY ()` denotes one global group and produces one
+empty object even on empty input. It can feed a subsequent explicit EXTEND;
+publication of a zero-column Result remains unsupported by the common Result
+contract. An AGGREGATE with neither expressions nor a GROUP BY clause remains
+a syntax error. This connects the selected GoogleSQL
+[grouping aggregation](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#aggregate)
+without synthesizing COUNT, DISTINCT, ordering or an alternate execution path.
+
 A Pipe JOIN consumes the completed left Relation, including its projected or
 aggregated columns, predicates, ordering and LIMIT. A preceding Pipe AS names
 that current row; ranges and columns removed by projection are not restored.

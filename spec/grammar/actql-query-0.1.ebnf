@@ -83,7 +83,7 @@ join          = [ "INNER" | "LEFT", [ "OUTER" ]
               | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
-group_clause  = "GROUP", "BY", expression, { ",", expression } ;
+group_clause  = "GROUP", "BY", ( "(", ")" | expression, { ",", expression } ) ;
 having_clause = "HAVING", expression ;
 qualify_clause = "QUALIFY", expression ;
 window_clause = "WINDOW", window_definition, { ",", window_definition } ;
@@ -138,7 +138,7 @@ relation_pipe_item = assertion_operator | where_clause | "SELECT", [ "DISTINCT" 
               | "DROP", identifier, { ",", identifier }
               | "RENAME", rename, { ",", rename }
               | "AS", identifier
-              | "AGGREGATE", select_list, [ group_clause ]
+              | "AGGREGATE", ( select_list, [ group_clause ] | group_clause )
               | join | order_clause | limit_clause
               | pipe_set_part ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",

@@ -191,9 +191,12 @@ test "private Table dependency roles preserve bodies and reject Result substitut
     1000,
     32,
   ).unwrap()
-  assert_eq(definition.node.references.map(dependency => (dependency.kind, dependency.identity)), [
-    ("local_dependencies", relation_fixture_cid("1")),
-  ])
+  assert_eq(
+    definition.node.references.map(dependency => {
+      (dependency.kind, dependency.identity)
+    }),
+    [("local_dependencies", relation_fixture_cid("1"))],
+  )
   assert_true(
     admit_captured_effect_dependency_body(
       "local_result_definition",
@@ -257,7 +260,9 @@ test "private Table dependency roles preserve bodies and reject Result substitut
   assert_eq(private_ordering.wire, ordering.wire)
   assert_eq(private_artifact.node.identity, artifact.identity)
   assert_eq(
-    private_artifact.node.references.map(dependency => (dependency.kind, dependency.identity)),
+    private_artifact.node.references.map(dependency => {
+      (dependency.kind, dependency.identity)
+    }),
     [
       ("local_table_input_definition", definition_cid),
       ("local_computation", relation_fixture_cid("7")),
@@ -277,7 +282,9 @@ test "private Table dependency roles preserve bodies and reject Result substitut
     "local_table_input_definition",
   )
   assert_eq(
-    private_ordering.node.references.map(dependency => (dependency.kind, dependency.identity)),
+    private_ordering.node.references.map(dependency => {
+      (dependency.kind, dependency.identity)
+    }),
     [
       ("local_table_input_definition", definition_cid),
       ("table_input_derivation", derivation.identity),

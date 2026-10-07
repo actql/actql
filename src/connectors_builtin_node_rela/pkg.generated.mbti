@@ -386,6 +386,8 @@ pub fn client_program_effect_preparation_issue_code(ClientEffectProgramBridgeOut
 
 pub fn client_program_effect_preparation_ready(ClientEffectProgramBridgeOutcome) -> @run_publication_host.PreparedClientEffectComputation?
 
+pub fn client_program_effect_preparation_result_presence_field(ClientEffectProgramBridgeOutcome) -> String?
+
 pub fn client_program_effect_prepare_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_effect_prepare_query_acquisition(@run_publication_host.PreparedClientEffectComputation, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]

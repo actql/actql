@@ -6828,3 +6828,27 @@ independent work/workspace limits, the additional fixed capacity envelope and
 fixed-source JS/Node evidence. Export preparation, publication metadata copies,
 blocking Native consumers and trusted callback latency are still separate
 boundaries; this is not packed/all-target or whole-Local completion.
+
+### Bounded export metadata follow-up (2026-10-08)
+
+Bare Local row-file preparation now resumes canonical column-name ordering,
+including long Text charging/comparison and insertion shifts, then initializes
+private names and summaries one column at a time before physical Store
+acquisition. Publication receipt completion transfers six private summaries
+once; public readers remain independent copies. Existing logical work, content
+CIDs and ordering are unchanged. The modeled fixed preparation envelope adds
+512 bytes per output; the policy ceiling is unchanged.
+
+At `ea2a1cb22ed027c07abad545fcc6b6ac0c359c4b`, common-owner and Table-input
+caller JS tests passed 42/42 and both consumed checkout runtimes built. Node
+19/19 passed at `37268a22ad81015c5c35bd7b2d19cf76dede586f`, whose only further
+runtime-boundary change corrects the generated tuple reader and related JS
+fixtures. The actual Host cancellation happens during metadata preparation:
+zero Store leases, stop confirmed, no publication and final resource release
+without redispatch. Failed earlier binding evidence and exact runtime-source
+reuse are recorded in the
+[metadata preparation record](2026-10-08-local-bounded-export-metadata.md).
+
+Publication schema hashing/Result-view preparation, snapshot getters, blocking
+Native consumers, physical chunk admission and trusted callback latency remain
+separate boundaries. This is not packed/all-target or whole-Local completion.
