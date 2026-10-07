@@ -19,7 +19,7 @@ from pyiceberg.serializers import FromInputFile
 
 from physical import (PhysicalRefusal, canonical_envelope, decode_physical,
                       encode_rows, envelope_cid, iceberg_schema, seal)
-from custody import CustodyIO, install_custody, reserve, claim_file, charge_file
+from custody import CustodyIO, install_custody, reserve, claim_file, charge_file, cleanup_after_stop
 
 
 class CatalogRefusal(PhysicalRefusal):
@@ -29,8 +29,9 @@ class CatalogRefusal(PhysicalRefusal):
 class TableCatalog(SqlCatalog):
     """Pinned PyIceberg staging plus one SQLite head/receipt transaction.
 
-    No public Program installer calls this boundary yet. This publication layer
-    never removes any file; finite reservation stays charged until later GC.
+    No public Program installer calls this boundary yet. Committed generations
+    retain their reservation. Unpublished staging is removable only after the
+    existing Host process owner confirms stop and a durable publication fence.
     """
 
     def __init__(self, database, warehouse, catalog_cid, limits):
@@ -62,6 +63,13 @@ class TableCatalog(SqlCatalog):
 
     def charge_file(self, request_cid, path, amount):
         charge_file(self, request_cid, path, amount)
+
+    def cleanup_after_stop(self, request, **kwargs):
+        # This is a trusted physical boundary, not a public request accepting
+        # a caller's claimed "stopped" boolean. The Host owner supplies the fact.
+        if self.context is not None:
+            raise CatalogRefusal("WriterNotStopped")
+        return cleanup_after_stop(self, request, **kwargs)
 
     def connection(self):
         db = sqlite3.connect(self.database, timeout=10)
@@ -208,9 +216,12 @@ class TableCatalog(SqlCatalog):
                         "schema_cid": mapping["schema_cid"], "storage_mapping_cid": mapping["mapping_cid"],
                         "row_count": row_count}, "receipt_cid")
         namespace = ".".join(identifier[:-1])
+        self.before_publication()
         db = self.connection()
         try:
             db.execute("BEGIN IMMEDIATE")
+            if db.execute("SELECT 1 FROM actql_table_publication_fences WHERE request_cid=?", (request["request_cid"],)).fetchone():
+                raise CatalogRefusal("PublicationFenced")
             if current is None:
                 try:
                     db.execute("""INSERT INTO iceberg_tables
@@ -239,6 +250,9 @@ class TableCatalog(SqlCatalog):
 
     def after_publication(self):
         """Return path only; subclasses may model a lost reply in tests."""
+
+    def before_publication(self):
+        """Physical staging boundary for stop/concurrent-commit diagnostics."""
 
     def read_generation(self, receipt, mapping):
         if receipt["catalog_identity_cid"] != self.catalog_cid or \

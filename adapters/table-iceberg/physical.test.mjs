@@ -28,3 +28,14 @@ test('pinned Catalog publication binds original receipt atomically', () => {
   assert.match(run.stderr, /Ran 5 tests/u);
   assert.match(run.stderr, /\nOK\n/u);
 });
+
+test('stopped writer custody preserves published files and retries cleanup', () => {
+  const run = spawnSync(process.env.ACTQL_TABLE_PYTHON ?? `${root}.venv-table/bin/python`,
+    ['-m', 'unittest', '-v', 'custody_test'], {
+      cwd: fileURLToPath(new URL('.', import.meta.url)),
+      encoding: 'utf8', timeout: 60000, maxBuffer: 1024 * 1024,
+    });
+  assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}${run.stderr}`);
+  assert.match(run.stderr, /Ran 7 tests/u);
+  assert.match(run.stderr, /\nOK\n/u);
+});

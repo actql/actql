@@ -51,10 +51,20 @@ Persistent limits cover allocated operation count, reserved bytes and reserved
 file count. Each output file is recorded before creation, each write is charged
 before physical write, and existing files cannot be truncated. Reservation and
 file records live in the Catalog database. They are physical custody records,
-not another Effect owner. The initial conservative policy retains the entire
-reservation even after publication or failure; retained/unknown files are not
-removed. No GC implementation is provided yet. Missing publication evidence
-does not authorize a second write: the existing allocation forces reconciliation.
+not another Effect owner. Committed generations retain their entire reservation;
+old-generation GC is not implemented. Missing publication evidence does not
+authorize a second write: the existing allocation forces reconciliation.
+
+Unpublished staging may be cleaned only after the existing Host process owner
+has confirmed physical stop. `cleanup_after_stop` cannot establish that fact
+itself. In the same Catalog database transaction, cleanup checks the immutable
+original commit record and installs a publication fence. A committed operation
+never deletes files, even after a later head change. A fenced operation cannot
+publish, claim new files or write existing files. Cleanup removes only the
+operation's pre-creation file manifest, without following symlinks. Reservations
+remain charged until durable deletion records cover every owned file; failed
+deletion or lost custody-save responses remain retryable after restart. Original
+allocation, charged bytes, fence and deletion records are retained as audit facts.
 
 ## Focused diagnostics and remaining integration
 
@@ -66,10 +76,13 @@ The explicit test requires the optional pinned environment; it does not silently
 skip. It runs independent presence fixtures through real Parquet/Iceberg, then
 tests Table create/replace, original receipt after restart/later commit, lost
 commit reply, injected receipt-save failure rolling back the head, empty typed
-Tables, and capacity refusal. This is **not** public Client acceptance.
+Tables, and capacity refusal. Custody tests include concurrent conditional
+replace, actual child termination before cleanup, failed cleanup/restart, lost
+removal observation, pre-creation failure and symlink refusal. This is **not**
+public Client acceptance.
 
 Remaining before public installation: the common bulk Effect adapter and current
-authority boundary, bounded streaming of captured input, confirmed nonpublication
-and staged-file cleanup/retry, concurrent publication race diagnostics, immutable
+authority boundary, bounded streaming of captured input, Host process-stop
+integration for staged-file cleanup/retry, immutable
 Table acquisition into a new Run, and packed Local/HTTPS approval/restart/release
 acceptance. Do not mark the full Table task complete from these physical tests.

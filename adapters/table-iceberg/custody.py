@@ -6,6 +6,7 @@ provider deliberately has no GC; even unused committed reservation is retained.
 """
 import io
 import os
+from pathlib import Path
 
 from pyiceberg.io import FileIO, OutputFile
 
@@ -104,6 +105,11 @@ def install_custody(catalog, limits):
             charged_bytes INTEGER NOT NULL DEFAULT 0)""")
         db.execute("""CREATE TABLE IF NOT EXISTS actql_table_files (
             path TEXT PRIMARY KEY, request_cid TEXT NOT NULL, charged_bytes INTEGER NOT NULL DEFAULT 0)""")
+        db.execute("""CREATE TABLE IF NOT EXISTS actql_table_publication_fences (
+            request_cid TEXT PRIMARY KEY, request_wire TEXT NOT NULL,
+            cleanup_complete INTEGER NOT NULL DEFAULT 0)""")
+        db.execute("""CREATE TABLE IF NOT EXISTS actql_table_removed_files (
+            path TEXT PRIMARY KEY, request_cid TEXT NOT NULL)""")
         db.commit()
     except BaseException:
         db.rollback()
@@ -118,6 +124,8 @@ def reserve(catalog, request, limits, reservation):
     db = catalog.connection()
     try:
         db.execute("BEGIN IMMEDIATE")
+        if db.execute("SELECT 1 FROM actql_table_publication_fences WHERE request_cid=?", (request["request_cid"],)).fetchone():
+            raise PhysicalRefusal("PublicationFenced")
         if db.execute("SELECT 1 FROM actql_table_allocations WHERE request_cid=?", (request["request_cid"],)).fetchone():
             raise PhysicalRefusal("ExistingAllocationReconcileOnly")
         size, files, count = db.execute("SELECT COALESCE(SUM(reserved_bytes),0),COALESCE(SUM(reserved_files),0),COUNT(*) FROM actql_table_allocations").fetchone()
@@ -137,6 +145,8 @@ def claim_file(catalog, request_cid, path):
     db = catalog.connection()
     try:
         db.execute("BEGIN IMMEDIATE")
+        if db.execute("SELECT 1 FROM actql_table_publication_fences WHERE request_cid=?", (request_cid,)).fetchone():
+            raise PhysicalRefusal("PublicationFenced")
         allocation = db.execute("SELECT reserved_files FROM actql_table_allocations WHERE request_cid=?", (request_cid,)).fetchone()
         count = db.execute("SELECT COUNT(*) FROM actql_table_files WHERE request_cid=?", (request_cid,)).fetchone()[0]
         if allocation is None or count >= allocation[0]:
@@ -154,6 +164,8 @@ def charge_file(catalog, request_cid, path, amount):
     db = catalog.connection()
     try:
         db.execute("BEGIN IMMEDIATE")
+        if db.execute("SELECT 1 FROM actql_table_publication_fences WHERE request_cid=?", (request_cid,)).fetchone():
+            raise PhysicalRefusal("PublicationFenced")
         result = db.execute("""UPDATE actql_table_allocations SET charged_bytes=charged_bytes+?
             WHERE request_cid=? AND charged_bytes+?<=reserved_bytes""", (amount, request_cid, amount))
         if result.rowcount != 1:
@@ -162,6 +174,100 @@ def charge_file(catalog, request_cid, path, amount):
                       (amount, path, request_cid)).rowcount != 1:
             raise PhysicalRefusal("FileCustodyMissing")
         db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def cleanup_after_stop(catalog, request, unlink=os.unlink):
+    """Called only after the existing control owner confirms physical stop.
+
+    This function cannot prove a child exited. That observation belongs to the
+    Host process owner; an HTTP error, cancellation request, or missing receipt
+    alone must never call this boundary. The durable Catalog fence excludes
+    publication/file writes by this operation before its owned files are removed.
+    """
+    request_cid = request["request_cid"]
+    wire = canonical_envelope(request)
+    db = catalog.connection()
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        committed = db.execute("SELECT request_wire FROM actql_table_commits WHERE request_cid=?", (request_cid,)).fetchone()
+        if committed:
+            if committed[0] != wire:
+                raise PhysicalRefusal("ForeignOriginalOperation")
+            db.commit()
+            return {"retained": True, "pending": False, "removed": 0}
+        allocation = db.execute("SELECT request_wire FROM actql_table_allocations WHERE request_cid=?", (request_cid,)).fetchone()
+        if allocation is None:
+            db.commit()
+            return {"retained": False, "pending": False, "removed": 0}
+        if allocation[0] != wire:
+            raise PhysicalRefusal("ForeignOriginalOperation")
+        existing = db.execute("SELECT request_wire FROM actql_table_publication_fences WHERE request_cid=?", (request_cid,)).fetchone()
+        if existing and existing[0] != wire:
+            raise PhysicalRefusal("ForeignOriginalOperation")
+        db.execute("INSERT OR IGNORE INTO actql_table_publication_fences(request_cid,request_wire) VALUES (?,?)", (request_cid, wire))
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+    db = catalog.connection()
+    try:
+        paths = db.execute("""SELECT f.path FROM actql_table_files f
+            LEFT JOIN actql_table_removed_files r ON f.path=r.path
+            WHERE f.request_cid=? AND r.path IS NULL ORDER BY f.path""", (request_cid,)).fetchall()
+    finally:
+        db.close()
+    removed = 0
+    for (name,) in paths:
+        # Every target came from this operation's pre-creation manifest, not
+        # a directory scan, current Table head, or user-supplied glob.
+        path = catalog.local_path(Path(name).as_uri())
+        try:
+            unlink(path)
+        except FileNotFoundError:
+            pass  # Removed before a lost custody-save response; fence persists.
+        # The manifest precedes mkdir/create. Failure at that boundary may
+        # leave no parent directory or file at all. Sync the closest existing
+        # ancestor, bounded by the operator-configured warehouse parent.
+        ancestor = path.parent
+        while True:
+            try:
+                parent = os.open(ancestor, os.O_RDONLY | os.O_NOFOLLOW)
+                break
+            except FileNotFoundError:
+                if ancestor == catalog.warehouse.parent:
+                    raise
+                ancestor = ancestor.parent
+        try:
+            os.fsync(parent)
+        finally:
+            os.close(parent)
+        db = catalog.connection()
+        try:
+            db.execute("INSERT OR IGNORE INTO actql_table_removed_files VALUES (?,?)", (name, request_cid))
+            db.commit()
+        finally:
+            db.close()
+        removed += 1
+    db = catalog.connection()
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        pending = db.execute("""SELECT COUNT(*) FROM actql_table_files f
+            LEFT JOIN actql_table_removed_files r ON f.path=r.path
+            WHERE f.request_cid=? AND r.path IS NULL""", (request_cid,)).fetchone()[0]
+        if not pending:
+            # Keep original allocation/charged-byte records as audit facts.
+            # Only the reservation is returned, after durable deletion records.
+            db.execute("UPDATE actql_table_allocations SET reserved_bytes=0,reserved_files=0 WHERE request_cid=?", (request_cid,))
+            db.execute("UPDATE actql_table_publication_fences SET cleanup_complete=1 WHERE request_cid=?", (request_cid,))
+        db.commit()
+        return {"retained": False, "pending": bool(pending), "removed": removed}
     except BaseException:
         db.rollback()
         raise
