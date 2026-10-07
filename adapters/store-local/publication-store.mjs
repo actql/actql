@@ -984,17 +984,30 @@ export async function openLocalPublicationStore(
     }
   };
 
+  // One bounded metadata snapshot. A cache hit still checks the physical file;
+  // inode, size and both timestamps prevent reuse after replacement or mutation.
+  let lastClockObservation;
+  const sameClockFile = (left, right) => ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']
+    .every(field => left[field] === right[field]);
   const readClockObservation = async clockContractCid => {
-    let bytes;
+    const path = clockObservationPath(clockContractCid);
+    let before;
     try {
-      bytes = await readBounded(
-        clockObservationPath(clockContractCid),
-        configuration.maxObjectBytes,
-      );
+      before = await lstat(path, {bigint: true});
     } catch (error) {
       if (error?.code === 'ENOENT') return undefined;
       throw error;
     }
+    if (!before.isFile() || before.size > BigInt(configuration.maxObjectBytes)) {
+      fail('InvalidPublicationStoreObject');
+    }
+    if (lastClockObservation?.clockContractCid === clockContractCid &&
+        sameClockFile(lastClockObservation.state, before)) {
+      return lastClockObservation.value;
+    }
+    const bytes = await readFile(path);
+    const after = await lstat(path, {bigint: true});
+    if (!sameClockFile(before, after)) fail('PublicationClockUncertain');
     let value;
     try { value = JSON.parse(bytes.toString('utf8')); }
     catch (error) { fail('InvalidPublicationClockObservation', error); }
@@ -1006,7 +1019,9 @@ export async function openLocalPublicationStore(
         ) !== true) {
       fail('InvalidPublicationClockObservation');
     }
-    return Object.freeze(value);
+    const observation = Object.freeze(value);
+    lastClockObservation = {clockContractCid, state: after, value: observation};
+    return observation;
   };
 
   const observeTrustedClock = (clockContractCid, observedAt) => {
@@ -1019,13 +1034,19 @@ export async function openLocalPublicationStore(
       fail('InvalidPublicationClockObservation');
     }
     const operation = clockObservationBusy.then(async () => {
+      const confirmed = durablyConfirmedClocks.get(clockContractCid);
       const previous = await readClockObservation(clockContractCid);
+      // A known durable floor cannot disappear or move backwards while this
+      // owner is live. Missing history is not a fresh clock admission.
+      if (confirmed !== undefined && (previous === undefined ||
+          !contractControl.trustedClockNotBefore(confirmed, previous.observedAt))) {
+        fail('PublicationClockUncertain');
+      }
       if (contractControl.trustedClockNotBefore(
         previous?.observedAt, observedAt,
       ) !== true) {
         fail('PublicationClockUncertain');
       }
-      const confirmed = durablyConfirmedClocks.get(clockContractCid);
       if (previous?.observedAt === observedAt) {
         if (confirmed !== observedAt) {
           await syncDirectory(clocksDirectory);

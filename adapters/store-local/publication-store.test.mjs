@@ -8,7 +8,9 @@ import {
   readdir,
   readFile,
   rm,
+  stat,
   unlink,
+  utimes,
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -626,6 +628,98 @@ test('trusted clock high-water mark survives restart and rejects rollback',
       observedAt: '2026-09-18T01:00:00.001Z',
     });
   });
+
+test('trusted clock retains its confirmed floor after an on-disk rollback', async t => {
+  const {store, directory} = await fixture(t);
+  await store.observeTrustedClock(cids.scope, '2026-09-18T01:00:00.002Z');
+  await writeFile(join(directory, 'clocks', `${cids.scope.slice(7)}.json`), JSON.stringify({
+    clockContractCid: cids.scope, observedAt: '2026-09-18T01:00:00.000Z',
+  }));
+  await assert.rejects(store.observeTrustedClock(
+    cids.scope, '2026-09-18T01:00:00.001Z',
+  ), code('PublicationClockUncertain'));
+});
+
+test('trusted clock does not recreate a lost confirmed observation', async t => {
+  const {store, directory} = await fixture(t);
+  await store.observeTrustedClock(cids.scope, '2026-09-18T01:00:00.000Z');
+  const path = join(directory, 'clocks', `${cids.scope.slice(7)}.json`);
+  await unlink(path);
+  await assert.rejects(store.observeTrustedClock(
+    cids.scope, '2026-09-18T01:00:00.001Z',
+  ), code('PublicationClockUncertain'));
+  await assert.rejects(stat(path), {code: 'ENOENT'});
+});
+
+test('trusted clock notices same-sized changes with restored modification time', async t => {
+  const {store, directory} = await fixture(t);
+  const earlier = '2026-09-18T01:00:00.000Z';
+  await store.observeTrustedClock(cids.scope, earlier);
+  const path = join(directory, 'clocks', `${cids.scope.slice(7)}.json`);
+  const fixedTime = new Date('2026-09-18T00:00:00.000Z');
+  await utimes(path, fixedTime, fixedTime);
+  await store.observeTrustedClock(cids.scope, earlier);
+  const before = await stat(path, {bigint: true});
+  await writeFile(path, JSON.stringify({clockContractCid: cids.scope,
+    observedAt: '2026-09-18T01:00:00.002Z'}));
+  await utimes(path, fixedTime, fixedTime);
+  const after = await stat(path, {bigint: true});
+  assert.equal(after.ino, before.ino);
+  assert.equal(after.size, before.size);
+  assert.equal(after.mtimeNs, before.mtimeNs);
+  assert.notEqual(after.ctimeNs, before.ctimeNs);
+  await assert.rejects(store.observeTrustedClock(
+    cids.scope, '2026-09-18T01:00:00.001Z',
+  ), code('PublicationClockUncertain'));
+});
+
+test('trusted clock cache does not confirm a failed directory sync', async t => {
+  const {store, directory, configuration} = await fixture(t);
+  await store.close();
+  let clockSyncs = 0;
+  let rejectClockSync = false;
+  const reopened = await openLocalPublicationStore(configuration, contractControl, {
+    async syncDirectory(path) {
+      if (path === join(directory, 'clocks')) {
+        clockSyncs++;
+        if (rejectClockSync) {
+          const error = new Error('injected clock directory sync failure');
+          error.code = 'EIO';
+          throw error;
+        }
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  t.after(async () => { await reopened.close(); });
+  clockSyncs = 0;
+  rejectClockSync = true;
+  const time = '2026-09-18T01:00:00.000Z';
+  await assert.rejects(reopened.observeTrustedClock(cids.scope, time), code('EIO'));
+  await assert.rejects(reopened.observeTrustedClock(cids.scope, time), code('EIO'));
+  assert.equal(clockSyncs, 2);
+  rejectClockSync = false;
+  assert.deepEqual(await reopened.observeTrustedClock(cids.scope, time), {
+    clockContractCid: cids.scope, observedAt: time,
+  });
+  assert.equal(clockSyncs, 3);
+  await reopened.observeTrustedClock(cids.scope, time);
+  assert.equal(clockSyncs, 3);
+});
+
+test('trusted clock cache revalidates corrupt replacements', async t => {
+  const {store, directory} = await fixture(t);
+  const time = '2026-09-18T01:00:00.000Z';
+  await store.observeTrustedClock(cids.scope, time);
+  const path = join(directory, 'clocks', `${cids.scope.slice(7)}.json`);
+  await unlink(path);
+  await writeFile(path, JSON.stringify({clockContractCid: cids.scope,
+    observedAt: 'not-a-timestamp'}));
+  await assert.rejects(store.observeTrustedClock(cids.scope, time),
+    code('InvalidPublicationClockObservation'));
+});
 
 test('prepared payload holdings reclaim only the final uncommitted owner',
   async t => {
