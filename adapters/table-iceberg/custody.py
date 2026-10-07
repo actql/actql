@@ -108,6 +108,11 @@ def install_custody(catalog, limits):
         db.execute("""CREATE TABLE IF NOT EXISTS actql_table_publication_fences (
             request_cid TEXT PRIMARY KEY, request_wire TEXT NOT NULL,
             cleanup_complete INTEGER NOT NULL DEFAULT 0)""")
+        # At most one original noncommit fact per bounded retained allocation.
+        # This is Catalog publication evidence, not another Effect Ledger.
+        db.execute("""CREATE TABLE IF NOT EXISTS actql_table_noncommits (
+            request_cid TEXT PRIMARY KEY, request_wire TEXT NOT NULL,
+            receipt_wire TEXT NOT NULL)""")
         db.execute("""CREATE TABLE IF NOT EXISTS actql_table_removed_files (
             path TEXT PRIMARY KEY, request_cid TEXT NOT NULL)""")
         db.commit()
