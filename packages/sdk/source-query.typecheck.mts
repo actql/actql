@@ -1,5 +1,7 @@
 import type {Client, DynamicRow, Execution, Result, ResultPromise} from './index.js';
 import {open, type LocalSession} from '../node/index.js';
+import {explainRunObservationFailure, formatRunObservationFailure,
+  getSubmissionInput} from './index.js';
 declare const client: Client;
 const query: ResultPromise = client.sql('SELECT @id AS id', {id: 1}, {
   parameterDeclarations: {id: {type: 'number'}}, submissionRef: client.newSubmission({nonce: 'saved'}), result: 'answer',
@@ -10,6 +12,16 @@ const execution: Execution = result.execution;
 const rows: DynamicRow[] = await query.all({maxRows: 100});
 for await (const row of result.rows()) {const value: unknown = row.id; void value;}
 const low: Execution = await client.startSource('{}', {format: 'json', submissionRef: client.newSubmission({nonce: request})});
+try { await client.sql('SELECT 1 AS id'); }
+catch (error: unknown) {
+  const failure = explainRunObservationFailure(error);
+  const input = getSubmissionInput(error);
+  const display: string | undefined = formatRunObservationFailure(error, {format: 'text'});
+  if (failure) {
+    const operation: 'status' = failure.next.operation;
+    void [operation, input, display];
+  }
+}
 const local: LocalSession = await open({stateDir: '.actql'});
 const stateDir: string = local.info.stateDir;
 await local.close();
