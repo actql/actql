@@ -10,6 +10,7 @@ import {snapshotFromGit} from './isolated-runtime.mjs';
 import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
 import {payload} from '../relation-pipeline/fixture.mjs';
 import {validatePipelinePristineOriginal} from './isolated-execution.mjs';
+import {verifyPristineTamperRefusals} from './local-isolated-acceptance.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const bytes = gunzipSync(readFileSync(new URL('../../docs/reviews/evidence/2026-10-07-pipeline-pristine-normal-346f9274c.json.gz', import.meta.url)), {maxOutputLength: 4 * 1024 * 1024});
@@ -43,4 +44,13 @@ for (const [name, alter] of [
 ]) test(`the real original rejects ${name}`, () => {
   const changed = structuredClone(original); alter(changed);
   assert.throws(() => validatePipelinePristineOriginal(changed.report, source, changed.files));
+});
+
+
+test('captured real output tampering changes a value even when the first independent minimum is empty', () => {
+  assert.deepEqual(original.report.observations[0].observed.wireRows, []);
+  const pristine = structuredClone(original);
+  assert.deepEqual(verifyPristineTamperRefusals(pristine), ['missing-receipt', 'wrong-target', 'changed-source',
+    'changed-log', 'changed-input', 'changed-value', 'reuse-promotion']);
+  assert.deepEqual(pristine, original, 'Refusal experiments must not rewrite their original');
 });

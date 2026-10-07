@@ -139,6 +139,33 @@ export async function closeOwnedPreparation({engine, cid, imageId, owner}, run =
   throw new Error('Owned preparer cleanup timed out; retain CID custody');
 }
 
+// Corrupt actual captured values, never assume the first minimum emits rows.
+// Refuse no-op tamper fixtures as well as a validator accepting changed facts.
+export function verifyPristineTamperRefusals(payload) {
+  const rejected = [];
+  for (const [name, alter] of [
+    ['missing-receipt', p => p.report.receipts.pop()],
+    ['wrong-target', p => p.report.receipts[0].receipt.target = 'native'],
+    ['changed-source', p => p.report.source.digest = '0'.repeat(64)],
+    ['changed-log', p => p.files[p.report.receipts[0].receipt.logPath] += 'changed'],
+    ['changed-input', p => p.files[p.report.receipts[0].receipt.inputPath] = '[]'],
+    ['changed-value', p => {
+      const candidates = p.report.observations.flatMap(({observed}) => observed.wireRows.flatMap(row =>
+        Object.keys(row).filter(key => typeof row[key] === 'number' && Number.isFinite(row[key]))
+          .map(key => ({row, key}))));
+      assert(candidates.length > 0, 'No numeric observed value for the registered pristine tamper fixture');
+      const {row, key} = candidates[0]; row[key] = row[key] === 0 ? 1 : 0;
+    }],
+    ['reuse-promotion', p => p.report.reuseAuthorized = true],
+  ]) {
+    const changed = structuredClone(payload); alter(changed);
+    assert.notDeepEqual(changed, payload, `Tamper fixture made no change: ${name}`);
+    assert.throws(() => validatePipelinePristineOriginal(changed.report, payload.report.source, changed.files), name);
+    rejected.push(name);
+  }
+  return rejected;
+}
+
 async function worker(options) {
   const workerStarted = performance.now();
   assert.equal(git(['rev-parse', 'HEAD']), options.revision, 'Candidate HEAD changed');
@@ -188,6 +215,12 @@ await closeOwnedPreparation({engine: options.engine, cid, imageId: options.build
   if (profile === 'pipeline-pristine') tree.prefetch(pipelinePristineSourcePaths(tree));
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: true, profile});
   const answer = executeLocalIsolatedMutation({root, tree, prepared, engine: options.engine, profile});
+  if (profile === 'pipeline-pristine') {
+    // Preserve validated image originals before optional cross-phase and
+    // refusal diagnostics. A later diagnostic failure cannot discard them.
+    json(join(directory, 'isolated-result.json'), {authority: 'local-physical-acceptance',
+      revision: options.revision, prepared, answer, comparison: 'not-yet-verified', reuseAuthorized: false});
+  }
   let comparison = null;
   if (profile === 'pipeline-pristine') {
     const normal = JSON.parse(readFileSync(join(directory, 'normal.json')));
@@ -197,20 +230,7 @@ await closeOwnedPreparation({engine: options.engine, cid, imageId: options.build
     // Reconsume actual captured evidence with independently altered grounds.
     // A green summary cannot conceal missing executions, changed raw logs,
     // wrong target, changed identity or a changed independent expectation.
-    const rejected = [];
-    for (const [name, alter] of [
-      ['missing-receipt', p => p.report.receipts.pop()],
-      ['wrong-target', p => p.report.receipts[0].receipt.target = 'native'],
-      ['changed-source', p => p.report.source.digest = '0'.repeat(64)],
-      ['changed-log', p => p.files[p.report.receipts[0].receipt.logPath] += 'changed'],
-      ['changed-input', p => p.files[p.report.receipts[0].receipt.inputPath] = '[]'],
-      ['changed-value', p => p.report.observations[0].observed.wireRows = []],
-      ['reuse-promotion', p => p.report.reuseAuthorized = true],
-    ]) {
-      const changed = structuredClone(answer.payload); alter(changed);
-      assert.throws(() => validatePristineReport(changed.report, answer.payload.report.source, changed.files), name);
-      rejected.push(name);
-    }
+    const rejected = verifyPristineTamperRefusals(answer.payload);
     comparison = {normalMilliseconds: normal.milliseconds, normalSourcePreparationMilliseconds: normal.sourcePreparationMilliseconds,
       localElapsedMilliseconds: Math.round(performance.now() - workerStarted), isolatedCosts: answer.costs,
       scientificDigest: hash(JSON.stringify(scientific)), units: scientific.length,

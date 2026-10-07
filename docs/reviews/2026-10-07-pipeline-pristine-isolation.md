@@ -148,3 +148,38 @@ selection passed 36/36 in 107,691 ms on the working changes subsequently
 committed with this checkpoint: 13 local boundary cases, 16 historical-original
 cases and seven pipeline-original cases. This remains a local diagnostic,
 not an Actions original or current-source compiled image acceptance.
+
+
+## Empty-output refusal fixture correction
+
+At clean `30699c7dd7701a6754f199d1d1b664dce0ce8c48`, normal Linux execution
+passed all four independent minima in 145,314 ms. Preserve its original bytes
+at `evidence/2026-10-08-pipeline-pristine-normal-30699c7dd.json.gz` (raw SHA-256
+`e77d78aafb04894ddcb24f81b26d1beaf056cd850d9ef38974321195bacbefc4`). Image-input preparation was
+42,483 ms and normal source preparation 2,200 ms. These observations establish
+neither net CI savings nor a controlled before/after comparison.
+
+The combined run reached its post-execution refusal experiment after the
+shared image consumer and normal/image equality assertions. It then failed:
+`changed-value` assigned `[]` to the first minimum's already empty output.
+The numeric values are in the stable-tie minimum; three other minima legitimately
+produce empty rows while preserving their schema/other semantic obligations.
+Do not change those independent minima to make the refusal fixture convenient.
+The complete invocation is failed, not accepted; the image original was not
+saved before this diagnostic failed and cannot be claimed as replayable evidence.
+Preserve the failed guard, log and phase record in
+`evidence/2026-10-08-pipeline-pristine-tamper-diagnostic-30699c7dd.json.gz`.
+
+The refusal helper now changes an actual finite numeric output value while
+preserving its JSON type. It explicitly rejects no-op alterations and checks all
+seven corruptions through the strong Program/compiled-observation consumer.
+A replay of the captured real original with its first empty output verifies
+all seven refusals without rewriting the original. The focused working-change
+selection passed 21/21 before this correction commit. Local execution also saves
+the validated immutable image original immediately after owner cleanup, before
+cross-phase/refusal diagnostics, so their failure cannot discard it. That partial
+original explicitly has unverified comparison and no reuse authority.
+
+Run the same four-case physical selection once with the corrected refusal helper.
+Actual retained-history validation remains a separate single gate; timed-out
+broad and filtered Node foundation selections are not passing evidence.
