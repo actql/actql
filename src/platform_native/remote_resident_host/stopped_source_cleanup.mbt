@@ -14,7 +14,9 @@ pub(all) enum ResidentStoppedSourceCleanupIssue {
 /// profile. The actual executor slot must fence both holder descendants.
 /// Consumer formal release, exact receiver cleanup and original file custody
 /// are separate prerequisites. No Source/Compute/Output, reservation or
-/// execution transition is created. The existing release intent is saved before
+/// execution transition is created. The checked cleanup relationship is returned
+/// only after physical confirmation, so callers can discharge the exact consumer
+/// component holding through its existing bundle Owner. The release intent is saved before
 /// file removal; failed retries retain Releasing and the original custody.
 pub fn reclaim_stopped_resident_source_output(
   journal : @journal.Journal,
@@ -29,7 +31,10 @@ pub fn reclaim_stopped_resident_source_output(
   limits : @output.NativeRemoteStandardTransferBindingLimits,
   exclusive_current : () -> Bool,
   recorded? : @publication.RecordedRunPublication? = None,
-) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
+) -> Result[
+  @host.ClientRetainedSourceCleanup,
+  ResidentStoppedSourceCleanupIssue,
+] {
   if !exclusive_current() {
     return Err(NotCurrent)
   }
@@ -273,7 +278,12 @@ pub fn reclaim_stopped_resident_source_output(
     return Err(NotCurrent)
   }
   match file.release() {
-    Ok(_) => if file.release_confirmed() { Ok(()) } else { Err(CustodyPending) }
+    Ok(_) =>
+      if file.release_confirmed() {
+        Ok(permit)
+      } else {
+        Err(CustodyPending)
+      }
     Err(issue) => Err(File(issue))
   }
 }

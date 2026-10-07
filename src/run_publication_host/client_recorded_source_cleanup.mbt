@@ -7,6 +7,47 @@ pub struct ClientRecordedSourceCleanup {
 }
 
 ///|
+/// Match the root producer's original Source binding for cleanup role
+/// projection. This supplies neither an input nor execution permission.
+pub fn recorded_client_source_cleanup_matches_producer(
+  recorded : ClientRecordedSourceCleanup,
+  request : @remote.DispatchRequest,
+  binding : @remote.RemoteInputBinding,
+  source_ref : String,
+  source_contract_cid : String,
+) -> Bool {
+  let edge = match
+    resolve_client_retained_input_edge(
+      recorded.prepared,
+      recorded.run_definition_cid,
+      1,
+      0,
+    ) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  if @remote.dispatch_request_task_scope(request) !=
+    (recorded.run_definition_cid, edge.producer.node_id) ||
+    !@remote.remote_input_binding_matches_dispatch(binding, request) {
+    return false
+  }
+  guard prepared_client_source_evidence_facts(recorded.prepared, 0, 0)
+    is Some(facts) else {
+    return false
+  }
+  let source = @planning.query_source_evidence_fact_values(facts)
+  if source[0] != source_ref || source[1] != source_contract_cid {
+    return false
+  }
+  match prepare_client_task_input_binding(recorded.prepared, 0) {
+    Ok(expected) =>
+      @remote.remote_input_binding_body(expected) ==
+      @remote.remote_input_binding_body(binding)
+    Err(_) => false
+  }
+}
+
+///|
 /// Read the original bounded materials, check their Program, and match the
 /// complete graph CID to the saved admitted Plan. Do not compile a new Plan
 /// or Template, refresh authorization, or acquire Source data.
