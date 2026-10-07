@@ -9,6 +9,24 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'short query drops its existing Run observation explanation', path: 'packages/sdk/index.mjs',
+    file: 'adapters/host-node/client-short-query-observation-failure.test.mjs',
+    from: '    if (failure) runObservationFailures.set(error, failure);',
+    to: '    if (failure) void error;',
+    targets: ['local', 'https'].flatMap(entrance => ['sql', 'aql'].map(language => target(
+      `${entrance}/${language}: short query observation failure preserves the original published Run without retry`,
+      'query-run-public', 'deepStrictEqual')))},
+  {name: 'short query changes the original lookup into a submit candidate', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/source-query-observation-failure.test.mjs',
+    from: '    if (failure) runObservationFailures.set(error, failure);',
+    to: "    if (failure) runObservationFailures.set(error, {...failure, next: {operation: 'submit'}});",
+    targets: ['sql', 'aql'].flatMap(language => ['observation_unavailable', 'unknown_state', 'contract_mismatch', 'malformed_response'].map(problem => target(
+      `${language}: short query retains ${problem} Run observation without retry`, 'query-run-failure', 'deepStrictEqual')))},
+  {name: 'short query loses its original submission input', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/source-query-observation-failure.test.mjs',
+    from: '    retainQueryResult(execution, error);', to: '    void execution;',
+    targets: [target('short query valid failed state retains input without claiming failed observation',
+      'query-failure-input', 'deepStrictEqual')]},
   {name: 'Run observation display drops the original lookup target', path,
     file: 'adapters/host-node/client-run-observation-unavailable.test.mjs',
     from: '  const presentation = getOperationPresentationInfo({locale});',

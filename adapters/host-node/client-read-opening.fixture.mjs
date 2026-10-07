@@ -31,7 +31,8 @@ const control = runtimeCore(moon).publicationControl;
 export const openingProgram = JSON.parse(await readFile(new URL('../../packages/sdk/fixtures/values.json', import.meta.url), 'utf8'));
 export const openingExpected = [{id: 1}, {id: 2}];
 export async function openReadOpeningFixture(directory, loss,
-  {valuesMaxRows, expectedRowCount = 2, observeSubmission = () => {}} = {}) {
+  {valuesMaxRows, expectedRowCount = 2, expressionFragment = false,
+    observeSubmission = () => {}} = {}) {
   const store = await openLocalPublicationStore({directory: join(directory, 'publication'),
     storeAuthorityCid: cid('7'), capacityBytes: 512 * 1024 * 1024,
     maxObjectBytes: localOutputLimits.maxWireBytes, maxObjects: 10000,
@@ -85,6 +86,8 @@ export async function openReadOpeningFixture(directory, loss,
   const registry = await readFile(new URL('../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
   const contracts = JSON.parse(await readFile(new URL('../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
   const values = JSON.stringify(contracts.execution_contracts['REL.values']);
+  const fragment = expressionFragment ? JSON.stringify(
+    contracts.execution_contracts['ACTQL.expression_fragment/0.1']) : undefined;
   const startRun = installNodeClientRunStart({journal, requestControl: moon, publicationControl: control, authorizeRunStart: () => true});
   const services = {
     authenticate: () => 'principal', authorizeConnection: () => true,
@@ -111,7 +114,7 @@ export async function openReadOpeningFixture(directory, loss,
       if (started.kind !== 'reserved') return {ref: started.ref,
         durability: started.durability, revision: started.revision};
       counts.computes++;
-      const setup = moon.clientProgramOpenSourceFreeLocalHost(preparedProgram, registry, values, 1n, 0n, 0n, 0n);
+      const setup = moon.clientProgramOpenSourceFreeLocalHost(preparedProgram, registry, values, 1n, 0n, 0n, 0n, fragment);
       assert.ok(setup);
       observeSubmission('opened');
       let published;
