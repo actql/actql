@@ -8,7 +8,7 @@ Normal merge of that published source and adopted main:
 `f4b31dfa2cbafed3fd2fbcf1e9f58b56eefa388c`.
 Implementation: `976e45bba920e83cf09eef58b2d9f147684c80e2`.
 Final merge target is main. #909/#912 are already in adopted main; no duplicate
-implementation or declarations were added. #916 remains a separate dependency.
+implementation or declarations were added. #916 was a separate dependency at execution and is now integrated as recorded below.
 
 The existing primitive Ref correspondence did not establish ordered callback
 fields on Darwin ARM64. The existing live observer/source check compared sorted
@@ -165,7 +165,33 @@ The executed whitebox binary is 9,843,272 bytes and the object is 16,398,384 byt
 The published text archive supports inspection of the original observations; it
 is not a standalone copy of all binary originals and does not imply reexecution.
 
-The final publication adds only this review and its original archive to the
-implementation SHA. The diagnostic source snapshot is rechecked against the
+Publication `47f4f73752ec88ae273f5a635934161d3707148c` added only this review
+and its original archive to the implementation SHA. The diagnostic source snapshot is rechecked against the
 unchanged implementation after adding these report-only files; no success is
 relabeled as execution of that final documentation commit.
+
+## Subsequent main adoption
+
+After the evidence publication, the PR's base advanced. Normal merge
+`bee9f1e943d8195dd6b621cb3c9375ec490e75d9` adopted main
+`6d4f9a967fd1c5e3fc4d645f9939a9a60f68f7f3` without conflict. #916 is
+integrated through `434fc731e` and no longer blocks this PR; only the seven files
+of this unit remain in the main-base diff. No old layout or alias was restored.
+
+The merged tree's `proofs/relation-pipeline`, `proofs/relation-chain`,
+`proofs/bounded-session`, `src/connectors/local` and `src/bounded_execution` are
+byte-identical to the evidence publication. All 89 protected files in the actual
+history manifest were independently reread and their bytes/modes match. The
+[static integration record](evidence/2026-10-08-parent-capture-arm64-main-adoption.json)
+records the exact parents and adopted changes. It establishes these static facts,
+not a new Native execution or a full post-merge history execution.
+
+Adopted main also changes public completed-output export, frontend and SDK
+boundaries outside this unit. Consequently the broad source snapshot changes.
+The successful Native/Lean/history original remains evidence of executed source
+`976e45bba920e83cf09eef58b2d9f147684c80e2`, not of the merge or following
+report commit. No report/receipt identity was rewritten and no input-reuse
+permission was inferred. Unchanged selected decoder checks were not repeated;
+post-merge Native/full history, public/packed acceptance and hosted CI remain
+unexecuted. Reviewers can distinguish the preserved original from the subsequent
+static integration confirmation.
