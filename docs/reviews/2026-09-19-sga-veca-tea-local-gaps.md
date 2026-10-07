@@ -6420,3 +6420,25 @@ The new fixed cursor/state shape is recorded, not certified as Native byte
 correspondence. General producer preparation, other kernel metadata and
 installed availability callbacks remain separate. See the
 [output-port record](2026-10-07-local-output-port-preparation.md).
+
+### Resumable Values and binary completion preparation (2026-10-07)
+
+Values, Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join drive the
+same trusted output-port cursor inside their existing bounded sessions. Exact
+input admission remains before execution; finite name admission, stop and
+pending-name cleanup precede input scanning. Completed name arrays transfer
+without copying and survive successful cleanup. Kernel semantics and logical
+work/workspace limits remain unchanged.
+
+Independent name exact/one-short quantities, quanta 1/7/256 and stops in every
+preparation phase supplement existing kernel/output boundaries. Normal public
+Programs, real Store publication and two consumers are connected to the same
+evidence inventory; submitted-source receipts are recorded separately.
+The selected working-tree JS batch passed 58/58. #749 remains a parent until
+its main adoption; main `59786a7d88f5f2c86ce336b8907febcce12137b2` was
+normally merged without conflicts.
+
+Other completion-port starts, downstream name/field resolution scans, installed
+availability callbacks and Native allocation/callback correspondence remain
+distinct. See the
+[Values/binary preparation record](2026-10-07-local-relation-port-preparation.md).

@@ -234,7 +234,7 @@ test "retained cleanup refuses substituted producer attempt generation or bindin
 }
 
 ///|
-test "retained cleanup refuses an unconfirmed consumer and changed completion measurement" {
+test "retained cleanup refuses unconfirmed completion measurement" {
   let f = retained_cleanup_fixture()
   let measurement = @remote.prepare_remote_managed_output_measurement(
     1,
@@ -251,9 +251,49 @@ test "retained cleanup refuses an unconfirmed consumer and changed completion me
   assert_true(
     retained_cleanup_admit({ ..f, measurement, }) is Err(ProducerUnavailable),
   )
-  @remote.commit_dispatch_transition(
-    @remote.prepare_begin_remote_release(f.consumer).unwrap(),
-    true,
-  ).unwrap()
-  assert_true(retained_cleanup_admit(f) is Err(ProducerUnavailable))
+}
+
+///|
+test "retained cleanup keeps the same address after both task releases" {
+  let f = retained_cleanup_fixture()
+  let original = retained_cleanup_admit(f).unwrap()
+  for record in [f.producer, f.consumer] {
+    @remote.commit_dispatch_transition(
+      @remote.prepare_begin_remote_release(record).unwrap(),
+      true,
+    ).unwrap()
+    assert_true(retained_cleanup_admit(f) is Ok(_))
+    @remote.commit_dispatch_transition(
+      @remote.prepare_confirm_remote_release(record).unwrap(),
+      true,
+    ).unwrap()
+  }
+  let before = [
+    @remote.dispatch_record_revision(f.producer),
+    @remote.dispatch_record_revision(f.consumer),
+  ]
+  for _ in 0..<2 {
+    let restored = retained_cleanup_admit(f).unwrap()
+    assert_eq(
+      @transfer.request_cid(client_retained_input_cleanup_transfer(restored)),
+      @transfer.request_cid(client_retained_input_cleanup_transfer(original)),
+    )
+    assert_eq(
+      client_retained_input_cleanup_receipt_cid(restored),
+      client_retained_input_cleanup_receipt_cid(original),
+    )
+    assert_eq(
+      client_retained_input_cleanup_reader_id(restored),
+      client_retained_input_cleanup_reader_id(original),
+    )
+  }
+  assert_eq(
+    [
+      @remote.dispatch_record_revision(f.producer),
+      @remote.dispatch_record_revision(f.consumer),
+    ],
+    before,
+  )
+  assert_true(@remote.remote_runtime_record_released(f.producer))
+  assert_true(@remote.remote_runtime_record_released(f.consumer))
 }
