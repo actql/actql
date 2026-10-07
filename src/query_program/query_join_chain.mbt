@@ -8,20 +8,30 @@ priv struct JoinChainScope {
 }
 
 ///|
-// GROUP and star projections consume the complete joined row. The
-// projection-only specialization cannot supply that scope or HAVING values.
+// GROUP, star and DISTINCT projections need the shared joined-row scope.
+// DISTINCT ORDER expressions resolve after materialization, using evaluated
+// output aliases rather than the projection-only specialization's input scope.
 fn join_requires_group_scope(query : @query.Query) -> Bool {
+  let mut has_full = false
   for index in 0..<@query.join_part_count(query) {
-    if @query.join_part_at(query, index).unwrap().kind == "right" {
+    let kind = @query.join_part_at(query, index).unwrap().kind
+    if kind == "right" {
       return true
+    }
+    if kind == "full" {
+      has_full = true
     }
   }
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Group(_, _, _) | Qualify(_, _)) {
       return true
     }
-    if @query.operation_at(query, index) is Some(Select(projections, _)) &&
-      projections.any(projection => projection.star is Some(_)) {
+    if @query.operation_at(query, index) is Some(Select(projections, distinct)) &&
+      (
+        projections.any(projection => projection.star is Some(_)) ||
+        // FULL retains its existing coalesced-key projection owner.
+        (distinct && !has_full)
+      ) {
       return true
     }
   }
