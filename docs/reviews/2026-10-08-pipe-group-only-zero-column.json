@@ -1,0 +1,53 @@
+{
+  "source": "DATA empty = SELECT 1 AS id WHERE FALSE; FROM empty |> AGGREGATE GROUP BY ()",
+  "expectedRows": [
+    {}
+  ],
+  "expectedColumns": [],
+  "program": {
+    "version": "actql/0.1",
+    "id": "fixture.global_group_only",
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "steps": [
+          {
+            "values": {
+              "schema": {
+                "id": {
+                  "type": "number",
+                  "nullable": false
+                }
+              },
+              "rows": []
+            },
+            "as": "empty"
+          },
+          {
+            "from": "empty",
+            "group": {
+              "by": [],
+              "aggregates": {}
+            },
+            "as": "global"
+          }
+        ],
+        "results": {
+          "rows": {
+            "from": "global",
+            "fields": []
+          }
+        }
+      }
+    ],
+    "results": {
+      "answer": {
+        "from": {
+          "stage": "main",
+          "result": "rows"
+        }
+      }
+    }
+  }
+}

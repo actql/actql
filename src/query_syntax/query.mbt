@@ -2130,7 +2130,12 @@ fn QueryParser::pipe_tail(
       operations.push(Alias(self.name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
-      let (aggregates, _) = self.projections()
+      let aggregates = if self.has("GROUP") {
+        []
+      } else {
+        let (values, _) = self.projections()
+        values
+      }
       if aggregates.any(projection => projection.aggregate is None) {
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }

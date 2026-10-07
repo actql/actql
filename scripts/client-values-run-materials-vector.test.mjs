@@ -761,8 +761,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('865d1183ed31a4fe8b1be4e685563b932b6bc65580ed7968f8883ddc82003722'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
-  assert.equal(current.run.run_definition_cid,
+  // Keep main's complete grammar/Run preimage before the grouping-only surface.
+  assert.equal(vector(pin('e14a88db3f98d88cb24edefca31ecd1c0d63f81e152a61d464756a83c5850329'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
+  assert.equal(current.run.run_definition_cid,
+    pin('af4b746a75926ddcf8a506348a9df55147a10bf9c0b64e4f950d0ec6d513e9d5'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

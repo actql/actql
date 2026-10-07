@@ -34,12 +34,54 @@ const json = {version: 'actql/0.1', id: 'fixture.group_property', stages: [
     {select: [{score: 'key'}, 'n'], as: 'summary'},
   ], results: {rows: {from: 'summary', fields: ['score', 'n']}}},
 ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const groupingOnlyRows = [{score: null}, {score: 10}, {score: 20}];
+const groupingOnlyColumns = [{name: 'score', contract: {...number, nullable: true}}];
+const groupingOnlyJson = {version: 'actql/0.1', id: 'fixture.group_only', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key'], aggregates: {}}},
+    {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},
+    {select: [{score: 'key'}], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['score']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const globalGroupingOnlyJson = {version: 'actql/0.1', id: 'fixture.global_group_only', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number}, rows: []}, as: 'empty'},
+    {from: 'empty', group: {by: [], aggregates: {}}},
+    {derive: {marker: {literal: 1}}, as: 'global'},
+  ], results: {rows: {from: 'global', fields: ['marker']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const text = (name, tail, extra = {}) => ({
   name: 'group-property-' + name, format: 'aql-text', text: source + tail,
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
   ...extra,
 });
 export const groupPropertySuccesses = [
+  {name: 'group-property-group-only-global-independent-json', format: 'json',
+    text: JSON.stringify(globalGroupingOnlyJson), expected: [{marker: 1}], columns: [{name: 'marker', contract: number}], sourceReadCount: 0},
+  text('group-only-global-nonempty', 'FROM objects |> AGGREGATE GROUP BY () |> EXTEND 1 AS marker',
+    {expected: [{marker: 1}], columns: [{name: 'marker', contract: number}]}),
+  text('group-only-global-empty', 'FROM objects |> WHERE FALSE |> AGGREGATE GROUP BY () |> EXTEND 1 AS marker',
+    {expected: [{marker: 1}], columns: [{name: 'marker', contract: number}]}),
+  {name: 'group-property-group-only-independent-json', format: 'json',
+    text: JSON.stringify(groupingOnlyJson), expected: groupingOnlyRows,
+    columns: groupingOnlyColumns, sourceReadCount: 0},
+  text('group-only-null-and-duplicate-keys',
+    'FROM objects |> AGGREGATE GROUP BY payload.score |> ORDER BY score NULLS FIRST',
+    {expected: groupingOnlyRows, columns: groupingOnlyColumns}),
+  text('group-only-post-group-predicate-limit',
+    'FROM objects AS original |> AGGREGATE GROUP BY original.payload.score '
+      + '|> WHERE score > 10 |> ORDER BY score DESC |> LIMIT 1',
+    {expected: [{score: 20}], columns: groupingOnlyColumns}),
+  text('group-only-empty-typed-groups',
+    'FROM objects |> WHERE FALSE |> AGGREGATE GROUP BY payload.score |> ORDER BY score',
+    {expected: [], columns: groupingOnlyColumns}),
+  text('group-only-column-order',
+    'FROM objects |> AGGREGATE GROUP BY id, payload.score |> ORDER BY id',
+    {expected: [{id: 1, score: 20}, {id: 2, score: 10}, {id: 3, score: null},
+      {id: 4, score: 20}, {id: 5, score: null}],
+    columns: [{name: 'id', contract: number}, ...groupingOnlyColumns]}),
   {name: 'group-property-independent-json', format: 'json',
     text: JSON.stringify(json), expected, columns, sourceReadCount: 0},
   text('sql-null-and-duplicate-keys',
@@ -65,6 +107,8 @@ export const groupPropertySuccesses = [
       parameters: {...parameters, cut: 1}, expected: [{score: 20, n: 1}, {score: null, n: 2}]}),
 ];
 export const groupPropertyRefusals = [
+  'FROM objects AS original |> AGGREGATE GROUP BY original.payload.score |> SELECT original.payload.score',
+  'FROM objects |> AGGREGATE',
   'SELECT payload AS value, COUNT(*) AS n FROM objects GROUP BY payload.score',
   'SELECT other.score AS score, COUNT(*) AS n FROM objects GROUP BY payload.score',
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score',
