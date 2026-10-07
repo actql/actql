@@ -2,8 +2,10 @@
 package "actql/actql/source_frontend"
 
 import {
+  "actql/actql/expression_syntax",
   "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
+  "actql/actql/program_check",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
   "actql/actql/stage_syntax",
@@ -12,6 +14,8 @@ import {
 
 // Values
 pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, parameter_declarations? : @parameter_binding.Declarations?) -> Result[@query_program.Context, AliasIssue]
+
+pub fn check_array_profile(@program_check.CheckedProgram, max_work~ : Int, max_slots~ : Int) -> Result[Unit, ArrayProfileIssue]
 
 pub fn lower(String, Format, @query_program.Context?, source_path? : String) -> Result[Lowered, Issue]
 
@@ -36,6 +40,13 @@ pub(all) enum AliasIssue {
   ConflictingName
   TooManyAliases
   InvalidProgramId
+}
+
+pub(all) enum ArrayProfileIssue {
+  InvalidLimits
+  BudgetExceeded
+  InvalidCheckedProgram
+  UnsupportedNestedArray(Int, Int, @expression_syntax.Location)
 }
 
 pub(all) enum Format {

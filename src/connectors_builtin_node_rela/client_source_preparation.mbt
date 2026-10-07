@@ -10,6 +10,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)
+  ArrayProfile(@source_frontend.ArrayProfileIssue)
 }
 
 ///|
@@ -21,6 +22,9 @@ fn client_source_preparation_issue_code(
     Limit => "source_limit"
     UnsupportedCarrier => "source_unsupported"
     Declarations => "source_declarations"
+    ArrayProfile(BudgetExceeded) => "source_limit"
+    ArrayProfile(UnsupportedNestedArray(_, _, _)) => "source_unsupported"
+    ArrayProfile(_) => "source_invalid_input"
     Frontend(issue) =>
       match issue {
         MissingQueryContext => "source_missing_input"
@@ -322,12 +326,34 @@ pub fn client_program_prepare_source_with_parameters(
     Ok(value) => value
     Err(issue) => return Rejected(issue)
   }
-  client_program_prepare_effect_free_with_parameters(
+  let prepared = client_program_prepare_effect_free_with_parameters(
     lowered.document,
     "json",
     environment,
     parameters,
   )
+  client_source_checked_array_profile(prepared)
+}
+
+///|
+fn client_source_checked_array_profile(
+  outcome : ClientProgramBridgeOutcome,
+) -> ClientProgramBridgeOutcome {
+  match outcome {
+    Prepared(value) =>
+      match
+        @source_frontend.check_array_profile(
+          @strategy.graph_program(
+            @publication_host.prepared_client_graph(value),
+          ),
+          max_work=1000000,
+          max_slots=100000,
+        ) {
+        Ok(_) => outcome
+        Err(issue) => Rejected(SourcePreparation(ArrayProfile(issue)))
+      }
+    _ => outcome
+  }
 }
 
 ///|
@@ -398,29 +424,45 @@ pub fn client_program_prepare_source_computation_with_parameters(
       if !allow_effects {
         return SourcePure(Rejected(Preparation(EffectNotSupported(stage.id))))
       }
-      return SourceEffect(
-        match
-          @publication_host.prepare_parsed_client_effect_computation(
-            parsed,
-            environment,
-            supplied,
-            evidence,
-            client_program_effect_limits(),
-          ) {
-          Ok(value) => EffectPrepared(value)
-          Err(issue) => EffectRejected(Preparation(issue))
-        },
-      )
+      let value = match
+        @publication_host.prepare_parsed_client_effect_computation(
+          parsed,
+          environment,
+          supplied,
+          evidence,
+          client_program_effect_limits(),
+        ) {
+        Ok(value) => value
+        Err(issue) => return SourceEffect(EffectRejected(Preparation(issue)))
+      }
+      match
+        @source_frontend.check_array_profile(
+          @program_check.effect_program_static_checked_computation(
+            @publication_host.prepared_client_effect_computation_candidate(
+              value,
+            ),
+          ),
+          max_work=1000000,
+          max_slots=100000,
+        ) {
+        Ok(_) => return SourceEffect(EffectPrepared(value))
+        // Source rejection has the parser/lowerer's typed input classification.
+        // It never prepares a second computation owner.
+        Err(issue) =>
+          return SourcePure(Rejected(SourcePreparation(ArrayProfile(issue))))
+      }
     }
   }
   SourcePure(
-    match
-      @publication_host.prepare_parsed_effect_free_client_program(
-        parsed, environment, supplied, limits,
-      ) {
-      Ok(value) => Prepared(value)
-      Err(issue) => Rejected(Preparation(issue))
-    },
+    client_source_checked_array_profile(
+      match
+        @publication_host.prepare_parsed_effect_free_client_program(
+          parsed, environment, supplied, limits,
+        ) {
+        Ok(value) => Prepared(value)
+        Err(issue) => Rejected(Preparation(issue))
+      },
+    ),
   )
 }
 

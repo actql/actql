@@ -251,10 +251,16 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     query_text_grammar_sha256: 'eaf5f1daf3c35ac62831f2ba92010aa047700bfef5435b1dcecec30818f6696a',
     query_text_rules_sha256: '4e05cc33de7da0c3d38727908d969a015db00acfbc5ffbbc7df0fe5b54c27678'}),
     'sha256:6788acd1b4d3d2771311442d3ddbf881680d319c79cb0ebe46e4f333341c2835');
-  const currentExpected = 'sha256:1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c';
+  // Preserve the predecessor's normative bytes, independent of the new ARRAY
+  // grammar and specification section.
+  assert.equal(cid({...currentBody,
+    query_text_grammar_sha256: '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5',
+    query_text_rules_sha256: 'cdaef72756f3e36f2e1603ba8c02b6fb16772be1a1cbcdc19bfd5df837135e39'}),
+    'sha256:1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c');
+  const currentExpected = 'sha256:eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6';
   assert.equal(frozen.query_text_rules_sha256, '60fc20eff142de49153b71ddd2ff0a68b405ee860e2336728fecf67f69fca42a');
-  assert.equal(currentBody.query_text_grammar_sha256, '0b961eacd150b63d3abb62fb974eda40310ed39e0406faf73e18f52a0bf01eb5');
-  assert.equal(currentBody.query_text_rules_sha256, 'cdaef72756f3e36f2e1603ba8c02b6fb16772be1a1cbcdc19bfd5df837135e39');
+  assert.equal(currentBody.query_text_grammar_sha256, '2023c8b252f362a5233ba8a9eb08c1765e9770e70249e52dde81e826654abb58');
+  assert.equal(currentBody.query_text_rules_sha256, 'd7c0e3eb9184cb53c37ea0640dffb1492d07baa184c2f255a4ea5e72d77013ee');
   assert.equal(cid(currentBody), currentExpected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, currentBody);

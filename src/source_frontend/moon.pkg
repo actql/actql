@@ -8,11 +8,19 @@ import {
   "actql/actql/stage_syntax" @program,
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/frontend_source_map" @origin,
+  "actql/actql/program_check" @check,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/expression_typing" @typing,
+  "actql/actql/value_contract" @contract,
+  "actql/actql/expression_syntax" @expression,
 }
 
 import {
   "actql/actql/source_value" @source,
   "actql/actql/decode_core" @wire,
-  "actql/actql/expression_syntax" @expression,
-  "actql/actql/expression_typing" @typing,
 } for "test"
+
+import {
+  "actql/actql/source_value" @source,
+  "actql/actql/decode_core" @wire,
+} for "wbtest"

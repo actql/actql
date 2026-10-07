@@ -630,8 +630,14 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
+  // Freeze the preceding normative closure before ARRAY construction. Only
+  // grammar-bound compilation and Run identities change; Values roles do not.
+  assert.equal(vector(pin('1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
   assert.equal(current.run.run_definition_cid,
-    pin('153db85cd63535b928be69f85e7f043df52b8dc02f96b80dba8dedb5f5266ba5'));
+    pin('c46844e63f6f33150c8312b057491f00a6ab775d62ae36bba779c929cdcbae2d'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

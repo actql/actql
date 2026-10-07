@@ -394,6 +394,42 @@ not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
 
+## ARRAY constructors
+
+`[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
+order and duplicates through the ordinary finite `array` expression. Elements
+use the common checker for compatible types, NULL context, parameters and
+constructor capability checks; the Frontend does not stringify values or
+infer a second type system. The parser's existing work, node and depth limits
+also cover array children. An empty list needs unique type context.
+
+The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+Annotations use the existing typed `empty_array.items` evidence. A nonempty
+annotated array uses an ordinary constant-true lazy `if` with that empty-array
+peer, so the common checker checks the declared item type and evaluates the
+actual elements once. It does not add an element CAST. NULL elements retain
+their nullable contract even when the annotation provides a nonnullable peer.
+
+After ordinary checking, source preparation rejects constructors whose
+resolved immediate item type is ARRAY. This includes an array-valued column
+or parameter; inspecting literal syntax alone is insufficient. An intervening
+closed object is permitted. JSON payload arrays are JSON values, not SQL ARRAY
+types. Recursive arrays in JSON/YAML Program input retain their common
+contract. Source-profile rejection occurs before durable Run admission and
+provider I/O and retains the common expression's original location.
+
+The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
+also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
+`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
+contract currently rejects JSON item types, and the selected finite Number
+profile does not establish exact INT64 semantics. Additional type annotations
+remain explicitly unsupported; an unresolved `[]` is not silently assigned
+Number or JSON. The source and independently authored Program rejection of
+JSON arrays are dependency evidence, not execution acceptance. ActQL's
+nullable-array Result serialization remains its existing delivery profile;
+it is not a claim about BigQuery's Result serialization.
+
 ## Declared UNNEST value tables
 
 Direct `FROM UNNEST(@items) AS element [WITH OFFSET AS position]` accepts

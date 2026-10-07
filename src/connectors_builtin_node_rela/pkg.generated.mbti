@@ -2408,6 +2408,7 @@ pub(all) enum ClientSourcePreparationIssue {
   Declarations
   Alias(@source_frontend.AliasIssue)
   Frontend(@source_frontend.Issue)
+  ArrayProfile(@source_frontend.ArrayProfileIssue)
 }
 
 type StrategyHostManagedResultImport
