@@ -1657,7 +1657,16 @@ async function connectSelected(selected, port) {
       let admitted;
       try { admitted = await controlValue(response); }
       catch (cause) { throw new ClientError('InvalidHostAdmission', {cause}); }
-      if (!validRunRef(admitted?.ref)) fail('InvalidHostAdmission');
+      try { admitted = captureResponse(admitted); }
+      catch { fail('InvalidHostAdmission'); }
+      if (!validClientAdmission(admitted, selected.wire)) fail('InvalidHostAdmission');
+      const observedKey = structuralKey(admitted);
+      try {
+        const verification = structuredClone(admitted);
+        if (!validClientAdmission(verification, selected.wire) ||
+            structuralKey(verification) !== observedKey ||
+            structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
+      } catch { fail('InvalidHostAdmission'); }
       if (admitted.ref.namespaceId !== requested.namespaceId ||
           admitted.ref.authorityScopeCid !== requested.authorityScopeCid ||
           admitted.ref.runDefinitionCid !== requested.runDefinitionCid) {
