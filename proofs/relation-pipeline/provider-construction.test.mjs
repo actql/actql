@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { hash } from './inventory.mjs';
 import { providerConstructionBound, inspectProviderConstruction } from './capacity/parent-control/provider-construction.mjs';
 import {constructionSourceReview, reviewedFunction, selectedFactoryOutsideAccepts,
-  managedBeforePausePolls} from './capacity/parent-control/provider-construction-source-review.mjs';
+  managedBeforePausePolls, selectedBeforeReviewedLifecycle, providerBeforeReviewedCleanup} from './capacity/parent-control/provider-construction-source-review.mjs';
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url));
 // Synthetic admission tests, separate from the archived real native reader.
 const fact = () => ({ kind: 'provider construction observation', providers: 11,
@@ -53,6 +53,57 @@ test('scalar callback counts never become measured extents or a complete byte gu
 const recipeIntroduction = '58fd19eade59cf3bcbf6a859c9821471346e3b41';
 const historical = (path, revision = recipeIntroduction) => execFileSync('git', ['--no-replace-objects', 'show',
   `${revision}:${path}`], {cwd:fileURLToPath(new URL('../../',import.meta.url))});
+test('current lifecycle review changes only cleanup completion and detached built-in eligibility', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const source = read(path).toString();
+  const previous = historical(path, constructionSourceReview.lifecycleReview.previousRevision).toString();
+  assert.equal(hash(previous), constructionSourceReview.lifecycleReview.previousSelectedDigest);
+  assert.equal(selectedBeforeReviewedLifecycle(source), previous);
+  for (const name of ['selected_relation_provider', 'bounded_relation_chain_execution_state',
+    'bounded_relation_chain_capacity']) {
+    assert.equal(reviewedFunction(source, name), reviewedFunction(previous, name),
+      `Unreviewed factory/state/capacity change: ${name}`);
+  }
+  const bound = providerConstructionBound(read);
+  assert.equal(bound.bytes, 2344);
+  assert.equal(bound.completeConstructorByteCorrespondence, false);
+  assert.equal(bound.completeParentUpper, false);
+  assert.equal(bound.completePipelineUpper, false);
+});
+test('all eleven candidate providers retain exact constructor grounds through cleanup completion adaptation', () => {
+  const recipe = JSON.parse(read('proofs/relation-pipeline/capacity/parent-control/provider-construction.json'));
+  assert.equal(recipe.providers.length, 11);
+  for (const provider of recipe.providers.slice(1)) {
+    const source = read(provider.path).toString();
+    const previous = historical(provider.path, constructionSourceReview.lifecycleReview.previousRevision).toString();
+    assert.equal(providerBeforeReviewedCleanup(source, provider.name), previous);
+    assert.equal(hash(previous), constructionSourceReview.lifecycleReview.previousProviderDigests[provider.path]);
+    const kernel = provider.name.replace(/_provider$/u, '');
+    const needle = `!@execution.bounded_${kernel}_cleanup_pending(`;
+    assert.equal(source.split(needle).length, 2, 'Missing unique cleanup witness');
+    assert.throws(() => providerBeforeReviewedCleanup(source.replace(needle, needle.slice(1)), provider.name),
+      /reviewed representation delta/u);
+  }
+});
+for (const [name, from, to] of [
+  ['transition treated as completion', 'reclaimed.val = !@execution.bounded_binding_rows_cleanup_pending(', 'reclaimed.val = @execution.bounded_binding_rows_cleanup_pending('],
+  ['pending responsibility dropped', 'Ok(reclaimed.val)', 'Ok(true)'],
+  ['cleanup error hidden', 'Err(issue) => Err(selected_binding_rows_issue(issue, step))', 'Err(_) => Ok(true)'],
+  ['Values completion excluded', '      Some(@lower.ValuesStep(_)) => ()\n', ''],
+  ['UNNEST completion excluded', ' &&\n          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _))', ''],
+  ['unreviewed family admitted', '      _ => return false\n', '      _ => ()\n'],
+]) test(`lifecycle source review refuses ${name}`, () => {
+  const source = read('src/connectors/local/selected_relation_provider.mbt').toString();
+  const functionName = name.includes('completion') || name.startsWith('pending') || name.startsWith('cleanup')
+    ? (name.startsWith('Values') || name.startsWith('UNNEST')
+      ? 'relation_chain_reclaims_completed_scratch' : 'selected_binding_rows_execution')
+    : 'relation_chain_reclaims_completed_scratch';
+  const body = reviewedFunction(source, functionName);
+  assert.equal(body.split(from).length, 2, 'Missing unique mutation target');
+  const mutated = source.replace(body, body.replace(from, to));
+  assert.throws(() => selectedBeforeReviewedLifecycle(mutated),
+    /reviewed representation delta|scratch eligibility|Lifecycle changes/u);
+});
 test('reviewed composition adds only typed Graph row-kernel exclusions to the integrated source premise', () => {
   const path = 'src/execution_relation/generated_sequence.mbt';
   const integratedMain = 'eb74d7b65d0f338ef5862a7d9cd7397744a08eaa';
