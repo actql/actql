@@ -33,6 +33,7 @@
         "metadata_binding",
         "metadata_offset",
         "metadata_lookup",
+        "term_column",
         "name_charge",
         "projection_ordinals",
         "json_path",
@@ -132,7 +133,8 @@
         "metadata_binding": "Int",
         "metadata_offset": "Int",
         "metadata_lookup": "RowMetadataLookup?",
-        "name_charge": "RowNameCharge?"
+        "name_charge": "RowNameCharge?",
+        "term_column": "Int?"
       }
     },
     {
