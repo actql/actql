@@ -6992,3 +6992,29 @@ publication chain/commit validation remain distinct boundaries. This is
 aggregate issuance acceptance, not whole publication, all-target, packed or
 whole-Local completion. Historical synchronous descriptions above are not
 claims about the newly connected issuance path.
+
+### Resumed Effect-free publication validation (2026-10-08)
+
+The retained JS publication path now also polls the same computation
+evidence checker before fresh publication and within full commit validation.
+Result dependencies, durable bindings and final commit references remain
+required. Fresh checks observe cancellation before contract persistence or
+attempt creation; existing committed outcomes are validated first even for
+already-aborted requests. Store commit custody remains with its existing
+owner, and no blocking bridge fallback is used by the connected Host path.
+
+The [publication validation record](2026-10-08-local-bounded-publication-validation.md)
+binds 250/250 affected common JS checks and 8/8 selected Node cases to
+`5f963c44bf51753928942faf71239aca7697725b`. Six actual retained Store cases
+cover existing capture issuance and new publication validation. Three Named
+Results have independently fixed content/order. Cancellation during context
+or row checking prevents publication with no contract writes or attempt
+creation; final cleanup has no additional Compute dispatch.
+
+The development prerequisite #931 has now merged; the next PR targets main
+and preserves the tested source provenance. Metadata leaf validators and
+Effectful commit checks still have synchronous boundaries. This record does
+not establish full metadata
+boundedness, all-target or packed/HTTPS acceptance, hosted CI success, or
+whole-Local completion. Earlier synchronous entries remain historical rather
+than current descriptions of the newly connected payload-validation path.

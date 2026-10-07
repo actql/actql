@@ -1538,6 +1538,10 @@ pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunE
 
 pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
 
+pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
+
+pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
+
 pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
 
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
@@ -1605,6 +1609,22 @@ pub fn strategy_effect_computation_record_holding_cid(@run_publication.Publicati
 pub fn strategy_effect_dispatch_key(@logical_request_scope.LogicalRequestScope, String, String, Int, Int, Int) -> @effect_application.EffectDispatchKey raise NodeHostFailure
 
 pub fn strategy_effect_dispatch_key_cid(@effect_application.EffectDispatchKey) -> String
+
+pub fn strategy_effect_free_chain_check_advance(@run_publication.ComputationEvidenceCheck, Int) -> Int
+
+pub fn strategy_effect_free_chain_check_cancel(@run_publication.ComputationEvidenceCheck) -> Unit
+
+pub fn strategy_effect_free_chain_check_finish(@run_publication.ComputationEvidenceCheck) -> Bool
+
+pub fn strategy_effect_free_chain_check_fixture_phase(@run_publication.ComputationEvidenceCheck) -> String
+
+pub fn strategy_effect_free_commit_check_advance(@run_publication.PublicationCommitPreparation, Int) -> Int
+
+pub fn strategy_effect_free_commit_check_cancel(@run_publication.PublicationCommitPreparation) -> Unit
+
+pub fn strategy_effect_free_commit_check_finish(@run_publication.PublicationCommitPreparation) -> Bool
+
+pub fn strategy_effect_free_commit_check_fixture_phase(@run_publication.PublicationCommitPreparation) -> String
 
 pub fn strategy_effect_free_publication_commit_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Bool
 
