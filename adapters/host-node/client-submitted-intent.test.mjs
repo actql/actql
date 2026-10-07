@@ -169,3 +169,154 @@ test('failed intent insert rolls back its custody counter', async t => {
     assert.equal(check.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 0);
   } finally {check.close();}
 });
+
+test('expired terminal intent retirement preserves issuance custody across restart', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  f.complete(input, 'preparation_failed');
+  f.now(start + 1000);
+  assert.deepEqual(f.journal.retireSubmittedIntent(f.ref,
+    {...fields, expectedRevision: 1}, moon), {retired: true});
+  f.restart();
+  assert.equal(f.lookup(), undefined, 'missing expired history is not a rejection or a rollback');
+  assert.deepEqual(f.journal.retireSubmittedIntent(f.ref,
+    {...fields, expectedRevision: 1}, moon), {retired: false});
+  f.now(start);
+  assert.throws(() => f.journal.recordSubmittedIntent(f.ref, input, fields, moon),
+    {code: 'ClientSubmissionEpochExpired'});
+  const fresh = {epoch: f.journal.issueSubmissionEpoch(fields, moon), nonce: 'deliberate-new-intent'};
+  assert.equal(f.journal.recordSubmittedIntent(fresh, input, fields, moon).inserted, true);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+  try {
+    assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 2);
+    assert.equal(db.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, 1);
+    assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_requests').get().n, 0);
+  } finally {db.close();}
+});
+
+for (const missing of ['authorization', 'expiry', 'terminal phase', 'revision', 'authentic epoch']) {
+  test(`intent retirement cannot omit ${missing}`, async t => {
+    const f = await fixture(t);
+    const input = intent();
+    f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+    if (missing !== 'terminal phase') f.complete(input, 'preparation_failed');
+    if (missing !== 'expiry') f.now(start + 1000);
+    const ref = missing === 'authentic epoch'
+      ? {...f.ref, epoch: {...f.ref.epoch, authenticator: '0'.repeat(64)}} : f.ref;
+    const expected = {
+      authorization: 'ClientSubmissionEpochUnauthorized',
+      expiry: 'ClientSubmittedIntentNotRetirable',
+      'terminal phase': 'ClientSubmittedIntentNotRetirable',
+      revision: 'ClientSubmittedIntentRetirementConflict',
+      'authentic epoch': 'ClientSubmissionEpochUnverifiable',
+    }[missing];
+    assert.throws(() => f.journal.retireSubmittedIntent(ref,
+      {...fields, currentAuthorization: missing !== 'authorization',
+        expectedRevision: missing === 'revision' ? 0 : missing === 'terminal phase' ? 0 : 1}, moon),
+      {code: expected});
+    f.restart();
+    assert.ok(f.lookup(), 'failed retirement cannot erase original custody');
+  });
+}
+
+test('unrecorded row loss remains fenced after a legitimate retirement', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  f.complete(input, 'preparation_failed');
+  f.now(start + 1000);
+  f.journal.retireSubmittedIntent(f.ref, {...fields, expectedRevision: 1}, moon);
+  const fresh = {epoch: f.journal.issueSubmissionEpoch(fields, moon), nonce: 'lost-new-intent'};
+  f.journal.recordSubmittedIntent(fresh, input, fields, moon);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {db.exec('DELETE FROM client_submitted_intents');} finally {db.close();}
+  f.restart();
+  assert.throws(() => f.journal.recordSubmittedIntent(fresh, input, fields, moon),
+    {code: 'ClientSubmittedIntentCustodyLost'});
+  assert.throws(() => f.journal.retireSubmittedIntent(fresh,
+    {...fields, expectedRevision: 0}, moon), {code: 'ClientSubmittedIntentCustodyLost'});
+});
+
+test('failed retirement transaction retains the original and does not advance retirement', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  f.complete(input, 'preparation_failed');
+  f.now(start + 1000);
+  const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+  try {
+    db.exec(`CREATE TRIGGER reject_retirement BEFORE UPDATE ON client_submitted_intent_retirement
+      BEGIN SELECT RAISE(ABORT, 'fixture retirement rejected'); END;`);
+    assert.throws(() => f.journal.retireSubmittedIntent(f.ref,
+      {...fields, expectedRevision: 1}, moon));
+    assert.equal(db.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count, 0);
+  } finally {db.close();}
+  f.restart();
+  assert.equal(f.lookup().phase, 'preparation_failed');
+});
+
+test('a Run-connected Ready receipt cannot be retired by the pre-Run retention operation', async t => {
+  const f = await fixture(t);
+  const input = intent();
+  const retained = f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+  const accepted = await f.journal.admitOrLookupDefinition(request(retained.requestId), {
+    namespaceId: 'namespace-a', lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+    submission: {...f.ref, currentAuthorization: true, intentCid: retained.intentCid},
+    issueDefinition: definition,
+  }, moon, publication);
+  const ready = {kind: 'ready', submissionRef: f.ref, intentCid: retained.intentCid,
+    admission: {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision}};
+  f.journal.completeSubmittedIntent(f.ref, ready,
+    {...fields, connection, expectedRevision: 0}, moon);
+  f.now(start + 1000);
+  assert.throws(() => f.journal.retireSubmittedIntent(f.ref,
+    {...fields, expectedRevision: 1}, moon), {code: 'ClientSubmittedIntentNotRetirable'});
+  f.restart();
+  assert.deepEqual(f.lookup().outcome, ready);
+  assert.deepEqual(f.journal.lookup({namespaceId: 'namespace-a', authorityScopeCid,
+    requestId: retained.requestId}, moon).ref, accepted.ref);
+});
+
+for (const lost of [false, true]) {
+  test(`retirement feature adoption preserves prior ${lost ? 'lost' : 'intact'} intent custody`, async t => {
+    const f = await fixture(t);
+    const input = intent();
+    const original = f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+    try {
+      db.exec('DROP TABLE client_submitted_intent_retirement');
+      if (lost) db.exec('DELETE FROM client_submitted_intents');
+    } finally {db.close();}
+    await rm(join(f.path, 'submitted-intent-retirement-format.json'));
+    f.restart();
+    if (lost) {
+      assert.equal(f.lookup(), undefined);
+      assert.throws(() => f.journal.recordSubmittedIntent(f.ref, input, fields, moon),
+        {code: 'ClientSubmittedIntentCustodyLost'});
+    } else {
+      const {inserted, ...expected} = original;
+      assert.equal(inserted, true);
+      assert.deepEqual(f.lookup(), expected);
+    }
+    const check = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+    try {
+      assert.equal(check.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 1);
+      assert.equal(check.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count, 0);
+    } finally {check.close();}
+  });
+}
+
+for (const loss of ['marker', 'table', 'counter']) {
+  test(`retirement ${loss} loss refuses journal reopening without repair`, async t => {
+    const f = await fixture(t);
+    if (loss === 'marker') await rm(join(f.path, 'submitted-intent-retirement-format.json'));
+    else {
+      const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
+      try {db.exec(loss === 'table' ? 'DROP TABLE client_submitted_intent_retirement'
+        : 'DELETE FROM client_submitted_intent_retirement');} finally {db.close();}
+    }
+    assert.throws(() => f.restart(), {code: 'UnknownClientRequestJournalFormat'});
+  });
+}
