@@ -15,6 +15,7 @@ const sizes = {
   childWorkIssue: parentFields.childWorkIssue,
   preparation: ['ref','i32','ref','ref','ref','ref','ref',...Array(6).fill('i32'),'ref','ref','i32'],
   read: ['ref','ref','ref',...Array(9).fill('i32'),'ref','ref','i32','i32'],
+  producer: ['ref','ref','ref','i32','i32'],
 };
 export const currentRequestedLayouts = Object.fromEntries(Object.entries(sizes)
   .map(([name,fields]) => [name,{fields,...fieldLayout(fields),requestedBytes:8+fieldLayout(fields).payloadBytes}]));
@@ -75,11 +76,12 @@ export function inspectCurrentChain(records) {
       assert.deepEqual(f.children,base.children,'Pending cleanup drops child responsibility');
       assert.deepEqual(f.completed,base.completed,'Pending cleanup drops completed occurrence custody');
       assert.equal(f.position,1);assert.equal(f.pending,true);
-      assert.equal(f.children.elements[0],field(f.state,8),'Current child does not match retained responsibility');
     } else if(f.phase>=5) {
       assert.equal(f.preparation,null);assert.equal(f.read,null);
       assert.equal(f.children.length,0);assert.equal(f.completed.length,0);
     }
+    assert.equal(field(f.state,8),f.children.elements.at(-1) ?? null,
+      'Current child survives release or differs from retained responsibility');
   }
   // Summarize point observations only. No union across time/address reuse, no
   // allocator/RSS claim, no invented size for scalar GC layouts or referents.
@@ -91,4 +93,49 @@ export function inspectCurrentChain(records) {
     completePhysicalUpper:false,ledgerHoldingGenerationCorrespondence:false,
     excluded:['shared configuration and payload referents','preparation selected/columns allocation overlap',
       'temporary wrappers and observer allocations','allocator overhead','whole-owner and reservation retirement union']};
+}
+
+// Join two existing synchronous borrowed observations. Individually correct
+// extents cannot establish that the observed storage belongs to this chain.
+// This fixed fixture prepares the same receiving edge twice; each preparation
+// may create a new bound identity, but transfer must retain its own exact bound.
+export function inspectPreparationChainCustody(records, facts) {
+  const starts=records.filter(r=>r.kind==='startup');assert.equal(starts.length,1);
+  const start=starts[0],phases=records.filter(r=>r.kind==='phase');
+  assert.deepEqual(phases.map(f=>f.phase),[0,1,2,3,4,5,6]);
+  assert.deepEqual(facts.map(f=>f.phase),[0,1,2,3]);
+  const base=phases[1],pointer=(record,offset)=>record.captures.find(c=>c.offset===offset)?.id;
+  assert(base.preparation && base.read,'Missing pending chain metadata roots');
+  for(const id of [start.roots.sequence,start.roots.inputs,base.completed.id,
+    pointer(base.preparation,40),pointer(base.preparation,48)])token(id);
+  assert.deepEqual(facts[0].preparation,base.preparation,'Storage census observes a different chain preparation');
+  assert.deepEqual(facts[0].read,base.read,'Storage census observes a different chain metadata cursor');
+  const schema=pointer(base.read,8);token(schema);
+  const pendingBound=pointer(base.read,0);token(pendingBound);
+  for(const f of facts) {
+    checkRecord(f.preparation,'preparation');checkRecord(f.read,'read');
+    assert.equal(pointer(f.preparation,0),start.roots.sequence,'Preparation belongs to a different sequence');
+    assert.equal(pointer(f.preparation,24),base.completed.id,'Preparation substitutes the completed-output container');
+    for(const offset of [40,48])assert.equal(pointer(f.preparation,offset),pointer(base.preparation,offset),
+      'Preparation substitutes the receiving owner or node');
+    assert.equal(pointer(f.read,8),schema,'Preparation substitutes the receiving schema');
+    if(f.phase<=1) {
+      assert.equal(pointer(f.preparation,16),start.roots.inputs,'Pending preparation substitutes the chain inputs');
+      assert.equal(pointer(f.read,0),pendingBound,'Pending cleanup substitutes the exact producer binding');
+      assert.equal(pointer(f.preparation,88),f.phase===0?f.read.id:null,
+        'Pending cursor read is detached or survives cancellation');
+    } else {
+      checkRecord(f.transferred,'producer');
+      token(pointer(f.read,0));
+      assert.equal(pointer(f.preparation,88),null,'Transferred preparation still owns its metadata cursor');
+      assert.equal(pointer(f.preparation,80),null,'Transferred preparation retains a pending matched input');
+      assert.equal(pointer(f.transferred,0),pointer(f.read,0),'Transfer substitutes the exact producer binding');
+      assert.equal(pointer(f.transferred,8),schema,'Transfer substitutes the receiving schema');
+    }
+  }
+  return {scope:'one pending chain and a second preparation of the same receiving edge',
+    actualStoragePoints:facts.length,exactPendingCursor:true,exactTransferredBinding:true,
+    receivingSchemaPreserved:true,completePhysicalLifetimeUpper:false,
+    excluded:['bound output/receiver referent graph','arbitrary receiving edges or schemas',
+      'allocator effects and last-owner reclamation']};
 }

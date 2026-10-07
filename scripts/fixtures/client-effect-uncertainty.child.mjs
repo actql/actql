@@ -8,6 +8,7 @@ import {connectEmbeddedLocal} from '../../adapters/host-node/embedded-local.mjs'
 const [path] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(path, 'utf8'));
 const ref = JSON.parse(readFileSync(`${path}.ref.json`, 'utf8'));
+const submissionRef = JSON.parse(readFileSync(`${path}.submission-ref.json`, 'utf8'));
 const progress = (stage, facts = {}) => console.error('ACTQL_EFFECT_OBSERVATION_PROGRESS ' +
   JSON.stringify({stage, ...facts}));
 progress('connecting');
@@ -23,7 +24,11 @@ const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       observe: (name, detail) => diagnostics.push({name, code: detail?.code})}}});
 progress('connected');
 try {
-  const execution = await client.attach(ref);
+  const lookup = await client.lookupSubmission(submissionRef);
+  assert.equal(lookup.kind, 'ready');
+  assert.deepEqual(lookup.submissionRef, submissionRef);
+  assert.deepEqual(lookup.admission.ref, ref);
+  const execution = await client.attach(lookup.admission.ref);
   progress('attached');
   let state;
   for (let attempt = 0; attempt < 400; attempt++) {
