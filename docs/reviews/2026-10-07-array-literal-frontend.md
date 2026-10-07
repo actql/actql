@@ -71,7 +71,7 @@ References: [GoogleSQL ARRAY type](https://docs.cloud.google.com/bigquery/docs/r
 [ARRAY literals](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#array_literals),
 and [JSON_QUERY_ARRAY](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/json_functions#json_query_array).
 
-## Public execution blocker and common-owner handoff
+## Historical public execution blocker and common-owner handoff
 
 At `ea05f380aec8a938165f2c012e4991a69b99d15e`, the normal five-package manifest
 and each tarball digest were fixed before installation. The ARRAY-only public
@@ -101,10 +101,10 @@ that value, type and multiplicity. The source `SELECT [2,1,2] AS items` lowers
 to the same ordinary array operation; alias/step structure differences do not
 justify a different execution meaning.
 
-Common execution owner A needs to connect the existing typed `array` and
-`empty_array` forms at `lowering_relation/expression.mbt` and its expression
-wire/evaluation consumers. The current ExpressionBody has Object and Property,
-but no Array constructor case; lowering explicitly rejects the array tag.
+The original handoff required common execution owner A to connect the typed
+`array` and `empty_array` forms at `lowering_relation/expression.mbt` and its expression
+wire/evaluation consumers. At that predecessor, ExpressionBody had Object and Property but no Array
+constructor case; lowering explicitly rejected the array tag.
 Use the existing expression-frame retention, capacity, cancellation and cleanup
 ownership. This Frontend unit does not implement a parallel evaluator, replace
 SQL ARRAY with opaque JSON, or fold the fixture into a different Program.
@@ -124,8 +124,8 @@ ACTQL_PACKED_CLIENT_PACKAGES=/tmp/actql-array-pack \
 
 The failure receipt retained stdout/stderr, SHA, tarball digests and command
 status; the private expansion was removed by the existing evidence wrapper.
-This unit remains Draft until common execution and the full authored Local/HTTPS
-corpus are verified. Parser/checker acceptance is not public execution support.
+At that handoff, this unit remained Draft pending common execution and the full
+authored Local/HTTPS corpus. Parser/checker acceptance is not public execution support.
 
 ## Follow-up profile regression
 
@@ -165,3 +165,56 @@ the constructor-only ARRAY predecessor remains a separate fixed vector.
 Compilation manifests, normative imports, canonical generated vectors and
 selected/RelA Node bundle freshness were checked read-only. These checks do
 not establish new-SHA packed acceptance or Wasm/native runtime execution.
+
+## Shared constructor execution and current main integration
+
+Main `ae1f273bc1174e50598d86ab932daa0bc28c5f4d` is merged normally. ARRAY and
+Graph source registrations coexist. Existing grammar/Run vectors retain their
+original preimages; current grammar and Values Run preimages are independently
+assembled, with no compiler or issuer output substituted for expectations.
+The current grammar is
+`sha256:3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f`
+and the current Values Run is
+`sha256:d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48`.
+The adopted Table Unit and Result Plan closure is retained separately from
+historical pre-Table vectors.
+
+Ordinary `array` and `empty_array` now lower through ExpressionBody and its
+normal expression wire. The existing expression frame evaluates children once,
+in order, and retains NULL as an item. A private admitted ArrayBuilder seals
+its backing without copying the completed array. Child roots and parent result
+roots use the same scope owner as other expression forms. No partial array is
+a published result and no parallel evaluator or scheduler is introduced.
+
+Child views, element/root slots and builder/cursor workspaces are reserved
+before allocation. Long Text items use existing stepped raw-text admission.
+Final measurement uses the existing cursor and common successor reservation
+helper; acquiring its proof does not add another logical production charge.
+Cancellation releases owned roots and builder state, preserves borrowed input
+roots and never refunds consumed work. Backend readiness still visits every
+child, including unselected branches.
+
+Independent regressions pin `[2,1]` to ten logical units, five result bytes,
+seven peak live bytes and eleven measurement workspace slots. Success/one-below
+refusal, quantum 1/7/256, drain/resume, duplicate and NULL items, typed emptiness,
+recursive machine arrays, selected-branch laziness, demand failures and Unicode
+raw-byte preservation are checked. The latest focused JS campaign executed
+35/35 tests including shared measurement consumers. The source/Run caller
+campaign subsequently passed 14/14. A final constructor/lowering campaign
+passed 12/12, including nested machine arrays with independent work 28 and peak
+live bytes 19 across quantum 1/7/256. Node/vector campaigns remain separate
+evidence for unchanged inputs, not a fresh full-project run.
+
+The focused Wasm attempt reached its existing 180-second bound during linking
+and executed no tests. Its timeout remains recorded; no success or increased
+budget is claimed. Three-target interface compilation was successful. Native
+execution, full Core, full retained Git-history replay and hosted CI are not
+established by these selected checks. Actual merge obligations were audited
+from all parents and immutable record blobs; that audit is distinct from a
+complete history replay.
+
+The original ten positive/seven negative public ARRAY cases remain unchanged.
+The new clean-HEAD five-package Local/HTTPS campaign is the outstanding
+acceptance check at this commit. The earlier `ea05f380a` failure above remains
+historical evidence. ARRAY<JSON>, exact INT64/default empty typing and additional
+annotations retain their separate tracked contract gaps.

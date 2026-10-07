@@ -122,7 +122,9 @@ fn array_pipeline_profile(
           }
           used += work
           if nested {
-            return Ok((Some((target, @schema.reference_name(field.name))), used))
+            return Ok(
+              (Some((target, @schema.reference_name(field.name))), used),
+            )
           }
         }
       }
