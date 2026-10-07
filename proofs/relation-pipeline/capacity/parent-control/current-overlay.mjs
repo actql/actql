@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {hash} from '../../inventory.mjs';
 import {checkChainSource} from './chain-source.mjs';
 export const currentHelper = 'src/connectors/local/current_chain_capacity_native.mbt';
 export const currentStub = 'src/connectors/local/current_chain_capacity_stub.c';
@@ -30,4 +31,19 @@ export function currentOverlay(read) {
     [currentStub]: readFileSync(new URL('./current-reader.c',import.meta.url),'utf8') + '\n#define layout current_shape\n#define regular_bytes(p) (8 + current_shape(p)[0]*4)\n#define has_pointer current_contains\n' + readFileSync(new URL('./provider-reader.c',import.meta.url),'utf8'),
     [currentFixture]: readFileSync(new URL('./current-fixture.mbt',import.meta.url),'utf8'),
   };
+}
+
+// Bind the actual compiled fixture to the submitted source and complete
+// observation overlay. A final consumer must see this marker in the log and
+// in the archived executable; matching JSON labels are insufficient.
+export function boundCurrentOverlay(read,source) {
+  const overlay=currentOverlay(read);
+  const boundary={sourceDigest:source.digest,target:'native',
+    command:['moon','test','--target','native',currentFixture,'--deny-warn'],
+    observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
+  const buildIdentity=hash(JSON.stringify(boundary));
+  const opening='  let name = "x".repeat(256)';
+  assert.equal(overlay[currentFixture].split(opening).length,2);
+  overlay[currentFixture]=overlay[currentFixture].replace(opening,`  println("ACTQL_CHAIN_BUILD:${buildIdentity}")\n${opening}`);
+  return {overlay,boundary,buildIdentity};
 }

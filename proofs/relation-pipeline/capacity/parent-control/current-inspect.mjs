@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import {fieldLayout} from '../backing/native-extent.mjs';
+import {parentFields,inspectParentStartup} from '../backing/parent-layout.mjs';
+import {currentSlotsCeiling} from '../backing/model.mjs';
 import {chainCaptureRoles} from './chain-source.mjs';
 const token = id => assert(typeof id === 'string' && /^[1-9][0-9]*$/.test(id), 'Missing actual Native identity');
+// Capture order is grounded in the pinned Native constructor store sequence,
+// including scalar fields between references and their alignment padding.
+// Admission also binds the actual capture identities; byte equality alone
+// does not establish source correspondence.
 const sizes = {
-  state: ['ref','ref','ref','i32','i32','i32','ref'],
-  environment: [...Array(7).fill('ref'),'i32','i32'],
-  advance: ['ref',...Array(8).fill('ref'),'i32','i32','i32'],
-  cancel: Array(4).fill('ref'), stopped: Array(2).fill('ref'),
-  cleanup: Array(5).fill('ref'), childWorkIssue: Array(2).fill('ref'),
+  state: parentFields.state, environment: parentFields.startEnvironment,
+  advance: parentFields.advance, cancel: parentFields.cancel,
+  stopped: parentFields.stopped, cleanup: parentFields.cleanup,
+  childWorkIssue: parentFields.childWorkIssue,
   preparation: ['ref','i32','ref','ref','ref','ref','ref',...Array(6).fill('i32'),'ref','ref','i32'],
   read: ['ref','ref','ref',...Array(9).fill('i32'),'ref','ref','i32','i32'],
 };
@@ -40,7 +45,9 @@ export function inspectCurrentChain(records) {
   const phases=records.filter(r=>r.kind==='phase');assert.deepEqual(phases.map(p=>p.phase),[0,1,2,3,4,5,6]);
   const base=phases[1];assert(base.preparation && base.read,'Real retained metadata preparation not exercised');
   checkRecord(base.preparation,'preparation');checkRecord(base.read,'read');
-  assert.equal(base.completed.length,start.count);assert(base.completed.elements[0]);
+  assert.equal(base.completed.length,start.count);assert.equal(base.completed.slots,start.count);
+  token(base.completed.elements[0]);token(base.completed.completions[0]);
+  assert.equal(base.completed.elements[1],null);assert.equal(base.completed.completions[1],null);
   for(const f of phases) {
     assert.equal(f.parent,start.parent);assert.equal(f.state.id,start.state.id);checkRecord(f.state,'state');
     assert.deepEqual(f.callbacks,start.callbacks,'Immutable parent captures changed across cleanup');
@@ -54,7 +61,9 @@ export function inspectCurrentChain(records) {
     }
     for(const key of ['children','completed']) {
       const a=f[key];token(a.id);token(a.backing);assert.equal(a.ownerBytes,24);
-      assert(a.slots>=a.length);assert.equal(a.backingBytes,8+8*a.slots);
+      assert(Number.isSafeInteger(a.length) && a.length>=0);
+      assert(Number.isSafeInteger(a.slots) && a.slots>=a.length);
+      assert(BigInt(a.slots)<=currentSlotsCeiling(start.count,1),'Array backing exceeds structural count ceiling');assert.equal(a.backingBytes,8+8*a.slots);
       assert(!a.staticBacking || a.slots===0);
       assert.equal(a.elements.length,a.length);
     }
@@ -66,6 +75,7 @@ export function inspectCurrentChain(records) {
       assert.deepEqual(f.children,base.children,'Pending cleanup drops child responsibility');
       assert.deepEqual(f.completed,base.completed,'Pending cleanup drops completed occurrence custody');
       assert.equal(f.position,1);assert.equal(f.pending,true);
+      assert.equal(f.children.elements[0],field(f.state,8),'Current child does not match retained responsibility');
     } else if(f.phase>=5) {
       assert.equal(f.preparation,null);assert.equal(f.read,null);
       assert.equal(f.children.length,0);assert.equal(f.completed.length,0);
@@ -75,6 +85,7 @@ export function inspectCurrentChain(records) {
   // allocator/RSS claim, no invented size for scalar GC layouts or referents.
   return {scope:'one Native long-name serial chain, actual callback captures and metadata custody through stop/false/error/retry',
     actualPhases:phases.length,currentRequestedLayouts,
+    startup:inspectParentStartup(start,'native'),
     scalarRefCount:5,scalarRefExtentPremise:'five single-field primitive Refs; at most eight payload bytes each under the pinned ABI; not measured from scalar GC descriptors',
     logicalExtraReservationBytes:512,logicalExtraReservationIsPhysicalBound:false,
     completePhysicalUpper:false,ledgerHoldingGenerationCorrespondence:false,
