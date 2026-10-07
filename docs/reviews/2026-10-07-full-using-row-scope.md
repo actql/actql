@@ -92,6 +92,64 @@ node scripts/local-checks.mjs test node -- scripts/full-join-scope-source-input.
 JS: 9/9, `_build/focused-evidence/focused-test-ir1x50`. The complete expected
 Program, composite scope and later merged-key consumers pass the ordinary
 checker. Node: 7/7, `_build/focused-evidence/focused-test-9IxgYR`. Fresh
-five-package Embedded Local/HTTPS results are pending.
+five-package Embedded Local/HTTPS results passed as recorded below.
 No full Core, all-target, proof, performance, manual CI run or merge was added.
 Draft status is maintained; focused local success is not submitted-HEAD CI.
+
+
+## Fresh packed acceptance
+
+Implementation/package/acceptance revision:
+`28c5003ca359cbb343f89e5974f6d23a90f5d211`.
+The subsequent report-only commit does not change compiled inputs. The normal
+five-package producer ran each prepack with clean tracked/untracked build inputs.
+The public receipt's `dirty: true` reflects only protected untracked
+`review-artifacts/`, not modified source or an adapter overlay.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-full-using-28c5003ca-pack
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache npm_config_offline=true npm_config_include=optional ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-full-using-28c5003ca-pack node scripts/test-packed-public-query.mjs --full-join-scope-only
+```
+
+Both Embedded Local and HTTPS passed all eight new USING positives and five
+parent FULL ON positives through actual Named Result reading. Each transport
+also passed three preparation refusals, with zero admissions and provider I/O.
+The common reader verified independent rows, schema, nullability, declared
+column order, no hidden columns, stream completion, one shared Source
+acquisition and same-request/Result reuse. This includes the later JOIN's
+right-only ID 3 and the two NULL-key unmatched rows; neither expected value nor
+ceiling was weakened to obtain success.
+
+Evidence:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-8FxJU7`.
+Command `008` exited 0 with no signal, complete output and elapsed time
+89,666.3785 ms. Its receipt is complete, `artifactsRemoved: true`, with no
+evidence errors. The runner removed only its owned private installation after
+preserving evidence. Its existing 11 profile checks, README Local/HTTPS
+quickstart and missing-generated-asset refusal passed separately.
+
+Manifest SHA-256 digests:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `d519367b6ba51f21953d396564ff7b9e08ad8030ac0df336a98719f84b83a84d` |
+| sdk | `844ee1e2a1a1b4be8499630f9d75d144ecb61f94b9252c184361c7f5b7100e9b` |
+| run-host-core | `7baafd41632a352af0b3554c3d4ab674eddaf5e3a9470f19507f23721edc9777` |
+| local-node | `ceafd3be9adde938899d0566ed02ec1919dd5861eed83dd8f4663aac8361013f` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+No full Core, Wasm/native execution, all-packed campaign, Cloud acceptance,
+performance run, manual CI run or merge was performed. Submitted-HEAD CI is
+recorded on the Draft PR separately; these local results are not CI success.
+
+## Owned cleanup
+
+After all producer/consumer processes completed, only the finished private npm
+content caches (`npm-cache/_cacache`) under the FULL USING, parent FULL ON and
+CEIL package directories were removed. Total allocated size: 12,521,472 bytes
+(about 12 MiB). Original tarballs/manifests, npm logs, public receipts, failure
+reproductions, current incremental build and borrowed dependency/toolchain
+paths remain. Receipt:
+`review-artifacts/b-resume-2026-10-07/cleanup-full-join-pack-caches.json`.
+This is additional to the previously recorded 122 MiB old string build cleanup;
+no other owner's files or shared cache were deleted.
