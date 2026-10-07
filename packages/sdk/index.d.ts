@@ -517,6 +517,8 @@ export declare function formatRequestCancellation(result: unknown, options?: Ope
 export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions): string | undefined;
+/** Passive text/HTML/agent JSON for an original SDK Run-observation error. */
+export declare function formatRunObservationFailure(error: unknown, options?: OperationFormatOptions): string | undefined;
 
 /** Safe explanation of an original SDK-rejected Run observation; no write permission. */
 export type RunObservationFailureExplanation = Readonly<{
