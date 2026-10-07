@@ -716,6 +716,8 @@ pub fn site_restart_transition_count(SiteRestartTransition) -> Int
 
 pub fn stop_site_admission(SiteDispatchJournal) -> Unit
 
+pub fn verify_remote_completed_cleanup_observation(DispatchRecord, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[Unit, DispatchIssue]
+
 // Errors
 
 // Types and methods

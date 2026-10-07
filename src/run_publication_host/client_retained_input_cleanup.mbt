@@ -27,11 +27,11 @@ pub fn prepare_client_retained_input_cleanup(
   max_manifest_bytes : Int,
   max_referenced_bytes : Int64,
 ) -> Result[ClientRetainedInputCleanup, ClientRetainedTaskInputIssue] {
-  if @remote.restore_remote_runtime_completed_custody(
+  if @remote.verify_remote_completed_cleanup_observation(
       producer_record, producer_evidence, producer_subject, producer_measurement,
     )
     is Err(_) ||
-    @remote.restore_remote_runtime_completed_custody(
+    @remote.verify_remote_completed_cleanup_observation(
       consumer_record, consumer_evidence, consumer_subject, consumer_measurement,
     )
     is Err(_) {
