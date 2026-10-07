@@ -7,6 +7,8 @@ fn indexed_snapshot_fixture(
   rows? : String? = None,
   nullable? : Bool = false,
   keyed? : Bool = false,
+  binding? : Bool = false,
+  ordered_binding? : Bool = false,
   work? : Int = 100000,
   entries? : Int = 10000,
 ) -> BoundedBindingRowsExecution raise {
@@ -55,7 +57,9 @@ fn indexed_snapshot_fixture(
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    if projection || operation is Some(_) {
+    if ordered_binding {
+      [bounded_binding_rows_ordered_context(sequence)]
+    } else if projection || (operation is Some(_) && !binding) {
       []
     } else {
       [sequence_fragment_context(sequence, 0, 1L)]

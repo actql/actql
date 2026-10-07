@@ -541,6 +541,11 @@ fn local_bounded_relation_check(
     Some(@lower.RowStep(kernel)) =>
       if @lower.kernel_json_pick(kernel) is Some(_) {
         check is JsonPick
+      } else if @lower.kernel_unique_keys(kernel) is Some(_) {
+        check is Assertion
+      } else if @lower.kernel_bindings(kernel) is Some(_) ||
+        @lower.kernel_is_projection(kernel) {
+        false
       } else {
         match check {
           Group =>
@@ -575,7 +580,7 @@ fn local_bounded_relation_check(
           Dedupe => @lower.kernel_body(kernel) is @lower.DedupeRows
           Assertion =>
             match @lower.kernel_body(kernel) {
-              @lower.AssertAll(_) | @lower.AssertUnique(_) => true
+              @lower.AssertAll(_) => true
               _ => false
             }
           Expansion =>

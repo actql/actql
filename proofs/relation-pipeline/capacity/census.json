@@ -82,7 +82,6 @@
         "unique_key",
         "unique_row",
         "unique_pair",
-        "ordered",
         "output_schema",
         "preserve_presence",
         "admitted_limits",
@@ -141,7 +140,9 @@
         "json_path": "@lower.PreparedJsonPick?",
         "metadata_source": "@schema.FieldName?",
         "metadata_generated_field": "Int",
-        "metadata_generated_seen": "Int"
+        "metadata_generated_seen": "Int",
+        "bindings": "@lower.PreparedBindings?",
+        "unique_keys": "@lower.PreparedUniqueKeys?"
       }
     },
     {
