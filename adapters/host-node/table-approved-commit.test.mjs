@@ -13,10 +13,17 @@ import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {preparePinnedEffectSourceHoldings, readPinnedEffectTableInput} from './effect-input-export.mjs';
 import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
-import {prepareCapturedTableCommit, bindApprovedTableCommitDispatch,
+import {prepareCapturedTableCommit, prepareRecoveredTableCommit, bindApprovedTableCommitDispatch,
   refreshCapturedTableTargets, capturedTableCommitPhysicalStatus,
   cleanupCapturedTableCommit} from './table-commit-apply.mjs';
-import {applyCapturedEffectSet} from './effect-run-apply.mjs';
+import {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
+import {prepareRecoveredTableInput} from './table-capture-recovery.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {completedTableCaptureOptions} from './fixtures/table-completed-capture.mjs';
+import {issueCompletedEffectfulComputationEvidence, recoverCompletedEffectfulComputation,
+  suspendCompletedEffectfulComputation, releaseCompletedRunPreparedPayloads,
+  retireCompletedEffectfulCapture}
+  from '../host-common/completed-run-publication.mjs';
 import {openEffectLedger} from './effect-ledger.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
@@ -31,8 +38,9 @@ const target = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
 const scope = Object.freeze({connection: 'table', resource: 'catalog'});
 
+for (const recovery of [false, true]) {
 for (const empty of [false, true]) {
-  test(`approved captured Table ${empty ? 'empty' : 'nonempty'} commit uses one operation per member`,
+  test(`approved ${recovery ? 'recovered' : 'captured'} Table ${empty ? 'empty' : 'nonempty'} commit uses one operation per member`,
     async t => exerciseEffectSourceSet(t, {empty, target, mappingRef,
       minimumApproval: 'required', onTablePreview: async f => {
         ensureCheckpointRuntime();
@@ -47,7 +55,8 @@ for (const empty of [false, true]) {
           store: f.store, control, preview: publicationPreview,
           invocation: f.options.invocation,
           resultArtifacts: f.sources.members.map(({payload}) => payload.localResultArtifact)});
-        let ledger, installed, gate;
+        let ledger, installed, gate, recovered;
+        let activeStore = f.store;
         try {
         await retained.commit();
         const catalog = {database: join(f.directory, 'catalog.db'),
@@ -76,7 +85,7 @@ for (const empty of [false, true]) {
           return Number(result.stdout.trim());
         };
         const bridge = createIcebergPhysicalBridge({python, run: 'captured-table', catalog});
-        const tablePreviews = [], materials = [], members = [];
+        const tableInputs = [], tablePreviews = [], materials = [], members = [];
         const preview = JSON.parse(f.authored._0);
         for (const [index, member] of preview.effects.entries()) {
           const identity = index === 0 ? f.identity : control.issueSourceFreeLocalEffectIdentity(
@@ -85,6 +94,7 @@ for (const empty of [false, true]) {
             f.prepared, f.inputs, index, f.artifact, identity, f.scope,
             canonicalValueJson(f.operations[index], {dataKeys: true}), limits);
           const tablePreview = index === 0 ? f.tablePreview : control.bindTablePreview(input, f.captured, index);
+          tableInputs.push(input);
           tablePreviews.push(tablePreview);
           // The fixture's live source is not re-executed. Its actual retained
           // bytes alone supply material, including the zero-row case.
@@ -164,6 +174,45 @@ for (const empty of [false, true]) {
           assert.equal(countCommits(), 0);
           assert.equal(countAllocations(), 0);
           assert.equal(authorizationDispatchFacts(waiting.authorization[0]), undefined);
+          if (recovery) {
+            // Record intents under the existing owner before losing the live
+            // computation. No dispatch claim, Catalog allocation or write yet.
+            ledger.prepareCapturedSetIntents(f.captured, members, 64);
+            const captured = await completedTableCaptureOptions({fixture: f, retained,
+              preview: publicationPreview, tableInputs, tablePreviews});
+            const computation = await issueCompletedEffectfulComputationEvidence(captured);
+            await suspendCompletedEffectfulComputation({execution: f.execution,
+              store: f.physicalStore, control, storedResults: captured.storedResults,
+              computation, preview: publicationPreview});
+            for (const payload of f.sources.payloads) await payload.prepared.release();
+            for (const material of materials) await cleanupCapturedTableCommit({prepared: material});
+            materials.length = 0;
+            ledger.close();
+            await f.store.close();
+            activeStore = await openLocalPublicationStore(f.storeConfiguration, control);
+            f.replaceStoreForCleanup(activeStore);
+            ledger = openLedger();
+            recovered = await recoverCompletedEffectfulComputation({store: activeStore, control,
+              runDefinition: f.options.localEvidenceContext.runDefinition,
+              contractLimits: f.options.contractLimits});
+            assert.equal(recovered.execution, null);
+            assert.equal(recovered.computation.capturedRun.identity, computation.capturedRun.identity);
+            for (let index = 0; index < tableInputs.length; index++) {
+              const recoveredInput = await prepareRecoveredTableInput({recovered, store: activeStore,
+                control, memberIndex: index, requestScope: f.scope,
+                contractLimits: f.options.contractLimits, tableLimits: limits});
+              assert.equal(recoveredInput.operationWire, tableInputs[index].wire);
+              assert.equal(recoveredInput.mappingWire, f.storage.wire);
+              await assert.rejects(prepareRecoveredTableCommit({control,
+                recoveredInput: {...recoveredInput}, bridge,
+                reservation: {bytes: 1048576, files: 16}, maxBytes: 100000}),
+              {code: 'ForeignRecoveredTableInput'});
+              materials.push(await prepareRecoveredTableCommit({control, recoveredInput, bridge,
+                reservation: {bytes: 1048576, files: 16}, maxBytes: 100000}));
+            }
+            assert.equal(countCommits(), 0);
+            assert.equal(countAllocations(), 0);
+          }
           const page = await installed.listCheckpoints({principalId: 'reviewer', after: '', limit: 10});
           assert.equal(page.items.length, 1);
           const summary = page.items[0];
@@ -177,7 +226,14 @@ for (const empty of [false, true]) {
           await installed.close();
           installed = await openCheckpoint();
           gate = await installed.effectAuthorization(continuation());
-          const approved = options();
+          const approved = recovery ? {...options(),
+            store: activeStore, publicationControl: control,
+            computation: recovered.computation, preview: recovered.preview,
+            requestScope: f.scope, programId: 'captured-table', nodeId: 'unit-1',
+            maxRows: 2, maxRecoveryWork: 100,
+            keyLimits: {maxBytes: 128, maxNodes: 8, maxDepth: 3, maxWork: 100},
+            refreshPreflight: ({signal}) => refreshCapturedTableTargets(
+              {prepared: materials, preflight, signal})} : options();
           approved.authorization.resume = {journal: installed.journal, runId: 'source-set-run',
             claimant: 'table-resumer', leaseMs: 60000, binding: installed.binding};
           let approvedBinding;
@@ -188,8 +244,9 @@ for (const empty of [false, true]) {
               {code: 'TableCommitApprovalRequired'});
             return bind(binding);
           };
-          const applied = await applyCapturedEffectSet(approved);
-          assert.equal(applied.status, 'applied');
+          const apply = recovery ? applyRecoveredEffectSet : applyCapturedEffectSet;
+          const applied = await apply(approved);
+          if (!recovery) assert.equal(applied.status, 'applied');
           assert.equal(applied.dispatched, 2);
           assert.equal(countCommits(), 2);
           assert.equal(countAllocations(), 2);
@@ -209,8 +266,9 @@ for (const empty of [false, true]) {
             ledger.readClaimedOutcome(member.claims[0]).outcomeJson).typed_outcome.result);
           ledger.close();
           ledger = openLedger();
-          const replay = await applyCapturedEffectSet({...options(), authorization: undefined,
-            refreshPreflight: undefined, bindDispatch: () => assert.fail('Terminal operation resent')});
+          const replay = await apply({...approved, ledger, authorization: undefined,
+            ...(recovery ? {} : {refreshPreflight: undefined}),
+            bindDispatch: () => assert.fail('Terminal operation resent')});
           assert.equal(replay.dispatched, 0);
           assert.equal(countCommits(), 2);
           for (const receipt of receipts) {
@@ -219,19 +277,36 @@ for (const empty of [false, true]) {
           }
           // Origin input holdings may be retired after settlement. Iceberg's
           // retained generation is independent and remains readable afterwards.
+          if (recovery) {
+            // Terminal release belongs to the recovered result owner as well
+            // as durable capture retirement. Do not abandon its schema leases.
+            await releaseCompletedRunPreparedPayloads(recovered.storedResults, control);
+          }
           for (const holding of retained.holdings) {
-            assert.equal((await f.store.retirePhysicalHolding(holding.holdingCid)).deleted, true);
+            if (recovery) assert.equal(await activeStore.inspectPhysicalHolding(holding.holdingCid), undefined);
+            else assert.equal((await activeStore.retirePhysicalHolding(holding.holdingCid)).deleted, true);
+          }
+          if (recovery) {
+            assert.equal(activeStore.status().storedBytes, 0);
+            assert.equal(activeStore.status().reservedBytes, 0);
           }
           for (const receipt of receipts) {
             assert.deepEqual(sameData((await bridge.read(receipt, JSON.parse(f.storage.wire))).result), expected);
           }
+          assert.equal(f.execution.completed.length, 1);
         } finally {
           gate?.close();
           await installed?.close();
           ledger?.close();
+          if (recovered !== undefined) await releaseCompletedRunPreparedPayloads(
+            recovered.storedResults, control);
           for (const holding of retained.holdings) {
-            await f.store.retirePhysicalHolding(holding.holdingCid);
+            await activeStore.retirePhysicalHolding(holding.holdingCid);
           }
+          if (recovered !== undefined) await retireCompletedEffectfulCapture({store: activeStore,
+            control, runDefinition: f.options.localEvidenceContext.runDefinition,
+            contractLimits: f.options.contractLimits});
         }
       }}));
+}
 }
