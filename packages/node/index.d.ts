@@ -1,3 +1,5 @@
+import type {HostCapacityPolicy} from '@actql/local-node';
+export type {HostCapacityPolicy} from '@actql/local-node';
 import type {Client, ConnectionOptions, Durability} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
@@ -7,6 +9,7 @@ export type {Client, Execution, Result, Reader, RunReference,
 
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
+  hostCapacityPolicy?: HostCapacityPolicy;
   sourceProfilePath?: string;
   sourceProfilePaths?: readonly [string, string];
   resolveSourceSecret?: (...args: any[]) => any;

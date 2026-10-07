@@ -1715,6 +1715,8 @@ function publicationControl(moon) {
   const localEffectSourceTokens = new WeakMap();
   const localEffectArtifactTokens = new WeakMap();
   const localEffectIdentityTokens = new WeakMap();
+  const tableInputTokens = new WeakMap();
+  const tablePreviewTokens = new WeakMap();
   const localEffectManifestTokens = new WeakMap();
   const localEffectDependencyTokens = new WeakMap();
   const localEffectImportTokens = new WeakMap();
@@ -2587,6 +2589,66 @@ function publicationControl(moon) {
       });
       localEffectIdentityTokens.set(value, issued);
       return value;
+    },
+    localEffectTableStorageMapping(artifact, limits) {
+      issuanceLimits(limits, 'Table storage mapping');
+      const owned = localEffectArtifactTokens.get(artifact);
+      if (owned === undefined) throw new TypeError('Foreign Table input Artifact');
+      const issued = checked(moon.clientProgramLocalEffectTableStorageMapping(
+        owned, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return Object.freeze({
+        identity: moon.clientProgramTableStorageMappingCid(issued),
+        wire: moon.clientProgramTableStorageMappingJson(issued),
+      });
+    },
+    bindTableInput(owner, inputs, memberIndex, artifact, identity, scope,
+      operationWire, limits) {
+      issuanceLimits(limits, 'Table input');
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      const ownedIdentity = localEffectIdentityTokens.get(identity);
+      if (ownedArtifact === undefined || ownedIdentity === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0 ||
+          typeof operationWire !== 'string') {
+        throw new TypeError('Invalid Table input owner');
+      }
+      const issued = checked(moon.clientProgramBindTableInput(
+        owner, inputs, memberIndex, ownedArtifact, ownedIdentity, scope,
+        operationWire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      // Content/owner binding only. Nothing stages or dispatches a Table write.
+      const value = Object.freeze({
+        wire: moon.clientProgramTableInputOperationJson(issued),
+      });
+      tableInputTokens.set(value, issued);
+      return value;
+    },
+    tableInputMatchesSource(input, artifact, identity) {
+      const ownedInput = tableInputTokens.get(input);
+      const ownedArtifact = localEffectArtifactTokens.get(artifact);
+      const ownedIdentity = localEffectIdentityTokens.get(identity);
+      if (ownedInput === undefined || ownedArtifact === undefined ||
+          ownedIdentity === undefined) {
+        throw new TypeError('Foreign Table input source');
+      }
+      return moon.clientProgramTableInputMatchesSource(ownedInput,
+        ownedArtifact, ownedIdentity);
+    },
+    bindTablePreview(input, capturedPreview, memberIndex) {
+      const ownedInput = tableInputTokens.get(input);
+      if (ownedInput === undefined || !Number.isSafeInteger(memberIndex) ||
+          memberIndex < 0) throw new TypeError('Invalid Table Preview input');
+      const issued = checked(moon.clientProgramBindTablePreview(ownedInput,
+        capturedPreview, memberIndex));
+      const value = Object.freeze({
+        subjectCid: moon.clientProgramTablePreviewSubjectCid(issued),
+        operationWire: moon.clientProgramTablePreviewOperationJson(issued),
+      });
+      tablePreviewTokens.set(value, issued);
+      return value;
+    },
+    tablePreviewInputAvailable(preview) {
+      const owned = tablePreviewTokens.get(preview);
+      if (owned === undefined) throw new TypeError('Foreign Table Preview');
+      return moon.clientProgramTablePreviewInputAvailable(owned);
     },
     checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
       runIdentityCid, authoringContextCid, identities, limits) {

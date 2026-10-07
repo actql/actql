@@ -159,10 +159,21 @@ without sending payload. It rejects a reply bound to another attempt, Run,
 Result or serialization contract, and invalid record/receipt combinations.
 A reader stays `opening` until it receives the opening response (HTTPS) or
 an accepted row (lazy Local frames). Failure before that observation leaves
-`open_unknown`, the original `attemptId`, and zero returned rows. Inspect
+`open_unknown`, the original `attemptId`, and zero returned rows.
+`explainReadFailure(error)` preserves that opening uncertainty instead of
+describing it as an authoritatively opened and stopped read. Inspect
 that attempt with `deliveryAttempt(id)` before deciding on an explicit new
 read. A `not_found` lookup does not prove that opening never committed, and
 lookup never reopens the payload or consumes another grant use.
+`explainDeliveryAttempt(lookup)` and `formatDeliveryAttempt(lookup, options)`
+explain that original SDK lookup without performing another operation. They
+distinguish an unresolved lookup, a recorded attempt, streaming, failed or
+cancelled Delivery, and Host-confirmed success with its matching release
+receipt. A copied lookup has no explanation custody. Host-confirmed bytes are
+not the caller's yielded-row count, and Delivery failure/cancellation does not
+fail/cancel the Run. The original read reference is retained as a read-only
+lookup candidate, never permission to reopen or rerun Compute. Standard
+wording is English; `locale: 'ja'` selects the existing Japanese localization.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator and transport EOF; values yielded before a failure

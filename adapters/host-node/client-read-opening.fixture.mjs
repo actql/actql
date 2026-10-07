@@ -112,7 +112,7 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory) {
   if (entrance === 'local') {
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       createNodeInProcessClientHost(fixture.services));
-    return {client, settled: async () => {}, close: () => client.close()};
+    return {client, endpoint: 'actql:embedded', settled: async () => {}, close: () => client.close()};
   }
   const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(tlsDirectory, name))));
   const originalCAs = getCACertificates('default');
@@ -128,9 +128,9 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory) {
     operation.finally(() => pending.delete(operation));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const client = await connect({mode: 'remote', token: 'fixture-token',
-    endpoint: `https://127.0.0.1:${server.address().port}/`});
-  return {client, settled: () => Promise.all([...pending]), async close() {
+  const endpoint = `https://127.0.0.1:${server.address().port}/`;
+  const client = await connect({mode: 'remote', token: 'fixture-token', endpoint});
+  return {client, endpoint, settled: () => Promise.all([...pending]), async close() {
     await client.close(); server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
     await Promise.all([...pending]);

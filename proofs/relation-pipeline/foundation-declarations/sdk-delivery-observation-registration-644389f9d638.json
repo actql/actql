@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-delivery-observation-registration-644389f9d638",
+  "kind": "change",
+  "revision": "644389f9d6382e344bc68cd0e7ea0fbd9e75525d",
+  "parents": [
+    "34632aecf5a9207a33a538928b8a749242fc9011"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "34632aecf5a9207a33a538928b8a749242fc9011",
+          "digest": "583ee703aa9f465a08aa96050a8c16f9a34d5d9b77856c7e687deccb36bb7942",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "7c1fed99333b9492cd5fa3a5c1ed11110dc47ac9103affd0ff580ca9ed472fe5",
+      "afterMode": "100644",
+      "reason": "Register actual submitted-Run Local/TLS HTTPS Delivery observation acceptance, independent SDK wire fixtures and typed read-only consumers in the existing Client gates. Preserve read-opening recovery, previous mutation guards and all inherited execution, proof and distribution checks."
+    }
+  ]
+}
