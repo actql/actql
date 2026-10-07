@@ -1,12 +1,11 @@
 ///|
-/// Direct scalar value-table stars use the ordinary visible element/index
-/// columns. Unknown expression shapes and STRUCT expansion remain unsupported;
-/// the shared checker still validates the array and all bound values.
-fn unnest_scalar_parameter(
+// Inspect admitted parameter contracts, never the rows, to establish a value
+// table's visible STRUCT fields even when the input is empty or NULL.
+fn unnest_parameter_element(
   expression : @query.Expression,
   declarations : @parameters.Declarations?,
-) -> Bool {
-  guard declarations is Some(declarations) else { return false }
+) -> @contract.Contract? {
+  guard declarations is Some(declarations) else { return None }
   let mut root = @query.expression_root(expression)
   while @query.expression_node(expression, root)
         is Some({ kind: Parenthesized(child), .. }) {
@@ -14,15 +13,29 @@ fn unnest_scalar_parameter(
   }
   guard @query.expression_node(expression, root)
     is Some({ kind: ParameterReference(name), .. }) else {
-    return false
+    return None
   }
   for declaration in @parameters.declarations(declarations) {
     if declaration.name == name {
       return match declaration.parameter_type.contract.shape {
-        @contract.Array(element, ..) => !(element.shape is @contract.Object(_))
-        _ => false
+        @contract.Array(element, ..) => Some(element)
+        _ => None
       }
     }
   }
-  false
+  None
+}
+
+///|
+// A STRUCT value-table range denotes its original value, but is not an extra
+// visible column. Current columns take precedence over a bare range name.
+fn unnest_expression_columns(
+  visible : Array[(String, String)],
+  receiver : (@query.NamePart, String)?,
+) -> Array[(String, String)] {
+  match receiver {
+    Some((name, slot)) if !pipe_name_exists(visible, name) =>
+      visible + [(name.value, slot)]
+    _ => visible
+  }
 }

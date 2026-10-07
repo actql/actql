@@ -23,6 +23,7 @@ fn retry_restored_standard_cleanup(
   root_path : String,
   custody : @journal.NativeOutputFileCustody,
   max_bytes : Int64,
+  release_input : () -> Bool,
 ) -> () -> Bool {
   let cleanup : Ref[(() -> Bool)?] = Ref(None)
   () => {
@@ -38,7 +39,9 @@ fn retry_restored_standard_cleanup(
         Ok(value) => value
         Err(_) => return false
       }
-      cleanup.val = Some(retain_standard_output_cleanup(Some(file), () => true))
+      cleanup.val = Some(
+        retain_standard_output_cleanup(Some(file), release_input),
+      )
     }
     cleanup.val.unwrap()()
   }
@@ -96,6 +99,7 @@ pub fn restore_native_remote_standard_output(
   max_bytes : Int64,
   current : () -> Bool,
   cleanup_current? : (() -> Bool)? = None,
+  release_input? : () -> Bool = () => true,
 ) -> NativeRemoteOutputRestoration {
   let initially_current = current()
   let record = @journal.recovered_site_dispatch_record(recovered)
@@ -114,7 +118,7 @@ pub fn restore_native_remote_standard_output(
   }
   let cleanup_authorized = cleanup_current.unwrap_or(current)
   let retry_cleanup = retry_restored_standard_cleanup(
-    root_path, custody, max_bytes,
+    root_path, custody, max_bytes, release_input,
   )
   let cleanup = () => cleanup_authorized() && retry_cleanup()
   let occurrence = @journal.native_output_file_custody_occurrence(custody)
@@ -130,7 +134,7 @@ pub fn restore_native_remote_standard_output(
     Ok(value) => value
     Err(_) => return restored_output_refused("output-restore-physical", cleanup)
   }
-  let release = retain_standard_output_cleanup(Some(file), () => true)
+  let release = retain_standard_output_cleanup(Some(file), release_input)
   if verify_restored_standard_stream(file, current) is Err(code) {
     return restored_output_refused(code, release)
   }
@@ -197,6 +201,7 @@ pub fn restore_native_remote_standard_runtime_output(
   max_bytes : Int64,
   current : () -> Bool,
   cleanup_current? : (() -> Bool)? = None,
+  release_input? : () -> Bool = () => true,
 ) -> @runtime.NativeCompletedRuntimeRestoration {
   let custody_current = cleanup_current.unwrap_or(current)
   let cleanup : @runtime.NativeCompletedCleanupRestoration = {
@@ -206,7 +211,9 @@ pub fn restore_native_remote_standard_runtime_output(
         is Some(custody) else {
         return () => false
       }
-      retry_restored_standard_cleanup(root_path, custody, max_bytes)
+      retry_restored_standard_cleanup(
+        root_path, custody, max_bytes, release_input,
+      )
     },
   }
   runtime.restore_completed(
@@ -221,6 +228,7 @@ pub fn restore_native_remote_standard_runtime_output(
           max_bytes,
           current,
           cleanup_current=Some(custody_current),
+          release_input~,
         ) {
         NativeRestoredOutput(@runtime.NativeRemoteOutputReady(output)) =>
           @runtime.RestoredCompletedOutput(output)
@@ -234,4 +242,22 @@ pub fn restore_native_remote_standard_runtime_output(
     },
     cleanup=Some(cleanup),
   )
+}
+
+///|
+/// Recover the existing sealed-output cleanup without reopening payload use.
+/// Both this file and the original input owner must confirm physical cleanup.
+pub fn prepare_native_remote_standard_saved_output_cleanup(
+  recovered : @journal.RecoveredSiteDispatch,
+  root_path : String,
+  max_bytes : Int64,
+  release_input : () -> Bool,
+  cleanup_current : () -> Bool,
+) -> (() -> Bool)? {
+  @journal.recovered_site_dispatch_file_custody(recovered).map(custody => {
+    let cleanup = retry_restored_standard_cleanup(
+      root_path, custody, max_bytes, release_input,
+    )
+    () => cleanup_current() && cleanup()
+  })
 }
