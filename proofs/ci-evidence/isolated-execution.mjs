@@ -12,9 +12,6 @@ import {copyRegular, stageDistribution, stageMutationSource, stagePipelinePristi
   isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, localScratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
-import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
-import {validateRequestedProgram} from '../relation-pipeline/execution-original.mjs';
-import {validateFixedJsReport} from '../relation-pipeline/fixed-js-replay.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 const command = (program, args, options = {}) => {
@@ -117,7 +114,16 @@ export function executeLocalIsolatedMutation({root, tree, prepared, engine, prof
   return execute({root, tree, prepared, execution: localExecution(engine), profile});
 }
 
-function execute({root, tree, prepared, execution, profile = 'session'}) {
+// Used by the real executor after independently checking the image, source and
+// requested profile. Scientific validation alone grants no input applicability.
+export async function checkIsolatedExecutionResult({profile = 'session', ...inputs}) {
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile), 'Unregistered scientific profile');
+  if (profile === 'session') return checkIsolatedResult(inputs);
+  const {checkPipelinePristineResult, checkPipelineFixedJsResult} = await import('./isolated-pipeline-results.mjs');
+  return profile === 'pipeline-pristine' ? checkPipelinePristineResult(inputs) : checkPipelineFixedJsResult(inputs);
+}
+
+async function execute({root, tree, prepared, execution, profile = 'session'}) {
   const inputStarted = performance.now();
   const docker = args => command(execution.engine, args);
   checkIsolatedInputs({runtime: prepared.runtime, manifest: prepared.manifest, tree, local: execution.local === true, profile});
@@ -150,9 +156,7 @@ function execute({root, tree, prepared, execution, profile = 'session'}) {
     const prefix = profile === 'session' ? 'ACTQL_ISOLATED_MUTATIONS ' : profile === 'pipeline-pristine' ? 'ACTQL_ISOLATED_PIPELINE_PRISTINE ' : 'ACTQL_ISOLATED_PIPELINE_FIXED_JS ', lines = result.stdout.split('\n');
     const records = lines.filter(line => line.startsWith(prefix)); assert.equal(records.length, 1, 'Missing/duplicate actual isolation observation');
     const payload = JSON.parse(records[0].slice(prefix.length));
-    if (profile === 'session') checkIsolatedResult({payload, manifest: prepared.manifest, before});
-    else if (profile === 'pipeline-pristine') checkPipelinePristineResult({payload, manifest: prepared.manifest, before});
-    else checkPipelineFixedJsResult({payload, manifest: prepared.manifest, before, tree});
+    await checkIsolatedExecutionResult({profile, payload, manifest: prepared.manifest, before, tree});
     assert.equal(checkMutationCheckout({root, tree, profile}).digest, before.digest, 'Host source changed during isolation');
     const output = `${lines.filter(line => !line.startsWith(prefix)).join('\n')}${result.stderr ?? ''}`;
     costs.inspectionMilliseconds = Math.round(performance.now() - start);
@@ -184,32 +188,4 @@ function execute({root, tree, prepared, execution, profile = 'session'}) {
   costs.closeMilliseconds = Math.round(performance.now() - start);
   if (failure) throw failure;
   return answer;
-}
-
-export function checkPipelinePristineResult({payload, manifest, before}) {
-  assert.equal(manifest.version, 'actql-isolated-pipeline-pristine-inputs/0.1');
-  assert.equal(payload.version, 'actql-isolated-pipeline-pristine-observation/0.1');
-  for (const field of ['root', 'platformInputs', 'environment'])
-    assert.equal(encode(payload[field]), encode(manifest[field]), 'Changed physical pipeline input');
-  assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.shellStartupConfirmed, true);
-  assert.equal(payload.sourcePreserved, true); assert.equal(payload.reuseAuthorized, false);
-  return validatePipelinePristineOriginal(payload.report, before, payload.files);
-}
-
-export function validatePipelinePristineOriginal(report, source, files) {
-  validatePristineReport(report, source, files);
-  for (const {receipt} of report.receipts) validateRequestedProgram(receipt);
-  return true;
-}
-
-export function checkPipelineFixedJsResult({payload, manifest, before, tree}) {
-  assert.equal(manifest.version, 'actql-isolated-pipeline-fixed-js-inputs/0.1');
-  assert.equal(payload.version, 'actql-isolated-pipeline-fixed-js-observation/0.1');
-  for (const field of ['root', 'platformInputs', 'environment'])
-    assert.equal(encode(payload[field]), encode(manifest[field]), 'Changed physical pipeline input');
-  assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.shellStartupConfirmed, true);
-  assert.equal(payload.sourcePreserved, true); assert.equal(payload.reuseAuthorized, false);
-  assert.equal(manifest.testedRevision, tree.revision);
-  return validateFixedJsReport({report: payload.report, source: before, files: payload.files,
-    revision: tree.revision, readSource: path => tree.read(path)});
 }

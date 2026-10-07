@@ -191,6 +191,8 @@ pub fn projection(CheckedOperation) -> Array[ProjectionField]
 
 pub fn projection_field_at(CheckedOperation, Int) -> ProjectionField?
 
+pub fn projection_field_count(CheckedOperation) -> Int
+
 pub fn ranking_term_at(CheckedOperation, Int) -> OrderTerm?
 
 pub fn ranking_term_count(CheckedOperation) -> Int

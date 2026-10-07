@@ -29,6 +29,16 @@ test('the real 30-action source catalog preserves every key for an unrelated Nod
   }
 });
 
+test('the actual Session catalog does not observe separate pipeline oracle edits', () => {
+  const candidate = changedTree('proofs/relation-pipeline/execution-original.mjs');
+  for (const action of catalog.actions) {
+    const before = inputs(action), after = inputs(action, candidate);
+    assert.equal(after.key, before.key, action.id);
+    assert.equal(compareInputs(before, after).equal, true, action.id);
+    assert.equal(compareInputs(before, after).eligible, false, 'Input equality cannot erase the unqualified runtime');
+  }
+});
+
 test('a real Session implementation edit invalidates connected actions while model evidence stays independent', () => {
   const candidate = changedTree('src/bounded_execution/session.mbt');
   for (const id of ['model', 'events-model']) {
