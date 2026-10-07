@@ -1671,9 +1671,9 @@ fn compile_steps(
     ranges: pipe_ranges.copy(),
   }
   let mut pipe_changed = initial_scope is Some(_)
-  // Materializing a SELECT resets private slots, not the replacement of
-  // range variables. Never resolve subsequent operators through the source
-  // alias again after Pipe AS has established a new scope.
+  // Materializing a SELECT resets private slots, not the current row scope.
+  // Once AS or SELECT replaces the source scope, later operators must not
+  // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
   let mut distinct_order_scope = false
@@ -3906,6 +3906,14 @@ fn compile_steps(
         // while the query's deferred ORDER still consumes the input snapshot.
         pipe_ranges = []
       }
+      // Preserve the existing deferred query ORDER exception for the directly
+      // following ORDER, including an elided identity projection.
+      // Every other continuation uses only the materialized output scope.
+      if !(@query.operation_at(query, i + 1) is Some(Order(_))) {
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+      }
     }
     if add_distinct {
       step_entries.push([
@@ -3916,6 +3924,13 @@ fn compile_steps(
       ])
     }
     if operation is Order(_) {
+      if i > 0 && @query.operation_at(query, i - 1) is Some(Select(_, _)) {
+        // The SELECT-owned ORDER has consumed its input snapshot. Neither
+        // initial-range fallback nor selected-expression reuse may revive it.
+        pipe_rebound = true
+        pipe_selected = false
+        distinct_order_scope = false
+      }
       match pending_select {
         Some(selection) => {
           step_entries.push(selection)
