@@ -125,9 +125,19 @@ No packed artifact is produced or claimed.
 
 ## Fixed-source integration evidence
 
-The verified integrated source is
-`1b8d0c668f61e9b4536652c13e1c6a8ed616dbf9`, with a clean worktree for each
+The final verified source is
+`2ae09d66393fc08835725a392e54034b9203fde0`, with a clean worktree for each
 test. The commands above completed with complete output and released locks:
+
+- Focused JS: 27/27, `run-KdP0Xi` / `focused-test-Ad9Q4E`.
+- Actual DuckDB/Store callers, serial: 2/2 top-level cases,
+  `run-hEQoDl` / `focused-test-HMQmnP`.
+- The eight affected MoonBit files match the pinned formatter. The first
+  final formatting comparison found noncanonical layout; the formatter-only
+  changes were committed before these fixed-source tests.
+
+The earlier integrated source
+`1b8d0c668f61e9b4536652c13e1c6a8ed616dbf9` was also checked cleanly:
 
 - Program-preparation runtime build: `run-p1OWW2`, two compilation tasks.
 - Focused JS: 27/27, `run-1vukcE` / `focused-test-tWQ4kl`.
