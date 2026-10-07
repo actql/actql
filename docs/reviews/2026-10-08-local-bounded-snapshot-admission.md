@@ -145,7 +145,52 @@ possible snapshot poll has a universal time bound.
 
 Full Core, Wasm/Native execution, packed/HTTPS, proof and performance campaigns
 were not run. Exact submitted-HEAD hosted verification must be reported
-separately. No manual CI rerun, main merge or history rewrite is part of this
-unit. The parent #913's requested message-only repair remains a separate
-permission-dependent matter; these new commit messages satisfy the 72-column
-Conventional Commits requirement.
+separately. No manual CI rerun or history rewrite is part of this unit.
+Existing parent history is preserved; the new commit messages satisfy the
+72-column Conventional Commits requirement.
+
+## Main integration
+
+After confirming that #913, #911 and #907 had merged to main, this branch
+normally merged the published parent
+`a76ca3d0b251078c38d6264026b31054cdb7d24b` and then current main
+`4256490e50dec0eb261c35c156210a62539aabc6`. Both merges were conflict-free;
+no history, parent declaration, independent expectation or limit was changed
+to accommodate the integration. PR #921 can target main without unmerged
+parent dependencies.
+
+The clean integrated implementation is
+`c91c4425737430ad0c43a4c62aa827bd4f6efc56`. On this source:
+
+- The same focused common JS selection above passed 14/14 in `run-iREjyV`
+  / `focused-test-2Gdy9d`.
+- Both consumed release runtime roots were rebuilt from the integrated
+  sources, with 74 build tasks in `run-rBpcU7`.
+- The two long-Text snapshot Host cases passed 2/2 in `run-CSKGdt`
+  / `focused-test-klsBpP`. The selected command was the Host command above
+  with `--test-name-pattern '^retained Result snapshot admission yields
+  inside long Text: (success|cancel-during-result-snapshot)$'` on one line.
+  It exercised real retained/publication Stores, the exact three committed
+  names, independently expected Unicode/NULL rows and order, cancellation
+  inside admission, parent custody and final reservation release without
+  additional Compute.
+- Node Host and Workers fixtures, both composition generators and
+  `git diff --check` passed again. Runtime bundles remain ignored.
+
+Before adopting latest main, common JS passed 14/14 and the Node controls/Store
+selection passed 19/19 at `da0acded73b7ac90676095a9c59a266a513a31d4`
+(`run-tWGKOk` / `focused-test-3TwmHP` and `run-38MLSK` /
+`focused-test-abuzFw`). The three Node test files and their two shared adapter
+implementation files have identical Git content at the final integrated
+source; that earlier 19-case run is retained as scoped evidence, not relabeled
+as a new 19-case execution. The earlier recursive-schema Host case and
+624-case affected-package run likewise retain their original provenance.
+
+The remaining aggregate boundary is concrete: `seal_effect_context` emits
+every snapshot's canonical rows, and `issue_captured_computation_run` then
+seals and validates the complete capture through synchronous hashing and
+row checks. Splitting only the JS await or dropping those checks would not
+close this boundary. The next unit must resume the existing common issuer
+and its validation while preserving exact snapshot/Artifact bindings, private
+capture identity and publication custody. This integration does not claim
+that remaining work or hosted/all-target/packed verification has completed.

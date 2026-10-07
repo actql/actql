@@ -6952,6 +6952,14 @@ rows and exact order. Cancellation is delivered after positive canonical
 Text progress, before publication, and existing cleanup returns reservations
 without redispatching Compute. This depends on #913, #911 and #907.
 
+Those prerequisites are now merged. PR #921 normally adopts main
+`4256490e50dec0eb261c35c156210a62539aabc6` without conflicts and targets
+main. The clean integrated source
+`c91c4425737430ad0c43a4c62aa827bd4f6efc56` passes common JS 14/14 and the
+two real-Store snapshot success/cancellation cases 2/2 with matching rebuilt
+runtimes. Earlier checks retain their own source provenance in the record;
+integration does not relabel them as fresh hosted or packed evidence.
+
 Field-name normalization/key hashing, generic long numeric lexemes,
 contiguous-string/allocation latency, physical chunk admission, aggregate
 Captured Run serialization and explicit blocking Native/direct consumers
