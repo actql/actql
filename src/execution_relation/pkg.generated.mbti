@@ -103,6 +103,8 @@ pub fn advance_managed_output_values_finish(ManagedOutputValues, Int) -> Result[
 
 pub fn advance_managed_output_values_reclamation(ManagedOutputValues, Int) -> Bool
 
+pub fn[P, T] advance_managed_view_output_finish(ManagedViewOutputPort[P, T], P, Int) -> Result[ManagedOutputFinishAdvance, ManagedViewOutputIssue]
+
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
 pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[ProducerRead?, ProducerReadIssue]
