@@ -118,7 +118,8 @@ test('any-direction Graph controls are staged and exercised in normal and focuse
   assert.ok(consumer.includes('scopeInputs.successes.push(...graphAnyDirectionSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAnyDirectionRefusals)'));
   assert.ok(consumer.includes('scopeInputs.executionFailures.push(...graphAnyDirectionExecutionFailures)'));
-  assert.ok(consumer.includes('const scopeOnly = graphAnyDirectionOnly ||'));
+  const scopeOnly = /const scopeOnly = ([^\n]+);/u.exec(consumer)?.[1];
+  assert.ok(scopeOnly?.split(/\s+\|\|\s+/u).includes('graphAnyDirectionOnly'));
   const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
   assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].direction, 'both');
   assert.equal(controls[1].stages[0].steps[4].traverse.direction, 'both');
