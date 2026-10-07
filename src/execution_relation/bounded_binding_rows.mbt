@@ -836,7 +836,9 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
     state.predicate_execution = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   if state.scope is Some(scope) {
@@ -3354,7 +3356,6 @@ fn bounded_binding_rows_step(
         guard state.output is Some(output) else {
           return fail_bounded_binding_rows(InvalidExecution, progress, used)
         }
-        state.output = None
         if state.scope is Some(scope) {
           cleanup_expression_roots(scope)
         }
@@ -3968,7 +3969,12 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), max_rows, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      max_rows,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }

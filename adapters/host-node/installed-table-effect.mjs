@@ -41,7 +41,9 @@ const defaults = Object.freeze({
   maxWork: 10000, maxFrontierWork: 1000, maxRevisions: 100,
   maxInputBytes: 1000000, maxEntryBytes: 1000000,
   preview: {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64},
-  material: {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64, maxWork: 10000},
+  // Table operation/receipt admission has a smaller closed envelope than the
+  // containing Effect Preview. These bounds also admit storage mappings.
+  material: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16, maxWork: 10000},
   key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8},
   locator: {maxBytes: 4096},
   entry: {maxWireBytes: 1000000, maxNodes: 1000, maxDepth: 32},
@@ -62,6 +64,10 @@ export function checkInstalledTableEffectLimits(supplied = {}) {
       ? !object(value) || Object.entries(value).some(([name, bound]) =>
         !Object.hasOwn(model, name) || !positive(bound))
       : !positive(value)) fail('InvalidInstalledTableEffectLimits');
+  }
+  if (Object.entries(supplied.material ?? {}).some(([key, bound]) =>
+    bound > (key === 'maxWork' ? 2147483647 : defaults.material[key]))) {
+    fail('InvalidInstalledTableEffectLimits');
   }
   return supplied;
 }
@@ -443,7 +449,11 @@ export async function createInstalledTableEffect({moon, environmentWire,
       };
       return Object.freeze({...commonStage({control, store, execution: null, storedResults,
         computation, preview, applyPreview, ledger, body, members: recorded.members, scopes,
-        owner, request: provider.request, attempt: provider.attempt,
+        owner, request: provider.request,
+        // JSON omits an undefined optional key. Restore the existing closed
+        // publication-attempt shape without issuing a new attempt or key.
+        attempt: {...provider.attempt,
+          externalIdempotencyKey: provider.attempt?.externalIdempotencyKey},
         contractLimits: localContractLimits, now: () => new Date().toISOString(),
         continuationWire: wire(provider)}),
         apply: {moon, store, publicationControl: control, computation, preview, ledger,

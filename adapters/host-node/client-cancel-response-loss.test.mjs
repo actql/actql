@@ -806,6 +806,49 @@ for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']
     const current = await f.execution.status();
     assert.equal(current.control.physical_stop, 'unknown');
     assert.notEqual(current.status, 'cancelled');
-    assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+    // The default cancellation first observes the revision; the later status
+    // remains an independent observation of physical-stop uncertainty.
+    assert.deepEqual(f.operations, ['connect', 'attach', 'status', 'cancel', 'status']);
+  });
+
+  test(`${entrance}: request lookup verification faults preserve original uncertainty and journal custody`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    const ref = {...f.execution.ref};
+    const clone = globalThis.structuredClone;
+    const privateCause = new Error('private-lookup-verification-getter');
+    let copies = 0, reads = 0, failure;
+    // Inject only SDK verification-copy access, after the real Local/HTTPS
+    // journal lookup. This is not ordinary native structuredClone behavior.
+    const mocked = t.mock.method(globalThis, 'structuredClone', value => {
+      const copy = clone(value);
+      if (value?.kind === 'found' && value.requestId === requestId) {
+        copies++;
+        Object.defineProperty(copy, 'ref', {enumerable: true, configurable: true,
+          get() { reads++; throw privateCause; }});
+      }
+      return copy;
+    });
+    try { await f.client.lookupRequest(requestId); } catch (error) { failure = error; }
+    finally { mocked.mock.restore(); }
+    assert.equal(copies, 1);
+    assert.equal(reads, 1);
+    assert.deepEqual(f.execution.ref, ref);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    assert.deepEqual(f.operations, ['connect', 'attach', 'lookup-request']);
+    assert.equal(failure?.code, 'InvalidHostRequestLookup', '[lookup-verification:public-classification]');
+    assert.notEqual(failure, privateCause);
+    const explanation = sdk.explainRequestLookup(failure);
+    assert.equal(explanation.observation, 'lookup_uninterpretable');
+    assert.equal(explanation.next.operation, 'lookupRequest');
+    assert.equal(explanation.next.requestId, requestId);
+    assert.equal(explanation.next.lookupContext.scopeRef, 'local-principal');
+    assert.equal(sdk.explainRequestLookup({...failure}), undefined);
+    const current = await f.execution.status();
+    assert.equal(current.status, 'running');
+    assert.equal(current.control.physical_stop, 'unknown');
+    assert.equal(current.control.cancellation_requested, false);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
   });
 }
