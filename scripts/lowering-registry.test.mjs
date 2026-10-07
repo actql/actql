@@ -118,3 +118,18 @@ test('preparation handlers use pinned relation signatures', () => {
     assert.ok(source.includes(`=> "${op}"`));
   }
 });
+
+test('public ordered compiler bodies are generated from the selected registration', () => {
+  const source = read('src/run_publication_host/registry_bodies.generated.mbt');
+  for (const [name, body] of [
+    ['body', registry],
+    ['values', contract.execution_contracts['REL.values']],
+    ['ordered', contract.execution_contracts['REL.derive.ordered']],
+  ]) {
+    const declaration = `fn compiler_registered_${name}_wire() -> String {`;
+    const start = source.indexOf(declaration);
+    assert.ok(start >= 0, declaration);
+    const literal = source.slice(start + declaration.length).trimStart().split('\n')[0];
+    assert.deepEqual(JSON.parse(JSON.parse(literal)), body);
+  }
+});

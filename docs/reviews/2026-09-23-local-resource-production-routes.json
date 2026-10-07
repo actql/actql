@@ -1753,6 +1753,13 @@
           "fixture": "public retained borrowed bindings preserve map values NULL and post-progress custody"
         },
         {
+          "role": "derive_ordered_bindings_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered bindings preserve prior slots NULL and post-progress custody"
+        },
+        {
           "role": "derive_raw_text_child_public",
           "suite": "node:embedded_property_names",
           "targets": ["node"],
