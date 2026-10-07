@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {connect, getSubmissionInput, explainSubmission, RequestHeld} from './index.mjs';
+import {connect, getSubmissionInput, getSubmissionOutcome, explainSubmission, RequestHeld} from './index.mjs';
 
 const cid = x => `sha256:${x.repeat(64)}`;
 const ref = {namespaceId: 'query-test', authorityScopeCid: cid('a'),
@@ -305,4 +305,48 @@ test('collection argument failures reject after query success without reading', 
   const result = await query;
   assert.deepEqual(result.ref.run, ref);
   assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('read'), 0);
+});
+
+test('short query and collection retain the exact original before a lost reply', async t => {
+  const f = await fixture(t, {'submit-intent': () => {throw new Error('lost reply');}});
+  const original = f.client.newSubmission({nonce: 'saved-exact-query'});
+  const parameters = {nested: ['e\u0301', 'é', '\r', '\n', '\r\n']};
+  const text = "SELECT 'e\u0301\r\n' AS value";
+  const query = f.client.aql(text, parameters, {submissionRef: original});
+  const collected = query.all();
+  const saved = getSubmissionInput(query);
+  assert.deepEqual(saved.submissionRef, original);
+  assert.equal(saved.input.text, text);
+  assert.equal(getSubmissionInput(collected), saved);
+  parameters.nested[0] = 'changed after call';
+  let failure;
+  await assert.rejects(query, error => {
+    failure = error;
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(getSubmissionInput(error), saved);
+    assert.deepEqual(saved.parameters.nested, ['e\u0301', 'é', '\r', '\n', '\r\n']);
+    return true;
+  });
+  await assert.rejects(collected, error => error === failure);
+  assert.equal(f.count('submit-intent'), 1);
+  assert.equal(f.count('wait'), 0);
+  assert.equal(f.count('read'), 0);
+});
+
+test('query observation loss retains the actual accepted submission outcome', async t => {
+  const f = await fixture(t, {wait: () => {throw new Error('wait reply lost');}});
+  const original = f.client.newSubmission({nonce: 'accepted-observation-loss'});
+  const query = f.client.sql('SELECT 1', undefined, {submissionRef: original});
+  const saved = getSubmissionInput(query);
+  await assert.rejects(query, error => {
+    assert.equal(error.code, 'QueryObservationUnknown');
+    assert.equal(getSubmissionInput(error), saved);
+    assert.equal(getSubmissionOutcome(error).kind, 'ready');
+    assert.deepEqual(getSubmissionOutcome(error).submissionRef, original);
+    assert.deepEqual(getSubmissionOutcome(error).admission.ref, ref);
+    return true;
+  });
+  assert.equal(f.count('submit-intent'), 1);
+  assert.equal(f.count('wait'), 1);
+  assert.equal(f.count('read'), 0);
 });
