@@ -90,6 +90,62 @@ fn report_fixture(
 }
 
 ///|
+test "native reserved Output survives missing report and rejects another dispatch" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    fail("real SQLite library is required")
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    fail("real SQLite root is required")
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/reserved-output-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let open = () => {
+    open_journal(library, database_path, 2097152L, test_control(test_site())).unwrap()
+  }
+  let request = test_request("reserved-output")
+  let output = @remote.remote_output_report_custody_output(
+    report_fixture(request, "reserved-transfer"),
+  )
+  let key = @remote.remote_output_intent_identity(
+    @remote.remote_poll_output_intent(output),
+  )
+  let original = @remote.remote_poll_output_json(
+    request,
+    @remote.remote_poll_output_intent(output),
+  ).unwrap()
+  let journal = open()
+  journal.accept(request).unwrap() |> ignore
+  assert_true(journal.reserved_output(request, key).unwrap() is None)
+  journal.reserve_output_report(output).unwrap()
+  assert_true(journal.output_report(key) is Err(_))
+  assert_true(journal.close())
+  let restored = open()
+  let saved = restored.reserved_output(request, key).unwrap().unwrap()
+  assert_eq(
+    @remote.remote_poll_output_json(
+      @remote.remote_poll_output_request(saved),
+      @remote.remote_poll_output_intent(saved),
+    ).unwrap(),
+    original,
+  )
+  assert_true(restored.reserved_output(request, "missing").unwrap() is None)
+  let foreign = test_request_for(
+    "another-reserved-output",
+    8,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  restored.accept(foreign).unwrap() |> ignore
+  assert_true(restored.reserved_output(foreign, key) is Err(StateCollision))
+  assert_true(restored.output_report(key) is Err(_))
+  assert_eq(restored.pending_output_intents().unwrap().length(), 0)
+  assert_true(restored.close())
+}
+
+///|
 test "native report custody survives cleanup, reopen, refusal and exact ACK" {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
     fail("real SQLite library is required")
