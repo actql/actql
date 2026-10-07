@@ -213,6 +213,7 @@ const installation = {directory: path('host'), modelInstallation, authorization,
           assert.ok(fixtureInputs.includes(text), `The fixed input changed: ${text}`);
           assert.ok(!calls().some(value => value.text === text), `Duplicate physical send: ${text}`);
           log('provider-calls.jsonl', {text, providerRevision, phase});
+          if (options.providerReplyLoss === 'crash') crash('provider_response_lost', {text});
           if (['approve-crash-unknown', 'immediate-crash-unknown'].includes(phase) &&
               text === 'bravo') crash('provider_response_lost', {text});
           return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk.get(text)}),
@@ -244,6 +245,16 @@ async function until(check) {
     await new Promise(resolve => setTimeout(resolve, 20));
   } while (Date.now() < deadline);
   throw new Error(`PublicModelBoundaryTimeout: ${JSON.stringify(observations.slice(-12))}`);
+}
+async function unknownRunRetained() {
+  const state = await run.status();
+  const database = new DatabaseSync(path('host/checkpoints/journal/checkpoint-journal.sqlite3'),
+    {readOnly: true});
+  try {
+    const retained = database.prepare('SELECT status FROM runs WHERE run_id = ?').get(state.run_id);
+    return state.status === 'needs_reconciliation' && retained?.status === 'needs_reconciliation'
+      ? state : undefined;
+  } finally { database.close(); }
 }
 try {
   if (transport === 'https') {
@@ -392,7 +403,8 @@ try {
       const second = await run.lookupCancellation(cancelRef);
       assert.deepEqual(second, first);
       cancellationRecovery = {cancelRef, first, second, unknownCode: 'CancellationUnknown'};
-      if (options.commitLoss === 'after') await until(async () => {
+      if (options.providerReplyLoss) await until(unknownRunRetained);
+      else if (options.commitLoss === 'after') await until(async () => {
         const state = await run.status();
         return state.status === 'cancelled' ? state : undefined;
       });
@@ -402,6 +414,7 @@ try {
       const second = await run.lookupCancellation(cancelRef);
       assert.deepEqual(second, first);
       cancellationRecovery = {cancelRef, first, second};
+      if (options.expectedModelUnknown) await until(unknownRunRetained);
     } else if (phase === 'lookup-cancel-fence-loss') {
       const cancelRef = read('cancel-ref.json');
       const first = await run.lookupCancellation(cancelRef);
