@@ -36,6 +36,7 @@ import {loadDuckDBNativeRuntime} from '../connectors/duckdb/node/native-runtime.
 import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
+import {readSourceProfileJson} from './source-profile-json.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -97,13 +98,7 @@ export async function installedSourceIdentity(path) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  const read = async name => {
-    const bytes = await readFile(name);
-    if (bytes.byteLength > 8 * 1024 * 1024) {
-      throw new TypeError('InvalidInstalledSourceProfile');
-    }
-    return JSON.parse(bytes.toString('utf8'));
-  };
+  const read = readSourceProfileJson;
   const profile = await read(path);
   const {providerProfile, queryAliases} = splitSourceAliasProfile(profile);
   // Omission and an explicitly empty alias publication have the same meaning.
@@ -175,7 +170,7 @@ async function readProfile(path) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     throw new TypeError('InvalidInstalledSourceProfilePath');
   }
-  try { return JSON.parse(await readFile(path, 'utf8')); }
+  try { return await readSourceProfileJson(path); }
   catch (cause) {
     throw Object.assign(new TypeError('InvalidInstalledSourceProfile',
       {cause}), {code: 'InvalidInstalledSourceProfile'});
