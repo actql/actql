@@ -54,6 +54,18 @@ async function fixture(t, callbacks = {}) {
     authorize: value => {authorized = value;}, restart() {journal.close(); journal = openClientRequestJournal(root); install();}};
 }
 
+// Check observations are transient submit metadata, not durable acceptance.
+function acceptanceFacts(response) {
+  const {checkObservation, ...facts} = response;
+  if (checkObservation !== undefined) assert.equal(validCheckOutcome(checkObservation), true);
+  return facts;
+}
+function assertReferenceOnly(actual, original, message) {
+  assert.equal(Object.hasOwn(actual, 'checkObservation'), false,
+    '[check-mutation:submission-check-reference-only]');
+  assert.deepEqual(actual, acceptanceFacts(original), message);
+}
+
 function admitOriginal(f, value) {
   const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
   const fixed = digit => 'sha256:' + digit.repeat(64);
@@ -87,7 +99,7 @@ test('ready lookup stays read-only while explicit replay re-enters the original 
   const original = await f.service.submitIntent(f.body());
   assert.equal(original.kind, 'ready');
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
   assert.deepEqual(f.counts, {prepare: 1, submit: 1}, 'lookup does not resume physical work');
   assert.deepEqual(await f.service.submitIntent(f.body()), original);
   assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'explicit replay reaches the existing Run owner');
@@ -110,7 +122,7 @@ test('ready replay rechecks current authority after awaited preparation and reta
   assert.deepEqual(f.counts, {prepare: 2, submit: 1});
   f.authorize(true);
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), original);
 });
 
 test('public Local submission lookup returns a durable pre-admission refusal after restart', async t => {
@@ -123,7 +135,7 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   f.restart();
   const restored = await f.port().perform('lookup-submission', {connection, submissionRef: f.ref});
-  assert.deepEqual(restored, reply);
+  assertReferenceOnly(restored, reply);
   assert.equal(validSubmissionLookup(restored, connection, f.ref), true);
   assert.deepEqual(await f.port().perform('submit-intent', wireBody), reply);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
@@ -163,10 +175,15 @@ test('retained Source input problems recheck original intent and current disclos
     '[check-mutation:submission-disclosure]');
   assert.equal(hidden.kind, 'not_accepted');
   assert.deepEqual(hidden.submissionRef, first.submissionRef);
-  assert.deepEqual(await f.service.submitIntent(f.body('SELECT missing AS n FROM records')), hidden);
+  const replay = await f.service.submitIntent(f.body('SELECT missing AS n FROM records'));
+  assert.deepEqual(acceptanceFacts(replay), hidden);
+  assert.equal(replay.checkObservation.report.verdict, 'undetermined');
+  assert.deepEqual(replay.checkObservation.report.reasons, []);
+  assert.deepEqual(replay.checkObservation.report.coverage, {limits: [], unresolved: [
+    {boundary: 'source_resolution', reason: 'unresolved_protected'}]});
   visible = true;
   const restored = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
-  assert.deepEqual(restored, first, '[check-mutation:submission-disclosure]');
+  assertReferenceOnly(restored, first, '[check-mutation:submission-disclosure]');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   assert.ok(checks >= 4);
 });
@@ -185,7 +202,7 @@ test('submission disclosure retains an admitted partial invalid report across or
   const first = await f.service.submitIntent(f.body('SELECT missing AS n'));
   assert.deepEqual(first.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
@@ -228,7 +245,7 @@ for (const mode of ['undetermined', 'failed', 'unavailable', 'malformed', 'excep
     assert.deepEqual(result.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
       '[check-mutation:submission-reporting]');
     f.restart();
-    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), result);
+    assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), result);
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });
 }
@@ -240,7 +257,7 @@ test('accepted preparation failure remains accepted with no invented Run identit
   assert.equal(reply.problem.classification, 'requirements');
   assert.equal('ref' in reply, false);
   f.restart();
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), reply);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), reply);
   assert.deepEqual(await f.service.submitIntent(f.body()), reply);
   assert.deepEqual(f.counts, {prepare: 1, submit: 1});
 });
@@ -331,7 +348,7 @@ test('retained Source analysis budget rechecks original intent and current discl
   assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
     '[check-mutation:submission-budget-disclosure]');
   disclosed = true;
-  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
   assert.ok(observed.every(text => text === 'SELECT original AS n'));
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
@@ -365,7 +382,7 @@ for (const partial of [false, true]) {
     assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
       '[check-mutation:submission-implementation-disclosure]');
     limit = 'implementation_limit';
-    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+    assertReferenceOnly(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
     assert.ok(observed.every(text => text === 'SELECT original AS n'));
     assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   });
