@@ -145,3 +145,44 @@ test('raw Source budget remains private without an admitted public budget fact',
     assert.equal(f.checks, 1);
   }
 });
+
+
+test('typed common-checker implementation limit is distinct from Host feature refusal', async () => {
+  const f = installation('check_unsupported', verified);
+  await assert.rejects(async () => f.prepare({kind: 'program', input: {}, parameters: null}),
+    {code: 'ClientProgramImplementationLimit'});
+  assert.equal(f.checks, 0);
+});
+
+for (const partial of [false, true]) {
+  test(`Source implementation disclosure uses an admitted ${partial ? 'partial' : 'completed'} public fact`, async () => {
+    const report = structuredClone(verified.report);
+    report.verdict = 'undetermined';
+    report.coverage.limits = [{code: 'implementation_limit'}];
+    const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
+    assert.equal(validCheckOutcome(outcome), true);
+    for (const category of ['source_unsupported', 'source_rejected', 'source_invalid_input', 'check_unsupported']) {
+      const f = installation(category, outcome);
+      let error;
+      try { await f.prepare(sourceRequest); } catch (cause) {error = cause;}
+      assert.equal(error?.code, 'ClientProgramImplementationLimit', '[check-mutation:preparation-implementation]');
+      assert.equal(f.checks, 1);
+    }
+  });
+}
+
+for (const category of ['source_unsupported', 'source_invalid_input', 'check_unsupported', 'check_invalid_input']) {
+  test(`Source ${category} has no public fact without admitted checking evidence`, async () => {
+    for (const input of [verified, failed, new Error('private checker failure')]) {
+      const f = installation(category, input);
+      await assert.rejects(async () => f.prepare(sourceRequest), {code: 'ClientProgramRejected'});
+      assert.equal(f.checks, 1);
+    }
+  });
+}
+
+test('independent Host Effect feature refusal is not inferred from checking support', async () => {
+  const f = installation('effect_not_supported', verified);
+  await assert.rejects(async () => f.prepare(sourceRequest), {code: 'ClientProgramUnsupported'});
+  assert.equal(f.checks, 0);
+});

@@ -43,12 +43,16 @@ async function waitFor(check) {
   throw new Error('EmbeddedStepTimeout');
 }
 const refPath = `${installationPath}.ref.json`;
+const submissionPath = `${installationPath}.submission-ref.json`;
 try {
   if (step === 'submit') {
+    const submissionRef = client.newSubmission({nonce: installation.requestId});
+    writeFileSync(submissionPath, JSON.stringify(submissionRef) + '\n',
+      {flag: 'wx', mode: 0o600});
     let execution;
     try {
       execution = await client.startSource(installation.program, {format: 'json',
-        requestId: installation.requestId});
+        submissionRef});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {
         console.log(JSON.stringify({notConnected: true}));
@@ -58,7 +62,7 @@ try {
     }
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
-    writeFileSync(refPath, JSON.stringify(execution.ref));
+    writeFileSync(refPath, JSON.stringify(execution.ref), {flag: 'wx', mode: 0o600});
     console.log(JSON.stringify({held: true}));
   } else if (step === 'answer') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
@@ -73,6 +77,11 @@ try {
       item.status)}));
   } else if (step === 'resume') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
+    const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
     const execution = await client.attach(ref);
     const state = await waitFor(async () => {
       const current = await execution.status();

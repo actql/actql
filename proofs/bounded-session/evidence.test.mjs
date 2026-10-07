@@ -115,7 +115,7 @@ function fixture() {
   const result = { exit: 0, passed: true, count: 1, target: 'native', sourceDigest: current.digest,
     artifacts: { 'native.exe': 'current-binary' } };
   const report = { target: 'native', source: current, runs: {
-    lean: { ...result, command: ['node', 'proofs/bounded-session/check.mjs'], artifacts: {} },
+    lean: { ...result, target: 'model', count: 14, command: ['node', 'proofs/bounded-session/check.mjs'], artifacts: {} },
     'session-native': { ...result, command: ['moon', 'test', 'src/bounded_execution', '--target', 'native', '--deny-warn'] },
     'adapter-native': { ...result, command: ['moon', 'test', 'src/connectors/local', '--target', 'native', '--deny-warn'] },
     'connection-native': { ...result, coverage: executedConnectionCoverage(),
@@ -255,4 +255,22 @@ test('concatenated premise text cannot satisfy independent common obligations', 
   const e = fixture(); e.nodes.at(-1).premises = premises.join('; ');
   assert.throws(() => validate(e.nodes, e.report, e.current, 'native'), /Missing premise/);
   assert.throws(() => checkBindings(root, [{...binding, premises: premises.join('; ')}]), /missing premise/i);
+});
+
+for (const [label, change] of [
+  ['zero laws', run => { run.count = 0; }],
+  ['missing count', run => { delete run.count; }],
+  ['partial laws', run => { run.count = 13; }],
+  ['extra laws', run => { run.count = 15; }],
+  ['string count', run => { run.count = '14'; }],
+  ['runtime target', run => { run.target = 'native'; }],
+  ['missing target', run => { delete run.target; }],
+  ['other executor', run => { run.command[0] = 'python'; }],
+  ['extra arguments', run => { run.command.push('--skip-audit'); }],
+]) test(`common model refuses ${label} for Set and Nest derivations`, () => {
+  for (const make of [fixture, nestFixture]) {
+    const {nodes, report, current} = make();
+    change(report.runs.lean);
+    assert.throws(() => validate(nodes, report, current, 'native'), /Wrong proof artifact/);
+  }
 });

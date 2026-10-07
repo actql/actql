@@ -1,7 +1,7 @@
 // Rebuild-time assembly only. Concrete module references come from manifests
 // owned by connector packages; the common Host has no provider imports.
 import {readFileSync, existsSync, writeFileSync, mkdirSync, lstatSync, realpathSync} from 'node:fs';
-import {dirname, join, relative, resolve} from 'node:path';
+import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
@@ -10,26 +10,68 @@ import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 import {reservedHttpHeader} from '../adapters/host-common/http-exchange.mjs';
 
 export function checkNodeAssembly(root, write = false, options = {}) {
+const buildInputs = options.buildInputs;
+if (buildInputs !== undefined && (options.names !== undefined ||
+    resolve(root) !== buildInputs.host.root)) {
+  throw new Error('InvalidResolvedNodeBuildSelection');
+}
+const sourceRoot = buildInputs?.host.sourceRoot ?? join(root, 'src');
+const coreRoot = buildInputs?.coreRoot ?? root;
 const assembly = options.assembly ?? 'connectors_builtin';
 const bridgePackage = options.bridge ?? 'connectors_builtin_node';
 const adapter = options.adapter ?? 'connectors-builtin';
-const loading = options.loading ?? 'selected';
-const nativeRemoteStandard = options.nativeRemoteStandard ?? true;
+const loading = options.loading ?? (buildInputs === undefined ? 'selected' : 'static');
+const nativeRemoteStandard = options.nativeRemoteStandard ?? (buildInputs === undefined);
 const selectedFamilies = options.selectedFamilies ??
-  bridgePackage === 'connectors_builtin_node';
+  (buildInputs === undefined && bridgePackage === 'connectors_builtin_node');
 if (!['selected', 'static'].includes(loading)) throw new Error('Invalid module loading profile');
 if (![assembly, bridgePackage].every(value => /^[a-z][a-z0-9_]*$/.test(value)) ||
     !/^[a-z][a-z0-9_-]*$/.test(adapter)) throw new Error('Invalid bridge output');
-const selected = connectorManifestSelection(root, {names: options.names});
+const withInstallations = options.installations ??
+  (buildInputs === undefined && adapter === 'connectors-builtin');
+if (buildInputs !== undefined && (loading !== 'static' || withInstallations)) {
+  throw new Error('UnsupportedExternalNodeBuildProfile');
+}
+if (buildInputs !== undefined) {
+  // This first external profile is a generated Compute bridge. Product Client
+  // bridge extensions have their own inputs and are not inferred from files.
+  for (const name of ['local_carrier_bridge.mbt', 'client_program_bridge.mbt',
+    'client_infer_bridge.mbt', 'authorization_bridge.mbt', 'client_check.mbt',
+    'client-program-dependencies.json', 'client-execution-dependencies.json']) {
+    const path = join(sourceRoot, bridgePackage, name);
+    try { lstatSync(path); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    throw new Error('UnsupportedExternalNodeBridgeExtension');
+  }
+}
+const selected = buildInputs?.entries ?? connectorManifestSelection(root, {names: options.names});
 for (const entry of selected) {
   if (entry.node !== undefined && entry.compute === undefined) {
     throw new Error(`Node strategy requires its Compute manifest: ${entry.name}`);
   }
 }
-checkComputeAssembly(root, write, {names:options.names, directory:assembly});
 const output = join(root, 'adapters', adapter, 'strategy.generated.mjs');
-const entries = [];
-for (const {name, node: path, compute: computePath} of selected) {
+if (buildInputs !== undefined) {
+  for (const path of [output, join(sourceRoot, assembly, 'moon.pkg'),
+    join(sourceRoot, assembly, 'compute.generated.mbt'),
+    join(sourceRoot, bridgePackage, 'bridge.generated.mbt'),
+    join(sourceRoot, bridgePackage, 'moon.pkg')]) {
+    buildInputs.outputPath(relative(buildInputs.host.root, path));
+  }
+}
+checkComputeAssembly(root, write, {names:options.names, directory:assembly, buildInputs});
+const externalModuleSpecifier = path => {
+  const value = relative(dirname(output), path);
+  if (isAbsolute(value)) throw new Error('UnsupportedExternalModuleVolume');
+  const encoded = value.split(sep).map(part =>
+    encodeURIComponent(part).replaceAll('%40', '@')).join('/');
+  return encoded.startsWith('./') || encoded.startsWith('../') ? encoded : './' + encoded;
+};
+const entries = buildInputs === undefined ? [] : buildInputs.nodeEntries.map(entry => ({
+  name: entry.name, module: externalModuleSpecifier(entry.modulePath),
+  symbol: entry.symbol, compute: entry.compute,
+}));
+for (const {name, node: path, compute: computePath} of buildInputs === undefined ? selected : []) {
   if (path === undefined) continue;
   const manifest = JSON.parse(readFileSync(path, 'utf8'));
   if (Object.keys(manifest).join() !== 'strategy' ||
@@ -50,14 +92,14 @@ for (const {name, node: path, compute: computePath} of selected) {
 }
 // Only the standard installed Node Host binds installed sources; other
 // compositions (RelA, Workers) have no installation table.
-const withInstallations = options.installations ?? adapter === 'connectors-builtin';
 const installations = withInstallations
   ? readHostBundles(root, {names: options.names}) : [];
 const installationOutput = join(root, 'adapters', adapter, 'installations.generated.mjs');
 const installationSource = withInstallations
   ? generateInstallations(installations, installationOutput, root) : undefined;
+const moduleLiteral = entry => buildInputs === undefined ? `'${entry.module}'` : JSON.stringify(entry.module);
 const source = `// Generated by scripts/connector-node-bundles.mjs; edit connector manifests.\n` + (loading === 'static' ?
-  entries.map((entry, index) => `import {${entry.symbol} as contribution${index}} from '${entry.module}';\n`).join('') +
+  entries.map((entry, index) => `import {${entry.symbol} as contribution${index}} from ${moduleLiteral(entry)};\n`).join('') +
   `\nexport function installStrategyContributions(moon, setup, checked, options) {\n` +
   `  const factories = new Map([\n` +
   entries.map((entry, index) => `    ['${entry.name}', contribution${index}],\n`).join('') +
@@ -70,11 +112,11 @@ const source = `// Generated by scripts/connector-node-bundles.mjs; edit connect
   `  return Object.freeze(keys.map(key => factories.get(key)(moon, setup, checked, options?.[key])));\n}\n` :
   `import {installSelectedContributions} from '../host-node/installation.mjs';\n\n` +
   `const loaders = new Map([\n` +
-  entries.map(entry => `  ['${entry.name}', () => import('${entry.module}').then(module => module.${entry.symbol})],\n`).join('') +
+  entries.map(entry => `  ['${entry.name}', () => import(${moduleLiteral(entry)}).then(module => module.${entry.symbol})],\n`).join('') +
   `]);\n\nexport async function installStrategyContributions(moon, setup, checked, options, signal) {\n` +
   `  return installSelectedContributions(loaders, moon, setup, checked, options, signal);\n}\n`);
 const dependencies = new Map([
-  [`actql/actql/${assembly}`, 'builtin'],
+  [`${buildInputs?.host.namespace ?? 'actql/actql'}/${assembly}`, 'builtin'],
   ['actql/actql/physical_host', 'host_driver'],
   ['actql/actql/physical_strategy', 'strategy'],
   ['actql/actql/physical_resources', 'resources'],
@@ -99,10 +141,10 @@ const dependencies = new Map([
   ] : []),
 ]);
 const hasLocalCarrierBridge = existsSync(
-  join(root, 'src', bridgePackage, 'local_carrier_bridge.mbt'),
+  join(sourceRoot, bridgePackage, 'local_carrier_bridge.mbt'),
 );
 const hasClientProgramBridge = existsSync(
-  join(root, 'src', bridgePackage, 'client_program_bridge.mbt'),
+  join(sourceRoot, bridgePackage, 'client_program_bridge.mbt'),
 );
 if (hasLocalCarrierBridge || hasClientProgramBridge) {
   dependencies.set('actql/actql/connectors/local/driver', 'local_driver');
@@ -112,9 +154,9 @@ const type = value => {
   return `@${dependencies.get(value.package)}.${value.type}`;
 };
 const host = '@builtin.ConfiguredComputeHost[@strategy.RunIssue]';
-let template = readFileSync(
-  join(root, 'scripts/templates/strategy-node.mbt'), 'utf8',
-);
+let template = readFileSync(buildInputs === undefined
+  ? join(coreRoot, 'scripts/templates/strategy-node.mbt')
+  : buildInputs.resolveFile('actql/actql', 'scripts/templates/strategy-node.mbt'), 'utf8');
 if (!nativeRemoteStandard) {
   template = template.replace(
     /\/\/ NATIVE_REMOTE_STANDARD_BEGIN[\s\S]*?\/\/ NATIVE_REMOTE_STANDARD_END\n?/,
@@ -231,12 +273,12 @@ pub fn ${name}_managed_start(
 bridge = bridge.replace('  // MANAGED_START_ISSUES', managedStartIssues.join('\n'));
 dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
-if (existsSync(join(root, 'src', bridgePackage, 'client_infer_bridge.mbt'))) {
+if (existsSync(join(sourceRoot, bridgePackage, 'client_infer_bridge.mbt'))) {
   dependencies.set('actql/actql/model_execution', 'model');
   dependencies.set('actql/actql/client_infer_host', 'infer_host');
   dependencies.set('actql/actql/value_admission', 'admitted');
 }
-if (existsSync(join(root, 'src', bridgePackage,
+if (existsSync(join(sourceRoot, bridgePackage,
   'client_program_bridge.mbt'))) {
   dependencies.set('actql/actql/client_local_host', 'client_local_host');
   dependencies.set('actql/actql/canonical_json', 'identity');
@@ -256,11 +298,11 @@ if (existsSync(join(root, 'src', bridgePackage,
 // runtime dependency after generated connector aliases so their stable names
 // continue to match that adapter. Other generated bridge packages do not gain
 // the dependency.
-if (existsSync(join(root, 'src', bridgePackage,
+if (existsSync(join(sourceRoot, bridgePackage,
   'client_program_bridge.mbt'))) {
   dependencies.set('actql/actql/sourceview_resolution', 'acquisition');
   dependencies.set('actql/actql/query_planning', 'planning');
-  const manifestPath = join(root, 'src',
+  const manifestPath = join(sourceRoot,
     bridgePackage === 'connectors_builtin_node_rela'
       ? 'connectors_builtin_node' : bridgePackage,
     'client-program-dependencies.json');
@@ -298,7 +340,7 @@ if (hasLocalCarrierBridge) {
     'carrier_runtime',
   );
 }
-const executionDependencies = join(root, 'src', bridgePackage,
+const executionDependencies = join(sourceRoot, bridgePackage,
   'client-execution-dependencies.json');
 if (existsSync(executionDependencies)) {
   const manifest = JSON.parse(readFileSync(executionDependencies, 'utf8'));
@@ -323,19 +365,25 @@ if (existsSync(executionDependencies)) {
 // The handwritten execution-authorization adapter lets the Host gate and the
 // activation grant share one runtime, so an evaluated dispatch action reaches
 // the captured Run without a second evaluation.
-if (existsSync(join(root, 'src', bridgePackage, 'authorization_bridge.mbt'))) {
+if (existsSync(join(sourceRoot, bridgePackage, 'authorization_bridge.mbt'))) {
   dependencies.set('actql/actql/execution_authorization', 'authorization');
   dependencies.set('moonbitlang/core/debug', 'debug');
 }
 if (hasClientProgramBridge) {
   dependencies.set('actql/actql/stage_results', 'effect_results');
   dependencies.set('actql/actql/source_frontend', 'source_frontend');
-  if (existsSync(join(root, 'src', bridgePackage, 'client_check.mbt'))) {
+  if (existsSync(join(sourceRoot, bridgePackage, 'client_check.mbt'))) {
     dependencies.set('actql/actql/frontend_source_map', 'source_origin');
   }
   dependencies.set('actql/actql/query_program', 'query_program');
   dependencies.set('actql/actql/query_syntax', 'query_syntax');
   dependencies.set('actql/actql/parameter_binding', 'parameter_binding');
+}
+if (buildInputs !== undefined) {
+  for (const path of dependencies.keys()) {
+    if (path === `${buildInputs.host.namespace}/${assembly}`) continue;
+    buildInputs.packagePath(path);
+  }
 }
 const manifest = '// Generated by scripts/connector-node-bundles.mjs.\n' +
   'supported_targets = "js"\n\npkgtype(kind: "foreign_library")\n\nimport {\n' +
@@ -345,8 +393,8 @@ bridge = execFileSync(formatter, ['-'], {input: bridge, encoding: 'utf8'});
 const formattedManifest = execFileSync(formatter, ['-', '-file-type', 'pkg'], {input:manifest, encoding:'utf8'});
 for (const [path, text] of [[output, source],
   ...(installationSource === undefined ? [] : [[installationOutput, installationSource]]),
-  [join(root, 'src', bridgePackage, 'bridge.generated.mbt'), bridge],
-  [join(root, 'src', bridgePackage, 'moon.pkg'), formattedManifest]]) {
+  [join(sourceRoot, bridgePackage, 'bridge.generated.mbt'), bridge],
+  [join(sourceRoot, bridgePackage, 'moon.pkg'), formattedManifest]]) {
   if (write) { mkdirSync(dirname(path), {recursive:true}); writeFileSync(path, text); }
   else if (!existsSync(path) || readFileSync(path, 'utf8') !== text) throw new Error(`Node connector assembly is stale: ${path}`);
 }

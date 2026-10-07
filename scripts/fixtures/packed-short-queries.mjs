@@ -7,8 +7,8 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
 import {setImmediate} from 'node:timers/promises';
-import {connect, open, RequestHeld} from '@actql/node';
-import {getSubmissionInput} from '@actql/sdk';
+import {connect, open} from '@actql/node';
+import {getSubmissionInput, getSubmissionOutcome} from '@actql/sdk';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 
 function authorization(outcome = 'allow') {
@@ -34,13 +34,19 @@ try {
 
 async function exercise(db, counter, label) {
   const query = db.sql('SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id', undefined,
-    {requestId: `${label}-original`});
+    {submissionRef: db.newSubmission({nonce: `${label}-original`})});
   const savedId = query.requestId;
   assert.ok(query instanceof Promise);
   const [first, repeated] = await Promise.all([query, query]);
   assert.equal(first, repeated);
   assert.equal(first.then, undefined);
   assert.equal(getSubmissionInput(first).requestId, savedId);
+  const recovery = db.recoverRequest(first);
+  assert.equal(recovery.target.submissionRef.nonce, savedId);
+  const lookup = await recovery.lookup();
+  assert.equal(lookup.kind, 'ready');
+  assert.deepEqual((await recovery.attach(lookup)).ref, first.execution.ref);
+  await assert.rejects(recovery.attach({...lookup}), {code: 'InvalidRequestRecoveryObservation'});
   assert.deepEqual(await query.all(), [{id: 1}, {id: 2}]);
   const schema = {'~standard': {version: 1, vendor: 'packed-test', async validate(value) {
     if (value === null || typeof value !== 'object' || typeof value.id !== 'number') {
@@ -83,22 +89,22 @@ async function exercise(db, counter, label) {
   assert.deepEqual(await Array.fromAsync(two), [{id: 1}, {id: 2}]);
   await assert.rejects(query.all({maxRows: 1}), {code: 'ResultRetainedLimit', rowsYielded: 0});
   assert.deepEqual(await Array.fromAsync(first.rows()), [{id: 1}, {id: 2}]);
-  assert.deepEqual((await db.lookupRequest(savedId)).ref, first.execution.ref);
+  assert.deepEqual((await db.lookupSubmission(getSubmissionInput(first).submissionRef)).admission.ref, first.execution.ref);
   assert.deepEqual(await (await db.attach(first.ref.run)).result(first.ref.resultName).all(),
     [{id: 1}, {id: 2}]);
   await setImmediate();
   assert.equal(counter.count(), 1, `${label}: repeated awaits/reads must not repeat Compute`);
   const named = await db.aql('SELECT @id AS id |> RESULT named', {id: 3},
-    {requestId: `${label}-named`, result: 'named', parameterDeclarations: {id: {type: 'number'}}});
+    {submissionRef: db.newSubmission({nonce: `${label}-named`}), result: 'named', parameterDeclarations: {id: {type: 'number'}}});
   assert.deepEqual(await named.all(), [{id: 3}]);
   assert.equal(named.ref.resultName, 'named');
   const low = await db.startSource('SELECT 4 AS id',
-    {format: 'sql', requestId: `${label}-low`});
+    {format: 'sql', submissionRef: db.newSubmission({nonce: `${label}-low`})});
   assert.equal((await low.wait()).status, 'succeeded');
   assert.deepEqual(await low.result('answer').all(), [{id: 4}]);
   await setImmediate();
   assert.equal(counter.count(), 3);
-  return first.ref;
+  return {ref: first.ref, target: recovery.target};
 }
 
 const localAuthorization = authorization();
@@ -110,8 +116,11 @@ const saved = await exercise(local, localAuthorization, 'local');
 await local.close();
 local = await open(localOptions);
 try {
-  assert.deepEqual((await local.lookupRequest('local-original')).ref, saved.run);
-  assert.deepEqual(await (await local.attach(saved.run)).result(saved.resultName).all(),
+  const recovery = local.recoverRequest(JSON.parse(JSON.stringify(saved.target)));
+  const observed = await recovery.lookup();
+  assert.equal(observed.kind, 'ready');
+  assert.deepEqual((await recovery.attach(observed)).ref, saved.ref.run);
+  assert.deepEqual(await (await local.attach(saved.ref.run)).result(saved.ref.resultName).all(),
     [{id: 1}, {id: 2}]);
   assert.equal(localAuthorization.count(), 3, 'reopen/attach must not repeat Compute');
 } finally {await local.close();}
@@ -131,14 +140,14 @@ try {
   let lost = false;
   globalThis.fetch = async (...args) => {
     const response = await originalFetch(...args);
-    if (!lost && new URL(args[0]).pathname.endsWith('/submit')) {
+    if (!lost && new URL(args[0]).pathname.endsWith('/submit-intent')) {
       lost = true; await response.body.cancel();
       throw new TypeError('Test-owned acceptance reply lost');
     }
     return response;
   };
   try {
-    const query = remote.sql('SELECT 5 AS id', undefined, {requestId: 'https-lost'});
+    const query = remote.sql('SELECT 5 AS id', undefined, {submissionRef: remote.newSubmission({nonce: 'https-lost'})});
     let original;
     await assert.rejects(query, error => {
       original = error; assert.equal(error.code, 'SubmissionUnknown');
@@ -148,9 +157,10 @@ try {
     await assert.rejects(query.all({'~standard': {}}), error => error === original);
     await assert.rejects(query.one({get maxRows() {throw new Error('local capture');}}),
       error => error === original);
-    const found = await remote.lookupRequest('https-lost');
-    assert.equal(found.kind, 'found');
-    const execution = await remote.attach(found.ref);
+    const recovery = remote.recoverRequest(original);
+    const found = await recovery.lookup();
+    assert.equal(found.kind, 'ready');
+    const execution = await recovery.attach(found);
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(), [{id: 5}]);
     await setImmediate();
@@ -164,10 +174,11 @@ try {
 const heldAuthorization = authorization('delegate');
 const held = await open({stateDir: resolve('short-held'), installation: {authorization: heldAuthorization.value}});
 try {
-  const query = held.sql('SELECT 6 AS id', undefined, {requestId: 'held-query'});
+  const query = held.sql('SELECT 6 AS id', undefined, {submissionRef: held.newSubmission({nonce: 'held-query'})});
   let original;
   await assert.rejects(query, error => {
-    original = error; assert.ok(error instanceof RequestHeld);
+    original = error; assert.equal(error.code, 'SubmissionPreparationFailed');
+    assert.equal(getSubmissionOutcome(error).problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
     assert.equal(error.execution, undefined); assert.equal(error.executionRef, undefined);
     assert.equal(getSubmissionInput(error).requestId, 'held-query'); return true;
   });
@@ -175,9 +186,12 @@ try {
   await assert.rejects(query.all({'~standard': {}}), error => error === original);
   await assert.rejects(query.scalar({get maxRows() {throw new Error('local capture');}}),
     error => error === original);
-  const observation = await held.lookupRequest('held-query');
-  assert.equal(observation.kind, 'held');
-  assert.equal(observation.prepareAttemptId, original.held.prepareAttemptId);
+  const recovery = held.recoverRequest(original);
+  const observation = await recovery.lookup();
+  assert.equal(observation.kind, 'preparation_failed');
+  assert.deepEqual(observation, getSubmissionOutcome(original));
+  await assert.rejects(recovery.attach(observation), {code: 'InvalidRequestRecoveryObservation'});
+  assert.deepEqual((await held.checkpoints()).items, []);
   assert.equal(heldAuthorization.count(), 0);
 } finally {await held.close();}
-console.log('Packed short-query Local/HTTPS: default open, raw/typed rows, schema failures, same Run, read limits, lost reply and held request passed');
+console.log('Packed short-query Local/HTTPS: default open, raw/typed rows, schema failures, same Run, read limits, lost reply and unsupported pre-Run wait passed');

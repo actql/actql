@@ -44,7 +44,9 @@ const tlsKey = await readFile(join(tlsRoot, 'host.key'));
 const tlsCertificate = await readFile(join(tlsRoot, 'host.crt'));
 setDefaultCACertificates([...getCACertificates('default'),
   tlsCertificate.toString('utf8')]);
-after(() => rm(tlsRoot, {recursive: true, force: true}));
+after(() => process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1'
+  ? console.error(`Read/Compute/Effect TLS custody retained: ${tlsRoot}`)
+  : rm(tlsRoot, {recursive: true, force: true}));
 
 const owner = userInfo().username;
 const cid = digit => `sha256:${digit.repeat(64)}`;
@@ -126,9 +128,11 @@ export function readComputeEffectProgram(mappingRef, {onItemFailure} = {}) {
 // A submission refused because the common path does not yet run an Effect
 // from an acquisition: recorded as not connected, never as a defect of the
 // Salesforce side and never as passing.
-export async function submitReadComputeEffect(client, program, requestId) {
+export async function submitReadComputeEffect(client, program, submissionRef) {
+  assert.equal(typeof submissionRef, 'object', 'Original submission custody is required');
+  assert.ok(submissionRef?.epoch);
   try {
-    return await client.startSource(program, {format: 'json', requestId});
+    return await client.startSource(program, {format: 'json', submissionRef});
   } catch (error) {
     if (error?.code === 'ClientProgramUnsupported') {
       throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
@@ -186,8 +190,21 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
   const closers = [];
   t.after(async () => {
     for (const close of closers.reverse()) await close();
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Read/Compute/Effect original custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
+  // The caller issues the reference through its connected public Client.
+  // Save it before sending; recovery must read this original, not mint one.
+  const persistSubmission = async submissionRef => {
+    assert.ok(submissionRef?.epoch);
+    assert.match(submissionRef.nonce, /^[a-zA-Z0-9-]+$/u);
+    await writeFile(join(root, `${submissionRef.nonce}.submission-ref.json`),
+      JSON.stringify(submissionRef) + '\n', {flag: 'wx', mode: 0o600});
+    return submissionRef;
+  };
   const authority = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'credential.key'), authority.privateKey.export({
     type: 'pkcs8', format: 'pem'}));
@@ -252,7 +269,14 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       sourceProfilePath, resolveSourceSecret: secret,
       effectProfilePath, resolveEffectSecret: secret,
       authorization: checkpointAuthorization(accountConfiguration, {
-        observe: (name, detail) => diagnostics.push({name, detail}),
+        observe: (name, detail) => {
+          diagnostics.push({name, detail});
+          if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') {
+            console.error('ACTQL_EFFECT_HOST_DIAGNOSTIC ' + JSON.stringify({
+              name, code: detail?.code, cause: detail?.cause},
+            (_key, value) => typeof value === 'bigint' ? value.toString() : value));
+          }
+        },
         ...extra})});
     const server = createServer({key: tlsKey, cert: tlsCertificate},
       host.handler);
@@ -357,7 +381,7 @@ export async function readComputeEffectInstallation(t, {org: orgOptions = {},
       await writeFile(path, bytes);
     }
   };
-  return {org, root, mappingRef, openHost, writeEffectProfile, embedded,
+  return {org, root, mappingRef, openHost, writeEffectProfile, embedded, persistSubmission,
     heldObjects, damageHeld,
     program: options => readComputeEffectProgram(mappingRef, options),
     // Source acquisitions (queries), target check reads, and writes are

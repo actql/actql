@@ -20,7 +20,7 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   const directory = join(root, 'host');
   const principalId = userInfo().username;
   const keys = generateKeyPairSync('ed25519');
-  let computes = 0, client, host, server, loseReply = loseSubmissionReply;
+  let computes = 0, client, host, server, port = 0, loseReply = loseSubmissionReply;
   const authorization = {
     accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
       account_id: 'submission-public', entries: [{entry_id: 'acceptance', outcome,
@@ -66,7 +66,8 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
         }
         return host.handler(request, response);
       });
-      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
+      port = server.address().port;
       client = await connectRemote({mode: 'remote', token: 'fixture-principal', durability: 'durable',
         endpoint: `https://127.0.0.1:${server.address().port}/`});
     }
@@ -85,17 +86,18 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     const f = await installedFixture(t, entrance, {loseSubmissionReply});
     let client = f.client;
     let submissionRef = defaultSubmission ? undefined : client.newSubmission({nonce: 'ordinary-original'});
-    let run;
+    let run, recovery;
     if (loseSubmissionReply) {
       await assert.rejects(client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
         assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
         assert.equal(explainSubmission(error).observation, 'acceptance_unknown');
         assert.deepEqual(explainSubmission(error).next.submissionRef, submissionRef);
+        recovery = client.recoverRequest(error);
         return error.code === 'SubmissionUnknown';
       });
-      const original = await client.lookupSubmission(submissionRef);
+      const original = await recovery.lookup();
       assert.equal(original.kind, 'ready');
-      run = await client.attach(original.admission.ref);
+      run = await recovery.attach(original);
     } else {
       const pending = client.startSource('SELECT 1 AS n', {format: 'sql',
         ...(submissionRef === undefined ? {} : {submissionRef})});
@@ -104,10 +106,13 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
         assert.deepEqual(submissionRef.epoch, client.profile.submissionEpoch);
       }
       run = await pending;
+      recovery = client.recoverRequest(run);
     }
     assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
-    const first = await client.lookupSubmission(submissionRef);
+    assert.deepEqual(recovery.target.submissionRef, submissionRef);
+    const savedTarget = JSON.parse(JSON.stringify(recovery.target));
+    const first = await recovery.lookup();
     assert.equal(first.kind, 'ready');
     assert.deepEqual(first.admission.ref, run.ref);
     assert.deepEqual(explainSubmission(first), {observation: 'run_reference_received',
@@ -116,10 +121,13 @@ for (const [entrance, loseSubmissionReply, defaultSubmission] of [
     assert.equal(f.computes, 1);
     await f.close(); await f.open(); client = f.client;
     assert.notDeepEqual(client.newSubmission({nonce: submissionRef.nonce}), submissionRef);
-    const found = await client.lookupSubmission(submissionRef);
+    const restored = client.recoverRequest(savedTarget);
+    const found = await restored.lookup();
     assert.equal(found.kind, 'ready');
     assert.deepEqual(found.submissionRef, submissionRef);
     assert.deepEqual(found.admission.ref, run.ref);
+    assert.deepEqual((await restored.attach(found)).ref, run.ref);
+    await assert.rejects(restored.attach({...found}), {code: 'InvalidRequestRecoveryObservation'});
     const repeated = await client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(await repeated.result('answer').all(), [{n: 1}]);
@@ -132,10 +140,11 @@ for (const entrance of ['local', 'https']) {
     const f = await installedFixture(t, entrance, {outcome: 'delegate'});
     const pending = f.client.startSource('SELECT 1 AS n', {format: 'sql'});
     const original = getSubmissionInput(pending);
-    let outcome;
+    let outcome, recovery;
     await assert.rejects(pending, error => {
       assert.equal(error.code, 'SubmissionPreparationFailed');
       assert.deepEqual(getSubmissionInput(error), original);
+      recovery = f.client.recoverRequest(error);
       outcome = getSubmissionOutcome(error);
       assert.equal(outcome.kind, 'preparation_failed');
       assert.deepEqual(outcome.submissionRef, original.submissionRef);
@@ -153,8 +162,9 @@ for (const entrance of ['local', 'https']) {
     });
     assert.equal(f.computes, 0);
     assert.deepEqual((await f.client.checkpoints()).items, []);
-    const found = await f.client.lookupSubmission(original.submissionRef);
+    const found = await recovery.lookup();
     assert.deepEqual(found, outcome);
+    await assert.rejects(recovery.attach(found), {code: 'InvalidRequestRecoveryObservation'});
     assert.equal(explainSubmission(found).observation, 'preparation_failed');
     await f.close(); await f.open();
     const recovered = await f.client.lookupSubmission(original.submissionRef);
