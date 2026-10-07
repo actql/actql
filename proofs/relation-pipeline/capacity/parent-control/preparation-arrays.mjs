@@ -24,6 +24,8 @@ export function checkPreparationArraySource(read) {
   assert(step.includes('cursor.columns.push(cursor.column)\n          cursor.field += 1'));
   assert(step.includes('if cursor.field == @schema.field_count(cursor.schema)'));
   assert(step.includes('columns: cursor.columns,'),'Columns transfer must not copy storage');
+  for(const role of ['bound','schema'])assert(step.includes(`${role}: cursor.${role},`),
+    `ProducerRead transfer must preserve the exact ${role}`);
   const cancel=reviewedFunction(producer,'cancel_prepare_producer_read');
   assert(cancel.includes('if !cursor.terminal {\n    cursor.columns.clear()'));
   assert(reviewedFunction(chain,'cancel_relation_chain_inputs').includes('cursor.selected.clear()'));
