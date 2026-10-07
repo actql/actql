@@ -131,6 +131,9 @@ export type SubmissionInput = Readonly<{
 /** Detached original of the pending Promise, execution or exact SDK error.
  * Available before first send; not Host persistence, acceptance or resend authority. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
+/** Persistable lookup data, not an authenticated identity, acceptance or retry grant.
+ * Restoring it requires the same endpoint and confirmed connection scope. */
+export type RequestLookupTarget = RequestObservationTarget;
 /** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
 export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
 type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
@@ -169,7 +172,7 @@ export declare function explainSubmission(result: unknown, options?: OperationEx
 export type RequestLookupExplanation = Readonly<{summary: string; hint: string}> & (
   HeldRequestExplanation | Readonly<{
     observation: 'lookup_unresolved' | 'lookup_unavailable' | 'lookup_uninterpretable';
-    next: RequestObservationTarget;
+    next: RequestLookupTarget;
   }> | Readonly<{
     observation: 'run_reference_received';
     durability: 'durable' | 'volatile';
@@ -228,10 +231,10 @@ export type RequestCancellationExplanation = Readonly<{
 }> & (Readonly<{
   revision: number;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
-}> | Readonly<{next: RequestObservationTarget}>) | Readonly<{
+}> | Readonly<{next: RequestLookupTarget}>) | Readonly<{
   observation: 'outcome_unknown';
   problem: 'exchange_failed' | 'response_uninterpretable';
-  next: RequestObservationTarget;
+  next: RequestLookupTarget;
 }>);
 /** Original request-cancellation observation; no cancel-operation identity or stop/release certificate. */
 export declare function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions): RequestCancellationExplanation | undefined;
@@ -323,6 +326,15 @@ export type ConnectionOptions =
 export type ConfirmedProfile = WireClientProfile;
 
 export type RequestLookup = WireRequestLookup;
+/** Lookup-only recovery of an existing request; never submits or resumes work. */
+export interface RequestRecovery {
+  readonly target: RequestLookupTarget;
+  lookup(options?: {signal?: AbortSignal}): Promise<RequestLookup | SubmissionLookup>;
+  /** Only a found/ready observation from this handle's lookup is accepted.
+   * The Host checks current authorization again when attaching. */
+  attach(observation: Extract<RequestLookup, {kind: 'found'}> | Extract<SubmissionLookup, {kind: 'ready'}>,
+    options?: {signal?: AbortSignal}): Promise<Execution>;
+}
 
 export type RunState = WireRunState;
 export type RunNextAction = WireRunState['next_action'];
@@ -525,6 +537,9 @@ export interface Client {
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
+  /** No I/O. Accepts this SDK's original submission/lookup observation, or a
+   * saved RequestLookupTarget as untrusted data. Copies of errors are refused. */
+  recoverRequest(observationOrTarget: unknown): RequestRecovery;
   cancelRequest(requestId: string, options?: {signal?: AbortSignal}):
     Promise<RequestCancellation>;
   resources(resourceConnection: string, options?: {query?: string;

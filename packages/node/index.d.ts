@@ -4,7 +4,7 @@ import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} fro
 
 export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
-  ConfirmedProfile, ReadOptions, RequestLookup,
+  ConfirmedProfile, ReadOptions, RequestLookup, RequestLookupTarget, RequestRecovery,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
   QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
 
