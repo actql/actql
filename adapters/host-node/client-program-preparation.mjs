@@ -1,6 +1,6 @@
 // Translate the public submit body into the installed MoonBit checker JS bridge.
 // The returned prepared handle is in-process only and cannot authorize a Run.
-import {validSubmitPreparationError} from
+import {validCheckOutcome, validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
 import {installNodePublicSourcePreparation} from
   './public-source-preparation.mjs';
@@ -13,7 +13,7 @@ const issueCodes = Object.freeze({
   program_syntax: 'ClientProgramInvalidInput',
   effect_not_supported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
-  check_invalid_input: 'ClientProgramRejected',
+  check_invalid_input: 'ClientProgramInvalidInput',
   check_invalid_configuration: 'ClientProgramPreparationFailure',
   check_unsupported: 'ClientProgramUnsupported',
   check_compile_limit: 'ClientProgramRejected',
@@ -82,13 +82,14 @@ function serializeProgram({kind, input, parameters}) {
 }
 
 export function installNodeClientProgramPreparation({moon, environment,
-  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows}) {
+  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
       typeof moon.clientProgramPreparationIssueCode !== 'function' ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
+      (check !== undefined && typeof check !== 'function') ||
       (allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
@@ -151,7 +152,30 @@ export function installNodeClientProgramPreparation({moon, environment,
   };
   // The Local planner accepts only this installation's checked owner. This
   // keeps the exact runtime and environment binding without parsing it again.
-  return Object.freeze(Object.assign(prepare, {
+  const disclosed = check === undefined ? prepare : async request => {
+    try { return prepare(request); }
+    catch (error) {
+      if (error?.code !== 'ClientProgramRejected' || request.kind !== 'aql' ||
+          !['aql-text', 'sql'].includes(request.input.format)) throw error;
+      // Preparation already refused. The same public check Owner may disclose
+      // an independent input violation; it cannot admit or execute this input.
+      // Its audience-visible publication hides absent and inaccessible Sources.
+      let outcome;
+      try { outcome = await check(request); }
+      catch (cause) {
+        if (request.signal?.aborted) throw cause;
+        throw error;
+      }
+      if (validCheckOutcome(outcome)) {
+        const report = outcome.report ?? outcome.partial_report;
+        if (report?.scope.kind === 'bound_input' && report.verdict === 'invalid') {
+          fail('ClientProgramInvalidInput', error);
+        }
+      }
+      throw error;
+    }
+  };
+  return Object.freeze(Object.assign(disclosed, {
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');

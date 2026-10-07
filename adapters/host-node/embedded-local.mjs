@@ -418,9 +418,6 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     authorizeRun: ({ref, principalId: actual}) =>
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
-  const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication, valuesMaxRows,
-    allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
     sourceAccesses: (sourceProfile?.sources ??
@@ -436,6 +433,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     return checkSource({principalId: actual, input, parameters, signal});
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  const prepareSubmit = installNodeClientProgramPreparation({moon,
+    environment, sourcePublication, valuesMaxRows, check,
+    allowEffects: effectInstallation !== undefined});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
