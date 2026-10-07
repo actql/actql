@@ -1,5 +1,6 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireCancellationRefShape, WireCancellationLookupShape,
+  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -29,6 +30,19 @@ export type WireConnection =
   | (WireConnectionBase & Readonly<{mode: 'hybrid'; owner: 'cloud';
       movementPolicyRef: string; cloudConnectionRef?: never}>);
 
+export type WireSubmissionEpoch = WireSubmissionEpochShape;
+export type WireSubmissionRef = WireSubmissionRefShape;
+export type WireSubmissionOutcome = WireSubmissionOutcomeShape;
+export type WireSubmissionLookup = WireSubmissionLookupShape;
+export declare function validSubmissionEpoch(value: unknown): value is WireSubmissionEpoch;
+export declare function validSubmissionRef(value: unknown): value is WireSubmissionRef;
+export declare function sameSubmissionRef(left: unknown, right: unknown): boolean;
+export declare function validStoredSubmissionOutcome(value: unknown,
+  expected: WireSubmissionRef, intentCid: string): value is WireSubmissionOutcome;
+export declare function validSubmissionOutcome(value: unknown, selected: WireConnection,
+  expected: WireSubmissionRef, intentCid?: string): value is WireSubmissionOutcome;
+export declare function validSubmissionLookup(value: unknown, selected: WireConnection,
+  expected: WireSubmissionRef): value is WireSubmissionLookup;
 export type WireRunRef = WireRunRefShape;
 export type WireResultDescription = WireResultDescriptionShape;
 export type WireValueContract = WireValueContractShape;
@@ -65,6 +79,9 @@ export type WireClientBodyByOperation = Readonly<{
     format: ClientSourceFormat;
     parameterDeclarations?: Record<string, unknown>;
   }>}> | Readonly<{kind: 'program'; input: object}>);
+  'submit-intent': Omit<WireClientBodyByOperation['submit'], 'requestId'> & Readonly<{
+    submissionRef: WireSubmissionRef; intentCid: string}>;
+  'lookup-submission': WireBodyBase & Readonly<{submissionRef: WireSubmissionRef}>;
   check: WireBodyBase & Readonly<{
     input: Readonly<{
       text: string;
