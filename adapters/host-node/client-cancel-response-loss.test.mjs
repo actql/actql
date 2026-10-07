@@ -538,6 +538,53 @@ for (const transport of ['in-process', 'https']) {
 }
 
 for (const [entrance, transport] of [['local', 'in-process'], ['https', 'https']]) {
+  test(`${entrance}: copied Run observations retain original owner facts`, async t => {
+    const f = await fixture(t, transport, undefined, {physicalStart: true});
+    const before = await f.execution.status();
+    assert.equal(before.status, 'running');
+    assert.equal(before.control.physical_stop, 'unknown');
+    const clone = globalThis.structuredClone;
+    t.after(() => { globalThis.structuredClone = clone; });
+    let changed = 0;
+    globalThis.structuredClone = value => {
+      const copy = clone(value);
+      if (value?.version === 'actql-run-state/0.1') {
+        changed++;
+        copy.control.physical_stop = 'confirmed';
+        copy.control.revision++;
+        copy.run_id = 'foreign-run-copy';
+      }
+      return copy;
+    };
+    let rejected;
+    try { await f.execution.status(); } catch (error) { rejected = error; }
+    assert.equal(rejected?.code, 'InvalidHostRunState', '[check-mutation:run-copy-public]');
+    assert.ok(changed > 0, 'Fault must affect a Run observation copy');
+    assert.deepEqual(sdk.explainRunObservationFailure(rejected), {
+      kind: 'protocol_failure', problem: 'malformed_response', operation: 'status',
+      summary: 'The Run reply violates the registered state contract.',
+      hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
+      next: {operation: 'status', ref: f.execution.ref},
+    });
+    assert.equal(sdk.explainEffectUncertainty(rejected), undefined);
+    assert.equal(Object.hasOwn(rejected, 'cause'), false);
+    assert.doesNotMatch(JSON.stringify(rejected), /foreign-run-copy/);
+    assert.equal(before.control.physical_stop, 'unknown');
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+    assert.equal(f.operations.filter(operation => operation === 'status').length, 2);
+    globalThis.structuredClone = clone;
+    const refreshed = await f.execution.status();
+    assert.deepEqual(refreshed, before);
+    assert.equal(f.operations.filter(operation => operation === 'status').length, 3);
+    f.authorize(false);
+    let denied;
+    try { await f.execution.status(); } catch (error) { denied = error; }
+    assert.equal(denied.code, 'ClientConnectionDenied');
+    assert.equal(sdk.explainRunObservationFailure(denied), undefined);
+    assert.deepEqual(f.stored(), f.before);
+    assert.deepEqual(f.counts(), {cancelCalls: 0, submits: 0});
+  });
   test(`${entrance}: request cancellation acceptance retains an unconfirmed physical stop`, async t => {
     const f = await fixture(t, transport, undefined, {physicalStart: true, targetOperation: 'cancel-request'});
     const answer = await f.client.cancelRequest(requestId);
