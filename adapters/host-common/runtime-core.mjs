@@ -2500,6 +2500,22 @@ function publicationControl(moon) {
         limits.maxNodes, limits.maxDepth,
       )));
     },
+    admitCapturedEffectSourceFromResult(preview, memberIndex, invocation,
+      artifact, result, storeAuthorityCid, limits) {
+      issuanceLimits(limits, 'captured Table source');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      const ownedResult = localEffectArtifactTokens.get(result);
+      if (ownedPreview === undefined || ownedResult === undefined ||
+          !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Invalid captured Table source owner');
+      }
+      const publicationResult = checked(moon.strategyPublicationAdmit('result_artifact',
+        moon.clientProgramLocalEffectResultArtifactJson(ownedResult),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      return inspectEffectSource(checked(moon.strategyAdmitCapturedEffectSourceFromResult(
+        ownedPreview, memberIndex, token(invocation), token(artifact),
+        publicationResult, storeAuthorityCid)));
+    },
     issueSourceFreeLocalEffectResultArtifact(owner, inputs, memberIndex,
       importing, definition, localInvocation, receipt, retention, context,
       limits) {
@@ -2664,9 +2680,11 @@ function publicationControl(moon) {
     tablePreviewLedgerBinding(preview) {
       const owned = tablePreviewTokens.get(preview);
       if (owned === undefined) throw new TypeError('Foreign Table Preview');
+      const identity = moon.clientProgramTablePreviewLedgerIdentity(owned);
+      const memberIndex = moon.clientProgramTablePreviewMemberIndex(owned);
       return Object.freeze({
-        preview: moon.clientProgramTablePreviewLedgerIdentity(owned),
-        memberIndex: moon.clientProgramTablePreviewMemberIndex(owned),
+        preview: identity, memberIndex,
+        rowPreviewCid: moon.strategyEffectPreviewOrderedRowCid(identity, memberIndex, 0),
         operationWire: moon.clientProgramTablePreviewOperationJson(owned),
       });
     },
@@ -2855,6 +2873,25 @@ function publicationControl(moon) {
         ownedPreview, sources.map(value => value.memberIndex),
         sources.map(value => token(value.artifact)),
       );
+    },
+    capturedEffectSourceInventoryFromResultsValid(preview, sources, limits) {
+      issuanceLimits(limits, 'captured Table source inventory');
+      const ownedPreview = computationPreviewTokens.get(preview);
+      if (ownedPreview === undefined || !Array.isArray(sources)) {
+        throw new TypeError('Invalid captured Table source inventory');
+      }
+      const results = sources.map(value => {
+        const owned = localEffectArtifactTokens.get(value.result);
+        if (owned === undefined || !Number.isSafeInteger(value.memberIndex)) {
+          throw new TypeError('Foreign captured Table source Result');
+        }
+        return checked(moon.strategyPublicationAdmit('result_artifact',
+          moon.clientProgramLocalEffectResultArtifactJson(owned),
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+      });
+      return moon.strategyCapturedEffectSourceInventoryFromResultsValid(ownedPreview,
+        sources.map(value => value.memberIndex),
+        sources.map(value => token(value.artifact)), results);
     },
     localEffectResultPayloadBinding(artifact, runDefinition) {
       const owned = localEffectArtifactTokens.get(artifact);
