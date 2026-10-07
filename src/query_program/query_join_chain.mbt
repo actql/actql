@@ -169,9 +169,10 @@ fn compile_join_chain_steps(
   }
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
-    // FULL still requires the common stable-row identity/coalescence path.
-    // Do not replace it with a left join or invent row identities here.
-    if part.kind == "full" {
+    // ON keeps both operand columns in the ordinary FULL join projection.
+    // Its stable-identity obligations remain with the common checker. USING
+    // needs a coalesced unqualified key and retains its explicit gap here.
+    if part.kind == "full" && !part.using_columns.is_empty() {
       raise Abort(UnsupportedJoin)
     }
     let right = inputs[index + 1]

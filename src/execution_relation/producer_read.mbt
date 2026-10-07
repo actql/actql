@@ -62,92 +62,27 @@ pub fn rebind_producer_representation(
 }
 
 ///|
+/// Drain the same cursor for callers that explicitly use synchronous metadata
+/// preparation. Bounded chain handoffs retain it between advances.
 pub fn prepare_producer_read(
   receiver : @lower.BoundPrepared,
   bound : BoundProducerInput,
   max_entries : Int,
   max_name_bytes : Int,
 ) -> Result[ProducerRead, ProducerReadIssue] {
-  if !completed_output_available(bound.output) {
-    return Err(ProducerUnavailable)
+  let cursor = match
+    start_prepare_producer_read(receiver, bound, max_entries, max_name_bytes) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(issue)
   }
-  if max_entries < 0 || max_name_bytes < 0 {
-    return Err(InvalidLimits)
-  }
-  if !physical_equal(receiver, bound.receiver) {
-    return Err(ForeignReceiver)
-  }
-  let target = match bound.consumer_step {
-    Some(_) => bound.output.target
-    None => Input(bound.input_index)
-  }
-  guard @lower.preparation_schema_at(@lower.bound_preparation(receiver), target)
-    is Some(schema) else {
-    return Err(InvalidProjection)
-  }
-  let count = @schema.field_count(schema)
-  if count > max_entries {
-    return Err(Limit)
-  }
-  let mut remaining = max_entries - count
-  let mut bytes = max_name_bytes
-  let projection = match bound.projection {
-    None => []
-    Some(view) => {
-      let size = @lower.projection_field_count(view)
-      if size > remaining {
-        return Err(Limit)
-      }
-      remaining -= size
-      @lower.projection_fields(view)
+  while true {
+    match advance_prepare_producer_read(cursor) {
+      Ok(Some(read)) => return Ok(read)
+      Ok(None) => ()
+      Err(issue) => return Err(issue)
     }
   }
-  let columns = []
-  for i in 0..<count {
-    let field = @schema.field_at(schema, i).unwrap()
-    let mut name = field.name
-    if bound.projection is Some(_) {
-      let mut found = false
-      for selected in projection {
-        if remaining == 0 {
-          return Err(Limit)
-        }
-        remaining -= 1
-        if selected.output == field.name {
-          name = selected.input
-          found = true
-          break
-        }
-      }
-      if !found {
-        return Err(InvalidProjection)
-      }
-    }
-    let reference = @schema.reference_name(name)
-    match @scalar.admit_utf8_length(reference, bytes) {
-      Ok(size) => bytes -= size
-      Err(_) => return Err(Limit)
-    }
-    let mut found = None
-    for column in 0..<completed_column_count(bound.output) {
-      if remaining == 0 {
-        return Err(Limit)
-      }
-      remaining -= 1
-      let actual = completed_column_name(bound.output, column).unwrap()
-      match @scalar.admit_utf8_length(actual, bytes) {
-        Ok(size) => bytes -= size
-        Err(_) => return Err(Limit)
-      }
-      if actual == reference {
-        found = Some(column)
-        break
-      }
-    }
-    guard found is Some(column) else { return Err(InvalidProjection) }
-    columns.push(column)
-  }
-  Ok({ bound, schema, columns, max_entries, max_name_bytes, })
+  Err(InvalidLimits)
 }
 
 ///|

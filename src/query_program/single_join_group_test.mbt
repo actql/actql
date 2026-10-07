@@ -66,7 +66,6 @@ test "single JOIN GROUP retains concrete key and scope refusals" {
   for
     source in [
       "SELECT t.x, COUNT(*) AS n FROM t JOIN r ON t.x > r.k MAX_OUTPUT_ROWS 10 GROUP BY t.x",
-      "SELECT t.x, COUNT(*) AS n FROM t FULL JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 10 GROUP BY t.x",
     ] {
     assert_true(
       compile(
