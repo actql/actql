@@ -297,7 +297,8 @@ export type ReadOptions = {
 
 export interface Reader<T> extends AsyncIterable<T> {
   readonly attemptId: string;
-  state(): 'not_started' | 'prefix' | 'complete';
+  /** Opening failures retain their attempt; lookup absence is not no-send proof. */
+  state(): 'not_started' | 'opening' | 'open_unknown' | 'prefix' | 'complete';
   /** Complete rows yielded to this reader's caller, excluding buffered rows. */
   rowsYielded(): number;
 }
