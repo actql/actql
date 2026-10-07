@@ -1740,6 +1740,16 @@ The journal stores only the original acceptance outcome, never this transient
 report. Existing journal limits and cleanup conditions continue to govern the
 original intent; this connection adds no persistence or retention period.
 
+Received observations use the Client–Host registry's `check_report_rules` in
+both generated JS and Native consumers. These preserve the existing document
+uniqueness/kind, location document/revision/range, and exact-EOF fix-target
+relationships in addition to schema shapes and current pins. The JS public
+validator delegates to that generated guard; Native applies it inside the
+referenced check-outcome predicate before accepting a submission reply. This
+registers existing received-report constraints without changing payload fields,
+check schema CIDs or the separate diagnostics contract. A malformed observation
+cannot be converted to an admitted negative submission or empty diagnostics.
+
 `getSubmissionCheckObservation(error)` returns the observation only for the
 original SDK submission error. The SDK validates and detaches the response,
 then binds its documents to the immutable input snapshot for that call using

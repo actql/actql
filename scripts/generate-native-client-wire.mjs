@@ -1,9 +1,10 @@
 import {execFileSync} from 'node:child_process';
 import {join} from 'node:path';
+import {nativeCheckReportRules} from './client-check-report-rules.mjs';
 
 // Compile the selected wire schemas to ordinary MoonBit predicates. This is a
 // build-time projection, not a schema interpreter in the Native executable.
-export function nativeClientWire(schemas, rules, requestRules, checkPins) {
+export function nativeClientWire(schemas, rules, requestRules, checkPins, reportRules) {
   const functions = [];
   let serial = 0;
   let checkDepth = 0;
@@ -32,7 +33,8 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins) {
         if (!checkPins?.reason || !checkPins?.outcome) throw new Error('MissingNativeCheckPins');
         lines.push('guard value is Object(fields) else { return false }',
           `if fields.get("reason_schema_cid") != Some(Json::string(${quote(checkPins.reason)})) { return false }`,
-          `if fields.get("outcome_schema_cid") != Some(Json::string(${quote(checkPins.outcome)})) { return false }`);
+          `if fields.get("outcome_schema_cid") != Some(Json::string(${quote(checkPins.outcome)})) { return false }`,
+          'if !wire_check_report_contract(value) { return false }');
       }
       functions.push(`///|\nfn ${name}(${lines.length ? 'value' : '_value'} : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
       return name;
@@ -180,7 +182,8 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins) {
       '  guard value is Object(fields) else { return false }\n' +
       `  ${alternatives.join(' ||\n  ')}\n}\n`);
   }
-  const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' + functions.join('\n');
+  const source = '// Generated from spec/contracts/actql-client-host.json.\n// Run: node scripts/generate-client-host-wire.mjs --write\n\n' +
+    functions.join('\n') + '\n' + nativeCheckReportRules(reportRules);
   // Use the repository's pinned formatter, also required by the CI formatting gate.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin', 'moonfmt') : 'moonfmt';
   return execFileSync(formatter, ['-'], {input: source, encoding: 'utf8', timeout: 10000});

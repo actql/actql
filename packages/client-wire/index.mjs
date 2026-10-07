@@ -11,7 +11,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
-  validRunRefShape, validRunStateShape, validCheckOutcomeShape,
+  validRunRefShape, validRunStateShape, validCheckOutcomeContract,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 import {validSubmissionEpochShape, validSubmissionRefShape,
   validSubmissionOutcomeShape, validSubmissionLookupShape} from './client-host.generated.js';
@@ -174,29 +174,7 @@ export function validRunState(value) {
 // The registered contract and generated validator enforce verdict/coverage
 // consistency as well as shape, without enumerating reason codes.
 export function validCheckOutcome(value) {
-  if (!validCheckOutcomeShape(value)) return false;
-  const report = value.report ?? value.partial_report;
-  if (!report) return true;
-  const documents = new Map(report.inputs.map(input => [input.document_id, input]));
-  if (documents.size !== report.inputs.length || documents.get('source')?.kind !== 'text' ||
-      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
-  for (const reason of [...report.reasons, ...(report.requirements ?? []), ...report.coverage.limits]) {
-    const location = reason.location;
-    if (location) {
-      const input = documents.get(location.document_id);
-      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
-      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
-          location.end_byte > input.byte_length)) return false;
-    }
-    for (const fix of reason.fixes ?? []) {
-      const input = documents.get(fix.target.document_id);
-      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
-      // This known proposal inserts only at the original exact EOF.
-      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
-          edit.end_byte !== input.byte_length)) return false;
-    }
-  }
-  return true;
+  return validCheckOutcomeContract(value);
 }
 
 export function validSubmitPreparationError(value) {

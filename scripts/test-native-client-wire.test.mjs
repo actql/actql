@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {clientWireCorpus, connection, profile, ref}
   from './fixtures/client-wire-contract-corpus.mjs';
+import {submissionCheckWireCorpus} from './fixtures/submission-check-wire-corpus.mjs';
 import {validClientProfile, validClientAdmission, validRunRef,
-  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef}
+  validClientConnection, validHeldRequest, validRequestLookup, validSubmitReply, validSubmissionRef,
+  validSubmissionOutcome}
   from '../packages/client-wire/index.mjs';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
-import {chmod, copyFile, mkdir, mkdtemp, readFile, writeFile}
+import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile}
   from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join} from 'node:path';
@@ -16,7 +18,8 @@ import {isAbsolute, join} from 'node:path';
 // An optional, independently authored JSON array can add authority-evolution
 // probes without rewriting this harness or deriving expectations from a product.
 // Select named probes with the ordinary --test-name-pattern and nonzero wrapper.
-const corpus = [...clientWireCorpus];
+const corpus = [...clientWireCorpus, ...submissionCheckWireCorpus.map(entry =>
+  ({...entry, requestId: 'independent-check'}))];
 const extraCorpusFile = process.env.ACTQL_TEST_CLIENT_WIRE_EXTRA_CORPUS;
 if (extraCorpusFile) {
   assert.ok(isAbsolute(extraCorpusFile), 'extra corpus path must be absolute');
@@ -31,7 +34,7 @@ assert.equal(new Set(corpus.map(entry => entry.name)).size, corpus.length,
 for (const entry of corpus) {
   assert.equal(typeof entry.name, 'string');
   assert.equal(typeof entry.expected, 'boolean');
-  assert.ok(['profile', 'admission', 'run_ref', 'connection', 'lookup', 'held']
+  assert.ok(['profile', 'admission', 'run_ref', 'connection', 'lookup', 'held', 'submission']
     .includes(entry.kind), `unknown corpus kind: ${entry.kind}`);
   if (entry.kind === 'lookup' || entry.kind === 'held') {
     assert.equal(typeof entry.requestId, 'string');
@@ -68,6 +71,8 @@ let reply = profile;
 let active;
 const requests = [];
 function responseValue(entry, body) {
+  if (entry.kind === 'submission') return {...entry.value,
+    submissionRef: body.submissionRef, intentCid: body.intentCid};
   if (entry.kind === 'admission') return readySubmission(body, entry.value);
   if (entry.operation === 'start' && entry.kind === 'held') return heldSubmission(body, entry.value);
   return entry.kind === 'run_ref'
@@ -121,7 +126,7 @@ function runProcess(command, commandArgs) {
   });
 }
 const run = async (...args) => {
-  if (args[0] === 'start') {
+  if (args[0] === 'start' || args[0] === 'aql') {
     const nonce = args[args.indexOf('--request-id') + 1];
     await writeFile(join(root, 'submission.json'), JSON.stringify(originalSubmission(nonce)));
     args.push('--submission-ref-file', 'submission.json');
@@ -147,11 +152,15 @@ function jsOutcomes(entry, selected) {
         ? ['validSubmitReply', validSubmitReply(value, selected, requestId)]
         : ['validRequestLookup', validRequestLookup(value, requestId)],
     ];
+    case 'submission': return [['validSubmissionOutcome', validSubmissionOutcome(value,
+      selected, originalSubmission(requestId), value.intentCid)]];
     default: throw new Error(`unknown corpus kind: ${entry.kind}`);
   }
 }
 function commandArgs(entry) {
   const requestId = entry.requestId ?? 'fixed-request';
+  if (entry.kind === 'submission') return ['aql', '--program-file', 'source.sql', '--format', 'sql',
+    '--request-id', requestId, ...(entry.declarations ? ['--parameter-declarations-file', 'declarations.json'] : [])];
   if (entry.operation === 'attach') return ['attach', '--ref-file', 'ref.json'];
   if (entry.operation === 'start' || entry.kind === 'admission') {
     return ['start', '--program-file', 'program.json', '--request-id', requestId];
@@ -162,7 +171,7 @@ function commandArgs(entry) {
   return ['connect'];
 }
 function assertResponseBoundary(entry, selected, actual) {
-  const route = entry.operation === 'start' ? 'submit-intent' : 'lookup-request';
+  const route = ['start', 'aql'].includes(entry.operation) ? 'submit-intent' : 'lookup-request';
   assert.equal(actual.signal, null, 'Native must finish normally');
   assert.deepEqual(requests.map(request => request.url),
     ['/actql/client/0.1/connect', `/actql/client/0.1/${route}`],
@@ -174,20 +183,29 @@ function assertResponseBoundary(entry, selected, actual) {
   }
   assert.equal(route === 'submit-intent' ? requests[1].body.submissionRef.nonce : requests[1].body.requestId, entry.requestId,
     'the requested identity must reach the response endpoint unchanged');
-  if (route === 'submit-intent') assert.equal(requests[1].body.kind, 'program');
+  if (route === 'submit-intent') assert.equal(requests[1].body.kind,
+    entry.kind === 'submission' ? 'aql' : 'program');
   if (entry.expected) {
+    if (entry.kind === 'submission') {
+      assert.equal(actual.code, 1);
+      assert.equal(actual.stderr, `actql-native-client: ${entry.value.problem.code}\n`,
+        'A valid negative submission must retain its original Owner problem, not transport uncertainty');
+      assert.equal(actual.stdout, '');
+      return;
+    }
     assert.equal(actual.code, 0,
       `Native must accept the independent positive control: ${actual.stderr}`);
     assert.equal(actual.stderr, '');
-    assert.deepEqual(JSON.parse(actual.stdout), entry.value,
+    assert.deepEqual(JSON.parse(actual.stdout), entry.kind === 'submission'
+      ? responseValue(entry, requests[1].body) : entry.value,
       'Native must return the admitted response unchanged');
   } else {
     assert.equal(actual.code, 1,
-      `Native must reject at response validation: ${actual.stderr}`);
+      `[check-mutation:submission-semantic-native] Native must reject at response validation: ${actual.stderr}`);
     const diagnostic = entry.failureCode === 'SubmissionUnknown'
       ? `SubmissionUnknown submission-ref-file=submission.json` : entry.failureCode;
     assert.equal(actual.stderr, `actql-native-client: ${diagnostic}\n`,
-      'argument, profile, transport, and spawn failures are not rejections');
+      '[check-mutation:submission-semantic-refusal] Argument, profile, transport, and spawn failures are not rejections');
     assert.equal(actual.stdout, '', 'a rejected response must not escape');
   }
 }
@@ -204,8 +222,14 @@ try {
     await writeFile(join(root, 'connection.json'), JSON.stringify(selected));
     await writeFile(join(root, 'ref.json'),
       JSON.stringify(entry.kind === 'run_ref' ? entry.value : ref));
-    const outcomes = jsOutcomes(entry, selected);
+    if (entry.kind === 'submission') {
+      await writeFile(join(root, 'source.sql'), entry.source);
+      if (entry.declarations) await writeFile(join(root, 'declarations.json'), JSON.stringify(entry.declarations));
+    }
     const actual = await run(...commandArgs(entry));
+    const received = entry.kind === 'submission' ? {...entry,
+      value: responseValue(entry, requests[1]?.body ?? {})} : entry;
+    const outcomes = jsOutcomes(received, selected);
     for (const [validator, accepted] of outcomes) {
       assert.equal(accepted, entry.expected,
         `${validator} matches the independent expected outcome`);
@@ -214,7 +238,7 @@ try {
       assert.equal(actual.code, 1, actual.stderr);
       assert.match(actual.stderr, /InvalidSubmissionRef/);
       assert.equal(requests.length, 0, 'the new nonce contract rejects before I/O; historical held observation remains on lookup-request');
-    } else if (entry.kind === 'lookup' || entry.kind === 'held') {
+    } else if (entry.kind === 'lookup' || entry.kind === 'held' || entry.kind === 'submission') {
       assertResponseBoundary(entry, selected, actual);
     } else {
       assert.equal(actual.code === 0, entry.expected,
@@ -234,4 +258,5 @@ try {
   });
 } finally {
   await new Promise(resolve => server.close(resolve));
+  await rm(root, {recursive: true, force: true});
 }

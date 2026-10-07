@@ -11763,3 +11763,28 @@ export const validRequestLookupContract = (value, expected) =>
    valid(value, schemas.lookup_not_found) ||
    valid(value, schemas.lookup_unknown) ||
    (valid(value, schemas.held) && value.requestId === expected));
+export const validCheckOutcomeContract = value => {
+  if (!validCheckOutcomeShape(value)) return false;
+  const report = value.report ?? value.partial_report;
+  if (!report) return true;
+  const documents = new Map(report.inputs.map(input => [input.document_id, input]));
+  const occurrences = [...report.reasons, ...report.requirements, ...report.coverage.limits];
+  if (documents.size !== report.inputs.length) return false;
+  if (documents.get('source')?.kind !== 'text' ||
+      report.inputs.some(input => input.document_id !== 'source' && input.kind !== 'structured')) return false;
+  for (const reason of occurrences) {
+      const location = reason.location;
+      if (!location) continue;
+      const input = documents.get(location.document_id);
+      if (!input || input.revision !== location.revision || input.kind !== location.kind) return false;
+      if (location.kind === 'text' && (location.start_byte > location.end_byte ||
+          location.end_byte > input.byte_length)) return false;
+    }
+  for (const reason of occurrences) for (const fix of reason.fixes ?? []) {
+      const input = documents.get(fix.target.document_id);
+      if (!input || input.kind !== 'text' || input.revision !== fix.target.revision) return false;
+      if (fix.edits.some(edit => edit.start_byte !== input.byte_length ||
+          edit.end_byte !== input.byte_length)) return false;
+    }
+  return true;
+};

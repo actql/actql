@@ -7,6 +7,7 @@ import {project, structuralValidatorSource, typeOf} from
 
 import {nativeClientWire, responseRules, jsResponseRules,
   requestResponseRules, jsRequestResponseRules} from './generate-native-client-wire.mjs';
+import {checkReportRules, jsCheckReportRules} from './client-check-report-rules.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = 'spec/contracts/actql-client-host.json';
@@ -35,6 +36,7 @@ export function buildClientHostWire(registry, protocol) {
     throw new Error('InvalidClientHostRegistry');
   }
   const rules = responseRules(registry);
+  const reportRules = checkReportRules(registry);
   const operations = Object.entries(registry.operations);
   if (operations.length === 0 || operations.some(([name, keys]) =>
     !/^[a-z][a-z-]*$/u.test(name) || !Array.isArray(keys) ||
@@ -101,7 +103,7 @@ export function buildClientHostWire(registry, protocol) {
     `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const requestRules = requestResponseRules(registry, schemas);
   const native = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
-    outcome: protocol.artifact_schema_cids.check_outcome});
+    outcome: protocol.artifact_schema_cids.check_outcome}, reportRules);
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
     `reasonSchemaCid: string; outcomeSchemaCid: string; ` +
@@ -119,7 +121,7 @@ export function buildClientHostWire(registry, protocol) {
     `export type WireCheckLocationShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.location))};\n` +
     `export type WireCheckFixShape = ${typeOf(project(protocol.artifact_schemas.check_reason.properties.fixes.items))};\n`;
   return {module: module + jsResponseRules(rules) +
-    jsRequestResponseRules(schemas, requestRules), types, native};
+    jsRequestResponseRules(schemas, requestRules) + jsCheckReportRules(reportRules), types, native};
 }
 
 async function main() {

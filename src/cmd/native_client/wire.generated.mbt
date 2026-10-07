@@ -8119,6 +8119,9 @@ fn wire_rule_58(value : Json) -> Bool {
     ) {
     return false
   }
+  if !wire_check_report_contract(value) {
+    return false
+  }
   true
 }
 
@@ -9394,4 +9397,101 @@ fn wire_request_lookup(value : Json, expected : String) -> Bool {
     wire_held_shape(value) &&
     fields.get("requestId") == Some(Json::string(expected))
   )
+}
+
+///|
+fn wire_check_report_contract(value : Json) -> Bool {
+  guard value is Object(fields) else { return false }
+  let report = match fields.get("report") {
+    Some(report) => Some(report)
+    None => fields.get("partial_report")
+  }
+  guard report is Some(report) else { return true }
+  guard report is Object(report_fields) &&
+    report_fields.get("inputs") is Some(Array(inputs)) &&
+    report_fields.get("reasons") is Some(Array(reasons)) &&
+    report_fields.get("requirements") is Some(Array(requirements)) &&
+    report_fields.get("coverage") is Some(Object(coverage)) &&
+    coverage.get("limits") is Some(Array(limits)) else {
+    return false
+  }
+  let documents : Map[String, Json] = Map([])
+  for input in inputs {
+    guard input is Object(fields) &&
+      fields.get("document_id") is Some(String(id)) else {
+      return false
+    }
+    documents[id] = input
+  }
+  let occurrences = reasons.copy()
+  for reason in requirements {
+    occurrences.push(reason)
+  }
+  for reason in limits {
+    occurrences.push(reason)
+  }
+  if documents.size() != inputs.length() {
+    return false
+  }
+  guard documents.get("source") is Some(Object(source)) &&
+    source.get("kind") == Some(Json::string("text")) else {
+    return false
+  }
+  for id, input in documents {
+    guard input is Object(fields) else { return false }
+    if id != "source" && fields.get("kind") != Some(Json::string("structured")) {
+      return false
+    }
+  }
+  for reason in occurrences {
+    guard reason is Object(fields) else { return false }
+    if fields.get("location") is Some(location) {
+      guard location is Object(location_fields) &&
+        location_fields.get("document_id") is Some(String(id)) &&
+        documents.get(id) is Some(Object(input)) &&
+        input.get("revision") == location_fields.get("revision") &&
+        input.get("kind") == location_fields.get("kind") else {
+        return false
+      }
+      if location_fields.get("kind") == Some(Json::string("text")) {
+        guard location_fields.get("start_byte") is Some(Number(start, ..)) &&
+          location_fields.get("end_byte") is Some(Number(end, ..)) &&
+          input.get("byte_length") is Some(Number(bytes, ..)) else {
+          return false
+        }
+        if start > end || end > bytes {
+          return false
+        }
+      }
+    }
+  }
+  for reason in occurrences {
+    guard reason is Object(fields) else { return false }
+    if fields.get("fixes") is Some(fixes) {
+      guard fixes is Array(fixes) else { return false }
+      for fix in fixes {
+        guard fix is Object(fix_fields) &&
+          fix_fields.get("target") is Some(Object(target)) &&
+          target.get("document_id") is Some(String(id)) &&
+          documents.get(id) is Some(Object(input)) &&
+          input.get("kind") == Some(Json::string("text")) &&
+          input.get("revision") == target.get("revision") &&
+          input.get("byte_length") is Some(Number(bytes, ..)) &&
+          fix_fields.get("edits") is Some(Array(edits)) else {
+          return false
+        }
+        for edit in edits {
+          guard edit is Object(edit_fields) &&
+            edit_fields.get("start_byte") is Some(Number(start, ..)) &&
+            edit_fields.get("end_byte") is Some(Number(end, ..)) else {
+            return false
+          }
+          if start != bytes || end != bytes {
+            return false
+          }
+        }
+      }
+    }
+  }
+  true
 }

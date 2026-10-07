@@ -2502,6 +2502,12 @@
       ]
     }
   },
+  "check_report_rules": [
+    "unique_document_ids",
+    "input_document_kinds",
+    "locations_match_input",
+    "fix_targets_match_exact_eof"
+  ],
   "response_rules": {
     "profile": {
       "matchConnection": [
