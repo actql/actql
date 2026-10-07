@@ -81,5 +81,8 @@ Distribution acceptance must use normal prepack of five packages at a clean
 fixed HEAD and record their SHA-256 manifest. Public Local and HTTPS results,
 exact revision, receipt and CI status are recorded separately in the PR.
 Full Core, Wasm/native execution, proof campaigns and the full packed corpus
-have not been run for this unit. Parent #835 remains an explicit dependency
-until its implementation reaches main.
+have not been run for this unit. Initial submission depended on #835. During
+acceptance it reached main at `d651681f9fa024acde67e19842a13245008aa2b7`;
+the branch subsequently merged main `ca552239404e8d4bb3d996cdbc346bbebd41a94c`.
+The exact `830feeead9507c5c64280e588dfde9b498e98431` distribution acceptance
+remains evidence for that predecessor, not the later integrated runtime.
