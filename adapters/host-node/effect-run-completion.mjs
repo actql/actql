@@ -5,6 +5,7 @@ import {issueAuthorizedEffectSetReceipt} from
 import {publishCompletedEffectfulRun, transferCompletedEffectfulCaptureCustody} from
   '../host-common/completed-run-publication.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {issuedEffectSetReceiptWires} from '../host-common/effect-receipt-custody.mjs';
 
 const fail = () => {
   throw Object.assign(new Error('InvalidCapturedEffectRunCompletion'), {
@@ -109,25 +110,50 @@ async function complete(options, recovered) {
 
 // Once a physical send is durably claimed, an observation failure cannot
 // reuse the consumed resume admission or turn the row into a fresh request.
-// A dispatching/unknown head is sufficient to issue the Set's uncertainty
-// receipt; it is not evidence that any external mutation succeeded.
+// Any attempted row needs the common Set receipt, including an already
+// Applied/Accepted row followed by a currently refused unattempted remainder.
+// The issuer, not this Host, determines partial failure versus uncertainty.
 export function completeInterruptedEffectRun(options, recovered) {
   validateCompletion(options, recovered);
   const {apply, receipt} = options;
   const control = runtimeCore(apply.moon).effectApplicationControl;
-  const uncertain = receipt.members.some(member =>
+  const attempted = receipt.members.some(member =>
     member.rowOwners.some(owner => {
       const entry = apply.ledger.currentAdmitted(
         control.logicalItemLocatorCid(owner.claim.locator));
       return entry !== undefined &&
-        [1, 5].includes(control.ledgerEntryStateCode(entry));
+        control.ledgerEntryStateCode(entry) !== 0;
     }));
-  if (!uncertain) {
-    throw Object.assign(new Error('EffectRunNoUncertainSend'), {
-      code: 'EffectRunNoUncertainSend'});
+  if (!attempted) {
+    throw Object.assign(new Error('EffectRunNoAttemptedSend'), {
+      code: 'EffectRunNoAttemptedSend'});
   }
   return issueAndPublish(options, Object.freeze({status: 'interrupted',
     dispatched: 0}));
+}
+
+// A failed resume binding can retain a fenced observation claim, but no new
+// execution or publication authority. Aggregate the exact historical rows
+// through the existing issuer; neither refresh nor a dispatch port is called.
+export async function settleRefusedEffectRun(options) {
+  options = Object.freeze({...options,
+    apply: Object.freeze({...options?.apply}),
+    receipt: Object.freeze({...options?.receipt}),
+    publication: Object.freeze({...options?.publication})});
+  validateCompletion(options, true);
+  const {apply, receipt, publication} = options;
+  const issuedSet = await issueAuthorizedEffectSetReceipt({...receipt,
+    ledger: apply.ledger, commonMoon: apply.moon,
+    publicationPreview: publication.preview});
+  const wires = issuedEffectSetReceiptWires(issuedSet, apply.ledger,
+    publication.preview);
+  const disposition = publication.control.effectSetReceiptRunDisposition(
+    publication.preview, wires, publication.contractLimits);
+  if (![0, 1, 2].includes(disposition)) fail();
+  // Even a completely observed historical Set is not a grant to publish
+  // under a refused current binding. Its applied/accepted receipt is kept.
+  return Object.freeze({status: disposition === 1 ? 'needs_reconciliation' : 'failed',
+    progress: Object.freeze({status: 'refused', dispatched: 0}), issuedSet});
 }
 
 export function completeCapturedEffectRun(options) {
