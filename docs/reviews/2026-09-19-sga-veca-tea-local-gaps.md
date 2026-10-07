@@ -6769,6 +6769,13 @@ and final release without redispatch. Preparation evidence is JS 38/38 plus a
 recorded separately in the
 [bounded receipt record](2026-10-08-local-bounded-admission-finish.md).
 
+After normal main integration, clean
+`565dea915bcbc7e09fda3fcc61416d3337f0eafc` passed the JS caller selection 22/22
+and Node selection 46/46 (14 actual Host cases plus 32 source guards). Consuming
+source runtimes were rebuilt at that SHA. The actual history audit still fails
+on an unchanged main declaration's redundant singleton merge-base field; this
+shared provenance failure is recorded rather than bypassed.
+
 The blocking receipt convenience API, row-file materializing receipt path,
 nested-value admission and trusted availability callbacks remain separate
 boundaries. This does not establish a whole-callback latency or physical-byte

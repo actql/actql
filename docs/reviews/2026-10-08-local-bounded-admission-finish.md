@@ -85,3 +85,61 @@ allocator/collector operations, nested-value admission, other synchronous
 availability walks, every Store finalizer or Native physical-byte lifetime.
 Wasm/Native execution, pristine packed/HTTPS acceptance, full Core/proofs and
 submitted-HEAD CI are unverified. The full retained Local goal remains open.
+
+## Integrated validation
+
+Parent #856 is merged. This unit normally adopted main
+`c6a1a8e7ab3726cccbf1fddc897bde15a5927e5a` without conflicts; it targets main,
+not an unmerged parent branch. No published history was rewritten.
+
+At clean `565dea915bcbc7e09fda3fcc61416d3337f0eafc`:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 300 -- \
+  --target js --jobs 1 \
+  src/execution_relation/managed_output_finish_wbtest.mbt \
+  src/execution_relation/managed_view_output_wbtest.mbt \
+  src/execution_relation/managed_verified_output_wbtest.mbt \
+  src/execution_relation/managed_producer_read_wbtest.mbt \
+  src/execution_relation/managed_producer_bridge_wbtest.mbt \
+  src/query_integration/local_publication_reclamation_wbtest.mbt
+node scripts/local-checks.mjs build moon --timeout-seconds 300 -- \
+  --target js --release --jobs 1 \
+  src/connectors_builtin_node src/connectors/duckdb/conformance
+node scripts/local-checks.mjs test node --timeout-seconds 180 -- \
+  --test-name-pattern 'retained Values honors|retained source-free Values chain retains responsibility|retained Values publishes ordered source-free chain|installed retained .*factory executes|installed retained Vectors retains custody after publication|installed retained Events retries cleanup after publication|Events cancels during Relation receipt|source rejects|current driver/common owner source' \
+  adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs \
+  proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
+```
+
+- JS 22/22: `run-s9CIHD` / `focused-test-ERRNHm`, including the final private
+  blocking-finish guard and existing view/verified-output callers.
+- Source runtime rebuilt at that same SHA: 76 tasks, `run-447c2D`. The Node
+  boundary directly imports these checkout roots; no tarball or packed-package
+  correspondence is claimed.
+- Node 46/46: `run-LKMmid` / `focused-test-G5rgwe`. This is 14 actual standard
+  Host/real-Store cases and 32 separate source-guard/mutation cases, not 46 Host
+  acceptance cases. Normal mixed Stages read all three independent Named Results;
+  adjacent exact/one-short, arithmetic, cancellation, Store and cleanup guarantees
+  remain intact. The new managed receipt-cancellation case also passes.
+- Canonical `moon info` completed for the affected common/driver packages;
+  read-only Workers and Node Host generators found no stale tracked fixture.
+  The first Workers check lacked `MOON_HOME` and failed; the subsequent check
+  used the pinned toolchain environment. This is not an execution failure.
+
+### Inherited history failure
+
+`node proofs/relation-pipeline/history.mjs` fails at this SHA with
+`Spurious foundation merge bases`. The exact declaration is
+`proofs/relation-pipeline/foundation-declarations/resolve-manifest-provider-runtime-pack-main.json`,
+for revision `d9088eb9f13058ebdadfe22ce8133e4ae6e329c5`. Both its declared and
+actual merge-base list contain only
+`426d857dff443d59f992b9e7db20a27ee9176554`; no single-base normalization exists
+for that declaration. Its bytes are identical to adopted main. The declaration
+and validator are not changed by this unit. This identifies an inherited
+provenance failure; it is not a passing main-wide history audit.
+
+Existing declarations are preserved. This PR does not weaken the validator or
+introduce an independent repair of the shared history boundary. History repair
+and final CI remain outstanding. Documentation after the validation SHA does
+not relabel its receipts as execution of a newer source revision.
