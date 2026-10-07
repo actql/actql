@@ -8,13 +8,15 @@ import {createHash, generateKeyPairSync} from 'node:crypto';
 import {once} from 'node:events';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {join} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {dirname, join} from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
 import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
+import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const recoveryOnly = process.argv.includes('--recovery-only');
+const heldValuesOnly = process.argv.includes('--held-values-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // The installed application must not resolve files from the source checkout.
@@ -52,7 +54,37 @@ assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
 // The light SDK carries no runtime, DuckDB or Store code.
 const sdkFiles = (await readdir(join(root, 'node_modules/@actql/sdk'))).sort();
 assert.deepEqual(sdkFiles.filter(name => /\.(m?js|json)$/u.test(name)),
-  ['checkpoints.mjs', 'host-port.mjs', 'index.mjs', 'package.json']);
+  ['check-presentation.mjs', 'check-reason-catalog.generated.js', 'checkpoints.mjs',
+    'host-port.mjs', 'index.mjs', 'json-value-wire.generated.mjs',
+    'operation-formats.mjs', 'operation-presentation.mjs', 'package.json']);
+
+async function heldValueAcceptance() {
+  for (const name of ['adapters/host-node/held-submission-value-public.test.mjs',
+    'scripts/fixtures/held-submission-value-process.mjs', 'scripts/owned-scratch.mjs',
+    'scripts/test-execution-reporter.mjs']) {
+    await mkdir(dirname(join(root, name)), {recursive: true});
+    await writeFile(join(root, name), await readFile(join(repository, name)));
+  }
+  const inputs = join(root, 'held-value-acceptance-inputs.json');
+  await writeFile(inputs, JSON.stringify({scratch: root, runtime: {
+    client: '@actql/node', httpHost: '@actql/local-node/http-host'}}));
+  const args = nodeTestArguments(['adapters/host-node/held-submission-value-public.test.mjs']);
+  args[1] = '--test-reporter=' + pathToFileURL(join(root, 'scripts/test-execution-reporter.mjs')).href;
+  const result = spawnSync(process.execPath, args, {cwd: root,
+    env: {...environment, ACTQL_HELD_VALUE_ACCEPTANCE_INPUTS: inputs},
+    encoding: 'utf8', timeout: 120000, maxBuffer: 4 * 1024 * 1024});
+  await writeFile(join(root, 'held-values.log'), `${result.stdout ?? ''}${result.stderr ?? ''}`);
+  const checked = assertTestExecution('node', process.execPath, args, result);
+  assert.equal(checked.counts.passed, 2, 'Both packed Local and HTTPS must execute');
+  console.log(result.stdout.trimEnd());
+}
+if (heldValuesOnly) {
+  await heldValueAcceptance();
+  console.log('packed held submission value recovery: ok');
+  if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') console.error(`packed client Checkpoint scratch kept: ${root}`);
+  else await rm(root, {recursive: true, force: true});
+  process.exit(0);
+}
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -893,6 +925,7 @@ if (!recoveryOnly) {
   assert.deepEqual(await counts('batch'), ran());
 }
 for (const restartAfterCrash of pastDeadline) await restartAfterCrash();
+if (!recoveryOnly) await heldValueAcceptance();
 console.log(recoveryOnly ? 'packed client Checkpoint recovery: ok'
   : 'packed client Checkpoint acceptance: ok');
 // A failed run keeps its installation, states and event logs for diagnosis.

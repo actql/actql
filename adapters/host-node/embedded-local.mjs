@@ -1452,7 +1452,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
-    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
+    if (canonicalValueJson(reproduced, {dataKeys: true}) !==
+        canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
@@ -1775,10 +1776,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       throw new AggregateError(failures, 'EffectCaptureCleanupPending');
     }
   };
-  const sweepEffectRuns = async () => {
+  const sweepEffectRuns = async ({reconcileRef} = {}) => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
-    try { await retireIncompleteEffects(); }
+    // A requested observation owns only its original Run. Global capture
+    // retirement belongs to ordinary sweeps and final Host shutdown.
+    try { if (reconcileRef === undefined) await retireIncompleteEffects(); }
     catch (error) {
       busy = true;
       diagnostic('effect_capture_retirement_failed', {
@@ -1788,6 +1791,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
+        if (reconcileRef !== undefined &&
+            (view.runDefinitionCid !== reconcileRef.runDefinitionCid ||
+             view.kind !== 'effect_set')) continue;
         if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null) {
           continue;
         }
@@ -1807,11 +1813,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           }
           continue;
         }
-        if (runStatus !== 'resuming') continue;
-        if (checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
+        const observing = reconcileRef !== undefined && runStatus === 'needs_reconciliation';
+        if (runStatus !== 'resuming' && !observing) continue;
+        if (!observing && checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
+          if (observing && effectResumeFlights.has(key)) {
+            await effectResumeFlights.get(key);
+          }
           continue;
         }
         try {
@@ -1947,6 +1957,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           const flight = dispatchOwner.track(ref, {
             run: ({signal, retainExecution, beginPhysicalWork}) =>
               effectInstallation.resume(Object.freeze({ref, view,
+                reconciliationOnly: observing,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
@@ -2000,9 +2011,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               void checkpoints.sweep();
             }
           });
+          if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
             code: error?.code ?? error?.message});
+          if (reconcileRef !== undefined) throw error;
         }
         busy = true;
       }
@@ -2010,6 +2023,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       after = page.at(-1).checkpointCid;
     }
     return busy;
+  };
+  const reconcile = async ({ref, principalId: actual, connection, signal}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('RunStateAccessDenied');
+    }
+    signal?.throwIfAborted();
+    const state = await observeRun({ref, principalId: actual});
+    // An explicit Effect observation never restarts Compute, reopens approval
+    // or converts an execution-unknown Run into an invented Effect inventory.
+    if (state.status === 'needs_reconciliation' &&
+        state.next_action?.kind === 'reconcile') {
+      await sweepEffectRuns({reconcileRef: ref});
+    }
+    return observeRun({ref, principalId: actual});
   };
   const modelResumeFlights = new Map();
   const sweepModelRuns = async () => {
@@ -2303,7 +2330,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, check, attach,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, cancel, lookupCancellation, cancelRequest,
+    stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),
