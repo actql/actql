@@ -44,5 +44,8 @@ import {
 } for "wbtest"
 
 options(
-  targets: { "stopped_retained_cleanup_native_wbtest.mbt": [ "native" ] },
+  targets: {
+    "stopped_retained_cleanup_native_wbtest.mbt": [ "native" ],
+    "cancelled_receiver_cleanup_native_wbtest.mbt": [ "native" ],
+  },
 )
