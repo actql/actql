@@ -55,7 +55,10 @@ for await (const row of result.rows()) console.log(row);
 Source, parameter declarations, parameters and query options are captured at
 invocation. Collection shortcuts capture read options when called, preserving
 the live AbortSignal. Re-awaiting, `Promise.resolve`, and `Promise.all` with the
-same query share the same Result. Repeated `all()` calls open independent reads
+same query share the same Result. A collection shortcut always observes that
+query, even if argument capture failed: the original query rejection takes
+precedence; after query success it rejects the captured argument error without
+reading. Repeated `all()` calls open independent reads
 of that Result, with independent attempt IDs; they never repeat Compute.
 The resolved Result is not thenable. An ignored query does not cancel accepted
 work, and an ignored rejection follows ordinary native Promise behavior.
@@ -65,7 +68,70 @@ The second argument is always the named parameters map. Parameter names such as
 argument accepts `parameterDeclarations`, `requestId`, `signal` and `result`.
 There is no parameter interpolation or automatic declaration inference. Raw rows
 have `DynamicRow` type; `sql<MyRow>()` and assertion-only `all<MyRow>()` are not
-supported. Application-schema validation is a separate result-view increment.
+supported. Pass a Standard Schema V1 schema to validate and infer a Result view.
+
+### Validated Result views
+
+`result.all(schema, options?)`, `result.rows(schema, options?)` and
+`query.all(schema, options?)` accept a
+[Standard Schema V1](https://standardschema.dev/) schema. Types are inferred from
+its Output, including transformations. No schema library is installed by the
+SDK. Compatible `StandardSchemaV1` declarations are bundled and exported for
+custom adapters; schemas from supporting libraries work structurally.
+
+```ts
+import type {StandardSchemaV1} from '@actql/sdk';
+const ids: StandardSchemaV1<unknown, number> = {
+  '~standard': {version: 1, vendor: 'example', validate(row) {
+    if (row === null || typeof row !== 'object' || !('id' in row) ||
+        typeof row.id !== 'number') {
+      return {issues: [{message: 'Expected a numeric id', path: ['id']}]};
+    }
+    return {value: row.id};
+  }},
+};
+const numbers = await client.sql('SELECT 1 AS id').all(ids); // number[]
+const result = await client.sql('SELECT 2 AS id');
+for await (const id of result.rows(ids)) console.log(id); // number
+```
+
+Validation is client-side, serial and backpressured. Sync and async validators
+are supported; empty Results need no validator call. Each view uses the original
+Run/Result and one ordinary read attempt. It does not change Host schemas,
+serialization, publication, receipts or Compute. It never rereads or reruns on
+validation failure. `one()`, `scalar()` and `batches()` remain raw views.
+
+The selected `~standard` receiver, validation method and all supported read
+options are captured when the view/shortcut is called, before waiting for a
+query. Inherited and non-enumerable options are preserved. The AbortSignal stays
+live. Capturing a function does not freeze its closure or library internals.
+
+All wire, raw-row and collection ceilings still apply. Raw decoded-value bytes
+and collected-row count are charged before application validation, so mutation
+or shrinking transforms cannot evade them. Output is not JSON-accounted:
+transforms may return Date, Map, bigint, cycles, functions, `undefined`, or even
+Promise/thenable values. The SDK preserves those values without awaiting their
+contents. Application code that explicitly awaits an output may assimilate it.
+Arbitrary callback time, allocation and transformed-output size are outside
+raw accounting; `maxRows` still bounds the number collected by `all()`.
+`rows()` retains its streaming limits rather than a total collected-row limit.
+
+Schema issues (including an empty issues array), callback exceptions/rejections,
+and malformed validation results reject with `ResultValidationFailed` and
+`validationKind: 'issues' | 'exception' | 'invalid_result'`. Errors preserve the
+original `resultRef`, `attemptId`, zero-based `rowIndex`, and `rowsYielded`.
+`issues` retains schema paths for explicit inspection; exceptions remain in the
+cause chain. Issues and original callback exceptions are omitted from default
+JSON serialization. An invalid schema is `InvalidResultSchema` before reading.
+Typed `rows()` counts only validated outputs actually yielded. Failed `all()`
+returns none and reports zero, even when earlier rows validated successfully.
+
+Validation failures use the existing reader cleanup owner. A cleanup failure
+keeps the primary error plus `cleanupError` and `explainReadFailure(error)`'s
+cleanup uncertainty. Multiple cleanup failures are retained as an AggregateError. Aborting a pending validation, or `await client.close()`,
+stops the SDK's wait and releases that read through the same cleanup path,
+even if the callback's Promise never settles. It does not stop arbitrary
+JavaScript, reverse its effects or free allocations still owned by the callback.
 
 Omit `result` only for a Run with exactly one declared Result. Multiple or no
 Results yield `ResultSelectionRequired`; an absent selected name yields

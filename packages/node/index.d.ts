@@ -6,7 +6,7 @@ export {ClientError, RequestHeld} from '@actql/sdk';
 export type {Client, Execution, Result, Reader, RunReference,
   ConfirmedProfile, ReadOptions, RequestLookup,
   DeliveryAttemptLookup, ResultPromise, ResultReference, DynamicRow,
-  QueryOptions, QueryParameters} from '@actql/sdk';
+  QueryOptions, QueryParameters, StandardSchemaV1} from '@actql/sdk';
 
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;

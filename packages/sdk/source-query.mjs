@@ -1,20 +1,9 @@
+import {captureReadOptions, captureResultRead} from './result-schema.mjs';
+
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
 const queryOptionNames = new Set(['requestId', 'signal', 'result',
   'parameterDeclarations']);
-
-// Collection happens later, but its caller-owned options are chosen now.
-// AbortSignal remains a live signal; never JSON-clone it or defer this capture.
-function captureReadOptions(options) {
-  if (options === null || typeof options !== 'object' &&
-      typeof options !== 'function' || Array.isArray(options)) return options;
-  // Match ordinary ReadOptions property access, including class/inherited or
-  // non-enumerable values. Spreading would silently discard a tighter limit.
-  return Object.freeze(Object.fromEntries(['signal', 'maxWireBytes',
-    'maxRowWireBytes', 'maxRowRetainedValueBytes', 'maxRows',
-    'maxRetainedValueBytes', 'maxBatchRows', 'maxBatchRetainedValueBytes']
-    .map(name => [name, options[name]])));
-}
 
 function executionError(ClientError, code, execution, requestId, state, cause) {
   const error = new ClientError(code, {requestId,
@@ -27,6 +16,19 @@ function executionError(ClientError, code, execution, requestId, state, cause) {
     ...(cause === undefined ? {} : {cause: {value: cause}}),
   });
   return error;
+}
+
+function collectAfterQuery(query, capture, read) {
+  let captured, captureError, captureFailed = false;
+  try { captured = capture(); }
+  catch (cause) { captureFailed = true; captureError = cause; }
+  // Capture arguments immediately, but always observe the eager query. Its
+  // admission/held/observation failure takes precedence and keeps its identity;
+  // a local argument failure must not leave that query rejection orphaned.
+  return query.then(result => {
+    if (captureFailed) throw captureError;
+    return read(result, captured);
+  });
 }
 
 export function sourceQuery(startSource, ClientError, retainResult,
@@ -100,18 +102,16 @@ export function sourceQuery(startSource, ClientError, retainResult,
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: options => {
-      const captured = captureReadOptions(options);
-      return query.then(result => result.all(captured));
-    }},
-    one: {value: options => {
-      const captured = captureReadOptions(options);
-      return query.then(result => result.one(captured));
-    }},
-    scalar: {value: options => {
-      const captured = captureReadOptions(options);
-      return query.then(result => result.scalar(captured));
-    }},
+    all: {value: (schemaOrOptions, options) => collectAfterQuery(query,
+      () => captureResultRead(ClientError, schemaOrOptions, options),
+      (result, captured) => captured.validate === undefined
+        ? result.all(captured.options)
+        : result.all({'~standard': {version: 1, vendor: 'actql-captured',
+          validate: captured.validate}}, captured.options))},
+    one: {value: options => collectAfterQuery(query,
+      () => captureReadOptions(options), (result, captured) => result.one(captured))},
+    scalar: {value: options => collectAfterQuery(query,
+      () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
   return Object.freeze(query);
 }

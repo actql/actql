@@ -48,6 +48,13 @@ console.log(run(process.execPath, ['acceptance.mjs', 'initial']).trimEnd());
 console.log(run(process.execPath, ['acceptance.mjs', 'restart']).trimEnd());
 await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.mjs'),
   join(root, 'short-queries.mjs'));
+await copyFile(join(repository, 'scripts/fixtures/packed-short-queries.typecheck.mts'),
+  join(root, 'short-queries.typecheck.mts'));
+// Reuse the pinned compiler, but resolve public imports from the isolated
+// consumer. No schema dependency is installed just to make declarations work.
+console.log(run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'),
+  '--strict', '--target', 'ES2022', '--module', 'NodeNext',
+  '--moduleResolution', 'NodeNext', '--noEmit', 'short-queries.typecheck.mts']).trimEnd());
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);

@@ -1,3 +1,4 @@
+import './typed-results.test.mjs';
 import './source-query.test.mjs';
 import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';

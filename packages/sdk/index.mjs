@@ -1,4 +1,5 @@
 import {sourceQuery} from './source-query.mjs';
+import {captureResultRead, awaitValidation, validationOutcome} from './result-schema.mjs';
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
@@ -872,11 +873,39 @@ const retainReadExplanation = (result, context, rowsYielded, observation, cleanu
   }));
   return result;
 };
-const readFailure = (cause, context, rowsYielded, prior) => retainReadExplanation(new ClientError(
-  typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
-  {attemptId: context.attemptId, rowsYielded, cause,
-    ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})}),
-context, rowsYielded, prior?.observation ?? 'read_incomplete', prior?.cleanup === 'unknown');
+const appendCleanupFailure = (error, cause) => {
+  error.cleanupError = error.cleanupError === undefined ? cause :
+    new AggregateError([error.cleanupError, cause], 'Multiple reader cleanup failures');
+};
+// Only SDK validation failures carry these diagnostics through reader wrappers.
+const validationFailures = new WeakMap();
+const validationFailure = (kind, context, rowIndex, detail) => {
+  const error = new ClientError('ResultValidationFailed');
+  const metadata = Object.freeze({validationKind: kind, rowIndex,
+    resultRef: Object.freeze({run: context.ref, resultName: context.resultName})});
+  validationFailures.set(error, {...metadata, detail});
+  Object.assign(error, metadata);
+  if (kind === 'issues') Object.defineProperty(error, 'issues', {value: detail});
+  if (kind === 'exception') Object.defineProperty(error, 'cause', {value: detail});
+  return error;
+};
+const readFailure = (cause, context, rowsYielded, prior) => {
+  const error = new ClientError(
+    typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
+    {attemptId: context.attemptId, rowsYielded, cause,
+      ...(cause?.cleanupError === undefined ? {} : {cleanupError: cause.cleanupError})});
+  const validation = validationFailures.get(cause);
+  if (validation) {
+    const {detail, ...metadata} = validation;
+    Object.assign(error, metadata);
+    if (validation.validationKind === 'issues') {
+      Object.defineProperty(error, 'issues', {value: detail});
+    }
+    validationFailures.set(error, validation);
+  }
+  return retainReadExplanation(error, context, rowsYielded,
+    prior?.observation ?? 'read_incomplete', prior?.cleanup === 'unknown');
+};
 
 // The Host accepted and durably holds the request, but no Run exists yet:
 // it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
@@ -1243,7 +1272,7 @@ async function connectSelected(selected, port) {
 
     const result = name => {
       if (typeof name !== 'string' || !name) fail('InvalidResultName');
-      const rows = (options = {}) => {
+      const readRows = ({options, validate}, collection) => {
         const attemptId = crypto.randomUUID();
         const context = freezeInput({ref, resultName: name, attemptId,
           lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
@@ -1255,8 +1284,36 @@ async function connectSelected(selected, port) {
           options.maxRowRetainedValueBytes,
           confirmed.limits.maxRowRetainedValueBytes);
         let state = 'not_started';
-        let rowsYielded = 0;
+        let rowsYielded = 0, rawRows = 0, retainedBytes = 0;
         const controller = new AbortController();
+        const acceptRow = async (row, size = retainedValueBytes(row)) => {
+          // Charge the untouched decoded row before invoking application code.
+          // A mutating/shrinking transform cannot reduce its collection charge.
+          if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
+          if (collection && (rawRows >= collection.maxRows ||
+              retainedBytes + size > collection.maxBytes)) {
+            fail('ResultRetainedLimit');
+          }
+          retainedBytes += size;
+          const rowIndex = rawRows++;
+          controller.signal.throwIfAborted();
+          if (validate === undefined) return {value: row};
+          let response;
+          try {
+            response = await awaitValidation(validate(row), controller.signal);
+          } catch (cause) {
+            if (controller.signal.aborted) throw controller.signal.reason;
+            throw validationFailure('exception', context, rowIndex, cause);
+          }
+          controller.signal.throwIfAborted();
+          let outcome;
+          try { outcome = validationOutcome(response); }
+          catch (cause) { throw validationFailure('exception', context, rowIndex, cause); }
+          if (outcome.kind !== undefined) {
+            throw validationFailure(outcome.kind, context, rowIndex, outcome.issues);
+          }
+          return outcome;
+        };
         const iterate = async function* (ownedReader) {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
           state = 'opening';
@@ -1264,7 +1321,8 @@ async function connectSelected(selected, port) {
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
           let wireBytes = 0, line = '';
-          let stream, failure, localCleanup;
+          let stream, failure, localCleanup, frames;
+          let framesComplete = false;
           activeReaders.add(ownedReader);
           try {
             const response = await runRequest('read', {
@@ -1279,7 +1337,15 @@ async function connectSelected(selected, port) {
                 localCleanup = () => response.close();
                 readerCleanups.add(localCleanup);
               }
-              for await (const frame of response.frames) {
+              frames = response.frames[Symbol.asyncIterator]();
+              const nextFrame = frames.next;
+              while (true) {
+                const next = await Reflect.apply(nextFrame, frames, []);
+                if (next === null || !['object', 'function'].includes(typeof next)) {
+                  fail('InvalidResultStream');
+                }
+                if (next.done) { framesComplete = true; break; }
+                const frame = next.value;
                 controller.signal.throwIfAborted();
                 if (frame === null || typeof frame !== 'object' ||
                     !Number.isSafeInteger(frame.byteLength) ||
@@ -1292,12 +1358,14 @@ async function connectSelected(selected, port) {
                 }
                 wireBytes += frame.byteLength;
                 if (wireBytes > maxWireBytes) fail('ResultWireLimit');
-                if (retainedValueBytes(frame.value) >
-                    maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
+                const size = retainedValueBytes(frame.value);
+                if (size > maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
                 const row = structuredClone(frame.value);
                 state = 'prefix';
+                const output = await acceptRow(row, size);
+                controller.signal.throwIfAborted();
                 rowsYielded++;
-                yield row;
+                yield output;
               }
               controller.signal.throwIfAborted();
               state = 'complete';
@@ -1325,10 +1393,6 @@ async function connectSelected(selected, port) {
                   catch { fail('InvalidResultFrame'); }
                   if (row === null || typeof row !== 'object' ||
                       Array.isArray(row)) fail('InvalidResultFrame');
-                  if (retainedValueBytes(row) > maxRowRetainedValueBytes) {
-                    fail('ResultRowRetainedLimit');
-                  }
-                  rowsYielded++;
                   yield row;
                 }
                 if (new TextEncoder().encode(line).byteLength >
@@ -1346,12 +1410,21 @@ async function connectSelected(selected, port) {
                 const sliceBytes = Math.min(8192, maxRowWireBytes);
                 for (let offset = 0; offset < value.byteLength;
                   offset += sliceBytes) {
-                  yield* acceptText(decoder.decode(
-                    value.subarray(offset, offset + sliceBytes),
-                    {stream: true}));
+                  for (const row of acceptText(decoder.decode(
+                    value.subarray(offset, offset + sliceBytes), {stream: true}))) {
+                    const output = await acceptRow(row);
+                    controller.signal.throwIfAborted();
+                    rowsYielded++;
+                    yield output;
+                  }
                 }
               }
-              yield* acceptText(decoder.decode());
+              for (const row of acceptText(decoder.decode())) {
+                const output = await acceptRow(row);
+                controller.signal.throwIfAborted();
+                rowsYielded++;
+                yield output;
+              }
               if (line !== '\x1e') fail('IncompleteResultStream');
               state = 'complete';
             }
@@ -1363,6 +1436,28 @@ async function connectSelected(selected, port) {
             // original attempt for lookup, even when no row was received.
             if (state === 'opening') state = 'open_unknown';
             options.signal?.removeEventListener('abort', abort);
+            if (frames !== undefined && !framesComplete) {
+              // AsyncIteratorClose suppresses return() failures when a loop
+              // body already threw. This owner must retain both validation
+              // failure and frame cleanup uncertainty, even without close().
+              try {
+                const finish = frames.return;
+                if (finish !== undefined && finish !== null) {
+                  const returned = await Reflect.apply(finish, frames, []);
+                  if (returned === null || !['object', 'function'].includes(typeof returned)) {
+                    fail('InvalidResultStream');
+                  }
+                }
+              } catch (cause) {
+                if (failure) {
+                  appendCleanupFailure(failure, cause);
+                  retainReadExplanation(failure, context, rowsYielded,
+                    readExplanations.get(failure)?.observation ?? 'read_incomplete', true);
+                }
+                else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
+                  {attemptId, rowsYielded, cause}), context, rowsYielded, 'cleanup_unknown');
+              }
+            }
             if (stream) {
               try {
                 if (state !== 'complete') await stream.cancel();
@@ -1371,7 +1466,7 @@ async function connectSelected(selected, port) {
                 // its local lock is not a remote cleanup acknowledgment, and
                 // a closed stream supplies no Host cleanup retry witness.
                 if (failure) {
-                  failure.cleanupError = cause;
+                  appendCleanupFailure(failure, cause);
                   retainReadExplanation(failure, context, rowsYielded, 'read_incomplete', true);
                 }
                 else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
@@ -1389,7 +1484,7 @@ async function connectSelected(selected, port) {
                 readerCleanups.delete(localCleanup);
               } catch (cause) {
                 if (failure) {
-                  failure.cleanupError = cause;
+                  appendCleanupFailure(failure, cause);
                   retainReadExplanation(failure, context, rowsYielded,
                     readExplanations.get(failure)?.observation ?? 'read_incomplete', true);
                 }
@@ -1408,11 +1503,22 @@ async function connectSelected(selected, port) {
             const owned = {abort: () => controller.abort(new ClientError('ClientClosed')),
               finish: () => iterator.return()};
             const iterator = iterate(owned);
-            return iterator;
+            // Do not yield transformed values from an async generator: it
+            // would assimilate thenable outputs. Only unwrap IteratorResult.
+            const unwrap = item => item.done ? item : {done: false, value: item.value.value};
+            return {
+              next: value => iterator.next(value).then(unwrap),
+              return: value => iterator.return(value).then(unwrap),
+              throw: error => iterator.throw(error).then(unwrap),
+              [Symbol.asyncIterator]() { return this; },
+            };
           }});
         readerContexts.set(reader, context);
         return reader;
       };
+
+      const rows = (schemaOrOptions, options) =>
+        readRows(captureResultRead(ClientError, schemaOrOptions, options));
 
       const batches = (options = {}) => {
         const reader = rows(options);
@@ -1458,21 +1564,16 @@ async function connectSelected(selected, port) {
           }});
       };
 
-      const all = async (options = {}) => {
-        const reader = rows(options);
-        const maxRows = tighter(options.maxRows, confirmed.limits.maxRows);
-        const maxBytes = tighter(options.maxRetainedValueBytes,
-          confirmed.limits.maxRetainedValueBytes);
-        let bytes = 0;
+      const all = async (schemaOrOptions, options) => {
+        const captured = captureResultRead(ClientError, schemaOrOptions, options);
+        const reader = readRows(captured, {
+          maxRows: tighter(captured.options.maxRows, confirmed.limits.maxRows),
+          maxBytes: tighter(captured.options.maxRetainedValueBytes,
+            confirmed.limits.maxRetainedValueBytes),
+        });
         const values = [];
         try {
-          for await (const row of reader) {
-            bytes += retainedValueBytes(row);
-            if (values.length >= maxRows || bytes > maxBytes) {
-              fail('ResultRetainedLimit');
-            }
-            values.push(row);
-          }
+          for await (const row of reader) values.push(row);
           return values;
         } catch (cause) {
           throw readFailure(cause, readerContexts.get(reader), 0, readExplanations.get(cause));

@@ -1,4 +1,6 @@
 /// <reference lib="esnext.disposable" />
+import type {StandardSchemaV1} from './standard-schema.js';
+export type {StandardSchemaV1} from './standard-schema.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
@@ -355,6 +357,13 @@ export declare class ClientError extends Error {
   readonly cancelRef?: Readonly<CancellationReference>;
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
+  /** Local schema validation failure; the Run itself is unchanged. */
+  readonly validationKind?: 'issues' | 'exception' | 'invalid_result';
+  /** Zero-based index of the raw row that failed validation. */
+  readonly rowIndex?: number;
+  readonly resultRef?: ResultReference;
+  /** Explicit schema diagnostics, omitted from default JSON serialization. */
+  readonly issues?: readonly StandardSchemaV1.Issue[];
   readonly cleanupError?: unknown;
   /** Client cleanup has not confirmed release; retry await client.close(). */
   readonly cleanupPending?: boolean;
@@ -414,8 +423,14 @@ export interface Result {
   readonly ref: ResultReference;
   readonly execution: Execution;
   describe(options?: ResultDescriptionOptions): Promise<ResultDescription>;
+  /** Serial validation; output types come from the schema, not a cast. */
+  rows<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Reader<StandardSchemaV1.InferOutput<Schema>>;
   rows(options?: ReadOptions): Reader<DynamicRow>;
   batches(options?: ReadOptions): Reader<DynamicRow[]>;
+  /** Raw rows are charged before validation; transformed output size is not bounded. */
+  all<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Promise<StandardSchemaV1.InferOutput<Schema>[]>;
   all(options?: ReadOptions): Promise<DynamicRow[]>;
   one(options?: ReadOptions): Promise<DynamicRow>;
   scalar(options?: ReadOptions): Promise<unknown>;
@@ -427,6 +442,9 @@ export interface Result {
 /** One eager submission. Re-awaiting shares its Result; collection opens a fresh read. */
 export interface ResultPromise extends Promise<Result> {
   readonly requestId: string;
+  /** Raw rows are charged before validation; transformed output size is not bounded. */
+  all<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Promise<StandardSchemaV1.InferOutput<Schema>[]>;
   all(options?: ReadOptions): Promise<DynamicRow[]>;
   one(options?: ReadOptions): Promise<DynamicRow>;
   scalar(options?: ReadOptions): Promise<unknown>;

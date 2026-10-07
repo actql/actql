@@ -259,3 +259,48 @@ test('a throwing query-option accessor rejects without transport or reevaluation
   await assert.rejects(query, {message: 'caller option failure'});
   assert.equal(calls, 1); assert.equal(f.count('submit'), 0);
 });
+
+for (const [method, kind] of [['all', 'schema'], ['all', 'options'],
+  ['one', 'options'], ['scalar', 'options']]) {
+  test(`${method}: ${kind} capture cannot orphan a rejected eager submission`, () => {
+    const module = new URL('./source-query.mjs', import.meta.url).href;
+    const code = `import assert from 'node:assert/strict';
+      import {sourceQuery} from ${JSON.stringify(module)};
+      let observed = 0, captured = 0;
+      process.on('unhandledRejection', () => {observed++;});
+      for (const code of ['SubmissionUnknown', 'RequestHeld']) {
+        const original = Object.assign(new Error(code), {code});
+        let reject;
+        const admission = new Promise((_resolve, no) => {reject = no;});
+        const query = sourceQuery(() => admission, Error, () => {}, 'sql', 'SELECT 1');
+        const argument = ${JSON.stringify(kind)} === 'schema'
+          ? {'~standard': {version: 2, vendor: 'test', validate() {}}}
+          : {get maxRows() {captured++; throw new Error('capture failure');}};
+        const collected = query[${JSON.stringify(method)}](argument);
+        assert.ok(collected instanceof Promise);
+        reject(original);
+        await assert.rejects(collected, error => error === original);
+      }
+      assert.equal(captured, ${kind === 'options' ? 2 : 0});
+      setTimeout(() => {assert.equal(observed, 0);}, 30);`;
+    const child = spawnSync(process.execPath, ['--input-type=module', '-e', code],
+      {encoding: 'utf8', timeout: 10000});
+    assert.equal(child.status, 0, `${child.stdout}\n${child.stderr}`);
+  });
+}
+
+test('collection argument failures reject after query success without reading', async t => {
+  const f = await fixture(t), query = f.client.sql('SELECT 1 AS id');
+  const argumentFailure = new Error('read option getter');
+  let accessed = 0;
+  const options = {get maxRows() {accessed++; throw argumentFailure;}};
+  const all = query.all(options), one = query.one(options), scalar = query.scalar(options);
+  assert.equal(accessed, 3, 'Arguments are captured before any query wait');
+  await assert.rejects(all, error => error === argumentFailure);
+  await assert.rejects(one, error => error === argumentFailure);
+  await assert.rejects(scalar, error => error === argumentFailure);
+  await assert.rejects(query.all({'~standard': {}}), {code: 'InvalidResultSchema'});
+  const result = await query;
+  assert.deepEqual(result.ref.run, ref);
+  assert.equal(f.count('submit'), 1); assert.equal(f.count('read'), 0);
+});
