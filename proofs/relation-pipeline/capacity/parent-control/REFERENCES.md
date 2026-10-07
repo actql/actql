@@ -103,9 +103,45 @@ callback, changed alias or premature/duplicate retirement rejects correspondence
 Retaining handoff semantics remain a source/Owner trust assumption. The private
 slot check does not prove callback bodies, arbitrary aliasing or whole lifetime.
 
-Ordered callback capture correspondence remains explicitly unresolved on Darwin
-ARM64; only the existing Linux x64 decoder establishes that separate component.
+The primitive Ref decoder does not establish ordered callback capture
+correspondence. The separate construction-point decoder below checks that
+component on Darwin ARM64; Linux x64 retains its existing decoder.
 Physical allocation footprint, payload/referent overlap, allocator effects,
 Ledger generations, last-owner/GC reclamation and whole-parent upper bounds also
 remain unresolved. A historical original reinspection retains its historical
 source identity; it cannot replace a new submitted-SHA execution.
+
+## Darwin ARM64 ordered callback capture correspondence
+
+The final consumer derives the six existing environment/callback allocation
+requests and every pointer/scalar field store from the actual object and linked
+constructor. It binds frame slots and callee-saved sources to the real observer
+arguments, including Darwin's compact four-byte scalar stack slots. Matching a
+sorted identity set is insufficient: every observed offset must contain its
+specific source role. The environment carries used/family/numeric/measurement,
+limits, execution, state, sequence and count; callbacks must preserve their own
+reviewed roles, including terminal versus cancelled and cleanup-index versus
+reclaimed. Their requests are 80, 104, 40, 24, 48 and 24 bytes respectively.
+
+The restricted straight-line decoder checks constant requests, indexed headers,
+complete unique typed field stores, allocation aliases and the five callback
+arguments at the retaining Owner handoff. The returned parent must reach the
+observer. Caller retirement must follow that handoff in callback order, without
+substitution or an extra instruction hiding a change before observer arguments.
+Calls clear volatile aliases; callee-saved registers follow the pinned ABI.
+Partial stores/register copies, unbound frame sources, allocation escape, entering
+branches, unknown calls/instructions and incomplete argument lists reject.
+
+Mach-O PAGE21/PAGEOFF12 relocations must name the same local callback. Executed
+page/offset addresses must resolve uniquely and the object/linked code identities
+and field roles must agree. Tool and object/executable identities remain bound,
+and the consumer regenerates these observations from the actual immutable bytes.
+Source-defined layouts and the independently authored negative fixtures stay
+separate from observations produced by the implementation.
+
+This closes finite ordered construction-point correspondence. It does not prove
+callback bodies, arbitrary aliasing, retaining handoff semantics, transient or
+referent lifetime unions, allocator/RSS bounds, GC reclamation or Ledger retirement.
+The existing conditional allowance and unresolved whole-parent physical upper
+remain unchanged. No source/binary or historical receipt is relabeled, and no
+Actions authority or evidence-reuse qualification follows from the local result.

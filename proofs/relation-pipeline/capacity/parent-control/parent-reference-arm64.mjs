@@ -12,7 +12,7 @@ const parentName = name => /connectors5local[0-9]+bounded__relation__chain__exec
 const ownerName = name => /connectors5local[0-9]+managed__provider__execution__with__child__work__issue$/.test(name);
 const reclaimsName = name => /connectors5local[0-9]+relation__chain__reclaims__completed__scratch$/.test(name);
 
-function functions(text) {
+export function arm64Functions(text) {
   const result = new Map(); let current;
   for (const line of text.split('\n')) {
     const fn = line.match(/^([0-9a-f]+) <([^>]+)>:$/);
@@ -36,7 +36,7 @@ function functions(text) {
   }
   return result;
 }
-function callTarget(ins, symbols) {
+export function arm64CallTarget(ins, symbols) {
   if (!ins?.op.startsWith('bl ')) return;
   if (ins.relocation) { assert.equal(ins.relocation.kind, 'BRANCH26', 'Wrong ARM64 call relocation'); return ins.relocation.symbol; }
   const m = ins.op.match(/^bl (0x[0-9a-f]+)$/);
@@ -44,6 +44,7 @@ function callTarget(ins, symbols) {
   const matches = [...symbols].filter(([, address]) => address === BigInt(m[1])).map(([name]) => name);
   assert(matches.length <= 1, 'Ambiguous ARM64 executed call'); return matches[0];
 }
+const callTarget = arm64CallTarget;
 function extent(name, fn, symbols) {
   assert(fn, 'Missing executed ARM64 Ref helper');
   const wide = name === arm64ReferenceHelpers[0], payload = wide ? 8 : 4;
@@ -153,7 +154,7 @@ function sites(fn, symbols) {
   return entries.map(({start, storeIndex, ...entry}) => entry);
 }
 export function inspectParentReferenceArm64(start, symbolText, objectText, linkedText) {
-  const symbols = codeSymbols(symbolText), objects = functions(objectText), linked = functions(linkedText);
+  const symbols = codeSymbols(symbolText), objects = arm64Functions(objectText), linked = arm64Functions(linkedText);
   const names = [...objects.keys()].filter(parentName); assert.equal(names.length, 1, 'Missing unique ARM64 parent');
   const name = names[0]; assert(linked.has(name), 'Missing executed ARM64 parent');
   const objectSites = sites(objects.get(name)), linkedSites = sites(linked.get(name), symbols);
