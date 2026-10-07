@@ -6527,3 +6527,23 @@ acceptance. #780/#774/#769 remain dependencies. COUNT/Sequence name processing,
 installed availability callbacks, Native capacity and unexecuted cross-target or
 packed evidence remain distinct. See the
 [Join input metadata record](2026-10-07-local-join-input-metadata.md).
+
+### Resumable COUNT and Sequence metadata (2026-10-07)
+
+COUNT and Sequence now borrow checked schema spellings and use the existing
+lookup/name-charge cursors instead of synchronous name maps and whole-name scans.
+Sequence predicate snapshots use the common indexed expression input, and
+pattern output roles compare virtual suffixes without concatenating labels.
+Original logical charges, exact/one-short limits, private phase cancellation and
+once-only cursor reclamation are retained. Public retained Host long-input-name
+cases publish independently expected producer/two-consumer Results and confirm
+request reuse, post-progress physical stop and reclamation.
+
+Implementation SHA `2b0717e9b3154fe48b9b7e9c4de4884b5dcc2699` passed the clean
+Host/gate selection 8/8. Pre-commit affected JS passed 44/44; the final metadata
+fixture passed 8/8. Receipts distinguish dirty-source JS from clean-HEAD Node
+acceptance and retain corrected fixture failures. #787/#780/#774/#769 remain
+dependencies. Sequence position-array copying/collection cleanup, installed
+availability callbacks, Native capacity and unexecuted cross-target/packed
+acceptance remain separate. See the
+[COUNT/Sequence metadata record](2026-10-07-local-count-sequence-metadata.md).
