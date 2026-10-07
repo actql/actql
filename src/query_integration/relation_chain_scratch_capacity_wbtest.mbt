@@ -43,9 +43,11 @@ test "ordinary keyed count chain reserves only one cleaned child scratch envelop
   }
   assert_true(retained + scratch > base.execution_bytes)
   assert_eq(capacity.retained_bytes, base.retained_bytes)
+  // Two fixed preparation handles coexist with child and output custody:
+  // input selection and the common read cursor, 256 bytes each.
   assert_eq(
     capacity.execution_bytes,
-    retained + scratch + count.to_int64() * 256L,
+    retained + scratch + count.to_int64() * 256L + 512L,
   )
   @strategy.stop_captured_dag(run)
   @mock.close_mock_query_issuer(issuer)

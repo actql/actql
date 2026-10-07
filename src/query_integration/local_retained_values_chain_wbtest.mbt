@@ -140,22 +140,31 @@ test "source-free scalar chain uses independent exact work and workspace limits"
   // Filter: six input steps + three retained roots + three seven-step
   // rows (begin/snapshot/two literal steps/build/check/commit) + finish = 31.
   // Select: six input steps + three four-step output rows + finish = 19.
-  // Two exact child handoffs give 20 + 31 + 19 + 2 = 72, independently
-  // of the execution meter. Each child's control charges fit this ceiling.
+  // Add completion-port scans for the three fixed lowered IDs and names,
+  // independently of the execution meter. Handoffs cost one each.
+  // Each child's semantic control charges also fit the chain ceiling.
   // Filter workspace peaks at three metadata entries + three input roots
   // + one snapshot + two predicate slots = 9; Values and Select need less.
   let defaults = dispatch_test_limits()
   let values_work = 1 + 3 * (1 + 1 + (1 + 1 + 1 + 1)) + 1
   let filter_work = 6 + 3 + 3 * 7 + 1
   let select_work = 6 + 3 * 4 + 1
-  let exact = values_work + filter_work + select_work + 2
-  assert_eq(exact, 72)
+  let preparation = expected_ascii_completion_port_work("values_0", ["id"]) +
+    expected_ascii_completion_port_work("where_1", ["id"]) +
+    expected_ascii_completion_port_work("select_2", ["id"])
+  let exact = values_work + filter_work + select_work + preparation + 2
+  assert_eq((preparation, exact), (90, 162))
   let registry = search_registry()
   let generated = task_test_generated(
     zero_input_request_owner(
       retained_values_chain_source().replace(old="id >= 2", new="true"),
     ),
   )
+  assert_source_free_child_work(generated, [
+    values_work + 31,
+    filter_work + 28,
+    select_work + 31,
+  ])
   for quantum in [1, 7, 256] {
     for
       (max_work, max_entries, expected) in [
@@ -193,7 +202,8 @@ test "source-free scalar chain uses independent exact work and workspace limits"
       ).unwrap()
       let mut outcome = ""
       let mut work = 0L
-      for _ in 0..<100 {
+      // Productive quantum-one steps plus child/terminal observations.
+      for _ in 0..<(exact + 4) {
         if outcome != "" {
           break
         }
