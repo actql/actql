@@ -437,3 +437,15 @@ test "membership lowers typed scalar holes into one ordered literal array" {
     }
   }
 }
+
+///|
+test "floor lowering retains the existing canonical expression tag" {
+  let p = expression_pipeline(
+    ",{\"derive\":{\"v\":{\"floor\":{\"literal\":-2.3}}}}",
+  )
+  let expr = @lowering_relation.lower_expression(p, 1, 0, expression_limits()).unwrap()
+  assert_eq(
+    expression_wire(expr),
+    "{\"body\":{\"body\":-2.3,\"op\":\"literal\"},\"op\":\"floor\"}",
+  )
+}
