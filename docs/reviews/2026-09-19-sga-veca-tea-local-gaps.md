@@ -6965,3 +6965,30 @@ contiguous-string/allocation latency, physical chunk admission, aggregate
 Captured Run serialization and explicit blocking Native/direct consumers
 remain separate boundaries. This is not all-target/packed or whole-Local
 completion; previous synchronous descriptions above remain historical records.
+
+### Resumed aggregate capture issuance (2026-10-08)
+
+The JS retained publication connection now polls the existing Captured Run
+issuer through context construction, envelope emission, sealing and final
+context/Result-row evidence checks. Immutable canonical rows are checked by
+the existing snapshot owner without another whole-array copy. Definition,
+Artifact, row count, authored fields and logical CID checks remain required.
+Both Effect-free and Effectful capture await the same owner; cancellation
+retires only private preparation while existing publication owners retain
+Store cleanup responsibility. It does not redispatch Compute.
+
+The [capture issuance record](2026-10-08-local-bounded-capture-issuance.md)
+separates 247/247 affected common JS checks from 7/7 selected Node checks,
+including three actual retained Store Host cases. All three independently
+named Results are read with fixed Unicode/NULL rows and exact order. Abort
+is delivered during final context hashing or Result-row checking after all
+Compute tasks finish, and existing cleanup returns reservations without
+additional dispatch. Main `c54e157b5caa1ad981eb9393f64fd0815fb5a434`, including
+merged #921, is normally adopted; source-specific receipts are retained.
+
+Metadata/dependency validators, unique-array schema comparison, field-name
+normalization, contiguous allocation latency and later synchronous
+publication chain/commit validation remain distinct boundaries. This is
+aggregate issuance acceptance, not whole publication, all-target, packed or
+whole-Local completion. Historical synchronous descriptions above are not
+claims about the newly connected issuance path.

@@ -1840,6 +1840,23 @@ function publicationControl(moon) {
     }
     return limits;
   };
+  const finishCapturedPreparation = async (preparation, signal) => {
+    let finished = false;
+    try {
+      while (true) {
+        signal?.throwIfAborted();
+        if (checked(moon.strategyCapturedRunAdvance(preparation, 256))) break;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      signal?.throwIfAborted();
+      const captured = inspect(checked(
+        moon.strategyCapturedRunFinish(preparation)));
+      finished = true;
+      return captured;
+    } finally {
+      if (!finished) moon.strategyCapturedRunCancel(preparation);
+    }
+  };
   control = Object.freeze({
     seal(name, bodyWire, limits) {
       return inspect(checked(moon.strategyPublicationSeal(
@@ -2913,7 +2930,7 @@ function publicationControl(moon) {
         ),
       ));
     },
-    issueEffectFreeCapturedRun(chain, evidence, limits) {
+    async issueEffectFreeCapturedRun(chain, evidence, limits, signal) {
       issuanceLimits(limits, 'Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -2924,7 +2941,8 @@ function publicationControl(moon) {
           !Array.isArray(evidence.modelEvidence)) {
         throw new TypeError('Invalid Captured Run request');
       }
-      return inspect(checked(moon.strategyIssueEffectFreeCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = moon.strategyBeginEffectFreeCapturedRun(
         token(chain.runDefinition),
         token(chain.invocation),
         chain.definitions.map(token),
@@ -2938,7 +2956,9 @@ function publicationControl(moon) {
         limits.maxWireBytes,
         limits.maxNodes,
         limits.maxDepth,
-      )));
+        Math.min(2147483647, limits.maxNodes * 8),
+      );
+      return finishCapturedPreparation(preparation, signal);
     },
     admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
       issuanceLimits(limits, 'Effect computation Preview');
@@ -3131,7 +3151,7 @@ function publicationControl(moon) {
       }
       return Object.freeze(owned);
     },
-    issueEffectfulCapturedRun(chain, evidence, preview, plans, limits) {
+    async issueEffectfulCapturedRun(chain, evidence, preview, plans, limits, signal) {
       issuanceLimits(limits, 'Effectful Captured Run');
       if (chain === null || typeof chain !== 'object' ||
           evidence === null || typeof evidence !== 'object' ||
@@ -3153,7 +3173,8 @@ function publicationControl(moon) {
       if (ownedPreview === undefined) {
         throw new TypeError('Foreign Effect computation Preview');
       }
-      return inspect(checked(moon.strategyIssueEffectfulCapturedRun(
+      signal?.throwIfAborted();
+      const preparation = checked(moon.strategyBeginEffectfulCapturedRun(
         token(chain.runDefinition), token(chain.invocation),
         chain.definitions.map(token), chain.artifacts.map(token),
         token(chain.manifest), token(chain.receipt),
@@ -3166,7 +3187,9 @@ function publicationControl(moon) {
         plans.map(value => value.name), plans.map(value => value.wire),
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
         evidence.dependencyInventoryWire,
-      )));
+        Math.min(2147483647, limits.maxNodes * 8),
+      ));
+      return finishCapturedPreparation(preparation, signal);
     },
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits) {
       issuanceLimits(limits, 'Effect dependency inventory');
