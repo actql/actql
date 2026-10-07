@@ -101,3 +101,14 @@ clean producer revision and all five tarball digests; do not relabel an old
 manifest. Exact submitted-SHA hosted CI, Wasm/native/full Core/full packed,
 proofs/performance and broader Frontend completion remain unverified. No manual
 CI rerun or merge.
+
+## Shared public-verification capacity
+
+At clean implementation `da8fef398d6cdf2c57f803ce32e8c4d70cf0f869`, the first
+selected normal-pack attempt `run-zIMTXx` was refused at shared heavy-lock
+acquisition. The guard reported D's `run-EJyXDs` in
+`worktrees/actql-d-cancel-operation-identity`; no producer or consumer step
+started. This is neither a product failure nor public acceptance. The other
+owner's lock, checkout, processes and artifacts are untouched. Continue with
+independent light integration/publication work; resume this same selected
+acceptance when the common execution slot is available.
