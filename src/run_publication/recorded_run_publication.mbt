@@ -3,7 +3,7 @@
 /// value grants neither compilation nor execution: the physical caller must
 /// separately restore completed custody and inspect its current authority,
 /// Site generation, cancellation and exclusive maintenance ownership.
-pub struct RecordedRunPublication {
+struct RecordedRunPublication {
   admission : RunPublicationAdmission
   definition : PublicationContract
   result : ResultDefinition
