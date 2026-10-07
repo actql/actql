@@ -68,11 +68,11 @@ function commits(catalog) {
 function readerProgram(id = 'read-committed-table') {
   return {version: 'actql/0.1', id, stages: [
     {id: 'read', inputs: {input: {connector: 'table', resource}},
-      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id'], as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id']}}},
+      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id', 'tag'], as: 'output'}],
+      results: {rows: {from: 'output', fields: ['id', 'tag']}}},
     {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
       steps: [{derive: {doubled: 'id * 2'}, as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', 'doubled']}}}],
+      results: {rows: {from: 'output', fields: ['id', 'tag', 'doubled']}}}],
     results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
 }
 async function waiting(run, observations, t) {
@@ -548,14 +548,13 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   const later = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
     installation: {directory: join(f.root, 'reader-host'), sourceProfilePath, authorization}});
   try {
-    // This public reader exercises the existing guaranteed-column projection.
-    // The exact complete values were separately checked through actual Iceberg
-    // I/O above; it does not certify public sparse/all-column read support.
+    // Read the complete required schema, including nullable text, through the
+    // public Source and two-task Relation path after the origin Host closes.
     const readRun = await later.start(readerProgram(), {requestId: 'new-table-reader'});
     const state = await terminal(readRun, observations, t);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(multiset(await readRun.result('answer').all()),
-      multiset(rows.map(row => ({id: row.id, doubled: row.id * 2}))));
+      multiset(rows.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
     assert.equal(commits(f.catalog).length, 1);
   } finally { await later.close(); }
   if (rows.length) {
@@ -645,7 +644,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         const run = await reader.start(readerProgram(`read-replacement-${index}`), {requestId: `read-${index}`});
         assert.equal((await terminal(run, observations, t)).status, 'succeeded');
         assert.deepEqual(multiset(await run.result('answer').all()),
-          multiset(replacement.map(row => ({id: row.id, doubled: row.id * 2}))));
+          multiset(replacement.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
         assert.equal(commits(f.catalog).length, before + 1);
       } finally { await reader.close(); }
       previous = updated;
