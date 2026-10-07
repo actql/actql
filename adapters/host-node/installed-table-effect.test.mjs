@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
@@ -197,6 +198,32 @@ for (const empty of [false,true]) {
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);
           assert.equal(f.execution.completed.length, 1);
+          // The real recovered Ledger remains owned after a close failure,
+          // even when its primary preparation exception is immutable.
+          const originalFailure = Object.freeze(Object.assign(new Error('RecoveredTablePreparationFailure'),
+            {code: 'RecoveredTablePreparationFailure'}));
+          const originalClose = DatabaseSync.prototype.close;
+          let ledgerCloses = 0;
+          const closeMock = t.mock.method(DatabaseSync.prototype, 'close', function (...args) {
+            if (++ledgerCloses === 1) throw new Error('RecoveredLedgerCloseFailure');
+            return originalClose.apply(this, args);
+          });
+          try {
+            let failure;
+            try { await factory.prepareRecovered({moon,
+              control: {...control, effectComputationPreviewLedgerIdentity() { throw originalFailure; }},
+              store: f.physicalStore, recovered: {requestIdentity: identity,
+                requestScope: moon.clientRequestLogicalScope(identity), computation: durable},
+              continuation: {provider}}); } catch (error) { failure = error; }
+            assert.equal(failure?.cause, originalFailure);
+            assert.equal(failure.cleanupHandle.status().pending, true);
+            assert.equal(ledgerCloses, 1);
+            assert.equal((await failure.cleanupHandle.retry()).pending, false);
+            assert.equal(failure.cleanupHandle.status().pending, false);
+            assert.equal(ledgerCloses, 2);
+            await failure.cleanupHandle.retry();
+            assert.equal(ledgerCloses, 2);
+          } finally { closeMock.restore(); }
         } finally {
           await recoveredStage?.dispose();
           await stage?.dispose();
