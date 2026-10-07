@@ -138,3 +138,29 @@ adapter and machine-contract trees remain identical to the tested producer SHA.
 The execution evidence retains its actual SHA rather than being relabeled as
 execution at the documentation commit. Draft CI and review remain outstanding;
 no manual CI run or merge was performed.
+
+## Main integration on resumption
+
+Normally merged main `28c9ebf6f3f1361e65a206ec26ea6b46be6ccd9f` without
+conflicts at `6804f67f334469247b98de08248ca865c5ed3f5f`. Existing retained
+history declarations, current Graph contracts and generated APIs were preserved.
+No legacy Graph adapter or fallback was introduced.
+
+The selected Node command above passed 10/10 at this integration SHA:
+`_build/focused-evidence/focused-test-yiPafm`, bounded attempt `run-GtUqI5`.
+`git diff --check` also passed. This is fixture/registration verification;
+the fresh packed execution above remains evidence for `d1b71482c...`, not this
+integrated SDK/Host revision. No full Core, new packed campaign or manual CI
+execution was added solely for the merge.
+
+Reclaimed 45,809,664 allocated bytes from exactly these completed B-owned units:
+
+- `/Users/t14i/workspace/20260822/worktrees/actql-frontend-unary-plus/_build/wasm-gc/release/format`
+  (generated formatter copies, 41,639,936 bytes).
+- `/private/tmp/actql-b-unnest-star-d1b71482c-pack/npm-cache/_cacache`
+  (the finished producer's private content cache, 4,169,728 bytes).
+
+No symlinks were followed or deleted. Current JS incremental output, original
+five tarballs/manifest, focused evidence, public receipt/logs, shared npm cache,
+borrowed dependencies/toolchain and DB/journal/custody records were retained.
+Receipt: `review-artifacts/b-resume-2026-10-07/cleanup-resume-main.json`.
