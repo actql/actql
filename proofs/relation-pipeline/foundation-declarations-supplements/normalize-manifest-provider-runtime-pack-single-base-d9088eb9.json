@@ -1,0 +1,9 @@
+{
+  "version": "actql-foundation-single-base-normalization/0.1",
+  "id": "normalize-manifest-provider-runtime-pack-single-base-d9088eb9",
+  "target": {
+    "id": "resolve-manifest-provider-runtime-pack-main",
+    "digest": "55e088312fb497b52e3a9a876494826267ee4415d46d68186bbe6bdfe22ac476"
+  },
+  "reason": "Retain the main-integrated #862 declaration and its introduction byte-for-byte. Its recorded singleton matches the actual Git merge base; use the existing append-only normalization rule and preserve every source, blob, mode and dependency check."
+}
