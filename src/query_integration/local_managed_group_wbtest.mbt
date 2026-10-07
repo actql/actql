@@ -7,6 +7,7 @@ fn start_local_managed_test_task_operations(
   rows : Array[Array[String]],
   obligations? : @execution.ManagedObligations,
   require_provider? : Bool = false,
+  finish_inputs? : Bool = true,
   carrier_inputs? : Array[
     (@execution.CarrierManagedCompletedOutput, @carrier_runtime.Material),
   ] = [],
@@ -128,6 +129,10 @@ fn start_local_managed_test_task_operations(
       fail("Unexpected Carrier snapshot during Relation start")
   }
   assert_eq(operations.inputs.length(), rows.length())
+  if !finish_inputs {
+    // The caller owns scheduling of the same prepared transfer operations.
+    return operations
+  }
   for index, transfer in operations.inputs {
     for row in rows[index] {
       match (transfer.append)(row) {

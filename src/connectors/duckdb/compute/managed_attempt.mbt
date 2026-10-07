@@ -9,6 +9,7 @@ struct ManagedDuckDBComputeOutput {
   mut receipt : @execution.ManagedOutputValueReceipt?
   mut demand : @duckdb.ManagedFixedComputeDemand?
   mut open : Bool
+  mut finishing : Bool
   mut verified : Bool
 }
 
@@ -64,6 +65,7 @@ pub fn begin_managed_duckdb_compute_output(
     receipt: None,
     demand: None,
     open: true,
+    finishing: false,
     verified: false,
   })
 }
@@ -112,7 +114,7 @@ pub fn receive_managed_duckdb_compute_output(
   rows : Int,
   columns : Array[@decode.Cursor],
 ) -> Result[Unit, DuckDBComputeIssue] {
-  if !output.open || !output.attempt.live {
+  if !output.open || output.finishing || !output.attempt.live {
     return Err(InvalidState)
   }
   match @duckdb.append_managed_physical_output(output.receiver, rows, columns) {
@@ -129,7 +131,7 @@ pub fn receive_managed_duckdb_compute_output(
 pub fn finish_managed_duckdb_compute_output(
   output : ManagedDuckDBComputeOutput,
 ) -> Result[@execution.ManagedOutputValueReceipt, DuckDBComputeIssue] {
-  if !output.open || !output.attempt.live {
+  if !output.open || output.finishing || !output.attempt.live {
     return Err(InvalidState)
   }
   output.open = false
@@ -137,6 +139,32 @@ pub fn finish_managed_duckdb_compute_output(
     Ok(receipt) => {
       output.receipt = Some(receipt)
       Ok(receipt)
+    }
+    Err(issue) => {
+      cancel_managed_duckdb_compute_output(output)
+      Err(ManagedValues(issue))
+    }
+  }
+}
+
+///|
+/// Provisional content only. Settlement, demand and the exact retained holding
+/// still belong to the existing selected-attempt completion owner.
+pub fn advance_managed_duckdb_compute_output_finish(
+  output : ManagedDuckDBComputeOutput,
+  quantum : Int,
+) -> Result[@execution.ManagedOutputFinishAdvance, DuckDBComputeIssue] {
+  if !output.open || !output.attempt.live || quantum <= 0 {
+    return Err(InvalidState)
+  }
+  output.finishing = true
+  match @duckdb.advance_managed_physical_output_finish(output.receiver, quantum) {
+    Ok(poll) => {
+      if poll.receipt is Some(receipt) {
+        output.receipt = Some(receipt)
+        output.open = false
+      }
+      Ok(poll)
     }
     Err(issue) => {
       cancel_managed_duckdb_compute_output(output)

@@ -7,8 +7,10 @@ import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validClientConnection} from '../../packages/client-wire/index.mjs';
 import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
 import {installNodeClientRunAttach} from './client-run-attach.mjs';
@@ -170,13 +172,17 @@ function validateValuesMaxRows(value) {
   }
 }
 
-async function openInstalledHost({root, mode = 'local', beforeDispatch,
+async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, hostCapacityPolicy,
   retainedRelationOutput = false, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   validateValuesMaxRows(valuesMaxRows);
+  if (workspaceId !== undefined && !validClientConnection({mode, owner: mode,
+    consentRefs: [], runners: [], workspaceId})) {
+    throw new TypeError('InvalidInstalledWorkspaceBinding');
+  }
   if (typeof retainedRelationOutput !== 'boolean') {
     throw new TypeError('InvalidLocalRetainedOutputConfiguration');
   }
@@ -327,7 +333,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
         capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}),
     authorization?.faultInjection);
-    journal = openClientRequestJournal(journalDirectory);
+    journal = openClientRequestJournal(journalDirectory, {
+      // Private fault hooks exercise the real installed admission clock;
+      // Programs and public transport requests cannot select these values.
+      submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
+      submissionEpochNow: authorization?.faultInjection?.submissionEpochNow,
+    });
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');
@@ -407,9 +418,6 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     authorizeRun: ({ref, principalId: actual}) =>
       actual === principalId && ref.namespaceId === namespaceId &&
       ref.authorityScopeCid === authorityScopeCid});
-  const prepareSubmit = installNodeClientProgramPreparation({moon,
-    environment, sourcePublication, valuesMaxRows,
-    allowEffects: effectInstallation !== undefined});
   const checkSource = installNodeClientCheck({moon, environment,
     publication: sourcePublication,
     sourceAccesses: (sourceProfile?.sources ??
@@ -425,6 +433,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     return checkSource({principalId: actual, input, parameters, signal});
   };
   Object.defineProperty(check, 'unavailable', {value: checkSource.unavailable});
+  const prepareSubmit = installNodeClientProgramPreparation({moon,
+    environment, sourcePublication, valuesMaxRows, check,
+    allowEffects: effectInstallation !== undefined});
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
@@ -547,6 +558,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
+  const continueAcceptedCancellation = async (ref, accepted) => {
+    if (accepted.kind === 'already_terminal') return;
+    dispatchOwner.cancel(ref);
+    try { await cancelEffectContinuation(ref); }
+    finally { void checkpoints?.sweep(); }
+  };
   // Request-level cancellation already owns its own pre-Run receipt. Its
   // transfer to a defined Run remains separate from a Client cancel operation.
   const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
@@ -570,11 +587,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const accepted = journal.requestCancellation(ref, {
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
-    if (accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
-    }
+    await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -587,16 +600,31 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientCancellationDenied');
     }
-    const recorded = journal.recordCancellationOperation(ref, {
-      cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
-      modelCancellationOwner: checkpoints?.journal,
-    }, moon, control);
-    const accepted = recorded.cancellation;
-    if (recorded.recorded && accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
+    let recorded;
+    try {
+      recorded = journal.recordCancellationOperation(ref, {
+        cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+        modelCancellationOwner: checkpoints?.journal,
+      }, moon, control);
+    } catch (cause) {
+      // A lost COMMIT acknowledgement can leave an accepted original operation.
+      // Observe its exact durable identity before waking the existing stop and
+      // continuation owners. Pending or unavailable custody grants no authority
+      // to advance cancellation, and the lost reply remains unknown to the SDK.
+      let retained;
+      try {
+        retained = journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+          {currentAuthorization: hostConnection({principalId: actual, connection, ref})},
+          moon, control);
+      } catch { /* Recovery remains with the durable journal and its existing sweep. */ }
+      if (retained?.kind === 'found') {
+        try { await continueAcceptedCancellation(ref, retained.cancellation); }
+        catch { /* Preserve the original unknown reply; cleanup remains owned. */ }
+      }
+      throw cause;
     }
+    const accepted = recorded.cancellation;
+    if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -920,6 +948,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     requestId: submission.requestId, principalId: submission.principalId,
     connection: submission.connection, kind: submission.kind, input: submission.input,
     parameters: submission.parameters, resultNames,
+    ...(submission.submission === undefined ? {} : {submission: submission.submission}),
     ...(preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
       : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
   });
@@ -948,6 +977,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     held) => {
     const accepted = await journal.admitOrLookupDefinition(requested, {
       namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
+      submission: submission.submission,
       resultNames, sourceInventory: sourceInventory(held.preparedSources),
       issueDefinition: () => {
         held.plan = planFor(submission);
@@ -1213,11 +1243,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const admitEffectDefinition = submission => {
     const {requestId, principalId, connection, kind, input, parameters} = submission;
     effectSubmissions.set(submission.preparedProgram, JSON.parse(canonicalValueJson({
-      requestId, principalId, connection, kind, input, parameters}, {dataKeys: true})));
+      requestId, principalId, connection, kind, input, parameters,
+      ...(submission.submission === undefined ? {} : {submission: submission.submission})}, {dataKeys: true})));
     return effectRun.accept({
     prepared: submission.preparedProgram, authorityScopeCid,
     requestId: submission.requestId, namespaceId,
     principalId: submission.principalId, connection: submission.connection,
+    submission: submission.submission,
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
@@ -1246,7 +1278,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       };
       const captured = {version: 'actql-remote-captured-submission/0.1',
         requestId, principalId: actual, connection, kind, input,
-        parameters, resultNames};
+        parameters, resultNames,
+        ...(submission.submission === undefined ? {} : {submission: submission.submission})};
       const decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       if (decided.kind !== 'dispatch') {
@@ -1443,7 +1476,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const submission = {principalId: captured.principalId,
       connection: captured.connection, requestId: captured.requestId,
       kind: captured.kind, input: captured.input,
-      parameters: captured.parameters};
+      parameters: captured.parameters,
+      ...(captured.submission === undefined ? {} : {submission: captured.submission})};
     submission.preparedProgram = await prepareSubmit(submission);
     const {requested, resultNames, acquired, acquisitionCount, effectful} = requestOf(submission);
     const preparedSources = acquisitionCount === 2
@@ -1647,11 +1681,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (accepted === undefined) throw new Error('HeldRunDefinitionMissing');
     return (await observeRun({ref: accepted.ref, principalId})).status;
   };
-  const negotiate = () => ({version: 'actql-client-host/0.1',
+  const negotiate = async value => ({version: 'actql-client-host/0.1',
     mode, owner: mode, durability: 'durable',
-    // Project the existing root/principal/policy owner scope consistently.
-    // A principal name alone cannot distinguish two installed state roots.
+    ...(value.connection.workspaceId === undefined ? {} : {workspaceId}),
     scopeRef: authorityScopeCid,
+    ...(hostConnection(value) ? {submissionEpoch: await submissionService.issueEpoch(value)} : {}),
     capabilities: ['result-jsonl'], limits: {
       maxReadWireBytes: 10 * 1024 * 1024,
       maxRowWireBytes: 1024 * 1024,
@@ -1668,6 +1702,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (authorizedScope(value) === undefined) return found;
     return checkpoints.heldLookup(value.requestId) ?? found;
   };
+  const submissionService = installNodeClientSubmission({journal, moon,
+    authorizedScope: value => hostConnection(value) ? authorizedScope(value) : undefined,
+    prepareSubmit, submit, lookupRequest: lookupHeld, checkSubmissionInput: check});
   const checkpointOperations = checkpoints === undefined ? {} : {
     checkpoints: ({principalId: actual, after, limit}) =>
       checkpoints.listCheckpoints({principalId: actual, after, limit}),
@@ -2150,6 +2187,27 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           // An older physical-close record cannot acknowledge a new
           // continuation's reclamation. Only its current owner can do that.
           const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
+          const retainStoppedModelReconciliation = () => {
+            const stopped = journal.lookupRunDefinition(ref, moon, control);
+            if (!checkpoints.journal.hasUnresolvedModelCalls(runId) ||
+                effectRun?.reconciliation(ref) !== undefined ||
+                !restorationReclaimed() || stopped?.physicalCloseConfirmed !== true ||
+                dispatchOwner.operation(ref) !== undefined) return false;
+            const reconciliation = issueInstalledUnpublishedRunState(moon, {runId,
+              observedAt: now(), resultNames: stopped.resultNames,
+              dispatchReserved: true, preDispatchFailureConfirmed: false,
+              cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+              executionUnknown: true});
+            if (journal.lookupRunDefinition(ref, moon, control)?.revision !== stopped.revision) return false;
+            const lifecycle = checkpoints.journal.getRunState(runId);
+            if (claim !== undefined && lifecycle?.status === 'resuming' && leaseFailure === undefined) {
+              checkpoints.journal.completeResume(claim, {runStateWire: JSON.stringify(reconciliation)});
+            } else if (claim === undefined && lifecycle?.status === 'running') {
+              checkpoints.journal.finishRun(runId, {status: 'needs_reconciliation',
+                runStateWire: JSON.stringify(reconciliation)});
+            }
+            return checkpoints.journal.getRunState(runId)?.status === 'needs_reconciliation';
+          };
           const runRestoredModel = async () => {
             assertCurrent();
             const current = journal.lookupRunDefinition(ref, moon, control);
@@ -2209,21 +2267,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
               const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
-              const stopped = journal.lookupRunDefinition(ref, moon, control);
               const effectReconciliation = effectRun?.reconciliation(ref);
               // This restoration returned only after its physical Owner's
               // stop and cleanup. Retain its unresolved outcome in the same
               // Run journal, so later sweeps do not reopen a Running frame.
-              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
-                restorationStopConfirmed &&
-                stopped?.physicalCloseConfirmed === true &&
-                dispatchOwner.operation(ref) === undefined
-                ? issueInstalledUnpublishedRunState(moon, {runId,
-                  observedAt: now(), resultNames: stopped.resultNames,
-                  dispatchReserved: true, preDispatchFailureConfirmed: false,
-                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
-                  executionUnknown: true})
-                : !unresolvedModel ? effectReconciliation : undefined;
+              if (unresolvedModel) {
+                retainStoppedModelReconciliation();
+                return;
+              }
+              const reconciliation = effectReconciliation;
               if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
@@ -2259,6 +2311,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             }
           }).catch(async error => {
             const code = error?.code ?? error?.message;
+            // Cancellation can win before this restoration physically enters.
+            // Its confirmed prior stop still retains unknown Model responsibility;
+            // it must not leave a Running journal that only public lookup projects.
+            if (retainStoppedModelReconciliation()) return;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
             if (stopped?.physicalCloseConfirmed === true &&
                 await confirmNodeRunCancellation({ref, journal, store, checkpoints,
@@ -2325,11 +2381,19 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   };
   const hostOperations = {
     observe: observed,
+    // A service Workspace is an installed network target label. It does not
+    // replace the Local namespace, root-derived authority scope or policy.
+    workspaceForPrincipal: () => workspaceId,
     authorizeConnection: value => checkpointOperation.has(value.operation)
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
-    negotiate, prepareSubmit, submit, check, attach,
+    negotiate, prepareSubmit, check, attach,
+    // New execution requires the authenticated original intent. Historical
+    // request/Run observation remains available without relabeling its identity.
+    submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
+    submitIntent: submissionService.submitIntent,
+    lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
@@ -2380,23 +2444,26 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
+  authenticate, beforeDispatch, authorization, workspaceId, sourceProfilePath, sourceProfilePaths,
+  loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
   resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
+      typeof loopbackHttp !== 'boolean' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
+    workspaceId,
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders, resultDataPolicy,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
   const handle = createClientHttpHandler({
-    ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
   // A request's handling can outlive its response: a Result read records
   // its delivery attempt after the last bytes are sent. Close waits for

@@ -8,6 +8,7 @@ import {registerManagedInput, withManagedInputFiles} from
 import {computePhysicalCapacity} from './physical-capacity.mjs';
 import {withComputeDatabase, DuckDBTransportError, validateLimits} from './session.mjs';
 import {checked} from './runtime-result.mjs';
+import {finishManagedOutputReceipt} from './managed-output-finish.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid,
   managedColumnTransferEstimate,
   managedColumnRowProvider} from './managed-column-codec.mjs';
@@ -220,7 +221,8 @@ export async function runManagedColumnStrategyHostCompute(
         });
         if (!preservesCheckedValues) {
           if (!output) output = checked(moon.managedStrategyOutputBegin(run, fieldsFrame(fields)));
-          checked(moon.managedStrategyOutputFinish(run, output));
+          await finishManagedOutputReceipt(quantum => checked(
+            moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
         }
         return fields;
       }, signal, accounting, [
@@ -242,9 +244,20 @@ export async function runManagedColumnStrategyHostCompute(
     );
     signal?.throwIfAborted();
     if (preservesCheckedValues) {
-      const selection = checked(moon.managedStrategySelection(run, occurrences));
+      const preparation = checked(moon.managedStrategySelectionBegin(run, occurrences));
+      let selection;
+      try {
+        await finishManagedOutputReceipt(quantum => checked(
+          moon.managedSelectionAdvance(preparation, quantum)), signal);
+        selection = checked(moon.managedSelectionTake(preparation));
+      } finally {
+        // Partial selection owns copied metadata only, never the source index
+        // or a Store lease. Transfer consumes it; cancellation drops its roots.
+        moon.managedSelectionCancel(preparation);
+      }
       output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
-      checked(moon.managedStrategyOutputFinish(run, output));
+      await finishManagedOutputReceipt(quantum => checked(
+        moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
     }
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));

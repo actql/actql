@@ -7,12 +7,82 @@ import {
   effectApplyReceiptSchema,
   effectReconciliationReceiptSchema,
   effectSetApplyReceiptSchema,
+  effectPreviewSchema,
   effectSourceArtifactSchema,
   resultArtifactSchema,
   runStateSchema,
 } from './run-publication-contracts.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+
+test('private Table Preview source binding is exclusive and store-only', () => {
+  const preview = read('spec/contracts/actql-protocol-schemas.json')
+    .artifact_schemas.effect_preview;
+  assert.deepEqual(preview, effectPreviewSchema(preview));
+  const member = preview.properties.effects.items;
+  assert.equal(member.additionalProperties, false);
+  assert.deepEqual(member.properties.source_table_input,
+    {type: 'string', minLength: 1});
+  assert.deepEqual(member.allOf.at(-1), {oneOf: [
+    {not: {anyOf: [
+      {required: ['source_result']}, {required: ['source_table_input']},
+      {required: ['result_artifact_cid']},
+    ]}},
+    {required: ['source_result', 'result_artifact_cid'],
+      not: {required: ['source_table_input']}},
+    {required: ['source_table_input', 'result_artifact_cid'],
+      properties: {effect_kind: {const: 'store'}},
+      not: {required: ['source_result']}},
+  ]});
+  // Existing command/Mapping selection remains a separate obligation.
+  assert.equal(member.allOf[0].oneOf[0].properties.effect_kind.const,
+    'command');
+  const extra = {oneOf: [{required: ['source_table_input'],
+    properties: {approval: {const: 'required'}}}]};
+  const extended = structuredClone(preview);
+  extended.properties.effects.items.allOf.push(extra);
+  assert.deepEqual(effectPreviewSchema(extended)
+    .properties.effects.items.allOf.at(-2), extra);
+});
+
+test('independent private Table Preview and member identity vectors', () => {
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const hash = body => `sha256:${createHash('sha256')
+    .update(canonicalText(body)).digest('hex')}`;
+  // Authored preimages, not product-generated Preview bytes or expectations.
+  const member = {
+    effect_id: 'WriteOne', effect_kind: 'store', target: 'Object',
+    mapping: 'mapping:fixture', resolved_mapping_contract_cid: cid('a'),
+    effect_identity_cid: cid('a'), preview_strength: 'full_diff',
+    source_binding_cid: cid('a'), capability_evidence_cid: cid('a'),
+    authority_scope_cid: cid('a'),
+    write_footprint: {kind: 'exact_targets',
+      resource_identity_scheme_cid: cid('a'), provider_namespace: 'provider',
+      provider_boundary_cid: cid('a'), resource_kind: 'Object',
+      provider_object_identity_cids: [cid('1')]},
+    count: 0, max_items: 1, required_permissions: ['write'], approval: 'none',
+    on_item_failure: 'halt', changes: [], row_order: [], executed: false,
+    source_table_input: 'answer', result_artifact_cid: cid('a'),
+  };
+  const memberCid = 'sha256:4a197b227fd3034f2f1114f6af987a63029c4098c690c9962a62c7a6e172ee28';
+  assert.equal(hash({member, version: 'actql-effect-member-preview/0.1'}),
+    memberCid);
+  const preview = {
+    version: 'actql-effect-preview/0.1', sensitivity: 'private',
+    retention_class: 'authority-evidence', encryption_required: true,
+    program_semantics_cid: cid('a'), program_definition_cid: cid('a'),
+    invocation_cid: cid('a'), compiled_plan_cid: cid('a'),
+    check_environment_cid: cid('a'), barrier_provenance_cids: [],
+    model_derived: false, model_task_contract_cids: [],
+    model_invocation_evidence_cids: [], model_response_artifact_cids: [],
+    effects: [{...member, effect_member_preview_cid: memberCid}], executed: false,
+  };
+  assert.equal(hash(preview),
+    'sha256:41b64ea9c9fb869d5e628db520ea145ced63681487791e9516e1613178153aa8');
+  const {source_table_input: name, ...rest} = member;
+  assert.notEqual(hash({member: {...rest, source_result: name},
+    version: 'actql-effect-member-preview/0.1'}), memberCid);
+});
 
 test('independent local Effect source inventory binds its Stage Result', () => {
   const registry = read('spec/contracts/actql-protocol-schemas.json');
@@ -38,12 +108,18 @@ test('independent local Effect source inventory binds its Stage Result', () => {
     'ordering', 'retention',
   ]);
   for (const [field, schema] of [
-    ['definition', 'local_result_definition'],
     ['invocation', 'local_computation'],
     ['manifest', 'local_manifest'],
     ['artifact', 'local_result_artifact'],
   ]) {
     assert.deepEqual(entry.properties[field], stage.schemas[schema]);
+  }
+  assert.deepEqual(entry.properties.definition, {oneOf: [
+    stage.schemas.local_result_definition, stage.schemas.local_table_input_definition,
+  ]});
+  for (const kind of ['local_table_input_definition', 'table_input_artifact',
+    'table_input_derivation', 'table_input_ordering']) {
+    assert.ok(dependencies.items.properties.kind.enum.includes(kind));
   }
   const definition = {
     version: 'actql-local-result-definition/0.1',
@@ -156,10 +232,29 @@ test('independent Effect-source Artifact and holding 0.1 vectors', () => {
     'sha256:9f02433c84d076d9e0ee3f99c347850248ac8632da29f411c1788ded9a40a073');
   assert.notEqual(hash({...holdingBody, run_identity_cid: cid('9')}),
     hash(holdingBody));
+  const {source_result, ...common} = body;
+  const privateBody = {...common, source_table_input: source_result};
+  // Canonical field order differs from insertion order; this is an authored
+  // preimage with fixed facts, independent of the MoonBit issuer's output.
+  const privateCid = `sha256:${createHash('sha256')
+    .update(canonicalText(privateBody)).digest('hex')}`;
+  assert.equal(privateCid,
+    'sha256:76a24711b5a15b32bcd38473ad1002de41635dd6576fdc51634de6f2ccb34d93');
+  assert.notEqual(privateCid, artifactCid);
+  assert.equal(hash({...holdingBody, result_artifact_cid: privateCid}),
+    'sha256:cc4bcee73c59f409d982ddc39d2d882e5237b0011f12b556c46dc394cfa2645c');
   const registry = read('spec/contracts/actql-protocol-schemas.json');
   const schema = effectSourceArtifactSchema();
   assert.deepEqual(schema.required.toSorted(),
-    [...Object.keys(body), 'result_artifact_cid'].toSorted());
+    [...Object.keys(body).filter(field => field !== 'source_result'),
+      'result_artifact_cid'].toSorted());
+  assert.deepEqual(schema.oneOf, [
+    {required: ['source_result'], not: {required: ['source_table_input']}},
+    {required: ['source_table_input'], not: {required: ['source_result']}},
+  ]);
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(schema.properties.source_table_input,
+    {type: 'string', minLength: 1});
   assert.equal(registry.artifact_schema_cids.effect_source_artifact,
     machineCid(schema));
 });
@@ -325,7 +420,49 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e',
       captured_run:
-        'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7',
+        'sha256:249355f0a0d114884907036fe07590799bceb281d1ba243cf5ec10f3550f9322',
     },
   );
+  // Independently recomputed from fixed e88475ee with the private Definition
+  // choice and four typed dependency roles added. Undo exactly those changes
+  // before checking the previous source discriminant and Manifest extension.
+  const previous = structuredClone(registry.artifact_schemas.captured_run);
+  const context = previous.properties.effect_context;
+  const definition = context.properties.effect_source_local_inventory
+    .additionalProperties.properties.definition;
+  const stage = read('spec/contracts/actql-stage-contracts.json');
+  assert.deepEqual(definition, {oneOf: [stage.schemas.local_result_definition,
+    stage.schemas.local_table_input_definition]});
+  context.properties.effect_source_local_inventory.additionalProperties
+    .properties.definition = definition.oneOf[0];
+  const privateKinds = ['table_input_artifact', 'table_input_derivation',
+    'table_input_ordering', 'local_table_input_definition'];
+  const kinds = context.properties.effect_dependency_inventory.items
+    .properties.kind;
+  assert.equal(kinds.enum.filter(kind => privateKinds.includes(kind)).length, 4);
+  kinds.enum = kinds.enum.filter(kind => !privateKinds.includes(kind));
+  assert.equal(machineCid(previous),
+    'sha256:6869cf0338f030b2258d60cebfb12704a229586eb542cc08aafc6af78f2ba231');
+  const physical = previous.properties.effect_context.properties
+    .effect_source_artifacts.additionalProperties;
+  assert.deepEqual(physical.oneOf, [
+    {required: ['source_result'], not: {required: ['source_table_input']}},
+    {required: ['source_table_input'], not: {required: ['source_result']}},
+  ]);
+  assert.deepEqual(physical.properties.source_table_input,
+    {type: 'string', minLength: 1});
+  delete physical.oneOf;
+  delete physical.properties.source_table_input;
+  physical.required.splice(2, 0, 'source_result');
+  assert.equal(machineCid(previous),
+    'sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d');
+  const manifest = previous.properties.effect_context.properties
+    .effect_source_local_inventory.additionalProperties.properties.manifest;
+  assert.deepEqual(manifest.properties.table_inputs, {
+    type: 'object', minProperties: 1,
+    additionalProperties: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'},
+  });
+  delete manifest.properties.table_inputs;
+  assert.equal(machineCid(previous),
+    'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7');
 });

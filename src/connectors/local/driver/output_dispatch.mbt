@@ -37,7 +37,12 @@ pub struct LocalOutputTransfer {
   limits : @local.LocalExportLimits
   install : (() -> Bool) -> Result[Unit, LocalDispatchIssue]
   begin : () -> Result[Unit, LocalDispatchIssue]
+  prepare : (Int) -> Result[(Bool, Int), LocalDispatchIssue]
   next : () -> Result[String?, LocalDispatchIssue]
+  advance : (Int) -> Result[
+    @execution.CompletedOutputExportAdvance,
+    LocalDispatchIssue,
+  ]
   finish : () -> Result[LocalExportContent, LocalDispatchIssue]
   refresh : () -> Result[Bool, LocalDispatchIssue]
 }
@@ -60,7 +65,15 @@ fn local_output_transfer(
       @local.install_local_export_retention(attempt, check).map_err(issue)
     },
     begin: () => @local.begin_local_output_export(attempt).map_err(issue),
+    prepare: quantum => {
+      @local.advance_local_output_export_preparation(attempt, quantum).map_err(
+        issue,
+      )
+    },
     next: () => @local.next_local_output_export(attempt).map_err(issue),
+    advance: quantum => {
+      @local.advance_local_output_export(attempt, quantum).map_err(issue)
+    },
     finish: () => {
       @local.finish_local_output_export(attempt)
       .map(value => {

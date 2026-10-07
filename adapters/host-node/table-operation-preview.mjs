@@ -42,7 +42,8 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
       member.stageIndex, member.effectId, limits.planWork));
     const target = member.target;
     if (descriptor._0 !== index || descriptor._2 !== 'store' ||
-        descriptor._6 === undefined || target?.targetRef !== descriptor._3 ||
+        (descriptor._6 === undefined) === (descriptor._8 === undefined) ||
+        target?.targetRef !== descriptor._3 ||
         target.mappingRef !== descriptor._4 || target.mappingCid !== descriptor._5 ||
         !Array.isArray(target.permissions) || target.permissions.length === 0 ||
         target.permissions.some(value => typeof value !== 'string' || value.length === 0) ||
@@ -73,8 +74,10 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     identities.push(identity);
     tableInputs.push(tableInput);
     operations.push(Object.freeze(admittedOperation));
-    const binding = control.effectSourceArtifactPreviewBinding(
-      member.payload.summary.artifact, invocationCid, descriptor._6,
+    const privateInput = descriptor._8 !== undefined;
+    const binding = (privateInput ? control.effectTableSourceArtifactPreviewBinding
+      : control.effectSourceArtifactPreviewBinding)(
+      member.payload.summary.artifact, invocationCid, descriptor._8 ?? descriptor._6,
       context.storeAuthorityCid);
     const planCid = checked(moon.clientProgramEffectPlanCid(prepared, index,
       limits.maxFields, limits.planWork, preview.maxWireBytes,
@@ -82,7 +85,8 @@ export function authorTableOperationPreview({moon, control, prepared, inputs,
     return {
       effect_id: descriptor._1, effect_kind: 'store', target: descriptor._3,
       mapping: descriptor._4, resolved_mapping_contract_cid: descriptor._5,
-      effect_identity_cid: identity.identity, source_result: descriptor._6,
+      effect_identity_cid: identity.identity,
+      ...(privateInput ? {source_table_input: descriptor._8} : {source_result: descriptor._6}),
       ...(planCid === undefined ? {} : {effect_plan_logical_cid: planCid}),
       // A Table names the semantic completed Result Artifact. The separate
       // source binding still comes from the actual Run-bound physical owner.

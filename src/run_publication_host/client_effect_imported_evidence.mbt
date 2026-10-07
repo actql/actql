@@ -188,8 +188,7 @@ pub fn issue_imported_client_effect_local_result_artifact(
   }
   build_client_effect_local_result_artifact(
     inputs,
-    borrow,
-    definition,
+    ResultSource(borrow, definition),
     imported.invocation,
     receipt,
     retention,

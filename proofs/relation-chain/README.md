@@ -119,7 +119,7 @@ on each runtime, and the whole reservation's bound on the live allocation set.
 Existing arithmetic guards and capacity/workspace acceptance tests remain.
 This pilot does not establish the chain's complete resource guarantee.
 
-## Delayed-stop accounting: runtime correction, separate proof residual
+## Delayed-stop accounting: runtime correction and conditional extension
 
 The active-child branch at `selected_relation_provider.mbt` cancels and polls a
 child with quantum 1 after productive-budget exhaustion. Historically it
@@ -160,8 +160,8 @@ those families. The deterministic delayed-stop fixture in
 `src/query_integration/relation_chain_delayed_work_wbtest.mbt` covers a registered
 child and the real chain/standard managed-driver route: productive budget 1,
 child work `[1, 1, 1]`, cumulative chain/driver work 3, one Compute entry, retained
-limit failure, and cleanup retry. These are runtime regressions, not a new model
-or a correspondence proof for arbitrary delayed-stop providers.
+limit failure, and cleanup retry. These remain finite runtime regressions rather
+than a correspondence proof for arbitrary delayed-stop providers.
 
 `Chain.lean` and `Claims.lean` retain their conditional `reported <= budget`
 propositions. Their cancellation premise adds no work and confirms stop on the
@@ -171,6 +171,55 @@ must not be reused for this revision. Delayed-stop liveness, arbitrary child
 behavior and capacity soundness remain explicit residuals. No stop calls are
 cut short and no work is hidden to make the model fit. See the
 [runtime accounting contract](../../docs/design/local-provider-work-accounting.md).
+
+### Stop-inclusive model and executable connection
+
+`StopAccounting.lean` wraps the existing productive `RelationChain.State` rather
+than replacing its 22 laws. Fourteen additive laws reuse its checked step,
+accounting, responsibility and cleanup properties for finite stop traces:
+
+```
+reported = productive child work + attempted control work + accepted stop work
+productive used <= original budget
+```
+
+Request does not confirm physical stop or release a child. A bounded accepted
+stop poll charges its delta, including the terminal delta, while preserving used
+budget and cleanup responsibility. Once requested, no productive step or handoff
+is admitted. Cleanup false/error keeps the same responsibility and does not call
+Compute. The explicit legal trace `[1,1,1]` has reported work 3, productive budget
+and used work 1, one Compute entry and a stopped but still owed child. No theorem
+claims that total reported work is bounded by productive `max_work`.
+
+`StopClaims.lean` independently fixes the application types. The existing
+checker executes all 14 Session, 22 prompt-chain and 18 stop-inclusive laws and
+audits their axioms. Weakening terminal-work accounting, productive budget,
+request/stop separation or stopping no-Compute conclusions fails real Lean
+admission. Natural counters model accepted representable reports; overflow and
+sticky invalid-report behavior remain implementation obligations. Zero-work
+The original six-case delayed-stop connection does not establish Waiting/Settling
+pause correspondence. Its new sibling claim below supplies that finite scope.
+Arbitrary family behavior, early scratch retirement, stop liveness and physical
+capacity remain outside this extension.
+
+The same existing runner now executes the six delayed-work fixture cases for
+each selected target and records their exact command, source, artifact and
+independently fixed coverage. Its graph adds the scoped
+`registered-child/stop-accounting` claim alongside the three original prompt-stop
+claims. It depends on the executed model and its own connection; it does not
+borrow the prompt-stop premise or claim that the diagnostic child uses bounded
+Session. Fewer cases, substituted fixtures/targets, widened scope, missing
+premises/model/coverage or a total-work cap are rejected. All existing prompt-stop
+obligations remain mandatory.
+
+Current input binding is checked in its actual metadata cursor owner:
+`relation_chain_input_preparation.mbt`. Exact predecessor selection, receiving
+owner/step/port, completed output and common read/cancel routing are retained.
+Source guards are reviewed route checks, not a universal refinement proof.
+New child implementations still need their own independently reviewed connection
+and remaining semantic/resource obligations; they can apply these common laws
+without inventing another protocol matrix. No Actions reuse permission or CI
+saving follows from this model/finite correspondence addition.
 
 ## Retained acceptance and test retirement
 
@@ -201,3 +250,34 @@ uploading both evidence directories. The runner records proof/test durations;
 mutation cost and total job time remain separate from the operation-addition
 burden. `formal-model + tested-refinement` is not verified implementation
 refinement or physical Store/Host acceptance.
+
+## Stop-only pauses reuse the common accounting and responsibility laws
+
+The current chain forwards `Waiting` and `Settling` while the child retains
+stop/Store custody. A zero-work pause is admissible; zero-work `Continue` remains
+invalid. Neither pause kind establishes physical stop or permits child cleanup.
+The stop model adds an explicitly tagged pause transition with the same bounded,
+representable delta premise. It preserves the productive state, request and owed
+child while charging accepted pause work exactly once. Zero work is an identity
+transition. All original 14 stop-law propositions and the 22 prompt-chain laws
+remain checked; four additional typed laws cover the pause boundary and the
+independent `[1,0,1,0,0]` witness.
+
+`relation_chain_stop_pause_wbtest.mbt` uses the real chain/provider owners with a
+finite diagnostic child. Its two cases enter stop-only polling via an explicit
+cancel or budget exhaustion, then observe `Waiting(0)`, `Settling(7,1)`,
+`Settling(7,0)` and terminal `Stopped(0)`/`Failed(InputLimit,0)`. At each pause it
+checks the exact tag/slot, cumulative work, no successor/Compute, no early child
+cleanup and the same holding marker. Terminal still retains that marker through
+cleanup false/error/true; repeated successful cleanup must not invoke it again.
+The marker is callback custody evidence, not physical memory measurement.
+
+The new `registered-child/stop-pause` derived claim reuses the existing model
+root and has its own target-specific execution record and independent coverage.
+The old six-case stop record cannot substitute for it. Missing pause premises,
+one executed trigger, widened slots, missing coverage or a physical-stop claim
+from a pause are rejected. The regular chain runner executes this connection for
+each selected target; local JS acceptance does not claim Wasm/Native execution.
+No semantic operation matrix, product owner, test retirement or CI reuse policy
+is introduced. Model/Store authority, arbitrary provider refinement, machine
+faults, physical capacity and eventual stopping remain separate obligations.

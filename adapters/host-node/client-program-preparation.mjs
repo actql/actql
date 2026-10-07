@@ -1,6 +1,6 @@
 // Translate the public submit body into the installed MoonBit checker JS bridge.
 // The returned prepared handle is in-process only and cannot authorize a Run.
-import {validSubmitPreparationError} from
+import {validCheckOutcome, validSubmitPreparationError} from
   '../../packages/client-wire/index.mjs';
 import {installNodePublicSourcePreparation} from
   './public-source-preparation.mjs';
@@ -13,10 +13,10 @@ const issueCodes = Object.freeze({
   program_syntax: 'ClientProgramInvalidInput',
   effect_not_supported: 'ClientProgramUnsupported',
   needs_inputs: 'ClientProgramNeedsInputs',
-  check_invalid_input: 'ClientProgramRejected',
+  check_invalid_input: 'ClientProgramInvalidInput',
   check_invalid_configuration: 'ClientProgramPreparationFailure',
   check_unsupported: 'ClientProgramUnsupported',
-  check_compile_limit: 'ClientProgramRejected',
+  check_compile_limit: 'ClientProgramAnalysisLimit',
   check_missing_input: 'ClientProgramNeedsInputs',
   check_unclassified: 'ClientProgramPreparationFailure',
   missing_checked_stage: 'ClientProgramRejected',
@@ -26,6 +26,7 @@ const issueCodes = Object.freeze({
   graph_rejected: 'ClientProgramRejected',
   source_invalid_input: 'ClientProgramInvalidInput',
   source_rejected: 'ClientProgramRejected',
+  source_unresolved: 'ClientProgramRejected',
   source_unsupported: 'ClientProgramUnsupported',
   source_missing_input: 'ClientProgramNeedsInputs',
   source_declarations: 'ClientParametersInvalid',
@@ -82,13 +83,14 @@ function serializeProgram({kind, input, parameters}) {
 }
 
 export function installNodeClientProgramPreparation({moon, environment,
-  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows}) {
+  allowEffects = false, effectEvidence = [], sourcePublication, valuesMaxRows, check}) {
   if (!moon || typeof moon.clientProgramPrepareEffectFreeWithParameters !==
       'function' || typeof moon.clientProgramPreparationReady !== 'function' ||
       typeof moon.clientProgramPreparationIssue !== 'function' ||
       typeof moon.clientProgramPreparationIssueCode !== 'function' ||
       environment === undefined || typeof allowEffects !== 'boolean' ||
       !Array.isArray(effectEvidence) || effectEvidence.length > 1024 ||
+      (check !== undefined && typeof check !== 'function') ||
       (allowEffects &&
         (typeof moon.clientProgramPrepareEffectComputationWithParameters !==
           'function'))) {
@@ -101,6 +103,7 @@ export function installNodeClientProgramPreparation({moon, environment,
   }
   const owned = new WeakSet();
   const effectOwned = new WeakSet();
+  const sourceCheckFailures = new WeakSet();
   const installedEvidence = Object.freeze([...effectEvidence]);
   const prepareEffect = !allowEffects ? undefined :
     installNodeClientEffectProgramPreparation({moon,
@@ -143,15 +146,50 @@ export function installNodeClientProgramPreparation({moon, environment,
       effectOwned.add(effect);
       return effect;
     }
-    const code = issueCodes[category];
+    // Raw Source compilation budgets may depend on protected publication.
+    // Only the audience-filtered check below may expose that budget.
+    const code = sourceFormat && category === 'check_compile_limit'
+      ? 'ClientProgramRejected' : issueCodes[category];
     if (issue === undefined || code === undefined) {
       fail('ClientProgramPreparationFailure');
     }
-    fail(code, issue);
+    const error = Object.assign(new Error(code, {cause: issue}), {code});
+    if (sourceFormat && ['source_invalid_input', 'source_unresolved'].includes(category)) {
+      sourceCheckFailures.add(error);
+    }
+    throw error;
   };
   // The Local planner accepts only this installation's checked owner. This
   // keeps the exact runtime and environment binding without parsing it again.
-  return Object.freeze(Object.assign(prepare, {
+  const disclosed = check === undefined ? prepare : async request => {
+    try { return prepare(request); }
+    catch (error) {
+      if (error?.code !== 'ClientProgramRejected' || request.kind !== 'aql' ||
+          !['aql-text', 'sql'].includes(request.input.format)) throw error;
+      // Preparation already refused. The same public check Owner may disclose
+      // an independent input violation; it cannot admit or execute this input.
+      // Its audience-visible publication hides absent and inaccessible Sources.
+      let outcome;
+      try { outcome = await check(request); }
+      catch (cause) {
+        if (request.signal?.aborted) throw cause;
+        throw error;
+      }
+      if (validCheckOutcome(outcome)) {
+        const report = outcome.report ?? outcome.partial_report;
+        if (report?.scope.kind === 'bound_input' && report.verdict === 'invalid') {
+          fail('ClientProgramInvalidInput', error);
+        }
+        if (report?.scope.kind === 'bound_input' &&
+            report.coverage.limits.some(limit => limit.code === 'analysis_budget_exhausted')) {
+          fail('ClientProgramAnalysisLimit', error);
+        }
+      }
+      throw error;
+    }
+  };
+  return Object.freeze(Object.assign(disclosed, {
+    sourceCheckFailure(error) {return sourceCheckFailures.has(error);},
     assertOwned(prepared) {
       if (!owned.has(prepared) && !effectOwned.has(prepared)) {
         throw new TypeError('Foreign Client preparation');

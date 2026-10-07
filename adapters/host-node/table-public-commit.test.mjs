@@ -1,19 +1,30 @@
-// Actual installed Host -> public SDK -> approval -> Iceberg/Catalog. This
-// source-tree diagnostic is not a packed distribution or Hosted CI campaign.
+// Actual installed Host -> public SDK -> approval -> Iceberg/Catalog. The
+// packed runner selects installed product modules, never a source overlay.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {readFile, writeFile, readdir} from 'node:fs/promises';
+import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
-import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {tableTestModule} from './fixtures/table-test-modules.mjs';
+
+const {connect, getSubmissionOutcome} = await tableTestModule(
+  new URL('../../packages/sdk/index.mjs', import.meta.url), '@actql/sdk');
+const {canonicalJson, contentCid} = await tableTestModule(
+  new URL('./local-account-config.mjs', import.meta.url), 'adapters/host-node/local-account-config.mjs');
+const local = await tableTestModule(new URL('./embedded-local.mjs', import.meta.url), '@actql/local-node');
+const connectEmbeddedLocal = local.connectEmbeddedLocal ?? local.connect;
+const {openInstalledRemoteHttpHost} = await tableTestModule(
+  new URL('./embedded-local.mjs', import.meta.url), '@actql/local-node/http-host');
 
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
 const tableContract = JSON.parse(await readFile(new URL('../../spec/contracts/actql-table-effect.json', import.meta.url), 'utf8'));
@@ -35,7 +46,7 @@ const account = () => canonicalJson({version: 'actql-execution-account-config/0.
     {entry_id: 'run', outcome: 'allow', principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}, exclusions: []}]});
 
-function declaration() {
+function declaration(inputField = 'id') {
   const body = JSON.parse(baseWire), manifest = withFixtureConnector(body, targetRef);
   const targetSchema = {additional_properties: false,
     fields: {Id: {nullable: false, type: 'number'}, Name: {nullable: true, type: 'number'}},
@@ -44,7 +55,7 @@ function declaration() {
     minimum_approval: 'required', permission_rules: [{effect_kind: 'store', permissions: ['scope:store'],
       selector_class: 'none', write_fields: ['Name']}], primary_identity: 'Id', required_fields: [],
     required_permissions: [], resource_identity_cid: contentCid(tableContract),
-    row_mapping: {Name: {field: 'id', null_behavior: 'reject'}},
+    row_mapping: {Name: {field: inputField, null_behavior: 'reject'}},
     schema: 'actql.mapping_contract/0.1', target_ref: targetRef, target_schema: targetSchema,
     target_schema_identity: contentCid(targetSchema), version: 'reference-v1', writable_fields: ['Name']};
   mapping.mapping_contract_cid = contentCid(mapping);
@@ -68,11 +79,11 @@ function commits(catalog) {
 function readerProgram(id = 'read-committed-table') {
   return {version: 'actql/0.1', id, stages: [
     {id: 'read', inputs: {input: {connector: 'table', resource}},
-      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id'], as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id']}}},
+      steps: [{filter: 'id >= 0', as: 'kept'}, {select: ['id', 'tag'], as: 'output'}],
+      results: {rows: {from: 'output', fields: ['id', 'tag']}}},
     {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
       steps: [{derive: {doubled: 'id * 2'}, as: 'output'}],
-      results: {rows: {from: 'output', fields: ['id', 'doubled']}}}],
+      results: {rows: {from: 'output', fields: ['id', 'tag', 'doubled']}}}],
     results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
 }
 async function waiting(run, observations, t) {
@@ -173,7 +184,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       installation: {directory: join(f.root, name), effectProfilePath, authorization}};
     const client = await connectEmbeddedLocal(options);
     opened.push(client);
-    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
+    const run = await client.startSource(JSON.stringify(program(rows, name)), {format: 'json'});
     await waiting(run, observations, t);
     const checkpoint = (await client.checkpoints()).items[0];
     const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
@@ -288,12 +299,15 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
 });
 }
 
-test('Table public lost commit reply reconciles the original Run without another write', async t => {
+for (const lossPoint of ['before', 'after']) {
+test(lossPoint === 'before'
+  ? 'Table public precommit crash remains unknown across repeated reconciliation'
+  : 'Table public lost commit reply reconciles the original Run without another write', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
   const launcher = join(f.root, 'lost-commit-reply');
-  // The configured optional Python executable runs the product worker. Only
-  // the real Catalog's post-commit hook is faulted; no receipt is fabricated.
+  // The configured optional Python executable runs the product worker. The
+  // crash is before the Catalog write or after publication; no receipt is fabricated.
   await writeFile(launcher, `#!${python}
 import os, sys
 from pathlib import Path
@@ -307,6 +321,8 @@ def factory(*args):
         def write_claimed(self, *args, **kwargs):
             with (root / "writes.log").open("a") as stream:
                 stream.write("write\\n")
+            if ${lossPoint === 'before' ? 'True' : 'False'}:
+                os._exit(9)
             return super().write_claimed(*args, **kwargs)
         def after_publication(self):
             marker = root / "lost-reply"
@@ -342,7 +358,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
   let client = await connectEmbeddedLocal(options);
   try {
     const input = JSON.stringify(program(expectedRows, 'table-lost-reply'));
-    let run = await client.startSource(input, {format: 'json', requestId: 'table-lost-reply'});
+    let run = await client.startSource(input, {format: 'json'});
     await waiting(run, observations, t);
     assert.equal(commits(f.catalog).length, 0, 'No write before approval');
     const checkpoint = (await client.checkpoints()).items[0];
@@ -351,6 +367,39 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       sign: bytes => sign(null, bytes, keys.privateKey)}});
     assert.equal((await terminal(run, observations, t)).status, 'needs_reconciliation');
     const original = commits(f.catalog);
+    if (lossPoint === 'before') {
+      assert.equal(original.length, 0, 'The real Catalog has no original receipt');
+      const writes = await readFile(join(f.root, 'writes.log'), 'utf8');
+      assert.equal(writes.split('write').length - 1, 1);
+      const ref = run.ref;
+      await client.close();
+      client = await connectEmbeddedLocal(options);
+      run = await client.attach(ref);
+      const before = await run.status();
+      assert.equal(before.status, 'needs_reconciliation');
+      assert.equal(before.control.physical_stop, 'confirmed');
+      const retained = () => {
+        const database = new DatabaseSync(join(f.root, 'host', 'requests',
+          'client-requests.sqlite3'), {readOnly: true});
+        try { return {...database.prepare(`SELECT revision, reconciliation_state_wire
+          FROM client_requests WHERE run_definition_cid = ?`).get(ref.runDefinitionCid)}; }
+        finally { database.close(); }
+      };
+      const originalState = retained();
+      assert.equal(JSON.parse(originalState.reconciliation_state_wire).status,
+        'needs_reconciliation');
+      for (let observation = 0; observation < 2; observation++) {
+        await delay(20);
+        const state = await run.reconcile();
+        assert.deepEqual(state, before, '[table-still-unknown:original-observation]');
+        assert.deepEqual(retained(), originalState, '[table-still-unknown:journal-custody]');
+        assert.deepEqual(run.ref, ref);
+        assert.equal(commits(f.catalog).length, 0);
+        assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), writes,
+          '[table-still-unknown:no-resend]');
+      }
+      return;
+    }
     if (original.length !== 1) {
       const read = name => readFile(join(f.root, name), 'utf8')
         .catch(error => ({unavailable: error.code}));
@@ -377,7 +426,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
         directory: join(f.root, 'replacement-host'), effectProfilePath: replacementPath}});
     try {
       const replaced = await replacement.startSource(JSON.stringify(program([{id: 9, tag: null}],
-        'table-later-replacement')), {format: 'json', requestId: 'table-later-replacement'});
+        'table-later-replacement')), {format: 'json'});
       await waiting(replaced, observations, t);
       const laterCheckpoint = (await replacement.checkpoints()).items[0];
       await replacement.resolveCheckpoints([{checkpoint: laterCheckpoint, decision: 'approved'}], {signer: {
@@ -418,6 +467,236 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n');
   } finally { await client.close(); }
 });
+}
+
+async function sparseTableClientOpener(t, root, transport) {
+  if (transport === 'Local') return connectEmbeddedLocal;
+  const priorCertificates = getCACertificates('default');
+  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+    '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: root, stdio: 'ignore'});
+  const key = await readFile(join(root, 'host.key'));
+  const cert = await readFile(join(root, 'host.crt'));
+  setDefaultCACertificates([...priorCertificates, cert.toString()]);
+  t.after(() => setDefaultCACertificates(priorCertificates));
+  return async options => {
+    const host = await openInstalledRemoteHttpHost({...options.installation,
+      authenticate: header => header === 'Bearer table-fixture' ? userInfo().username : undefined});
+    const server = createServer({key, cert}, host.handler);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const client = await connect({mode: 'remote', durability: 'durable', token: 'table-fixture',
+      endpoint: `https://127.0.0.1:${server.address().port}/`});
+    let closed = false;
+    return Object.freeze({...client, async close() {
+      if (closed) return;
+      await client.close();
+      if (server.listening) {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
+      const result = await host.close();
+      assert.equal(result.storeCleanupPending, false);
+      assert.equal(result.authorizationCleanupPending, false);
+      assert.deepEqual(result.pendingRetention, []);
+      closed = true;
+    }});
+  };
+}
+
+for (const transport of ['Local', 'HTTPS']) {
+test(`Table sparse private input commits through ${transport} after approval while ordinary Result presence remains required`, async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration('person_key');
+  const openClient = await sparseTableClientOpener(t, f.root, transport);
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const effectProfilePath = join(f.root, 'sparse-effect.json');
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'], footprint: {
+        kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}], limits: {}}));
+  const observations = [];
+  const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'sparse-host'), effectProfilePath, authorization}};
+  let client = await openClient(options);
+  try {
+    const sparse = JSON.parse(await readFile(new URL('../../scripts/fixtures/graph-presence.program.json', import.meta.url), 'utf8'));
+    sparse.id = 'sparse-table';
+    const stage = sparse.stages[0];
+    stage.steps[1].values = {schema: {
+      person_key: {type: 'number', nullable: false},
+      tenant_key: {type: 'string', nullable: false}},
+      rows: [{person_key: 3, tenant_key: 'a'}]};
+    stage.steps[3].graph.nodes[1].key = ['person_key', 'tenant_key'];
+    stage.steps.pop();
+    stage.results = {rows: {from: 'rows', fields: ['person_key', 'p']},
+      answer: {from: 'rows', fields: ['person_key']}};
+    stage.effects = program([]).stages[0].effects;
+    sparse.results.answer.from.result = 'answer';
+    // The root public Result exports only guaranteed person_key. The stage's
+    // Result-based spelling still requires p. The separate private Table input
+    // below must not weaken this ordinary Named Result contract.
+    await assert.rejects(client.startSource(JSON.stringify(sparse), {format: 'json'}), error => {
+      t.diagnostic(inspect({phase: 'sparse-table-input', error}, {depth: 8}));
+      assert.equal(error.code, 'SubmissionNotAccepted');
+      const outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'not_accepted');
+      assert.equal(outcome.problem.code, 'ClientProgramRejected');
+      assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      return true;
+    });
+    assert.deepEqual(commits(f.catalog), [], 'An unpublishable input is not staged or committed');
+    assert.equal((await client.checkpoints()).items.length, 0, 'Checking does not admit a Run');
+    const dense = plain(sparse);
+    dense.stages[0].steps[4].node_rows = {definition: 'N'};
+    const moon = await tableTestModule(new URL(
+      '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url),
+    '@actql/local-node/runtime');
+    const numericProfile = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
+    const graphLaw = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
+    // The direct checker control must receive the same explicit construction
+    // ceilings as the installed Host; the bare fixture has no Graph budget.
+    const {evidence_bundle_cid: unusedEvidence, ...checkBody} = JSON.parse(declared.wire);
+    void unusedEvidence;
+    checkBody.host_policy_profile.capacity = {
+      max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...checkBody.host_policy_profile.capacity};
+    const checkEvidence = contentCid(checkBody);
+    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
+      canonicalJson({...checkBody, evidence_bundle_cid: checkEvidence}),
+      checkEvidence, false, true, true, true, true, false, false,
+      contentCid(numericProfile), contentCid(graphLaw));
+    const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(sparse), 'json', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(outcome), 'p',
+      'The actual common checker rejects Conditional p at Result closure');
+    const invalidFormat = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(sparse), 'invalid-format', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidFormat), 'invalid_format');
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(invalidFormat), undefined,
+      'A different refusal cannot masquerade as Result presence rejection');
+    // Validate the same Graph and selected schemas through ordinary public
+    // execution, independently of the Effect computation capability boundary.
+    delete dense.stages[0].effects;
+    dense.results.rows = {from: {stage: 'source', result: 'rows'}};
+    const denseRun = await client.startSource(JSON.stringify(dense), {format: 'json'});
+    assert.equal((await terminal(denseRun, [], t)).status, 'succeeded');
+    assert.deepEqual(plain(await denseRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2]);
+    assert.deepEqual(plain(await denseRun.result('rows').all()).sort((a, b) => a.person_key - b.person_key),
+      [{person_key: 1, p: 7}, {person_key: 2, p: null}],
+      'Definition selection preserves the actual and explicitly NULL property');
+    const projection = plain(sparse);
+    projection.stages[0].steps.push({select: ['person_key'], as: 'projected'});
+    projection.stages[0].results.rows.from = 'projected';
+    projection.stages[0].results.answer.from = 'projected';
+    projection.stages[0].results.rows.fields = ['person_key'];
+    delete projection.stages[0].effects;
+    const projectedRun = await client.startSource(JSON.stringify(projection), {format: 'json'});
+    assert.equal((await terminal(projectedRun, [], t)).status, 'succeeded');
+    assert.deepEqual(plain(await projectedRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2, 3]);
+    assert.deepEqual(commits(f.catalog), [], 'Read-only Graph controls write no Table');
+    const privateInput = plain(sparse);
+    privateInput.id = 'sparse-private-table';
+    const privateStage = privateInput.stages[0];
+    privateStage.table_inputs = {rows: privateStage.results.rows};
+    delete privateStage.results.rows;
+    privateStage.effects.save.store.from = {table_input: 'rows'};
+    privateStage.steps.push({from: 'rows', sort: [
+      {field: 'person_key', dir: 'asc', nulls: 'first'}], as: 'ordered'});
+    privateStage.table_inputs.rows.from = 'ordered';
+    privateStage.results.answer.from = 'ordered';
+    const input = JSON.stringify(privateInput);
+    const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
+      input, 'json', environment, undefined, []);
+    assert.ok(moon.clientProgramEffectPreparationReady(privatePreparation),
+      inspect(moon.clientProgramEffectPreparationIssue(privatePreparation), {depth: 20}));
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(privatePreparation), undefined,
+      'The accepted private input is not an ordinary Result presence refusal');
+    const submissionRef = client.newSubmission();
+    let run = await client.startSource(input, {format: 'json', submissionRef});
+    await waiting(run, observations, t);
+    assert.deepEqual(commits(f.catalog), [], 'Private capture does not authorize a commit');
+    const checkpoint = (await client.checkpoints()).items[0];
+    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+    const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+    assert.equal(preview.effects[0].source_table_input, 'rows');
+    assert.equal(preview.effects[0].count, 1);
+    assert.equal(preview.effects[0].approval, 'required');
+    const operation = preview.effects[0].changes[0].intended_changes.value;
+    const originalRef = run.ref;
+    await client.close();
+    client = await openClient(options);
+    run = await client.startSource(input, {format: 'json', submissionRef});
+    assert.deepEqual(run.ref, originalRef);
+    assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
+    assert.deepEqual(commits(f.catalog), [], 'Restart does not send a private Table operation');
+    const answered = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    assert.deepEqual(answered.results.map(value => value.status), ['committed']);
+    assert.equal((await terminal(run, observations, t)).status, 'succeeded');
+    assert.deepEqual(plain(await run.result('answer').all()),
+      [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
+    assert.equal(commits(f.catalog).length, 1);
+    assert.deepEqual(commits(f.catalog)[0].operation, operation);
+    assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
+      ['duplicate']);
+    assert.equal(commits(f.catalog).length, 1, 'Duplicate approval does not resend');
+  } finally { await client.close(); }
+  const committed = commits(f.catalog)[0];
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'], table_name: 'rows',
+    table_uuid: committed.receipt.table_uuid, schema_cid: committed.receipt.schema_cid};
+  const frozen = await f.bridge.resolveGeneration(selector);
+  assert.equal(frozen.ok, true);
+  assert.deepEqual(JSON.parse(frozen.result.schema_wire), {
+    person_key: {nullable: false, type: 'number'},
+    p: {contract: {nullable: true, type: 'number'}, presence: 'conditional'}});
+  assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+    [{person_key: 1, p: 7}, {person_key: 2, p: null}, {person_key: 3}],
+    'Iceberg preserves value, explicit NULL and omission after the origin Host closes');
+  const sourceProfilePath = join(f.root, 'sparse-source.json');
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-table-source/0.1',
+    connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(),
+    targets: [{resource, selector, schemaWire: frozen.result.schema_wire}],
+    limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
+  const later = await openClient({mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'sparse-reader'), sourceProfilePath, authorization}});
+  try {
+    const reader = {version: 'actql/0.1', id: 'read-sparse-table', stages: [{id: 'read',
+      inputs: {input: {connector: 'table', resource}},
+      steps: [{filter: 'person_key >= 0', as: 'kept'},
+        {select: ['person_key'], as: 'output'}],
+      results: {rows: {from: 'output', fields: ['person_key']}}},
+      // Use the existing acquisition -> Compute publication path. Direct
+      // publication of an acquisition-only task has no receipt capability.
+      {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
+        steps: [{derive: {checked_key: 'person_key + 0'}, as: 'checked'},
+          {select: ['person_key'], as: 'output'}],
+        results: {rows: {from: 'output', fields: ['person_key']}}}],
+      results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
+    const run = await later.start(reader);
+    assert.equal((await terminal(run, observations, t)).status, 'succeeded');
+    assert.deepEqual(plain(await run.result('answer').all()),
+      [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
+    assert.equal(commits(f.catalog).length, 1, 'A new reader never resends the originating Effect');
+  } catch (error) {
+    t.diagnostic(inspect({readerError: error, observations}, {depth: 12}));
+    throw error;
+  } finally { await later.close(); }
+});
+}
 
 test('Table installed HTTP Host retires capture custody before completing close', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
@@ -482,9 +761,10 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   let client = await connectEmbeddedLocal(options).catch(error => {
     assert.fail(error.primaryFailure?.stack ?? error.cause?.stack ?? error.stack);
   });
+  const submissionRef = client.newSubmission();
   try {
     const input = JSON.stringify(program(rows));
-    let run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'}).catch(error => {
+    let run = await client.startSource(input, {format: 'json', submissionRef}).catch(error => {
       t.diagnostic(inspect(error, {depth: 10}));
       t.diagnostic(inspect(observations, {depth: 10}));
       throw error;
@@ -509,7 +789,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     const originalRef = run.ref;
     await client.close();
     client = await connectEmbeddedLocal(options);
-    run = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
+    run = await client.startSource(input, {format: 'json', submissionRef});
     assert.deepEqual(run.ref, originalRef);
     assert.deepEqual(commits(f.catalog), [], 'Restart does not approve or send');
     assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
@@ -524,7 +804,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     assert.deepEqual(commits(f.catalog)[0].operation, operation);
     assert.equal(commits(f.catalog)[0].receipt.row_count, rows.length);
     assert.deepEqual(multiset(await run.result('answer').all()), multiset(rows));
-    const repeated = await client.startSource(input, {format: 'json', requestId: 'table-create-1'});
+    const repeated = await client.startSource(input, {format: 'json', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(multiset(await (await client.attach(run.ref)).result('answer').all()), multiset(rows));
     assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
@@ -548,14 +828,13 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
   const later = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
     installation: {directory: join(f.root, 'reader-host'), sourceProfilePath, authorization}});
   try {
-    // This public reader exercises the existing guaranteed-column projection.
-    // The exact complete values were separately checked through actual Iceberg
-    // I/O above; it does not certify public sparse/all-column read support.
-    const readRun = await later.start(readerProgram(), {requestId: 'new-table-reader'});
+    // Read the complete required schema, including nullable text, through the
+    // public Source and two-task Relation path after the origin Host closes.
+    const readRun = await later.start(readerProgram());
     const state = await terminal(readRun, observations, t);
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
     assert.deepEqual(multiset(await readRun.result('answer').all()),
-      multiset(rows.map(row => ({id: row.id, doubled: row.id * 2}))));
+      multiset(rows.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
     assert.equal(commits(f.catalog).length, 1);
   } finally { await later.close(); }
   if (rows.length) {
@@ -574,11 +853,11 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         directory: join(f.root, `replace-host-${index}`), effectProfilePath: replaceProfilePath}};
       let replacing = await connectEmbeddedLocal(replaceOptions);
       const input = JSON.stringify(program(replacement, `table-public-replace-${index}`));
-      const requestId = `replace-${index}`;
+      const submissionRef = replacing.newSubmission();
       const before = commits(f.catalog).length;
       let operation;
       try {
-        let run = await replacing.startSource(input, {format: 'json', requestId});
+        let run = await replacing.startSource(input, {format: 'json', submissionRef});
         await waiting(run, observations, t);
         assert.equal(commits(f.catalog).length, before, 'No replacement before approval');
         const checkpoint = (await replacing.checkpoints()).items[0];
@@ -594,7 +873,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         const originalRef = run.ref;
         await replacing.close();
         replacing = await connectEmbeddedLocal(replaceOptions);
-        run = await replacing.startSource(input, {format: 'json', requestId});
+        run = await replacing.startSource(input, {format: 'json', submissionRef});
         assert.deepEqual(run.ref, originalRef);
         assert.equal((await replacing.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
         assert.equal(commits(f.catalog).length, before, 'Restart does not send the replacement');
@@ -642,10 +921,10 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         installation: {directory: join(f.root, `replacement-reader-${index}`),
           sourceProfilePath: currentSourceProfilePath, authorization}});
       try {
-        const run = await reader.start(readerProgram(`read-replacement-${index}`), {requestId: `read-${index}`});
+        const run = await reader.start(readerProgram(`read-replacement-${index}`));
         assert.equal((await terminal(run, observations, t)).status, 'succeeded');
         assert.deepEqual(multiset(await run.result('answer').all()),
-          multiset(replacement.map(row => ({id: row.id, doubled: row.id * 2}))));
+          multiset(replacement.map(row => ({id: row.id, tag: row.tag, doubled: row.id * 2}))));
         assert.equal(commits(f.catalog).length, before + 1);
       } finally { await reader.close(); }
       previous = updated;

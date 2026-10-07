@@ -12,8 +12,9 @@ import {nodeTestArguments, assertTestExecution} from './test-execution.mjs';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const cancellationOnly = process.argv.slice(2).includes('--cancellation-only');
 const submissionCustodyOnly = process.argv.slice(2).includes('--submission-custody-only');
-if (cancellationOnly && submissionCustodyOnly ||
-    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only'].includes(option))) {
+const submissionRefusalOnly = process.argv.slice(2).includes('--submission-refusal-only');
+if ([cancellationOnly, submissionCustodyOnly, submissionRefusalOnly].filter(Boolean).length > 1 ||
+    process.argv.slice(2).some(option => !['--cancellation-only', '--submission-custody-only', '--submission-refusal-only'].includes(option))) {
   throw new Error('Unknown public recovery acceptance selection');
 }
 const state = checkoutState(repository);
@@ -57,6 +58,7 @@ const support = [
   'adapters/host-node/client-read-opening.fixture.mjs',
   'adapters/host-node/client-read-opening-restart.fixture.mjs',
   'adapters/host-node/client-read-run-capacity.test.mjs',
+  'adapters/host-node/client-read-run-capacity.fixture.mjs',
   'adapters/host-node/fixtures/read-121.program.json',
   'adapters/host-node/fixtures/read-121.expected.json',
   'adapters/host-node/client-values-row-limit.test.mjs',
@@ -65,6 +67,8 @@ const support = [
   'adapters/host-node/client-cancellation-public.fixture.mjs',
   'adapters/host-node/client-submission-custody-public.test.mjs',
   'adapters/host-node/client-submission-custody-public.fixture.mjs',
+  'adapters/host-node/submission-epoch-public.test.mjs',
+  'adapters/site-node/https-exchange-fixture.mjs',
   'scripts/owned-scratch.mjs',
   'packages/sdk/fixtures/values.json',
   'packages/sdk/fixtures/values.environment.json',
@@ -76,7 +80,8 @@ for (const path of support) {
   if (path.startsWith('adapters/host-node/') && path.endsWith('.mjs')) {
     if (path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
         path === 'adapters/host-node/client-values-row-limit.fixture.mjs' ||
-        path === 'adapters/host-node/client-cancellation-public.fixture.mjs') {
+        path === 'adapters/host-node/client-cancellation-public.fixture.mjs' ||
+        path === 'adapters/host-node/submission-epoch-public.test.mjs') {
       text = text.replace(
         "import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';",
         "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
@@ -109,16 +114,21 @@ const groups = [
   {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 3},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
   {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
+  {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
+    pattern: 'durable known-input category', count: 2},
 ];
 const selectedGroups = cancellationOnly
   ? groups.filter(group => group.name === 'original-cancellation')
-  : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody') : groups;
+  : submissionCustodyOnly ? groups.filter(group => group.name === 'submission-custody')
+  : submissionRefusalOnly ? groups.filter(group => group.name === 'submission-input-refusal') : groups;
 const logs = [];
 let passed = 0;
 // Reuse one installation and the existing per-invocation bound. Preserve each
 // completed group even if a later group fails; do not extend a test's timeout.
 for (const group of selectedGroups) {
-  const args = nodeTestArguments(['--test-concurrency', '1', `adapters/host-node/${group.file}`]);
+  const args = nodeTestArguments(['--test-concurrency', '1',
+    ...(group.pattern === undefined ? [] : ['--test-name-pattern', group.pattern]),
+    `adapters/host-node/${group.file}`]);
   const result = spawnSync(process.execPath, args, {cwd: root, env: environment, encoding: 'utf8', timeout: 120000});
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
   logs.push(output);
@@ -130,7 +140,7 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly ? 2 : 21);
+assert.equal(passed, cancellationOnly ? 4 : submissionCustodyOnly || submissionRefusalOnly ? 2 : 23);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -138,12 +148,13 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
   expectedRows: submissionCustodyOnly ? [{id: 1}] : [{id: 1}, {id: 2}],
   expected121Rows: JSON.parse(await readFile(join(root, 'adapters/host-node/fixtures/read-121.expected.json'), 'utf8')),
   selection: cancellationOnly ? 'original-cancellation' : submissionCustodyOnly
-    ? 'submission-custody' : 'read-cancellation-and-submission',
+    ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal' : 'read-cancellation-and-submission',
   cases: cancellationOnly ? {originalCancellationRecovery: 4}
     : submissionCustodyOnly ? {submissionCustodyLoss: 2}
+    : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2}
     : {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
       installedCapacity: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
-      submissionCustodyLoss: 2},
+      submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();

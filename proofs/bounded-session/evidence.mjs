@@ -9,6 +9,19 @@ export const premises = [
   'cleanup callback true means complete reclamation',
 ];
 export const guarantees = ['delta accounting', 'terminal seals advance', 'cleanup retry without compute'];
+// These existing authored obligations are independent of caller-supplied claims.
+// Additional local obligations are allowed; omission and substring matches are not.
+export const setResidual = Object.freeze([
+  'set comparison, NULL equality, order and duplicate multiplicity',
+  'kernel initialization and every internal phase charge work correctly',
+  'set-specific scratch reclamation and two-input ownership',
+  'two-consumer custody, driver and physical backend acceptance',
+]);
+export function includesObligations(actual, required) {
+  return Array.isArray(actual) && actual.every(item => typeof item === 'string' && item.trim().length > 0) &&
+    new Set(actual).size === actual.length && required.every(item => actual.includes(item));
+}
+
 // Reviewed coverage of the actual fixture, independent of requested bindings.
 // Expanding this table requires reviewing/changing that fixture, not relabeling
 // a derived claim. Digests pin that review's code; they do not prove its scope.
@@ -120,13 +133,13 @@ export function validate(nodes, report, current, expectedTarget) {
     }
     if (node.kind === 'derived') {
       if (!reviewedScopes.some(scope => scopeMatches(node.scope, scope, scopeKeys))) throw new Error('Scope is outside independently executed connection coverage');
-      for (const premise of premises) if (!node.premises.includes(premise)) throw new Error(`Missing premise: ${premise}`);
+      for (const premise of premises) if (!includesObligations(node.premises, [premise])) throw new Error(`Missing premise: ${premise}`);
       for (const dependency of ['session', 'adapter', `${node.id}:connection`]) {
         if (!node.dependencies.includes(dependency)) throw new Error(`Missing dependency: ${dependency}`);
       }
       if (JSON.stringify(node.guarantees) !== JSON.stringify(guarantees)) throw new Error('Unsupported guarantee');
-      if (!node.residual?.length) throw new Error('Kernel and environment obligations must remain explicit');
-      if (node.scope.operation === 'nest' && !nestResidual.every(p => node.residual.includes(p))) throw new Error('Missing Nest-specific residual obligation');
+      if (!includesObligations(node.residual, node.scope.operation === 'nest' ? nestResidual : setResidual))
+        throw new Error(`Missing ${node.scope.operation === 'nest' ? 'Nest' : 'Set'}-specific residual obligation`);
       if (node.scope.operation === 'nest') for (const suite of nestLocalSuites) {
         const result = report.runs[`${suite.id}-${expectedTarget}`];
         const command = ['moon', 'test', suite.fixture, '--target', expectedTarget, '--deny-warn',
@@ -179,17 +192,29 @@ export function validate(nodes, report, current, expectedTarget) {
 
 const nestObligations = JSON.parse(readFileSync(new URL('nest-obligations.json', import.meta.url)));
 const nestResidual = nestObligations.residual;
-export function checkNestObligations(root) {
-  const obligations = JSON.parse(readFileSync(join(root, 'proofs/bounded-session/nest-obligations.json')));
+const nestInheritedArtifacts = Object.freeze([
+  'proofs/bounded-session/Claims.lean', 'proofs/bounded-session/Session.lean',
+  'proofs/bounded-session/check.mjs', 'proofs/bounded-session/lean-toolchain',
+  'src/bounded_execution/session_contract_wbtest.mbt',
+  'src/connectors/local/bounded_session_contract_wbtest.mbt',
+]);
+export function checkNestObligations(root, {read = path => readFileSync(join(root, path))} = {}) {
+  const obligations = JSON.parse(read('proofs/bounded-session/nest-obligations.json'));
   if (JSON.stringify(obligations.scope) !== JSON.stringify(nestScope) || obligations.testRetirements.length) throw new Error('Unreviewed Nest obligation scope');
-  for (const [path, digest] of Object.entries(obligations.unchangedCommon)) {
-    if (hash(readFileSync(join(root, path))) !== digest) throw new Error(`Common proof/protocol artifact changed: ${path}`);
+  // Nest derives Session/adapter guarantees, not serial-chain guarantees.
+  // A historical unchanged-file comparison is not an extra current premise.
+  if (JSON.stringify(Object.keys(obligations.unchangedCommon).sort()) !==
+      JSON.stringify([...nestInheritedArtifacts].sort())) {
+    throw new Error('Missing or unrelated inherited Nest common artifact');
   }
-  for (const path of obligations.retainedSuites) readFileSync(join(root, path));
-  const provider = readFileSync(join(root, nestScope.provider), 'utf8');
-  const kernel = readFileSync(join(root, obligations.connection.kernelSource), 'utf8');
-  const fixture = readFileSync(join(root, nestConnectionFixture), 'utf8');
-  const registration = readFileSync(join(root, obligations.route.registration), 'utf8');
+  for (const [path, digest] of Object.entries(obligations.unchangedCommon)) {
+    if (hash(read(path)) !== digest) throw new Error(`Common proof/protocol artifact changed: ${path}`);
+  }
+  for (const path of obligations.retainedSuites) read(path);
+  const provider = read(nestScope.provider).toString('utf8');
+  const kernel = read(obligations.connection.kernelSource).toString('utf8');
+  const fixture = read(nestConnectionFixture).toString('utf8');
+  const registration = read(obligations.route.registration).toString('utf8');
   for (const marker of ['guard inputs is [parent, child]', 'bounded_session_execution(', '@execution.start_bounded_nest(', '@execution.advance_bounded_nest(', '@execution.cleanup_bounded_nest(active)', '@bounded.request_cancel(control)']) {
     if (!provider.includes(marker)) throw new Error(`Missing Nest provider connection: ${marker}`);
   }
@@ -222,12 +247,14 @@ export function checkBindings(root, bindings) {
     if (!provider.includes('bounded_session_execution(') || !provider.includes(`@execution.${binding.kernel}(`)) {
       throw new Error(`Missing reviewed adapter/kernel connection: ${binding.operation}`);
     }
-    if (!premises.every(p => binding.premises.includes(p))) {
+    if (!includesObligations(binding.premises, premises)) {
       throw new Error('Invalid variant or missing premise');
     }
     if (binding.operation === 'nest') {
       checkNestObligations(root);
-      if (!nestResidual.every(p => binding.residual.includes(p))) throw new Error('Missing Nest-specific residual obligation');
+      if (!includesObligations(binding.residual, nestResidual)) throw new Error('Missing Nest-specific residual obligation');
+    } else if (!includesObligations(binding.residual, setResidual)) {
+      throw new Error('Missing Set-specific residual obligation');
     }
   }
 }

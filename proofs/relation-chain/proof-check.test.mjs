@@ -18,3 +18,44 @@ test('Lean rejects an existing theorem name with a weakened proposition', () => 
   assert.notEqual(result.status, 0);
   assert.match(result.stdout + result.stderr, /type mismatch/i);
 });
+
+test('executed chain checker admits both original and stop-inclusive typed laws', () => {
+  const result = spawnSync(process.execPath, ['check.mjs'], {
+    cwd: fileURLToPath(new URL('.', import.meta.url)), encoding: 'utf8', timeout: 60000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /Checked 54 theorems, expected claim types and axiom dependencies/);
+});
+
+for (const [label, theorem, replacement] of [
+  ['pause custody guarantee omitted', 'pause_reporting',
+    'theorem pause_reporting (s : State) (work : Nat) : True := by trivial'],
+  ['zero-work pause changes state', 'zero_pause_identity',
+    'theorem zero_pause_identity (s : State) : True := by trivial'],
+  ['terminal stop work omitted', 'stop_poll_reporting',
+    'theorem stop_poll_reporting (s : State) (work : Nat) (done : Bool) : True := by trivial'],
+  ['stop request treated as physical stop', 'request_not_stopped',
+    'theorem request_not_stopped (s : State) : True := by trivial'],
+  ['productive budget guarantee omitted', 'chain_accounting',
+    'theorem chain_accounting (budget : Nat) (t : State) (run : Run (initial budget) t) : True := by trivial'],
+  ['stopping no-Compute guarantee omitted', 'stopping_run_no_compute',
+    'theorem stopping_run_no_compute {s t : State} (run : Run s t) (h : s.requested = true) : True := by trivial'],
+]) test(`Lean refuses stop-inclusive claim weakening: ${label}`, () => {
+  const model = readFileSync(new URL('StopAccounting.lean', import.meta.url), 'utf8');
+  const start = model.indexOf(`theorem ${theorem} `);
+  const end = model.indexOf('\n\n', start + 1);
+  assert(start >= 0 && end > start, 'Missing uniquely extracted theorem');
+  assert.equal(model.split(`theorem ${theorem} `).length, 2);
+  const changed = model.slice(0, start) + replacement + '\n' + model.slice(end);
+  const inputs = ['../bounded-session/Session.lean', 'Chain.lean']
+    .map(path => readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n');
+  const claims = readFileSync(new URL('StopClaims.lean', import.meta.url), 'utf8');
+  const result = spawnSync('lean', ['--stdin'], {
+    cwd: fileURLToPath(new URL('.', import.meta.url)), input: `${inputs}\n${changed}\n${claims}`,
+    encoding: 'utf8', timeout: 60000,
+  });
+  assert.ifError(result.error);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout + result.stderr, /type mismatch/i);
+});

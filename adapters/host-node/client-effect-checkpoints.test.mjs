@@ -70,6 +70,54 @@ async function fixture(t, {read = 'allow', effectRequiredClaims = [],
   return {open, close, clock, advance(ms) { clock += ms; }};
 }
 
+for (const boundary of ['preparation', 'acquisition']) {
+  test(`epoch-bound ${boundary} does not enter an unsupported pre-Run wait`, async t => {
+    const accountConfiguration = canonicalJson({
+      version: 'actql-execution-account-config/0.1', account_id: 'local',
+      entries: [{entry_id: 'accept', outcome: boundary === 'preparation' ? 'delegate' : 'allow',
+        principal: {all: true}, connection: {any_of: ['local']},
+        resource: {any_of: ['source-free-values']},
+        operation: {any_of: ['write']}, exclusions: []}],
+    });
+    const {open, close} = await fixture(t, {accountConfiguration,
+      source: boundary === 'acquisition' ? {
+        accountConfiguration: configuration('delegate'),
+        context: {principal: 'owner', contextCid: cid('7')},
+      } : undefined});
+    let installed = await open();
+    const captured = {requestId: 'epoch-original', kind: 'aql',
+      input: {format: 'sql', text: 'SELECT 1 AS n'}, parameters: {},
+      resultNames: ['answer'], principalId: 'owner',
+      submission: {epoch: {version: 'actql-submission-epoch/0.1',
+        authorityScopeCid: cid('3'), epochNonce: 'b'.repeat(64),
+        notBefore: 1800000000000, expiresAt: 1800000001000,
+        authenticator: 'a'.repeat(64)}, nonce: 'original', intentCid: cid('6'),
+      currentAuthorization: true},
+      ...(boundary === 'acquisition' ? {
+        acquisition: {
+          checkedSource: {sourceRef: 'records', requirementCid: cid('8')},
+          readTuple: {...scope, operation: 'read'},
+          physicalBinding: {database: 'reference-db', schema: 'public', table: 'records'},
+        },
+      } : {}),
+    };
+    const request = {requested: {logicalRequestScopeCid: cid('5'),
+      intentFingerprintCid: cid('6')}, captured};
+    if (boundary === 'acquisition') {
+      assert.deepEqual(await installed.acceptRun(request), {kind: 'dispatch'});
+    }
+    await assert.rejects(boundary === 'preparation'
+      ? installed.acceptRun(request) : installed.acceptAcquisition(request),
+    {code: 'ACTQL_E_DELEGATION_UNAVAILABLE'});
+    assert.deepEqual((await installed.listCheckpoints({principalId: 'reviewer',
+      after: '', limit: 10})).items, []);
+    await close(installed);
+    installed = await open();
+    assert.deepEqual((await installed.listCheckpoints({principalId: 'reviewer',
+      after: '', limit: 10})).items, []);
+  });
+}
+
 test('a stale terminal preparation claim retains settlement responsibility',
   async t => {
     const {open, clock, advance} = await fixture(t, {leaseMs: 1000,

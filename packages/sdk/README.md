@@ -1,5 +1,59 @@
 # `@actql/sdk` development artifact
 
+## Workspace connection strings
+
+An installed Host can expose an explicit service Workspace. Connect with the
+application's secret connection string:
+
+```js
+import {connect} from '@actql/sdk';
+const client = await connect(process.env.ACTQL_URL);
+// ACTQL_URL: actql://token:<percent-encoded-bearer>@host/workspace-id
+```
+
+Or keep the credential separate:
+
+```js
+const client = await connect('actql://host/workspace-id', {
+  token: getAccessToken,
+});
+```
+
+The Workspace must match the credential's authenticated target on every
+request. A token getter can refresh a credential for that same target; it
+does not acquire renewal permission or switch Workspaces. An embedded DSN
+credential and a separate token conflict. Credentials must be percent-encoded
+as a component, never by encoding or decoding the entire URL. Do not log the
+connection string or commit it to source control.
+
+`actql://localhost:port/workspace-id` connects to an already running HTTPS
+Host with normal certificate verification. It does not open a directory or
+start a server. Node applications can explicitly select loopback HTTP:
+
+```js
+const client = await connect('actql://localhost:8080/workspace-id?transport=http', {
+  token: getAccessToken,
+});
+```
+
+Only the exact `?transport=http` query is accepted. `localhost` is pinned to
+`127.0.0.1` without DNS or IPv6 fallback; canonical `127.x.x.x` literals and
+IPv6 `::1` literals also work. Remote hosts, port zero and alternate query
+forms are refused before a token callback or network request. HTTP uses a
+private direct Node connection, not global Fetch/proxy configuration. Browser
+builds contain only an unavailable stub and reject this mode before fetching
+a credential. HTTPS behavior and certificate checks are unchanged.
+
+This plaintext mode trusts the local OS/process boundary; it provides no TLS
+server authentication. Configure the Host's `loopbackHttp: true` ingress and
+explicitly bind its caller-owned HTTP server to a numeric loopback address.
+Bearer authentication and Workspace checks remain required on every request.
+There is no automatic downgrade, redirect, daemon, alternate port or directory.
+Existing
+`connect({mode: 'remote', endpoint, token})` remains available. This is a
+development artifact, not a registry release or a deployed Cloud endpoint.
+See [the connection contract](../../docs/design/client-workspace-connections.md).
+
 This lightweight package implements the public Client, Execution and Result
 transport API for an already installed Client Host. It contains no Local
 kernel, native binding, DuckDB adapter or Cloud policy. The installed Node Host supports Program submission within its
@@ -45,7 +99,8 @@ start exactly one source admission immediately. SQL selects `sql`; AQL selects
 after the existing Run wait. They do not read rows until explicitly requested.
 
 ```js
-const query = client.sql('SELECT 1 AS id', undefined, {requestId: 'example-1'});
+const submissionRef = client.newSubmission({nonce: 'example-1'});
+const query = client.sql('SELECT 1 AS id', undefined, {submissionRef});
 const requestId = query.requestId; // available before credentials or transport
 const result = await query;
 const rows = await query.all();
@@ -175,25 +230,51 @@ observation, and retains detached immutable data. Capture or verification
 failure rejects the connection with `InvalidHostProfile`; it establishes no
 check verdict. The negotiated `scopeRef` identifies connection scope, separately
 from a check report's `context_ref` and input revisions. `startSource(text,
-{format: "json" | "yaml"})` and `start(program)` send one admission request
-immediately and resolve only after an acceptance response. Both accept
-`requestId`. An omitted ID is generated before send; an uncertain submission
-error exposes that ID and a lookup context. Call `lookupRequest(requestId)`
-to inspect the existing request without starting Compute. An unknown response
+{format: "json" | "yaml"})` and `start(program)` send one immutable submission
+intent. The Host supplies an authenticated epoch in its negotiated profile.
+`client.newSubmission({nonce})` captures that epoch and a caller nonce before
+send; omitting `submissionRef` creates a new reference for that call. A bare
+historical `requestId` does not create work under a newly negotiated epoch.
+
+Retain the full original reference across reconnects and process restart.
+`lookupSubmission(submissionRef)` observes that original submission under
+current authorization without starting Compute. A new connection's epoch
+cannot replace the saved one. An unknown response or an `unresolvable` lookup
 does not prove nonacceptance, and the SDK does not retry automatically.
-Profile, admission and request-lookup replies use the public
-`@actql/client-wire` validators, including exact connection and durability
-bindings. A found request lookup must echo the requested ID. A malformed or
-foreign acceptance does not become a known Run.
+Profile, submission and lookup replies use the public `@actql/client-wire`
+validators, including exact connection, durability, epoch/nonce and intent
+bindings. A malformed or foreign acceptance does not become a known Run.
+
 The Client serializes the submitted Program and parameters before awaiting an
 asynchronous credential callback, so later mutation of caller objects cannot
 change that transmission. `getSubmissionInput(result)` retrieves this call's
-detached, deeply frozen JSON request input from its returned Execution,
-`SubmissionUnknown` error or `RequestHeld` error. It includes the original
-request ID, submission kind, Program or text with declarations, supplied
-parameters, connection selection and lookup context. Local and HTTPS use the
-same JSON-value snapshot. Text is not normalized or converted to different
-newlines. Credentials and signing keys are not added to this snapshot.
+detached, deeply frozen JSON request input from its returned Promise, Execution
+or original submission error. It includes the full submission reference, nonce,
+submission kind, Program or text with declarations, supplied parameters,
+connection selection and lookup context. Local and HTTPS use the same JSON-value
+snapshot. Text is not normalized or converted to different newlines. Credentials
+and signing keys are not added to this snapshot. The accessor does not persist
+anything; applications must arrange their own durable input custody.
+
+`getSubmissionOutcome(result)` returns only the validated Owner-issued outcome
+received by that original call. `not_accepted` is a durable rejection that
+consumes the identity; `preparation_failed` is failure after acceptance. Neither
+is inferred from an HTTP error, message or missing record. `preparing` is not a
+Run admission. `SubmissionNotSent` reports a local failure before dispatch and
+has no Owner outcome; a lost response is `SubmissionUnknown`.
+
+`explainSubmission` and `formatSubmission` use those admitted branches for
+both submission results and `lookupSubmission` results. They distinguish
+durable `not_accepted`, accepted `preparation_failed`, accepted `preparing`,
+and a validated Run reference. Only the two terminal preparation branches
+include their disclosed typed problem. An `unresolvable` lookup establishes
+neither nonacceptance nor permission to submit again. A failed exchange or
+uninterpretable lookup retains the exact original epoch/nonce and a passive
+lookup candidate without acquiring rejected response fields or borrowed causes.
+Known unsent attempts describe dispatch only, not the identity's Owner outcome.
+These immutable weak associations exist only on the original SDK result or
+error; copying or parsing it does not acquire explanatory custody. Formatting
+and localization perform no I/O and cannot change the acceptance phase.
 
 `check`, `start` and `startSource` share numeric-preserving JSON request serialization.
 NaN, infinities and negative zero are refused, including nested parameters,
@@ -206,14 +287,16 @@ uses `InvalidClientPayload`; check retains `InvalidCheckRequest`. Neither is
 import {getSubmissionInput} from '@actql/sdk';
 
 try {
-  const execution = await client.start(program, {requestId, parameters});
+  const submissionRef = client.newSubmission({nonce: 'original-operation'});
+  // Retain this reference with the original application input for restart.
+  const execution = await client.start(program, {submissionRef, parameters});
   const submitted = getSubmissionInput(execution);
   // Compare the accepted handle with this call's original input.
 } catch (error) {
   if (error.code !== 'SubmissionUnknown') throw error;
   const submitted = getSubmissionInput(error);
   // Inspect the original request; do not submit the edited Program again.
-  const lookup = await client.lookupRequest(submitted.requestId);
+  const lookup = await client.lookupSubmission(submitted.submissionRef);
 }
 ```
 
@@ -222,19 +305,30 @@ SDK result. The validated submit branch fixes its observation independently of
 error `code`, message, severity or HTTP status: `acceptance_unknown` for a lost,
 malformed or foreign reply; `run_reference_received` for a validated Run
 reference; and `request_held` for a validated held response. The first says that
-work may already have started and names the original `lookupRequest` target and
+work may already have started and names the original `lookupSubmission` target and
 connection scope. A returned Run reference instead names its read-only `status`
 inspection. A held response names request lookup and does not promise a current
 preparation or execution state. These are presentation facts from this call,
 not a new server acceptance contract or an execution/publication/release proof.
 
+For admitted `not_accepted` or `preparation_failed` outcomes with
+`ClientProgramAnalysisLimit` and the `implementation_limit` classification,
+`preparationIssue` explains the existing checker analysis-budget fact. This
+fact does not establish invalid input, successful checking or execution.
+Inspect a check report for outstanding obligations and keep the original
+submission reference. A changed input requires a distinct submission identity;
+the explanation never retries. Source-dependent budget facts are projected
+from the existing audience-filtered public check and rechecked against the
+retained original intent during authorized lookup. Raw private Source limits
+remain generic when no public budget fact can be admitted.
+
 ```js
 import {explainSubmission} from '@actql/sdk';
 
 const explanation = explainSubmission(result);
-if (explanation?.next.operation === 'lookupRequest') {
+if (explanation?.next.operation === 'lookupSubmission') {
   // Use the original Client and its current authorization for this lookup.
-  const observation = await client.lookupRequest(explanation.next.requestId);
+  const observation = await client.lookupSubmission(explanation.next.submissionRef);
   // A missing record does not prove nonacceptance or permit resubmission.
 }
 ```
@@ -285,13 +379,16 @@ import {explainEffectUncertainty} from '@actql/sdk';
 const state = await execution.status();
 const explanation = explainEffectUncertainty(state);
 // Display the unresolved Effects and physical stop separately. Any explicit
-// follow-up status request must use the original Client and current authority.
+// reconciliation must use the original Client and current authority.
 ```
 
-The helper performs no transport or write, and its only advice is to observe
-the original Run's current status. It does not promise that the Host offers
-reconciliation, authorize resubmission, infer rollback or assert resource
-release. The immutable explanation preserves what this response reported;
+The helper performs no transport or write. Its `next` candidate is the existing
+`Execution.reconcile()` operation on the original Run. The Host checks current
+authority and original Effect custody when explicitly called. Inconclusive
+evidence leaves the Effect outcome unknown. This candidate does not guarantee
+that reconciliation will resolve the outcome, authorize resubmission, infer
+rollback or assert resource release. The immutable explanation preserves what
+this response reported;
 later observations do not rewrite it. Copied/deserialized states, malformed
 responses, other Run-state branches and user-created errors have no association
 and return `undefined`. This weak association adds no Host storage, execution
@@ -441,7 +538,7 @@ attempt without cancelling its Run; `all()` never returns a truncated result.
 The reader decodes a received transport chunk in slices no larger than 8 KiB
 or the selected row wire limit, whichever is smaller.
 
-## Held requests and Checkpoints
+## Historical held requests and Run Checkpoints
 
 `client.recoverRequest(observationOrTarget)` creates a lookup-only recovery
 handle. It performs no I/O, submission, approval or resumption. It accepts an
@@ -488,10 +585,21 @@ another root with the same request ID is a different scope. Older
 principal-only lookup contexts are refused, not reinterpreted. No state path,
 input, credential or private review is added to the saved target.
 
-A Host may hold a request before any Run exists. For example, its account
+The initial epoch-bound standard Host path does not create pre-Run approval
+waits. Delegated preparation or Source-read authorization without an immediate
+permit is refused before sealing evidence or creating a Checkpoint. After
+intent acceptance this is a durable preparation failure. Model and Effect
+approval on an admitted Run continue through the existing Run owners.
+
+The following bare-request operations observe historical pre-Run holds in their
+original identity domain; they do not select a legacy submission path. Run
+cancellation uses `execution.cancel()` and the immutable cancellation reference
+returned by that operation.
+
+An earlier Host may have held a request before any Run existed. For example, its account
 configuration can delegate Run acceptance on a protected Site, and the Host
-defers the decision to a durable Checkpoint. `startSource()` and `start()` then
-reject with `RequestHeld`. That is a control result, not a failure and not an
+defers the decision to a durable Checkpoint. Its original `aql()` or `start()` call
+rejected with `RequestHeld`. That is a control result, not a failure and not an
 unknown submission. The request is stored durably, so it never needs to be
 submitted again. `error.held` carries the `prepareAttemptId` and the
 Checkpoint reference, and never a RunRef. Follow the request with
@@ -537,17 +645,14 @@ listing, reading the review body and answering are separate permissions.
 ```js
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {connect, RequestHeld} from '@actql/node';
+import {connect} from '@actql/node';
 
 const endpoint = 'https://remote-host.example/';
 const owner = await connect({mode: 'remote', endpoint, token: ownerToken});
 let execution;
-try {
-  execution = await owner.startSource(documentText, {format: 'json',
-    requestId: 'nightly-1'});
-} catch (error) {
-  if (!(error instanceof RequestHeld)) throw error;
-}
+// This ID belongs to a saved historical held request, not a new submission.
+const original = await owner.lookupRequest('nightly-1');
+if (original.kind !== 'held') throw new Error('HistoricalRequestNotHeld');
 
 // Later, from any process: review and answer.
 const reviewer = await connect({mode: 'remote', endpoint,
@@ -758,7 +863,9 @@ reason's numeric spelling failure. `explainCheckReason` supplies safe summaries
 and advisory correction hints; messages do not determine verdicts. Only existing
 authored origins supply reference, call or numeric ranges. Missing/generated
 origins and protected Source resolution acquire no fabricated span or name.
-Unaliased-column failures lacking a typed expression diagnostic remain generic.
+The existing lowerer's `UnknownColumn` also supplies `unknown_reference` facts,
+including bare column selections. It currently has no retained authored origin,
+so its location is omitted; adding an alias may expose an existing exact origin.
 The SDK uses the same submitted snapshot for syntax and expression ranges.
 `resolveCheckTextRange(outcome, location, currentInput?)` additionally returns
 zero-based `range.start`/`range.end` line and character coordinates with
@@ -1353,9 +1460,24 @@ are omitted from the protocol error. Explanation/locale edits confer no write
 retry, cancellation, Compute restart or reconciliation authority. Status lookup
 continues to enforce current Host authorization; the retained reference grants
 no access. Copies, serialized or forged errors have no explanation custody.
-Credential and transport refusals retain their existing separate behavior and
-are not labelled as received malformed state observations. No automatic lookup
-or additional operation is performed by presentation.
+Failure to obtain an observation, including credential, transport or closed-Client
+refusal, retains `unavailable/observation_unavailable` separately from received
+malformed facts. The error preserves only public Client code/status metadata;
+borrowed messages, nested causes and provider details are discarded. Unreadable
+error metadata retains only generic `ClientTransportUnknown`, without its cause.
+A fresh error owns each call's original target even if the transport reuses an
+exception.
+The same explanation and formatter accept the original `QueryObservationUnknown`
+error from `client.sql` or `client.aql`. That wrapper inherits only the existing
+SDK-owned observation explanation. `getSubmissionInput(error)` also retrieves
+the immutable submitted input for an admitted short-query failure, including
+valid unsuccessful or blocked Run states. Such states retain their validated
+observation and have no failed-observation explanation. Copies retain neither
+association. Formatting, repeated awaits and query collection after rejection
+do not submit, observe or read again.
+No dispatch, acceptance, Run outcome or current access is certified by this
+classification. No automatic lookup or additional operation is performed by
+presentation.
 
 This SDK weak association lasts only while its original error remains reachable;
 there is no timed retention guarantee or new Host persistence/retrieval API.
@@ -1426,3 +1548,11 @@ for that same attempt through `explainDeliveryAttempt(error)` and
 complete; `lookup_uninterpretable` means no response facts were admitted. Neither
 establishes whether the read opened or delivered, permits another opening, or
 changes the Run. Explicit lookup still checks current Host authorization.
+
+`formatRunObservationFailure(error, {format: 'text' | 'html' | 'json', locale, maxBytes})`
+renders only the original SDK error's retained classification and read-only Run
+lookup candidate. Unavailable, unknown-state and malformed/mismatched observations
+remain distinct. It performs no status lookup, resend, cancellation or execution.
+Copies have no formatting custody. The existing operation display byte budget,
+escaping and independent translation revision apply; insufficient budget returns
+`undefined` rather than truncated facts. English is the default.

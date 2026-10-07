@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
@@ -5,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog} from './actions.mjs';
-import {actionInputs, hash, sharedFiles, mutationSnapshotExtras} from './inputs.mjs';
+import {actionInputs, hash, sharedFiles, mutationSnapshotExtras, pipelineInventoryBoundary} from './inputs.mjs';
 import {sealReceipt, canonicalReceipt} from './receipts.mjs';
 import {leanRecords, applicationVersion} from './applications.mjs';
 import {leanInput} from './check.mjs';
@@ -30,6 +31,7 @@ function fixture(event = 'push', fullCatalog = false) {
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => [`src/${path}/moon.pkg`, '']),
     ['src/example/moon.pkg', ''], ['src/example/value.mbt', 'numeric deterministic fixture'],
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(name => [`proofs/bounded-session/${name}`, name])]);
+  files.set(pipelineInventoryBoundary.path, readFileSync(new URL('../relation-pipeline/inventory.mjs', import.meta.url), 'utf8'));
   for (const name of ['check.mjs', 'Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'])
     files.set(`proofs/events-bridge/${name}`, name);
   for (const action of catalog.actions) if (action.package) files.set(`${action.package}/moon.pkg`, '');

@@ -2,10 +2,18 @@
 import {getCheckPresentationInfo} from './check-presentation.mjs';
 
 const summaries = Object.freeze({
+  'observation.observation_unavailable': 'Runの観測を完了できませんでした。この失敗は実行・Effect・公開・解放の結果を確定しません。',
   'observation.unknown_state': 'このSDKではRun応答の状態を解釈できません。',
   'observation.contract_mismatch': 'Run応答がこのSDKの登録済み状態契約と一致しません。',
   'observation.malformed_response': 'Run応答が登録済み状態契約に違反しています。',
   'submission.acceptance_unknown': '送信の受理を確認できません。処理は既に始まっている可能性があります。',
+  'submission.not_accepted': 'Hostは受理前の拒否を耐久記録しました。このidentityは消費済みで、Run参照は返されていません。',
+  'submission.preparation_failed': 'Hostは提出を受理した後、準備に失敗しました。Run参照は返されておらず、受理前の拒否ではありません。',
+  'submission.preparing': 'Hostは提出を受理し、準備はまだ完了していません。Run参照は返されていません。',
+  'submission.history_unresolvable': 'Hostは元の提出結果を確定できません。処理は既に始まっている可能性があります。',
+  'submission.lookup_unavailable': '提出の照会を完了できませんでした。受理・実行は未確定です。',
+  'submission.lookup_uninterpretable': 'このSDKでは提出の照会応答を解釈できません。受理・実行は未確定です。',
+  'submission.not_sent': 'このSDKは今回の提出を送信していません。これはOwnerによる拒否ではなく、元のidentityの結果も確定しません。',
   'request.lookup_unresolved': 'この照会だけでは送信が受理されたか判断できません。',
   'request.lookup_uninterpretable': 'このSDKでは要求の照会応答を解釈できません。受理・実行は未確定です。',
   'request.lookup_unavailable': 'Hostから要求の照会結果を取得できませんでした。受理は未確定です。',
@@ -37,7 +45,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.6`});
+  return Object.freeze({locale, translationRevision: `2026-10-08.operations.${locale}.9`});
 }
 
 export function localizeOperation(explanation, domain, options) {
@@ -50,6 +58,9 @@ export function localizeOperation(explanation, domain, options) {
   let summary, hint;
   if (domain === 'request' || domain === 'submission' && explanation.observation === 'request_held') {
     hint = '元の要求参照を保持し、認可された照会を使ってください。この観測は再送信・実行・Checkpointへの回答・資源解放を許可しません。';
+  }
+  if (domain === 'submission' && explanation.hint !== undefined && explanation.observation !== 'request_held') {
+    hint = '元の提出参照を保持し、認可された照会を使ってください。この観測は再送信・実行・資源解放を許可しません。';
   }
   if (domain === 'requestCancellation') hint = '元の要求参照を保持し、現在の認可で要求または示されたRunを確認してください。この観測は再送信・資源解放・外部Effectの再実行を許可しません。';
   if (domain === 'delivery') hint = '元の読み取り参照を保持してください。この観測はアプリケーションでの受領・保存を確認せず、再読取やComputeの再実行も許可しません。';

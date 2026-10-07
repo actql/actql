@@ -95,6 +95,42 @@ test "STRUCT UNNEST stars match an independent nullable property Program" {
 }
 
 ///|
+test "UNNEST computed closed object scope uses the common conditional contract" {
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","params":{"items":{"type":"array","nullable":true,"max_items":3,"items":{"type":"object","nullable":true,"fields":{"id":{"type":"number","nullable":false},"label":{"type":"string","nullable":true}}}}},"stages":[{"id":"main","inputs":{},"steps":[{"as":"aql_source_free","values":{"schema":{"aql_source_free_unit":{"type":"boolean","nullable":false}},"rows":[{"aql_source_free_unit":true}]}},{"from":"aql_source_free","derive":{"aql_unnest_array_3":{"if":[{"literal":true},{"$param":"items"},{"$param":"items"}]}}},{"unnest":{"column":"aql_unnest_array_3","as":"aql_unnest_element_4","with_index":"aql_unnest_offset_5"}},{"derive":{"aql_unnest_field_6":{"property":{"value":{"field":"aql_unnest_element_4"},"name":"id"}},"aql_unnest_field_7":{"property":{"value":{"field":"aql_unnest_element_4"},"name":"label"}}}},{"sort":[{"field":"aql_unnest_offset_5","dir":"asc","nulls":"first"}]},{"select":[{"id":"aql_unnest_field_6"},{"label":"aql_unnest_field_7"},{"position":"aql_unnest_offset_5"}],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id","label","position"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  for
+    values in [
+      "[]", "null", "[{\"id\":2,\"label\":null},null,{\"id\":2,\"label\":null}]",
+    ] {
+    assert_true(
+      @check.check_parsed(
+        expected,
+        check_environment(),
+        Some(unnest_value_cursor("{\"items\":" + values + "}")),
+        check_limits(),
+      )
+      is Checked(_),
+    )
+  }
+  for
+    text in [
+      "SELECT * FROM UNNEST(IF(TRUE, @items, @items)) element WITH OFFSET position ORDER BY position",
+      "FROM UNNEST(IF(TRUE, @items, @items)) element WITH OFFSET position |> SELECT element.*, position |> ORDER BY position",
+    ] {
+    assert_eq(
+      semantic(unnest_struct_compile(text)),
+      semantic(expected),
+      msg=text,
+    )
+  }
+}
+
+///|
 test "STRUCT value-table receiver stays private and ends at AS or SELECT" {
   for
     text in [

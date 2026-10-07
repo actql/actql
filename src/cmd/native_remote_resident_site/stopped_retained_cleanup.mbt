@@ -6,12 +6,52 @@ fn recover_retained_input_command(
   matches : @argparse.Matches,
   child : @argparse.Matches,
   source_output? : Bool = false,
+  cancelled_receiver? : Bool = false,
 ) -> Unit raise CommandStop {
   // Resolve configuration before acquiring any physical owner.
   let producer_attempt = required(child, "producer-attempt")
   let consumer_attempt = required(child, "consumer-attempt")
   let expected_producer = required(child, "expect-producer-dispatch")
   let expected_consumer = required(child, "expect-consumer-dispatch")
+  // Explicit maintenance admission uses the original issued bytes. A missing
+  // consumer envelope is never a fallback from the completed-borrow operation.
+  let cancelled_materials = if cancelled_receiver {
+    let recovery_root = required(child, "recovery-materials-root")
+    let consumer = match
+      @remote.admit_dispatch_request_json(
+        load_text(recovery_root, "consumer-request.json", 1048576L),
+        expected_consumer,
+      ) {
+      Ok(value) => value
+      Err(_) => stop("cancelled receiver original consumer invalid")
+    }
+    let transfer = match
+      @remote.admit_remote_poll_retained_input_transfer_json(
+        load_text(recovery_root, "retained-transfer.json", 1048576L),
+      ) {
+      Ok(value) => value
+      Err(_) => stop("cancelled receiver original plan invalid")
+    }
+    let producer = @remote.remote_retained_input_intent_request(
+      @remote.remote_poll_retained_transfer_intent(transfer),
+    )
+    if @remote.dispatch_request_attempt_identity(consumer) !=
+      Ok(consumer_attempt) ||
+      @remote.dispatch_request_attempt_identity(producer) !=
+      Ok(producer_attempt) ||
+      @remote.dispatch_request_identity(producer) != expected_producer {
+      stop("cancelled receiver original identity mismatch")
+    }
+    Some(
+      (
+        consumer,
+        transfer,
+        load_recorded_publication(required(child, "publication-custody-root")),
+      ),
+    )
+  } else {
+    None
+  }
   let root_path = required(matches, "retained-input-root")
   let transfer_path = required(matches, "transfer-journal")
   let delegated = delegation(matches, budget(matches))
@@ -52,6 +92,11 @@ fn recover_retained_input_command(
         (producer_attempt, expected_producer),
         (consumer_attempt, expected_consumer),
       ] {
+      if cancelled_receiver && attempt == consumer_attempt {
+        // The exact persisted cancellation record is checked by the Native
+        // Owner below. No dispatch envelope is created for an undelivered task.
+        continue
+      }
       let envelope = match owner.journal.dispatch_envelope(attempt) {
         Ok(Some(value)) => value
         _ => stop("retained cleanup saved dispatch unavailable")
@@ -97,7 +142,35 @@ fn recover_retained_input_command(
       max_manifest_bytes: 1048576,
       max_referenced_bytes: environment.max_bytes,
     }
-    if source_output {
+    if cancelled_materials is Some((consumer, transfer, recorded)) {
+      let cleanup = @resident_host.prepare_resident_saved_cancelled_receiver_cleanup(
+        owner.journal,
+        run_admission(matches),
+        recorded,
+        site,
+        delegated,
+        consumer,
+        @remote.remote_poll_retained_transfer_intent(transfer),
+        @remote.remote_poll_retained_transfer_plan(transfer),
+        journal,
+        root,
+        limits,
+        current,
+      )
+      match cleanup {
+        Ok(retry) =>
+          match retry() {
+            Ok(_) => None
+            Err(_) => Some("cancelled receiver cleanup retry pending")
+          }
+        Err(NotCurrent) =>
+          Some("cancelled receiver current custody unconfirmed")
+        Err(Host(_)) => Some("cancelled receiver original Run unconfirmed")
+        Err(Binding(_)) => Some("cancelled receiver original binding refused")
+        Err(Transfer(_)) => Some("cancelled receiver reclamation pending")
+        Err(Journal(_)) => Some("cancelled receiver durable custody pending")
+      }
+    } else if source_output {
       match
         @resident_host.reclaim_stopped_resident_source_output(
           owner.journal,
@@ -176,7 +249,9 @@ fn recover_retained_input_command(
     stop("retained cleanup owner close unconfirmed")
   }
   report(
-    if source_output {
+    if cancelled_receiver {
+      "cancelled-receiver-recovery-reclaimed"
+    } else if source_output {
       "source-output-recovery-reclaimed"
     } else {
       "retained-input-recovery-reclaimed"

@@ -9,10 +9,19 @@ if (explanation?.observation === 'run_reference_received') {
   // @ts-expect-error A Run observation does not manufacture a submission lookup ID.
   explanation.next.requestId;
 } else if (explanation) {
-  const operation: 'lookupRequest' = explanation.next.operation;
-  const requestId: string = explanation.next.requestId;
+  const operation: 'lookupRequest' | 'lookupSubmission' = explanation.next.operation;
+  if (explanation.next.operation === 'lookupRequest') {
+    const requestId: string = explanation.next.requestId;
+    void requestId;
+  } else {
+    const nonce: string = explanation.next.submissionRef.nonce;
+    const authenticator: string = explanation.next.submissionRef.epoch.authenticator;
+    void nonce; void authenticator;
+    // @ts-expect-error The original epoch is immutable.
+    explanation.next.submissionRef.epoch.notBefore = 0;
+  }
   const scopeRef: string = explanation.next.lookupContext.scopeRef;
-  void operation; void requestId; void scopeRef;
+  void operation; void scopeRef;
   // @ts-expect-error An uncertain submission has no fabricated Run reference.
   explanation.next.ref;
   // @ts-expect-error The lookup target cannot be replaced with a newer request.
@@ -20,3 +29,10 @@ if (explanation?.observation === 'run_reference_received') {
 }
 // @ts-expect-error A presentation result does not expose supplied secret values.
 explanation?.parameters;
+
+if (explanation?.observation === 'not_accepted' || explanation?.observation === 'preparation_failed') {
+  const issue: 'analysis_budget_exhausted' | undefined = explanation.preparationIssue?.kind;
+  void issue;
+  // @ts-expect-error Preparation guidance is immutable.
+  if (explanation.preparationIssue) explanation.preparationIssue.hint = 'retry';
+}

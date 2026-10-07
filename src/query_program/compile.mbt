@@ -379,6 +379,14 @@ fn same_expression(
           pending.push((ax[i], ay[i]))
         }
       }
+      (ArrayConstructor(ax, tx), ArrayConstructor(ay, ty)) => {
+        if tx != ty || ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          pending.push((ax[i], ay[i]))
+        }
+      }
       (Unary(x, child_a), Unary(y, child_b)) => {
         if x != y {
           return false
@@ -1617,6 +1625,7 @@ fn compile_steps(
   input : Input,
   fields : Array[String],
   max_work : Int,
+  source_limits : @builder.Limits,
   max_collection_items : Int64,
   max_collection_bytes : Int64,
   start_at : Int,
@@ -1637,6 +1646,7 @@ fn compile_steps(
   let mut grouped = false
   let mut sql_group_projection = false
   let mut sql_group_select_scope : JoinChainScope? = None
+  let mut sql_group_expression_input_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
   let mut sql_group_input_ranges : Array[
     (@query.NamePart, Array[(String, String)]),
@@ -1679,7 +1689,7 @@ fn compile_steps(
   // recover its ranges through the initial query resolver.
   let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
-  let mut value_table_receiver : (@query.NamePart, String)? = None
+  let mut value_table_receivers : Array[(@query.NamePart, String)] = []
   let mut distinct_order_scope = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -1716,7 +1726,7 @@ fn compile_steps(
       pipe_selected = false
       distinct_order_scope = false
       pipe_ranges = []
-      value_table_receiver = None
+      value_table_receivers = []
       sql_group_projection = false
     }
     let entries : Array[(String, @builder.Node)] = []
@@ -1728,23 +1738,43 @@ fn compile_steps(
     }
     match operation {
       UnnestSource(expression, element, offset) => {
-        // No original Source or private Values witness belongs to this scope.
-        if i != 0 || !@query.relation(query).is_empty() {
-          raise Abort(UnsupportedProjection)
+        let correlated = i != 0 || !@query.relation(query).is_empty()
+        if correlated && pipe_ranges.any(range => same_name(range.0, element)) {
+          raise Abort(AmbiguousColumn)
         }
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        let element_contract = unnest_parameter_element(
-          expression, parameter_declarations,
+        let element_contract = unnest_source_element(
+          expression, parameter_declarations, source_limits, max_work,
         )
         if selected_projections(query).any(projection => {
-            projection.star is Some(_)
+            if projection.star is None {
+              false
+            } else {
+              match projection.expression {
+                None => true
+                Some(receiver) =>
+                  match
+                    @query.expression_node(
+                      receiver,
+                      @query.expression_root(receiver),
+                    ) {
+                    Some({ kind: Reference(path), .. }) =>
+                      !path.is_empty() && same_name(path[0], element)
+                    _ => false
+                  }
+              }
+            }
           }) &&
           element_contract is None {
           raise Abort(UnsupportedProjection)
         }
-        let physical = ["aql_source_free_unit", element.value]
+        let physical = if correlated {
+          active_fields.copy() + [element.value]
+        } else {
+          ["aql_source_free_unit", element.value]
+        }
         if offset is Some(name) {
           physical.push(name.value)
         }
@@ -1755,8 +1785,16 @@ fn compile_steps(
         let derived = append_pipe_expression(
           construction,
           expression,
-          [],
-          [],
+          if correlated {
+            unnest_expression_columns(pipe_visible, value_table_receivers)
+          } else {
+            []
+          },
+          if correlated {
+            pipe_ranges
+          } else {
+            []
+          },
           max_work,
         )
         entries.push(("derive", construction.object([(column, derived)])))
@@ -1775,9 +1813,13 @@ fn compile_steps(
           None
         }
         entries.push(("unnest", construction.object(arguments)))
-        pipe_visible = []
-        pipe_ranges = []
-        active_fields = [column, element_slot]
+        if !correlated {
+          // The source-free witness is private, not a parent Relation.
+          pipe_visible = []
+          pipe_ranges = []
+          active_fields = []
+        }
+        active_fields.append([column, element_slot])
         if index_slot is Some(slot) {
           active_fields.push(slot)
         }
@@ -1813,10 +1855,16 @@ fn compile_steps(
           if !properties.is_empty() {
             entries.push(("derive", construction.object(properties)))
           }
-          pipe_ranges = [(element, pipe_visible.copy())]
-          value_table_receiver = Some((element, element_slot))
+          let element_fields = properties.map(pair => pair.0)
+          pipe_ranges.push(
+            (
+              element,
+              pipe_visible.filter(pair => element_fields.contains(pair.1)),
+            ),
+          )
+          value_table_receivers.push((element, element_slot))
         } else {
-          pipe_visible = [(element.value, element_slot)]
+          pipe_visible.push((element.value, element_slot))
         }
         if offset is Some(name) && index_slot is Some(slot) {
           pipe_visible.push((name.value, slot))
@@ -1946,7 +1994,7 @@ fn compile_steps(
         entries.clear()
         active_fields = fields.copy()
         output = fields
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
         pipe_ranges = []
         pipe_rebound = true
@@ -1973,7 +2021,7 @@ fn compile_steps(
         entries.clear()
         active_fields = fields.copy()
         output = fields
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_visible = active_fields.map(field => (field, field))
         pipe_ranges = []
         pipe_rebound = true
@@ -1989,7 +2037,7 @@ fn compile_steps(
             append_pipe_expression(
               construction,
               predicate,
-              unnest_expression_columns(pipe_visible, value_table_receiver),
+              unnest_expression_columns(pipe_visible, value_table_receivers),
               pipe_ranges,
               max_work,
             ),
@@ -2021,7 +2069,7 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 projection.expression.unwrap(),
-                unnest_expression_columns(snapshot, value_table_receiver),
+                unnest_expression_columns(snapshot, value_table_receivers),
                 pipe_ranges,
                 max_work,
               ),
@@ -2086,7 +2134,7 @@ fn compile_steps(
               append_pipe_expression(
                 construction,
                 assignment.1,
-                unnest_expression_columns(snapshot, value_table_receiver),
+                unnest_expression_columns(snapshot, value_table_receivers),
                 pipe_ranges,
                 max_work,
               ),
@@ -2166,7 +2214,7 @@ fn compile_steps(
         // Pipe AS replaces every preceding range variable with the current
         // visible row. Reusing the same name binds its current value slots.
         pipe_ranges = [(name, pipe_visible.copy())]
-        value_table_receiver = None
+        value_table_receivers = []
         pipe_rebound = true
         pipe_changed = true
         deferred = true
@@ -2175,6 +2223,7 @@ fn compile_steps(
         let scoped = pipe_changed || pipe_rebound
         let input_visible = pipe_visible.copy()
         let input_ranges = pipe_ranges.copy()
+        let input_fields = active_fields.copy()
         let projections = expanded_replacement_projections(
           query, projections, input_visible, input_ranges, max_work,
         )
@@ -2182,6 +2231,10 @@ fn compile_steps(
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
+          sql_group_expression_input_scope = Some({
+            visible: unnest_expression_columns(input_visible, value_table_receivers),
+            ranges: input_ranges.copy(),
+          })
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
           sql_group_selected_projections = expanded_replacement_projections(
@@ -2273,6 +2326,14 @@ fn compile_steps(
         let hidden_order_derives : Array[(String, @builder.Node)] = []
         let key_names : Array[String] = []
         let key_display_names : Array[String] = []
+        let key_aliases = match grouping_scope {
+          SqlSelect => []
+          PipeAggregate(names, _) => names
+        }
+        let pipe_embedded = match grouping_scope {
+          SqlSelect => []
+          PipeAggregate(_, names) => names
+        }
         let by : Array[@builder.Node] = []
         for index in 0..<keys.length() {
           let expression = match
@@ -2304,7 +2365,7 @@ fn compile_steps(
               if scoped {
                 pipe_slot(
                   path,
-                  unnest_expression_columns(pipe_visible, value_table_receiver),
+                  unnest_expression_columns(pipe_visible, value_table_receivers),
                   pipe_ranges,
                 )
               } else {
@@ -2341,9 +2402,14 @@ fn compile_steps(
           }
           key_names.push(name)
           key_display_names.push(
-            match root.kind {
-              Reference(path) => path.last().unwrap().value
-              _ => name
+            match key_aliases.get(index).bind(value => value) {
+              Some(output_name) => output_name.value
+              None =>
+                match root.kind {
+                  Reference(path) => path.last().unwrap().value
+                  Property(_, name) => name.value
+                  _ => name
+                }
             },
           )
           by.push(construction.text(name))
@@ -2357,7 +2423,7 @@ fn compile_steps(
             if scoped {
               pipe_slot(
                 path,
-                unnest_expression_columns(input_visible, value_table_receiver),
+                unnest_expression_columns(input_visible, value_table_receivers),
                 input_ranges,
               )
             } else {
@@ -2422,15 +2488,17 @@ fn compile_steps(
           selected_projections(query)
         }
         let select_calls : Array[(@query.AggregateCall, String)] = []
+        let pipe_embedded_slots : Array[(String, String)] = []
+        let pipe_output_slots : Array[(String, String)] = []
         let resolve_input = path => {
           if scoped {
             pipe_slot(
               path,
-              unnest_expression_columns(input_visible, value_table_receiver),
+              unnest_expression_columns(input_visible, value_table_receivers),
               input_ranges,
             )
           } else {
-            resolve_column(path, query, input, active_fields)
+            resolve_column(path, query, input, input_fields)
           }
         }
         for projection in projections {
@@ -2442,10 +2510,13 @@ fn compile_steps(
           match projection.aggregate {
             Some(call) => {
               let name = projection.name.unwrap().value
-              let embedded = sql_group_projection &&
-                !selected.any(item => {
-                  item.aggregate is Some(_) && item.name == projection.name
-                })
+              let embedded = pipe_embedded.contains(projection.name.unwrap()) ||
+                (
+                  sql_group_projection &&
+                  !selected.any(item => {
+                    item.aggregate is Some(_) && item.name == projection.name
+                  })
+                )
               let mut reused : String? = None
               if embedded {
                 for (previous, slot) in select_calls {
@@ -2460,13 +2531,15 @@ fn compile_steps(
               let slot = match reused {
                 Some(slot) => slot
                 None => {
-                  let output_name = if embedded &&
+                  let output_name = if (
+                      embedded && active_fields.contains(name)
+                    ) ||
                     (
-                      active_fields.contains(name) ||
+                      (embedded || !sql_group_projection) &&
                       result_fields.contains(name)
                     ) {
                     pipe_physical_name(
-                      active_fields + result_fields,
+                      order_reserved + result_fields,
                       "aql_select_aggregate_",
                     )
                   } else {
@@ -2513,7 +2586,7 @@ fn compile_steps(
                   output_name
                 }
               }
-              if embedded {
+              if embedded && sql_group_projection {
                 // Only parser-owned embedded calls enter SELECT's scalar
                 // scope. An authored sibling alias still cannot be read here.
                 let scope = sql_group_select_scope.unwrap()
@@ -2527,6 +2600,11 @@ fn compile_steps(
                   }) +
                   [(name, slot)],
                 })
+              } else if embedded {
+                pipe_embedded_slots.push((name, slot))
+              }
+              if !sql_group_projection && !embedded {
+                pipe_output_slots.push((name, slot))
               }
             }
             None => ()
@@ -2537,7 +2615,7 @@ fn compile_steps(
             if scoped {
               pipe_slot(
                 path,
-                unnest_expression_columns(input_visible, value_table_receiver),
+                unnest_expression_columns(input_visible, value_table_receivers),
                 input_ranges,
               )
             } else {
@@ -2769,17 +2847,72 @@ fn compile_steps(
               },
             )
           }
-          for entry in aggregates {
-            if names.any(previous => {
-                ascii_upper(previous) == ascii_upper(entry.0)
-              }) {
+          // Scalar aggregate expressions read retained input keys and private
+          // aggregate slots. Published sibling aliases are not input bindings.
+          let scalar_visible = input_visible.filter(entry => {
+              key_names.contains(entry.1)
+            }) +
+            pipe_embedded_slots
+          let scalar_ranges = input_ranges.map(range => {
+            (range.0, range.1.filter(entry => key_names.contains(entry.1)))
+          })
+          let scalar_derives : Array[(String, @builder.Node)] = []
+          for projection in projections {
+            if pipe_embedded.contains(projection.name.unwrap()) {
+              continue
+            }
+            let name = projection.name.unwrap().value
+            if names.any(previous => ascii_upper(previous) == ascii_upper(name)) {
               raise Abort(DuplicateOutput)
             }
-            names.push(entry.0)
-            selected.push(construction.text(entry.0))
+            let slot = if projection.aggregate is Some(_) {
+              let mut result : String? = None
+              for entry in pipe_output_slots {
+                if entry.0 == name {
+                  result = Some(entry.1)
+                  break
+                }
+              }
+              result.unwrap()
+            } else {
+              let mut suffix = scalar_derives.length()
+              let mut slot = "aql_pipe_aggregate_" + suffix.to_string()
+              while active_fields.contains(slot) ||
+                    names.contains(slot) ||
+                    scalar_derives.any(entry => entry.0 == slot) {
+                suffix += 1
+                slot = "aql_pipe_aggregate_" + suffix.to_string()
+              }
+              let expression = projection.expression.unwrap()
+              scalar_derives.push(
+                (
+                  slot,
+                  append_grouped_expression(
+                    construction, expression, grouped_keys, resolve_input,
+                    scalar_visible, scalar_ranges, max_work,
+                  ),
+                ),
+              )
+              slot
+            }
+            names.push(name)
+            selected.push(
+              if name == slot {
+                construction.text(slot)
+              } else {
+                construction.object([(name, construction.text(slot))])
+              },
+            )
+          }
+          if !scalar_derives.is_empty() {
+            step_entries.push(entries.copy())
+            entries.clear()
+            step_entries.push([("derive", construction.object(scalar_derives))])
           }
           if names != active_fields {
-            step_entries.push(entries.copy())
+            if !entries.is_empty() {
+              step_entries.push(entries.copy())
+            }
             entries.clear()
             entries.push(("select", construction.array(selected)))
           }
@@ -2792,7 +2925,7 @@ fn compile_steps(
         } else {
           pipe_visible = result_fields.map(name => (name, name))
         }
-        value_table_receiver = None
+        value_table_receivers = []
         grouped = true
       }
       Having(predicate, _) => {
@@ -2807,7 +2940,7 @@ fn compile_steps(
         let scope = if pipe_changed || pipe_rebound {
           Some({
             visible: unnest_expression_columns(
-              pipe_visible, value_table_receiver,
+              pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
           })
@@ -2869,13 +3002,17 @@ fn compile_steps(
           derives.push(
             (
               slot,
-              append_pipe_expression(
-                construction,
-                expression,
-                input_scope.visible,
-                input_scope.ranges,
-                max_work,
-              ),
+              if sql_group_expression_input_scope is Some(original_scope) {
+                append_grouped_expression(
+                  construction, expression, grouped_keys,
+                  path => pipe_slot(path, original_scope.visible, original_scope.ranges),
+                  input_scope.visible, input_scope.ranges, max_work,
+                )
+              } else {
+                append_pipe_expression(
+                  construction, expression, input_scope.visible, input_scope.ranges, max_work,
+                )
+              },
             ),
           )
           having_values.push((expression, slot))
@@ -3096,7 +3233,7 @@ fn compile_steps(
         let analytic_visible = pipe_visible.copy()
         analytic_input_scope = Some({
           visible: unnest_expression_columns(
-            analytic_visible, value_table_receiver,
+            analytic_visible, value_table_receivers,
           ).copy(),
           ranges: pipe_ranges.copy(),
         })
@@ -3155,7 +3292,7 @@ fn compile_steps(
           if pipe_changed || pipe_rebound {
             pipe_slot(
               path,
-              unnest_expression_columns(analytic_visible, value_table_receiver),
+              unnest_expression_columns(analytic_visible, value_table_receivers),
               pipe_ranges,
             )
           } else {
@@ -3206,9 +3343,23 @@ fn compile_steps(
         } else {
           {
             visible: unnest_expression_columns(
-              pipe_visible, value_table_receiver,
+              pipe_visible, value_table_receivers,
             ),
             ranges: pipe_ranges,
+          }
+        }
+        let lower_select_expression = fn(expression : @query.Expression) -> @builder.Node raise Abort {
+          if sql_group_projection {
+            let input_scope = sql_group_expression_input_scope.unwrap()
+            append_grouped_expression(
+              construction, expression, grouped_keys,
+              path => pipe_slot(path, input_scope.visible, input_scope.ranges),
+              expression_scope.visible, expression_scope.ranges, max_work,
+            )
+          } else {
+            append_pipe_expression(
+              construction, expression, expression_scope.visible, expression_scope.ranges, max_work,
+            )
           }
         }
         let names : Array[String] = []
@@ -3318,13 +3469,7 @@ fn compile_steps(
                         derives.push(
                           (
                             slot,
-                            append_pipe_expression(
-                              construction,
-                              expression,
-                              expression_scope.visible,
-                              expression_scope.ranges,
-                              max_work,
-                            ),
+                            lower_select_expression(expression),
                           ),
                         )
                         slot
@@ -3336,13 +3481,7 @@ fn compile_steps(
                     derives.push(
                       (
                         slot,
-                        append_pipe_expression(
-                          construction,
-                          expression,
-                          expression_scope.visible,
-                          expression_scope.ranges,
-                          max_work,
-                        ),
+                        lower_select_expression(expression),
                       ),
                     )
                     slot
@@ -3397,7 +3536,9 @@ fn compile_steps(
         // Preserve the SELECT input meaning even when projection/DISTINCT
         // materializes a public name that shadows an original input column.
         selected_input_scope = {
-          visible: unnest_expression_columns(pipe_visible, value_table_receiver).copy(),
+          visible: unnest_expression_columns(
+            pipe_visible, value_table_receivers,
+          ).copy(),
           ranges: pipe_ranges.copy(),
         }
         selected_output_slots = bindings.copy()
@@ -3441,7 +3582,9 @@ fn compile_steps(
         )
         selected_input_fields = select_fields.copy()
         let input_scope : JoinChainScope = {
-          visible: unnest_expression_columns(pipe_visible, value_table_receiver).copy(),
+          visible: unnest_expression_columns(
+            pipe_visible, value_table_receivers,
+          ).copy(),
           ranges: pipe_ranges.copy(),
         }
         let projections = if sql_group_projection {
@@ -3571,12 +3714,11 @@ fn compile_steps(
                     temporary,
                     if sql_group_projection {
                       let scope = sql_group_select_scope.unwrap()
-                      append_pipe_expression(
-                        construction,
-                        expression,
-                        scope.visible,
-                        scope.ranges,
-                        max_work,
+                      let input_scope = sql_group_expression_input_scope.unwrap()
+                      append_grouped_expression(
+                        construction, expression, grouped_keys,
+                        path => pipe_slot(path, input_scope.visible, input_scope.ranges),
+                        scope.visible, scope.ranges, max_work,
                       )
                     } else {
                       append_expression(
@@ -3625,7 +3767,7 @@ fn compile_steps(
           // existing projected-scope ORDER path for expressions over those
           // evaluated aliases; removed input columns remain unavailable.
           selected_input_scope = input_scope
-          value_table_receiver = None
+          value_table_receivers = []
           pipe_selected = true
           distinct_order_scope = true
           pipe_ranges = []
@@ -3713,7 +3855,7 @@ fn compile_steps(
           // handled below using the evaluated output slot.
           let current = pipe_slot(
             path,
-            unnest_expression_columns(pipe_visible, value_table_receiver),
+            unnest_expression_columns(pipe_visible, value_table_receivers),
             pipe_ranges,
           ).filter(slot => active_fields.contains(slot))
           if current is Some(_) {
@@ -3989,6 +4131,7 @@ fn compile_steps(
     }
     if operation is Select(_, _) && sql_group_projection {
       sql_group_select_scope = None
+      sql_group_expression_input_scope = None
     }
     if operation is Select(_, _) {
       analytic_input_fields = None
@@ -3996,7 +4139,7 @@ fn compile_steps(
       qualify_values.clear()
       analytic_outputs.clear()
       if pending_select is None {
-        value_table_receiver = None
+        value_table_receivers = []
         // A projected table has its own columns. Input ranges are needed only
         // while the query's deferred ORDER still consumes the input snapshot.
         pipe_ranges = []
@@ -4030,7 +4173,7 @@ fn compile_steps(
         Some(selection) => {
           step_entries.push(selection)
           pending_select = None
-          value_table_receiver = None
+          value_table_receivers = []
           pending_bindings = []
           pipe_ranges = []
           active_fields = output.copy()
@@ -4325,6 +4468,7 @@ pub fn compile(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       start_at,
@@ -4698,6 +4842,7 @@ fn compile_cte_query(
           cte_input,
           body_output,
           limits.max_expression_work,
+          limits.source,
           limits.max_collection_items,
           limits.max_collection_bytes,
           0,
@@ -4936,6 +5081,7 @@ fn compile_cte_stage(
     input,
     fields,
     limits.max_expression_work,
+    limits.source,
     limits.max_collection_items,
     limits.max_collection_bytes,
     body_start,
@@ -5643,6 +5789,7 @@ fn compile_set_stages(
       input,
       fields,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       if common_capture_filter {
@@ -6260,7 +6407,7 @@ fn join_reference_paths(
         pending.push(right)
         pending.push(left)
       }
-      Call(_, args) | Predicate(_, args) => {
+      Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) => {
         let mut next = args.length() - 1
         while next >= 0 {
           pending.push(args[next])
@@ -6616,6 +6763,7 @@ fn join_order_projection(
                 @query.expression_root(expression),
               ).unwrap().kind {
               Reference(path) => path.last().unwrap().value
+              Property(_, name) => name.value
               _ => raise Abort(UnsupportedJoin)
             }
           None => raise Abort(UnsupportedJoin)
@@ -6799,6 +6947,7 @@ fn append_join_order_steps(
       input,
       visible_names,
       limits.max_expression_work,
+      limits.source,
       limits.max_collection_items,
       limits.max_collection_bytes,
       next,

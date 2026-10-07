@@ -110,7 +110,7 @@ test('connection profile cannot be replaced by an unexecuted one', () => {
 });
 
 function fixture() {
-  const nodes = graph([{ ...binding, premises, residual: ['kernel semantics and physical custody'] }], 'native');
+  const nodes = graph([{ ...binding, premises, residual: [...binding.residual] }], 'native');
   const current = { digest: 'current-source', builtArtifacts: { 'native.exe': 'current-binary' } };
   const result = { exit: 0, passed: true, count: 1, target: 'native', sourceDigest: current.digest,
     artifacts: { 'native.exe': 'current-binary' } };
@@ -191,3 +191,68 @@ for (const [name, change, expected] of [
     assert.throws(() => validate(state.nodes, state.report, state.current, 'native'), expected);
   });
 }
+
+
+test('Nest does not acquire an unrelated serial-chain checker dependency', () => {
+  const seen = new Set();
+  const obligations = checkNestObligations(root, {read: path => {
+    seen.add(path);
+    if (path.startsWith('proofs/relation-chain/')) throw new Error('Unrelated chain artifact read');
+    return readFileSync(new URL(path, new URL('../../', import.meta.url)));
+  }});
+  assert.equal(obligations.historicalChainComparison.baseline, obligations.baseline);
+  assert.equal(Object.keys(obligations.historicalChainComparison.artifacts).length, 4);
+  assert(seen.has('proofs/bounded-session/Session.lean'));
+  assert(seen.has('proofs/bounded-session/check.mjs'));
+});
+
+test('Nest still rejects changed or missing inherited Session proof inputs', () => {
+  const real = path => readFileSync(new URL(path, new URL('../../', import.meta.url)));
+  assert.throws(() => checkNestObligations(root, {read: path =>
+    path === 'proofs/bounded-session/Session.lean' ? Buffer.from('changed proof') : real(path),
+  }), /Common proof\/protocol artifact changed/);
+  assert.throws(() => checkNestObligations(root, {read: path => {
+    const bytes = real(path);
+    if (path !== 'proofs/bounded-session/nest-obligations.json') return bytes;
+    const obligations = JSON.parse(bytes);
+    delete obligations.unchangedCommon['proofs/bounded-session/Session.lean'];
+    return Buffer.from(JSON.stringify(obligations));
+  }}), /Missing or unrelated inherited Nest common artifact/);
+});
+
+for (const [label, transform] of [
+  ['unrelated nonempty text', _ => ['no remaining obligations']],
+  ['one declared obligation omitted', values => values.slice(1)],
+  ['all obligations embedded in one string', values => [values.join('; ')]],
+  ['string instead of list', values => values.join('; ')],
+  ['duplicate obligation', values => [...values, values[0]]],
+]) test(`Set and Nest preserve independent residual obligations: ${label}`, () => {
+  for (const b of [binding, nestBinding]) {
+    const changed = transform(b.residual);
+    assert.throws(() => checkBindings(root, [{...b, residual: changed}]), /Missing (Set|Nest)-specific residual/);
+    const e = b.operation === 'nest' ? nestFixture() : fixture();
+    e.nodes.at(-1).residual = changed;
+    assert.throws(() => validate(e.nodes, e.report, e.current, 'native'), /Missing (Set|Nest)-specific residual/);
+  }
+});
+test('every authored Set obligation survives composition and optional additional obligations', () => {
+  for (const operation of ['intersect', 'except']) for (const variant of ['all', 'distinct']) {
+    const b = {...binding, operation, variant};
+    checkBindings(root, [b]);
+    for (const omitted of b.residual) {
+      const remaining = b.residual.filter(value => value !== omitted);
+      assert.throws(() => checkBindings(root, [{...b, residual: remaining}]), /Missing Set-specific residual/);
+      const e = fixture(); e.nodes = graph([{...b, residual: remaining}], 'native');
+      assert.throws(() => validate(e.nodes, e.report, e.current, 'native'), /Missing Set-specific residual/);
+    }
+    const expanded = {...b, residual: [...b.residual].reverse().concat('additional explicitly retained local obligation')};
+    checkBindings(root, [expanded]);
+    const e = fixture(); e.nodes = graph([expanded], 'native');
+    assert.equal(validate(e.nodes, e.report, e.current, 'native').length, 1);
+  }
+});
+test('concatenated premise text cannot satisfy independent common obligations', () => {
+  const e = fixture(); e.nodes.at(-1).premises = premises.join('; ');
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'native'), /Missing premise/);
+  assert.throws(() => checkBindings(root, [{...binding, premises: premises.join('; ')}]), /missing premise/i);
+});

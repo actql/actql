@@ -325,7 +325,7 @@ pub fn[I, T] start_captured_managed_execution(
           }
         }),
         scratch,
-        hooks: Some(@connector.managed_execution_lifecycle(hooks)),
+        hooks: Some(hooks),
         execution_settled: false,
         disposed: false,
         failed_holding: None,

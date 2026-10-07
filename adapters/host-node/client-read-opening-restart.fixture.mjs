@@ -2,7 +2,7 @@
 import {writeFile} from 'node:fs/promises';
 import {openReadOpeningFixture, connectOpeningHost} from './client-read-opening.fixture.mjs';
 
-const {directory, entrance, ref, attemptId, output, requestId, newRead = false} = JSON.parse(process.argv[2]);
+const {directory, entrance, ref, attemptId, output, submissionRef, newRead = false} = JSON.parse(process.argv[2]);
 const fixture = await openReadOpeningFixture(directory);
 const host = await connectOpeningHost(fixture, entrance, directory);
 try {
@@ -12,7 +12,7 @@ try {
   const result = run.result('answer');
   const first = await result.deliveryAttempt(attemptId);
   const second = await result.deliveryAttempt(attemptId);
-  const request = requestId === undefined ? undefined : await host.client.lookupRequest(requestId);
+  const request = submissionRef === undefined ? undefined : await host.client.lookupSubmission(submissionRef);
   const retained = fixture.retainedAdmission(ref);
   const lookupCounts = {...fixture.counts};
   if (newRead) console.log('RESTORED_READ_121_PHASE', 'original-found');
@@ -24,7 +24,7 @@ try {
     readAttempt = await result.deliveryAttempt(reader.attemptId);
     if (reader.state() !== 'complete') throw new Error('RestoredReadIncomplete');
   }
-  await writeFile(output, JSON.stringify({ref: run.ref, status: status.status,
+  await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, status: status.status,
     first, second, request, lookupCounts, rows, readAttempt,
     valuesHostPolicyOriginal: retained?.valuesHostPolicyOriginal,
     counts: fixture.counts}));

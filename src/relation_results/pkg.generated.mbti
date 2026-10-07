@@ -17,6 +17,8 @@ import {
 // Values
 pub fn check(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedResults, Issue]
 
+pub fn check_table_inputs(@pipeline_typing.CheckedPipeline, @decode_core.Cursor, Limits) -> Result[CheckedTableInputs, Issue]
+
 pub fn checked_contextual_orders(CheckedOrders) -> @pipeline_typing.ContextualOrders
 
 pub fn checked_orders_usage(CheckedOrders) -> (Int, Int)
@@ -34,6 +36,8 @@ pub fn fields(ResultDefinition) -> Array[String]
 pub fn lookup(CheckedResults, String) -> ResultDefinition?
 
 pub fn lookup_port(ResultPorts, String) -> ResultPort?
+
+pub fn lookup_table_input(CheckedTableInputs, String) -> TableInputDefinition?
 
 pub fn metadata(ResultDefinition) -> @decode_core.Cursor?
 
@@ -62,6 +66,8 @@ pub fn port_order_term_count(ResultPort) -> Int
 pub fn port_orders(ResultPort) -> CheckedOrders
 
 pub fn port_projection_count(ResultPort) -> Int
+
+pub fn port_projection_field_at(ResultPort, Int) -> @relation_typing.ProjectionField?
 
 pub fn port_projection_input_at(ResultPort, Int) -> @relation_schema.FieldName?
 
@@ -121,6 +127,26 @@ pub fn result_at(CheckedResults, Int) -> ResultDefinition?
 
 pub fn source(CheckedResults) -> @decode_core.Cursor
 
+pub fn table_input_at(CheckedTableInputs, Int) -> TableInputDefinition?
+
+pub fn table_input_count(CheckedTableInputs) -> Int
+
+pub fn table_input_fields(TableInputDefinition) -> Array[String]
+
+pub fn table_input_name(TableInputDefinition) -> String
+
+pub fn table_input_schema(TableInputDefinition) -> @relation_schema.Schema
+
+pub fn table_input_source(TableInputDefinition) -> @decode_core.Cursor
+
+pub fn table_input_target(TableInputDefinition) -> @pipeline_typing.Target
+
+pub fn table_inputs_pipeline(CheckedTableInputs) -> @pipeline_typing.CheckedPipeline
+
+pub fn table_inputs_source(CheckedTableInputs) -> @decode_core.Cursor
+
+pub fn table_inputs_usage(CheckedTableInputs) -> Usage
+
 pub fn target(ResultDefinition) -> @pipeline_typing.Target
 
 pub fn usage(CheckedResults) -> Usage
@@ -131,6 +157,8 @@ pub fn usage(CheckedResults) -> Usage
 type CheckedOrders
 
 type CheckedResults
+
+type CheckedTableInputs
 
 pub struct Issue {
   kind : IssueKind
@@ -229,6 +257,8 @@ type ResultDefinition
 type ResultPort
 
 type ResultPorts
+
+type TableInputDefinition
 
 pub(all) struct Usage {
   work : Int

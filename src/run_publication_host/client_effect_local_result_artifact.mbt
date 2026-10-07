@@ -15,10 +15,21 @@ pub(all) enum ClientEffectLocalResultArtifactIssue {
 ///|
 /// Local semantic Artifact and its exact witnesses. Store custody and the
 /// current right to consume the captured Result remain separate obligations.
+priv enum ClientEffectLocalRelationSource {
+  ResultSource(
+    @strategy.CapturedAnyResultBorrow,
+    ClientEffectLocalResultDefinition
+  )
+  TableSource(
+    @strategy.CapturedTableInputBorrow,
+    ClientEffectLocalTableDefinition
+  )
+}
+
+///|
 struct ClientEffectLocalResultArtifact {
   inputs : @strategy.CapturedEffectInputs
-  borrow : @strategy.CapturedAnyResultBorrow
-  definition : ClientEffectLocalResultDefinition
+  source : ClientEffectLocalRelationSource
   invocation : ClientEffectLocalInvocation
   evidence : @publication.ResultOrderingEvidence
   artifact : @publication.PublicationContract
@@ -124,8 +135,7 @@ pub fn issue_source_free_client_effect_local_result_artifact(
   }
   build_client_effect_local_result_artifact(
     inputs,
-    @strategy.captured_effect_input_borrow(input),
-    definition,
+    ResultSource(@strategy.captured_effect_input_borrow(input), definition),
     invocation,
     receipt,
     retention,
@@ -221,8 +231,7 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
   }
   build_client_effect_local_result_artifact(
     inputs,
-    borrow,
-    definition,
+    ResultSource(borrow, definition),
     invocation,
     receipt,
     retention,
@@ -240,8 +249,7 @@ pub fn issue_source_free_exported_client_effect_local_result_artifact(
 ///|
 fn build_client_effect_local_result_artifact(
   inputs : @strategy.CapturedEffectInputs,
-  borrow : @strategy.CapturedAnyResultBorrow,
-  definition : ClientEffectLocalResultDefinition,
+  source : ClientEffectLocalRelationSource,
   invocation : ClientEffectLocalInvocation,
   receipt : @execution.CompletedRelationExportReceipt,
   retention : @publication.PublicationContract,
@@ -257,16 +265,22 @@ fn build_client_effect_local_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
+  let (definition_cid, unit_definition_cid) = match source {
+    ResultSource(_, definition) =>
+      (definition.cid, definition.unit_definition_cid)
+    TableSource(_, definition) =>
+      (definition.cid, definition.unit_definition_cid)
+  }
   let evidence = match
     @publication.issue_local_result_occurrence_evidence(
-      definition.cid,
+      definition_cid,
       @execution.logical_relation_cid(
         @execution.completed_relation_export_identity(receipt),
       ),
       @execution.relation_schema_cid(
         @execution.completed_relation_export_schema_identity(receipt),
       ),
-      definition.unit_definition_cid,
+      unit_definition_cid,
       input_relations,
       scope_cid,
       effective_data_policy_cid,
@@ -281,7 +295,7 @@ fn build_client_effect_local_result_artifact(
   }
   let artifact = match
     @publication.issue_complete_local_result_artifact(
-      definition.cid,
+      definition_cid,
       invocation.cid,
       evidence,
       retention,
@@ -298,8 +312,7 @@ fn build_client_effect_local_result_artifact(
   )
   Ok({
     inputs,
-    borrow,
-    definition,
+    source,
     invocation,
     evidence,
     artifact,
@@ -338,7 +351,10 @@ pub fn client_effect_local_result_artifact_cid(
 pub fn client_effect_local_artifact_definition_cid(
   value : ClientEffectLocalResultArtifact,
 ) -> String {
-  value.definition.cid
+  match value.source {
+    ResultSource(_, definition) => definition.cid
+    TableSource(_, definition) => definition.cid
+  }
 }
 
 ///|
@@ -404,25 +420,44 @@ pub fn client_effect_local_source_matches(
     ) {
     return false
   }
-  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
-    return false
+  match artifact.source {
+    ResultSource(_, definition) => {
+      guard @strategy.captured_effect_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      let unit = @strategy.captured_effect_input_stage(input)
+      let name = @execution.managed_result_occurrence_name(
+        @strategy.captured_effect_input_occurrence(input),
+      )
+      client_effect_local_result_definition_matches(
+        definition, owner, unit, name,
+      ) &&
+      client_effect_local_invocation_matches(invocation, owner, unit) &&
+      @publication.captured_effect_source_matches_result_facts(
+        source,
+        artifact.artifact,
+        name,
+      )
+    }
+    TableSource(_, definition) => {
+      guard @strategy.captured_effect_table_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      client_effect_local_table_definition_matches(definition, owner, input) &&
+      client_effect_local_invocation_matches(
+        invocation,
+        owner,
+        @strategy.captured_effect_table_input_stage(input),
+      ) &&
+      @publication.captured_effect_source_matches_table_input_facts(
+        source,
+        artifact.artifact,
+        definition.name,
+      )
+    }
   }
-  let unit = @strategy.captured_effect_input_stage(input)
-  let name = @execution.managed_result_occurrence_name(
-    @strategy.captured_effect_input_occurrence(input),
-  )
-  client_effect_local_result_definition_matches(
-    artifact.definition,
-    owner,
-    unit,
-    name,
-  ) &&
-  client_effect_local_invocation_matches(invocation, owner, unit) &&
-  @publication.captured_effect_source_matches_result_facts(
-    source,
-    artifact.artifact,
-    name,
-  )
 }
 
 ///|
@@ -431,14 +466,31 @@ fn client_effect_local_artifact_matches_member(
   inputs : @strategy.CapturedEffectInputs,
   member_index : Int,
 ) -> Bool {
-  guard physical_equal(artifact.inputs, inputs) &&
-    @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
+  if !physical_equal(artifact.inputs, inputs) {
     return false
   }
-  @strategy.captured_any_result_borrows_share_view(
-    artifact.borrow,
-    @strategy.captured_effect_input_borrow(input),
-  )
+  match artifact.source {
+    ResultSource(borrow, _) => {
+      guard @strategy.captured_effect_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      @strategy.captured_any_result_borrows_share_view(
+        borrow,
+        @strategy.captured_effect_input_borrow(input),
+      )
+    }
+    TableSource(borrow, _) => {
+      guard @strategy.captured_effect_table_input_at(inputs, member_index)
+        is Some(input) else {
+        return false
+      }
+      @strategy.captured_table_input_borrows_share_view(
+        borrow,
+        @strategy.captured_effect_table_input_borrow(input),
+      )
+    }
+  }
 }
 
 ///|
@@ -464,9 +516,13 @@ pub fn admit_client_effect_local_source_evidence(
     ) {
     return Err(@publication.InvalidLocalReference("owner"))
   }
+  let definition_wire = match artifact.source {
+    ResultSource(_, definition) => definition.wire
+    TableSource(_, definition) => definition.wire
+  }
   @publication.admit_captured_local_effect_source(
     source,
-    artifact.definition.wire,
+    definition_wire,
     invocation.wire,
     manifest.wire,
     artifact.artifact,

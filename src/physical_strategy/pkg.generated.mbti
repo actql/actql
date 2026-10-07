@@ -64,6 +64,8 @@ pub fn borrow_captured_result_completion(CapturedDAG, Int, @execution_relation.M
 
 pub fn borrow_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedResultOccurrence, Int) -> Result[CapturedResultBorrow, RunIssue]
 
+pub fn borrow_captured_table_input_output(CapturedDAG, Int, @execution_relation.ManagedTableInputOccurrence, Int) -> Result[CapturedTableInputBorrow, RunIssue]
+
 pub fn borrow_resident_table(CapturedDAG, ResidentTable, Int, Int, Int, (ResidentTable, @execution_relation.ProducerRead) -> Result[Unit, RunIssue], input_index? : Int) -> Result[ResidentRead, RunIssue]
 
 pub fn cancel_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Unit
@@ -168,6 +170,8 @@ pub fn captured_effect_preview_plan_terminal(CapturedEffectPreviewInputs, Int, I
 
 pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> String?
 
+pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
+
 pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
 
 pub fn captured_effect_result_import_interface(CapturedEffectResultImport) -> @program_check.BuiltResultInterface
@@ -183,6 +187,20 @@ pub fn captured_effect_run_owner(CapturedEffectRunDAG) -> @program_check.EffectP
 pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffectSourcePort?
 
 pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
+
+pub fn captured_effect_table_input_at(CapturedEffectInputs, Int) -> CapturedEffectTableInput?
+
+pub fn captured_effect_table_input_borrow(CapturedEffectTableInput) -> CapturedTableInputBorrow
+
+pub fn captured_effect_table_input_member(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_name(CapturedEffectTableInput) -> String
+
+pub fn captured_effect_table_input_occurrence(CapturedEffectTableInput) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_effect_table_input_stage(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_task(CapturedEffectTableInput) -> Int
 
 pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
 
@@ -239,6 +257,18 @@ pub fn captured_result_output_set_pin_at(CapturedResultOutputSet, Int) -> Captur
 pub fn captured_root_statistics(CapturedDAG) -> @execution_query.CapturedSourceStatistics?
 
 pub fn captured_supplied_task_input(CapturedDAG, Int, input_index? : Int) -> Result[@execution_relation.SuppliedRelationRead, RunIssue]
+
+pub fn captured_table_input_borrow_available(CapturedTableInputBorrow) -> Bool
+
+pub fn captured_table_input_borrow_cell_output(CapturedTableInputBorrow) -> @execution_relation.CompletedOutput?
+
+pub fn[T] captured_table_input_borrow_matches_managed(CapturedTableInputBorrow, @execution_relation.ManagedCompletedOutput[T]) -> Bool
+
+pub fn captured_table_input_borrow_occurrence(CapturedTableInputBorrow) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_table_input_borrows_share_view(CapturedTableInputBorrow, CapturedTableInputBorrow) -> Bool
+
+pub fn captured_table_input_output_set_borrow_at(CapturedTableInputOutputSet, Int) -> CapturedTableInputBorrow?
 
 pub fn captured_task_activation_granted(CapturedDAG, Int) -> Bool
 
@@ -331,6 +361,14 @@ pub fn checked_effect_source_occurrence(CheckedEffectSourcePort) -> @execution_r
 pub fn checked_effect_source_stage(CheckedEffectSourcePort) -> Int
 
 pub fn checked_effect_source_task(CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_table_input_at(CheckedEffectComputationDAG, Int) -> CheckedEffectTableInputPort?
+
+pub fn checked_effect_table_input_member(CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_stage(CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_task(CheckedEffectTableInputPort) -> Int
 
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
@@ -502,6 +540,8 @@ pub fn pin_captured_result_output(CapturedDAG, Int, @execution_relation.ManagedR
 
 pub fn pin_captured_result_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedResultOccurrence)], Int) -> Result[CapturedResultOutputSet, RunIssue]
 
+pub fn pin_captured_table_input_output_set(CapturedDAG, Array[(Int, @execution_relation.ManagedTableInputOccurrence)], Int) -> Result[CapturedTableInputOutputSet, RunIssue]
+
 pub fn pin_captured_task_output(CapturedDAG, Int, @pipeline_typing.Target, Int) -> Result[CapturedOutputPin, RunIssue]
 
 pub fn placement_policy_request_json(PolicyRequest) -> Result[String, SearchIssue]
@@ -626,6 +666,10 @@ pub fn release_captured_result_borrow(CapturedResultBorrow) -> Bool
 
 pub fn release_captured_result_output_set(CapturedResultOutputSet) -> Bool
 
+pub fn release_captured_table_input_borrow(CapturedTableInputBorrow) -> Bool
+
+pub fn release_captured_table_input_output_set(CapturedTableInputOutputSet) -> Bool
+
 pub fn release_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn release_task_execution_allocation(TaskRetainedAllocation) -> Result[Bool, @physical_resources.LedgerIssue]
@@ -705,6 +749,8 @@ pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.P
 pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn start_captured_result_borrow_export(CapturedResultBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedResultRelationExportPreparation, @execution_relation.CompletedExportIssue]
+
+pub fn start_captured_table_input_borrow_export(CapturedTableInputBorrow, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedTableInputRelationExportPreparation, @execution_relation.CompletedExportIssue]
 
 pub fn start_task_numeric_reduction_for_slot(CapturedDAG, TaskExecution, Int, String, Int, Array[Double], Int, Int) -> Result[TaskNumericExecution, @numeric_reduction.ReductionIssue]?
 
@@ -901,6 +947,8 @@ pub(all) enum CapturedEffectRiskIssue {
 
 type CapturedEffectRunDAG
 
+type CapturedEffectTableInput
+
 pub struct CapturedExecutionRootStatistics {
   rows : Int
   canonical_wire_bytes : Int
@@ -914,6 +962,10 @@ type CapturedResultBorrow
 
 type CapturedResultOutputSet
 
+type CapturedTableInputBorrow
+
+type CapturedTableInputOutputSet
+
 type CheckedDAG
 
 type CheckedEffectComputationDAG
@@ -921,6 +973,8 @@ type CheckedEffectComputationDAG
 type CheckedEffectRunDAG
 
 type CheckedEffectSourcePort
+
+type CheckedEffectTableInputPort
 
 pub(all) struct CheckedTaskIdentity {
   task : Int

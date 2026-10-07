@@ -264,17 +264,31 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
+  let receiptProgress;
+  const receiptTrace = [];
+  const exportTrace = [];
+  let exportSteps = 0;
+  let exportPreparationSteps = 0;
+  const exportPreparationTrace = [];
+  let completedDispatches = 0, resultPreparationSteps = 0;
+  let resultOrderReached = false, resultPreparationCancels = 0;
+  let resultSchemaReached = false;
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
     const body = JSON.parse(await readFile(join(root, captureRows
       ? 'adapters/host-node/fixtures/query-amount-environment.json'
       : 'packages/sdk/fixtures/values.environment.json'), 'utf8'));
-    if (route.family === 'graph') {
-      Object.assign(body.host_policy_profile.capacity, {
+    if (route.family === 'graph' || route.observeSchemaPreparation) {
+      if (route.family === 'graph') Object.assign(body.host_policy_profile.capacity, {
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, max_graph_construction_edges: 1000,
       });
+      // Two independently authored 65-field object cells fit this explicit
+      // fixture policy. This is not an exact nested-byte boundary test.
+      if (route.observeSchemaPreparation) {
+        body.host_policy_profile.capacity.max_nested_value_bytes = 4096;
+      }
       delete body.evidence_bundle_cid;
       body.evidence_bundle_cid = 'sha256:' + createHash('sha256')
         .update(canonicalText(body)).digest('hex');
@@ -331,6 +345,53 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       first + expectedSteps.length), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
+        if (route.observeResultPreparation &&
+            property === 'strategyHostResultTransformationAdvance') {
+          return value => {
+            const result = target[property](value, 1);
+            const complete = checked(result);
+            assert.equal(typeof complete, 'boolean');
+            resultPreparationSteps++;
+            // Read the real common cursor only to place cancellation. This
+            // whitebox observation creates no replacement execution state.
+            const rows = value.core.preparation.preparation.rows;
+            const schema = value.core.preparation.preparation.metadata?.schema_cursor;
+            if (route.observeSchemaPreparation && schema?.phase === 4 &&
+                schema.contract?.pending.some(frame =>
+                  typeof frame._1 === 'number' &&
+                  Array.isArray(frame._0?.values) && frame._1 >= 4)) {
+              resultSchemaReached = true;
+              if (mode === 'cancel-during-result-schema' && !scheduled) {
+                assert.equal(completedDispatches, 3);
+                assert.equal(complete, false);
+                assert.notEqual(value.core.borrow, undefined);
+                scheduled = true;
+                setTimeout(() => cancellation.abort(), 0);
+              }
+            }
+            if (rows.comparison.phase === 3 && rows.comparison.offset > 20) {
+              resultOrderReached = true;
+              if (mode === 'cancel-during-result-order' && !scheduled) {
+                assert.equal(completedDispatches, 3);
+                assert.equal(complete, false);
+                assert.equal(rows.closed, false);
+                assert.notEqual(value.core.borrow, undefined);
+                scheduled = true;
+                setTimeout(() => cancellation.abort(), 0);
+              }
+            }
+            return result;
+          };
+        }
+        if (route.observeResultPreparation &&
+            property === 'strategyHostResultTransformationCancel') {
+          return value => {
+            target[property](value);
+            resultPreparationCancels++;
+            assert.equal(value.core.borrow, undefined);
+            assert.equal(value.core.preparation.preparation.rows.closed, true);
+          };
+        }
         if (property !== 'strategyModule_local_Dispatch' &&
             property !== 'strategyModule_local_ManagedStart') {
           return Reflect.get(target, property, receiver);
@@ -341,6 +402,55 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, receiver) {
               if (name === 'execute') return () => assert.fail('synchronous Compute');
+              if (route.observeResultPreparation && name === 'complete') {
+                return (...args) => {
+                  const result = operation.complete(...args);
+                  if (result.$tag === 1) completedDispatches++;
+                  return result;
+                };
+              }
+              if (name === 'output' && (route.observeExport || route.observePreparation) &&
+                  dispatch === observedDispatch) {
+                const output = Reflect.get(operation, name, receiver);
+                assert.ok(output, 'this Program must select the actual row-file output');
+                return new Proxy(output, {
+                  get(exporter, field, receiver) {
+                    if (field === 'next') return () => assert.fail('blocking row export');
+                    if (field === 'prepare') return () => {
+                      const result = exporter.prepare(1);
+                      if (result.$tag === 1) {
+                        exportPreparationSteps += result._0._1;
+                        if (exportPreparationTrace.length < 16) exportPreparationTrace.push({
+                          complete: result._0._0, steps: result._0._1});
+                        if (mode === 'cancel-during-export-preparation' && !scheduled &&
+                            exportPreparationSteps === 10) {
+                          assert.equal(result._0._0, false);
+                          scheduled = true;
+                          setTimeout(() => cancellation.abort(), 0);
+                        }
+                      }
+                      return result;
+                    };
+                    if (field !== 'advance') return Reflect.get(exporter, field, receiver);
+                    return () => {
+                      const result = exporter.advance(1);
+                      if (result.$tag === 1) {
+                        exportSteps += result._0.steps;
+                        if (exportTrace.length < 16) exportTrace.push({
+                          complete: result._0.complete, batchReady: result._0.batch != null,
+                          steps: result._0.steps});
+                        if (mode === 'cancel-during-export' && !scheduled && exportSteps === 10) {
+                          assert.equal(result._0.complete, false);
+                          assert.equal(result._0.batch, undefined);
+                          scheduled = true;
+                          setTimeout(() => cancellation.abort(), 0);
+                        }
+                      }
+                      return result;
+                    };
+                  },
+                });
+              }
               if (name === 'execution_stopped') return () => {
                 const stopped = operation.execution_stopped();
                 if (dispatch === observedDispatch && cancellation.signal.aborted && stopped) {
@@ -348,6 +458,26 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                 }
                 return stopped;
               };
+              if (name === 'advance_finalization' && mode === 'cancel-during-receipt') {
+                return quantum => {
+                  const result = operation.advance_finalization(Math.min(quantum, 1));
+                  if (dispatch === observedDispatch && result.$tag === 1 &&
+                      receiptTrace.length < 32) {
+                    receiptTrace.push({progress: result._0.progress,
+                      complete: result._0.complete, material: operation.material() != null});
+                  }
+                  if (dispatch === observedDispatch && result.$tag === 1 &&
+                      !scheduled && !result._0.complete &&
+                      result._0.progress === 4n && operation.material() == null) {
+                    // Two output rows, then row/column receipt-copy roots.
+                    // The old atomic issuer cannot reach this observation.
+                    receiptProgress = result._0.progress;
+                    scheduled = true;
+                    setTimeout(() => cancellation.abort(), 0);
+                  }
+                  return result;
+                };
+              }
               if (name !== 'advance') return Reflect.get(operation, name, receiver);
               return quantum => {
                 const result = operation.advance(Math.min(quantum, 1));
@@ -374,7 +504,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       preparedProgram: prepared, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'), now: () => captured
         ? new Date().toISOString() : '2026-09-30T00:00:00.000Z'};
-    const plan = captured ? acquiredTaskPublicationPlan({...options,
+    let plan = captured ? acquiredTaskPublicationPlan({...options,
       acquired: acquiredTaskRunAdmission(options), captured,
       sourceEvidenceWire: await captured.issueSourceEvidence({
         authorityScopeCid: options.authorityScopeCid,
@@ -382,6 +512,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid,
       captureStartedAt: captured.captureStartedAt,
       captureCompletedAt: captured.captureCompletedAt}) : sourceFreeTaskPlan(options);
+    if (route.withoutClientSelection) {
+      // This optional selection is not the captured graph's ResultPort. The
+      // ordinary publication API must still use that exact checked occurrence.
+      plan = Object.freeze({...plan, results: Object.freeze(plan.results.map(
+        ({transformation, ...result}) => Object.freeze(result)))});
+    }
     retained = await createLocalRetainedStore({parentDirectory: directory,
       capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
     publication = await openLocalPublicationStore({
@@ -446,7 +582,11 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
           });
         },
         close() {
-          if (cancellation.signal.aborted) assert.equal(sawStop, true);
+          if (cancellation.signal.aborted) {
+            if (route.observeResultPreparation) assert.equal(completedDispatches, 3,
+              'Result preparation follows physically completed Compute');
+            else assert.equal(sawStop, true);
+          }
           closed = true;
           writer?.cancel();
         },
@@ -457,7 +597,11 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       });
     });
     await use({setup, plan, retained, publication, leases, captured,
-      observations: () => ({dispatches, producerWork, sawStop, scheduled,
+      observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
+        exportTrace, exportSteps, exportPreparationTrace, exportPreparationSteps,
+        completedDispatches, resultPreparationSteps, resultOrderReached,
+        resultPreparationCancels, resultSchemaReached,
+        abortReason: cancellation.signal.reason,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
       async run() {
@@ -500,7 +644,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal(retained.status().holdings, 0);
         assert.equal(retained.status().reservedReadBufferBytes, 0);
       }
-      if (route.publicationFault && publication) {
+      if ((route.publicationFault || route.observeResultPreparation) && publication) {
         assert.equal(publication.status().reservedBytes, 0);
         assert.equal(publication.status().reservedObjects, 0);
       }
@@ -542,6 +686,175 @@ for (const filtered of [false, true]) {
       }));
 }
 
+for (const mode of ['success', 'cancel-during-export', 'cancel-during-export-preparation']) {
+  test(`retained row-file export yields within Unicode Text: ${mode}`, async () => {
+    const text = 'a'.repeat(1024) + '😀';
+    const document = JSON.parse(program([{id: 1, s: text}, {id: 2, s: null}], 'true'));
+    document.id = 'retained-row-file-progress';
+    document.stages[0].steps[0].values.schema.s = {type: 'string', nullable: true};
+    document.stages[0].steps[2].select = ['id', 's'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 's'];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 's'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations, leases}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().dispatches, 3);
+        assert.ok(observations().exportPreparationSteps > 16);
+        assert.ok(observations().exportPreparationTrace.every(poll =>
+          poll.steps === 1 && !poll.complete));
+        assert.ok(observations().exportSteps > 32);
+        assert.ok(observations().exportTrace.every(poll =>
+          poll.steps === 1 && !poll.complete && !poll.batchReady));
+        await assertPublishedRows(publication, plan, owner.execution,
+          [{id: 1, s: text}, {id: 2, s: null}]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(execution.status, 'host-tasks-failed');
+        assert.deepEqual(execution.completed, []);
+        if (mode === 'cancel-during-export') {
+          assert.equal(execution.failure.code, 'ManagedExecutionFailed');
+          assert.equal(execution.failure.cause.primaryFailure, observations().abortReason);
+          assert.equal(execution.failure.cause.primaryFailure.name, 'AbortError');
+          assert.equal(execution.failure.cleanupPending, true);
+          assert.equal(observations().exportSteps, 10);
+        } else {
+          assert.equal(execution.failure, observations().abortReason);
+          assert.equal(execution.failure.name, 'AbortError');
+          assert.equal(observations().exportPreparationSteps, 10);
+          assert.equal(observations().exportSteps, 0);
+          assert.deepEqual(observations().exportPreparationTrace,
+            Array.from({length: 10}, () => ({complete: false, steps: 1})));
+          assert.deepEqual(leases, []);
+          assert.equal(observations().exportTrace.length, 0);
+        }
+        assert.equal(observations().dispatches, 1);
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().sawStop, true);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+    }, mode, undefined, undefined, false, {observeExport: true});
+  });
+}
+
+for (const mode of ['success', 'cancel-during-result-order']) {
+  test(`retained Named Result ordering yields inside a long Text comparison: ${mode}`, async () => {
+    const prefix = 'x'.repeat(1024) + '😀';
+    const document = JSON.parse(program([{id: 1, s: `${prefix}b`},
+      {id: 2, s: `${prefix}a`}], 'true'));
+    document.id = 'retained-result-order-progress';
+    document.stages[0].steps[0].values.schema.s = {type: 'string', nullable: false};
+    document.stages[0].steps[2].select = ['id', 's'];
+    // Keep the producer's full checked contract across task input edges.
+    // Ordering still selects the real publication transformation owner.
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 's'];
+      stage.results.out.order_by = [{s: 'asc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 's'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.ok(observations().resultPreparationSteps > 3000);
+        assert.equal(observations().resultOrderReached, true);
+        assert.equal(observations().completedDispatches, 3);
+        await assertPublishedRows(publication, plan, owner.execution,
+          [{id: 2, s: `${prefix}a`}, {id: 1, s: `${prefix}b`}]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause.code, 'DurableResultPayloadFailed');
+          assert.equal(error.cause.primaryFailure, observations().abortReason);
+          assert.equal(error.cause.cause, observations().abortReason);
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().resultOrderReached, true);
+        assert.equal(observations().completedDispatches, 3);
+        assert.equal(observations().resultPreparationCancels, 1);
+        assert.deepEqual(execution.completed.map(task => task.task), [0, 1, 2]);
+        assert.ok(execution.completed.every(task => task.realization === 'local'));
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(observations().dispatches, 3);
+    }, mode, undefined, undefined, false, {observeResultPreparation: true});
+  });
+}
+
+for (const withoutClientSelection of [false, true]) {
+ for (const mode of ['success', 'cancel-during-result-schema']) {
+  test(`retained Named Result schema yields within recursive contracts: ${mode}${
+    withoutClientSelection ? ' without Client selection' : ''}`, async () => {
+    const fields = Object.fromEntries(Array.from({length: 65}, (_, index) =>
+      [`k${1000 + index}`, {type: 'number', nullable: false}]));
+    const payload = first => Object.fromEntries(Object.keys(fields).map((name, index) =>
+      [name, first + index]));
+    const first = {id: 1, payload: payload(100)};
+    const second = {id: 2, payload: payload(200)};
+    const document = JSON.parse(program([first, second], 'true'));
+    document.id = 'retained-result-schema-progress';
+    document.stages[0].steps[0].values.schema.payload = {
+      type: 'object', nullable: false, fields,
+    };
+    document.stages[0].steps[2].select = ['id', 'payload'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 'payload'];
+      stage.results.out.order_by = [{id: 'desc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 'payload'];
+    }
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().resultSchemaReached, true);
+        await assertPublishedRows(publication, plan, owner.execution, [second, first]);
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause.code, 'DurableResultPayloadFailed');
+          assert.equal(error.cause.primaryFailure, observations().abortReason);
+          assert.equal(error.cause.cause, observations().abortReason);
+          execution = error.execution;
+          return true;
+        });
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().resultSchemaReached, true);
+        assert.equal(observations().resultPreparationCancels, 1);
+        assert.deepEqual(execution.completed.map(task => task.task), [0, 1, 2]);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(observations().dispatches, 3);
+      assert.equal(observations().completedDispatches, 3);
+    }, mode, undefined, undefined, false,
+    {observeResultPreparation: true, observeSchemaPreparation: true,
+      withoutClientSelection});
+  });
+ }
+}
+
 for (const {family, name} of [
   {family: 'graph', name: 'installed retained graph factory executes a normal mixed Stage'},
   {family: 'events', name: 'installed retained events factory executes a normal mixed Stage'},
@@ -568,15 +881,21 @@ for (const {name, family, mode, cancelDispatch} of [
     family: 'events', mode: 'cancel-after-progress', cancelDispatch: 3},
   {name: 'installed retained Vectors cancels after the Relation Bridge',
     family: 'vectors', mode: 'cancel-after-progress', cancelDispatch: 5},
+  {name: 'installed retained Events cancels during Relation receipt preparation',
+    family: 'events', mode: 'cancel-during-receipt', cancelDispatch: 5},
   {name: 'installed retained Events rejects a later filter arithmetic failure',
     family: 'events', mode: 'arithmetic'},
 ]) {
   test(name, async () => retainedRun(familyProgram(family,
-    mode === 'arithmetic' ? '1 / (id - id) > 0' : 'id >= 1'),
+    mode === 'arithmetic' ? '1 / (id - id) > 0'
+      : mode === 'cancel-during-receipt' ? 'id >= 2' : 'id >= 1'),
   async ({run, plan, publication, observations, permitCleanup}) => {
     let execution;
-    await assert.rejects(run(), error => {
-      assert.equal(error.code, 'CapturedRunPublicationFailed');
+    await assert.rejects(async () => {
+      await run();
+      assert.fail(`Unexpected publication: ${inspect(observations().receiptTrace)}`);
+    }, error => {
+      assert.equal(error.code, 'CapturedRunPublicationFailed', error.message);
       execution = error.execution;
       return true;
     });
@@ -594,6 +913,9 @@ for (const {name, family, mode, cancelDispatch} of [
       assert.equal(observations().scheduled, true);
       assert.equal(observations().sawStop, true);
       assert.equal(execution.failure.name, 'AbortError');
+      if (mode === 'cancel-during-receipt') {
+        assert.equal(observations().receiptProgress, 4n);
+      }
     } else if (mode === 'arithmetic') {
       assert.equal(observations().dispatches, 5);
       assert.equal(fixture.strategyFixtureManagedFilterArithmetic(
@@ -642,14 +964,16 @@ for (const {name, family, publicationFault} of [
 }
 
 // Independent scalar phase model, also checked in the portable provider test:
-// Values 11 + filter true 31 + select 19 + two handoffs = 63 work units.
+// Values 20 + filter true 31 + select 19 + port scans 90 + handoffs 2 = 162.
+// Values includes four-step row charging. Port scans for values_0, where_1
+// and select_2 cost 31, 28 and 31, including their lowered IDs and names.
 // Filter's three metadata entries, three roots, snapshot and two predicate
 // slots peak at nine workspace entries. These are not sampled from a run.
 for (const {name, work, workspace, failure} of [
-  {name: 'exact scalar chain budgets', work: 63, workspace: 9},
-  {name: 'one-short scalar chain work', work: 62, workspace: 9,
+  {name: 'exact scalar chain budgets', work: 162, workspace: 9},
+  {name: 'one-short scalar chain work', work: 161, workspace: 9,
     failure: 'work'},
-  {name: 'one-short scalar chain workspace', work: 63, workspace: 8,
+  {name: 'one-short scalar chain workspace', work: 162, workspace: 8,
     failure: 'workspace'},
 ]) {
   test(`retained Values honors ${name}`, async () => retainedRun(
@@ -658,7 +982,7 @@ for (const {name, work, workspace, failure} of [
       if (!failure) {
         const owner = await run();
         assert.equal(owner.status, 'published');
-        assert.equal(observations().producerWork, 63n);
+        assert.equal(observations().producerWork, 162n);
         const inventory = owner.execution.publicationInventory.occurrences;
         assert.deepEqual(inventory.map(value => value.name).sort(),
           [...resultNames].sort());

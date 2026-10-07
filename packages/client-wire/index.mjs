@@ -13,6 +13,8 @@ import {clientHostOperations, clientHostRequestKeys,
   validResourceListingShape, validResourcePeekShape,
   validRunRefShape, validRunStateShape, validCheckOutcomeShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
+import {validSubmissionEpochShape, validSubmissionRefShape,
+  validSubmissionOutcomeShape, validSubmissionLookupShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
 // named spellings select the corresponding installed source frontend.
@@ -98,7 +100,7 @@ const submitRejections = new Set([
   'InvalidClientRequest', 'ClientRequestTooLarge',
   'ClientProgramInvalidInput', 'ClientParametersInvalid',
   'ClientParametersTooLarge', 'ClientProgramNeedsInputs',
-  'ClientProgramRejected', 'ClientProgramUnsupported',
+  'ClientProgramRejected', 'ClientProgramUnsupported', 'ClientProgramAnalysisLimit',
   'ClientAuthenticationDenied', 'ClientConnectionDenied',
   'ClientRunStartDenied', 'ClientRequestIntentConflict',
   'ACTQL_E_ACCOUNT_DENIED', 'ACTQL_E_ACCOUNT_NO_MATCH',
@@ -111,6 +113,54 @@ export function isClientSubmitRejection(code) {
 }
 export function validRunRef(value) {
   return validRunRefShape(value);
+}
+
+export function validSubmissionEpoch(value) {
+  return validSubmissionEpochShape(value) &&
+    !Object.is(value.notBefore, -0) && !Object.is(value.expiresAt, -0) &&
+    value.expiresAt > value.notBefore;
+}
+
+export function validSubmissionRef(value) {
+  return validSubmissionRefShape(value) && validSubmissionEpoch(value.epoch) &&
+    value.nonce.isWellFormed() && value.nonce.normalize('NFC') === value.nonce &&
+    !/[\u0080-\u009f]/u.test(value.nonce) &&
+    new TextEncoder().encode(value.nonce).byteLength <= 256;
+}
+
+export function sameSubmissionRef(left, right) {
+  return validSubmissionRef(left) && validSubmissionRef(right) &&
+    left.nonce === right.nonce && ['version', 'authorityScopeCid', 'epochNonce',
+      'notBefore', 'expiresAt', 'authenticator'].every(key => left.epoch[key] === right.epoch[key]);
+}
+
+function submissionFactsMatch(value, expected, intentCid) {
+  if (!sameSubmissionRef(value.submissionRef, expected) ||
+      intentCid !== undefined && value.intentCid !== intentCid) return false;
+  if (value.kind === 'ready') return value.admission.ref.authorityScopeCid === expected.epoch.authorityScopeCid;
+  if (value.kind === 'held') return validHeldRequest(value.held, expected.nonce);
+  return true;
+}
+
+// Durable journal facts have no negotiated transport connection. Their Run
+// binding is checked by the journal; a received reply additionally needs the
+// selected connection below.
+export function validStoredSubmissionOutcome(value, expected, intentCid) {
+  return validSubmissionOutcomeShape(value) && submissionFactsMatch(value, expected, intentCid) &&
+    (value.kind !== 'ready' || value.admission.durability === 'durable');
+}
+
+export function validSubmissionOutcome(value, selected, expected, intentCid) {
+  return validSubmissionOutcomeShape(value) &&
+    submissionFactsMatch(value, expected, intentCid) &&
+    (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
+    (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
+}
+
+export function validSubmissionLookup(value, selected, expected) {
+  return validSubmissionLookupShape(value) && submissionFactsMatch(value, expected) &&
+    (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
+    (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));
 }
 
 // This is one existing Engine-owned Run-state component. The public Client
@@ -153,6 +203,15 @@ export function validSubmitPreparationError(value) {
 
 export const validClientConnection = validConnectionShape;
 
+// A target assertion is separate from authorization. The second argument must
+// come from the Host's authenticated/installed Workspace binding, never from
+// a caller's connection or Run reference. No assertion preserves the existing
+// endpoint contract; a Host with no binding cannot accept an asserted target.
+export const clientWorkspaceMatches = (connection, authenticatedWorkspaceId) =>
+  connection.workspaceId === undefined ||
+  boundedText(authenticatedWorkspaceId) &&
+    connection.workspaceId === authenticatedWorkspaceId;
+
 // Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
 function snapshotRequest(value, numberError) {
@@ -186,6 +245,15 @@ export function validClientBody(operation, body) {
   if (bodyKeys === undefined || !exact(body, bodyKeys) ||
       !validClientConnection(body.connection)) return false;
   if (operation === 'connect') return true;
+  if (operation === 'submit-intent') {
+    if (!validSubmissionRef(body.submissionRef) || !cid.test(body.intentCid)) return false;
+    return validClientBody('submit', {connection: body.connection,
+      requestId: body.submissionRef.nonce, kind: body.kind,
+      input: body.input, parameters: body.parameters}) &&
+      (body.parameters === null || typeof body.parameters === 'object' &&
+        !Array.isArray(body.parameters));
+  }
+  if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
   if (operation === 'submit') {
     return boundedText(body.requestId) &&
       (body.kind === 'aql' &&
@@ -288,7 +356,8 @@ export function validClientBody(operation, body) {
 
 // Structural Host replies bind connection and request identity without
 // deciding Run admission, authorization, retry or state transitions.
-export const validClientProfile = validProfileContract;
+export const validClientProfile = (value, selected) => validProfileContract(value, selected) &&
+  (value.submissionEpoch === undefined || validSubmissionEpoch(value.submissionEpoch));
 export const validClientAdmission = validAdmissionContract;
 
 // A request the Host holds before any Run exists: waiting on a

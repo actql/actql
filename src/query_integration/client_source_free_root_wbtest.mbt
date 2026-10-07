@@ -1172,6 +1172,22 @@ test "captured Values output supports shared Effect and publication borrows" {
     )
     is Err(@strategy.Physical(@resources.HoldingLimit)),
   )
+  let table_occurrence = table_retention_occurrence(occurrence)
+  assert_true(
+    @strategy.borrow_captured_table_input_output(run, 0, table_occurrence, 2)
+    is Err(@strategy.Physical(@resources.HoldingLimit)),
+  )
+  let table_borrow = @strategy.borrow_captured_table_input_output(
+    run, 0, table_occurrence, 3,
+  ).unwrap()
+  assert_true(
+    @strategy.captured_table_input_borrow_matches_managed(
+      table_borrow, completed,
+    ),
+  )
+  assert_true(
+    @strategy.captured_table_input_borrow_cell_output(table_borrow) is None,
+  )
   @strategy.close_captured_task_output(run, 0)
   assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   assert_true(
@@ -1180,6 +1196,19 @@ test "captured Values output supports shared Effect and publication borrows" {
     )
     is Err(@strategy.NotReady),
   )
+  assert_true(
+    @strategy.borrow_captured_table_input_output(run, 0, table_occurrence, 3)
+    is Err(@strategy.NotReady),
+  )
+  assert_true(@strategy.captured_table_input_borrow_available(table_borrow))
+  assert_true(@strategy.release_captured_table_input_borrow(table_borrow))
+  assert_false(@strategy.release_captured_table_input_borrow(table_borrow))
+  assert_false(
+    @strategy.captured_table_input_borrow_matches_managed(
+      table_borrow, completed,
+    ),
+  )
+  assert_true(@resources.ledger_usage(ledger).held_bytes > 0L)
   assert_true(
     @strategy.captured_resident_result_borrow_available(effect_borrow),
   )

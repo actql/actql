@@ -11,6 +11,98 @@ is now a semantic verification input and is no longer maintenance-only.
 
 ## Published interface and workflow
 
+### Reusing the execution boundary in another evidence family
+
+The pipeline's local `pipeline-pristine` profile is the first separate family
+using the shared immutable-image owner and original consumer. It is exactly
+L-M0 / fixed / JS / pristine, with four independent existing minima; it grants
+no Actions admission or reuse authority. See the
+[implementation and physical originals](../../docs/reviews/2026-10-07-pipeline-pristine-isolation.md).
+Default Session execution and every full pipeline obligation remain unchanged.
+
+Session's collector/final/image utilities load the pipeline scientific consumers
+only after selecting a registered local pipeline profile. Session action keys
+therefore exclude the separate pipeline oracle/receipt directory; changing its
+bytes or membership does not invalidate Session evidence. The one remaining
+eager import, `relation-pipeline/inventory.mjs`, is still bound by bytes/mode and
+an exact reviewed import/effect fingerprint. Missing or changed inventory bytes
+leave the action unresolved until its boundary is reviewed. The current module
+imports only Node built-ins and has no top-level filesystem reads. This is a
+limited manual dependency boundary, not a general JavaScript dependency parser.
+The pipeline profiles still stage their full own snapshot and use the same
+scientific validators. Session/pipeline, target and local/Actions authority
+cannot be substituted. Input equality alone never authenticates an original,
+qualifies an action for reuse or establishes net CI savings.
+
+Run it from a clean committed checkout using the repository's checked-in
+toolchain pin, a Linux x64 Moon distribution matching that pin, and an immutable
+Linux x64 Node builder image. The existing entry point checks their actual bytes,
+platform, startup, source membership, and owner custody, and acquires the shared
+heavy lock. Replace the two explicit local paths/identities below with your own
+verified inputs; a mutable image tag or a host Moon binary is not a substitute.
+
+```sh
+node proofs/ci-evidence/local-isolated-acceptance.mjs run \
+  --engine /absolute/path/to/docker \
+  --builder-image sha256:VERIFIED_LINUX_X64_BUILDER_DIGEST \
+  --moon-home /absolute/path/to/pinned-linux-moon-distribution \
+  --profile pipeline-pristine
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-pristine-replay.test.mjs \
+  proofs/ci-evidence/local-isolated-acceptance.test.mjs
+```
+
+To connect another family, bind its finite action/target/phase, source bytes and
+directory membership, independent oracle and requested Program in the existing
+staging/consumer boundary. Keep that family's original executor and resource
+owner. The pipeline example retains original compiled fixtures, inputs, logs and
+receipts, validates them against its oracle, and uses a separate authority domain.
+Do not copy Session's narrowed closure, issue reuse permission from local success,
+or treat one accepted phase as the complete family's obligations. Preserve each
+full campaign's mutation, restoration, target and final-audit requirements.
+Expanding registration or admission requires a reviewed implementation and actual
+acceptance; callers need no per-run G approval for this already registered local
+profile. It is not yet connected to hosted pipeline action acquisition.
+
+The separate registered `pipeline-fixed-js` profile extends the same local
+entry point to L-M0 / fixed / JS: four mutants, each with an independent pristine
+observation and a new-owner post-restoration observation (12 original executions).
+Use the command above with `--profile pipeline-fixed-js`; no mode, part, target
+or minimum override is accepted. It uses the existing pipeline mutation engine,
+independent anchors/oracle and workspace owners. The ordinary runner retains
+JS/Wasm/Native, exploration, complete-part admission and all final audits.
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/relation-pipeline/mutations.test.mjs \
+  proofs/relation-pipeline/mutation-parts.test.mjs \
+  proofs/relation-pipeline/fixed-js-replay.test.mjs \
+  proofs/ci-evidence/local-isolated-acceptance.test.mjs
+```
+
+The fixed profile preserves each actual mutation, healthy and restored receipt,
+input, source snapshot, compiled fixture and log. Its final consumer requires
+anchored detection, normal semantics, byte-exact restoration and a new owner in
+the same mutable source/build root. Normal and isolated observations are compared
+without discarding values, NULL, schema, ordering or work. Captured normal process
+status/output remains available when admission fails; partial execution or a
+timeout cannot replace the complete report. See the
+[implementation, actual diagnostics and remaining acceptance](../../docs/reviews/2026-10-08-pipeline-fixed-js-isolation.md).
+Recorded physical acceptance at the linked fixed SHA covers 12 actual normal and
+12 actual image observations, all four anchored mutations, pristine/new-owner
+restoration, normal/image scientific agreement and final refusal of 13 altered
+copies. Reconsume its immutable originals without repeating compilation:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs
+```
+
+The separate schema is rejected by full-part admission and grants neither Actions
+authority nor reuse permission. A new family still needs its own finite source,
+phase, oracle and owner connection evidence; these pipeline observations cannot
+be promoted to a different family, target or full campaign.
+
 The [contract](CONTRACT.md) describes the eventual closed reuse boundary.
 `cli.mjs catalog`, `plan`, `seal`, and `check` are the public data interface.
 The initial plan returns `execute` for every registered action and explicitly

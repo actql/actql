@@ -3,16 +3,18 @@
 import {inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {performClientSubmit} from './client-submit.mjs';
 import {projectClientCheckUnavailable} from './client-check.mjs';
+import {isLoopbackHttpRequest} from './loopback-http.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
   describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
-import {clientHostOperations, validCheckpointPage, validCheckpointReview,
+import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile, validCancellation, validCancellationLookup,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
   validResourcePeek, validRunState, validResultDescription,
-  validCheckOutcome, snapshotCheckRequest} from
+  validCheckOutcome, snapshotCheckRequest, snapshotClientRequest,
+  validSubmissionOutcome, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -65,6 +67,7 @@ function responseCode(error) {
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict' ||
+      error?.code === 'ClientSubmittedIntentConflict' ||
       error?.code === 'ClientCancellationIntentConflict' ||
       error?.code === 'ClientCancellationRevisionConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
@@ -73,6 +76,7 @@ function responseCode(error) {
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'ClientSubmissionReferenceRequired' ||
       error?.code === 'InvalidClientCancellationOperation' ||
       error?.code === 'InvalidClientCancellationLookup' ||
       error?.code === 'ClientProgramInvalidInput' ||
@@ -83,7 +87,8 @@ function responseCode(error) {
       error?.code === 'InvalidCheckpointPage') return 400;
   if (error?.code === 'ClientProgramNeedsInputs' ||
       error?.code === 'ClientProgramRejected' ||
-      error?.code === 'ClientProgramUnsupported') return 422;
+      error?.code === 'ClientProgramUnsupported' ||
+      error?.code === 'ClientProgramAnalysisLimit') return 422;
   if (error?.code === 'UnknownClientOperation') return 404;
   if (error?.code === 'ClientOperationUnavailable') return 501;
   if (error?.code === 'ResultAttemptLookupUnavailable') return 501;
@@ -151,19 +156,23 @@ function observationAttempt(response) {
 }
 
 export function createClientHttpHandler({
-  authenticate, authorizeConnection, stateService, resultService,
-  negotiate, submit, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
+  authenticate, authorizeConnection, workspaceForPrincipal, stateService, resultService,
+  negotiate, submit, submitIntent, lookupSubmission, attach, lookupRequest, observeRun, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, maxRequestBytes = 65536, observe,
+  check, maxRequestBytes = 65536, observe, loopbackHttp = false,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
+      typeof loopbackHttp !== 'boolean' ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0) {
     throw new TypeError('InvalidClientHostInstallation');
   }
   return async (request, response) => {
     try {
+      if (loopbackHttp && !isLoopbackHttpRequest(request)) {
+        invalid('ClientConnectionDenied');
+      }
       if (request.method !== 'POST' ||
           !request.url?.startsWith('/actql/client/0.1/')) {
         invalid('UnknownClientOperation');
@@ -191,11 +200,29 @@ export function createClientHttpHandler({
         catch { invalid('InvalidClientRequest'); }
       }
       if (operation === 'check' && !validClientBody(operation, body)) invalid('InvalidClientRequest');
+      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        try {body = snapshotClientRequest(body);}
+        catch {invalid('InvalidClientRequest');}
+        if (!validClientBody(operation, body)) invalid('InvalidClientRequest');
+      }
       const connection = Object.freeze({...body.connection,
         consentRefs: Object.freeze([...body.connection.consentRefs]),
         runners: Object.freeze([...body.connection.runners])});
       const ref = body.ref === undefined ? undefined :
         Object.freeze({...body.ref});
+      // Widening the structural wire schema must not let an old boolean
+      // authorizer silently ignore a new Workspace assertion. Resolve only
+      // from the authenticated principal and trusted installation context.
+      if (connection.workspaceId !== undefined) {
+        let workspaceId;
+        try {
+          workspaceId = typeof workspaceForPrincipal === 'function'
+            ? await workspaceForPrincipal(principal) : undefined;
+        } catch { invalid('ClientConnectionDenied'); }
+        if (!clientWorkspaceMatches(connection, workspaceId)) {
+          invalid('ClientConnectionDenied');
+        }
+      }
       let authorized;
       try {
         authorized = await authorizeConnection(Object.freeze({
@@ -244,6 +271,13 @@ export function createClientHttpHandler({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
+      } else if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        const answer = await invoke(operation === 'submit-intent' ? submitIntent : lookupSubmission);
+        const valid = operation === 'submit-intent'
+          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid)
+          : validSubmissionLookup(answer, connection, body.submissionRef);
+        if (!valid) invalid('InvalidClientHostSubmissionOutcome');
+        sendJson(answer);
       } else if (operation === 'result-describe') {
         const observation = observationAttempt(response);
         try {

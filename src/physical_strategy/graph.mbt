@@ -55,6 +55,7 @@ struct CheckedEffectComputationDAG {
   candidate : @checked.EffectProgramStaticCandidate
   graph : CheckedDAG
   sources : Array[CheckedEffectSourcePort?]
+  table_sources : Array[CheckedEffectTableInputPort?]
 }
 
 ///|
@@ -91,7 +92,7 @@ pub fn prepare_checked_effect_computation_dag(
   if max_work < 0 {
     return Err(InvalidLimits)
   }
-  if member_count > max_work {
+  if member_count > max_work / 2 {
     return Err(WorkLimit)
   }
   match
@@ -99,7 +100,7 @@ pub fn prepare_checked_effect_computation_dag(
       @checked.effect_program_static_checked_computation(candidate),
       owners,
       max_tasks,
-      max_work - member_count,
+      max_work - 2 * member_count,
       source_free_root~,
       captured_prefix~,
     ) {
@@ -109,7 +110,12 @@ pub fn prepare_checked_effect_computation_dag(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      Ok({ candidate, graph, sources, })
+      let table_sources = match
+        bind_checked_effect_table_inputs(bindings, graph, owners) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      Ok({ candidate, graph, sources, table_sources, })
     }
     Err(issue) => Err(issue)
   }

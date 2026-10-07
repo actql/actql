@@ -32,6 +32,8 @@ pub fn expression_origin(Expression, Int) -> @frontend_source_map.Origin?
 
 pub fn expression_root(Expression) -> Int
 
+pub fn expression_with_field_bindings(Expression, Array[(Int, NamePart)]) -> Expression?
+
 pub fn expression_work(Expression) -> Int
 
 pub fn final_operation_at(Query, Int) -> QueryOperation?
@@ -134,6 +136,14 @@ pub(all) struct AnalyticWindow {
   frame : AnalyticFrame?
 }
 
+pub(all) enum ArrayElementType {
+  Boolean
+  String
+  Number
+  Timestamp
+  Json
+} derive(Eq, @debug.Debug)
+
 pub(all) enum CastType {
   Boolean
   String
@@ -180,6 +190,7 @@ pub(all) enum ExpressionKind {
   Unary(String, Int)
   Binary(String, Int, Int)
   Call(Array[NamePart], Array[Int])
+  ArrayConstructor(Array[Int], ArrayElementType?)
   Parenthesized(Int)
   Predicate(String, Array[Int])
   SearchedCase(Array[(Int, Int)], Int)
@@ -297,7 +308,7 @@ pub(all) struct GraphQuery {
 
 pub(all) enum GroupingScope {
   SqlSelect
-  PipeAggregate
+  PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
 pub(all) struct InferClause {

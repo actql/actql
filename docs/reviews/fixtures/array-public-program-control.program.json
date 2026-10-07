@@ -1,0 +1,68 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.array_literal",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "as": "seed",
+          "values": {
+            "schema": {
+              "unit": {
+                "type": "boolean",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "unit": true
+              }
+            ]
+          }
+        },
+        {
+          "from": "seed",
+          "derive": {
+            "items": {
+              "array": [
+                {
+                  "literal": 2
+                },
+                {
+                  "literal": 1
+                },
+                {
+                  "literal": 2
+                }
+              ]
+            }
+          }
+        },
+        {
+          "select": [
+            "items"
+          ],
+          "as": "selected"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "selected",
+          "fields": [
+            "items"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

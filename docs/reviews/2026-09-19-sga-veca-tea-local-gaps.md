@@ -6679,3 +6679,257 @@ cancellation. Connecting them to existing incremental buffer reclamation is
 the next concrete boundary. Availability and retired-Carrier walks, other
 scratch and Native correspondence remain. See the
 [input stop collection record](2026-10-07-local-input-stop-slices.md).
+
+### Incremental private managed import buffers (2026-10-07)
+
+The preceding unfinished-buffer gap is now connected for managed input bridges,
+retained imports and the registered snapshot-reload importer. Existing common
+buffer reclamation resumes through the input-stop cursor; each pending owner
+keeps its cursor entry and cleanup root. Successful handoff/conversion is tracked
+separately so accepted rows cannot be mutated. The existing common reservation
+and logical work rules are unchanged.
+
+At clean implementation `d3dcaa495f405d2f14ac5012c01bd763fcb6e15b`, the managed
+import ownership selection passed 3/3. Common-owner/direct-caller preparation
+passed 32/32 on dirty source. After normally adopting merged #830/#832 and main
+`32870dd0812a809955917ef924d859ade2f51967`, clean integrated
+`7e6565aa132bd129cfcc7ccb216b712f023de030` passed public real-Store Host/source
+guards 34/34 with regenerated consuming runtimes. The first two-root build timed
+out; separate bounded root diagnostics then completed. No old receipt is relabeled
+as latest-SHA execution.
+
+At the recorded SHA, the current materializing retained-input path still cancels
+imports synchronously; its cleanup connection is the next boundary. This is not
+a backward-compatibility lane. Managed publication buffers, an actual cancelled
+snapshot-reload acceptance case, availability/Carrier walks, other scratch and
+Native physical allocation correspondence remain. This is not a whole-callback
+wall-clock bound or all-Local completion. See the
+[private import reclamation record](2026-10-07-local-import-buffer-reclamation.md).
+
+### Incremental materializing input cleanup (2026-10-07)
+
+The current retained-input path now uses the existing incremental import
+reclamation owner. Its close revokes use and requests provider stop; later cleanup
+polls retain the same provider and input roots until stop and successful cleanup
+are confirmed. The common scratch witness reads the finished cursor and cannot
+release reservations while retirement is pending. Node and Native dispatch call
+that installed cleanup hook; Node preserves the Store observer even when physical
+release succeeds but its acknowledgement fails.
+
+The focused JS selection passed 11/11 on dirty preparation source; Node adapter
+and physical Store cleanup tests passed 30/30 after fixing fixture task bindings
+and the post-release acknowledgement case. Work boundaries are independently
+derived as 82/81 across quanta 1, 7 and 256, not copied from successful telemetry.
+These results precede the normal adoption of main
+`e5d2be0276f5c79f874ab7b5aa173eb9a5f87902`. Integrated public Host acceptance
+is not yet established. See the
+[materializing cleanup record](2026-10-07-local-materializing-cleanup.md).
+
+Managed publication buffers, actual snapshot-reload cancellation acceptance,
+availability/Carrier walks, other scratch and Native physical-byte correspondence
+remain. Incremental reference retirement does not establish a wall-clock or GC
+latency bound. The full retained Local goal remains open.
+
+### Incremental publication admission and public cleanup (2026-10-08)
+
+Private managed-admission buffers now retire in bounded slices while pending
+capacity remains charged. Focused admission/caller fixtures preserve finished
+receipts and validate cancellation, reference cleanup and retry. These close the
+private admission retirement boundary, not the still-synchronous receipt creation
+or availability walks. The installed DuckDB cleanup hook now has a separate
+real-DuckDB/Store regression: physical release preserves pending admission
+capacity, retries reach release within an independently derived bound, and
+native attempts do not increase. The retained source survives downstream
+retirement; its own final cleanup clears all reservations. The hook and adjacent
+lifecycle selection passed 10/10 on dirty source at
+`61298497c40a2943753edfd04b75186b5afb8887` (`run-eMobrM`). This uses public
+preparation and the existing checked task fixture, not full public Named Result
+acceptance. Native physical-byte correspondence is not established.
+
+The standard Host with real retained/publication Stores passed a focused 13-case
+selection at `c87106aa97d5587691acd93a12b1ead806110f8d`, including normal mixed
+Carrier Stages, three Named Results, two consumers, post-progress cancellation,
+typed exact/one-short limits, Store faults and retry without more Compute.
+This follows an actual close-order failure and independently corrected stale
+work-boundary evidence. No public contract check was weakened. This is checkout
+Host acceptance, not pristine packed/HTTPS or CI acceptance. See the
+[publication reclamation record](2026-10-07-local-publication-reclamation.md).
+
+### Bounded managed receipt issuance (2026-10-08)
+
+The Local managed finalizer now resumes reference/input validation and receipt
+copies through the existing admission owner, charging the existing finalization
+budget across polls. Partial copies remain cleanup-owned; successful receipt
+facts and the measurement index transfer once. Independent quantum-one and
+quantum-seven/64 fixtures preserve content usage and bound private retirement.
+The actual standard Host Events-to-Relation route delivers cancellation during
+receipt preparation, before retained material, and confirms stop, non-publication
+and final release without redispatch. Preparation evidence is JS 38/38 plus a
+22-case caller selection and the new Host case 1/1; source and artifact scope are
+recorded separately in the
+[bounded receipt record](2026-10-08-local-bounded-admission-finish.md).
+
+After normal main integration, clean
+`565dea915bcbc7e09fda3fcc61416d3337f0eafc` passed the JS caller selection 22/22
+and Node selection 46/46 (14 actual Host cases plus 32 source guards). Consuming
+source runtimes were rebuilt at that SHA. The actual history audit still fails
+on an unchanged main declaration's redundant singleton merge-base field; this
+shared provenance failure is recorded rather than bypassed.
+
+The blocking receipt convenience API, row-file materializing receipt path,
+nested-value admission and trusted availability callbacks remain separate
+boundaries. This does not establish a whole-callback latency or physical-byte
+bound, packed/HTTPS acceptance, all-target CI or whole-Local completion.
+
+## Physical receipt completion follow-up
+
+The DuckDB physical Values/Compute receipt finalizers now connect their existing
+owners to bounded common receipt polling before retained content is sealed.
+See [scope and evidence](2026-10-08-duckdb-bounded-physical-receipts.md).
+This is separate from row-file Local export completion, managed View verification
+and physical chunk admission; those are not counted as closed by this change.
+
+### Bounded View summary and receipt completion (2026-10-08)
+
+Managed View completion now resumes common column admission, ordered index
+diagnosis and receipt issuance through the existing owner. The selected DuckDB
+strategy path polls this owner before retention; competing finish, cancellation,
+input revocation and mutable fact custody are covered independently. Logical
+measurement and typed first-failure precedence are unchanged. See the
+[View completion record](2026-10-08-local-bounded-view-finish.md).
+Occurrence selection/copy preparation and trusted availability/verifier callback
+duration remain separate boundaries, as do row-file completion and physical chunk
+admission. This does not establish packed/public Run cancellation or whole-Local
+completion.
+
+### Managed selection traversal follow-up (2026-10-08)
+
+Occurrence map copying/validation, permutation uniqueness, column aggregates
+and copied measurement cells now resume through the common selection owner.
+The selected DuckDB managed strategy polls this owner before View completion
+and Store retention. Independent work/cell boundaries, cursor cancellation and
+the actual filter/select strategy caller are connected in the
+[selection preparation record](2026-10-08-local-bounded-view-selection.md).
+The packed payload remains one bounded-capacity allocation; its latency,
+View-plan preparation and trusted callbacks are not made bounded by this change.
+Pure-select native candidate support and whole-Local completion are not claimed.
+
+### Within-row retained export follow-up (2026-10-08)
+
+Completed row-file export now resumes name/value measurement and canonical
+emission through existing cursors. The Local Node Store adapter polls within
+one row, yielding for Host cancellation before a complete row reaches the Store.
+The ordinary Values/filter/select producer and its two consumer Named Results
+use real retained/publication Stores with independent expectations. Cancellation
+during row measurement retains its original cause, confirms stop, prevents
+publication and drains existing cleanup without additional Compute.
+See the [row export record](2026-10-08-local-bounded-row-file-export.md) for
+independent work/workspace limits, the additional fixed capacity envelope and
+fixed-source JS/Node evidence. Export preparation, publication metadata copies,
+blocking Native consumers and trusted callback latency are still separate
+boundaries; this is not packed/all-target or whole-Local completion.
+
+### Bounded export metadata follow-up (2026-10-08)
+
+Bare Local row-file preparation now resumes canonical column-name ordering,
+including long Text charging/comparison and insertion shifts, then initializes
+private names and summaries one column at a time before physical Store
+acquisition. Publication receipt completion transfers six private summaries
+once; public readers remain independent copies. Existing logical work, content
+CIDs and ordering are unchanged. The modeled fixed preparation envelope adds
+512 bytes per output; the policy ceiling is unchanged.
+
+At `ea2a1cb22ed027c07abad545fcc6b6ac0c359c4b`, common-owner and Table-input
+caller JS tests passed 42/42 and both consumed checkout runtimes built. Node
+19/19 passed at `37268a22ad81015c5c35bd7b2d19cf76dede586f`, whose only further
+runtime-boundary change corrects the generated tuple reader and related JS
+fixtures. The actual Host cancellation happens during metadata preparation:
+zero Store leases, stop confirmed, no publication and final resource release
+without redispatch. Failed earlier binding evidence and exact runtime-source
+reuse are recorded in the
+[metadata preparation record](2026-10-08-local-bounded-export-metadata.md).
+
+Publication schema hashing/Result-view preparation, snapshot getters, blocking
+Native consumers, physical chunk admission and trusted callback latency remain
+separate boundaries. This is not packed/all-target or whole-Local completion.
+
+### Bounded Named Result preparation follow-up (2026-10-08)
+
+The common Result-view owner now resumes typed projection/source-name lookup,
+Text charging/comparison and stable merge emission, then polls the existing
+export metadata owner under the same preparation quantum. Private maps and
+pending Result borrows are transferred or retired once; revocation and reentry
+checks remain at the ownership boundaries. Logical work, stable ordering and
+wire/CID contracts are unchanged.
+
+Independent exact/one-short mapping, order and row-map workspace cases pass
+alongside cancellation inside both Text charging and comparison. The actual
+retained Host reads all three Named Results in independent expected order;
+cancellation during Result comparison preserves the exact abort cause, prevents
+publication and releases existing reservations without additional Compute.
+See the [Result preparation record](2026-10-08-local-bounded-result-preparation.md)
+for source-specific JS 38/38, Host 10/10 and integration Host 2/2 evidence.
+
+Schema identity emission remains synchronous. Direct convenience publication
+callers can still drain preparation; snapshot copies, physical chunk admission,
+blocking Native consumers and trusted callbacks remain separate boundaries.
+A narrower projected producer Result still fails checked inter-task contract
+matching before Compute and is not claimed as supported by this unit.
+This is not packed/all-target or whole-Local completion.
+
+### Checked schema traversal follow-up (2026-10-08)
+
+The existing checked contract emitter now visits object children one at a time
+and uses the shared ordered-key/Text writer cursors. Relation schema identity
+polls hash emission, wire emission and private field-name collection; retained
+Result metadata polls that owner before issuing a stream. Canonical schema
+CIDs, conditional presence and aggregate byte/node/depth limits remain unchanged.
+
+Independent frame and writer boundaries, hash/wire cancellation, and actual
+Host cancellation during recursive schema traversal are recorded in the
+[schema preparation evidence](2026-10-08-local-bounded-schema-preparation.md):
+clean-source JS 32/32 and focused Host 4/4 with matching runtime inputs.
+This depends on #904 until the Result preparation parent is adopted by main.
+
+Blocking convenience publication callers, snapshot copies, physical chunk
+admission and runtime allocation/contiguous-string latency remain separate
+boundaries. The existing asynchronous Result transformation route is covered;
+all retained Local paths and all-target/packed completion are not claimed.
+
+### Captured publication preparation follow-up (2026-10-08)
+
+The JS Named Result adapter now polls the existing preparation owner even when
+the optional extra Client selection is absent. The captured graph still fixes
+the exact occurrence, projection, order and definition; Source/cell pins and
+managed bridge generation checks are retained. Cancellation reaches the same
+pending preparation, and custody transfers or retires once without fallback.
+
+The [publication preparation evidence](2026-10-08-local-bounded-publication-preparation.md)
+records clean-source common JS 24/24, controls 15/15 and actual Host 6/6.
+The Host cases include unselected success and positive-progress cancellation
+through real retained/publication Stores, exact Named Result rows/order for
+two consumers, non-publication and final release without another Compute.
+This depends on #907 and its #904 parent until their adoption by main.
+
+Explicit blocking Native/direct-output callers, replay metadata, snapshot and
+field-list copies/validation, physical chunk admission and runtime allocation
+remain separate boundaries. This is not all-target/packed or whole-Local
+completion; no product capacity or semantic limit was weakened.
+
+### Exact captured snapshot binding follow-up (2026-10-08)
+
+The snapshot getter now rejects a foreign finished export receipt before
+allocating its writer or traversing rows. Equal content, or another export of
+the same completed generation, cannot substitute the exact export identity.
+Existing liveness checks and receipt/source custody remain unchanged.
+
+The [snapshot binding record](2026-10-08-local-result-snapshot-binding.md)
+records two failing pre-change common-API counterexamples, clean-source JS
+20/20, and one actual retained Host case reading the producer and two consumer
+Named Results with independently expected payloads/order and final release.
+The work adopts main `465a501b6ccf1a7b57943d11d5d3614e3a53e511`; #904 is now
+integrated, while #907 and #911 remain dependencies.
+
+Snapshot re-encoding and subsequent canonical admission/field validation are
+still synchronous. This binding fix is not evidence that either traversal has
+become interruptible, and does not close the whole retained Local goal.

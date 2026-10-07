@@ -15,6 +15,9 @@ const preparations = new WeakMap();
 const compilations = new WeakMap();
 const taskCompilations = new WeakMap();
 const requests = new WeakMap();
+const cancellationIdentities = new WeakMap();
+const submissionEpochs = new WeakMap();
+const submittedIntents = new WeakMap();
 const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
@@ -2256,6 +2259,54 @@ export function prepareRunCancellation(definition, definitionCid,
     terminal, requested), 'RunHostCancellationRejected');
 }
 
+/** Identity only; this does not request physical stop or return capacity. */
+export function prepareRunCancellationIdentity(definition, scope) {
+  const {namespaceId, authorityScopeCid, cancelId, expectedRevision} = scope ?? {};
+  if ([namespaceId, authorityScopeCid, cancelId].some(value => typeof value !== 'string') ||
+      !Number.isSafeInteger(expectedRevision) || expectedRevision < 0 ||
+      expectedRevision > 2147483647) {
+    throw new TypeError('InvalidRunCancellationIdentity');
+  }
+  return handle(cancellationIdentities, checked(
+    owner.clientValuesHostPrepareCancellationIdentity(namespaceId,
+      authorityScopeCid, cancelId, requireHandle(definitions, definition),
+      expectedRevision), 'RunHostCancellationIdentityRejected'),
+  'cancellation-identity');
+}
+
+/** Stored identity checksum; never storage provenance or execution authority. */
+export function runCancellationIntentCid(identity) {
+  return owner.clientValuesHostCancellationIntentCid(
+    requireHandle(cancellationIdentities, identity));
+}
+
+/** Replay requires the saved immutable outcome, rather than today's Run flags. */
+export function prepareRunCancellationOperation(definition, requested, facts) {
+  const {retained, currentRevision, currentAuthorization,
+    terminalObserved, cancellationRequested} = facts ?? {};
+  if (!Number.isSafeInteger(currentRevision) || currentRevision < 0 ||
+      currentRevision > 2147483647 ||
+      [currentAuthorization, terminalObserved, cancellationRequested].some(value =>
+        typeof value !== 'boolean')) {
+    throw new TypeError('InvalidRunCancellationOperation');
+  }
+  const result = owner.clientValuesHostPrepareCancellationOperation(
+    requireHandle(cancellationIdentities, requested), retained === undefined ?
+      undefined : requireHandle(cancellationIdentities, retained),
+    requireHandle(definitions, definition), currentRevision,
+    currentAuthorization, terminalObserved, cancellationRequested);
+  if (result?.$tag === 0 && ['ClientCancellationIntentConflict',
+    'ClientCancellationOperationMismatch', 'ClientCancellationRevisionConflict',
+    'ClientCancellationDenied', 'ClientCancellationRunMismatch'].includes(result._0)) {
+    throw Object.assign(new Error(result._0), {code: result._0});
+  }
+  const action = checked(result, 'RunHostCancellationOperationRejected');
+  if (!['accepted', 'already_requested', 'already_terminal', 'replay_original'].includes(action)) {
+    throw new Error('InvalidRunHostCancellationOperation');
+  }
+  return action;
+}
+
 export function issueRunControlObservation(revision, observation) {
   const {requested, unstarted, stopped} = observation ?? {};
   if (!Number.isSafeInteger(revision) || revision < 0 || revision > 2147483647 ||
@@ -2266,4 +2317,70 @@ export function issueRunControlObservation(revision, observation) {
   }
   return JSON.parse(checked(owner.clientValuesHostRunControlObservation(
     revision, requested, unstarted, stopped), 'RunHostControlRejected'));
+}
+
+
+// The common identity Owner does not authenticate an epoch or retain its
+// validation material. A physical Host must establish those facts separately.
+export function prepareSubmissionEpoch(scope) {
+  const {authorityScopeCid, epochNonce, notBefore, expiresAt} = scope ?? {};
+  if (typeof authorityScopeCid !== 'string' || typeof epochNonce !== 'string' ||
+      !Number.isSafeInteger(notBefore) || !Number.isSafeInteger(expiresAt)) {
+    throw new TypeError('InvalidSubmissionEpoch');
+  }
+  const value = owner.clientValuesHostSubmissionEpoch(authorityScopeCid,
+    epochNonce, notBefore, expiresAt);
+  if (value === undefined) throw new Error('SubmissionEpochRejected');
+  return handle(submissionEpochs, value, 'submission-epoch');
+}
+
+export function submissionEpochFacts(epoch) {
+  const value = requireHandle(submissionEpochs, epoch);
+  return Object.freeze({wire: owner.clientValuesHostSubmissionEpochWire(value),
+    cid: owner.clientValuesHostSubmissionEpochCid(value)});
+}
+
+export function submissionEpochValidity(epoch, now) {
+  if (!Number.isSafeInteger(now)) throw new TypeError('InvalidSubmissionClock');
+  const value = owner.clientValuesHostSubmissionEpochValidity(
+    requireHandle(submissionEpochs, epoch), now);
+  if (value === undefined) throw new Error('SubmissionClockRejected');
+  if (!['admissible', 'not_yet_valid', 'expired'].includes(value)) {
+    throw new Error('InvalidSubmissionOwnerReply');
+  }
+  return value;
+}
+
+export function submissionRequestId(epoch, nonce) {
+  if (typeof nonce !== 'string') throw new TypeError('InvalidSubmissionNonce');
+  const value = owner.clientValuesHostSubmissionRequestId(
+    requireHandle(submissionEpochs, epoch), nonce);
+  if (value === undefined) throw new Error('SubmissionNonceRejected');
+  return value;
+}
+
+export function prepareSubmittedIntent(wire, limits) {
+  const {maxWireBytes, maxNodes, maxDepth} = limits ?? {};
+  if (typeof wire !== 'string' ||
+      !Number.isInteger(maxWireBytes) || maxWireBytes < 1 || maxWireBytes > 1048576 ||
+      !Number.isInteger(maxNodes) || maxNodes < 1 || maxNodes > 65536 ||
+      !Number.isInteger(maxDepth) || maxDepth < 1 || maxDepth > 64) {
+    throw new TypeError('InvalidSubmittedIntent');
+  }
+  const value = owner.clientValuesHostSubmittedIntent(wire, maxWireBytes, maxNodes, maxDepth);
+  if (value === undefined) throw new Error('SubmittedIntentRejected');
+  return handle(submittedIntents, value, 'submitted-intent');
+}
+
+export function submittedIntentFacts(intent) {
+  const value = requireHandle(submittedIntents, intent);
+  return Object.freeze({wire: owner.clientValuesHostSubmittedIntentWire(value),
+    cid: owner.clientValuesHostSubmittedIntentCid(value)});
+}
+
+export function submittedIntentTransition(before, after) {
+  if (typeof before !== 'string' || typeof after !== 'string') {
+    throw new TypeError('InvalidSubmittedIntentPhase');
+  }
+  return owner.clientValuesHostSubmittedIntentTransition(before, after);
 }

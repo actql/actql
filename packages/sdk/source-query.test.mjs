@@ -1,13 +1,14 @@
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {connect, getSubmissionInput, explainSubmission, RequestHeld} from './index.mjs';
+import {connect, getSubmissionInput, getSubmissionOutcome, explainSubmission, RequestHeld} from './index.mjs';
 
 const cid = x => `sha256:${x.repeat(64)}`;
 const ref = {namespaceId: 'query-test', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
-const profile = {version: 'actql-client-host/0.1', mode: 'remote',
+const profile = {submissionEpoch, version: 'actql-client-host/0.1', mode: 'remote',
   owner: 'remote', durability: 'durable', scopeRef: 'query-scope',
   capabilities: [], limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
@@ -28,7 +29,8 @@ async function fixture(t, overrides = {}, token = 'token') {
     calls.push({operation, body});
     if (overrides[operation]) return overrides[operation](body, init);
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit' || operation === 'attach') {
+    if (operation === 'submit-intent') return Response.json(readySubmission(body, {ref, durability: 'durable', revision: 1}));
+    if (operation === 'attach') {
       return Response.json({ref, durability: 'durable', revision: 1});
     }
     if (operation === 'wait') return Response.json(succeeded());
@@ -56,7 +58,7 @@ test('short queries eagerly submit once and share a native Promise Result', asyn
   assert.equal(await query.catch(() => assert.fail('unexpected rejection')), first);
   assert.deepEqual(await query.all(), [{id: 1}]);
   assert.deepEqual(await query.all(), [{id: 1}]);
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('wait'), 1);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
   assert.equal(f.count('read'), 2);
   const reads = f.calls.filter(x => x.operation === 'read');
   assert.notEqual(reads[0].body.attemptId, reads[1].body.attemptId);
@@ -71,7 +73,7 @@ test('query invocation snapshots parameters and selection before async credentia
   const f = await fixture(t, {wait: () => Response.json(succeeded(['original', 'other']))},
     async () => { if (++tokens === 2) {notify(); await paused;} return 'token'; });
   const params = {format: 'a parameter', signal: 'another', nested: {id: 1}};
-  const options = {requestId: 'saved', result: 'original',
+  const options = {submissionRef: originalSubmission('saved'), result: 'original',
     parameterDeclarations: {id: {type: 'number'}}};
   const query = f.client.aql('SELECT 1 AS id |> RESULT original', params, options);
   await started;
@@ -80,7 +82,7 @@ test('query invocation snapshots parameters and selection before async credentia
   release();
   const result = await query;
   assert.equal(query.requestId, 'saved'); assert.equal(result.ref.resultName, 'original');
-  const submitted = f.calls.find(x => x.operation === 'submit').body;
+  const submitted = f.calls.find(x => x.operation === 'submit-intent').body;
   assert.equal(submitted.input.format, 'aql-text');
   assert.equal(submitted.parameters.nested.id, 1);
   assert.equal(submitted.parameters.format, 'a parameter');
@@ -89,15 +91,15 @@ test('query invocation snapshots parameters and selection before async credentia
 
 test('startSource returns the admitted Execution without starting a wait or read', async t => {
   const f = await fixture(t);
-  const execution = await f.client.startSource('{}', {format: 'json', requestId: 'low'});
+  const execution = await f.client.startSource('{}', {format: 'json', submissionRef: originalSubmission('low')});
   assert.deepEqual(execution.ref, ref);
   assert.equal(f.count('wait'), 0); assert.equal(f.count('read'), 0);
   assert.deepEqual(await execution.result('answer').all(), [{id: 1}]);
 });
 
 test('submission uncertainty keeps its original input and never resubmits', async t => {
-  const f = await fixture(t, {submit: () => {throw new Error('lost reply');}});
-  const query = f.client.sql('SELECT 1 AS id', undefined, {requestId: 'unknown'});
+  const f = await fixture(t, {'submit-intent': () => {throw new Error('lost reply');}});
+  const query = f.client.sql('SELECT 1 AS id', undefined, {submissionRef: originalSubmission('unknown')});
   let original;
   await assert.rejects(query, error => {
     original = error;
@@ -109,7 +111,7 @@ test('submission uncertainty keeps its original input and never resubmits', asyn
   });
   await assert.rejects(query.all(), error => error === original);
   await assert.rejects(query, error => error === original);
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('wait'), 0);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 0);
 });
 
 test('a held query preserves the pre-Run observation without a fake Execution', async t => {
@@ -118,8 +120,8 @@ test('a held query preserves the pre-Run observation without a fake Execution', 
     lookupExpiresAt: '2026-10-08T00:00:00.000Z',
     checkpoint: {checkpointId: 'checkpoint', checkpointCid: cid('c'),
       kind: 'run_scope', expiresAt: '2026-10-08T00:00:00.000Z'}};
-  const f = await fixture(t, {submit: () => Response.json(held)});
-  const query = f.client.aql('SELECT 1 AS id', undefined, {requestId: 'held'});
+  const f = await fixture(t, {'submit-intent': body => Response.json({kind: 'held', submissionRef: body.submissionRef, intentCid: body.intentCid, held})});
+  const query = f.client.aql('SELECT 1 AS id', undefined, {submissionRef: originalSubmission('held')});
   let original;
   await assert.rejects(query, error => {
     original = error; assert.ok(error instanceof RequestHeld);
@@ -127,7 +129,7 @@ test('a held query preserves the pre-Run observation without a fake Execution', 
     assert.equal(getSubmissionInput(error).requestId, 'held'); return true;
   });
   await assert.rejects(query, error => error === original);
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('wait'), 0);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 0);
 });
 
 for (const status of ['preparing', 'running', 'resuming', 'failed', 'cancelled',
@@ -151,7 +153,7 @@ for (const status of ['preparing', 'running', 'resuming', 'failed', 'cancelled',
       assert.equal(JSON.stringify(error).includes('observation'), false);
       assert.equal(JSON.stringify(error).includes('result_availability'), false); return true;
     });
-    assert.equal(f.count('submit'), 1); assert.equal(f.count('wait'), 1);
+    assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
     assert.equal(f.count('read'), 0);
   });
 }
@@ -187,7 +189,7 @@ test('a collection shortcut snapshots its limits before the query finishes', asy
   options.maxRows = 100;
   release();
   await assert.rejects(collection, {code: 'ResultRetainedLimit', rowsYielded: 0});
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('read'), 1);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('read'), 1);
 });
 
 test('collection shortcuts retain inherited and non-enumerable read ceilings', async t => {
@@ -197,7 +199,7 @@ test('collection shortcuts retain inherited and non-enumerable read ceilings', a
   const hidden = Object.defineProperty({}, 'maxRows', {value: 1});
   await assert.rejects(query.all(inherited), {code: 'ResultRetainedLimit'});
   await assert.rejects(query.all(hidden), {code: 'ResultRetainedLimit'});
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('read'), 2);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('read'), 2);
 });
 
 test('wait failure retains a real Execution without retry or private JSON causes', async t => {
@@ -209,7 +211,7 @@ test('wait failure retains a real Execution without retry or private JSON causes
     assert.doesNotMatch(JSON.stringify(error), /private wait|cause|capabilities/u);
     return true;
   });
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('wait'), 1);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('wait'), 1);
   assert.equal(f.count('read'), 0);
 });
 
@@ -219,12 +221,12 @@ test('invalid short-query options refuse submission and do not guess legacy opti
   await assert.rejects(f.client.sql('SELECT 1', undefined, {format: 'json'}),
     {code: 'InvalidQueryOptions'});
   await assert.rejects(f.client.sql('SELECT 1', undefined, {result: ''}), {code: 'InvalidResultName'});
-  assert.equal(f.count('submit'), 0);
+  assert.equal(f.count('submit-intent'), 0);
   // Names resembling options remain ordinary second-argument parameters.
   await f.client.sql('SELECT 1', {requestId: 'a value', result: 'a value'});
-  const sent = f.calls.find(x => x.operation === 'submit').body;
+  const sent = f.calls.find(x => x.operation === 'submit-intent').body;
   assert.deepEqual(sent.parameters, {requestId: 'a value', result: 'a value'});
-  assert.notEqual(sent.requestId, 'a value');
+  assert.notEqual(sent.submissionRef.nonce, 'a value');
 });
 
 test('an ignored rejected query produces one ordinary unhandled rejection', () => {
@@ -232,7 +234,7 @@ test('an ignored rejected query produces one ordinary unhandled rejection', () =
   const code = `import {sourceQuery} from ${JSON.stringify(module)};
     let observed = 0;
     process.on('unhandledRejection', () => {observed++;});
-    sourceQuery(() => Promise.reject(new Error('lost')), Error, () => {}, 'sql', 'SELECT 1');
+    sourceQuery(() => Promise.reject(new Error('lost')), Error, () => {}, () => {}, 'sql', 'SELECT 1');
     setTimeout(() => {if(observed !== 1) process.exitCode = 1;}, 30);`;
   const child = spawnSync(process.execPath, ['--input-type=module', '-e', code],
     {encoding: 'utf8', timeout: 10000});
@@ -257,7 +259,7 @@ test('a throwing query-option accessor rejects without transport or reevaluation
   }});
   assert.ok(query instanceof Promise);
   await assert.rejects(query, {message: 'caller option failure'});
-  assert.equal(calls, 1); assert.equal(f.count('submit'), 0);
+  assert.equal(calls, 1); assert.equal(f.count('submit-intent'), 0);
 });
 
 for (const [method, kind] of [['all', 'schema'], ['all', 'options'],
@@ -272,7 +274,7 @@ for (const [method, kind] of [['all', 'schema'], ['all', 'options'],
         const original = Object.assign(new Error(code), {code});
         let reject;
         const admission = new Promise((_resolve, no) => {reject = no;});
-        const query = sourceQuery(() => admission, Error, () => {}, 'sql', 'SELECT 1');
+        const query = sourceQuery(() => admission, Error, () => {}, () => {}, 'sql', 'SELECT 1');
         const argument = ${JSON.stringify(kind)} === 'schema'
           ? {'~standard': {version: 2, vendor: 'test', validate() {}}}
           : {get maxRows() {captured++; throw new Error('capture failure');}};
@@ -302,5 +304,49 @@ test('collection argument failures reject after query success without reading', 
   await assert.rejects(query.all({'~standard': {}}), {code: 'InvalidResultSchema'});
   const result = await query;
   assert.deepEqual(result.ref.run, ref);
-  assert.equal(f.count('submit'), 1); assert.equal(f.count('read'), 0);
+  assert.equal(f.count('submit-intent'), 1); assert.equal(f.count('read'), 0);
+});
+
+test('short query and collection retain the exact original before a lost reply', async t => {
+  const f = await fixture(t, {'submit-intent': () => {throw new Error('lost reply');}});
+  const original = f.client.newSubmission({nonce: 'saved-exact-query'});
+  const parameters = {nested: ['e\u0301', 'é', '\r', '\n', '\r\n']};
+  const text = "SELECT 'e\u0301\r\n' AS value";
+  const query = f.client.aql(text, parameters, {submissionRef: original});
+  const collected = query.all();
+  const saved = getSubmissionInput(query);
+  assert.deepEqual(saved.submissionRef, original);
+  assert.equal(saved.input.text, text);
+  assert.equal(getSubmissionInput(collected), saved);
+  parameters.nested[0] = 'changed after call';
+  let failure;
+  await assert.rejects(query, error => {
+    failure = error;
+    assert.equal(error.code, 'SubmissionUnknown');
+    assert.equal(getSubmissionInput(error), saved);
+    assert.deepEqual(saved.parameters.nested, ['e\u0301', 'é', '\r', '\n', '\r\n']);
+    return true;
+  });
+  await assert.rejects(collected, error => error === failure);
+  assert.equal(f.count('submit-intent'), 1);
+  assert.equal(f.count('wait'), 0);
+  assert.equal(f.count('read'), 0);
+});
+
+test('query observation loss retains the actual accepted submission outcome', async t => {
+  const f = await fixture(t, {wait: () => {throw new Error('wait reply lost');}});
+  const original = f.client.newSubmission({nonce: 'accepted-observation-loss'});
+  const query = f.client.sql('SELECT 1', undefined, {submissionRef: original});
+  const saved = getSubmissionInput(query);
+  await assert.rejects(query, error => {
+    assert.equal(error.code, 'QueryObservationUnknown');
+    assert.equal(getSubmissionInput(error), saved);
+    assert.equal(getSubmissionOutcome(error).kind, 'ready');
+    assert.deepEqual(getSubmissionOutcome(error).submissionRef, original);
+    assert.deepEqual(getSubmissionOutcome(error).admission.ref, ref);
+    return true;
+  });
+  assert.equal(f.count('submit-intent'), 1);
+  assert.equal(f.count('wait'), 1);
+  assert.equal(f.count('read'), 0);
 });

@@ -267,6 +267,13 @@ an analytic `OVER` clause resolve against the input snapshot, not the final
 ORDER BY scope. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+In a grouped SELECT, a grouping expression may occur inside a larger scalar
+expression. Its input references must resolve to the same pre-group value slots
+and property members as the grouping key. The evaluated key is reused; retaining
+`payload.score + 1` does not restore `payload` or permit `payload.score` alone.
+SELECT siblings still use the input scope, including when an output alias shadows
+an input receiver. Nullable keys keep their common value contract and NULLs.
+
 Pipe range variables bind immutable input value slots. `SET` replaces the
 current unqualified columns; every assignment sees the same pre-SET row.
 `DROP` removes current names, and `RENAME` changes current names. These three
@@ -350,6 +357,61 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+Pipe grouping items accept an optional output alias, with or without AS,
+including backtick-quoted names. Each grouping expression and aggregate argument
+resolves against the pre-group input scope. A grouping alias does not rebind a
+sibling grouping expression. The existing group operation retains its physical
+keys; the subsequent ordinary projection names the grouped output. Output columns
+are grouping items in authored order followed by aggregates. Duplicate output
+names are rejected under the selected case-insensitive name rules. Repeated key
+references with distinct aliases retain the repeated `by` entries and project the
+same grouped value twice; they do not strengthen uniqueness or duplicate rows.
+After AGGREGATE, only those output columns are visible, and the old input range
+is closed. These aliases belong to Pipe; SQL GROUP BY does not acquire the Pipe
+output-alias grammar.
+
+Pipe aggregate outputs may contain scalar expressions around aggregate calls,
+including multiple calls in one expression. Each named output must contain an
+aggregate call; analytic calls are not admitted in this expression list. Calls
+resolve against the pre-group input and lower to the existing group operation.
+Identical calls may share an evaluated slot only when their input bindings and
+arguments agree. The enclosing scalar expression uses ordinary derive after
+grouping and before output aliases are installed. It can read retained grouped
+inputs and proven evaluated grouping subexpressions, including nullable property
+paths, but cannot read ungrouped inputs or sibling output aliases. Reusing a
+key requires the same resolved input meaning, not just matching text. Private
+aggregate and scalar fields are removed by the output projection. Output order
+remains grouping items followed by authored aggregate expressions, and ordinary
+WHERE/ORDER/LIMIT operate on that output scope. These rules do not introduce an
+aggregate evaluator, new numeric law or row-based type inference.
+
+Pipe AGGREGATE accepts the adopted shorthand ordering. `GROUP AND ORDER BY`
+sorts every grouping output, left to right, using ASC NULLS FIRST by default.
+A grouping item's ASC/DESC and NULLS FIRST/LAST suffix overrides its default;
+without AND ORDER, only suffixed grouping items participate. Ordering suffixes
+on aggregate outputs follow all ordered grouping outputs, regardless of their
+source-list placement. Aggregate suffixes require ASC or DESC; grouping suffixes
+may specify NULLS FIRST/LAST alone, as in the pinned GoogleSQL parser profile.
+The Frontend emits an ordinary Order operation on evaluated output positions:
+no grouping expression is recomputed, old range revived or hidden value exposed.
+No suffix and no AND ORDER means no implicit ordering. Empty global grouping has
+no grouping output to sort; an explicit aggregate suffix still orders its output.
+These forms do not extend SQL GROUP BY's grammar. See the pinned reference
+[shorthand ordering](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#shorthand_order_pipe_syntax).
+
+Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
+to the ordinary group operation with an empty aggregate map: each distinct
+group contributes its grouping columns, in authored key order, with their
+checked types and NULL grouping semantics. Subsequent operators see that new
+output scope, not the previous input range. A nonempty key list on empty input
+produces no groups; `GROUP BY ()` denotes one global group and produces one
+empty object even on empty input. It can feed a subsequent explicit EXTEND;
+publication of a zero-column Result remains unsupported by the common Result
+contract. An AGGREGATE with neither expressions nor a GROUP BY clause remains
+a syntax error. This connects the selected GoogleSQL
+[grouping aggregation](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax#aggregate)
+without synthesizing COUNT, DISTINCT, ordering or an alternate execution path.
+
 A Pipe JOIN consumes the completed left Relation, including its projected or
 aggregated columns, predicates, ordering and LIMIT. A preceding Pipe AS names
 that current row; ranges and columns removed by projection are not restored.
@@ -394,6 +456,62 @@ not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
 
+## ARRAY constructors
+
+For `[NOT] IN UNNEST`, an unannotated literal ARRAY of scalar literals and
+immediate scalar parameter references uses the existing `in`/`not_in` literal
+list contract. Both `[item, ...]` and `ARRAY[item, ...]` are supported, including
+parentheses and signed numeric literals. Order, duplicates, NULL atoms and
+parameter references are preserved; the Frontend does not evaluate general
+expressions to build the list. A matching value takes precedence over a NULL
+item. An empty list yields FALSE for IN and TRUE for NOT IN, including a
+typed nullable left operand, under the common empty-set rule. These rules follow
+the selected [GoogleSQL IN operator](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator).
+
+Array parameters retain their existing membership contract. General element
+expressions and annotated ARRAY constructors retain ordinary common admission;
+they are not rewritten into literal lists or stripped of their annotations.
+Those forms remain unsupported by the current membership expression profile,
+not invalid GoogleSQL. An ordinary SELECT ARRAY remains an `array` expression.
+
+`[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
+order and duplicates through the ordinary finite `array` expression. Elements
+use the common checker for compatible types, NULL context, parameters and
+constructor capability checks; the Frontend does not stringify values or
+infer a second type system. The parser's existing work, node and depth limits
+also cover array children. An empty list needs unique type context.
+
+The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+Annotations use the existing typed `empty_array.items` evidence. A nonempty
+annotated array uses an ordinary constant-true lazy `if` with that empty-array
+peer, so the common checker checks the declared item type and evaluates the
+actual elements once. It does not add an element CAST. NULL elements retain
+their nullable contract even when the annotation provides a nonnullable peer.
+
+After ordinary checking, source preparation rejects resolved ARRAY types whose
+immediate item type is ARRAY. This includes constructors, references to typed
+columns or parameters, and Relation outputs such as ARRAY_AGG; inspecting
+literal syntax alone is insufficient. Recursive type inspection is bounded by
+the source profile's work limit. An intervening closed object is permitted,
+but does not hide a directly nested ARRAY elsewhere within that object. JSON
+payload arrays are JSON values, not SQL ARRAY types. Recursive arrays in
+JSON/YAML Program input retain their common contract. Source-profile rejection
+occurs before durable Run admission and provider I/O. Expression refusals retain
+the common expression's original location; producer-schema refusals identify
+the existing Unit, input/step and field without inventing an expression origin.
+
+The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
+also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
+`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
+contract currently rejects JSON item types, and the selected finite Number
+profile does not establish exact INT64 semantics. Additional type annotations
+remain explicitly unsupported; an unresolved `[]` is not silently assigned
+Number or JSON. The source and independently authored Program rejection of
+JSON arrays are dependency evidence, not execution acceptance. ActQL's
+nullable-array Result serialization remains its existing delivery profile;
+it is not a claim about BigQuery's Result serialization.
+
 ## Declared UNNEST value tables
 
 Direct `FROM UNNEST(@items) AS element [WITH OFFSET AS position]` accepts
@@ -407,6 +525,22 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+The same expansion accepts declared parameter property paths, for example
+`FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
+names retain their ordinary expression meaning. The Frontend follows the
+ordinary common expression checker to the ARRAY element contract; it
+does not sample parameter values or fold a nullable receiver to a different type.
+The same lookup admits finite ARRAY constructors, typed empty ARRAYs and
+computed ARRAY expressions such as `IF(TRUE, [], ['x'])` or
+`IF(TRUE, @items, @items)`. It does not invent Frontend-specific types or
+discharge the expression's runtime obligations and required profiles. Ordinary common property and
+UNNEST checking still validates the path, values and declared bounds. A NULL
+object anywhere on this path produces a NULL ARRAY and therefore zero rows,
+with the same element-field contracts and column order as nonempty input.
+Expression lowering and common type inspection use the existing bounded
+construction and expression work limits. Exhaustion remains a work-limit
+error, rather than a guessed or truncated output schema.
+
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change
@@ -419,8 +553,37 @@ GoogleSQL's ordered STRUCT type. Reordering that contract's authored JSON keys
 does not change its field order. Anonymous/duplicate STRUCT fields, positional
 STRUCT equality and author-selected STRUCT order remain a common-contract gap,
 not a guarantee supplied by this expansion.
-Unknown array-expression contracts remain explicitly unsupported for star;
-this is not general ARRAY expression or correlated UNNEST support.
+Unresolved, non-ARRAY and inadmissible element contracts remain explicitly
+unsupported for star. ARRAY typing comes from the common expression checker;
+this connection does not extend the common ARRAY constructor capability profile.
+
+`CROSS JOIN UNNEST(array_expression) AS element [WITH OFFSET AS position]`
+expands each current row through the existing common `unnest` operation. SQL
+FROM clauses and Pipe JOIN operators use the same sequential expansion. The
+array expression resolves against preceding input columns and range snapshots,
+not subsequent SELECT aliases. Parent columns and their evaluated slots remain
+available, including the original ARRAY column. NULL and empty arrays produce
+no child rows; NULL elements and duplicates remain child rows. OFFSET is zero
+based and does not by itself promise output order. Use an explicit ORDER BY
+when ordering matters. Type, key transfer and expansion bounds remain the
+common checker's responsibility; a parent key alone is not a unique child key.
+
+The original parent range survives Pipe SET/DROP/RENAME and correlation. A
+SELECT or AS replaces that scope using the existing rules above. Successive
+closed object value-table ranges retain their own receivers; adding another
+expansion does not rebind an earlier object's fields or value. Qualified parent
+stars remain supported independently of an unknown child contract. An unknown
+ARRAY expression's element/whole-result star still requires a common schema
+connection and is explicitly unsupported, rather than inferred from rows.
+
+The first correlated profile supports explicit CROSS JOIN UNNEST after any
+preceding ordinary JOINs and successive CROSS expansions. Ordinary Relation
+JOINs after expansion, INNER/LEFT correlation, implicit comma expansion and
+correlated expansion following a Pipe set expression remain unsupported. These
+are coverage gaps, not GoogleSQL language restrictions. The Frontend rejects
+them rather than moving operations or changing multiplicity. CROSS expansion
+does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
+Host capacity policy without raising either limit.
 
 ## Named intermediate Results
 
@@ -832,17 +995,33 @@ set; it is not equality on an `entity_type` property. Edge labels likewise
 come from their definition's label set. The retired `LABELS` property
 annotation does not establish a current Graph definition or grant authority.
 
-A fixed directed path retains each authored node and edge occurrence. Its
+Full edge patterns `-[]->`, `<-[]-`, and `-[]-` select outgoing, incoming,
+and either-direction traversal respectively. Fillers and finite quantifiers
+retain the same scope and bounds in each direction. An any-direction pattern
+uses the existing logical `traverse` direction `both`; it does not construct
+reverse edges or change definition-scoped edge identities. Exact duplicate
+paths follow the common traversal contract, including a single self-loop
+occurrence rather than two synthetic directional edges. Abbreviated `->`,
+`<-`, and `-` have the same meaning as the corresponding full empty edges,
+with no variable, label, or local constraint. They use the same finite bounds
+and path modes. Use a full edge when a filler is needed. `--` remains a SQL
+line-comment introducer, not an alternative any-direction edge spelling.
+This selected spelling follows the [GoogleSQL element-pattern reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#element_pattern)
+(consulted 2026-10-07); it adds no new Graph execution contract.
+
+A fixed path retains each authored node and edge occurrence. Its
 local predicates are evaluated at their demanded prefix: the starting node
 over the initial node scope, then each reached edge and node after the
 corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
 definition-scoped typed edge key, and ACYCLIC excludes node revisits. Separate paths with
 the same endpoints remain separate rows unless the query requests DISTINCT.
-The Script frontend passes a fixed directed pattern's reached-node `WHERE`
+The Script frontend passes a fixed pattern's reached-node `WHERE`
 or property-map to the corresponding `traverse.hops[i].node_where`. A
 qualified receiver names that hop's node variable; it does not capture another
 pattern variable. Static candidates follow the edge label and direction and
-its declared endpoint definitions. Ordinary checking validates property
+its declared endpoint definitions. Any-direction hops include both endpoint
+definitions as static candidates; the initial selector does not prove a
+narrower reached schema. Ordinary checking validates property
 presence, types and nullable object access across every reached candidate.
 A reached-node label is admitted only when every static candidate carries it;
 otherwise the missing per-hop label filter is explicitly unsupported.
@@ -851,6 +1030,16 @@ A quantified pattern's terminal-node condition remains unsupported: the common
 homogeneous `node_where` filters every reached hop, so applying a terminal-only
 condition there would incorrectly prune intermediate nodes. Fixed-hop
 conditions do not add a new evaluator or implicit node-property projection.
+
+Finite edge quantifiers accept `{n}`, `{m,n}`, and `{,n}`. The fixed form
+sets both traversal bounds to `n`; an omitted lower bound is zero. A finite
+upper bound must be positive, and an explicit lower bound must be non-negative
+and no greater than the upper bound. Bounds must be safe integers and remain
+subject to common admission and resource ceilings without clamping. These
+spellings follow the selected [GoogleSQL quantified-path syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#quantified_path_pattern)
+(consulted 2026-10-07), within the existing homogeneous edge profile. They do
+not add subpath/group-variable support or remove unsupported terminal
+conditions. Open upper bounds and named quantified edges remain unsupported.
 
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.

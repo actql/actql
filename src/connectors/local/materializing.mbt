@@ -20,9 +20,9 @@ pub(all) enum LocalMaterializingIssue {
 
 ///|
 struct LocalMaterializingAttempt {
-  inputs : Array[@execution.FixedRelationRead]
-  imports : Array[@execution.CompletedOutputImport?]
-  copies : Array[@execution.CompletedOutput?]
+  mut inputs : Array[@execution.FixedRelationRead]
+  mut imports : Array[@execution.CompletedOutputImport?]
+  mut copies : Array[@execution.CompletedOutput?]
   limits : LocalImportLimits
   // The computation runs only through its bounded provider, one quantum per
   // advance, over the constrained sequence.
@@ -45,9 +45,13 @@ struct LocalMaterializingAttempt {
   mut publication_output : @execution.CompletedOutput?
   output_limits : LocalExportLimits?
   mut exported : Bool
+  mut export_preparation : @execution.CompletedOutputExportPreparation?
   mut export_stream : @execution.CompletedOutputExport?
   mut export_receipt : @execution.CompletedOutputExportReceipt?
   mut release_check : (() -> Bool)?
+  mut cleanup_index : Int
+  mut cleanup_complete : Bool
+  mut cleanup_advancing : Bool
 }
 
 ///|
@@ -261,9 +265,13 @@ pub fn[E] prepare_local_materializing_execution(
         publication_output: None,
         output_limits,
         exported: false,
+        export_preparation: None,
         export_stream: None,
         export_receipt: None,
         release_check: None,
+        cleanup_index: 0,
+        cleanup_complete: false,
+        cleanup_advancing: false,
       }
       let close = fn() { close_local_materializing_attempt(attempt) }
       Ok(
@@ -278,7 +286,10 @@ pub fn[E] prepare_local_materializing_execution(
                 release_local_materializing_scratch(attempt) |> ignore
               }
             },
-            scratch_released: fn() { attempt.provider_execution is None },
+            scratch_released: fn() {
+              attempt.provider_execution is None &&
+              (!attempt.closed || attempt.cleanup_complete)
+            },
             retention_released: () => {
               match attempt.release_check {
                 None => true
@@ -342,6 +353,7 @@ pub fn begin_local_materializing_input(
       limits.values,
       limits.wire,
       limits.max_batch_bytes,
+      deferred_reclamation=true,
     ) {
     Ok(value) => {
       attempt.imports[port] = Some(value)
@@ -459,7 +471,16 @@ pub fn advance_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
   quantum : Int,
 ) -> Result[LocalMaterializingAdvance, LocalMaterializingIssue] {
-  if attempt.closed || attempt.settled || attempt.output is Some(_) {
+  if attempt.closed {
+    if quantum > 0 &&
+      attempt.provider_execution is Some(active) &&
+      !managed_provider_stopped(active) {
+      // A closed use scope may observe its requested stop, never a result.
+      advance_managed_provider(active, 1) |> ignore
+    }
+    return Err(State)
+  }
+  if attempt.settled || attempt.output is Some(_) {
     return Err(State)
   }
   let active = match attempt.provider_execution {
@@ -611,10 +632,9 @@ pub fn advance_local_materializing_attempt(
 pub fn cancel_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Bool {
-  match attempt.provider_execution {
-    Some(active) => cancel_managed_provider(active)
-    None => false
-  }
+  let requested = !attempt.closed
+  revoke_local_materializing_attempt(attempt)
+  requested
 }
 
 ///|
@@ -717,34 +737,86 @@ fn release_local_materializing_scratch(
 }
 
 ///|
-pub fn close_local_materializing_attempt(
+fn revoke_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Unit {
+  if attempt.closed {
+    return
+  }
   attempt.closed = true
+  if attempt.export_preparation is Some(preparation) {
+    @execution.cancel_completed_output_export_preparation(preparation) |> ignore
+  }
   if attempt.export_stream is Some(stream) {
     @execution.cancel_completed_output_export(stream)
   }
   if attempt.export_receipt is Some(receipt) {
     @execution.cancel_completed_export_receipt(receipt)
   }
+  attempt.export_preparation = None
   attempt.export_stream = None
   attempt.export_receipt = None
-  for index, value in attempt.imports {
-    if value is Some(value) {
-      @execution.cancel_completed_output_import(value) |> ignore
-    }
-    attempt.imports[index] = None
-    attempt.copies[index] = None
-  }
-  attempt.output = None
-  attempt.publication_output = None
   if attempt.provider_execution is Some(active) {
-    // A started provider reports its stop on one final advance before its
-    // workspace is reclaimed.
-    if !managed_provider_stopped(active) {
-      cancel_managed_provider(active) |> ignore
+    cancel_managed_provider(active) |> ignore
+  }
+}
+
+///|
+/// Physical stop and successful provider cleanup precede input-root retirement.
+/// The common scratch witness only reads facts; it never performs this work.
+pub fn advance_local_materializing_cleanup(
+  attempt : LocalMaterializingAttempt,
+  quantum : Int,
+) -> Bool {
+  if !attempt.closed || quantum <= 0 || attempt.cleanup_advancing {
+    return false
+  }
+  if attempt.cleanup_complete {
+    return true
+  }
+  attempt.cleanup_advancing = true
+  let complete = (fn() {
+    if attempt.provider_execution is Some(active) &&
+      !managed_provider_stopped(active) {
+      // Observe the requested physical stop through the same provider. Never
+      // start another provider or resume an accepted output during cleanup.
       advance_managed_provider(active, 1) |> ignore
     }
-    release_local_materializing_scratch(attempt) |> ignore
-  }
+    if !release_local_materializing_scratch(attempt) {
+      return false
+    }
+    for _ in 0..<quantum {
+      if attempt.cleanup_index >= attempt.imports.length() {
+        // These arrays are private roots. Do not mutate the original request
+        // inputs or any immutable rows adopted by a completed descendant.
+        attempt.imports = []
+        attempt.copies = []
+        attempt.inputs = []
+        attempt.reads = []
+        attempt.output = None
+        attempt.publication_output = None
+        attempt.cleanup_complete = true
+        return true
+      }
+      let index = attempt.cleanup_index
+      if attempt.imports[index] is Some(importer) &&
+        !@execution.advance_cancel_completed_output_import(importer, 1) {
+        continue
+      }
+      attempt.imports[index] = None
+      attempt.copies[index] = None
+      attempt.cleanup_index += 1
+    }
+    false
+  })()
+  attempt.cleanup_advancing = false
+  complete
+}
+
+///|
+pub fn close_local_materializing_attempt(
+  attempt : LocalMaterializingAttempt,
+) -> Unit {
+  revoke_local_materializing_attempt(attempt)
+  advance_local_materializing_cleanup(attempt, 64) |> ignore
 }

@@ -491,25 +491,25 @@ pub fn[T] prepare_managed_fixed_query_selection(
   max_cells : Int,
   max_work : Int,
 ) -> Result[@execution.ManagedViewSelection[T], NativeQueryIssue] {
-  match value.body {
-    Fixed(_) =>
-      prepare_managed_filter_selection(
-        value,
-        rows,
-        value.compilation,
-        max_cells,
-        max_work,
-      )
-    Take(query) => {
-      let selection = match
-        prepare_managed_take_actual_selection(query, rows, max_cells, max_work) {
-        Ok(value) => value
-        Err(@execution.InvalidLimits) => return Err(InvalidLimits)
-        Err(@execution.Limit) => return Err(Limit)
-        Err(_) => return Err(UnsupportedShape)
-      }
-      Ok(selection)
+  let cursor = match
+    begin_managed_fixed_query_selection(value, rows, max_cells, max_work) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match @execution.advance_managed_view_selection(cursor, 64) {
+      Ok((true, _)) => break
+      Ok((false, _)) => continue
+      Err(ForeignInput) => return Err(InputUnavailable)
+      Err(Limit) => return Err(Limit)
+      Err(InvalidLimits) => return Err(InvalidLimits)
+      Err(_) => return Err(UnsupportedShape)
     }
+  }
+  match @execution.take_managed_view_selection(cursor) {
+    Ok(selection) => Ok(selection)
+    Err(ForeignInput) => Err(InputUnavailable)
+    Err(_) => Err(UnsupportedShape)
   }
 }
 

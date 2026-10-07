@@ -2,10 +2,10 @@ import {captureReadOptions, captureResultRead} from './result-schema.mjs';
 
 // A query composes existing admission, observation and Result owners. It never
 // resubmits, reconciles a Run, answers a Checkpoint, or retries a Result read.
-const queryOptionNames = new Set(['requestId', 'signal', 'result',
+const queryOptionNames = new Set(['requestId', 'submissionRef', 'signal', 'result',
   'parameterDeclarations']);
 
-function executionError(ClientError, code, execution, requestId, state, cause) {
+function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
   const error = new ClientError(code, {requestId,
     executionRef: execution.ref});
   // Live handles, observations and underlying failures are explicit inspection
@@ -15,28 +15,31 @@ function executionError(ClientError, code, execution, requestId, state, cause) {
     ...(state === undefined ? {} : {observation: {value: state}}),
     ...(cause === undefined ? {} : {cause: {value: cause}}),
   });
+  retainFailure(execution, error, cause);
   return error;
 }
 
-function collectAfterQuery(query, capture, read) {
+function collectAfterQuery(query, retainResult, capture, read) {
   let captured, captureError, captureFailed = false;
   try { captured = capture(); }
   catch (cause) { captureFailed = true; captureError = cause; }
   // Capture arguments immediately, but always observe the eager query. Its
   // admission/held/observation failure takes precedence and keeps its identity;
   // a local argument failure must not leave that query rejection orphaned.
-  return query.then(result => {
+  const collected = query.then(result => {
     if (captureFailed) throw captureError;
     return read(result, captured);
   });
+  retainResult(query, collected);
+  return collected;
 }
 
-export function sourceQuery(startSource, ClientError, retainResult,
+export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
   format, text, parameters, options = {}) {
   let requestId, admission, signal, selectedResult;
   try {
-    requestId = options?.requestId ?? crypto.randomUUID();
-    if (typeof requestId !== 'string' || !requestId) {
+    requestId = options?.submissionRef?.nonce ?? options?.requestId;
+    if (requestId !== undefined && (typeof requestId !== 'string' || !requestId)) {
       throw new ClientError('InvalidRequestId');
     }
     if (options === null || typeof options !== 'object' ||
@@ -56,7 +59,9 @@ export function sourceQuery(startSource, ClientError, retainResult,
     signal = options.signal;
     // startSource captures JSON source/declarations/parameters synchronously,
     // before credentials or I/O. Do not serialize caller-owned inputs twice.
-    admission = startSource(text, {format, parameters, requestId, signal,
+    admission = startSource(text, {format, parameters, signal,
+      ...(options.requestId === undefined ? {} : {requestId: options.requestId}),
+      ...(options.submissionRef === undefined ? {} : {submissionRef: options.submissionRef}),
       ...(options.parameterDeclarations === undefined ? {} :
         {parameterDeclarations: options.parameterDeclarations})});
   } catch (cause) {
@@ -65,11 +70,12 @@ export function sourceQuery(startSource, ClientError, retainResult,
     requestId ??= crypto.randomUUID();
     admission = Promise.reject(cause);
   }
+  requestId = retainResult(admission)?.requestId ?? requestId ?? crypto.randomUUID();
   const query = admission.then(async execution => {
     let state;
     try { state = await execution.wait({until: 'terminal', signal}); }
     catch (cause) {
-      throw executionError(ClientError, 'QueryObservationUnknown', execution,
+      throw executionError(ClientError, retainFailure, 'QueryObservationUnknown', execution,
         requestId, undefined, cause);
     }
     if (state.status !== 'succeeded') {
@@ -81,36 +87,37 @@ export function sourceQuery(startSource, ClientError, retainResult,
         ? 'ExecutionBlocked' : 'ExecutionPending';
       // wait may return a current nonterminal observation. It is neither
       // success nor permission to poll, resume, or submit another request.
-      throw executionError(ClientError, code, execution, requestId, state);
+      throw executionError(ClientError, retainFailure, code, execution, requestId, state);
     }
     const names = Object.keys(state.result_availability);
     const name = selectedResult ?? (names.length === 1 ? names[0] : undefined);
     if (name === undefined || !Object.hasOwn(state.result_availability, name)) {
-      throw executionError(ClientError, name === undefined
+      throw executionError(ClientError, retainFailure, name === undefined
         ? 'ResultSelectionRequired' : 'UnknownResultName', execution,
       requestId, state);
     }
     if (state.result_availability[name].state !== 'available') {
-      throw executionError(ClientError, 'ResultUnavailable', execution,
+      throw executionError(ClientError, retainFailure, 'ResultUnavailable', execution,
         requestId, state);
     }
     const result = execution.result(name);
     retainResult(execution, result);
     return result;
   });
+  retainResult(admission, query);
   // Keep one native Promise. Native chaining/assimilation and repeated awaits
   // share this operation; each explicitly requested collection opens a read.
   Object.defineProperties(query, {
     requestId: {value: requestId, enumerable: true},
-    all: {value: (schemaOrOptions, options) => collectAfterQuery(query,
+    all: {value: (schemaOrOptions, options) => collectAfterQuery(query, retainResult,
       () => captureResultRead(ClientError, schemaOrOptions, options),
       (result, captured) => captured.validate === undefined
         ? result.all(captured.options)
         : result.all({'~standard': {version: 1, vendor: 'actql-captured',
           validate: captured.validate}}, captured.options))},
-    one: {value: options => collectAfterQuery(query,
+    one: {value: options => collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.one(captured))},
-    scalar: {value: options => collectAfterQuery(query,
+    scalar: {value: options => collectAfterQuery(query, retainResult,
       () => captureReadOptions(options), (result, captured) => result.scalar(captured))},
   });
   return Object.freeze(query);

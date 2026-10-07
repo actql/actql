@@ -37,11 +37,11 @@ implementation returns its scoped completion evidence and material reference to
 the same authority. Resident output is bound to its verified relation before
 the slot is committed, without converting or re-importing the relation.
 
-The exported legacy finish/publication surface is a one-way compatibility
-adapter. It feeds the same commit and cannot write a separate task-output store.
-New product implementations must use the lifecycle-only preparation and typed
-completion entry points. The compatibility surface can be removed after known
-external consumers and the Local Carrier workstream have migrated.
+Both managed and materializing preparation use
+`connector_sdk.ExecutionLifecycleOperations` directly. There is no duplicate
+managed lifecycle type or conversion adapter. Implementations use lifecycle-only
+preparation and typed completion entry points; neither interface grants an
+implementation authority to publish a task output independently.
 
 The unified boundary adds no requirement to serialize rows, compute a logical
 CID, hash a physical body or rescan an already verified representation.

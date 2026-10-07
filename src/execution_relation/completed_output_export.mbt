@@ -10,17 +10,18 @@ struct CompletedOutputExport {
   writer : @encode.Writer
   logical_writer : @encode.Writer?
   budget : ValueBudget
-  column_rows : Array[Int]
-  column_bytes : Array[Int]
-  column_nodes : Array[Int]
-  column_max_value_bytes : Array[Int]
-  column_null_rows : Array[Int]
-  column_admitted_depths : Array[Int]
+  mut column_rows : Array[Int]
+  mut column_bytes : Array[Int]
+  mut column_nodes : Array[Int]
+  mut column_max_value_bytes : Array[Int]
+  mut column_null_rows : Array[Int]
+  mut column_admitted_depths : Array[Int]
   measurement_max_bytes : Int
   measurement_max_nodes : Int
   measurement_max_depth : Int
   mut row : Int
   mut reading : Bool
+  mut pending_row : CompletedExportRowProgress?
 }
 
 ///|
@@ -34,8 +35,10 @@ struct CompletedResultRelationExportPreparation {
   logical_wire : RowWireLimits
   schema_limits : RelationSchemaIdentityLimits
   max_batch_bytes : Int
+  mut metadata : CompletedOutputExportPreparation?
   mut stream : CompletedOutputExport?
   mut closed : Bool
+  mut advancing : Bool
 }
 
 ///|
@@ -186,8 +189,10 @@ pub fn start_completed_result_relation_export(
     logical_wire,
     schema_limits,
     max_batch_bytes,
+    metadata: None,
     stream: None,
     closed: false,
+    advancing: false,
   })
 }
 
@@ -200,6 +205,10 @@ pub fn cancel_completed_result_relation_export(
   } else {
     value.closed = true
     cancel_completed_result_rows(value.rows) |> ignore
+    if value.metadata is Some(metadata) {
+      cancel_completed_output_export_preparation(metadata) |> ignore
+    }
+    value.metadata = None
     if value.stream is Some(stream) {
       cancel_completed_output_export(stream)
     }
@@ -212,52 +221,101 @@ pub fn advance_completed_result_relation_export(
   value : CompletedResultRelationExportPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
-  if value.closed || quantum <= 0 {
+  if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
-  if !completed_output_available(value.rows.source) {
+  value.advancing = true
+  let result = (fn() -> Result[(Bool, Int), CompletedExportIssue] {
+    if !completed_output_available(value.rows.source) || value.closed {
+      return Err(ResultView(Unavailable))
+    }
+    if value.stream is Some(_) {
+      return Ok((true, 0))
+    }
+    let mut steps = 0
+    while steps < quantum {
+      if value.metadata is Some(metadata) {
+        let (done, used) = match
+          advance_completed_output_export_preparation(metadata, quantum - steps) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        steps += used
+        if done {
+          value.stream = Some(
+            match finish_completed_output_export_preparation(metadata) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            },
+          )
+          value.metadata = None
+          return Ok((true, steps))
+        }
+      } else if value.rows.done {
+        steps += 1
+        let rows = match finish_completed_result_rows(value.rows) {
+          Ok(value) => value
+          Err(issue) => return Err(ResultView(issue))
+        }
+        guard completed_export_preparation_workspace_slots(
+            value.payload_wire.max_columns,
+          )
+          is Some(slots) else {
+          return Err(Wire(InvalidLimits))
+        }
+        value.metadata = Some(
+          match
+            start_completed_export_rows_metadata(
+              value.rows.source,
+              rows,
+              value.max_rows,
+              value.values,
+              value.payload_wire,
+              Some(value.logical_wire),
+              Some(value.schema_limits),
+              value.max_batch_bytes,
+              slots,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          },
+        )
+      } else {
+        let (_, used) = match
+          advance_completed_result_rows(value.rows, quantum - steps) {
+          Ok(value) => value
+          Err(issue) => return Err(ResultView(issue))
+        }
+        steps += used
+      }
+    }
+    Ok((false, steps))
+  })()
+  value.advancing = false
+  if result is Err(_) {
     cancel_completed_result_relation_export(value) |> ignore
-    return Err(ResultView(Unavailable))
   }
-  if value.stream is Some(_) {
-    return Ok((true, 0))
-  }
-  let (done, work) = match advance_completed_result_rows(value.rows, quantum) {
-    Ok(result) => result
-    Err(issue) => return Err(ResultView(issue))
-  }
-  if done {
-    let rows = match finish_completed_result_rows(value.rows) {
-      Ok(result) => result
-      Err(issue) => return Err(ResultView(issue))
-    }
-    let stream = match
-      prepare_completed_export_rows(
-        value.rows.source,
-        rows,
-        value.max_rows,
-        value.values,
-        value.payload_wire,
-        Some(value.logical_wire),
-        Some(value.schema_limits),
-        value.max_batch_bytes,
-      ) {
-      Ok(result) => result
-      Err(issue) => return Err(issue)
-    }
-    value.stream = Some(stream)
-  }
-  Ok((value.stream is Some(_), work))
+  result
 }
 
 ///|
 pub fn finish_completed_result_relation_export_preparation(
   value : CompletedResultRelationExportPreparation,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
-  if value.closed {
+  if value.closed || value.advancing {
     return Err(Closed)
   }
   guard value.stream is Some(stream) else { return Err(NotFinished) }
+  value.advancing = true
+  let available = completed_output_available(value.rows.source)
+  value.advancing = false
+  if value.closed {
+    return Err(Closed)
+  }
+  if !available {
+    cancel_completed_result_relation_export(value) |> ignore
+    return Err(ResultView(Unavailable))
+  }
   value.closed = true
   Ok(stream)
 }
@@ -331,87 +389,14 @@ fn prepare_completed_export_rows(
   schema_limits : RelationSchemaIdentityLimits?,
   max_batch_bytes : Int,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
-  if max_rows < 0 || IndexedRows::row_count(rows) > max_rows {
-    return Err(Admission(CaptureLimit))
-  }
-  if !row_wire_valid_limits(wire) ||
-    (logical_wire is Some(limits) && !row_wire_valid_limits(limits)) ||
-    max_batch_bytes < 1 {
+  guard completed_export_preparation_workspace_slots(wire.max_columns)
+    is Some(slots) else {
     return Err(Wire(InvalidLimits))
   }
-  let budget = match value_budget(values) {
-    Ok(value) => value
-    Err(issue) => return Err(Admission(issue))
-  }
-  let order = match
-    prepare_row_wire_order(
-      completed_export_field_names(rows),
-      wire.max_columns,
-      wire.max_order_work,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Wire(issue))
-  }
-  let schema_identity = match schema_limits {
-    None => None
-    Some(limits) =>
-      match identify_relation_schema(rows.schema, limits) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(Schema(issue))
-      }
-  }
-  if logical_wire is Some(limits) &&
-    (
-      limits.max_columns < wire.max_columns ||
-      limits.max_order_work < wire.max_order_work
-    ) {
-    return Err(Wire(OrderLimit))
-  }
-  try {
-    let writer = @encode.buffered_hashing_writer(
-      wire.max_bytes,
-      wire.max_nodes,
-      wire.max_depth,
-      max_batch_bytes,
-    )
-    @encode.begin_array(writer)
-    let logical_writer = logical_wire.map(limits => {
-      let value = @encode.hashing_writer(
-        limits.max_bytes,
-        limits.max_nodes,
-        limits.max_depth,
-      )
-      @encode.begin_object(value)
-      @encode.key(value, "sort")
-      @encode.string_value(value, "relation")
-      @encode.key(value, "value")
-      @encode.begin_array(value)
-      value
-    })
-    Ok({
-      export_identity: Ref(()),
-      source: Some(source),
-      rows,
-      order,
-      schema: schema_identity,
-      writer,
-      logical_writer,
-      budget,
-      column_rows: Array::make(order.columns.length(), 0),
-      column_bytes: Array::make(order.columns.length(), 0),
-      column_nodes: Array::make(order.columns.length(), 0),
-      column_max_value_bytes: Array::make(order.columns.length(), 0),
-      column_null_rows: Array::make(order.columns.length(), 0),
-      column_admitted_depths: Array::make(order.columns.length(), 0),
-      measurement_max_bytes: wire.max_bytes,
-      measurement_max_nodes: wire.max_nodes,
-      measurement_max_depth: wire.max_depth,
-      row: 0,
-      reading: false,
-    })
-  } catch {
-    issue => Err(Wire(Encoding(issue)))
-  }
+  start_completed_export_rows_metadata(
+    source, rows, max_rows, values, wire, logical_wire, schema_limits, max_batch_bytes,
+    slots,
+  ).bind(drain_completed_export_preparation)
 }
 
 ///|
@@ -438,56 +423,33 @@ pub fn replay_completed_relation_export(
   if !row_wire_valid_limits(wire) || max_batch_bytes < 1 {
     return Err(Wire(InvalidLimits))
   }
-  let budget = match value_budget(values) {
-    Ok(value) => value
-    Err(issue) => return Err(Admission(issue))
-  }
-  let order = match
-    prepare_row_wire_order(
-      completed_export_field_names(value.rows),
-      wire.max_columns,
-      wire.max_order_work,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Wire(issue))
-  }
-  try {
-    let writer = @encode.buffered_hashing_writer(
-      wire.max_bytes,
-      wire.max_nodes,
-      wire.max_depth,
-      max_batch_bytes,
-    )
-    @encode.begin_array(writer)
-    Ok({
-      export_identity: Ref(()),
-      source: Some(source),
-      rows: value.rows,
-      order,
-      schema: None,
-      writer,
-      logical_writer: None,
-      budget,
-      column_rows: Array::make(order.columns.length(), 0),
-      column_bytes: Array::make(order.columns.length(), 0),
-      column_nodes: Array::make(order.columns.length(), 0),
-      column_max_value_bytes: Array::make(order.columns.length(), 0),
-      column_null_rows: Array::make(order.columns.length(), 0),
-      column_admitted_depths: Array::make(order.columns.length(), 0),
-      measurement_max_bytes: wire.max_bytes,
-      measurement_max_nodes: wire.max_nodes,
-      measurement_max_depth: wire.max_depth,
-      row: 0,
-      reading: false,
-    })
-  } catch {
-    issue => Err(Wire(Encoding(issue)))
-  }
+  prepare_completed_export_rows(
+    source,
+    value.rows,
+    IndexedRows::row_count(value.rows),
+    values,
+    wire,
+    None,
+    None,
+    max_batch_bytes,
+  )
 }
 
 ///|
 pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
   value.source = None
+  // An active callback only revokes; the enclosing poll closes its private
+  // cursor after the current emitter transition has returned.
+  if !value.reading {
+    if value.pending_row is Some(cursor) {
+      close_completed_export_row(cursor)
+    }
+    value.pending_row = None
+    @encode.cancel_writer(value.writer)
+    if value.logical_writer is Some(writer) {
+      @encode.cancel_writer(writer)
+    }
+  }
 }
 
 ///|
@@ -497,13 +459,30 @@ pub fn cancel_completed_output_export(value : CompletedOutputExport) -> Unit {
 pub fn next_completed_output_export(
   value : CompletedOutputExport,
 ) -> Result[String?, CompletedExportIssue] {
-  if value.reading {
-    return Err(Closed)
+  guard completed_output_export_workspace_slots(value.budget.limits, {
+      max_columns: 0,
+      max_order_work: 0,
+      max_bytes: value.measurement_max_bytes,
+      max_nodes: value.measurement_max_nodes,
+      max_depth: value.measurement_max_depth,
+    })
+    is Some(slots) else {
+    return Err(Admission(InvalidCaptureLimits))
   }
-  value.reading = true
-  let result = next_completed_export_row(value)
-  value.reading = false
-  result
+  while true {
+    let result = match advance_completed_output_export(value, 64, slots) {
+      Ok(result) => result
+      Err(issue) => return Err(issue)
+    }
+    if result.batch is Some(batch) {
+      return Ok(Some(batch))
+    }
+    if result.complete {
+      return Ok(None)
+    }
+  } nobreak {
+    Err(Closed)
+  }
 }
 
 ///|
@@ -552,113 +531,6 @@ pub fn next_completed_output_export_canonical_row(
 }
 
 ///|
-fn next_completed_export_row(
-  value : CompletedOutputExport,
-) -> Result[String?, CompletedExportIssue] {
-  guard value.source is Some(source) else { return Err(Closed) }
-  if !completed_output_available(source) {
-    value.source = None
-    return Err(Unavailable)
-  }
-  if value.source is None {
-    return Err(Closed)
-  }
-  if value.row == IndexedRows::row_count(value.rows) {
-    return Ok(None)
-  }
-  let result = export_completed_row(value, value.rows)
-  match result {
-    Ok(text) => {
-      value.row += 1
-      Ok(Some(text))
-    }
-    Err(issue) => {
-      value.source = None
-      Err(issue)
-    }
-  }
-}
-
-///|
-fn export_completed_row(
-  value : CompletedOutputExport,
-  table : CompletedExportRows,
-) -> Result[String, CompletedExportIssue] {
-  if IndexedRows::row_width(table, value.row) !=
-    IndexedRows::column_count(table) {
-    return Err(Wire(InvalidLayout))
-  }
-  if !charge_node(value.budget, 1) {
-    return Err(Admission(CaptureLimit))
-  }
-  try {
-    for index, (name, column) in value.order.columns {
-      if !charge_text(value.budget, name) {
-        return Err(Admission(CaptureLimit))
-      }
-      if !IndexedRows::cell_present(table, value.row, column) {
-        if !charge_node(value.budget, 2) {
-          return Err(Admission(CaptureLimit))
-        }
-        continue
-      }
-      let cell = IndexedRows::read_cell(table, value.row, column)
-      if !measure_result(cell, value.budget) {
-        return Err(Admission(CaptureLimit))
-      }
-      let measurement_writer = @encode.measuring_writer(
-        value.measurement_max_bytes,
-        value.measurement_max_nodes,
-        value.measurement_max_depth,
-      )
-      emit_runtime_value(cell, measurement_writer)
-      let (cell_bytes, cell_nodes, cell_depth) = @encode.finish_measurement_usage(
-        measurement_writer,
-      )
-      value.column_rows[index] += 1
-      value.column_bytes[index] += cell_bytes
-      value.column_nodes[index] += cell_nodes
-      value.column_max_value_bytes[index] = Int::max(
-        value.column_max_value_bytes[index],
-        cell_bytes,
-      )
-      value.column_admitted_depths[index] = Int::max(
-        value.column_admitted_depths[index],
-        cell_depth,
-      )
-      if cell is Null || cell is Captured(@admitted.Null) {
-        value.column_null_rows[index] += 1
-      }
-    }
-    emit_completed_export_row(value, table, value.writer)
-    if value.logical_writer is Some(writer) {
-      emit_completed_export_row(value, table, writer)
-    }
-    Ok(@encode.drain_hash_output(value.writer))
-  } catch {
-    issue => Err(Wire(Encoding(issue)))
-  }
-}
-
-///|
-fn emit_completed_export_row(
-  value : CompletedOutputExport,
-  table : CompletedExportRows,
-  writer : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  @encode.begin_object(writer)
-  for (name, column) in value.order.columns {
-    if !IndexedRows::cell_present(table, value.row, column) {
-      continue
-    }
-    let cell = IndexedRows::read_cell(table, value.row, column)
-    @encode.key(writer, name)
-    emit_runtime_value(cell, writer)
-  }
-  @encode.end_object(writer)
-}
-
-///|
 /// Reify the already admitted Result view for a Captured Run without routing
 /// cells through an environment adapter. The finished receipt keeps the exact
 /// completed output alive while this second, bounded canonical encoding is
@@ -671,6 +543,11 @@ pub fn completed_relation_export_snapshot(
   max_depth : Int,
 ) -> Result[(String, Array[String]), CompletedExportIssue] {
   guard receipt.rows.source is Some(source) else { return Err(Closed) }
+  // A snapshot must borrow the exact finished export view that issued this
+  // receipt. Equal rows or even the same completion cannot substitute it.
+  if !physical_equal(value.export_identity, receipt.rows.export_identity) {
+    return Err(ForeignMaterial)
+  }
   if !completed_output_available(source) {
     return Err(Unavailable)
   }
@@ -738,24 +615,40 @@ pub fn finish_completed_relation_export(
           rows: finished.0,
           logical,
           schema,
-          fields: completed_export_field_names(value.rows),
-          measurement: {
-            row_count: value.row,
-            admission_nodes: value.budget.nodes,
-            admission_text_bytes: value.budget.text,
-            admission_work: value.budget.work,
-            column_rows: value.column_rows.copy(),
-            column_bytes: value.column_bytes.copy(),
-            column_nodes: value.column_nodes.copy(),
-            column_max_value_bytes: value.column_max_value_bytes.copy(),
-            column_null_rows: value.column_null_rows.copy(),
-            column_admitted_depths: value.column_admitted_depths.copy(),
-          },
+          // Names belong to this immutable export view and are never exposed
+          // directly; public readers still return independent snapshots.
+          fields: value.rows.names,
+          measurement: take_completed_export_measurement(value),
         },
         finished.1,
       ),
     )
   })
+}
+
+///|
+fn take_completed_export_measurement(
+  value : CompletedOutputExport,
+) -> CompletedRelationExportMeasurement {
+  let measurement : CompletedRelationExportMeasurement = {
+    row_count: value.row,
+    admission_nodes: value.budget.nodes,
+    admission_text_bytes: value.budget.text,
+    admission_work: value.budget.work,
+    column_rows: value.column_rows,
+    column_bytes: value.column_bytes,
+    column_nodes: value.column_nodes,
+    column_max_value_bytes: value.column_max_value_bytes,
+    column_null_rows: value.column_null_rows,
+    column_admitted_depths: value.column_admitted_depths,
+  }
+  value.column_rows = []
+  value.column_bytes = []
+  value.column_nodes = []
+  value.column_max_value_bytes = []
+  value.column_null_rows = []
+  value.column_admitted_depths = []
+  measurement
 }
 
 ///|

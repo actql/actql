@@ -64,6 +64,11 @@ export interface RunAdmission {
   readonly [admissionBrand]: true;
 }
 
+declare const cancellationIdentityBrand: unique symbol;
+export interface RunCancellationIdentity {
+  readonly [cancellationIdentityBrand]: true;
+}
+
 export interface RunDefinition {
   readonly [definitionBrand]: true;
 }
@@ -933,8 +938,42 @@ export function prepareRunPreStartFailure(requested: RequestIdentity,
 export function prepareRunCancellation(definition: RunDefinition,
   definitionCid: string, authorized: boolean, terminal: boolean,
   requested: boolean): 'accepted' | 'already_requested' | 'already_terminal';
+/** Identity only; persist its original outcome in the existing Run CAS.
+ * Admission does not authorize physical stop, execution or resource release. */
+export function prepareRunCancellationIdentity(definition: RunDefinition,
+  scope: Readonly<{namespaceId: string; authorityScopeCid: string;
+    cancelId: string; expectedRevision: number}>): RunCancellationIdentity;
+/** Checksum only, not storage provenance or authorization. */
+export function runCancellationIntentCid(identity: RunCancellationIdentity): string;
+/** Exact replay returns replay_original: read the saved outcome unchanged.
+ * Recheck authorization and Run revision after asynchronous work and before CAS. */
+export function prepareRunCancellationOperation(definition: RunDefinition,
+  requested: RunCancellationIdentity, facts: Readonly<{
+    retained?: RunCancellationIdentity; currentRevision: number;
+    currentAuthorization: boolean; terminalObserved: boolean;
+    cancellationRequested: boolean;
+  }>): 'accepted' | 'already_requested' | 'already_terminal' | 'replay_original';
 export function issueRunControlObservation(revision: number,
   observation: Readonly<{requested: boolean; unstarted: boolean;
     stopped: boolean}>): Readonly<{
     revision: number; cancellation_requested: boolean;
     physical_stop: 'unknown' | 'confirmed'}>;
+
+
+declare const submissionEpochBrand: unique symbol;
+export interface SubmissionEpoch {readonly [submissionEpochBrand]: true;}
+declare const submittedIntentBrand: unique symbol;
+export interface SubmittedIntent {readonly [submittedIntentBrand]: true;}
+/** Identity only: the physical Host must authenticate and retain validation custody. */
+export function prepareSubmissionEpoch(scope: Readonly<{authorityScopeCid: string;
+  epochNonce: string; notBefore: number; expiresAt: number}>): SubmissionEpoch;
+export function submissionEpochFacts(epoch: SubmissionEpoch): Readonly<{wire: string; cid: string}>;
+export function submissionEpochValidity(epoch: SubmissionEpoch, now: number):
+  'admissible' | 'not_yet_valid' | 'expired';
+/** Same original epoch and nonce retain the original request identity on replay. */
+export function submissionRequestId(epoch: SubmissionEpoch, nonce: string): string;
+/** Original submitted content only; this does not issue a Run or grant permission. */
+export function prepareSubmittedIntent(wire: string, limits: Readonly<{
+  maxWireBytes: number; maxNodes: number; maxDepth: number}>): SubmittedIntent;
+export function submittedIntentFacts(intent: SubmittedIntent): Readonly<{wire: string; cid: string}>;
+export function submittedIntentTransition(before: string, after: string): boolean;

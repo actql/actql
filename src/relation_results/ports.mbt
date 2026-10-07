@@ -190,11 +190,26 @@ pub fn port_projection_input_at(
 
 ///|
 pub fn port_projection_count(port : ResultPort) -> Int {
-  @relation.projection(
+  @relation.projection_field_count(
     @pipeline.publication_projection(
       @pipeline.input_publication(port.publication),
     ),
-  ).length()
+  )
+}
+
+///|
+/// Borrow one checked projection entry for resumable runtime lookup. This
+/// preserves authored projection order, not canonical output-schema order.
+pub fn port_projection_field_at(
+  port : ResultPort,
+  index : Int,
+) -> @relation.ProjectionField? {
+  @relation.projection_field_at(
+    @pipeline.publication_projection(
+      @pipeline.input_publication(port.publication),
+    ),
+    index,
+  )
 }
 
 ///|

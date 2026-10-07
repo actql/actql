@@ -41,7 +41,7 @@ pub fn bind_effect_mapping_shapes(EffectResultBindings, @check_environment.Mappi
 
 pub fn bind_effect_results(@stage_syntax.EffectHeaders, Checked, Int) -> Result[EffectResultBindings, EffectResultBindingIssue]
 
-pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts) -> Result[StagePorts, ImportIssue]
+pub fn bind_ports(@stage_parameters.CollectedStage, @relation_results.ResultPorts, table_inputs? : @relation_results.CheckedTableInputs?) -> Result[StagePorts, ImportIssue]
 
 pub fn bind_prepared_program(ResultWiring, @decode_core.Cursor?, LocalProgramLimits) -> Result[PreparedLocalSource, LocalSourceIssue]
 
@@ -53,7 +53,7 @@ pub fn check_effect_preview_plan_inventory(EffectMappingRules, Int, @run_publica
 
 pub fn check_effect_preview_static_inventory(EffectStaticCandidate, Int, @run_publication.EffectPreviewIdentity, Int) -> Result[Unit, EffectPreviewStaticInventoryIssue]
 
-pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits) -> Result[Checked, CollectionIssue]
+pub fn collect_checked(@stage_parameters.CollectedOperations, Array[@relation_results.CheckedResults], CollectionLimits, table_inputs? : Array[@relation_results.CheckedTableInputs?]?) -> Result[Checked, CollectionIssue]
 
 pub fn effect_command_input_at(EffectCommandInputs, Int) -> EffectCommandInputBinding?
 
@@ -209,6 +209,8 @@ pub fn effect_result_binding_issue_stage(EffectResultBindingIssue) -> Int
 
 pub fn effect_result_binding_result(EffectResultBinding) -> @relation_results.ResultDefinition?
 
+pub fn effect_result_binding_table_input(EffectResultBinding) -> @relation_results.TableInputDefinition?
+
 pub fn effect_result_bindings_headers(EffectResultBindings) -> @stage_syntax.EffectHeaders
 
 pub fn effect_result_bindings_owner(EffectResultBindings) -> Checked
@@ -299,6 +301,10 @@ pub fn stage_port_publications(StagePorts) -> @relation_results.ResultPorts
 
 pub fn stage_port_source(StagePorts) -> @stage_parameters.CollectedStage
 
+pub fn stage_port_table_inputs(StagePorts) -> @relation_results.CheckedTableInputs?
+
+pub fn stage_table_inputs_at(Checked, Int) -> @relation_results.CheckedTableInputs?
+
 pub fn usage(Checked) -> Usage
 
 pub fn wire_results(@stage_parameters.Source, Array[StagePorts], Array[AttachedImports], WiringLimits) -> Result[ResultWiring, WiringIssue]
@@ -329,6 +335,7 @@ pub(all) enum CollectionIssue {
   StageCountMismatch
   ForeignPipeline(Int)
   ForeignResults(Int)
+  ForeignTableInputs(Int)
   BudgetExceeded(Int)
 } derive(Eq, @debug.Debug)
 
@@ -619,6 +626,7 @@ pub(all) enum EffectPreviewStaticInventoryIssue {
 pub struct EffectResultBinding {
   header : @stage_syntax.EffectHeader
   result : @relation_results.ResultDefinition?
+  table_input : @relation_results.TableInputDefinition?
   fields : Array[EffectResultFieldBinding]
 }
 
@@ -634,8 +642,10 @@ pub(all) enum EffectResultBindingIssueKind {
   WorkLimit
   ForeignProgram
   MissingResult
+  MissingTableInput
   MissingField
   InvalidCommandTarget
+  UnsupportedTableInput
 } derive(Eq, @debug.Debug)
 
 pub struct EffectResultBindings {
@@ -694,6 +704,7 @@ pub(all) enum ImportIssue {
   InvalidStage
   ForeignPipeline
   ForeignResults
+  ForeignTableInputs
   ForeignSource
   NotEarlierStage(Int)
   DuplicateProducer(String)
@@ -713,6 +724,7 @@ pub enum Issue {
   InvalidLimits
   WorkLimit
   Stage(Int, @relation_results.Issue)
+  TableInputs(Int, @relation_results.Issue)
 }
 
 pub enum LocalProgramIssue {
@@ -731,6 +743,7 @@ pub enum LocalProgramIssue {
   Results(Int, @relation_results.Issue)
   Order(Int, @relation_results.OrderCheckIssue)
   Ports(Int, @relation_results.PortIssue)
+  TableInputs(Int, @relation_results.Issue)
   Wiring(WiringIssue)
 }
 

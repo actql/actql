@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as sdk from './index.mjs';
@@ -5,7 +6,7 @@ import * as sdk from './index.mjs';
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
   runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'scope-a', capabilities: ['result-jsonl'],
+  durability: 'durable', scopeRef: 'scope-a', capabilities: ['result-jsonl'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
 const unknown = {version: 'actql-run-state/0.1', run_id: 'run-a', status: 'needs_reconciliation',
@@ -20,7 +21,7 @@ async function fixture(t) {
     perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
-      if (operation === 'submit') throw new Error('private-provider-cause');
+      if (operation === 'submit-intent') throw new Error('private-provider-cause');
       if (operation === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
       if (operation === 'status') return unknown;
       if (operation === 'cancel') {
@@ -42,12 +43,12 @@ async function fixture(t) {
 test('submission locale preserves the original unknown acceptance and lookup', async t => {
   const f = await fixture(t);
   let failure;
-  try {await f.client.start({params: {}, stages: []}, {requestId: 'saved-request'});}
+  try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved-request')});}
   catch (error) {failure = error;}
   assert.equal(failure.code, 'SubmissionUnknown');
   const expected = {observation: 'acceptance_unknown',
     summary: '送信の受理を確認できません。処理は既に始まっている可能性があります。',
-    next: {operation: 'lookupRequest', requestId: 'saved-request',
+    next: {operation: 'lookupSubmission', submissionRef: originalSubmission('saved-request'),
       lookupContext: {endpoint: 'actql:embedded', scopeRef: 'scope-a'}}};
   const english = sdk.explainSubmission(failure);
   assert.deepEqual(sdk.explainSubmission(failure, {locale: 'ja-JP'}), expected,
@@ -58,7 +59,7 @@ test('submission locale preserves the original unknown acceptance and lookup', a
     failure.code = 'Succeeded'; failure.requestId = 'foreign'; return 'ja';
   }}), expected, '[check-mutation:operation-submit-custody]');
   assert.equal(sdk.explainSubmission({...failure}, {locale: 'ja'}), undefined);
-  assert.deepEqual(f.calls, ['connect', 'submit'], '[check-mutation:operation-locale-passive]');
+  assert.deepEqual(f.calls, ['connect', 'submit-intent'], '[check-mutation:operation-locale-passive]');
 });
 
 test('cancellation locale retains the recorded request and unconfirmed stop', async t => {
@@ -109,7 +110,7 @@ test('Effect locale retains separate uncertainty, control revision and physical 
   const expected = {observation: 'effect_outcome_unknown',
     summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。',
     effects: ['save', 'notify'], physicalStop: 'unknown', controlRevision: 7,
-    next: {operation: 'status', ref}};
+    next: {operation: 'reconcile', ref}};
   assert.deepEqual(sdk.explainEffectUncertainty(state, {get locale() {
     state.status = 'succeeded'; state.next_action.effects.length = 0;
     state.control.physical_stop = 'confirmed'; return 'ja';
@@ -122,7 +123,7 @@ test('operation locale identity is separate from check schemas and malformed opt
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'],
     [{locale: 'unknown'}, 'en'], [{get locale() {throw new Error('private-locale');}}, 'en']]) {
     const info = sdk.getOperationPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-07.operations.${locale}.6`},
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-08.operations.${locale}.9`},
       '[check-mutation:operation-locale-identity]');
     assert.equal(Object.isFrozen(info), true);
   }

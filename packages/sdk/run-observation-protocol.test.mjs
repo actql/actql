@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -9,7 +10,7 @@ import {validRunState} from '../client-wire/index.mjs';
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'observation-namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'observation-principal', capabilities: [],
+  durability: 'durable', scopeRef: 'observation-principal', capabilities: [], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
@@ -92,7 +93,9 @@ test('Run protocol explanations preserve earlier valid observations and transpor
   assert.equal(before.status, 'running');
   assert.equal(explainRunObservationFailure(before), undefined);
   reply = new ClientError('ClientOperationUnavailable');
-  await assert.rejects(run.reconcile(), current => current === reply && explainRunObservationFailure(current) === undefined);
+  await assert.rejects(run.reconcile(), current => current !== reply &&
+    current.code === 'ClientOperationUnavailable' &&
+    explainRunObservationFailure(current)?.problem === 'observation_unavailable');
   assert.equal(explainRunObservationFailure(error).problem, 'unknown_state');
 });
 
@@ -209,12 +212,12 @@ const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7,
 async function responseFixture(t, reply) {
   const operations = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation) {
+    perform(operation, body) {
       operations.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref: {...ref}, durability: 'durable', revision: 1};
       if (operation === 'close') return;
-      return reply;
+      return operation === 'submit-intent' ? heldSubmission(body, reply) : reply;
     },
   });
   t.after(() => client.close());
@@ -234,7 +237,7 @@ const paths = [
     assert: answer => assert.deepEqual({ref: answer.ref, next: sdk.explainRequestLookup(answer).next},
       {ref, next: {operation: 'status', ref}}, '[check-mutation:response-capture-lookup]')},
   {name: 'held submit', reply: held, call: async f => {
-    try { await f.client.start({params: {}, stages: []}, {requestId: 'saved'}); }
+    try { await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')}); }
     catch (error) { if (error instanceof sdk.RequestHeld) return error; throw error; }
     assert.fail('Expected the held branch');
   }, code: 'SubmissionUnknown', key: 'prepareAttemptId', first: 'original-attempt', later: 'replacement-attempt',
@@ -322,8 +325,10 @@ for (const path of paths.filter(value => ['lookupRequest', 'held submit', 'cance
     t.after(() => { globalThis.structuredClone = nativeClone; });
     globalThis.structuredClone = value => {
       const copy = nativeClone(value);
-      if (value?.[path.key] === undefined) return copy;
-      copy[path.key] = nativeClone(path.later);
+      const payload = value?.held ?? value;
+      const copied = copy?.held ?? copy;
+      if (payload?.[path.key] === undefined) return copy;
+      copied[path.key] = nativeClone(path.later);
       if (path.name === 'cancel') copy.revision = 99;
       if (path.name === 'deliveryAttempt') copy.hostReleaseReceipt = nativeClone(delivery.hostReleaseReceipt);
       return copy;
@@ -343,10 +348,12 @@ for (const path of paths) {
     t.after(() => { globalThis.structuredClone = nativeClone; });
     globalThis.structuredClone = value => {
       const copy = nativeClone(value);
-      if (value?.[path.key] === undefined) return copy;
+      const payload = value?.held ?? value;
+      const copied = copy?.held ?? copy;
+      if (payload?.[path.key] === undefined) return copy;
       let settled = false;
       queueMicrotask(() => { settled = true; });
-      Object.defineProperty(copy, path.key, {enumerable: true, configurable: true,
+      Object.defineProperty(copied, path.key, {enumerable: true, configurable: true,
         get() { return settled ? path.later : path.first; }});
       return copy;
     };
@@ -364,7 +371,8 @@ for (const path of paths) {
     const nativeClone = globalThis.structuredClone;
     t.mock.method(globalThis, 'structuredClone', value => {
       const copy = nativeClone(value);
-      if (value?.[path.key] !== undefined) value[path.key] = nativeClone(
+      const payload = value?.held ?? value;
+      if (payload?.[path.key] !== undefined) payload[path.key] = nativeClone(
         path.name === 'deliveryAttempt' ? {...path.first, sequence: path.first.sequence + 1} : path.later);
       return copy;
     });

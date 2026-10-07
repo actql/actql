@@ -803,6 +803,38 @@ pub fn strategy_captured_effect_source_inventory_from_results_valid(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceFromTableInput")
+pub fn strategy_admit_captured_effect_source_from_table_input(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  input : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, member_index, invocation, artifact, input, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromArtifactsValid")
+pub fn strategy_captured_effect_source_inventory_from_artifacts_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  relations : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, relations,
+  )
+}
+
+///|
 /// Re-admit persisted local evidence at a trust boundary. This does not
 /// replace the checked Host owner required for first issuance.
 #export_name("strategyAdmitCapturedLocalEffectSource")
@@ -2780,7 +2812,7 @@ pub fn strategy_host_result_transformation_begin(
   max_schema_depth : Int,
   max_batch_bytes : Int,
   converted_output : @execution.CompletedOutput?,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
@@ -2819,14 +2851,24 @@ pub fn strategy_host_result_transformation_begin(
     },
     max_batch_bytes,
   }
-  match
-    @publication_host.start_captured_client_result_transformation(
-      selection,
-      run,
-      result,
-      limits,
-      converted_output?,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_client_result_transformation(
+        selection,
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+    None =>
+      @publication_host.start_captured_result_publication_export(
+        run,
+        result,
+        limits,
+        converted_output?,
+      )
+  }
+  match started {
     Ok(core) => { core, bridge: None, open: true, }
     Err(issue) => raise ResultTransformation(issue)
   }
@@ -2836,7 +2878,7 @@ pub fn strategy_host_result_transformation_begin(
 #export_name("strategyHostManagedResultTransformationBegin")
 pub fn strategy_host_managed_result_transformation_begin(
   value : StrategyHostManagedResultImport,
-  selection : @publication_host.ClientResultTransformation,
+  selection : @publication_host.ClientResultTransformation?,
 ) -> StrategyHostResultTransformation raise NodeHostFailure {
   if !value.open {
     raise InvalidCommand
@@ -2846,16 +2888,28 @@ pub fn strategy_host_managed_result_transformation_begin(
     Ok(value) => value
     Err(_) => raise InvalidCommand
   }
-  let core = match
-    @publication_host.start_captured_managed_result_transformation(
-      selection,
-      value.run,
-      value.result,
-      value.output,
-      value.bridge,
-      output,
-      value.limits,
-    ) {
+  let started = match selection {
+    Some(selection) =>
+      @publication_host.start_captured_managed_result_transformation(
+        selection,
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+    None =>
+      @publication_host.start_captured_managed_result_publication_export(
+        value.run,
+        value.result,
+        value.output,
+        value.bridge,
+        output,
+        value.limits,
+      )
+  }
+  let core = match started {
     Ok(value) => value
     Err(issue) => raise ResultTransformation(issue)
   }

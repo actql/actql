@@ -55,6 +55,37 @@ const program = {version: 'actql/0.1', id: 'fixture.join_property',
     {select: ['id', 'score']}, {sort: [{field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'},
   ], results: {rows: {from: 'ordered', fields: ['id', 'score']}}}],
   results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// CTE Results select the single-JOIN connection without adding a DATA scope.
+// Parenthesized/computed receivers are Property nodes, unlike dotted paths.
+const ctes = 'WITH seed AS (SELECT 1 AS unit), '
+  + 'objects AS (SELECT 2 AS id, @a AS payload FROM seed '
+  + 'UNION ALL SELECT 1 AS id, @b AS payload FROM seed '
+  + 'UNION ALL SELECT 3 AS id, @c AS payload FROM seed), '
+  + 'others AS (SELECT 1 AS id, @oa AS other FROM seed '
+  + 'UNION ALL SELECT 2 AS id, @ob AS other FROM seed '
+  + 'UNION ALL SELECT 3 AS id, @oc AS other FROM seed '
+  + 'UNION ALL SELECT 2 AS id, @od AS other FROM seed) ';
+const propertyAliasColumns = [scoreColumn, idColumn];
+const propertyAliasRows = [{score: 10, id: 2}, {score: 10, id: 2},
+  {score: 20, id: 1}, {score: null, id: 3}];
+export const joinImplicitPropertyProgram = {version: 'actql/0.1',
+  id: 'fixture.join_implicit_property', stages: [{id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload}, rows: leftRows}, as: 'objects'},
+    {values: {schema: {id: number, other}, rows: rightRows}, as: 'others'},
+    {from: 'objects', join: {with: 'others', kind: 'inner',
+      on: [{left: 'id', right: 'id'}], max_output_rows: 12,
+      select: {id: 'left.id', payload: 'left.payload'}}, as: 'matched'},
+    {from: 'matched', derive: {score: {property: {value: {field: 'payload'}, name: 'score'}}}},
+    {select: ['score', 'id']},
+    {sort: [{field: 'score', dir: 'asc', nulls: 'last'},
+      {field: 'id', dir: 'asc', nulls: 'first'}], as: 'ordered'},
+  ], results: {rows: {from: 'ordered', fields: ['score', 'id']}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const cteCase = (name, tail, extra = {}) => ({
+  name: 'join-property-implicit-' + name, format: 'aql-text', text: ctes + tail,
+  parameterDeclarations, parameters, expected: propertyAliasRows,
+  columns: propertyAliasColumns, sourceReadCount: 0, ...extra,
+});
 export const joinPropertySuccesses = [
   {name: 'join-property-independent-json', format: 'json', text: JSON.stringify(program),
     expected: idScoreRows, columns: idScoreColumns, sourceReadCount: 0},
@@ -84,6 +115,17 @@ export const joinPropertySuccesses = [
     'FROM objects AS l |> WHERE l.payload.score > 15 |> JOIN others AS r '
       + 'ON l.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT l.id, r.other.score',
     [{id: 1, score: 5}], {columns: [idColumn, {name: 'score', contract: number}]}),
+  {name: 'join-property-implicit-independent-json', format: 'json',
+    text: JSON.stringify(joinImplicitPropertyProgram), expected: propertyAliasRows,
+    columns: propertyAliasColumns, sourceReadCount: 0},
+  cteCase('sql', `SELECT (l.payload).score, l.id ${join} ORDER BY score NULLS LAST, id`),
+  cteCase('pipe-quoted', pipeJoin
+    + ' |> SELECT (l.`payload`).`score`, l.id |> ORDER BY score NULLS LAST, id'),
+  cteCase('computed-receiver',
+    `SELECT (IF(TRUE, l.payload, NULL)).score, l.id ${join} ORDER BY score NULLS LAST, id`),
+  cteCase('empty',
+    `SELECT (l.payload).score, l.id ${join} WHERE FALSE ORDER BY score NULLS LAST, id`,
+    {expected: []}),
 ];
 export const joinPropertyRefusals = [
   `SELECT id.score ${join}`,
@@ -92,4 +134,10 @@ export const joinPropertyRefusals = [
   `SELECT l.id.score ${join}`,
   `SELECT DISTINCT l.id ${join} ORDER BY payload.score`,
 ].map((tail, index) => ({name: 'join-property-invalid-' + index,
-  format: 'aql-text', text: data + tail, parameterDeclarations, parameters}));
+  format: 'aql-text', text: data + tail, parameterDeclarations, parameters})).concat([
+  `SELECT (l.payload).score, (l.payload).score ${join}`,
+  `SELECT (missing).score ${join}`,
+  `SELECT (l.payload).missing ${join}`,
+  `SELECT (l.id).score ${join}`,
+].map((tail, index) => ({name: 'join-property-implicit-invalid-' + index,
+  format: 'aql-text', text: ctes + tail, parameterDeclarations, parameters})));

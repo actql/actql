@@ -8,6 +8,7 @@ import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash, mutationSnapshotExtras, mutationSourceInputs} from './inputs.mjs';
+import {snapshotDirectories as pipelineDirectories, snapshotFiles as pipelineFiles} from '../relation-pipeline/inventory.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
@@ -18,8 +19,15 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/ci-evidence/runtime.mjs', 'proofs/ci-evidence/inputs.mjs',
   'proofs/ci-evidence/package-configurations.mjs',
   'proofs/ci-evidence/isolated-contract.mjs',
-  'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs']);
+  'proofs/ci-evidence/mutation-inventory.mjs', 'proofs/ci-evidence/mutation-observation.mjs',
+  'proofs/relation-pipeline/inventory.mjs']);
 const child = isolatedSourceFiles[0];
+export const pipelineChild = 'proofs/ci-evidence/isolated-pipeline-pristine.mjs';
+export const pipelineFixedJsChild = 'proofs/ci-evidence/isolated-pipeline-fixed-js.mjs';
+export function isolatedChild(profile = 'session') {
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile), 'Unregistered isolated execution profile');
+  return profile === 'session' ? child : profile === 'pipeline-pristine' ? pipelineChild : pipelineFixedJsChild;
+}
 // OrbStack's amd64 execution exposes this actual libuv setting. Bind it only
 // in the local diagnostic; never erase it or expand the Actions environment.
 export const localIsolatedEnvironment = Object.freeze({...isolatedEnvironment, UV_USE_IO_URING: '0'});
@@ -48,8 +56,38 @@ export function mutationSourcePaths(tree) {
 }
 
 export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
+  return stageSource({tree, destination, maxBytes, paths: mutationSourcePaths(tree)});
+}
+
+// This first pipeline profile retains its entire current snapshot. It does not
+// borrow Session's smaller dependency closure or claim narrowed reuse inputs.
+export function pipelinePristineSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-pristine'); }
+export function pipelineFixedJsSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-fixed-js'); }
+function pipelineSourcePaths(tree, profile) {
+  const generated = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
+  const paths = [...new Set([...tree.entries.keys()].filter(path =>
+    pipelineDirectories.some(directory => path.startsWith(`${directory}/`)) && path !== generated)
+    .concat(pipelineFiles, isolatedSourceFiles, isolatedChild(profile)))].sort();
+  assert(paths.includes('proofs/relation-pipeline/pristine-replay.mjs'), 'Missing registered pristine executor');
+  for (const directory of pipelineDirectories)
+    assert(paths.some(path => path.startsWith(`${directory}/`)), 'Missing pipeline snapshot root');
+  for (const path of paths) {
+    const entry = tree.entries.get(path);
+    assert(safe(path) && entry?.kind === 'blob' && ['100644', '100755'].includes(entry.mode), 'Unsupported pipeline source path/kind/mode');
+  }
+  return paths;
+}
+
+export function stagePipelinePristineSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
+  return stageSource({tree, destination, maxBytes, paths: pipelinePristineSourcePaths(tree)});
+}
+export function stagePipelineFixedJsSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
+  return stageSource({tree, destination, maxBytes, paths: pipelineFixedJsSourcePaths(tree)});
+}
+
+function stageSource({tree, destination, maxBytes, paths}) {
   assert(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'Invalid source byte bound');
-  const paths = mutationSourcePaths(tree), files = [];
+  const files = [];
   tree.prefetch?.(paths);
   let bytes = 0;
   for (const path of paths) {
@@ -168,26 +206,26 @@ export function isolatedRunArguments({imageId, cidFile, owner}) {
   return runArguments({imageId, cidFile, owner, label: 'org.actql.ci.owner'});
 }
 
-export function localIsolatedRunArguments({imageId, cidFile, owner}) {
+export function localIsolatedRunArguments({imageId, cidFile, owner, profile = 'session'}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId), 'Use an inspected immutable image ID');
   assert(typeof cidFile === 'string' && isAbsolute(cidFile), 'Use an owned absolute CID file');
   assert(/^local-[a-f0-9]{32}$/u.test(owner), 'Use a distinct local owner');
-  return runArguments({imageId, cidFile, owner, label: 'org.actql.local.owner'});
+  return runArguments({imageId, cidFile, owner, label: 'org.actql.local.owner', profile});
 }
 
-function runArguments({imageId, cidFile, owner, label}) {
+function runArguments({imageId, cidFile, owner, label, profile = 'session'}) {
   return ['run', '--rm', '--platform=linux/amd64', '--pull=never', '--read-only', '--network=none', '--cap-drop=ALL',
     '--security-opt=no-new-privileges', '--user=1000:1000', '--hostname=actql-session',
     '--label', `${label}=${owner}`, '--cidfile', cidFile, '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777',
     '--tmpfs', '/workspace:rw,nosuid,nodev,mode=1777', '--workdir=/workspace',
-    '--entrypoint=/runtime/node', imageId, `/source/${child}`];
+    '--entrypoint=/runtime/node', imageId, `/source/${isolatedChild(profile)}`];
 }
 
 export function scratchDockerfile() { return dockerfile(isolatedEnvironment); }
-export function localScratchDockerfile() { return dockerfile(localIsolatedEnvironment); }
-function dockerfile(environment) {
+export function localScratchDockerfile(profile = 'session') { return dockerfile(localIsolatedEnvironment, profile); }
+function dockerfile(environment, profile = 'session') {
   return ['FROM scratch', 'COPY root/ /', ...Object.entries(environment).map(([name, value]) => `ENV ${name}=${value}`),
-    'USER 1000:1000', 'WORKDIR /workspace', `ENTRYPOINT ["/runtime/node", "/source/${child}"]`, ''].join('\n');
+    'USER 1000:1000', 'WORKDIR /workspace', `ENTRYPOINT ["/runtime/node", "/source/${isolatedChild(profile)}"]`, ''].join('\n');
 }
 
 // The build instruction bytes are not a substitute for inspecting the image
@@ -198,13 +236,13 @@ export function checkImageDefinition({image, imageId, owner}) {
   return imageDefinition({image, imageId, owner, label: 'org.actql.ci.owner', environment: isolatedEnvironment});
 }
 
-export function checkLocalImageDefinition({image, imageId, owner}) {
+export function checkLocalImageDefinition({image, imageId, owner, profile = 'session'}) {
   assert(/^sha256:[a-f0-9]{64}$/u.test(imageId) && /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid local image identity/owner');
   assert(!image.Config?.Labels?.['org.actql.ci.owner'], 'Local image cannot carry Actions authority');
-  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner', environment: localIsolatedEnvironment});
+  return imageDefinition({image, imageId, owner, label: 'org.actql.local.owner', environment: localIsolatedEnvironment, profile});
 }
 
-function imageDefinition({image, imageId, owner, label, environment}) {
+function imageDefinition({image, imageId, owner, label, environment, profile = 'session'}) {
   assert.equal(image.Id, imageId); assert.equal(image.Os, 'linux'); assert.equal(image.Architecture, 'amd64');
   const config = image.Config;
   assert(config?.Labels?.[label] === owner, 'Wrong built image owner');
@@ -215,7 +253,7 @@ function imageDefinition({image, imageId, owner, label, environment}) {
     encode([...config.Env].sort()) === encode(Object.entries(environment).map(([name, value]) => `${name}=${value}`).sort()),
   'Unexpected built image environment');
   assert(config.User === '1000:1000' && config.WorkingDir === '/workspace', 'Changed image user/workdir');
-  assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${child}`]), 'Changed image entrypoint');
+  assert(encode(config.Entrypoint) === encode(['/runtime/node', `/source/${isolatedChild(profile)}`]), 'Changed image entrypoint');
   for (const field of ['Cmd', 'Volumes', 'Healthcheck', 'OnBuild', 'ExposedPorts']) {
     assert(config[field] === undefined || config[field] === null, 'Unreviewed image startup/configuration');
   }

@@ -33,6 +33,8 @@ pub fn admit_physical_chunk(PhysicalResult, Int, Array[@decode_core.Cursor]) -> 
 
 pub fn admit_physical_value(ValueMapping, @decode_core.Cursor, @value_admission.Limits) -> Result[@value_admission.CheckedValue, ValueIssue]
 
+pub fn advance_managed_physical_output_finish(ManagedPhysicalOutput, Int) -> Result[@execution_relation.ManagedOutputFinishAdvance, ManagedPhysicalOutputIssue]
+
 pub fn append_comparison_measurement(ComparisonMeasurement, @value_admission.Value) -> Result[Unit, NativeDemandIssue]
 
 pub fn append_fixed_import_stream(FixedImportStream, String, @execution_relation.RetainedRowDecodeLimits, materialize_parameters? : Bool) -> Result[Array[PhysicalParameter], FixedImportStreamIssue]
@@ -48,6 +50,8 @@ pub fn attach_fixed_import_demand(FixedImportStream, FixedCompute, Int, @executi
 pub fn attach_fixed_import_join(FixedImportStream, @execution_relation.FixedJoinStream) -> Result[Unit, FixedImportStreamIssue]
 
 pub fn attach_fixed_import_measurement(FixedImportStream, @execution_relation.FixedProducerMeasurement) -> Result[Unit, FixedImportStreamIssue]
+
+pub fn[T] begin_managed_fixed_query_selection(ManagedFixedQuery[T], Array[Int], Int, Int) -> Result[@execution_relation.ManagedViewSelectionPreparation[T], NativeQueryIssue]
 
 pub fn begin_native_receipt(NativeReceiving, NativeReceiptRole, Array[(String, PhysicalType)]) -> Result[NativeReceiptPort, NativeReceivingIssue]
 
