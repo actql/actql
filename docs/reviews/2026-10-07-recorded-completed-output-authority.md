@@ -44,7 +44,17 @@ wire format, identity domain, state alias, compiler-manifest fallback or new
 ledger. Existing execution admission is unchanged. A historical Run is not
 reinterpreted as a newly compiled Run, including across Graph identity changes.
 
-The CLI and Cloud persistence/transport connection are not included. A caller
+The maintenance CLI requires `recover-output --publication-custody-root`.
+The custody directory contains six exact, original Owner-issued wires:
+`bound-template.json`, `compiled-plan.json`, `prepared-invocation.json`,
+`run-authorization.json`, `run-definition.json` and `result-definition.json`.
+Each is read through the existing bounded-file owner and admitted through the
+canonical evidence/contract owners before the exclusive maintenance slot is
+acquired. The CLI never reconstructs missing evidence with the current
+compiler. It uses the existing authenticated durable report/ACK client after
+the original completed-custody and current-authority checks.
+
+Cloud persistence/transport of these original wires is not included. A caller
 must obtain the exact original Owner-issued evidence and current trusted
 authority; this API does not infer either from an arbitrary archive. Formal
 Cloud adoption requires a reviewed, merged OSS source and matching package and
