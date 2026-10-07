@@ -3920,6 +3920,48 @@ test('compound output ports require operation-specific limit quantum stop and pu
   }
 });
 
+test('compound metadata requires operation-connected boundary and public evidence', () => {
+  for (const [operation,kind] of [['nest','nest'], ['interval_join','interval'],
+    ['asof_join','asof']]) {
+    for (const part of ['limit','workspace','quantum','stop','public']) {
+      const role=`${kind}_compound_metadata_${part}`;
+      assert.match(run(undefined,routes=>{
+        const route=routes.routes.find(entry=>entry.operation===operation);
+        const collection=part==='public'?'environment_tests':'boundary_tests';
+        route[collection]=route[collection].filter(entry=>entry.role!==role);
+      }),new RegExp(`${role} fixture is missing`,'u'));
+    }
+  }
+});
+
+test('compound metadata rejects missing production lookup charge and cleanup', () => {
+  const baseline=validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('compound metadata')),[]);
+  const cases=['nest','interval_join','asof_join'].map(kernel=>[
+    `src/execution_relation/bounded_${kernel}.mbt`,
+    ['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+      'close_row_metadata_lookup('],
+  ]);
+  cases.push(['src/execution_relation/row_metadata_cursor.mbt',
+    ['advance_row_metadata_lookup(', 'text_function_scalar(', 'spend_control(']]);
+  for (const [relative,markers] of cases) {
+    const file=join(root,relative);
+    for (const marker of markers) {
+      const text=sourceTemplate[file].text;
+      assert.ok(text.includes(marker));
+      const sources=Object.freeze({...sourceTemplate,
+        [file]:Object.freeze({...sourceTemplate[file],
+          text:text.replaceAll(marker,'missing_metadata_connection(')}),
+      });
+      const result=validateResourceAccounting({root,manifest:manifestTemplate,
+        routes:routesTemplate,sources});
+      assert.match(result.errors.join('\n'),
+        /compound metadata production cursor connection is missing/u);
+    }
+  }
+});
+
 test('compound output ports reject missing production cursor and cleanup connections', () => {
   const baseline = validateResourceAccounting({root, manifest:manifestTemplate,
     routes:routesTemplate, sources:sourceTemplate});
