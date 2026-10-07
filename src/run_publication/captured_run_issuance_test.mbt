@@ -218,6 +218,178 @@ fn captured_preparation_test_start() -> CapturedRunIssuancePreparation {
 }
 
 ///|
+fn captured_validation_test_start(
+  chain : CapturedRunTestChain,
+  captured : PublicationContract,
+  workspace? : Int = 32768,
+) -> ComputationEvidenceCheck {
+  start_effect_free_run_evidence_check(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    4096,
+    32,
+    workspace,
+  )
+}
+
+///|
+test "captured evidence validation preserves quantum-independent work and exact rows" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  let mut expected_work = None
+  for quantum in [1, 7, 64] {
+    let check = captured_validation_test_start(chain, captured)
+    let mut work = 0
+    let mut polls = 0
+    while true {
+      let (done, used) = check.advance(quantum).unwrap()
+      assert_true(used > 0 && used <= quantum)
+      work += used
+      polls += 1
+      assert_true(polls < 100000)
+      if done {
+        break
+      }
+    }
+    check.finish().unwrap()
+    assert_true(check.finish() is Err(EvidenceEncoding))
+    match expected_work {
+      None => expected_work = Some(work)
+      Some(expected) => assert_eq(work, expected)
+    }
+  }
+  let altered = final_test_reseal_captured_context(
+    captured, "\"value\":7", "\"value\":8",
+  )
+  let check = captured_validation_test_start(chain, altered)
+  let mut failure = None
+  for _ in 0..<100000 {
+    match check.advance(1) {
+      Err(issue) => {
+        failure = Some(issue)
+        break
+      }
+      Ok((done, _)) => assert_true(!done)
+    }
+  }
+  assert_eq(failure, Some(EvidenceReferenceMismatch("captured_result_values")))
+}
+
+///|
+test "captured evidence cancellation retires private checks without retiring inputs" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  let original = publication_contract_json(captured)
+  for phase in ["context-check", "rows-check"] {
+    let check = captured_validation_test_start(chain, captured)
+    let mut reached = false
+    for _ in 0..<100000 {
+      let (done, work) = check.advance(1).unwrap()
+      assert_eq(work, 1)
+      assert_true(!done)
+      if computation_evidence_check_fixture_phase(check) == phase {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    check.cancel()
+    check.cancel()
+    assert_eq(computation_evidence_check_fixture_phase(check), "closed")
+    assert_true(check.advance(1) is Err(EvidenceEncoding))
+    assert_true(check.finish() is Err(EvidenceEncoding))
+    assert_eq(publication_contract_json(captured), original)
+  }
+  let too_small = captured_validation_test_start(chain, captured, workspace=11)
+  assert_true(too_small.advance(1) is Err(EvidenceEncoding))
+  assert_eq(computation_evidence_check_fixture_phase(too_small), "closed")
+  validate_effect_free_run_evidence_chain(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+}
+
+///|
+test "publication commit preparation preserves dependency refusal before binding checks" {
+  let chain = captured_run_test_chain()
+  let issuer = captured_preparation_test_start()
+  while !issuer.advance(256).unwrap().0 {
+    ()
+  }
+  let captured = issuer.finish().unwrap()
+  // Root contracts cannot substitute for Result dependencies. Invalid request
+  // and index arguments must not mask the earlier typed inventory refusal.
+  let check = start_effect_free_publication_commit_check(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    [],
+    [],
+    [],
+    [],
+    chain.manifest,
+    chain.receipt,
+    captured,
+    chain.run,
+    chain.run,
+    chain.run,
+    65536,
+    4096,
+    32,
+    32768,
+  )
+  assert_eq(check.advance(1), Err(CommitResultEvidence(ResultEvidenceCount)))
+  assert_eq(publication_commit_preparation_fixture_phase(check), "closed")
+  assert_true(check.finish() is Err(CommitEncoding))
+  check.cancel()
+  assert_eq(
+    validate_effect_free_publication_commit_with_result_evidence(
+      chain.run,
+      chain.invocation,
+      [chain.definition],
+      [chain.artifact],
+      [],
+      [],
+      [],
+      [],
+      chain.manifest,
+      chain.receipt,
+      captured,
+      chain.run,
+      chain.run,
+      chain.run,
+      65536,
+      4096,
+      32,
+    ),
+    Err(CommitResultEvidence(ResultEvidenceCount)),
+  )
+}
+
+///|
 test "Captured Run preparation keeps final evidence checking and quantum-independent identity" {
   let mut identity = None
   let mut total = None

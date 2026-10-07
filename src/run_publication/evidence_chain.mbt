@@ -145,25 +145,25 @@ pub fn validate_effect_free_publication_commit_with_result_evidence(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[Unit, PublicationCommitIssue] {
-  match
-    validate_result_evidence_set(
-      definitions, artifacts, derivations, orderings, retentions,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(CommitResultEvidence(issue))
+  let workspace = if max_nodes > 268435455 {
+    2147483647
+  } else {
+    Int::max(0, max_nodes) * 8
   }
-  match
-    validate_durable_result_bindings(
-      run_definition, invocation, definitions, artifacts, orderings, retentions,
-      bindings, index_entry,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  validate_effect_free_publication_commit(
-    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
-    request, attempt, index_entry, max_wire_bytes, max_nodes, max_depth,
+  let preparation = start_effect_free_publication_commit_check(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    bindings, manifest, receipt, captured_run, request, attempt, index_entry, max_wire_bytes,
+    max_nodes, max_depth, workspace,
   )
+  while true {
+    match preparation.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(CommitEncoding)
+  }
 }
 
 ///|
@@ -425,8 +425,19 @@ fn publication_inventory_matches(
 fn computation_evidence_prelude(
   inputs : ComputationEvidenceInputs,
 ) -> Result[ComputationEvidencePrelude, RunEvidenceChainIssue] {
-  let { run_definition, invocation, definitions, artifacts, manifest, receipt,
-    captured_run, preview, max_wire_bytes, max_nodes, max_depth, } = inputs
+  let {
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    captured_run,
+    preview,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  } = inputs
   match
     validate_run_publication_chain(
       run_definition, invocation, definitions, artifacts, manifest, max_wire_bytes,
@@ -751,17 +762,31 @@ fn validate_computation_run_evidence_chain(
   max_depth : Int,
 ) -> Result[Unit, RunEvidenceChainIssue] {
   let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
-  let preparation = start_computation_evidence_check({
-    run_definition, invocation, definitions, artifacts, manifest, receipt,
-    captured_run, preview, max_wire_bytes, max_nodes, max_depth,
-  }, workspace)
+  let preparation = start_computation_evidence_check(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      manifest,
+      receipt,
+      captured_run,
+      preview,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    },
+    workspace,
+  )
   while true {
     match preparation.advance(256) {
       Err(issue) => return Err(issue)
       Ok((true, _)) => return preparation.finish()
       Ok((false, _)) => ()
     }
-  } nobreak { Err(EvidenceEncoding) }
+  } nobreak {
+    Err(EvidenceEncoding)
+  }
 }
 
 ///|
