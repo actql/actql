@@ -6636,3 +6636,46 @@ timed out and is not counted as successful. This closes the named stale
 assertions, not the remaining callback/scratch walks, Native correspondence
 or all-target/public acceptance of the complete retained goal. See the
 [independent chain accounting record](2026-10-07-local-chain-accounting-evidence.md).
+
+### Incremental managed dispatch scratch retirement (2026-10-07)
+
+The driver now retires its bridge/import/read/CID/issuer roots in fixed 64-step
+slices. Its pure scratch witness reads the completed cursor instead of scanning
+all five collections. Active callbacks and provider cleanup still gate retirement;
+the common owner retains reservations until all roots retire. Settled/disposed
+input handles cannot repopulate them. Accepted output custody and cumulative
+work remain unchanged.
+
+At `df8dd117cb06d9de681bfa454f1d9e5b8b43dae5`, affected JS passed 31/31.
+The later `868a7fefa0a1d5d627c92c25a607f75818bcaa3e` adds only source-guard
+coverage, with identical runtime inputs; real-Store public Host and exact-source
+guards passed 20/20 there. Public testing required source-local private
+client-wire dependencies; the first borrowed-dependency attempt failed and is
+not counted as successful. #822 then merged and was normally adopted from main
+`735ac73c5519753f77de31c26d6233ffc015c088`. The clean integrated SHA
+`71289a8cdb5bd9948499dabcf83a074d69e516ed` passed the same focused public
+Host/source guards 20/20 after rebuilding only their two consuming runtime roots.
+The Local retirement implementation is unchanged; no unmerged parent remains.
+
+Availability callbacks, input cancel/dispose walks, retired-Carrier walks,
+other scratch and Native physical-byte correspondence remain. This is not a
+wall-clock/GC bound, pristine packed campaign or all-Local completion. See the
+[dispatch retirement record](2026-10-07-local-dispatch-scratch-retirement.md).
+
+### Incremental managed input stop collections (2026-10-07)
+
+The cancel/dispose hooks request cancellation immediately, then revoke at most
+64 bridge/import entries or phase boundaries per callback. Pending entries
+continue through the existing cleanup callback. Input roots and the common
+reservation remain until revocation and stopped-provider cleanup succeed;
+the release witness cannot bypass the pending cursor.
+
+At clean `94b7d15250e11a874f46b885f816ad139fcdfc04`, real-Store public Host
+and source guards passed 27/27. The affected JS selection passed 35/35 during
+dirty-source preparation; the unchanged implementation was then committed.
+The current unit depends on #830. This does not establish a whole-callback
+latency bound: unfinished input buffers still use synchronous row-container
+cancellation. Connecting them to existing incremental buffer reclamation is
+the next concrete boundary. Availability and retired-Carrier walks, other
+scratch and Native correspondence remain. See the
+[input stop collection record](2026-10-07-local-input-stop-slices.md).

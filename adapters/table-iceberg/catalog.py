@@ -15,7 +15,7 @@ from urllib.parse import unquote, urlparse
 
 import pyarrow.parquet as pq
 from pyiceberg.catalog.sql import SqlCatalog
-from pyiceberg.exceptions import NoSuchTableError
+from pyiceberg.exceptions import NoSuchTableError, TableAlreadyExistsError
 from pyiceberg.table import CommitTableResponse, Table
 from pyiceberg.serializers import FromInputFile
 
@@ -71,8 +71,7 @@ def check_logical_schema(mapping, wire):
 class TableCatalog(SqlCatalog):
     """Pinned PyIceberg staging plus one SQLite head/receipt transaction.
 
-    No public Program installer calls this boundary yet. Committed generations
-    retain their reservation. Unpublished staging is removable only after the
+    Committed generations retain their reservation. Unpublished staging is removable only after the
     existing Host process owner confirms stop and a durable publication fence.
     """
 
@@ -139,6 +138,11 @@ class TableCatalog(SqlCatalog):
         try:
             row = db.execute("SELECT request_wire,receipt_wire FROM actql_table_commits WHERE request_cid=?",
                              (request["request_cid"],)).fetchone()
+            if row is None:
+                row = db.execute("SELECT n.request_wire,n.receipt_wire FROM actql_table_noncommits n "
+                                 "JOIN actql_table_publication_fences f USING(request_cid) "
+                                 "WHERE n.request_cid=? AND f.request_wire=n.request_wire",
+                                 (request["request_cid"],)).fetchone()
         finally:
             db.close()
         if row is None:
@@ -146,6 +150,62 @@ class TableCatalog(SqlCatalog):
         if row[0] != canonical_envelope(request):
             raise CatalogRefusal("ForeignOriginalOperation")
         return json.loads(row[1])
+
+    def confirm_noncommit(self, request, reason):
+        """Persist original-operation nonpublication and its fence atomically.
+
+        Called only for the writer's validated create/expected-version conflict,
+        never for an HTTP status or an arbitrary exception. A committed original
+        wins even if an error was raised on its return path. No staging files or
+        reservations are reclaimed here; cleanup still requires physical stop.
+        """
+        if reason not in ("CreateNameConflict", "ExpectedGenerationConflict") or \
+                (request["action"] == "create") != (reason == "CreateNameConflict"):
+            raise CatalogRefusal("InvalidNoncommitReason")
+        wire = canonical_envelope(request)
+        db = self.connection()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            committed = db.execute("SELECT request_wire,receipt_wire FROM actql_table_commits WHERE request_cid=?",
+                                   (request["request_cid"],)).fetchone()
+            if committed:
+                if committed[0] != wire:
+                    raise CatalogRefusal("ForeignOriginalOperation")
+                db.commit()
+                return json.loads(committed[1])
+            allocation = db.execute("SELECT request_wire FROM actql_table_allocations WHERE request_cid=?",
+                                    (request["request_cid"],)).fetchone()
+            if allocation is None or allocation[0] != wire:
+                raise CatalogRefusal("NoncommitAllocationBinding")
+            existing = db.execute("SELECT request_wire,receipt_wire FROM actql_table_noncommits WHERE request_cid=?",
+                                  (request["request_cid"],)).fetchone()
+            if existing:
+                if existing[0] != wire:
+                    raise CatalogRefusal("ForeignOriginalOperation")
+                db.commit()
+                return json.loads(existing[1])
+            fence = db.execute("SELECT request_wire FROM actql_table_publication_fences WHERE request_cid=?",
+                               (request["request_cid"],)).fetchone()
+            if fence and fence[0] != wire:
+                raise CatalogRefusal("ForeignOriginalOperation")
+            receipt = seal({"version": "actql-table-noncommit-receipt/0.1",
+                            "request_cid": request["request_cid"],
+                            "effect_identity_cid": request["effect_identity_cid"],
+                            "catalog_identity_cid": request["catalog_identity_cid"],
+                            "schema_cid": request["schema_cid"],
+                            "storage_mapping_cid": request["storage_mapping_cid"],
+                            "reason": reason}, "receipt_cid")
+            db.execute("INSERT OR IGNORE INTO actql_table_publication_fences(request_cid,request_wire) VALUES (?,?)",
+                       (request["request_cid"], wire))
+            db.execute("INSERT INTO actql_table_noncommits VALUES (?,?,?)",
+                       (request["request_cid"], wire, canonical_envelope(receipt)))
+            db.commit()
+            return receipt
+        except BaseException:
+            db.rollback()
+            raise
+        finally:
+            db.close()
 
     def inspect_target(self, request):
         """Current-use observation, never proof about an original commit."""
@@ -290,6 +350,18 @@ class TableCatalog(SqlCatalog):
                                         "actql.logical-schema": schema_wire})
             transaction.commit_transaction()
             return self.reconcile(request)
+        except (TableAlreadyExistsError, NoSuchTableError) as error:
+            # Translate only action-specific upstream target conflicts. Other
+            # upstream exceptions remain uncertain, not fabricated noncommit.
+            if isinstance(error, TableAlreadyExistsError) and request["action"] == "create":
+                return self.confirm_noncommit(request, "CreateNameConflict")
+            if isinstance(error, NoSuchTableError) and request["action"] == "replace":
+                return self.confirm_noncommit(request, "ExpectedGenerationConflict")
+            raise
+        except CatalogRefusal as error:
+            if str(error) in ("CreateNameConflict", "ExpectedGenerationConflict"):
+                return self.confirm_noncommit(request, str(error))
+            raise
         finally:
             self.context = None
 

@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import './embedded-local-lifecycle.test.mjs';
+import './embedded-local-close-public.test.mjs';
 import test from 'node:test';
 import {mkdir, mkdtemp, open, rm} from 'node:fs/promises';
 import {join} from 'node:path';

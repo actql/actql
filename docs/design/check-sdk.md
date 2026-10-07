@@ -1621,3 +1621,28 @@ messages, nested causes, locators and cleanup handles are omitted.
 The existing cancellation operation-identity, Refused/NotAccepted/Conflict and
 lookup contracts require authoritative typed Owner evidence; this presentation
 adds none of those facts, no ledger, no Host storage and no automatic resend.
+
+### Rejected DeliveryAttempt lookup observations
+
+`Result.deliveryAttempt()` admits responses through the existing registered
+validator, exact requested attempt/Run/Result binding, and captured-copy checks.
+A failed exchange retains `lookup_unavailable`; an unreadable, unknown, malformed
+or substituted response retains `lookup_uninterpretable`. Neither branch admits
+response fields as Owner facts. The original SDK error has a weak, immutable
+association with the original read-only lookup target and connection scope.
+Code, status, severity, locale and mutable error fields do not decide the outcome.
+
+`explainDeliveryAttempt` and `formatDeliveryAttempt` can present these original
+errors as well as admitted replies. Safe existing Client code/status are retained;
+provider messages, decoded private bytes and nested causes are excluded. Copies
+and forged errors have no presentation association. A later valid lookup does not
+change an earlier failed observation or reader progress. No read is opened, grant
+is charged, Compute is rerun or automatic lookup is made by presentation.
+
+The SDK-only explanation union gains `lookup_unavailable` and
+`lookup_uninterpretable`; wire contracts, validators, identities and Host/Delivery
+Owner transitions are unchanged. English remains the default. Opt-in Japanese
+wording and the separate operation translation revision are updated together.
+This observation supplies no read-opening, Host delivery, receipt, application
+receipt/persistence or cleanup fact. Current authorization is checked on every
+explicit lookup; a retained target does not grant access.

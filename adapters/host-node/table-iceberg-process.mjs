@@ -112,8 +112,10 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       if (owned.attempted) fail('TablePhysicalReconcileOnly');
       owned.attempted = true;
       const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; });
-      if (typeof result?.ok !== 'boolean' || !keys(result, result.ok ? ['ok', 'result'] : ['ok', 'code']) ||
-          (!result.ok && typeof result.code !== 'string')) fail('InvalidTablePhysicalReply');
+      if (typeof result?.ok !== 'boolean' || !(keys(result, ['ok', 'result']) ||
+          (!result.ok && keys(result, ['ok', 'code']) && typeof result.code === 'string'))) {
+        fail('InvalidTablePhysicalReply');
+      }
       return Object.freeze({observation: Object.freeze({useCid,
         statusCode: result.ok ? 200 : 409,
         body: Buffer.from(JSON.stringify(result))})});

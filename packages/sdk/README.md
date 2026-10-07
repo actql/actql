@@ -8,6 +8,35 @@ Run observations, and published Result reads. Supported Program shapes and
 connectors depend on the installation; this is not a claim that every Host
 supports every Program. See the [current implementation status](../../docs/reviews/current-product-status.md).
 
+## Client lifetime
+
+Always `await client.close()` in a `finally` block. Close seals new Client
+operations immediately, stops its active row and batch readers, and waits for
+their cleanup. `await using client = await connect(options)` uses the same
+asynchronous disposal where the language supports it. Returned rows and batches
+remain the application's values.
+
+Embedded Local connections share one compatible Host installation per directory.
+Closing one Client does not close its siblings. The last Client waits for the
+existing Host's graceful shutdown, including already accepted computation and
+physical cleanup. A successful close permits a fresh connection to that directory;
+durable request and Result retention still follows the Host's retained policies.
+Close does not cancel Runs, answer Checkpoints, reconcile Effects or delete
+saved Results. Remote close waits for disposal of this Client's local response
+readers; it sends no Host shutdown operation and confirms no remote Delivery
+settlement or receipt. Observed cancellation uncertainty stays on the original
+read's error and attempt.
+
+`ClientCleanupPending` with `cleanupPending: true` means release was not
+confirmed. Keep this Client and retry `await client.close()`; new use stays
+sealed. Private provider errors and cleanup handles are not exposed. Do not
+replace a retained Local cleanup owner by
+opening another Host. This development API changes `close(): void` to
+`close(): Promise<void>`; update typed implementations and await cleanup rather
+than ignoring a possible rejection.
+
+## Connections
+
 `connect(options)` authenticates with the selected Host and returns its
 confirmed owner, durability and capability snapshot. The SDK captures the
 profile's scope, limits and capabilities once, validates their unchanged
@@ -1214,3 +1243,10 @@ The existing error recovery fields remain available, but formatters never render
 raw causes. Recovery causes retain only public Client code/status metadata,
 not borrowed messages, locators, cleanup handles or nested causes. English/default and approved Japanese localization preserve the same
 facts, and formatting performs no lookup, retry, execution or release.
+
+A failed `result.deliveryAttempt(attemptId)` lookup keeps safe read-only advice
+for that same attempt through `explainDeliveryAttempt(error)` and
+`formatDeliveryAttempt(error)`. `lookup_unavailable` means the exchange did not
+complete; `lookup_uninterpretable` means no response facts were admitted. Neither
+establishes whether the read opened or delivered, permits another opening, or
+changes the Run. Explicit lookup still checks current Host authorization.

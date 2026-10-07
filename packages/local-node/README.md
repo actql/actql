@@ -5,6 +5,17 @@
 compiler and runtime, and the built-in Local Host adapters.
 Connected Remote mode imports only the lightweight SDK path.
 
+Each embedded Client holds a private lease on the compatible installed Host.
+`await client.close()` seals that Client, disposes its readers, then releases
+the lease. Other Clients retain their own leases. The final close stops new
+ingress and Checkpoint resumes, waits for existing dispatch and cleanup, and
+closes the physical owners using the same shutdown protocol as the HTTP Host.
+It preserves durable Runs and retained Checkpoints; it never requests Run
+cancellation. New opens are refused while final cleanup is pending. Retrying
+the same Client's close continues the original cleanup without reopening
+providers. After confirmed release, the same directory can be reopened in the
+same process under current installation checks.
+
 Source-free Local Values execution does not install or load DuckDB. DuckDB is
 an optional peer dependency. Before explicitly selecting a DuckDB Source or
 Compute installation, install the pinned native package in the consuming app:
