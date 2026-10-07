@@ -75,3 +75,98 @@ node scripts/local-checks.mjs test node -- \
 The final registration-matching wording is included in that Node result.
 Clean-revision public execution is recorded below after its actual invocation. Core-wide, Wasm/native,
 proof campaigns, Cloud, performance and the full packed corpus are not claimed.
+
+## Fixed distribution and failed public boundary
+
+Implementation/package source: `aa25a420683ff1980c0173c2349f3b5878f325b4`.
+Five packages were normally packed with prepack enabled into
+`/private/tmp/actql-b-ceiling-aa25a4206-pack`. Its manifest records that revision
+and the following SHA-256 digests:
+
+| Package | Digest |
+|---|---|
+| client-wire | `1702b53d4d6ed0596966ef37df25d0057afc08005ca190037574207278f9e281` |
+| sdk | `43b6d6bfb498c7a72d7f0481393cb080cc045bd77dec42c8a0db7f7bada61713` |
+| run-host-core | `c30ec73dbc24d074d9d887b0eaab3387b95d55cd4b5ac11879cfe5775f7542de` |
+| local-node | `a142c5fbf9d21fe020793977d067cb03ce47f38f39ec4e25fc599e7a6339230c` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-ceiling-aa25a4206-pack
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+  npm_config_offline=true npm_config_include=optional \
+  ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-ceiling-aa25a4206-pack \
+  node scripts/test-packed-public-query.mjs --ceiling-only
+```
+
+The external installation uses no MoonBit toolchain at runtime. The wrapper's
+11 profile/routing checks, README Local/HTTPS Named Result quickstart and missing
+asset refusal smoke passed. The changed ceiling corpus did **not** pass:
+`packed-local-ceiling-json-control` returned `SubmissionUnknown`, caused by
+`ClientHostFailure` (500). No ceiling source success, preparation-refusal matrix,
+execution-failure assertion or HTTPS ceiling execution was reached.
+
+Evidence:
+`worktrees/.codex-scratch/public-query-evidence-E5jMc8/008.stderr.log` and
+`summary.json`; command 008 exited 1 after 1,402 ms. Logs, package digests and
+command results were saved, then the private installation was automatically
+removed (`artifactsRemoved: true`, `evidenceErrors: []`). The evidence's general
+source `dirty` flag reflects protected untracked review artifacts; the producer's
+tracked sources/build inputs were clean and its manifest revision was not edited.
+
+## Common-owner handoff: existing FLOOR lowering is absent
+
+A focused diagnostic uses the bridge produced by that normal pack and the
+existing `sourceFreeValuesPlan` / `runtimeCore(...).publicationControl` boundary.
+It adds the same Graph construction capacity declarations required by the
+installed Host, without changing any capacity or numeric limit to admit CEIL.
+
+| Input | Ordinary preparation | Existing Run compilation |
+|---|---|---|
+| Independent JSON ceiling control | ready | `RunHostCompilationRejected` / `ExpressionNotImplemented("floor")` |
+| `SELECT 2.3 AS value` | ready | Plan issued |
+| `SELECT FLOOR(2.3) AS value` | ready | Same `floor` refusal |
+| `SELECT CEIL(2.3) AS value` | ready | Same `floor` refusal |
+
+The root chain is Values compilation → Plan Graph → Fragment → AoA pipeline →
+sequence kernel 1 → expression lowering. `src/lowering_relation/expression.mbt`
+rejects `floor` in `check_supported_tag`; its `UnaryOperator` and the common
+execution unary handler have no floor case. This is an existing common execution
+gap, not a failed CEIL formula, parameter problem or source acquisition problem.
+A should own the common lowering/evaluation connection and its bounded execution
+regressions. B does not add a frontend evaluator, remove the operation, alter
+expected rows, raise a ceiling or route these cases through another compiler.
+
+Minimal independent common Program (expected `[{"value":2}]`, nonnullable number):
+
+```json
+{
+  "version":"actql/0.1", "id":"fixture.floor_probe",
+  "stages":[{"id":"main", "inputs":{}, "steps":[
+    {"as":"seed", "values":{"schema":{"unit":{"type":"boolean","nullable":false}},"rows":[{"unit":true}]}},
+    {"from":"seed", "derive":{"value":{"floor":{"literal":2.3}}}},
+    {"select":["value"], "as":"selected"}
+  ], "results":{"rows":{"from":"selected","fields":["value"]}}}],
+  "results":{"answer":{"from":{"stage":"main","result":"rows"}}}
+}
+```
+
+The retained diagnostic is
+`review-artifacts/b-resume-2026-10-07/ceiling-preparation-probe.mjs`; invoke
+`node review-artifacts/b-resume-2026-10-07/ceiling-preparation-probe.mjs` after a
+normal runtime build. `ceiling-plan-probe.log` contains the full nested cause;
+`ceiling-plan-final-probe.log` retains the positive control and compact floor
+refusals. Earlier import-path/environment setup errors are separate diagnostic
+logs, not product failures. This diagnostic is an internal boundary probe;
+it does not establish HTTPS execution or successful public acceptance.
+
+## Completion and remaining work
+
+Frontend syntax/lowering and independent fixtures are ready for review; public
+execution remains incomplete and the PR stays Draft. The 12 normal / 7
+preparation-refusal / 1 execution-failure cases per transport remain unchanged
+acceptance obligations. After the common floor connection is available, adopt
+its fixed SHA and rerun this same public selection from normal distributions.
+The failed invocation is not a substitute for those obligations or CI success.
+The submitted follow-up documentation commit does not change package build
+inputs; no public success is attributed to that later HEAD.
