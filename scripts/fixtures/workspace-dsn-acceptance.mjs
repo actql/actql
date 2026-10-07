@@ -107,7 +107,7 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     return {counts: {...counts}, rows: [{id: 1}, {id: 2}],
       distinctScopes: true, originalRunReused: true, unexpectedDispatches: 0};
   } finally {
-    for (const client of clients) client.close();
+    for (const client of clients) await client.close();
     if (server !== undefined) {
       server.closeAllConnections(); await new Promise(resolve => server.close(resolve));
     }

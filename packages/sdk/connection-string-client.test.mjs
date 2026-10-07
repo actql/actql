@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
-import {ClientError, connect, getSubmissionInput, explainSubmission} from './index.mjs';
+import {ClientError, connect, getSubmissionInput, explainSubmission,
+  explainDeliveryAttempt} from './index.mjs';
 
 const fetchContexts = new WeakSet();
 function stubFetch(t, implementation) {
@@ -54,7 +55,7 @@ test('SDK DSNs carry a fixed Workspace without exposing the connection secret', 
       assert.equal(getSubmissionInput(run).connection.workspaceId, 'workspace-A');
       assert.deepEqual((await client.attach(run.ref)).ref, ref);
       await client.lookupRequest('saved-dsn');
-    } finally {client.close();}
+    } finally {await client.close();}
   }
   assert.deepEqual(calls, ['connect', 'submit', 'attach', 'lookup-request']);
 });
@@ -108,7 +109,7 @@ test('separate providers refresh credentials without changing the asserted Works
   });
   const client = await connect('actql://example.test/workspace-A', {token: async () => token});
   try {token = 'token-A-refreshed'; await client.lookupRequest('saved');}
-  finally {client.close();}
+  finally {await client.close();}
   assert.deepEqual(observed, ['Bearer token-A-first', 'Bearer token-A-refreshed']);
 });
 
@@ -146,7 +147,7 @@ test('lost DSN submission retains unknown acceptance and safe context without re
       noSecret(error); noSecret(getSubmissionInput(error)); noSecret(explainSubmission(error));
       assert.equal(error.lookupContext.endpoint, 'https://example.test/'); return true;
     });
-  } finally {client.close();}
+  } finally {await client.close();}
   assert.deepEqual(calls, ['connect', 'submit']);
 });
 
@@ -166,7 +167,35 @@ test('DSN read failures retain attempt and prefix facts without a borrowed priva
       assert.equal(error.code, 'ResultReadUnknown'); assert.equal(error.attemptId, reader.attemptId);
       assert.equal(error.rowsYielded, 0); noSecret(error); return true;
     });
-  } finally {client.close();}
+  } finally {await client.close();}
+});
+
+test('DSN delivery lookup preserves the original candidate without a secret-bearing body failure', async t => {
+  const operations = [];
+  stubFetch(t, async url => {
+    const operation = url.pathname.split('/').at(-1); operations.push(operation);
+    if (operation === 'connect') return Response.json(profile());
+    if (operation === 'attach') return Response.json({ref, durability: 'durable', revision: 1});
+    assert.equal(operation, 'delivery-attempt');
+    return new Response(new ReadableStream({start(controller) {
+      controller.error(new Error(dsn, {cause: new Error(secret)}));
+    }}));
+  });
+  const client = await connect(dsn);
+  try {
+    const result = (await client.attach(ref)).result('answer');
+    await assert.rejects(result.deliveryAttempt('original-read'), error => {
+      assert.equal(error.code, 'InvalidHostAttemptLookup');
+      assert.equal(Object.hasOwn(error, 'cause'), false);
+      const explanation = explainDeliveryAttempt(error);
+      assert.equal(explanation.observation, 'lookup_uninterpretable');
+      assert.deepEqual(explanation.next.ref, ref);
+      assert.equal(explanation.next.resultName, 'answer');
+      assert.equal(explanation.next.attemptId, 'original-read');
+      noSecret(error); noSecret(explanation); return true;
+    });
+    assert.deepEqual(operations, ['connect', 'attach', 'delivery-attempt']);
+  } finally {await client.close();}
 });
 
 for (const property of ['code', 'cleanupError']) {
@@ -187,7 +216,7 @@ for (const property of ['code', 'cleanupError']) {
         assert.equal(error.code, 'ResultReadUnknown'); noSecret(error); return true;
       });
       assert.equal(getterCalls, 0);
-    } finally {client.close();}
+    } finally {await client.close();}
   });
 }
 
@@ -197,5 +226,5 @@ test('unasserted endpoint connections retain their original profile and request 
     const answer = profile(); delete answer.workspaceId; return Response.json(answer);
   });
   const client = await connect({mode: 'remote', endpoint: 'https://example.test', token: 'legacy'});
-  assert.equal(Object.hasOwn(client.profile, 'workspaceId'), false); client.close();
+  assert.equal(Object.hasOwn(client.profile, 'workspaceId'), false); await client.close();
 });
