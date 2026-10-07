@@ -81,6 +81,18 @@ export async function packedClientPackage({repository, name, destination,
   return undefined;
 }
 
+// Acquired-source consumers opt into the same exact native transport pin as
+// the source adapter. Source-free package consumers leave this peer absent.
+export async function pinnedDuckDBPackage(repository) {
+  const manifest = JSON.parse(await readFile(join(repository,
+    'adapters/connectors/duckdb/node/package.json'), 'utf8'));
+  const version = manifest.dependencies?.['@duckdb/node-api'];
+  if (typeof version !== 'string' || version === '') {
+    throw new Error('MissingPinnedDuckDBDependency');
+  }
+  return `@duckdb/node-api@${version}`;
+}
+
 // The npm cache a packed acceptance installation uses: shared within one CI
 // job when ACTQL_TEST_NPM_CACHE is set, otherwise private to the root.
 export function packedNpmCache(root) {

@@ -1859,6 +1859,32 @@ export function validateResourceAccounting({
       const role = `${kind}_compound_output_port_public`;
       if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
+    const metadataKinds = {join:'join', nest:'nest', interval_join:'interval', asof_join:'asof'};
+    if (metadataKinds[route.operation] && ['RelA','TEA'].includes(route.family)) {
+      const kind = metadataKinds[route.operation];
+      const file = path.join(root, `src/execution_relation/bounded_${route.operation}.mbt`);
+      const source = fs.existsSync(file) ? fs.readFileSync(file,'utf8') : '';
+      const cursorFile = path.join(root,'src/execution_relation/row_metadata_cursor.mbt');
+      const cursor = fs.existsSync(cursorFile) ? fs.readFileSync(cursorFile,'utf8') : '';
+      if (['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+        'close_row_metadata_lookup('].some(marker=>!source.includes(marker)) ||
+        ['start_row_metadata_lookup(', 'advance_row_metadata_lookup(',
+          'text_function_scalar(', 'spend_control('].some(marker=>!cursor.includes(marker)) ||
+        /let names_of\s*=|let resolve\s*=\s*fn/u.test(source)) {
+        fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
+      }
+      if (kind === 'join' && (['start_row_name_charge(', 'advance_row_name_charge(',
+        'close_row_name_charge('].some(marker=>!source.includes(marker)) ||
+        /spend_control_text\s*\(|@schema\.reference_name\s*\(/u.test(source))) {
+        fail(`${label}: join compound metadata production cursor connection is missing`);
+      }
+      for (const part of ['limit','workspace','quantum','stop']) {
+        const role = `${kind}_compound_metadata_${part}`;
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      const role = `${kind}_compound_metadata_public`;
+      if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+    }
     const unaryPortKinds = {group:['group','count'], analytic:['analytic'],
       pivot:['pivot'], row_window:['window'], unpivot:['unpivot'], unnest:['unnest']};
     if (route.family === 'RelA' && unaryPortKinds[route.operation]) {
