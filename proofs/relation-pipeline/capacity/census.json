@@ -33,6 +33,9 @@
         "metadata_binding",
         "metadata_offset",
         "metadata_lookup",
+        "metadata_source",
+        "metadata_generated_field",
+        "metadata_generated_seen",
         "term_column",
         "name_charge",
         "projection_ordinals",
@@ -134,7 +137,10 @@
         "metadata_offset": "Int",
         "metadata_lookup": "RowMetadataLookup?",
         "name_charge": "RowNameCharge?",
-        "term_column": "Int?"
+        "term_column": "Int?",
+        "metadata_source": "@schema.FieldName?",
+        "metadata_generated_field": "Int",
+        "metadata_generated_seen": "Int"
       }
     },
     {
