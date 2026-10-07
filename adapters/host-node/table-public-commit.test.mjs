@@ -160,8 +160,9 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
           resource_identity_scheme_cid: contentCid(tableContract), provider_namespace: 'table',
           provider_boundary_cid: f.catalog.catalogCid, resource_kind: 'Table', provider_object_identity_cids: []}}],
       limits: {reservation: {bytes: 1048576, files: 16}}}));
-    const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
-      installation: {directory: join(f.root, name), effectProfilePath, authorization}});
+    const options = {mode: 'local', owner: 'local', durability: 'durable',
+      installation: {directory: join(f.root, name), effectProfilePath, authorization}};
+    const client = await connectEmbeddedLocal(options);
     opened.push(client);
     const run = await client.aql(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
     await waiting(run, observations, t);
@@ -173,7 +174,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     const approve = () => client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
       keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
       sign: bytes => sign(null, bytes, keys.privateKey)}});
-    return {client, run, operation, approve};
+    return {client, run, operation, approve, options};
   };
   try {
     const created = await open('create-base', expectedRows);
@@ -215,6 +216,21 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.equal(noncommit.result.request_cid, second.operation.request_cid);
     assert.equal(noncommit.result.reason, 'ExpectedGenerationConflict');
     assert.equal((await second.run.reconcile()).status, 'failed');
+    await second.client.close();
+    const audit = new DatabaseSync(f.catalog.database, {readOnly: true});
+    try {
+      assert.deepEqual(plain(audit.prepare('SELECT reserved_bytes,reserved_files FROM actql_table_allocations WHERE request_cid=?')
+        .get(second.operation.request_cid)), {reserved_bytes: 0, reserved_files: 0},
+      'Only the losing operation reservation is returned after confirmed cleanup');
+      assert.equal(audit.prepare('SELECT cleanup_complete FROM actql_table_publication_fences WHERE request_cid=?')
+        .get(second.operation.request_cid).cleanup_complete, 1);
+    } finally { audit.close(); }
+    const restarted = await connectEmbeddedLocal(second.options);
+    opened.push(restarted);
+    const recovered = await restarted.attach(second.run.ref);
+    assert.equal((await recovered.reconcile()).status, 'failed');
+    assert.deepEqual(plain(await f.bridge.reconcileOperation(second.operation)), plain(noncommit),
+      'The original noncommit receipt remains exact after Host restart and cleanup');
     assert.equal(commits(f.catalog).length, 2);
     assert.deepEqual((await readFile(join(f.root, 'writes.log'), 'utf8')).trim().split('\n').sort(),
       [created.operation.request_cid, first.operation.request_cid, second.operation.request_cid].sort(),
