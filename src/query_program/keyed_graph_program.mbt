@@ -133,12 +133,14 @@ fn keyed_hop_node_fields(
   })
   let candidates = graph.mapping.nodes.filter(definition => {
     edges.any(edge_definition => {
-      let endpoint = if edge.direction == "in" {
-        edge_definition.source
-      } else {
-        edge_definition.destination
-      }
-      same_name(definition.name, endpoint.definition)
+      (
+        edge.direction != "out" &&
+        same_name(definition.name, edge_definition.source.definition)
+      ) ||
+      (
+        edge.direction != "in" &&
+        same_name(definition.name, edge_definition.destination.definition)
+      )
     })
   })
   if node.label is Some(label) {

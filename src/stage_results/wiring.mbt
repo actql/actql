@@ -107,6 +107,14 @@ pub fn wire_results(
       }
       text -= amount
     }
+    if owner.table_inputs is Some(inputs) {
+      let used = @results.table_inputs_usage(inputs)
+      if used.work > work || used.text_bytes > text {
+        return Err(BudgetExceeded)
+      }
+      work -= used.work
+      text -= used.text_bytes
+    }
     let entries = attached.imports.entries
     if entries.length() > left || entries.length() > work {
       return Err(BudgetExceeded)

@@ -87,6 +87,7 @@ const compositionFoundation = ['foundation.mjs', 'foundation.test.mjs',
   'fixtures/foundation-repository.mjs', 'fixtures/convergent-declarations.json',
   'fixtures/multiple-merge-bases.json', 'workspaces.mjs', 'workspaces.test.mjs',
   'execute.test.mjs', 'fixture.test.mjs', 'fixtures/execution-driver.mjs',
+  'mutation-actions.mjs', 'mutation-actions.test.mjs',
   'capacity/finish.mjs', 'executor-close.test.mjs'].map(path => `proofs/relation-pipeline/${path}`);
 export function currentFoundation(root) {
   const baseline = checkLegacyFoundation(root, { recordPath: checkpointPath,
