@@ -136,7 +136,7 @@ def dispatch(body, catalog_factory=None):
     if any(type(value) is not int or not 1 <= value <= 9007199254740991
            for value in config["limits"].values()):
         raise ProtocolRefusal("TableProcessConfiguration")
-    shapes = {"write": {"operation", "mapping", "rows", "reservation"},
+    shapes = {"write": {"operation", "mapping", "rows", "reservation", "schema_wire"},
               "reconcile": {"operation"}, "read": {"receipt", "mapping"},
               "cleanup": {"operation"}, "inspect": {"operation"},
               "resolve_generation": {"selector"}}
@@ -149,7 +149,7 @@ def dispatch(body, catalog_factory=None):
         try:
             if command == "write":
                 result = catalog.write_claimed(payload["operation"], payload["mapping"],
-                                               payload["rows"], payload["reservation"])
+                                               payload["rows"], payload["reservation"], payload["schema_wire"])
             elif command == "reconcile":
                 result = catalog.reconcile(payload["operation"])
             elif command == "read":

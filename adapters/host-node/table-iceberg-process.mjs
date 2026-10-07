@@ -4,6 +4,7 @@
 // from an absent response or receipt. All process stop facts use the existing
 // managed-process owner; none are taken from an IPC acknowledgement.
 import {isAbsolute} from 'node:path';
+import {createHash} from 'node:crypto';
 import {prepareManagedExecution, startManagedExecution} from './process-channel.mjs';
 import {encodeProcessFrame} from './process-frames.mjs';
 
@@ -68,10 +69,15 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
-    prepareWrite({operation, mapping, rows, reservation}) {
-      const payload = snapshot({operation, mapping, rows, reservation});
+    prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
+      if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
+      const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
       if (!cid(payload.operation?.request_cid) || !Array.isArray(payload.rows)) {
         fail('InvalidTablePhysicalPreparation');
+      }
+      if (typeof payload.schema_wire !== 'string' || Buffer.byteLength(payload.schema_wire, 'utf8') > 65536 ||
+          `sha256:${createHash('sha256').update(payload.schema_wire, 'utf8').digest('hex')}` !== payload.operation.schema_cid) {
+        fail('InvalidTableLogicalSchema');
       }
       // Charge/validate the entire transport envelope before claiming a send,
       // including empty typed input. This is a bounded initial I/O profile, not
