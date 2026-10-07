@@ -36,9 +36,9 @@ async function installed(t, entrance, getters = false) {
       async perform(operation, ...args) {
         const reply = await host.perform(operation, ...args);
         if (operation === 'connect' && getters) {
-          Object.defineProperty(reply, 'scopeRef', {enumerable: true,
+          Object.defineProperty(reply, 'scopeRef', {enumerable: true, configurable: true,
             get() {return ++reads.scopeRef === 1 ? 'principal' : 'foreign-principal';}});
-          Object.defineProperty(reply.limits, 'maxRows', {enumerable: true,
+          Object.defineProperty(reply.limits, 'maxRows', {enumerable: true, configurable: true,
             get() {return ++reads.maxRows === 1 ? 10 : 20;}});
         }
         return reply;
@@ -80,7 +80,10 @@ for (const entrance of ['local', 'https']) {
     const location = sdk.resolveCheckLocation(outcome, outcome.report.reasons[0].location);
     assert.equal(location.text, '');
     assert.equal(location.input, input);
-    f.profile.scopeRef = 'foreign-principal'; f.profile.limits.maxRows = 20;
+    Object.defineProperty(f.profile, 'scopeRef', {value: 'foreign-principal', enumerable: true,
+      writable: true, configurable: true});
+    Object.defineProperty(f.profile.limits, 'maxRows', {value: 20, enumerable: true,
+      writable: true, configurable: true});
     assert.equal(client.profile.scopeRef, 'principal');
     assert.equal(client.profile.limits.maxRows, 10);
     assert.deepEqual(f.calls, ['connect', 'check']);
