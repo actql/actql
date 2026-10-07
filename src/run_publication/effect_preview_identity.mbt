@@ -19,6 +19,14 @@ pub(all) enum EffectPreviewResolvedContract {
 } derive(Eq, Debug)
 
 ///|
+/// Distinct authored namespaces. Neither variant grants write authority or
+/// implies live custody of the Artifact named by the same Preview member.
+pub(all) enum EffectPreviewRelationSource {
+  Result(String)
+  TableInput(String)
+} derive(Eq, Debug)
+
+///|
 pub struct EffectPreviewIdentity {
   semantic_cid : String
   member_cids : Array[String]
@@ -29,7 +37,7 @@ pub struct EffectPreviewIdentity {
   member_capability_evidence_cids : Array[String]
   member_authority_scope_cids : Array[String]
   member_effect_plan_cids : Array[String?]
-  member_source_results : Array[String?]
+  member_relation_sources : Array[EffectPreviewRelationSource?]
   member_result_artifact_cids : Array[String?]
   member_max_items : Array[Int64]
   member_contracts : Array[EffectPreviewResolvedContract]
@@ -922,7 +930,7 @@ pub fn admit_effect_preview_identity(
   let member_capability_evidence_cids : Array[String] = []
   let member_authority_scope_cids : Array[String] = []
   let member_effect_plan_cids : Array[String?] = []
-  let member_source_results : Array[String?] = []
+  let member_relation_sources : Array[EffectPreviewRelationSource?] = []
   let member_result_artifact_cids : Array[String?] = []
   let member_max_items : Array[Int64] = []
   let member_contracts : Array[EffectPreviewResolvedContract] = []
@@ -985,13 +993,25 @@ pub fn admit_effect_preview_identity(
     let source_result = optional_string(
       @json.object_field(effect, "source_result"),
     )
+    let table_input = optional_string(
+      @json.object_field(effect, "source_table_input"),
+    )
     let artifact_cid = optional_string(
       @json.object_field(effect, "result_artifact_cid"),
     )
-    if (source_result is Some(_)) != (artifact_cid is Some(_)) {
+    if (source_result is Some(_) && table_input is Some(_)) ||
+      (table_input is Some(_) && effect_kind != "store") ||
+      (source_result is Some(_) || table_input is Some(_)) !=
+      (artifact_cid is Some(_)) {
       return Err(InvalidMember)
     }
-    member_source_results.push(source_result)
+    member_relation_sources.push(
+      match (source_result, table_input) {
+        (Some(name), None) => Some(Result(name))
+        (None, Some(name)) => Some(TableInput(name))
+        _ => None
+      },
+    )
     member_result_artifact_cids.push(artifact_cid)
     match @json.object_field(effect, "max_items") {
       Some(@json.Number(limit)) if limit > 0.0 &&
@@ -1166,7 +1186,7 @@ pub fn admit_effect_preview_identity(
     member_capability_evidence_cids,
     member_authority_scope_cids,
     member_effect_plan_cids,
-    member_source_results,
+    member_relation_sources,
     member_result_artifact_cids,
     member_max_items,
     member_contracts,
@@ -1301,10 +1321,31 @@ pub fn effect_preview_member_source_result(
   value : EffectPreviewIdentity,
   index : Int,
 ) -> String? {
-  match value.member_source_results.get(index) {
-    Some(name) => name
-    None => None
+  match effect_preview_member_relation_source(value, index) {
+    Some(Result(name)) => Some(name)
+    _ => None
   }
+}
+
+///|
+pub fn effect_preview_member_source_table_input(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> String? {
+  match effect_preview_member_relation_source(value, index) {
+    Some(TableInput(name)) => Some(name)
+    _ => None
+  }
+}
+
+///|
+/// All source-consuming boundaries must use this typed inventory rather
+/// than interpreting a non-Result source as a source-free Effect.
+pub fn effect_preview_member_relation_source(
+  value : EffectPreviewIdentity,
+  index : Int,
+) -> EffectPreviewRelationSource? {
+  value.member_relation_sources.get(index).bind(value => value)
 }
 
 ///|

@@ -63,9 +63,37 @@ fn effect_source_contract_matches_result_facts(
   result : PublicationContract,
   result_name : String,
 ) -> Bool {
+  effect_source_contract_matches_relation_facts(
+    physical,
+    result,
+    Result(result_name),
+  )
+}
+
+///|
+/// Match semantic export facts only in the private Table input namespace.
+/// A matching name or content in the ordinary Result namespace is insufficient.
+pub fn captured_effect_source_matches_table_input_facts(
+  source : CapturedEffectSourceArtifact,
+  artifact : PublicationContract,
+  table_input : String,
+) -> Bool {
+  effect_source_contract_matches_relation_facts(
+    source.artifact,
+    artifact,
+    TableInput(table_input),
+  )
+}
+
+///|
+fn effect_source_contract_matches_relation_facts(
+  physical : PublicationContract,
+  result : PublicationContract,
+  source : EffectPreviewRelationSource,
+) -> Bool {
   if physical.name != "effect_source_artifact" ||
     result.name != "result_artifact" ||
-    contract_string(physical, "source_result") != Some(result_name) ||
+    effect_source_artifact_relation_source(physical) != Some(source) ||
     contract_string(physical, "actual_completeness") != Some("complete") ||
     contract_string(result, "actual_completeness") != Some("complete") {
     return false
@@ -340,6 +368,39 @@ pub fn admit_captured_effect_source_from_result(
 }
 
 ///|
+/// The private semantic Artifact is admitted under its checked producer and
+/// owner by the Host. This binding preserves the typed Preview source and all
+/// export facts; it is not proof of durable capture or current Store custody.
+pub fn admit_captured_effect_source_from_table_input(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  table_artifact : PublicationContract,
+  store_authority_cid : String,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_source_table_input(preview, member_index)
+    is Some(name) &&
+    effect_source_contract_matches_relation_facts(
+      artifact,
+      table_artifact,
+      TableInput(name),
+    ) else {
+    return Err(
+      CaptureIssuanceReferenceMismatch("effect_source_table_input_artifact"),
+    )
+  }
+  admit_captured_effect_source_binding(
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    table_artifact.identity,
+    store_authority_cid,
+  )
+}
+
+///|
 fn admit_captured_effect_source_binding(
   preview : EffectPreviewIdentity,
   member_index : Int,
@@ -350,8 +411,7 @@ fn admit_captured_effect_source_binding(
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard effect_preview_member_effect_id(preview, member_index)
     is Some(effect_id) &&
-    effect_preview_member_source_result(preview, member_index)
-    is Some(source_result) &&
+    effect_preview_member_relation_source(preview, member_index) is Some(source) &&
     effect_preview_member_source_binding_cid(preview, member_index)
     is Some(source_binding_cid) &&
     effect_preview_member_result_artifact_cid(preview, member_index)
@@ -363,7 +423,7 @@ fn admit_captured_effect_source_binding(
     preview_artifact_cid != artifact_cid ||
     contract_string(artifact, "store_authority_cid") !=
     Some(store_authority_cid) ||
-    contract_string(artifact, "source_result") != Some(source_result) ||
+    effect_source_artifact_relation_source(artifact) != Some(source) ||
     contract_string(artifact, "source_binding_cid") != Some(source_binding_cid) ||
     contract_string(artifact, "invocation_cid") != Some(invocation.identity) {
     return Err(CaptureIssuanceReferenceMismatch("effect_source_artifact"))
@@ -853,7 +913,7 @@ fn issue_captured_computation_run(
       }
     Some(identity) => {
       for index in 0..<identity.member_effect_ids.length() {
-        if effect_preview_member_source_result(identity, index) is Some(_) {
+        if effect_preview_member_relation_source(identity, index) is Some(_) {
           expected_source_count += 1
           let matches = ordered_sources.filter(source => {
             source.effect_id == identity.member_effect_ids[index]

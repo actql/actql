@@ -803,6 +803,38 @@ pub fn strategy_captured_effect_source_inventory_from_results_valid(
 }
 
 ///|
+#export_name("strategyAdmitCapturedEffectSourceFromTableInput")
+pub fn strategy_admit_captured_effect_source_from_table_input(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  invocation : @publication.PublicationContract,
+  artifact : @publication.PublicationContract,
+  input : @publication.PublicationContract,
+  store_authority_cid : String,
+) -> @publication.CapturedEffectSourceArtifact raise NodeHostFailure {
+  match
+    @publication.admit_captured_effect_source_from_table_input(
+      preview, member_index, invocation, artifact, input, store_authority_cid,
+    ) {
+    Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("strategyCapturedEffectSourceInventoryFromArtifactsValid")
+pub fn strategy_captured_effect_source_inventory_from_artifacts_valid(
+  preview : @publication.EffectPreviewIdentity,
+  member_indices : Array[Int],
+  artifacts : Array[@publication.PublicationContract],
+  relations : Array[@publication.PublicationContract],
+) -> Bool {
+  @publication.captured_effect_source_inventory_from_artifacts_valid(
+    preview, member_indices, artifacts, relations,
+  )
+}
+
+///|
 /// Re-admit persisted local evidence at a trust boundary. This does not
 /// replace the checked Host owner required for first issuance.
 #export_name("strategyAdmitCapturedLocalEffectSource")
