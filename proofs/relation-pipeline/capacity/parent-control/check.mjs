@@ -26,14 +26,14 @@ const selectionNames = ['candidate_component', 'retained_core_union'];
 assert.deepEqual([...selection.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), selectionNames);
 const consumers = `
 example (n : Nat) (s : NativeParentCore.Footprint)
-  (r : s.references ≤ 160) (o : s.owner ≤ 56) (c : s.callbacks ≤ 248)
-  (e : s.environment ≤ 120) (w : s.reported ≤ 32) (a : s.arrayOwners ≤ 48)
+  (r : s.references ≤ 80) (o : s.owner ≤ 56) (st : s.state ≤ 56) (c : s.callbacks ≤ 240)
+  (e : s.environment ≤ 80) (w : s.reported ≤ 32) (a : s.arrayOwners ≤ 48)
   (h : s.backingHeaders ≤ 16) (b : s.backingSlots ≤ 2 * NativeParentCore.slots n)
   (co : s.completedOwners ≤ 48) (ch : s.completedHeaders ≤ 8) (cs : s.completedSlots ≤ n) :
-  s.bytes ≤ NativeParentCore.envelope n := NativeParentCore.phase_bound n s r o c e w a h b co ch cs
+  s.bytes ≤ NativeParentCore.envelope n := NativeParentCore.phase_bound n s r o st c e w a h b co ch cs
 example (n old next : Nat) (a : old ≤ NativeParentCore.slots n) (b : next ≤ NativeParentCore.slots n) :
   8 * (old + next) ≤ 16 * NativeParentCore.slots n := NativeParentCore.growth_overlap n old next a b
-example : NativeParentCore.retired.bytes = 624 := NativeParentCore.retired_owner_witness
+example : NativeParentCore.retired.bytes = 560 := NativeParentCore.retired_owner_witness
 example (s : ProviderConstruction.Footprint) (r : s.records ≤ 11 * 40)
   (c : s.callbacks ≤ 44 * 40) (a : s.candidates ≤ 120) (f : s.defaultFamily ≤ 24) :
   s.bytes ≤ 2344 := ProviderConstruction.candidate_component s r c a f

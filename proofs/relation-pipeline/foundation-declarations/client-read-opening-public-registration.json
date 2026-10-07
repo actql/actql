@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "client-read-opening-public-registration",
+  "kind": "change",
+  "revision": "402dbea306885dffd3106c571ceddf95f136c1f2",
+  "parents": [
+    "edaa27e9733572b8b26944a28d5d646f6d827381"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "edaa27e9733572b8b26944a28d5d646f6d827381",
+          "digest": "884d396612288dab42b250667faa9010822c8a13d111cb32e131bc216b3d0537",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "583ee703aa9f465a08aa96050a8c16f9a34d5d9b77856c7e687deccb36bb7942",
+      "afterMode": "100644",
+      "reason": "Register actual Local and TLS HTTPS read-opening reply-loss and same-attempt recovery acceptance in the existing Client distribution gate. Preserve inherited tests, limits, proof checks and historical declarations."
+    }
+  ]
+}

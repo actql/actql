@@ -13,6 +13,7 @@ test "prepared map kernel preserves canonical binding order and defensive access
   assert_true(physical_equal(@lowering_relation.kernel_owner(kernel), owner))
   assert_eq(@lowering_relation.kernel_step(kernel), 1)
   assert_eq(@lowering_relation.kernel_input(kernel), "values_0")
+  assert_true(@lowering_relation.kernel_json_pick(kernel) is None)
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.SnapshotMap(bindings) else {
     fail("map")
@@ -59,7 +60,26 @@ test "empty map remains a kernel and select keeps authored column order" {
     fail("select")
   }
   assert_eq(fields.map(f => @schema.reference_name(f.output)), ["z", "id"])
+  let view = @lowering_relation.prepare_projection(
+    @lowering_relation.kernel_checked(projection),
+  ).unwrap()
+  let first = @lowering_relation.projection_field_at(view, 0).unwrap()
+  assert_eq(
+    (first.output, first.input),
+    (@schema.Unqualified("z"), @schema.Unqualified("z")),
+  )
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 1).unwrap().output,
+    @schema.Unqualified("id"),
+  )
+  assert_true(@lowering_relation.projection_field_at(view, -1) is None)
+  assert_true(@lowering_relation.projection_field_at(view, 2) is None)
   fields.clear()
+  assert_eq(@lowering_relation.projection_field_count(view), 2)
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 0).unwrap().output,
+    @schema.Unqualified("z"),
+  )
   guard @lowering_relation.kernel_body(projection)
     is @lowering_relation.Select(again) else {
     fail("select")
@@ -266,7 +286,18 @@ test "json pick kernel retains exact checked field path and output" {
   assert_eq(column, @schema.Unqualified("payload"))
   assert_eq(path, ["inner", "leaf"])
   assert_eq(output, "picked")
+  let view = @lowering_relation.kernel_json_pick(kernel).unwrap()
+  assert_eq(@lowering_relation.json_pick_column(view), column)
+  assert_eq(@lowering_relation.json_pick_output(view), output)
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 0), Some("inner"))
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
+  assert_true(@lowering_relation.json_pick_path_at(view, -1) is None)
+  assert_true(@lowering_relation.json_pick_path_at(view, 2) is None)
   path.clear()
+  // Mutating the defensive legacy export cannot alter the read-only view.
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.JsonPick(_, again, _) else {
     fail("json pick")

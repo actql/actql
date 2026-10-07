@@ -17,14 +17,14 @@ function observation(c, target = 'js') {
 test('empty and nonempty DISTINCT inputs retain the constructor table bound', () => {
   assert(cases.some(c => c.rows.length === 0));
   for (const c of cases) {
-    const b = mapBounds(c, registry); assert.equal(b.currentTableSlots, 32); assert.equal(b.replacementOverlapTableSlots, 40);
+    const b = mapBounds(c, registry); assert.equal(b.currentTableSlots, 24);
     for (const target of ['js', 'wasm', 'native']) {
       const result = inspectPipelineMaps(c, observation(c, target), registry, target, target);
       assert.equal(result.allocationBytes, false); assert.equal(result.physicalBackingIdentityVerified, target === 'native');
       if (target === 'native') {
         const width = b.entries.inputOrdinals;
-        assert.equal(result.conditionalNativeRequestedExtent.currentBound, String(480 + 96 * width));
-        assert.equal(result.conditionalNativeRequestedExtent.replacementBound, String(600 + 96 * width));
+        assert.equal(result.conditionalNativeRequestedExtent.currentBound, String(360 + 96 * width));
+        assert.equal(result.conditionalNativeRequestedExtent.replacementBound, undefined);
         assert.equal(result.conditionalNativeRequestedExtent.unconditionalAllocationBytes, false);
         assert(result.conditionalNativeRequestedExtent.remainingPremises.length > 0);
       } else assert.equal(result.conditionalNativeRequestedExtent, undefined);
@@ -35,7 +35,7 @@ test('actual native descriptor admission refuses missing backing identity, alias
   const c = cases[0];
   for (const change of [e => delete e.nativeMaps,
     e => e.nativeMaps.inputOrdinals.table = e.nativeMaps.bindingOrdinals.table,
-    e => e.nativeMaps.snapshot.requestedBytes = '0']) {
+    e => e.nativeMaps.bindingOrdinals.requestedBytes = '0']) {
     const o = observation(c, 'native'); change(o.faults[0]);
     assert.throws(() => inspectPipelineMaps(c, o, registry, 'native', 'native'));
   }

@@ -1,82 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
-import { parentOverlay, helper } from '../parent-control/overlay.mjs';
-import { auditParentStartup, parentCase, directory } from '../parent-control/audit.mjs';
-import { nativeProfile } from './source.mjs';
-import { body, boundFixture, executionCommand, inputVariable, payload } from '../../fixture.mjs';
-import { hash } from '../../inventory.mjs';
-const root = fileURLToPath(new URL('../../../../', import.meta.url));
-const read = path => readFileSync(join(root, path));
-test('one existing two-child registered case fixes the native startup scope', () => {
-  assert.equal(parentCase().id, 'pair:filter/distinct');
-  assert.deepEqual(parentCase().steps.map(s => s.op), ['filter', 'distinct']);
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {join} from 'node:path';
+import {currentOverlay,boundCurrentOverlay,currentHelper,currentFixture} from '../parent-control/current-overlay.mjs';
+import {auditCurrentChain} from '../parent-control/current-audit.mjs';
+import {hash} from '../../inventory.mjs';
+const root=fileURLToPath(new URL('../../../../',import.meta.url));const read=p=>readFileSync(join(root,p));
+test('borrowed observer binds current state and leaves callback bodies unchanged',()=>{
+  const overlay=currentOverlay(read);
+  assert(overlay[currentHelper].includes('#borrow(parent, state'));
+  assert(overlay[currentFixture].includes('physical_equal(preparation.read.unwrap(), metadata)'));
+  const p='src/connectors/local/selected_relation_provider.mbt';
+  assert.throws(()=>currentOverlay(path=>path===p?'':read(path)));
 });
-test('the parent observation borrows source roots and rejects a missing constructor site', () => {
-  const overlay = parentOverlay(read);
-  assert(overlay[helper].includes('#borrow(parent, children, completed, current'));
-  assert(overlay[helper].includes('completed : Ref[Array[@execution.CompletedOutput?]]'));
-  assert(overlay['src/execution_relation/capacity_map_probe_native.mbt']
-    .includes('output.completion.result_identity'));
-  const provider = 'src/connectors/local/selected_relation_provider.mbt';
-  assert.equal(overlay[provider].split('println(parent_control_probe(').length, 2);
-  assert.equal(overlay[provider].split('@execution.parent_completed_identity_observation(output)').length, 2);
-  assert.throws(() => parentOverlay(path => path === provider ? '' : read(path)), /Missing exact chain constructor/);
+test('compiled marker binds submitted source and the complete observation overlay',()=>{
+  const source={sources:{},digest:hash(JSON.stringify({}))};
+  const a=boundCurrentOverlay(read,source),b=boundCurrentOverlay(read,{...source,digest:hash('different source')});
+  assert.notEqual(a.buildIdentity,b.buildIdentity);
+  assert(a.overlay[currentFixture].includes(`ACTQL_CHAIN_BUILD:${a.buildIdentity}`));
 });
-
-// Prefix-only receipt fixture: stop before independent source/observation
-// checks. This tests the actual parent audit entrypoint's compiled boundary,
-// not native execution or a complete correspondence certificate.
-test('parent audit requires the executed target-bound fixture and build marker', () => {
-  const source = {sources: {}, digest: hash('reviewed source')};
-  const pin = JSON.parse(read('toolchain.json'));
-  const boundary = {version: 'actql-pipeline-execution-boundary/0.1',
-    workspace: 'parent-fixture', root: '/parent-fixture', role: 'normal',
-    sourceDigest: hash('overlaid source'), toolchainDigest: hash('tools'),
-    environmentDigest: hash('environment'), fixtureDigest: hash(body),
-    target: 'native', command: executionCommand('native')};
-  const buildIdentity = hash(JSON.stringify(boundary));
-  const fixture = boundFixture(boundary);
-  const log = `ACTQL_PIPELINE_BUILD:${buildIdentity}\nTotal tests: 1, passed: 1, failed: 0\n`;
-  const run = {target: 'native', compiler: pin.moonc, exit: 0, correspondence: true,
-    sourceDigest: boundary.sourceDigest, boundary, buildIdentity,
-    command: executionCommand('native'), fixtureDigest: hash(fixture),
-    fixturePath: 'fixture', logPath: 'log', logDigest: hash(log),
-    inputVariable, cases: [], inputPath: 'inputs', inputDigest: hash(payload([], true)),
-    sourcePath: 'next-independent-source-check'};
-  const modelLog = '3 conditional retained parent-core propositions checked\n' +
-    '2 conditional provider-construction propositions checked';
-  const model = {command: ['node', 'proofs/relation-pipeline/capacity/parent-control/check.mjs'],
-    exit: 0, sourceDigest: source.digest, logDigest: hash(modelLog),
-    logPath: `${directory}/models/${hash(modelLog)}.log`};
-  const modelPath = `${directory}/models/${hash(JSON.stringify(model))}.json`;
-  const report = {version: 'actql-native-parent-startup/0.1', target: 'native',
-    unconditionalAllocationBytes: false, source, toolchain: pin,
-    model: {...model, receiptPath: modelPath},
-    nativeRuntime: {platform: 'linux-x64',
-      sources: {...nativeProfile.sources, ...nativeProfile.platformBinaries['linux-x64']},
-      archive: pin.archives['linux-x64'], profileDigest: hash(JSON.stringify(nativeProfile))},
-    overlays: Object.fromEntries(Object.entries(parentOverlay(read)).map(([path, code]) => [path, hash(code)])),
-    case: parentCase(), execution: {path: 'receipt', receipt: run, digest: hash(JSON.stringify(run))}};
-  const next = new Error('reached independent source verification');
-  const audit = (bytes = fixture, output = log, receipt = run) => {
-    const execution = {...report.execution, receipt, digest: hash(JSON.stringify(receipt))};
-    return auditParentStartup({...report, execution}, source, path => {
-      if (path === modelPath) return Buffer.from(JSON.stringify(model));
-      if (path === model.logPath) return Buffer.from(modelLog);
-      if (path === 'receipt') return Buffer.from(JSON.stringify(receipt));
-      if (path === 'fixture') return Buffer.from(bytes);
-      if (path === 'log') return Buffer.from(output);
-      if (path === 'inputs') return Buffer.from(payload([], true));
-      if (path === run.sourcePath) throw next;
-      return read(path);
-    });
-  };
-  assert.throws(() => audit(), error => error === next);
-  assert.throws(() => audit(body), /Archived compiled fixture differs/);
-  const stale = log.replace(buildIdentity, hash('other binary'));
-  assert.throws(() => audit(fixture, stale, {...run, logDigest: hash(stale)}), /Executed binary boundary differs/);
-  assert.throws(() => audit(fixture, log, {...run, boundary: {...boundary, target: 'js'}}), /Compiled target boundary differs/);
+test('consumer reaches independently archived log and rejects detached compiled input first',()=>{
+  const source={sources:{},digest:hash(JSON.stringify({}))};
+  const {overlay,boundary,buildIdentity}=boundCurrentOverlay(read,source);
+  const overlayDigests=Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]));
+  const executedSources=Object.fromEntries(Object.entries(overlayDigests).toSorted(([a],[b])=>a.localeCompare(b,'en')));
+  const report={version:'actql-current-chain-native-diagnostic/0.1',revision:'1'.repeat(40),target:'native',
+    authority:'local-physical-finite-correspondence',reuseAuthorized:false,unconditionalAllocationBytes:false,restored:true,
+    source,boundary,buildIdentity,overlayDigests,executedSource:{sources:executedSources,digest:hash(JSON.stringify(executedSources))},
+    command:['moon','test','--target','native',currentFixture,'--deny-warn'],exit:0,
+    logDigest:'a'.repeat(64),logPath:'.artifacts/relation-pipeline/current-chain-native/logs/'+ 'a'.repeat(64)+'.log'};
+  const reached=new Error('reached independently archived actual log');
+  const audit=r=>auditCurrentChain(r,source,p=>{if(p===report.logPath)throw reached;return read(p);});
+  assert.throws(()=>audit(report),e=>e===reached);
+  for(const mutate of [r=>r.target='js',r=>r.boundary.sourceDigest=hash('old'),
+    r=>r.buildIdentity=hash('other binary'),r=>r.restored=false,r=>r.reuseAuthorized=true,
+    r=>r.executedSource.sources[currentFixture]=hash('unbound fixture')]) {
+    const r=structuredClone(report);mutate(r);assert.throws(()=>audit(r),e=>e!==reached);
+  }
 });

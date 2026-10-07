@@ -15,12 +15,7 @@ theorem table_bound (slots entries maximum : Nat)
 theorem empty_extent : admitted 0 = 120 := rfl
 
 theorem current_distinct (width : Nat) :
-    2 * admitted width + 2 * admitted 0 = 480 + 96 * width := by
-  unfold admitted extent
-  omega
-
-theorem replacement_distinct (width : Nat) :
-    2 * admitted width + 3 * admitted 0 = 600 + 96 * width := by
+    2 * admitted width + admitted 0 = 360 + 96 * width := by
   unfold admitted extent
   omega
 
