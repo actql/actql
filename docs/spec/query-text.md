@@ -359,12 +359,13 @@ on the joined left input before the next JOIN. Explicit MAX_OUTPUT_ROWS remains
 the common JOIN argument. See the selected
 [GoogleSQL Pipe JOIN rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
 
-This connection can preserve one range over the complete current producer.
-Prefixes that still need an older range snapshot after SET/DROP/RENAME/EXTEND,
-or multiple surviving input ranges, remain unconnected unless a subsequent
-projection removes those ranges or AS replaces them with the current row.
-Their refusal is a current implementation gap, not a permanent language rule;
-the frontend must not accept them by rebinding an old range to new values.
+A private Pipe continuation preserves the current visible columns and each
+surviving range variable's immutable value slots across the JOIN input boundary.
+SET/DROP/RENAME/EXTEND do not rebind those ranges to changed values, and a JOIN
+may retain several earlier input ranges. The JOIN remaps the carried slots once;
+ordinary projection and Result export expose only the declared visible columns.
+Authored CTEs and derived tables remain projected producers and do not export
+private range bindings. Pipe AS and SELECT retain their existing scope rules.
 INFER, retained RESULT and Graph carrier operations keep their own placement
 contracts and are not moved into a CTE to make a JOIN parse.
 

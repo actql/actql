@@ -452,3 +452,44 @@ test "stopped retained cleanup retains reservation through physical sync failure
   assert_true(f.journal.close())
   assert_true(f.receiver.close())
 }
+
+///|
+test "stopped retained cleanup retries original custody after task release and reconstruction" {
+  let f = stopped_cleanup_fixture("released-cleanup-retry")
+  stopped_cleanup_apply(f, () => true).unwrap()
+  for request in [f.producer, f.consumer] {
+    let record = f.journal.require(request).unwrap()
+    f.journal
+    .commit_transition(@remote.prepare_begin_remote_release(record).unwrap())
+    .unwrap()
+    f.journal
+    .commit_transition(@remote.prepare_confirm_remote_release(record).unwrap())
+    .unwrap()
+  }
+  let f = stopped_cleanup_reopen(f)
+  let revisions = [
+    @remote.dispatch_record_revision(f.journal.require(f.producer).unwrap()),
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+  ]
+  assert_true(stopped_cleanup_apply(f, () => false) is Err(NotCurrent))
+  for _ in 0..<2 {
+    stopped_cleanup_apply(f, () => true).unwrap()
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    assert_eq(
+      f.receiver.destination_capacity_usage().unwrap().reserved_objects,
+      0L,
+    )
+  }
+  assert_eq(
+    [
+      @remote.dispatch_record_revision(f.journal.require(f.producer).unwrap()),
+      @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    ],
+    revisions,
+  )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
