@@ -1,3 +1,4 @@
+/// <reference lib="esnext.disposable" />
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
@@ -178,7 +179,7 @@ export type DeliveryObservationExplanation = Readonly<{
   summary: string;
   hint: string;
   next: ReadFailureExplanation['next'];
-}> & (Readonly<{observation: 'lookup_unresolved' | 'attempt_recorded'}> |
+}> & (Readonly<{observation: 'lookup_unresolved' | 'lookup_unavailable' | 'lookup_uninterpretable' | 'attempt_recorded'}> |
   (Readonly<{
     recordSequence: number;
     /** Sink-confirmed Host bytes, never the caller's yielded-row count. */
@@ -194,7 +195,7 @@ export type DeliveryObservationExplanation = Readonly<{
     hostReleaseReceiptCid: string;
     deliveredSha256: string;
   }>)));
-/** Only an original admitted SDK lookup; no Run, received-row or application-persistence proof. */
+/** Original admitted lookup or safe lookup error; no Run, received-row or application-persistence proof. */
 export declare function explainDeliveryAttempt(result: unknown,
   options?: OperationExplanationOptions): DeliveryObservationExplanation | undefined;
 
@@ -222,7 +223,8 @@ export type CancellationExplanation = Readonly<{
 }> | Readonly<{observation: 'outcome_unknown';
   next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
 }>);
-/** Read-only advice; an operation reference does not certify stop or release. */
+/** Read-only advice from cancel or an exact lookup; the original operation
+ * reference and recorded outcome certify neither physical stop nor release. */
 export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
@@ -351,6 +353,8 @@ export declare class ClientError extends Error {
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
   readonly cleanupError?: unknown;
+  /** Client cleanup has not confirmed release; retry await client.close(). */
+  readonly cleanupPending?: boolean;
   readonly lookupContext?: Readonly<{endpoint: string; scopeRef: string}>;
   readonly status?: number;
   // ResolutionUnknown: the exact signed answers to resend unchanged.
@@ -485,7 +489,10 @@ export interface Client {
       signer?: CheckpointSigner; signal?: AbortSignal}): Promise<Readonly<{
         results: readonly CheckpointAnswerResult[];
         signed: readonly SignedCheckpointAnswer[]}>>;
-  close(): void;
+  /** Seal this Client immediately, release its readers and await its Local
+   * lease. Does not cancel Runs. A failed close may be retried. */
+  close(): Promise<void>;
+  [Symbol.asyncDispose](): Promise<void>;
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;

@@ -255,6 +255,18 @@ export function explainDeliveryAttempt(result, options) {
   return localizeOperation(deliveryExplanations.get(result), 'delivery', options);
 }
 
+const retainDeliveryLookupFailure = (cause, next, observation) => {
+  const error = requestCancellationCause(cause);
+  deliveryExplanations.set(error, freezeInput({observation,
+    summary: observation === 'lookup_unavailable'
+      ? 'The DeliveryAttempt lookup could not be completed. Read opening and delivery remain unresolved.'
+      : 'This SDK could not interpret the DeliveryAttempt lookup response. Read opening and delivery remain unresolved.',
+    hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+    next,
+  }));
+  return error;
+};
+
 const retainDeliveryExplanation = (answer, next) => {
   const record = answer.kind === 'found' ? answer.record : null;
   const observation = answer.kind === 'not_found' ? 'lookup_unresolved' :
@@ -1098,12 +1110,47 @@ export async function connect(options, stringOptions) {
 // returns typed control values and Result frames; it is never a public URL.
 export async function connectInProcess(options, port) {
   if (port === null || typeof port !== 'object' ||
-      typeof port.perform !== 'function') fail('InvalidLocalHostPort');
+      typeof port.perform !== 'function' ||
+      port.close !== undefined && typeof port.close !== 'function' ||
+      port.seal !== undefined && typeof port.seal !== 'function') fail('InvalidLocalHostPort');
   return connectSelected(inProcessOptions(options), port);
 }
 
 async function connectSelected(selected, port) {
   let closed = false;
+  let closeFlight;
+  let released = false;
+  const activeReaders = new Set();
+  const readerCleanups = new Set();
+  function close() {
+    // Revoke new use before returning, including while physical cleanup waits.
+    closed = true;
+    let sealFailed = false;
+    try { port?.seal?.(); } catch { sealFailed = true; }
+    for (const reader of activeReaders) reader.abort();
+    if (closeFlight !== undefined) return closeFlight;
+    closeFlight = Promise.resolve().then(async () => {
+      const readers = [...activeReaders];
+      // Abort before return(): a pending next or backpressured Local producer
+      // must settle without another application call into the iterator.
+      for (const reader of readers) reader.abort();
+      await Promise.allSettled(readers.map(reader => reader.finish()));
+      const failures = [];
+      for (const cleanup of [...readerCleanups]) {
+        try { await cleanup(); readerCleanups.delete(cleanup); }
+        catch (error) { failures.push(error); }
+      }
+      if (sealFailed || failures.length) {
+        throw new ClientError('ClientCleanupPending', {cleanupPending: true});
+      }
+      if (!released) {
+        try { await port?.close?.(); }
+        catch { throw new ClientError('ClientCleanupPending', {cleanupPending: true}); }
+        released = true;
+      }
+    }).finally(() => { closeFlight = undefined; });
+    return closeFlight;
+  }
   const dispatchedCancellations = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
@@ -1282,14 +1329,15 @@ async function connectSelected(selected, port) {
         let state = 'not_started';
         let rowsYielded = 0;
         const controller = new AbortController();
-        const iterate = async function* () {
+        const iterate = async function* (ownedReader) {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
           state = 'opening';
           const abort = () => controller.abort();
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
           let wireBytes = 0, line = '';
-          let stream, failure;
+          let stream, failure, localCleanup;
+          activeReaders.add(ownedReader);
           try {
             const response = await runRequest('read', {
               resultName: name, format: port === undefined ? 'jsonl' :
@@ -1299,6 +1347,10 @@ async function connectSelected(selected, port) {
               if (response?.kind !== 'rows' ||
                   typeof response.frames?.[Symbol.asyncIterator] !==
                     'function') fail('InvalidResultStream');
+              if (typeof response.close === 'function') {
+                localCleanup = () => response.close();
+                readerCleanups.add(localCleanup);
+              }
               for await (const frame of response.frames) {
                 controller.signal.throwIfAborted();
                 if (frame === null || typeof frame !== 'object' ||
@@ -1387,6 +1439,9 @@ async function connectSelected(selected, port) {
               try {
                 if (state !== 'complete') await stream.cancel();
               } catch (cause) {
+                // Remote delivery uncertainty stays on this read. Releasing
+                // its local lock is not a remote cleanup acknowledgment, and
+                // a closed stream supplies no Host cleanup retry witness.
                 if (failure) {
                   failure.cleanupError = context.redactErrors
                     ? new Error('ResultReadCleanupUnknown') : cause;
@@ -1402,13 +1457,33 @@ async function connectSelected(selected, port) {
             // Cancel the reader before aborting its fetch: our own abort
             // must not turn successful early cleanup into an AbortError.
             if (state !== 'complete') controller.abort();
+            if (localCleanup !== undefined) {
+              try {
+                await localCleanup();
+                readerCleanups.delete(localCleanup);
+              } catch (cause) {
+                if (failure) {
+                  failure.cleanupError = cause;
+                  retainReadExplanation(failure, context, rowsYielded,
+                    readExplanations.get(failure)?.observation ?? 'read_incomplete', true);
+                }
+                else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
+                  {attemptId, rowsYielded, cause}), context, rowsYielded, 'cleanup_unknown');
+              }
+            }
+            activeReaders.delete(ownedReader);
             // A pending iterator.return() skips code after finally.
             if (failure) throw failure;
           }
         };
         const reader = Object.freeze({attemptId, state: () => state,
           rowsYielded: () => rowsYielded,
-          [Symbol.asyncIterator]: iterate});
+          [Symbol.asyncIterator]() {
+            const owned = {abort: () => controller.abort(new ClientError('ClientClosed')),
+              finish: () => iterator.return()};
+            const iterator = iterate(owned);
+            return iterator;
+          }});
         readerContexts.set(reader, context);
         return reader;
       };
@@ -1420,28 +1495,40 @@ async function connectSelected(selected, port) {
           confirmed.limits.maxBatchRows);
         const maxBytes = tighter(options.maxBatchRetainedValueBytes,
           confirmed.limits.maxBatchRetainedValueBytes);
-        return Object.freeze({attemptId: reader.attemptId,
-          state: reader.state,
-          rowsYielded: () => rowsYielded,
-          async *[Symbol.asyncIterator]() {
-            let batch = [], bytes = 0;
-            try {
-              for await (const row of reader) {
-                const size = retainedValueBytes(row);
-                if (size > maxBytes) fail('ResultBatchLimit');
-                if (batch.length === maxRows || bytes + size > maxBytes) {
-                  rowsYielded += batch.length;
-                  yield batch; batch = []; bytes = 0;
-                }
-                batch.push(row); bytes += size;
-              }
-              if (batch.length) {
+        const iterate = async function* (ownedReader) {
+          activeReaders.add(ownedReader);
+          let batch = [], bytes = 0;
+          try {
+            for await (const row of reader) {
+              const size = retainedValueBytes(row);
+              if (size > maxBytes) fail('ResultBatchLimit');
+              if (batch.length === maxRows || bytes + size > maxBytes) {
                 rowsYielded += batch.length;
-                yield batch;
+                yield batch; batch = []; bytes = 0;
               }
-            } catch (cause) {
-              throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
+              batch.push(row); bytes += size;
             }
+            if (batch.length) {
+              rowsYielded += batch.length;
+              yield batch;
+            }
+          } catch (cause) {
+            throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
+          } finally {
+            // A yielded batch belongs to the application. Drop our retained
+            // reference without mutating that already returned value.
+            batch = [];
+            activeReaders.delete(ownedReader);
+          }
+        };
+        return Object.freeze({attemptId: reader.attemptId,
+          state: reader.state, rowsYielded: () => rowsYielded,
+          [Symbol.asyncIterator]() {
+            // The underlying row reader owns abort. This outer scope also
+            // owns a buffered next row/batch and must be returned on close.
+            const owned = {abort() {}, finish: () => iterator.return()};
+            const iterator = iterate(owned);
+            return iterator;
           }});
       };
 
@@ -1529,13 +1616,19 @@ async function connectSelected(selected, port) {
           if (typeof attemptId !== 'string' || !attemptId) {
             fail('InvalidReadAttempt');
           }
-          const response = await runRequest('delivery-attempt', {
-            resultName: name, attemptId,
-          }, signal);
+          const next = freezeInput({operation: 'deliveryAttempt', ref, resultName: name, attemptId,
+            lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
+          let response;
+          try {
+            response = await runRequest('delivery-attempt', {resultName: name, attemptId}, signal);
+          } catch (cause) {
+            throw retainDeliveryLookupFailure(cause, next, 'lookup_unavailable');
+          }
           let answer;
           try { answer = await responseValue(response); }
-          catch (cause) {
-            throw new ClientError('InvalidHostAttemptLookup', {cause});
+          catch {
+            throw retainDeliveryLookupFailure(new ClientError('InvalidHostAttemptLookup'), next,
+              'lookup_uninterpretable');
           }
           const expected = {
             attemptId, runDefinitionCid: ref.runDefinitionCid,
@@ -1554,7 +1647,8 @@ async function connectSelected(selected, port) {
               lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
             });
           } catch {
-            fail('InvalidHostAttemptLookup');
+            throw retainDeliveryLookupFailure(new ClientError('InvalidHostAttemptLookup'), next,
+              'lookup_uninterpretable');
           }
         },
       });
@@ -1617,13 +1711,15 @@ async function connectSelected(selected, port) {
       lookupCancellation: async (reference, {signal} = {}) => {
         let cancelRef;
         try {
-          if (!validCancellationRef(reference)) fail('InvalidCancellationReference');
-          cancelRef = freezeInput(structuredClone(reference));
+          const capturedReference = captureResponse(reference);
+          if (!validCancellationRef(capturedReference)) fail('InvalidCancellationReference');
+          cancelRef = freezeInput(detachResponse(capturedReference));
           if (!validCancellationRef(cancelRef) ||
               ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key] !== ref[key])) {
             fail('InvalidCancellationReference');
           }
         } catch { fail('InvalidCancellationReference'); }
+        const context = freezeInput({ref: {...ref}, cancelRef});
         let response;
         try {
           response = await readControl('lookup-cancellation', {
@@ -1631,16 +1727,21 @@ async function connectSelected(selected, port) {
           }, signal);
         } catch (cause) {
           const safe = requestCancellationCause(cause);
-          throw new ClientError(safe.code, {cancelRef,
-            ...(safe.status === undefined ? {} : {status: safe.status})});
+          throw retainCancellationExplanation(new ClientError(safe.code, {cancelRef,
+            ...(safe.status === undefined ? {} : {status: safe.status})}), context, 'outcome_unknown');
         }
         try {
           const captured = captureResponse(response);
           if (!validCancellationLookup(captured, cancelRef)) fail('InvalidHostCancellationLookup');
           const owned = detachResponse(captured);
           if (!validCancellationLookup(owned, cancelRef)) fail('InvalidHostCancellationLookup');
-          return freezeInput(owned);
-        } catch { throw new ClientError('InvalidHostCancellationLookup', {cancelRef}); }
+          return retainCancellationExplanation(freezeInput(owned), context,
+            owned.kind === 'found' ? owned.cancellation.kind : 'outcome_unknown',
+            owned.kind === 'found' ? owned.cancellation.revision : undefined);
+        } catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellationLookup', {cancelRef}),
+            context, 'outcome_unknown');
+        }
       },
       // The Run's current state after the Host's reconciliation attempt. An
       // unknown Effect outcome stays `needs_reconciliation` until the Host
@@ -1840,11 +1941,14 @@ async function connectSelected(selected, port) {
       }
       const observation = answer;
       const observedKey = structuralKey(answer);
-      try { answer = structuredClone(answer); }
-      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
-      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
-      return retainRequestLookupExplanation(freezeInput(observation), context);
+      try {
+        answer = structuredClone(answer);
+        if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) fail('InvalidHostRequestLookup');
+        if (structuralKey(observation) !== observedKey) fail('InvalidHostRequestLookup');
+        return retainRequestLookupExplanation(freezeInput(observation), context);
+      } catch {
+        throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
+      }
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -2069,7 +2173,8 @@ async function connectSelected(selected, port) {
         signed: frozen,
       });
     },
-    close() { closed = true; },
+    close,
+    [Symbol.asyncDispose]: close,
   });
 }
 

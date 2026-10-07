@@ -6572,3 +6572,135 @@ correspondence and unexecuted cross-target/packed acceptance remain distinct.
 The earlier metadata record describes its historical boundary; the explicit
 position/scratch walks it listed are now closed by this child. See the
 [Sequence position cursor record](2026-10-07-local-sequence-position-cursors.md).
+
+### Provisional Relation output reclamation (2026-10-07)
+
+The existing row-buffer owner now reclaims private cells and row containers in
+64-entry slices for fifteen bounded Relation kernels. Cancellation, failed
+append and failed completion keep unaccepted output custody until reclamation
+finishes. Sealed accepted output and borrowed immutable values remain usable.
+Installed providers observe cleanup pending separately from cleanup's Bool,
+which retains its changed-state meaning.
+
+Independent 72-entry and 96-entry cases, typed append/completion failures,
+presence source preservation and a completion/cancellation observation boundary
+exercise this shared owner. The resource checker rejects missing connections
+or required fixtures. This is not operation-wide physical-byte correspondence.
+
+The parent Sequence work is present in adopted main
+`148723200139ced6605223cc703275c0fa71f3a0`. After normal integration,
+`a34d8d49c92c2eddce1f68049f6da3f535d9078f` passed the selected JS
+counterexample/merged-caller tests 55/55 and real-Store Host/gate/index tests 5/5.
+Earlier affected JS passed 118/118 on a dirty pre-integration tree.
+
+Installed availability callbacks, other scratch walks and Native capacity /
+runtime reclamation correspondence remain. An earlier narrow Native test passed,
+but a later selection timed out and final Native acceptance is unverified.
+Packed/HTTPS, full Core, proof and complete Store-fault campaigns were not rerun.
+See the [output reclamation record](2026-10-07-local-output-reclamation.md).
+
+### Incremental managed input readiness (2026-10-07)
+
+The managed driver now counts missing required imports during existing binding
+and installs each validated read once at its physical port. Every provider
+resume uses that count rather than scanning all inputs. Supplied inputs keep
+their existing admitted representation; exact binding, availability, physical
+stop and cleanup custody are unchanged. This closes a source-level repeated
+readiness walk, not every installed availability callback.
+
+At `735d4690608fac12fc847f68acfcec3a9cfd8b12`, real retained-Store public
+Values, Append and Cross Join Host cases passed 3/3 with independent Named
+Results, two consumers, request reuse and post-progress cancellation custody.
+The affected JS selection passed 56/61. Its five work/advance/capacity failures
+also reproduce unchanged at parent `5c58a26542327dddde9c971545bfb3c32bb0e766`
+(42/47). They remain unresolved; no expectation or ceiling was increased.
+
+#812 remains a dependency. Independent charge breakdowns, other scratch and
+availability walks, Native correspondence and unexecuted cross-target/packed
+acceptance remain. See the
+[input readiness record](2026-10-07-local-input-readiness.md).
+
+### Independent chain accounting evidence (2026-10-07)
+
+The preceding input-readiness record is historical: its parents are now merged,
+and its five stale caller assertions have independent phase/capacity breakdowns.
+The source-free scalar and window-group fixtures also include their existing
+completion-port preparation work. Whole-chain exact/one-short expectations are
+162/161, 199/198 and 473/472, invariant at quanta 1, 7 and 256. Workspace remains
+9/8, 14/13 and 37/36; capacity includes the two existing preparation handles.
+No production algorithm, limit, CID or reservation was changed to pass them.
+
+At `7f4abd75282728793f5b0a98969de23b4db60db3`, clean focused JS selections
+passed 8/8, 24/24 and 8/8, with overlap. A prior broader dirty-source selection
+timed out and is not counted as successful. This closes the named stale
+assertions, not the remaining callback/scratch walks, Native correspondence
+or all-target/public acceptance of the complete retained goal. See the
+[independent chain accounting record](2026-10-07-local-chain-accounting-evidence.md).
+
+### Incremental managed dispatch scratch retirement (2026-10-07)
+
+The driver now retires its bridge/import/read/CID/issuer roots in fixed 64-step
+slices. Its pure scratch witness reads the completed cursor instead of scanning
+all five collections. Active callbacks and provider cleanup still gate retirement;
+the common owner retains reservations until all roots retire. Settled/disposed
+input handles cannot repopulate them. Accepted output custody and cumulative
+work remain unchanged.
+
+At `df8dd117cb06d9de681bfa454f1d9e5b8b43dae5`, affected JS passed 31/31.
+The later `868a7fefa0a1d5d627c92c25a607f75818bcaa3e` adds only source-guard
+coverage, with identical runtime inputs; real-Store public Host and exact-source
+guards passed 20/20 there. Public testing required source-local private
+client-wire dependencies; the first borrowed-dependency attempt failed and is
+not counted as successful. #822 then merged and was normally adopted from main
+`735ac73c5519753f77de31c26d6233ffc015c088`. The clean integrated SHA
+`71289a8cdb5bd9948499dabcf83a074d69e516ed` passed the same focused public
+Host/source guards 20/20 after rebuilding only their two consuming runtime roots.
+The Local retirement implementation is unchanged; no unmerged parent remains.
+
+Availability callbacks, input cancel/dispose walks, retired-Carrier walks,
+other scratch and Native physical-byte correspondence remain. This is not a
+wall-clock/GC bound, pristine packed campaign or all-Local completion. See the
+[dispatch retirement record](2026-10-07-local-dispatch-scratch-retirement.md).
+
+### Incremental managed input stop collections (2026-10-07)
+
+The cancel/dispose hooks request cancellation immediately, then revoke at most
+64 bridge/import entries or phase boundaries per callback. Pending entries
+continue through the existing cleanup callback. Input roots and the common
+reservation remain until revocation and stopped-provider cleanup succeed;
+the release witness cannot bypass the pending cursor.
+
+At clean `94b7d15250e11a874f46b885f816ad139fcdfc04`, real-Store public Host
+and source guards passed 27/27. The affected JS selection passed 35/35 during
+dirty-source preparation; the unchanged implementation was then committed.
+The current unit depends on #830. This does not establish a whole-callback
+latency bound: unfinished input buffers still use synchronous row-container
+cancellation. Connecting them to existing incremental buffer reclamation is
+the next concrete boundary. Availability and retired-Carrier walks, other
+scratch and Native correspondence remain. See the
+[input stop collection record](2026-10-07-local-input-stop-slices.md).
+
+### Incremental private managed import buffers (2026-10-07)
+
+The preceding unfinished-buffer gap is now connected for managed input bridges,
+retained imports and the registered snapshot-reload importer. Existing common
+buffer reclamation resumes through the input-stop cursor; each pending owner
+keeps its cursor entry and cleanup root. Successful handoff/conversion is tracked
+separately so accepted rows cannot be mutated. The existing common reservation
+and logical work rules are unchanged.
+
+At clean implementation `d3dcaa495f405d2f14ac5012c01bd763fcb6e15b`, the managed
+import ownership selection passed 3/3. Common-owner/direct-caller preparation
+passed 32/32 on dirty source. After normally adopting merged #830/#832 and main
+`32870dd0812a809955917ef924d859ade2f51967`, clean integrated
+`7e6565aa132bd129cfcc7ccb216b712f023de030` passed public real-Store Host/source
+guards 34/34 with regenerated consuming runtimes. The first two-root build timed
+out; separate bounded root diagnostics then completed. No old receipt is relabeled
+as latest-SHA execution.
+
+The old materializing lane still cancels imports synchronously; its cleanup
+connection is the next boundary. Managed publication buffers, an actual cancelled
+snapshot-reload acceptance case, availability/Carrier walks, other scratch and
+Native physical allocation correspondence remain. This is not a whole-callback
+wall-clock bound or all-Local completion. See the
+[private import reclamation record](2026-10-07-local-import-buffer-reclamation.md).

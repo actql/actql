@@ -10,6 +10,7 @@ import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
+import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -99,6 +100,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-row-source-input.mjs', 'graph-row-source-input.mjs'],
   ['scripts/fixtures/graph-match-source-input.mjs', 'graph-match-source-input.mjs'],
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
+  ['scripts/fixtures/graph-hop-node-predicate-source-input.mjs', 'graph-hop-node-predicate-source-input.mjs'],
+  ['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs'],
+  ['scripts/fixtures/graph-edge-predicate-source-input.mjs', 'graph-edge-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-source-input.mjs', 'graph-traverse-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-path-source-input.mjs', 'graph-traverse-path-source-input.mjs'],
   ['scripts/fixtures/graph-diagnostics-source-input.mjs', 'graph-diagnostics-source-input.mjs'],
@@ -148,7 +152,7 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
-for (const path of ['fixtures/graph-delta-application.mjs',
+for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
   'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs']) {
   await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
 }
@@ -192,6 +196,9 @@ if (process.argv.includes('--unary-plus-only')) {
 }
 if (process.argv.includes('--graph-source-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_SOURCE_ONLY = '1';
+}
+if (process.argv.includes('--graph-any-direction-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_ANY_DIRECTION_ONLY = '1';
 }
 if (process.argv.includes('--graph-property-predicate-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
@@ -468,6 +475,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-source-only', '--
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
+  '--graph-any-direction-only',
   '--group-property-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
@@ -534,6 +542,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-diagnostics-only',
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
+  '--graph-any-direction-only',
   '--group-property-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
@@ -556,6 +565,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--order-property-only') ||
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
+    process.argv.includes('--graph-any-direction-only') ||
     process.argv.includes('--group-property-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||
@@ -590,8 +600,14 @@ await mkdir(join(root, 'tls'));
 await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
 await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
 await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
-console.log(run(process.execPath, ['--test', 'graph-public-host.test.mjs',
-  'graph-source-snapshot.test.mjs'], root,
+// Each independent family retains its original 60s case / 180s process bound.
+// The shared registration selects every Local and HTTPS family exactly once.
+for (const {name} of graphPublicHostCases) {
+  console.log(run(process.execPath, ['--test', '--test-name-pattern',
+    graphPublicHostPattern(name), 'graph-public-host.test.mjs'], root,
+    {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
+}
+console.log(run(process.execPath, ['--test', 'graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--graph-source-only')) return;
 await exerciseNativeGraphSource();

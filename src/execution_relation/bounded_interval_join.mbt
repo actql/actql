@@ -135,7 +135,9 @@ fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.left_starts = []
@@ -723,7 +725,6 @@ fn bounded_interval_step(
         guard state.output is Some(output) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -844,7 +845,12 @@ pub fn start_bounded_interval_join(
     return Err(Rows(RowLimit))
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), output_ceiling, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      output_ceiling,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }

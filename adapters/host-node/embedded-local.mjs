@@ -7,8 +7,8 @@ import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
+import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
@@ -56,8 +56,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
-import {createInstalledHostShutdown,
-  retainInstalledHostInitializationFailure} from
+import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
@@ -92,7 +91,7 @@ const plus = (date, milliseconds) => new Date(Date.parse(date) +
   milliseconds).toISOString();
 const clientOperationError = (code, cause) => Object.assign(
   new Error(code, cause === undefined ? undefined : {cause}), {code});
-const profiles = new Map();
+const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 
 const bytesCid = bytes => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
@@ -1457,7 +1456,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
-    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
+    if (canonicalValueJson(reproduced, {dataKeys: true}) !==
+        canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
@@ -1781,10 +1781,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       throw new AggregateError(failures, 'EffectCaptureCleanupPending');
     }
   };
-  const sweepEffectRuns = async () => {
+  const sweepEffectRuns = async ({reconcileRef} = {}) => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
-    try { await retireIncompleteEffects(); }
+    // A requested observation owns only its original Run. Global capture
+    // retirement belongs to ordinary sweeps and final Host shutdown.
+    try { if (reconcileRef === undefined) await retireIncompleteEffects(); }
     catch (error) {
       busy = true;
       diagnostic('effect_capture_retirement_failed', {
@@ -1794,6 +1796,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
+        if (reconcileRef !== undefined &&
+            (view.runDefinitionCid !== reconcileRef.runDefinitionCid ||
+             view.kind !== 'effect_set')) continue;
         if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null) {
           continue;
         }
@@ -1813,11 +1818,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           }
           continue;
         }
-        if (runStatus !== 'resuming') continue;
-        if (checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
+        const observing = reconcileRef !== undefined && runStatus === 'needs_reconciliation';
+        if (runStatus !== 'resuming' && !observing) continue;
+        if (!observing && checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
+          if (observing && effectResumeFlights.has(key)) {
+            await effectResumeFlights.get(key);
+          }
           continue;
         }
         try {
@@ -1953,6 +1962,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           const flight = dispatchOwner.track(ref, {
             run: ({signal, retainExecution, beginPhysicalWork}) =>
               effectInstallation.resume(Object.freeze({ref, view,
+                reconciliationOnly: observing,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
@@ -2006,9 +2016,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
               void checkpoints.sweep();
             }
           });
+          if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
             code: error?.code ?? error?.message});
+          if (reconcileRef !== undefined) throw error;
         }
         busy = true;
       }
@@ -2016,6 +2028,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       after = page.at(-1).checkpointCid;
     }
     return busy;
+  };
+  const reconcile = async ({ref, principalId: actual, connection, signal}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('RunStateAccessDenied');
+    }
+    signal?.throwIfAborted();
+    const state = await observeRun({ref, principalId: actual});
+    // An explicit Effect observation never restarts Compute, reopens approval
+    // or converts an execution-unknown Run into an invented Effect inventory.
+    if (state.status === 'needs_reconciliation' &&
+        state.next_action?.kind === 'reconcile') {
+      await sweepEffectRuns({reconcileRef: ref});
+    }
+    return observeRun({ref, principalId: actual});
   };
   const modelResumeFlights = new Map();
   const sweepModelRuns = async () => {
@@ -2186,8 +2212,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             if (result?.status === 'waiting_checkpoint') return;
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
-              const reconciliation = effectRun?.reconciliation(ref);
-              if (reconciliation !== undefined && !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
+              const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
+              const stopped = journal.lookupRunDefinition(ref, moon, control);
+              const effectReconciliation = effectRun?.reconciliation(ref);
+              // This restoration returned only after its physical Owner's
+              // stop and cleanup. Retain its unresolved outcome in the same
+              // Run journal, so later sweeps do not reopen a Running frame.
+              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
+                restorationStopConfirmed &&
+                stopped?.physicalCloseConfirmed === true &&
+                dispatchOwner.operation(ref) === undefined
+                ? issueInstalledUnpublishedRunState(moon, {runId,
+                  observedAt: now(), resultNames: stopped.resultNames,
+                  dispatchReserved: true, preDispatchFailureConfirmed: false,
+                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+                  executionUnknown: true})
+                : !unresolvedModel ? effectReconciliation : undefined;
+              if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
                     {runStateWire: JSON.stringify(reconciliation)});
@@ -2297,7 +2338,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, check, attach,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, cancel, lookupCancellation, cancelRequest,
+    stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),
@@ -2371,16 +2412,7 @@ export async function openInstalledRemoteHttpHost({directory,
   // refused before they touch the Store.
   const handling = new Set();
   let closing = false;
-  const shutdown = createInstalledHostShutdown({
-    stop: () => host.checkpoints?.stop(),
-    drain: () => host.dispatchOwner.drain(),
-    retire: () => host.retireTerminalEffects(),
-    checkpoint: () => host.checkpoints?.close(),
-    journal: () => host.journal.close(),
-    source: () => host.sourceProfile?.close(),
-    effect: () => host.installedEffect?.close(),
-    store: () => host.store.close(),
-  });
+  const shutdown = installedHostShutdown(host);
   return Object.freeze({
     handler(request, response) {
       if (closing) {
@@ -2466,10 +2498,9 @@ export async function connectEmbeddedLocal(options) {
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
   const identity = await embeddedInstallationIdentity(root, installation);
-  let opened = profiles.get(root);
-  if (opened === undefined) {
-    opened = Object.freeze({identity,
-      host: openInstalledHost({root, authorization: installation?.authorization,
+  const {installation: _installation, ...clientOptions} = options;
+  return profiles.connect(root, identity,
+    () => openInstalledHost({root, authorization: installation?.authorization,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,
@@ -2480,15 +2511,5 @@ export async function connectEmbeddedLocal(options) {
         resultDataPolicy: installation?.resultDataPolicy,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
-        valuesMaxRows: installation?.valuesMaxRows})});
-    profiles.set(root, opened);
-    opened.host.catch(() => {
-      if (profiles.get(root) === opened) profiles.delete(root);
-    });
-  } else if (!sameEmbeddedInstallation(opened.identity, identity)) {
-    throw new TypeError('InstalledHostConfigurationMismatch');
-  }
-  const host = await opened.host;
-  const {installation: _installation, ...clientOptions} = options;
-  return connectInProcess(clientOptions, host.port);
+        valuesMaxRows: installation?.valuesMaxRows}), clientOptions);
 }

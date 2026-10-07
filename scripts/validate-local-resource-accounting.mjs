@@ -16,6 +16,60 @@ export function validateResourceAccounting({
   const fail = message => errors.push(message);
   let summaryReplacement;
 
+  // Shared implementation evidence is reusable only while every installed
+  // kernel and provider still reaches the same reclamation/completion owner.
+  const reclamationProviders = {
+    "values": "connectors/local/values_provider",
+    "append": "connectors/local/append_provider",
+    "set": "connectors/local/set_provider",
+    "cross_join": "connectors/local/cross_join_provider",
+    "global_count": "connectors/local/global_count_provider",
+    "group": "connectors/local/group_provider",
+    "asof_join": "local_tea_provider/asof_join",
+    "interval_join": "local_tea_provider/interval_join",
+    "join": "connectors/local/selected_join_execution",
+    "binding_rows": "connectors/local/selected_relation_provider",
+    "sequence_match": "local_tea_provider/sequence_match",
+    "nest": "connectors/local/nest_provider",
+    "unpivot": "connectors/local/unpivot_provider",
+    "row_window": "connectors/local/row_window_provider",
+    "unnest": "connectors/local/unnest_provider"
+  };
+  const reclamationSource = relative => {
+    const file = path.join(root, relative);
+    return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  };
+  for (const [kernel, provider] of Object.entries(reclamationProviders)) {
+    const source = reclamationSource(`src/execution_relation/bounded_${kernel}.mbt`);
+    const caller = reclamationSource(`src/${provider}.mbt`);
+    if (!source.includes('reclaim_bounded_admitted_output(output, state.accepted.val)') ||
+      !caller.includes(`@execution.bounded_${kernel}_cleanup_pending(`)) {
+      fail(`${kernel}: shared output reclamation custody connection is missing`);
+    }
+  }
+  const bufferSource = reclamationSource('src/execution_relation/admitted_input.mbt');
+  const outputSource = reclamationSource('src/execution_relation/admitted_output.mbt');
+  if (['for _ in 0..<quantum', 'row[row.length() - 1] = @admitted.null_value()',
+    'row.cells[row.cells.length() - 1] = None', 'input.rows = []',
+    'input.presence_rows = []', 'input.deferred_reclamation'].some(marker =>
+    !bufferSource.includes(marker)) || !outputSource.includes('if accepted {') ||
+    !outputSource.includes('advance_admitted_buffer_reclamation(output.buffer, 64)')) {
+    fail('shared output reclamation primitive connection is missing');
+  }
+  const reclamationFixture = reclamationSource(
+    'src/execution_relation/admitted_output_reclamation_wbtest.mbt');
+  for (const name of [
+    'bounded Values retains output reclamation custody across cleanup slices',
+    'bounded output append failure keeps private rows until sliced cleanup',
+    'sliced reclamation never mutates sealed output or presence source cells',
+    'failed completion retains sealed unaccepted output for sliced cleanup',
+    'cleanup change does not imply completion after an unaccepted kernel result',
+  ]) {
+    if (!reclamationFixture.includes(`test "${name}"`)) {
+      fail(`shared output reclamation fixture is missing: ${name}`);
+    }
+  }
+
   if (manifest.version !== 'actql-local-resource-accounting-audit/0.1') {
     fail(`unexpected manifest version: ${manifest.version}`);
   }

@@ -832,12 +832,37 @@ set; it is not equality on an `entity_type` property. Edge labels likewise
 come from their definition's label set. The retired `LABELS` property
 annotation does not establish a current Graph definition or grant authority.
 
-A fixed directed path retains each authored node and edge occurrence. Its
+Full edge patterns `-[]->`, `<-[]-`, and `-[]-` select outgoing, incoming,
+and either-direction traversal respectively. Fillers and finite quantifiers
+retain the same scope and bounds in each direction. An any-direction pattern
+uses the existing logical `traverse` direction `both`; it does not construct
+reverse edges or change definition-scoped edge identities. Exact duplicate
+paths follow the common traversal contract, including a single self-loop
+occurrence rather than two synthetic directional edges. Abbreviated edge
+patterns remain outside the currently implemented text profile.
+
+A fixed path retains each authored node and edge occurrence. Its
 local predicates are evaluated at their demanded prefix: the starting node
 over the initial node scope, then each reached edge and node after the
 corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
 definition-scoped typed edge key, and ACYCLIC excludes node revisits. Separate paths with
 the same endpoints remain separate rows unless the query requests DISTINCT.
+The Script frontend passes a fixed pattern's reached-node `WHERE`
+or property-map to the corresponding `traverse.hops[i].node_where`. A
+qualified receiver names that hop's node variable; it does not capture another
+pattern variable. Static candidates follow the edge label and direction and
+its declared endpoint definitions. Any-direction hops include both endpoint
+definitions as static candidates; the initial selector does not prove a
+narrower reached schema. Ordinary checking validates property
+presence, types and nullable object access across every reached candidate.
+A reached-node label is admitted only when every static candidate carries it;
+otherwise the missing per-hop label filter is explicitly unsupported.
+
+A quantified pattern's terminal-node condition remains unsupported: the common
+homogeneous `node_where` filters every reached hop, so applying a terminal-only
+condition there would incorrectly prune intermediate nodes. Fixed-hop
+conditions do not add a new evaluator or implicit node-property projection.
+
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.
 

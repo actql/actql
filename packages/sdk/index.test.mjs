@@ -1,6 +1,8 @@
+import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';
 import './connection-string.test.mjs';
 import './connection-string-client.test.mjs';
+import './client-close.test.mjs';
 import './operation-formats.test.mjs';
 import './run-observation-protocol.test.mjs';
 import './operation-diagnostic-locales.test.mjs';
@@ -13,6 +15,7 @@ import './check-presentation.test.mjs';
 import './check-protocol-failures.test.mjs';
 import './resource-protocol-failures.test.mjs';
 import './profile-observation.test.mjs';
+import './cancellation-lookup-explanation.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
@@ -1481,4 +1484,11 @@ test('binding JSON explanations keep parser facts distinct from budgets and unkn
         {kind: 'unknown', summary: 'No supported explanation is available for this reason.'});
     }
   }
+});
+
+test('typed Delivery lookup failures preserve lookup-only targets and omit receipt facts', () => {
+  execFileSync(process.execPath, [fileURLToPath(new URL('../../node_modules/typescript/bin/tsc', import.meta.url)),
+    '--noEmit', '--strict', '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022',
+    fileURLToPath(new URL('./delivery-observation.typecheck.mts', import.meta.url))],
+    {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });

@@ -972,13 +972,14 @@ S1–S9/X1–X17/invariant completion gate.
 ### Run cancellation explanations
 
 `explainCancellation(result)` returns immutable read-only advice for the exact
-response or uncertain error produced by this SDK's `Execution.cancel()` call.
+response or uncertain error produced by this SDK's `Execution.cancel()` or
+`Execution.lookupCancellation()` call.
 The SDK detaches each validated cancellation response, so a Local port reusing
 its response object cannot change an earlier result's Run, kind, revision or
 explanation.
-The detached value is revalidated against the response schema and all three
-original Run fields. Clone failures or changed fields raise
-`InvalidHostCancellation` with the original Run's `outcome_unknown` advice;
+The detached value is revalidated against the response schema, original Run,
+cancellation ID and expected revision. Clone failures or changed fields raise
+`CancellationUnknown` with the original operation's `outcome_unknown` advice;
 they never trigger another cancellation request.
 Validated `accepted`, `already_requested` and `already_terminal` observations
 retain the Host's control revision. The summary distinguishes recording a
@@ -988,14 +989,25 @@ reference. Cancellation acceptance establishes no physical-stop, external
 Effect outcome or resource-release fact.
 
 Transport loss, malformed replies and differently bound replies retain an
-`outcome_unknown` explanation without a fabricated recorded revision. An HTTP
+`outcome_unknown` explanation without a fabricated recorded revision. Its
+`next` names `lookupCancellation` and the immutable original `cancelRef`. An HTTP
 `Response` object returned through Local is also an invalid representation with
 an unknown cancellation outcome; its existing SDK error is preserved. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. Local failures before the send boundary and typed Host refusals
+association. For the cancellation write, local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
+
+The exact cancellation lookup uses the same explanation association after
+schema and operation binding admission. Its retained `found` outcome is an
+original-operation fact, not a new observation of today's Run. Unknown custody
+or a failed lookup retains the original operation's read-only lookup target;
+neither becomes a recorded outcome or retry permission. All five input reference
+fields are captured once before admission and asynchronous transport, with copy
+verification against that captured value. Source getters, caller edits, reused
+replies and later Run state cannot substitute another operation. These
+presentation facts do not certify physical stop, Effect certainty or release.
 The association lasts only while its SDK result is retained; no timeout or
 persistent Host custody is added.
 
@@ -1609,3 +1621,28 @@ messages, nested causes, locators and cleanup handles are omitted.
 The existing cancellation operation-identity, Refused/NotAccepted/Conflict and
 lookup contracts require authoritative typed Owner evidence; this presentation
 adds none of those facts, no ledger, no Host storage and no automatic resend.
+
+### Rejected DeliveryAttempt lookup observations
+
+`Result.deliveryAttempt()` admits responses through the existing registered
+validator, exact requested attempt/Run/Result binding, and captured-copy checks.
+A failed exchange retains `lookup_unavailable`; an unreadable, unknown, malformed
+or substituted response retains `lookup_uninterpretable`. Neither branch admits
+response fields as Owner facts. The original SDK error has a weak, immutable
+association with the original read-only lookup target and connection scope.
+Code, status, severity, locale and mutable error fields do not decide the outcome.
+
+`explainDeliveryAttempt` and `formatDeliveryAttempt` can present these original
+errors as well as admitted replies. Safe existing Client code/status are retained;
+provider messages, decoded private bytes and nested causes are excluded. Copies
+and forged errors have no presentation association. A later valid lookup does not
+change an earlier failed observation or reader progress. No read is opened, grant
+is charged, Compute is rerun or automatic lookup is made by presentation.
+
+The SDK-only explanation union gains `lookup_unavailable` and
+`lookup_uninterpretable`; wire contracts, validators, identities and Host/Delivery
+Owner transitions are unchanged. English remains the default. Opt-in Japanese
+wording and the separate operation translation revision are updated together.
+This observation supplies no read-opening, Host delivery, receipt, application
+receipt/persistence or cleanup fact. Current authorization is checked on every
+explicit lookup; a retained target does not grant access.

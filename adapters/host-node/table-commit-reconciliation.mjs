@@ -73,16 +73,18 @@ export async function reconcileOriginalTableCommit({control, commonMoon, ledger,
   signal?.throwIfAborted();
   if (afterLookup.stored !== undefined) return settle();
   const observed = JSON.parse(responseBytes.toString('utf8'));
-  if (observed?.ok !== true || observed.result === null) return unknown();
+  if (typeof observed?.ok !== 'boolean' || observed.result === null ||
+      observed.result === undefined) return unknown();
+  const statusCode = observed.ok ? 200 : 409;
   // Validate the original request, schema/mapping, expected UUID and immutable
   // row count before adding evidence. No current-head success inference.
   control.tablePreviewCommitOutcome(tablePreview,
-    responseBytes.toString('utf8'), 200, limits);
+    responseBytes.toString('utf8'), statusCode, limits);
   try {
     ledger.recordResponse({dispatching, scope: ownedClaim.scope,
       locator: ownedClaim.locator, key: ownedClaim.key,
       canonicalRequestCid: operation.request_cid, credentialUseCid,
-      statusCode: 200, responseBytes});
+      statusCode, responseBytes});
   } catch (error) {
     // Another process can win the response CAS after our read. Its exact
     // durable bytes remain authoritative; an unrelated failure stays a failure.
