@@ -87,11 +87,29 @@ test('fixed-hop node predicate source controls are copied and included in normal
 });
 
 test('any-direction Graph controls are staged and exercised in normal and focused acceptance', async () => {
-  const {graphAnyDirectionSuccesses: successes, graphAnyDirectionRefusals: refusals}
+  const {graphAnyDirectionSuccesses: successes, graphAnyDirectionRefusals: refusals,
+    graphAnyDirectionExecutionFailures: failures, graphAnyDirectionOverCeiling: overCeiling}
     = await import('./fixtures/graph-any-direction-source-input.mjs');
   assert.equal(successes.length, 12);
   assert.equal(refusals.length, 7);
-  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 19);
+  assert.equal(failures.length, 1);
+  assert.equal(new Set([...successes, ...refusals, ...failures].map(item => item.name)).size, 20);
+  assert.equal(overCeiling.results.matched.rows.length, 20);
+  assert.equal(failures[0].text, overCeiling.text);
+  assert.deepEqual(failures[0].parameters, overCeiling.parameters);
+  // A lower bound from the declared JSON identity fields alone: domain CID,
+  // element definition, object keys and number key type. No product meter.
+  const identityText = 71 + 1 + 'definitiondomainkeykey_typeskindnumber'.length;
+  const identityOccurrences = 3 + 6 * 5 + 13 * 7;
+  assert.ok(identityText * identityOccurrences > 10000);
+  for (const [mode, depths] of [
+    ['walk', [0, 1, 1, 2, 2, 2, 2]], ['trail', [0, 1, 1, 2, 2]], ['acyclic', [0]],
+  ]) {
+    const bounded = successes.find(item => item.name === 'graph-any-direction-bounded-' + mode);
+    assert.deepEqual(bounded.results.matched.rows, depths.map(depth => ({depth})));
+    assert.deepEqual(bounded.parameters.edges,
+      [{key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1}]);
+  }
   const scripts = fileURLToPath(new URL('./', import.meta.url));
   const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs']"));
@@ -99,6 +117,7 @@ test('any-direction Graph controls are staged and exercised in normal and focuse
   const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
   assert.ok(consumer.includes('scopeInputs.successes.push(...graphAnyDirectionSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAnyDirectionRefusals)'));
+  assert.ok(consumer.includes('scopeInputs.executionFailures.push(...graphAnyDirectionExecutionFailures)'));
   assert.ok(consumer.includes('const scopeOnly = graphAnyDirectionOnly ||'));
   const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
   assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].direction, 'both');

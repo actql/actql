@@ -107,7 +107,7 @@ import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './graph-row-source-input.mjs';
 import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
   from './graph-property-predicate-source-input.mjs';
-import {graphAnyDirectionSuccesses, graphAnyDirectionRefusals}
+import {graphAnyDirectionSuccesses, graphAnyDirectionRefusals, graphAnyDirectionExecutionFailures}
   from './graph-any-direction-source-input.mjs';
 import {graphHopNodePredicateSuccesses, graphHopNodePredicateRefusals}
   from './graph-hop-node-predicate-source-input.mjs';
@@ -222,7 +222,8 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = graphAnyDirectionOnly ? {successes: graphAnyDirectionSuccesses, refusals: graphAnyDirectionRefusals}
+const scopeInputs = graphAnyDirectionOnly ? {successes: graphAnyDirectionSuccesses, refusals: graphAnyDirectionRefusals,
+  executionFailures: graphAnyDirectionExecutionFailures}
   : pipeJoinRangesOnly ? {successes: pipeJoinRangesSuccesses, refusals: pipeJoinRangesRefusals}
   : pipeJoinInputOnly ? {successes: pipeJoinInputSuccesses, refusals: pipeJoinInputRefusals}
   : unnestOnly ? {successes: unnestSuccesses, refusals: unnestRefusals}
@@ -400,6 +401,7 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphProjectionPropertyRefusals);
   scopeInputs.successes.push(...graphAnyDirectionSuccesses);
   scopeInputs.refusals.push(...graphAnyDirectionRefusals);
+  scopeInputs.executionFailures.push(...graphAnyDirectionExecutionFailures);
   scopeInputs.successes.push(...graphPropertyPredicateSuccesses, ...graphHopNodePredicateSuccesses);
   scopeInputs.refusals.push(...graphPropertyPredicateRefusals, ...graphHopNodePredicateRefusals);
   scopeInputs.successes.push(...implicitPropertySuccesses);

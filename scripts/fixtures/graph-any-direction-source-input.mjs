@@ -53,6 +53,23 @@ const heterogeneous = 'DATA n = SELECT 1 AS id, 20 AS score; DATA e = SELECT 10 
   + 'DATA g = PROPERTY GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, '
   + 'n AS T KEY (id) LABEL Target PROPERTIES (score)) EDGE TABLES '
   + '(e AS E KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES)); ';
+// The installed Graph provider retains complete path identities under a
+// 10,000-byte text ceiling. Two keyed self-loops distinguish every path mode
+// within that ceiling; self-loops must not be counted twice for direction both.
+const boundedParameters = {nodes: [nodes[0]], edges: [
+  {key: 10, src: 1, dst: 1}, {key: 11, src: 1, dst: 1},
+]};
+// Preserve the original larger input and its mathematical result. Its 124
+// identity occurrences exceed the installed text ceiling before projection.
+// This is an execution resource boundary, not unsupported any-direction syntax.
+export const graphAnyDirectionOverCeiling = sourceCase('bounded-walk-installed-output-ceiling',
+  '(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)', [0, ...repeated(1, 6), ...repeated(2, 13)]);
+export const graphAnyDirectionExecutionFailures = [{
+  name: graphAnyDirectionOverCeiling.name, format: graphAnyDirectionOverCeiling.format,
+  text: graphAnyDirectionOverCeiling.text,
+  parameterDeclarations: declarations, parameters, resultNames: ['matched'],
+  sourceReadSessionCount: 0,
+}];
 export const graphAnyDirectionSuccesses = [
   {name: 'graph-any-direction-json-fixed', format: 'json', text: JSON.stringify(machine(false)),
     results: result(repeated(1, 6)), sourceReadCount: 0},
@@ -65,10 +82,11 @@ export const graphAnyDirectionSuccesses = [
   sourceCase('quoted', '(a:Node WHERE id = 1)-[:`r`]-(`b`:Node WHERE `B`.`PAYLOAD`.`score` > 10)', [1, 1, 1]),
   sourceCase('null-object-and-member', '(a:Node WHERE id = 1)-[:R]-(b:Node WHERE payload.score IS NULL)', [1, 1]),
   sourceCase('typed-empty', '(a:Node WHERE id = 1)-[:R]-(b:Node WHERE payload.score > 100)', []),
-  ...[['WALK', 6, 13], ['TRAIL', 6, 7], ['ACYCLIC', 5, 0]].map(([mode, one, two]) =>
+  ...[['WALK', 2, 4], ['TRAIL', 2, 2], ['ACYCLIC', 0, 0]].map(([mode, one, two]) =>
     sourceCase('bounded-' + mode.toLowerCase(), '(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)',
       [0, ...repeated(1, one), ...repeated(2, two)],
-      {text: data + mapping + tail('(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)', mode)})),
+      {text: data + mapping + tail('(a:Node WHERE id = 1)-[:R]-{0,2}(b:Node)', mode),
+        parameters: boundedParameters})),
 ];
 export const graphAnyDirectionRefusals = [
   ...['<-[]->', '-[]-*', '-[]-{1,}', '-[e:R]-{0,2}'].map((edge, index) => ({
