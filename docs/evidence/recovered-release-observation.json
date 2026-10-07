@@ -24,7 +24,8 @@
       "command": "moon test --target native --strip src/cmd/native_remote_resident_site",
       "passed": 9,
       "failed": 0,
-      "receipt": "native-release-observation-dF8pLT"
+      "receipt": "native-release-observation-QYMrEv",
+      "source": "f7ac7016e911a4f069f00619f1877e21c48a4a0a"
     },
     "sqliteLibrary": "system SQLite on Darwin",
     "assertions": [

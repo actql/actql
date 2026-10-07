@@ -1510,7 +1510,7 @@ try {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
     const releaseModes = releaseObservationMode ? ['recovered-observation'] : releaseMaintenanceMode ? ['maintenance'] :
-      ['release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
+      ['recovered-observation', 'release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
     for (const [index, mode] of releaseModes.entries()) {
       let lostRelease = false;
       let releaseDelivered = false, releaseObserved = false;
