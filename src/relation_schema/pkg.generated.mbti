@@ -23,6 +23,8 @@ pub fn field_presence(Field) -> Presence
 
 pub fn field_reference_name(Field) -> String
 
+pub fn field_reference_name_at(Schema, Int) -> String?
+
 pub fn fields(Schema) -> Array[Field]
 
 pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[Schema, Issue]

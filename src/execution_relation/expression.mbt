@@ -255,7 +255,7 @@ fn check_expression_result(
 /// borrowed for the frame lifetime; the expression scope owns temporary roots.
 priv struct ExpressionFrame {
   root : @lower.Expression
-  input : Map[String, Value]
+  input : ExpressionInput
   slots : Array[Value]
   budget : ControlBudget
   workspace : RowWorkspace
@@ -277,6 +277,25 @@ priv struct ExpressionFrame {
 fn expression_frame(
   root : @lower.Expression,
   input : Map[String, Value],
+  slots : Array[Value],
+  budget : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots?,
+) -> Result[ExpressionFrame, EvalIssue] {
+  expression_frame_with_input(
+    root,
+    MapExpressionInput(input),
+    slots,
+    budget,
+    workspace,
+    scope,
+  )
+}
+
+///|
+fn expression_frame_with_input(
+  root : @lower.Expression,
+  input : ExpressionInput,
   slots : Array[Value],
   budget : ControlBudget,
   workspace : RowWorkspace,
@@ -480,7 +499,11 @@ fn advance_expression_frame_impl(
         }
         match body {
           Field(name, target) => {
-            if name.length() > 64 {
+            if name.length() > 64 ||
+              (
+                target is @relation.InputField(_) &&
+                input is IndexedExpressionInput(_, false)
+              ) {
               if !reserve_slots(workspace, 2) {
                 return Err({ kind: WorkspaceLimit, expression: expr, })
               }
@@ -488,7 +511,8 @@ fn advance_expression_frame_impl(
                 expression: expr,
                 name,
                 source: match target {
-                  @relation.InputField(_) => InputFields(input.iter())
+                  @relation.InputField(_) =>
+                    InputFields(expression_input_entries(input))
                   @relation.PriorSlot(index) => PriorSlot(index)
                 },
                 offset: 0,
@@ -501,7 +525,7 @@ fn advance_expression_frame_impl(
               return Err({ kind: ControlLimit, expression: expr, })
             }
             let value = match target {
-              @relation.InputField(_) => input.get(name)
+              @relation.InputField(_) => expression_input_small_get(input, name)
               @relation.PriorSlot(i) => slots.get(i)
             }
             guard value is Some(value) else {
