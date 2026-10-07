@@ -47,6 +47,7 @@ fn bounded_asof_fixture_result(
   text_id? : Bool = false,
   text_tie? : Bool = false,
   empty_left? : Bool = false,
+  name_bytes? : Int = 10000,
 ) -> Result[
   (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
   BoundedAsOfJoinIssue,
@@ -216,7 +217,7 @@ fn bounded_asof_fixture_result(
       max_work,
       100,
       max_entries,
-      10000,
+      name_bytes,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

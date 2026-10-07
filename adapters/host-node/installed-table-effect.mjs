@@ -7,7 +7,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {issueCompletedEffectfulComputationEvidence,
-  releaseCompletedRunPreparedPayloads, storeCompletedRunResultSet}
+  releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet}
   from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
@@ -324,14 +324,12 @@ export async function createInstalledTableEffect({moon, environmentWire,
         cleaned = true;
         return true;
       };
-      try { if (!await cleanup()) fail('TableCleanupPending'); }
-      catch (failure) {
-        error.cleanupFailure ??= failure;
-        error.cleanupPending = true;
-        error.cleanupHandle ??= Object.freeze({retry: cleanup,
-          status: () => Object.freeze({pending: !cleaned})});
-      }
-      throw error;
+      // The existing publication cleanup owner preserves immutable/primitive
+      // failures and any nested cleanup handle alongside this Table custody.
+      await releasePreparedResults([{prepared: Object.freeze({
+        release: cleanup, retry: cleanup,
+        status: () => Object.freeze({pending: !cleaned}),
+      })}], error, control);
     }
   }
 
@@ -437,12 +435,10 @@ export async function createInstalledTableEffect({moon, environmentWire,
           bindDispatch: dispatchBinder(control, ledger, owner, body, scopes)}});
     } catch (error) {
       if (retainRecoveryOwner === undefined) {
-        try { if (!await owner.cleanup()) fail('TableCleanupPending'); } catch (failure) {
-          error.cleanupFailure ??= failure;
-          error.cleanupPending = true;
-          error.cleanupHandle ??= Object.freeze({retry: owner.cleanup,
-            status: () => Object.freeze({pending: owner.cleanupPending()})});
-        }
+        await releasePreparedResults([{prepared: Object.freeze({
+          release: owner.cleanup, retry: owner.cleanup,
+          status: () => Object.freeze({pending: owner.cleanupPending()}),
+        })}], error, control);
       }
       throw error;
     }

@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {createInstalledTableEffect} from './installed-table-effect.mjs';
 import {tableFixturePublicationPlan} from './fixtures/table-completed-capture.mjs';
@@ -14,6 +15,75 @@ import {recoverCompletedEffectfulComputation, suspendCompletedEffectfulComputati
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const targetRef = 'connector://table/catalog';
 const mappingRef = 'mapping:table.catalog.v1';
+
+for (const kind of ['frozen', 'nested', 'primitive']) {
+  test(`installed Table preparation retains ${kind} failure and cleanup custody`,
+    async t => exerciseEffectSourceSet(t, {target: targetRef, mappingRef,
+      minimumApproval: 'required', onTablePreview: async f => {
+        const {moon, sourceControl: control} = f;
+        let innerPending = true, innerRetries = 0;
+        const inner = Object.freeze({status: () => ({pending: innerPending}),
+          async retry() { innerRetries++; innerPending = false; }});
+        const original = kind === 'primitive' ? 'original preparation failure'
+          : Object.freeze(Object.assign(new Error('OriginalTablePreparationFailure'),
+            {code: 'OriginalTablePreparationFailure', ...(kind === 'nested'
+              ? {cleanupPending: true, cleanupHandle: inner} : {})}));
+        const cleanupFailure = new Error('FirstTableCleanupFailure');
+        let preparations = 0, cleanupCalls = 0;
+        const bridge = {
+          prepareWrite() { if (++preparations === 2) throw original; return Object.freeze({}); },
+          status: () => ({attempted: true, stopped: true}),
+          async cleanup() {
+            cleanupCalls++;
+            if (cleanupCalls === 1) throw cleanupFailure;
+            return {ok: true, result: {pending: false}};
+          },
+          execute() { assert.fail('Preparation failure cannot send'); },
+          inspect() { assert.fail('Preparation failure cannot inspect'); },
+          reconcileOperation() { assert.fail('Preparation failure cannot reconcile'); },
+        };
+        const factory = await createInstalledTableEffect({moon, environmentWire: '{}',
+          connectorId: 'table', connectorRegistration: 'table', connectorRevision: 'table/0.1',
+          connection: 'table', runtimeBundleCid: cid('8'), bindingCid: cid('9'), catalogCid: cid('3'),
+          targets: ['first', 'second'].map((effectId, index) => ({effectId,
+            resource: 'catalog', targetRef, mappingRef, mappingCid: f.fixture.mappingCid,
+            action: 'create', catalogCid: cid('3'), namespace: ['analytics'], tableName: `rows_${index}`,
+            expectedTable: null, permissions: ['scope:store'],
+            footprint: f.template.effects[index].write_footprint})), bridge,
+          authorization: {authorize() { assert.fail('Preparation cannot authorize a provider read'); }},
+          ledgerRoot: join(f.directory, 'installed-table-failure-ledger'),
+          limits: {maxMembers: 2, maxInputBytes: 100000,
+            material: f.tableLimits, reservation: {bytes: 1048576, files: 16}}});
+        const identity = moon.clientProgramEffectRequestIdentity(f.prepared, cid('e'), 'table-bind', cid('b'));
+        const plan = tableFixturePublicationPlan(f), program = JSON.parse(f.fixture.document);
+        let failure;
+        try {
+          try { await factory.prepareCaptured({moon, control, store: f.physicalStore,
+            execution: f.execution, checkedHost: f.checkedHost, prepared: f.prepared,
+            identity, publicationPlan: plan,
+            unit: {programId: program.id, stageId: program.stages[0].id,
+              stageIndex: 0, effectIds: ['first', 'second']},
+            previewContext: {runDefinition: f.definition, runInvocation: f.invocation,
+              compiledPlan: f.evidence[3]}}); } catch (error) { failure = error; }
+          assert.equal(failure?.cause, original);
+          assert.equal(failure.primaryFailure, original);
+          assert.equal(failure.cleanupPending, true);
+          assert.equal(failure.cleanupHandle.status().pending, true);
+          assert.equal(cleanupCalls, 1);
+          assert.equal((await failure.cleanupHandle.retry()).pending, false);
+          assert.equal(failure.cleanupHandle.status().pending, false);
+          assert.equal(cleanupCalls, 2);
+          assert.equal(innerRetries, kind === 'nested' ? 1 : 0);
+          await failure.cleanupHandle.retry();
+          assert.equal(cleanupCalls, 2);
+          assert.equal(innerRetries, kind === 'nested' ? 1 : 0);
+        } finally {
+          if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+          await retireCompletedEffectfulCapture({store: f.physicalStore, control,
+            runDefinition: plan.runDefinition, contractLimits: plan.contractLimits});
+        }
+      }}));
+}
 
 for (const empty of [false,true]) {
   test(`installed Table hooks ${empty ? 'empty' : 'nonempty'} preserve original capture and claims`,
@@ -128,6 +198,32 @@ for (const empty of [false,true]) {
           await recoveredStage.dispose();
           assert.equal(recoveryOwner.cleanupPending(), false);
           assert.equal(f.execution.completed.length, 1);
+          // The real recovered Ledger remains owned after a close failure,
+          // even when its primary preparation exception is immutable.
+          const originalFailure = Object.freeze(Object.assign(new Error('RecoveredTablePreparationFailure'),
+            {code: 'RecoveredTablePreparationFailure'}));
+          const originalClose = DatabaseSync.prototype.close;
+          let ledgerCloses = 0;
+          const closeMock = t.mock.method(DatabaseSync.prototype, 'close', function (...args) {
+            if (++ledgerCloses === 1) throw new Error('RecoveredLedgerCloseFailure');
+            return originalClose.apply(this, args);
+          });
+          try {
+            let failure;
+            try { await factory.prepareRecovered({moon,
+              control: {...control, effectComputationPreviewLedgerIdentity() { throw originalFailure; }},
+              store: f.physicalStore, recovered: {requestIdentity: identity,
+                requestScope: moon.clientRequestLogicalScope(identity), computation: durable},
+              continuation: {provider}}); } catch (error) { failure = error; }
+            assert.equal(failure?.cause, originalFailure);
+            assert.equal(failure.cleanupHandle.status().pending, true);
+            assert.equal(ledgerCloses, 1);
+            assert.equal((await failure.cleanupHandle.retry()).pending, false);
+            assert.equal(failure.cleanupHandle.status().pending, false);
+            assert.equal(ledgerCloses, 2);
+            await failure.cleanupHandle.retry();
+            assert.equal(ledgerCloses, 2);
+          } finally { closeMock.mock.restore(); }
         } finally {
           await recoveredStage?.dispose();
           await stage?.dispose();
