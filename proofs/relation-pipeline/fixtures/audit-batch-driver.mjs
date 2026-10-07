@@ -39,6 +39,13 @@ mockModule('../history.mjs', {
   checkTakeHistory: () => { calls.history++; return { handwrittenCombinationAdditions: 0 }; },
 });
 mockModule('../exploration-impact.mjs', { decision: () => { prepare('decision'); return impact; } });
+// This diagnostic deliberately has no real mutation cohort. Only its final
+// connection is controlled; mutation-actions.test.mjs executes the Lean checker.
+mockModule('../mutation-actions.mjs', { checkMutationActions: ({auditedReceipts}) => {
+  assert.equal(calls.history > 0, true, 'Action admission must follow the scientific audit');
+  assert.equal(auditedReceipts.size, 4, 'Action admission needs all original receipt bindings');
+  return {authority: 'synthetic-orchestration-only', reuseAuthorized: false};
+} });
 const testCase = { id: 'synthetic-case', rows: [{ id: 'row-0', values: { extra: 0, k: null, tag: 1 } }],
   steps: [{ id: 'step-0', op: 'filter', args: { mode: 'true' } }] };
 const obligations = { synthetic: ['synthetic-case'] };
