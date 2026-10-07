@@ -19,6 +19,10 @@ export function rejectParentSubstitutions(report,source,read) {
     bad(r=>r.providerCallbackCode.objectDigest='0'.repeat(64));
     bad(r=>r.providerCallbackCode.logs.symbols.digest='0'.repeat(64));
     bad(r=>r.providerCallbackCode.constructors=[]);
+    bad(r=>r.providerConstruction.pointRequestedBytesEstablished=false);
+    bad(r=>r.providerConstruction.maxPointRequestedBytes++);
+    bad(r=>r.providerConstruction.points[0].observationDigest='0'.repeat(64));
+    bad(r=>r.providerConstruction.points[0].scalarAllocationIdentities=[]);
   }
   bad(r=>delete r.parentReferenceCode);bad(r=>r.parentReferenceCode.status='forged');
   if(report.parentReferenceCode.status==='established') {
@@ -26,5 +30,5 @@ export function rejectParentSubstitutions(report,source,read) {
     bad(r=>r.parentReferenceCode.logs.linked.digest='0'.repeat(64));
   }
   const referenceNegatives=report.parentReferenceCode.status==='established'?4:2;
-  return `${referenceNegatives + (report.providerCallbackCode.status==='established' ? 22 : 19)} Native parent receipt substitutions rejected; no extra scientific execution`;
+  return `${referenceNegatives + (report.providerCallbackCode.status==='established' ? 26 : 19)} Native parent receipt substitutions rejected; no extra scientific execution`;
 }

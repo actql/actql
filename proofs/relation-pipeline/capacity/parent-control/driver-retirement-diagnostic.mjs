@@ -8,6 +8,9 @@ import {artifacts} from '../../../bounded-session/evidence.mjs';
 import {checkNativeRuntime} from '../backing/source.mjs';
 import {retirementOverlay, retirementPaths, retirementHelper, retirementStub, retirementFixture,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {acceptDriverRetirement} from './driver-retirement-consumer.mjs';
+import {holdingTemporary} from './holding-custody-overlay.mjs';
+assert(process.argv.slice(2).every(a=>a==='--holding-custody') && process.argv.length<=3,'Unknown diagnostic option');
+const holdingCustody=process.argv.includes('--holding-custody');
 const git = args => {
   const r = spawnSync('git', args, {cwd: root, encoding: 'utf8'});
   assert.equal(r.status, 0, r.stderr); return r.stdout.trim();
@@ -15,8 +18,8 @@ const git = args => {
 assert.equal(git(['status', '--porcelain']), '', 'Requires clean submitted HEAD');
 const revision = git(['rev-parse', 'HEAD']), source = snapshot(root), read = p => readFileSync(join(root,p));
 const runtime = checkNativeRuntime(environment.MOON_HOME, toolchain);
-const {overlay, boundary, buildIdentity} = retirementOverlay(read,source);
-const temporary = [retirementHelper, retirementStub, retirementFixture];
+const {overlay, boundary, buildIdentity} = retirementOverlay(read,source,{holdingCustody});
+const temporary = [retirementHelper, retirementStub, retirementFixture,...(holdingCustody?holdingTemporary:[])];
 assert(temporary.every(p => !existsSync(join(root,p))), 'Foreign observation overlay');
 const changedPaths = Object.keys(overlay).filter(p => !temporary.includes(p));
 assert(retirementPaths.every(p => changedPaths.includes(p)));
@@ -71,15 +74,15 @@ try {
   assert.deepEqual(snapshot(root),source,'Byte-for-byte restoration failed');
 }
 const receipt = {version:'actql-native-driver-retirement/0.1',authority:'local Native finite correspondence; no Actions identity',
-  revision,source,runtime,target:'native',boundary,buildIdentity,executedSource,log,binaries,exit,restored:true,reuseAuthorized:false};
+  revision,source,runtime,target:'native',boundary,buildIdentity,executedSource,log,binaries,exit,restored:true,reuseAuthorized:false,holdingCustody};
 const originalPath = archive(Buffer.from(JSON.stringify(receipt,null,2)+'\n'),'originals','.json');
-const accepted = acceptDriverRetirement(receipt,{root,revision,runtime,read});
+const accepted = acceptDriverRetirement(receipt,{root,revision,runtime,read,holdingCustody});
 const negativeChanges = [r=>{r.target='js';},r=>{r.revision='0'.repeat(40);},r=>{r.restored=false;},
   r=>{r.source.digest='0'.repeat(64);},r=>{r.buildIdentity='0'.repeat(64);},r=>{r.executedSource.digest='0'.repeat(64);},
-  r=>{r.log.digest='0'.repeat(64);},r=>{r.binaries={};},r=>{r.reuseAuthorized=true;},r=>{r.exit=1;}];
+  r=>{r.log.digest='0'.repeat(64);},r=>{r.binaries={};},r=>{r.reuseAuthorized=true;},r=>{r.exit=1;},r=>{r.holdingCustody=!holdingCustody;}];
 for (const change of negativeChanges) {
   const bad = structuredClone(receipt); change(bad);
-  assert.throws(()=>acceptDriverRetirement(bad,{root,revision,runtime,read}),'Negative original substitution accepted');
+  assert.throws(()=>acceptDriverRetirement(bad,{root,revision,runtime,read,holdingCustody}),'Negative original substitution accepted');
 }
 const final = {...accepted,originalPath,originalReceiptDigest:hash(read(originalPath)),consumerNegativeCases:negativeChanges.length};
 const acceptedPath = archive(Buffer.from(JSON.stringify(final,null,2)+'\n'),'accepted','.json');

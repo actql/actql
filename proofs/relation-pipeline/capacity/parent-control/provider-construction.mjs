@@ -38,10 +38,55 @@ export function providerConstructionBound(read) {
       'one selected constructor default family array, with static empty backing',
       'candidate array literal has eleven backing slots',
       'borrowed limits, measurement, family and caller configuration are accounted by their original owners'],
-    unresolved: ['complete compiled allocation-site correspondence for dynamic scalar callback payload extents',
+    unresolved: ['compiled scalar callback payload extents are not established by the source census alone',
       'constructor lifetime union and borrowed configuration ownership'],
     completeConstructorByteCorrespondence: false,
     completeParentUpper: false, completePipelineUpper: false };
+}
+
+// Compose only the independently audited generated-code result with the exact
+// indexed census from that execution. This establishes a finite point union;
+// neither the structural envelope nor an equal maximum authenticates a point.
+export function inspectProviderConstructionPoint(facts, code, read, target) {
+  const indexed = inspectProviderConstruction(facts, read, target);
+  assert.equal(code.scalarAllocationRequestsEstablished, true, 'Missing audited scalar allocation requests');
+  assert.equal(code.scalarPayloadBytesMeasured, false, 'Scalar code evidence is not a payload measurement');
+  assert.equal(code.completeConstructorLifetimeUpper, false, 'Unsupported constructor lifetime guarantee');
+  assert.equal(code.completeParentUpper, false, 'Unsupported parent capacity guarantee');
+  assert.equal(code.completePipelineUpper, false, 'Unsupported pipeline capacity guarantee');
+  assert.equal(code.observations.length, facts.length, 'Different constructor observation count');
+  let maximum = 0;
+  const points = facts.map((fact, index) => {
+    const scalar = code.observations[index];
+    assert.equal(scalar.observationDigest, hash(JSON.stringify(fact)), 'Different constructor observation input');
+    assert.equal(scalar.indexedRequestedBytes, fact.indexedBytes, 'Different indexed constructor extent');
+    assert.equal(scalar.callbacks.length, fact.scalarDynamicCallbacks, 'Missing scalar callback extent');
+    assert.deepEqual(scalar.callbacks.map(c => c.identity), fact.scalarCodes.map(c => c.identity),
+      'Different scalar allocation identities');
+    let scalarBytes = 0;
+    for (const callback of scalar.callbacks) {
+      assert.equal(callback.payloadBytes, 8, 'Unsupported audited scalar payload');
+      assert.equal(callback.headerBytes, 8, 'Unsupported audited scalar header');
+      assert.equal(callback.requestedBytes, callback.payloadBytes + callback.headerBytes,
+        'Different scalar allocation request');
+      scalarBytes += callback.requestedBytes;
+    }
+    assert.equal(scalar.scalarRequestedBytes, scalarBytes, 'Different scalar request subtotal');
+    const bytes = fact.indexedBytes + scalarBytes;
+    assert.equal(scalar.pointRequestedBytes, bytes, 'Different constructor point subtotal');
+    assert(bytes <= indexed.recipe.bytes, 'Point constructor bytes exceed conditional envelope');
+    maximum = Math.max(maximum, bytes);
+    return {observationDigest: scalar.observationDigest, indexedRequestedBytes: fact.indexedBytes,
+      scalarRequestedBytes: scalarBytes, pointRequestedBytes: bytes,
+      scalarAllocationIdentities: scalar.callbacks.map(c => c.identity)};
+  });
+  assert.equal(code.maxPointRequestedBytes, maximum, 'Different constructor point maximum');
+  return {...indexed, pointRequestedBytesEstablished: true, maxPointRequestedBytes: maximum, points,
+    pointEvidence: 'indexed runtime layouts plus independently audited object/executed-binary scalar allocation requests',
+    unresolved: ['transient construction allocations and whole-constructor lifetime union',
+      'borrowed configuration referents and their original-owner charges',
+      'allocator rounding, fragmentation and physical reclamation'],
+    completeConstructorLifetimeUpper: false};
 }
 
 export function inspectProviderConstruction(facts, read, target) {
