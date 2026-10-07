@@ -138,9 +138,9 @@ fn stopped_cleanup_fixture(
       abort("private SQLite root required")
     },
   )
-  let files = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap_or_else(() => {
-    abort("private receiver Root required")
-  })
+  // The Native core runner owns this per-invocation namespace. These local
+  // files do not need the HTTP harness's separate Store configuration.
+  let files = parent
   let sqlite = @sqlite.load_library(sqlite_path).unwrap()
   let (admission, producer, wire, producer_binding, _) = resident_source_dispatch_fixture()
   let materials = rebuild_materials(admission, producer, wire).unwrap()
