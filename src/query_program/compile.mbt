@@ -1827,12 +1827,7 @@ fn compile_steps(
       AssertUnique(keys) => {
         let unique : Array[@builder.Node] = []
         for path in keys {
-          guard pipe_slot(
-              path,
-              unnest_expression_columns(pipe_visible, value_table_receiver),
-              pipe_ranges,
-            )
-            is Some(slot) else {
+          guard pipe_slot(path, pipe_visible, pipe_ranges) is Some(slot) else {
             raise Abort(UnknownColumn)
           }
           unique.push(construction.text(slot))
