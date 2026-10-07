@@ -44,6 +44,15 @@ pub fn projection_fields(
 }
 
 ///|
+/// Indexed immutable view for bounded consumers; no projection-array copy.
+pub fn projection_field_at(
+  view : PreparedProjection,
+  index : Int,
+) -> @relation.ProjectionField? {
+  @relation.projection_field_at(view.checked, index)
+}
+
+///|
 pub fn preparation_input_projection(
   prepared : Prepared,
   index : Int,

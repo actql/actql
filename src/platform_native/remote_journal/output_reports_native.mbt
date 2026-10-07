@@ -316,6 +316,54 @@ pub fn Journal::retry_output_report(
 }
 
 ///|
+/// Recover the original reserved Output without generating a new intent.
+/// The caller separately rechecks current authorization and lifetime before
+/// using this saved request. Reading it does not confirm payload or Transfer.
+pub fn Journal::reserved_output(
+  self : Journal,
+  request : @remote.DispatchRequest,
+  key : String,
+) -> Result[@remote.RemotePollOutput?, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match @remote.prepare_dispatch_acceptance(self.control, request) {
+    Ok(_) => ()
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.require(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let value = match self.database.read("site_output_report_slot", key) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Ok(None)
+    Err(issue) => return Err(Physical(issue))
+  }
+  let body = @utf8.decode(value.body) catch { _ => return Err(StateCollision) }
+  let output = match @remote.admit_remote_poll_output_json(body) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  if @remote.dispatch_request_identity(
+      @remote.remote_poll_output_request(output),
+    ) !=
+    @remote.dispatch_request_identity(request) ||
+    @remote.remote_output_intent_identity(
+      @remote.remote_poll_output_intent(output),
+    ) !=
+    key ||
+    @remote.remote_poll_output_json(
+      request,
+      @remote.remote_poll_output_intent(output),
+    ) !=
+    Ok(body) {
+    return Err(StateCollision)
+  }
+  Ok(Some(output))
+}
+
+///|
 /// Reserve bounded report storage before payload/Transfer starts. Exhaustion
 /// rejects only new Output work; cleanup, existing reports and ACKs continue.
 pub fn Journal::reserve_output_report(

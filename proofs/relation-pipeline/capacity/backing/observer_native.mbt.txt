@@ -1,6 +1,6 @@
 ///|
-#borrow(input, binding, projection, snapshot)
-extern "C" fn capacity_native_map_json(input : Map[String, Int], binding : Map[String, Int], projection : Map[String, Int], snapshot : Map[String, Value]) -> String = "actql_proof_map_json"
+#borrow(input, binding, projection)
+extern "C" fn capacity_native_map_json(input : Map[String, Int], binding : Map[String, Int], projection : Map[String, Int]) -> String = "actql_proof_map_json"
 
 ///|
 #borrow(array)
@@ -11,13 +11,23 @@ extern "C" fn capacity_native_names_json(array : Array[String], element : Int) -
 extern "C" fn capacity_native_indices_json(array : Array[Int], element : Int) -> String = "actql_proof_array_json"
 
 ///|
+#borrow(array)
+extern "C" fn capacity_native_snapshot_json(array : Array[(String, Value)], element : Int) -> String = "actql_proof_array_json"
+
+///|
+#borrow(array)
+extern "C" fn capacity_native_sources_json(array : Array[BindingRowSource], element : Int) -> String = "actql_proof_array_json"
+
+///|
 fn capacity_native_map_fields(state : BoundedBindingRowsState) -> String {
   if state.projection_ordinals is Some(projection) {
     let indices = state.sorted_indices.map(a => capacity_native_indices_json(a, 1)).unwrap_or("null")
-    capacity_native_map_json(state.input_ordinals, state.binding_ordinals, projection, state.snapshot) +
+    capacity_native_map_json(state.input_ordinals, state.binding_ordinals, projection) +
       ",\"nativeArrays\":{\"inputNames\":" + capacity_native_names_json(state.input_names, 2) +
       ",\"outputNames\":" + capacity_native_names_json(state.output_names, 2) +
-      ",\"sortedIndices\":" + indices + "}"
+      ",\"sortedIndices\":" + indices +
+      ",\"snapshot\":" + capacity_native_snapshot_json(state.snapshot, 2) +
+      ",\"rowSources\":" + capacity_native_sources_json(state.row_sources, 2) + "}"
   } else {
     ""
   }

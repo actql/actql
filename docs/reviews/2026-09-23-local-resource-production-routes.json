@@ -1542,6 +1542,34 @@
           "fixture": "retained row names stop in input snapshot output and capture phases"
         },
         {
+          "role": "derive_metadata_lookup",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "row metadata lookup preserves qualified UTF16 spelling and bounded scans"
+        },
+        {
+          "role": "derive_metadata_prepare_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "expression metadata preparation stops during each owned phase"
+        },
+        {
+          "role": "derive_metadata_projection_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "indexed projection prepares sources in bounded fragments and stops before reading"
+        },
+        {
+          "role": "derive_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_metadata_cursor_wbtest.mbt",
+          "fixture": "metadata resume quantum preserves expression and projection rows and charges"
+        },
+        {
           "role": "derive_raw_text_child_limits",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],

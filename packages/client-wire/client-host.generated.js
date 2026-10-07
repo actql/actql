@@ -2685,11 +2685,215 @@ const schemas = {
                               ]
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -3407,7 +3611,9 @@ const schemas = {
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
-                                "implementation_limit"
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -3418,6 +3624,19 @@ const schemas = {
                           "required": [
                             "facts"
                           ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_value_required",
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
+                            ]
+                          }
                         }
                       }
                     }
@@ -3436,7 +3655,11 @@ const schemas = {
                   "additionalProperties": false,
                   "properties": {
                     "code": {
-                      "const": "parameter_value_required"
+                      "enum": [
+                        "parameter_value_required",
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
+                      ]
                     },
                     "location": {
                       "oneOf": [
@@ -4046,11 +4269,215 @@ const schemas = {
                               ]
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -4768,7 +5195,9 @@ const schemas = {
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
-                                "implementation_limit"
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -4907,7 +5336,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -5736,11 +6165,215 @@ const schemas = {
                               ]
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -6458,7 +7091,9 @@ const schemas = {
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
-                                "implementation_limit"
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -6469,6 +7104,19 @@ const schemas = {
                           "required": [
                             "facts"
                           ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "properties": {
+                          "code": {
+                            "enum": [
+                              "parameter_value_required",
+                              "host_capacity_policy_required",
+                              "numeric_reduction_profile_required"
+                            ]
+                          }
                         }
                       }
                     }
@@ -6487,7 +7135,11 @@ const schemas = {
                   "additionalProperties": false,
                   "properties": {
                     "code": {
-                      "const": "parameter_value_required"
+                      "enum": [
+                        "parameter_value_required",
+                        "host_capacity_policy_required",
+                        "numeric_reduction_profile_required"
+                      ]
                     },
                     "location": {
                       "oneOf": [
@@ -7097,11 +7749,215 @@ const schemas = {
                               ]
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "contract_cid",
+                            "schema_cid",
+                            "schema_pointer",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "contract_cid": {
+                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                            },
+                            "schema_cid": {
+                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                            },
+                            "schema_pointer": {
+                              "const": "/schema"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "profile_cid",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "profile_cid": {
+                              "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
                   },
                   "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "numeric_reduction_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "profile_cid",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "profile_cid": {
+                                "const": "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "numeric_reduction_profile_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "profile_cid"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "host_capacity_policy_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "contract_cid",
+                              "schema_cid",
+                              "schema_pointer",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "contract_cid": {
+                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              },
+                              "schema_cid": {
+                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              },
+                              "schema_pointer": {
+                                "const": "/schema"
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "not": {
+                              "const": "host_capacity_policy_required"
+                            }
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "facts": {
+                            "not": {
+                              "required": [
+                                "schema_pointer"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
                     {
                       "if": {
                         "properties": {
@@ -7819,7 +8675,9 @@ const schemas = {
                                 "graph_operation_invalid",
                                 "operation_parameter_invalid",
                                 "expression_type_mismatch",
-                                "implementation_limit"
+                                "implementation_limit",
+                                "host_capacity_policy_required",
+                                "numeric_reduction_profile_required"
                               ]
                             }
                           }
@@ -7976,7 +8834,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -8022,7 +8880,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
+            "const": "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -9062,8 +9920,8 @@ const operationKeys = {
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c";
-export const checkOutcomeSchemaCid = "sha256:bb3a54f131d67760e678d78e79aa6b906c23740c5af44419c6e322bb77084180";
+export const checkReasonSchemaCid = "sha256:006f651784cb2f48f3b7cedc3881e7e902ab154d1d985dc219a0d2d975041739";
+export const checkOutcomeSchemaCid = "sha256:801971ab7c91652f2e3a606cdae7567fe313ca2931df81d7ab4c24d3d130e0a9";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {
