@@ -30,7 +30,17 @@ for (const [name, revision, digest] of originals) {
   // Every original keeps the checker bytes from its actual execution revision.
   // A changed shared source closure must not silently accept old images.
   const consumer = await historicalIsolatedFixture(root, revision);
-  const tree = gitTree(root, revision), before = consumer.snapshotFromGit(tree);
+  const tree = gitTree(root, revision);
+  // Prime the exact Git objects used by historical policies without changing
+  // those policies or their original bytes. Remaining reads still use the
+  // same checked Git tree; no dependency is inferred away.
+  tree.prefetch([...tree.entries.values()].filter(entry => entry.kind === 'blob' &&
+    ['100644', '100755'].includes(entry.mode) &&
+    (['src/', 'proofs/bounded-session/', 'proofs/ci-evidence/'].some(prefix => entry.path.startsWith(prefix)) ||
+      ['toolchain.json', 'moon.mod', 'package.json', 'package-lock.json',
+        'docs/reviews/2026-09-23-local-resource-production-routes.json',
+        'docs/reviews/2026-09-23-local-resource-accounting-audit.json'].includes(entry.path))).map(entry => entry.path));
+  const before = consumer.snapshotFromGit(tree);
 
   const consume = record => {
     assert.equal(record.authority, 'local-physical-acceptance'); assert.equal(record.reuseAuthorized, false);

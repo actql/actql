@@ -14,6 +14,7 @@ import {stagePipelinePristineSource, pipelinePristineSourcePaths} from './isolat
 import {snapshot} from '../relation-pipeline/inventory.mjs';
 import {validatePristineReport, readPristineFiles, pristineScientificObservation} from '../relation-pipeline/pristine-replay.mjs';
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
+import {setTimeout as delay} from 'node:timers/promises';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const json = (path, value) => writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`, {flag: 'wx'});
@@ -21,9 +22,18 @@ const git = args => execFileSync('git', args, {cwd: root, encoding: 'utf8'}).tri
 const call = (engine, args, timeout = 120000) => {
   const result = spawnSync(engine, args, {encoding: 'utf8', timeout, maxBuffer: 16 * 1024 * 1024});
   if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
-  assert(!result.error && result.status === 0, 'Local preparation command failed');
+  assert(!result.error && result.status === 0, result.error?.code === 'ETIMEDOUT' ? 'Local preparation command timed out' : 'Local preparation command failed');
   return result.stdout;
 };
+
+// The pipeline preparer also runs the separate normal phase. Its budget must
+// cover preparation plus the bounded replay, rather than only image staging.
+export function localAcceptanceLimits(profile = 'session') {
+  assert(['session', 'pipeline-pristine'].includes(profile), 'Unregistered local profile');
+  return Object.freeze(profile === 'session'
+    ? {preparationMilliseconds: 180000, timeoutSeconds: 1200}
+    : {preparationMilliseconds: 900000, normalReplayMilliseconds: 480000, timeoutSeconds: 1800});
+}
 
 // The Linux preparer receives Git object identities, not an unverified working
 // copy. Only declared regular blobs can be read, with their exact tracked mode.
@@ -80,8 +90,11 @@ function prepareLinux(descriptorFile) {
     stagePipelinePristineSource({tree, destination: '/tmp/pipeline-normal'});
     const directory = '/tmp/pipeline-normal/source', start = performance.now();
     const sourcePreparationMilliseconds = Math.round(start - normalPreparationStart);
+    json('/out/preparation-phases.json', {imagePreparationMilliseconds: prepared.preparationMilliseconds,
+      normalSourcePreparationMilliseconds: sourcePreparationMilliseconds,
+      normalStartedAt: new Date().toISOString(), normalCompleted: false});
     const result = spawnSync(process.execPath, ['proofs/relation-pipeline/pristine-replay.mjs'], {
-      cwd: directory, env: process.env, encoding: 'utf8', timeout: 480000, maxBuffer: 32 * 1024 * 1024,
+      cwd: directory, env: process.env, encoding: 'utf8', timeout: localAcceptanceLimits(profile).normalReplayMilliseconds, maxBuffer: 32 * 1024 * 1024,
     });
     if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
     assert(!result.error && result.status === 0, 'Normal pinned pipeline replay failed');
@@ -103,7 +116,30 @@ export function checkOwnedPreparation(container, {cid, imageId, owner}) {
   return true;
 }
 
-function worker(options) {
+// --rm may already be removing a container when a timed-out client returns.
+// Only tolerate that precise owned-container transition; absence must then be
+// observed. Unknown transport/daemon errors never prove cleanup complete.
+export async function closeOwnedPreparation({engine, cid, imageId, owner}, run = spawnSync) {
+  assert(/^[a-f0-9]{64}$/u.test(cid) && /^sha256:[a-f0-9]{64}$/u.test(imageId) &&
+    /^local-[a-f0-9]{32}$/u.test(owner), 'Invalid owned preparer identity');
+  const deadline = performance.now() + 30000;
+  while (performance.now() < deadline) {
+    const timeout = () => Math.max(1, Math.min(5000, Math.floor(deadline - performance.now())));
+    const inspected = run(engine, ['container', 'inspect', cid], {encoding: 'utf8', timeout: timeout()});
+    if (!inspected.error && inspected.status === 1 && /No such (?:object|container)/u.test(inspected.stderr)) return;
+    assert(!inspected.error && inspected.status === 0, 'Unconfirmed preparer cleanup');
+    const containers = JSON.parse(inspected.stdout); assert.equal(containers.length, 1);
+    checkOwnedPreparation(containers[0], {cid, imageId, owner});
+    const removed = run(engine, ['container', 'rm', '--force', cid], {encoding: 'utf8', timeout: timeout()});
+    assert(!removed.error && (removed.status === 0 || (removed.status === 1 &&
+      new RegExp(`^Error response from daemon: removal of container ${cid} is already in progress\\s*$`, 'u').test(removed.stderr))),
+    'Unconfirmed owned preparer removal');
+    await delay(250);
+  }
+  throw new Error('Owned preparer cleanup timed out; retain CID custody');
+}
+
+async function worker(options) {
   const workerStarted = performance.now();
   assert.equal(git(['rev-parse', 'HEAD']), options.revision, 'Candidate HEAD changed');
   assert.equal(git(['status', '--porcelain', '--untracked-files=no']), '', 'Use a clean tracked candidate');
@@ -128,7 +164,7 @@ function worker(options) {
     '--mount', `type=bind,src=${directory},dst=/out`,
     '--env', 'MOON_HOME=/toolchain', '--env', 'ImageVersion=local-linux-amd64',
     '--entrypoint', 'node', options.builderImage,
-    '/candidate/proofs/ci-evidence/local-isolated-acceptance.mjs', 'prepare-linux', '/out/checkout.json'], profile === 'pipeline-pristine' ? 600000 : 180000);
+    '/candidate/proofs/ci-evidence/local-isolated-acceptance.mjs', 'prepare-linux', '/out/checkout.json'], localAcceptanceLimits(profile).preparationMilliseconds);
   } catch (error) { preparationError = error; }
   // A timed-out client does not imply the daemon stopped its container. Keep
   // the CID custody and close only a positively authenticated local preparer.
@@ -136,12 +172,7 @@ function worker(options) {
     let cid;
     try { cid = readFileSync(join(directory, 'preparer.id'), 'utf8').trim(); } catch (error) { assert.equal(error.code, 'ENOENT'); }
     if (cid) {
-      const inspected = spawnSync(options.engine, ['container', 'inspect', cid], {encoding: 'utf8', timeout: 30000});
-      if (inspected.status === 0) {
-        const [container] = JSON.parse(inspected.stdout);
-        checkOwnedPreparation(container, {cid, imageId: options.builderImage, owner});
-        call(options.engine, ['container', 'rm', '--force', cid]);
-      } else assert(!inspected.error && inspected.status === 1 && /No such (?:object|container)/u.test(inspected.stderr), 'Unconfirmed preparer cleanup');
+await closeOwnedPreparation({engine: options.engine, cid, imageId: options.builderImage, owner});
     }
   } catch (error) {
     if (preparationError) console.error('Local preparer cleanup also failed; retain CID custody');
@@ -197,7 +228,7 @@ function worker(options) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [mode, ...args] = process.argv.slice(2);
   if (mode === 'prepare-linux') prepareLinux(args[0]);
-  else if (mode === 'worker') worker(JSON.parse(args[0]));
+  else if (mode === 'worker') await worker(JSON.parse(args[0]));
   else {
     assert.equal(mode, 'run', 'Use run --engine PATH --builder-image sha256:ID --moon-home PATH');
     assert([6, 8].includes(args.length)); const options = {};
@@ -210,7 +241,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const engine = localEngine(options['--engine']), moonHome = realpathSync(options['--moon-home']);
     assert(lstatSync(moonHome).isDirectory());
     mkdirSync(join(root, '_build'), {recursive: true});
-    process.exitCode = await runLocalCheck({root, heavy: true, timeoutSeconds: 1200, graceSeconds: 10,
+    process.exitCode = await runLocalCheck({root, heavy: true, timeoutSeconds: localAcceptanceLimits(profile).timeoutSeconds, graceSeconds: 10,
       steps: [{name: `local isolated ${profile} physical acceptance`, command: process.execPath,
         args: [fileURLToPath(import.meta.url), 'worker', JSON.stringify({engine, moonHome, profile,
           builderImage: options['--builder-image'], revision: git(['rev-parse', 'HEAD'])})]}]});

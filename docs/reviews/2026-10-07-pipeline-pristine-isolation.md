@@ -118,3 +118,33 @@ that new source. Run the same four-case local image command after the
 batched-reader fix and main adoption. Keep image acceptance, full mutation/restoration/other-target acceptance,
 Actions qualification, limited activation and inclusive net savings unclaimed
 until their actual evidence exists.
+
+
+## Current-main preparation diagnostic and bounded owner correction
+
+At clean `831af0308c0b3fc1a97196077fb9df2c8379132b`, the new-main four-case
+attempt stopped at the preparer's 600-second client bound, before any normal
+four-case report or image execution. Prepared source was 56,073,491 bytes;
+image-input preparation took 148,165 ms. These are preparation observations,
+not successful scientific execution. The daemon was already removing the
+owner's preparer when explicit cleanup ran; subsequent inspection confirmed
+its absence. The guard released its own locks. Preserve the failed summary,
+original log and owner custody separately from accepted originals.
+
+Pipeline's local preparer now has a 900-second bound covering physical input
+staging and the independent bounded normal phase. Normal replay still has its
+480-second bound; actual image execution still has its 600-second bound. The
+combined local guard is 1,800 seconds. Default Session limits are unchanged.
+The owner re-inspects an authenticated preparer until absence after the precise
+Docker "removal already in progress" transition; unknown transport/daemon errors
+and changed owners still refuse completion. Phase-preparation times are written
+before the normal child starts, including on a later failed attempt.
+
+Historical-original tests now prime exact Git objects through the existing
+bounded/object-checked batch reader. Their historical checker bytes, source
+policies, raw receipts and refusal assertions are unchanged. The earlier
+180-second uncompleted selection is not a pass. After batching, the same
+selection passed 36/36 in 107,691 ms on the working changes subsequently
+committed with this checkpoint: 13 local boundary cases, 16 historical-original
+cases and seven pipeline-original cases. This remains a local diagnostic,
+not an Actions original or current-source compiled image acceptance.
