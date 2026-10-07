@@ -1,6 +1,6 @@
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireCancellationRefShape, WireCancellationLookupShape,
-  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape,
+  WireSubmissionEpochShape, WireSubmissionRefShape, WireSubmissionOutcomeShape, WireSubmissionLookupShape, WireSubmissionRestartShape,
   WireCheckpointReviewShape, WireCheckpointSummaryShape,
   WireConnectionShape, WireHeldShape, WireLookupFoundShape,
   WireLookupNotFoundShape, WireLookupUnknownShape, WireProfileShape,
@@ -34,13 +34,17 @@ export type WireSubmissionEpoch = WireSubmissionEpochShape;
 export type WireSubmissionRef = WireSubmissionRefShape;
 export type WireSubmissionOutcome = WireSubmissionOutcomeShape;
 export type WireSubmissionLookup = WireSubmissionLookupShape;
+export type WireSubmissionRestart = WireSubmissionRestartShape;
+export declare function validSubmissionRestart(value: unknown,
+  fresh: WireSubmissionRef): value is WireSubmissionRestart;
 export declare function validSubmissionEpoch(value: unknown): value is WireSubmissionEpoch;
 export declare function validSubmissionRef(value: unknown): value is WireSubmissionRef;
 export declare function sameSubmissionRef(left: unknown, right: unknown): boolean;
 export declare function validStoredSubmissionOutcome(value: unknown,
   expected: WireSubmissionRef, intentCid: string): value is WireSubmissionOutcome;
 export declare function validSubmissionOutcome(value: unknown, selected: WireConnection,
-  expected: WireSubmissionRef, intentCid?: string): value is WireSubmissionOutcome;
+  expected: WireSubmissionRef, intentCid?: string,
+  unresolvedHistory?: WireSubmissionRestart): value is WireSubmissionOutcome;
 export declare function validSubmissionLookup(value: unknown, selected: WireConnection,
   expected: WireSubmissionRef): value is WireSubmissionLookup;
 export type WireRunRef = WireRunRefShape;
