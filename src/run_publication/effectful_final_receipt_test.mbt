@@ -394,6 +394,98 @@ fn final_test_captured(chain : CapturedRunTestChain) -> PublicationContract {
 }
 
 ///|
+test "Result-bound source holding requires exact physical and semantic facts" {
+  let chain = captured_run_test_chain()
+  let artifact = final_test_source_artifact(chain)
+  let preview = final_test_preview(
+    chain,
+    artifact_cid=Some(publication_contract_identity(chain.artifact)),
+  )
+  let source = admit_captured_effect_source_from_result(
+    preview,
+    0,
+    chain.invocation,
+    artifact,
+    chain.artifact,
+    ordering_test_cid("d"),
+  ).unwrap()
+  assert_eq(
+    captured_effect_source_artifact_cid(source),
+    publication_contract_identity(artifact),
+  )
+  assert_true(
+    captured_effect_source_matches_result_facts(source, chain.artifact, "rows"),
+  )
+  assert_true(
+    admit_captured_effect_source_artifact(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      ordering_test_cid("d"),
+    )
+    is Err(_),
+  )
+  assert_true(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [chain.artifact],
+    ),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0, 0],
+      [artifact, artifact],
+      [chain.artifact, chain.artifact],
+    ),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [],
+    ),
+  )
+  let foreign = captured_run_test_chain(
+    logical_cid=Some(ordering_test_cid("f")),
+  )
+  assert_true(
+    admit_captured_effect_source_from_result(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      foreign.artifact,
+      ordering_test_cid("d"),
+    )
+    is Err(_),
+  )
+  assert_false(
+    captured_effect_source_inventory_from_results_valid(
+      preview,
+      [0],
+      [artifact],
+      [foreign.artifact],
+    ),
+  )
+  assert_true(
+    admit_captured_effect_source_from_result(
+      preview,
+      0,
+      chain.invocation,
+      artifact,
+      chain.artifact,
+      ordering_test_cid("e"),
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "Effectful capture issuer owns its exact Preview plan inventory" {
   let chain = captured_run_test_chain()
   let snapshot = admit_captured_result_snapshot(
