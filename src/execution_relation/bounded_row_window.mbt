@@ -190,7 +190,9 @@ fn cleanup_bounded_row_window_state(state : BoundedRowWindowState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.input_names = []
@@ -620,7 +622,6 @@ fn bounded_row_window_step(
         guard state.output is Some(output) else {
           return bounded_row_window_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -698,7 +699,7 @@ fn start_bounded_row_window_with_input(
     Err(_) => return Err(InputLimit)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -863,6 +864,14 @@ pub fn advance_bounded_row_window(
       Ok(BoundedRowWindowStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_row_window_cleanup_pending(
+  value : BoundedRowWindowExecution,
+) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

@@ -127,11 +127,12 @@ fn values_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_values(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_values_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_values_issue(issue, step))
             }
           },

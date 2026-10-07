@@ -138,7 +138,9 @@ fn cleanup_bounded_set_state(state : BoundedSetState) -> Bool {
     state.sorter = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.left_order = []
@@ -734,7 +736,6 @@ fn bounded_set_step(
         guard state.output is Some(output) else {
           return bounded_set_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -811,7 +812,7 @@ pub fn start_bounded_set(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -933,6 +934,12 @@ pub fn advance_bounded_set(
       Ok(BoundedSetStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_set_cleanup_pending(value : BoundedSetExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

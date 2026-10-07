@@ -137,11 +137,12 @@ fn append_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_append(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_append_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_append_issue(issue, step))
             }
           },
