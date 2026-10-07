@@ -39,6 +39,8 @@ pub fn declared_row_view(String, String, String, Array[String], String, String) 
 
 pub fn finish_row_run(RowRun) -> Result[Unit, RowHostIssue]
 
+pub fn generate_relation_row_declaration(String, String, String, Array[RowRelationViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowHostIssue]
+
 pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
 
 pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
@@ -52,6 +54,8 @@ pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement,
 pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]
+
+pub fn restore_relation_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
 pub fn restore_row_declaration(String, String, String, String, String?) -> Result[RowDeclaration, RowHostIssue]
 
@@ -223,6 +227,13 @@ pub(all) struct RowPageLimits {
   max_depth : Int
   max_rows : Int
 } derive(Eq, @debug.Debug)
+
+pub(all) struct RowRelationViewSpec {
+  resource : String
+  resource_kind : String
+  schema_wire : String
+  schema_cid : String
+}
 
 type RowRun
 

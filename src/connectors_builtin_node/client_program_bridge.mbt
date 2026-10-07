@@ -6889,6 +6889,25 @@ pub fn client_program_row_source_restore_declaration(
 }
 
 ///|
+/// Complete saved Relation schema material, admitted by the common owner.
+/// This creates a declaration, not a read grant or an acquired generation.
+#export_name("clientProgramRowSourceRestoreRelationDeclaration")
+pub fn client_program_row_source_restore_relation_declaration(
+  connector_id : String,
+  connector_registration : String,
+  connector_version : String,
+  views_json : String,
+  expected_catalog_cid : String?,
+) -> Result[
+  @client_row_source_host.RowDeclaration,
+  @client_row_source_host.RowHostIssue,
+] {
+  @client_row_source_host.restore_relation_row_declaration(
+    connector_id, connector_registration, connector_version, views_json, expected_catalog_cid,
+  )
+}
+
+///|
 /// The published parts of a declaration as one JSON text: Catalog CID,
 /// Catalog, contracts, views, view bodies, manifest entry and its CID, and
 /// the Check Environment evidence members.

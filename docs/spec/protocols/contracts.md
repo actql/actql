@@ -201,8 +201,17 @@ type declarations, not actual values, Ref issuers or execution authority.
 
 <!-- requirement-block: check-environment.carrier-schema-bodies -->
 Each supplied `carrier_schema` body MUST use exactly one of the following closed
-forms, including unused envelopes. Relation uses the non-null canonical checked
-object value contract, including `fields: {}`. Graph uses the ActQL-owned
+forms, including unused envelopes. Relation uses either the non-null canonical
+checked object value contract, including `fields: {}`, or the closed
+`{version: "actql-relation-schema/0.1", fields}` schema body. The latter's finite
+field map uses the existing Relation schema identity representation: a Required
+field contains its complete canonical checked value contract; a Conditional field
+contains exactly `{contract, presence: "conditional"}`. Presence and value
+nullability are independent, and constraints are retained even for empty input.
+Ordinary object value contracts still require every declared field; the Relation
+form does not add optional object fields or a Missing scalar. Its bare body CID
+and Contract Envelope CID are distinct from the logical schema CID of the field
+map alone. Graph uses the ActQL-owned
 `actql-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
 The retired endpoint-tuple body is rejected, not converted or interpreted as
 the keyed contract. Structural admission preserves the declared definition
@@ -1899,7 +1908,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:d69036f2a12e048f26d8b622a6f4a9ca53ff2ac82f9660dea9ddcb48f63c6fbb
+../../../spec/contracts/actql-check-environment.json# sha256:5c384f7f3b7b007a4ef642c4f0a06544d34649e40a7ca89756dc3580d4f4e505
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
