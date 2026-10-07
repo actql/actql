@@ -49,8 +49,33 @@ test('scalar stars have independent typed empty expectations and preserve the DA
     assert.deepEqual(byName.get('unnest-' + name).expected, []);
     assert.deepEqual(byName.get('unnest-' + name).columns, control.columns);
   }
-  const struct = unnestRefusals.find(value => value.name === 'unnest-refusal-struct-value-table-star');
+  const struct = unnestRefusals.find(value => value.name === 'unnest-refusal-struct-missing-field');
   assert.deepEqual(struct.parameters.items, []);
   assert.equal(struct.parameterDeclarations.items.items.type, 'object');
   assert.ok(unnestRefusals.some(value => value.name === 'unnest-refusal-scalar-qualified-star'));
+});
+
+
+test('STRUCT stars use declared fields and a distinct original value receiver', () => {
+  const byName = new Map(unnestSuccesses.map(value => [value.name, value]));
+  const control = byName.get('unnest-struct-json-control');
+  assert.deepEqual(control.expected, [
+    {id: 2, label: null, position: 0}, {id: null, label: null, position: 1},
+    {id: 2, label: null, position: 2},
+  ]);
+  for (const name of ['star-sql', 'star-pipe', 'qualified-star', 'data-binding']) {
+    assert.deepEqual(byName.get('unnest-struct-' + name).expected, control.expected);
+    assert.deepEqual(byName.get('unnest-struct-' + name).columns, control.columns);
+  }
+  assert.deepEqual(control.columns.map(value => value.name), ['id', 'label', 'position']);
+  assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.type, 'object');
+  const nonNullString = byName.get('unnest-struct-non-null-string');
+  assert.deepEqual(nonNullString.expected, [{id: 2, label: 'kept', position: 0},
+    {id: null, label: null, position: 1}, {id: 2, label: null, position: 2}]);
+  assert.deepEqual(nonNullString.columns, control.columns);
+  assert.equal(byName.get('unnest-struct-whole-value').columns[0].contract.additional_properties, false);
+  assert.equal(byName.get('unnest-struct-nested-top-level').columns[1].contract.additional_properties, false);
+  assert.deepEqual(byName.get('unnest-struct-immutable-range').expected[0],
+    {current: 12, original: 2, position: 0});
+  assert.equal(unnestRefusals.filter(value => value.name.startsWith('unnest-refusal-struct-')).length, 4);
 });
