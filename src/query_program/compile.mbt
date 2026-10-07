@@ -1646,6 +1646,7 @@ fn compile_steps(
   let mut grouped = false
   let mut sql_group_projection = false
   let mut sql_group_select_scope : JoinChainScope? = None
+  let mut sql_group_expression_input_scope : JoinChainScope? = None
   let mut sql_group_input_columns : Array[(String, String)] = []
   let mut sql_group_input_ranges : Array[
     (@query.NamePart, Array[(String, String)]),
@@ -2230,6 +2231,10 @@ fn compile_steps(
         if sql_group_projection {
           // SQL star names the input row, before grouping removes columns or
           // adds aggregate slots. Every expanded value must still be grouped.
+          sql_group_expression_input_scope = Some({
+            visible: unnest_expression_columns(input_visible, value_table_receivers),
+            ranges: input_ranges.copy(),
+          })
           sql_group_input_columns = input_visible.copy()
           sql_group_input_ranges = input_ranges.copy()
           sql_group_selected_projections = expanded_replacement_projections(
@@ -2879,61 +2884,12 @@ fn compile_steps(
                 slot = "aql_pipe_aggregate_" + suffix.to_string()
               }
               let expression = projection.expression.unwrap()
-              let bindings : Array[(Int, @query.NamePart)] = []
-              let bound_visible = scalar_visible.copy()
-              let authored_paths = join_reference_paths(expression)
-              let mut binding_work = 0
-              for node in 0..<@query.expression_node_count(expression) {
-                binding_work += @query.expression_node_count(expression)
-                if binding_work > max_work {
-                  raise Abort(
-                    Expression({
-                      issue: @expression.WorkLimit,
-                      origin: @query.expression_origin(expression, node),
-                    }),
-                  )
-                }
-                let child = @query.expression_child(expression, node).unwrap()
-                for (key, field) in grouped_keys {
-                  binding_work += @query.expression_node_count(key) +
-                    @query.expression_node_count(child)
-                  if binding_work > max_work {
-                    raise Abort(
-                      Expression({
-                        issue: @expression.WorkLimit,
-                        origin: @query.expression_origin(expression, node),
-                      }),
-                    )
-                  }
-                  if same_expression(key, child, references=(left, right) => {
-                      same_group_reference(left, right, resolve_input)
-                    }) {
-                    let mut serial = bindings.length()
-                    let mut reference = "aql_pipe_group_bound_" +
-                      serial.to_string()
-                    while bound_visible.any(entry => {
-                            ascii_upper(entry.0) == ascii_upper(reference)
-                          }) ||
-                          authored_paths.any(path => {
-                            ascii_upper(path[0].value) == ascii_upper(reference)
-                          }) {
-                      serial += 1
-                      reference = "aql_pipe_group_bound_" + serial.to_string()
-                    }
-                    bindings.push((node, { value: reference, quoted: false, }))
-                    bound_visible.push((reference, field))
-                    break
-                  }
-                }
-              }
-              let expression = @query.expression_with_field_bindings(
-                expression, bindings,
-              ).unwrap()
               scalar_derives.push(
                 (
                   slot,
-                  append_pipe_expression(
-                    construction, expression, bound_visible, scalar_ranges, max_work,
+                  append_grouped_expression(
+                    construction, expression, grouped_keys, resolve_input,
+                    scalar_visible, scalar_ranges, max_work,
                   ),
                 ),
               )
@@ -3388,6 +3344,20 @@ fn compile_steps(
             ranges: pipe_ranges,
           }
         }
+        let lower_select_expression = fn(expression : @query.Expression) -> @builder.Node raise Abort {
+          if sql_group_projection {
+            let input_scope = sql_group_expression_input_scope.unwrap()
+            append_grouped_expression(
+              construction, expression, grouped_keys,
+              path => pipe_slot(path, input_scope.visible, input_scope.ranges),
+              expression_scope.visible, expression_scope.ranges, max_work,
+            )
+          } else {
+            append_pipe_expression(
+              construction, expression, expression_scope.visible, expression_scope.ranges, max_work,
+            )
+          }
+        }
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -3495,13 +3465,7 @@ fn compile_steps(
                         derives.push(
                           (
                             slot,
-                            append_pipe_expression(
-                              construction,
-                              expression,
-                              expression_scope.visible,
-                              expression_scope.ranges,
-                              max_work,
-                            ),
+                            lower_select_expression(expression),
                           ),
                         )
                         slot
@@ -3513,13 +3477,7 @@ fn compile_steps(
                     derives.push(
                       (
                         slot,
-                        append_pipe_expression(
-                          construction,
-                          expression,
-                          expression_scope.visible,
-                          expression_scope.ranges,
-                          max_work,
-                        ),
+                        lower_select_expression(expression),
                       ),
                     )
                     slot
@@ -3752,12 +3710,11 @@ fn compile_steps(
                     temporary,
                     if sql_group_projection {
                       let scope = sql_group_select_scope.unwrap()
-                      append_pipe_expression(
-                        construction,
-                        expression,
-                        scope.visible,
-                        scope.ranges,
-                        max_work,
+                      let input_scope = sql_group_expression_input_scope.unwrap()
+                      append_grouped_expression(
+                        construction, expression, grouped_keys,
+                        path => pipe_slot(path, input_scope.visible, input_scope.ranges),
+                        scope.visible, scope.ranges, max_work,
                       )
                     } else {
                       append_expression(
@@ -4170,6 +4127,7 @@ fn compile_steps(
     }
     if operation is Select(_, _) && sql_group_projection {
       sql_group_select_scope = None
+      sql_group_expression_input_scope = None
     }
     if operation is Select(_, _) {
       analytic_input_fields = None
