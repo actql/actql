@@ -26,8 +26,13 @@ ordinary checker. Query-only source can take a JSON
 `--parameter-declarations-file` in the existing Program `params` shape; values
 remain separate in `--parameters-file`. JSON/YAML Program documents cannot
 take external declarations. `start` takes a JSON Program object. Both
-commands require a caller-saved `--request-id` so
-an ambiguous submission can be looked up or resent with the same intent.
+commands require a caller-saved `--submission-ref-file`. Allocate deliberate new
+work with `new-submission --request-id <nonce>` and save its full epoch/nonce
+JSON before sending input. `--request-id` on `start` or `aql` only asserts that
+saved nonce. `lookup-submission --submission-ref-file <file>` observes the
+original identity, including after a reconnect or epoch expiry; it never
+replaces the original epoch or dispatches work. Retain input and parameters
+alongside that file. A missing lookup record is unresolved, not retry permission.
 `lookup-request` only queries existing request history and rejects malformed
 Host replies instead of reporting them as successful lookups.
 
@@ -66,15 +71,14 @@ from source execution. Run the focused installed acceptance with
 for independent rows, descriptions, refusal counters and its coverage limits.
 
 A held submission prints the validated request control reply as JSON. It has
-no Run reference: `lookup-request --request-id <id>` observes the same request
-without approving or resubmitting it. Once lookup returns `found`, its Run
-reference can be used with `attach`. The native CLI does not yet provide
+no Run reference: `lookup-submission --submission-ref-file <file>` observes the same intent
+without approving or resubmitting it. Once lookup returns `ready`, its `admission.ref` can be used with `attach`. The native CLI does not yet provide
 Checkpoint answer commands; use the existing public Client operations for
 that workflow.
 
 Confirmed Host preparation rejections preserve the public input error code.
 An unrecognized or lost submit response remains `SubmissionUnknown` with the
-original request ID; it is not a claim that no Run was accepted.
+original submission-ref file; it is not a claim that no Run was accepted.
 
 ## Query source example
 
@@ -105,6 +109,7 @@ bearer token; keep it and the client key readable only by their owner.
   --http-library /usr/lib/libcurl.4.dylib \
   --ca ca.crt --cert client.crt --key client.key \
   aql --program-file query.sql --format sql \
+  --submission-ref-file saved-query-submission.json \
   --parameter-declarations-file declarations.json \
   --parameters-file parameters.json --request-id saved-query-001
 ```
@@ -116,15 +121,17 @@ admission prints an object containing `ref`; save that exact object member
 as the reference file for `wait`, `status`, and `read`. A held request has no
 `ref` and must not be converted into one.
 
-With the same connection flags, use `lookup-request --request-id
-saved-query-001` after an uncertain submit. This only observes the original
+First run `new-submission --request-id saved-query-001` with the same
+connection flags and save stdout as `saved-query-submission.json`. Then run
+the command above. After an uncertain submit, use
+`lookup-submission --submission-ref-file saved-query-submission.json`. This only observes the original
 request. Once there is a Run reference, `read --ref-file run-ref.json
 --result-name answer --attempt-id saved-read-001` reads that named Result.
 
 | Diagnostic | Meaning and next action |
 | --- | --- |
 | A registered `ClientProgram*` or `ClientParameters*` preparation error | Confirmed input rejection; correct the source or declarations/values. Parameter values are not interpolated into source. |
-| `SubmissionUnknown request-id=...` | Admission was not confirmed. Preserve the original request ID and intent and use lookup. Do not infer failure or automatically create another request. |
+| `SubmissionUnknown submission-ref-file=...` | Admission was not confirmed. Preserve the original epoch/nonce file and exact input and use lookup. Do not infer failure or automatically create another request. |
 | JSON with `kind: "held"` | No Run exists yet. Observe the request and use the existing Client Checkpoint workflow for answers. |
 | `IncompleteResultStream attempt-id=...` | The read did not reach its normal terminator. This does not cancel the Run or prove the Host sent nothing. |
 

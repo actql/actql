@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mock} from 'node:test';
@@ -7,7 +8,7 @@ import * as sdk from './index.mjs';
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'scope', capabilities: [],
+  durability: 'durable', scopeRef: 'scope', capabilities: [], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
 const checkpoint = {checkpointId: 'checkpoint', checkpointCid: cid('c'), kind: 'run_scope',
@@ -19,10 +20,11 @@ const held = state => ({kind: 'held', requestId: 'saved', prepareAttemptId: 'pre
 async function fixture(t, reply) {
   const calls = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation) {
+    perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
-      if (operation === 'lookup-request' || operation === 'submit' || operation === 'cancel-request') return reply;
+      if (operation === 'submit-intent') return heldSubmission(body, reply);
+      if (operation === 'lookup-request' || operation === 'cancel-request') return reply;
       assert.fail('Unexpected operation');
     },
   });
@@ -148,15 +150,16 @@ for (const fault of ['clone changes a field', 'reply cannot be cloned']) {
 }
 test('held submit explanations retain the admitted preparation state', async t => {
   const reply = held('waiting_checkpoint'), f = await fixture(t, reply);
-  let failure;try {await f.client.start({params: {}, stages: []}, {requestId: 'saved'});} catch (error) {failure = error;}
+  let failure;try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')});} catch (error) {failure = error;}
   assert.ok(failure instanceof sdk.RequestHeld);
   const explanation = sdk.explainSubmission(failure);
   assert.equal(explanation.preparationState, 'waiting_checkpoint', '[check-mutation:request-held-state]');
   assert.equal(explanation.summary, summaries.waiting_checkpoint);
-  assert.deepEqual(explanation.next, next);
+  assert.deepEqual(explanation.next, {operation: 'lookupSubmission',
+    submissionRef: originalSubmission('saved'), lookupContext: next.lookupContext});
   reply.checkpoint.checkpointId = 'later';
   assert.equal(failure.held.checkpoint.checkpointId, 'checkpoint');
-  assert.deepEqual(f.calls, ['connect', 'submit']);
+  assert.deepEqual(f.calls, ['connect', 'submit-intent']);
 });
 for (const fault of ['held clone changes its admitted branch', 'held reply cannot be cloned']) {
   test(`submission uncertainty retains original lookup when ${fault}`, async t => {
@@ -168,13 +171,14 @@ for (const fault of ['held clone changes its admitted branch', 'held reply canno
       return {ref, durability: 'durable', revision: 1};
     });
     t.after(() => mock.restoreAll());
-    let failure;try {await f.client.start({params: {}, stages: []}, {requestId: 'saved'});} catch (error) {failure = error;}
+    let failure;try {await f.client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')});} catch (error) {failure = error;}
     assert.equal(failure?.code, 'SubmissionUnknown', '[check-mutation:request-held-admission]');
     assert.equal(failure instanceof sdk.RequestHeld, false);
     assert.equal(sdk.explainSubmission(failure).observation, 'acceptance_unknown');
-    assert.deepEqual(sdk.explainSubmission(failure).next, next);
+    assert.deepEqual(sdk.explainSubmission(failure).next, {operation: 'lookupSubmission',
+      submissionRef: originalSubmission('saved'), lookupContext: next.lookupContext});
     assert.equal(sdk.getSubmissionInput(failure).requestId, 'saved');
-    assert.deepEqual(f.calls, ['connect', 'submit']);
+    assert.deepEqual(f.calls, ['connect', 'submit-intent']);
   });
 }
 for (const [label, reply] of [

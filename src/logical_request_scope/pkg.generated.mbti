@@ -16,6 +16,16 @@ pub fn prepare_logical_request_scope(String, String, Int) -> Result[LogicalReque
 
 pub fn prepare_scope_cid(String, String, Int) -> Result[String, LogicalRequestScopeIssue]
 
+pub fn prepare_submission_epoch(String, String, Double, Double) -> Result[SubmissionEpoch, SubmissionIdentityIssue]
+
+pub fn submission_epoch_cid(SubmissionEpoch) -> String
+
+pub fn submission_epoch_validity(SubmissionEpoch, Double) -> Result[SubmissionEpochValidity, SubmissionIdentityIssue]
+
+pub fn submission_epoch_wire(SubmissionEpoch) -> String
+
+pub fn submission_request_id(SubmissionEpoch, String) -> Result[String, SubmissionIdentityIssue]
+
 // Errors
 
 // Types and methods
@@ -25,6 +35,23 @@ pub(all) enum LogicalRequestScopeIssue {
   InvalidAuthorityScope
   InvalidCallerRequest
   InvalidLimits
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type SubmissionEpoch derive(Eq, @debug.Debug)
+
+pub(all) enum SubmissionEpochValidity {
+  Admissible
+  NotYetValid
+  Expired
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SubmissionIdentityIssue {
+  InvalidAuthority
+  InvalidEpochNonce
+  InvalidInterval
+  InvalidClock
+  InvalidSubmissionNonce
   Encoding
 } derive(Eq, @debug.Debug)
 
