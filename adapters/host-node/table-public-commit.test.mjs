@@ -564,8 +564,17 @@ test(`Table sparse private input commits through ${transport} after approval whi
     '@actql/local-node/runtime');
     const numericProfile = JSON.parse(await readFile(new URL('../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'));
     const graphLaw = JSON.parse(await readFile(new URL('../../spec/dependencies/actql-graph-laws.json', import.meta.url), 'utf8'));
-    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(declared.wire,
-      JSON.parse(declared.wire).evidence_bundle_cid, false, true, true, true, true, false, false,
+    // The direct checker control must receive the same explicit construction
+    // ceilings as the installed Host; the bare fixture has no Graph budget.
+    const {evidence_bundle_cid: unusedEvidence, ...checkBody} = JSON.parse(declared.wire);
+    void unusedEvidence;
+    checkBody.host_policy_profile.capacity = {
+      max_graph_construction_edges: 1000, max_graph_construction_input_rows: 1000,
+      max_graph_construction_nodes: 1000, ...checkBody.host_policy_profile.capacity};
+    const checkEvidence = contentCid(checkBody);
+    const environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
+      canonicalJson({...checkBody, evidence_bundle_cid: checkEvidence}),
+      checkEvidence, false, true, true, true, true, false, false,
       contentCid(numericProfile), contentCid(graphLaw));
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(sparse), 'json', environment, undefined, []);
@@ -610,7 +619,7 @@ test(`Table sparse private input commits through ${transport} after approval whi
     const privatePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
       input, 'json', environment, undefined, []);
     assert.ok(moon.clientProgramEffectPreparationReady(privatePreparation),
-      moon.clientProgramEffectPreparationIssueCode(privatePreparation));
+      inspect(moon.clientProgramEffectPreparationIssue(privatePreparation), {depth: 20}));
     assert.equal(moon.clientProgramEffectPreparationResultPresenceField(privatePreparation), undefined,
       'The accepted private input is not an ordinary Result presence refusal');
     const submissionRef = client.newSubmission();
