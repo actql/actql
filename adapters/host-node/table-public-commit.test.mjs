@@ -569,9 +569,17 @@ test(`Table sparse private input commits through ${transport} after approval whi
       contentCid(numericProfile), contentCid(graphLaw));
     const outcome = moon.clientProgramPrepareEffectComputationWithParameters(
       JSON.stringify(sparse), 'json', environment, undefined, []);
-    const issue = inspect(moon.clientProgramEffectPreparationIssue(outcome), {depth: 10});
-    assert.match(issue, /PresenceRequired[\s\S]*'p'/,
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(outcome), 'p',
       'The actual common checker rejects Conditional p at Result closure');
+    const densePreparation = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(dense), 'json', environment, undefined, []);
+    assert.ok(moon.clientProgramEffectPreparationReady(densePreparation));
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(densePreparation), undefined);
+    const invalidFormat = moon.clientProgramPrepareEffectComputationWithParameters(
+      JSON.stringify(sparse), 'invalid-format', environment, undefined, []);
+    assert.equal(moon.clientProgramEffectPreparationIssueCode(invalidFormat), 'invalid_format');
+    assert.equal(moon.clientProgramEffectPreparationResultPresenceField(invalidFormat), undefined,
+      'A different refusal cannot masquerade as Result presence rejection');
     // Validate the same Graph and selected schemas through ordinary public
     // execution, independently of the Effect computation capability boundary.
     delete dense.stages[0].effects;
