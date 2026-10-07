@@ -74,6 +74,34 @@ test "Named Result row preparation splits long Text comparison without changing 
 }
 
 ///|
+test "Named Result lookup preserves typed roles when flattened spellings agree" {
+  assert_false(
+    result_reference_roles_match(
+      @schema.Unqualified("left.s"),
+      @schema.Qualified(@schema.Left, "s"),
+    ),
+  )
+  assert_false(
+    result_reference_roles_match(
+      @schema.Qualified(@schema.Left, "s"),
+      @schema.Qualified(@schema.Right, "s"),
+    ),
+  )
+  assert_true(
+    result_reference_roles_match(
+      @schema.Qualified(@schema.Left, "x".repeat(1024)),
+      @schema.Qualified(@schema.Left, "different"),
+    ),
+  )
+  assert_true(
+    result_reference_roles_match(
+      @schema.Unqualified("x".repeat(1024)),
+      @schema.Unqualified("different"),
+    ),
+  )
+}
+
+///|
 test "Named Result row preparation rejects independently one-short work and workspace" {
   for
     limits in [

@@ -259,19 +259,30 @@ pub fn advance_completed_result_relation_export(
         }
         guard completed_export_preparation_workspace_slots(
             value.payload_wire.max_columns,
-          ) is Some(slots) else { return Err(Wire(InvalidLimits)) }
+          )
+          is Some(slots) else {
+          return Err(Wire(InvalidLimits))
+        }
         value.metadata = Some(
-          match start_completed_export_rows_metadata(
-            value.rows.source, rows, value.max_rows, value.values,
-            value.payload_wire, Some(value.logical_wire),
-            Some(value.schema_limits), value.max_batch_bytes, slots,
-          ) {
+          match
+            start_completed_export_rows_metadata(
+              value.rows.source,
+              rows,
+              value.max_rows,
+              value.values,
+              value.payload_wire,
+              Some(value.logical_wire),
+              Some(value.schema_limits),
+              value.max_batch_bytes,
+              slots,
+            ) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           },
         )
       } else {
-        let (_, used) = match advance_completed_result_rows(value.rows, quantum - steps) {
+        let (_, used) = match
+          advance_completed_result_rows(value.rows, quantum - steps) {
           Ok(value) => value
           Err(issue) => return Err(ResultView(issue))
         }
@@ -298,7 +309,9 @@ pub fn finish_completed_result_relation_export_preparation(
   value.advancing = true
   let available = completed_output_available(value.rows.source)
   value.advancing = false
-  if value.closed { return Err(Closed) }
+  if value.closed {
+    return Err(Closed)
+  }
   if !available {
     cancel_completed_result_relation_export(value) |> ignore
     return Err(ResultView(Unavailable))

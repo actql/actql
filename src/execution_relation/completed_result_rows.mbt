@@ -150,17 +150,32 @@ fn spend_result_mapping(work : Ref[Int], amount : Int) -> Bool {
 }
 
 ///|
+/// Spelling equality alone does not establish typed reference-role equality.
+/// Compare only the role here; the existing fragment cursor compares names.
+fn result_reference_roles_match(
+  left : @schema.FieldName,
+  right : @schema.FieldName,
+) -> Bool {
+  match (left, right) {
+    (@schema.Unqualified(_), @schema.Unqualified(_)) => true
+    (@schema.Qualified(a, _), @schema.Qualified(b, _)) => a == b
+    _ => false
+  }
+}
+
+///|
 fn advance_result_column_mapping(
   value : CompletedResultRowsPreparation,
   projection : Bool,
 ) -> Result[Unit, CompletedResultViewIssue] {
   match value.mapping_phase {
-    0 => {
+    0 =>
       if projection {
         // Preserve the existing complete projection-search charge. Traversal
         // quantum, including spelling comparison, is independently resumable.
         if !spend_result_mapping(
-            value.mapping_work, @results.port_projection_count(value.port),
+            value.mapping_work,
+            @results.port_projection_count(value.port),
           ) {
           return Err(Limit)
         }
@@ -174,13 +189,22 @@ fn advance_result_column_mapping(
         )
         value.mapping_phase = 2
       }
-    }
     1 => {
       guard @results.port_projection_field_at(value.port, value.mapping_index)
-        is Some(candidate) else { return Err(InvalidProjection) }
+        is Some(candidate) else {
+        return Err(InvalidProjection)
+      }
       let output = @schema.field_at(value.schema, value.projection).unwrap().name
+      if !result_reference_roles_match(candidate.output, output) {
+        value.mapping_index += 1
+        value.mapping_offset = 0
+        return Ok(())
+      }
       let (compared, offset, _) = @schema.compare_reference_fragment(
-        candidate.output, output, value.mapping_offset, 1,
+        candidate.output,
+        output,
+        value.mapping_offset,
+        1,
       )
       value.mapping_offset = offset
       if compared is Some(compared) {
@@ -208,22 +232,24 @@ fn advance_result_column_mapping(
     3 => {
       let name = RelationRows::field_names(value.table)[value.mapping_index]
       let (compared, offset, _) = @schema.compare_reference_fragment(
-        @schema.Unqualified(name), value.mapping_input.unwrap(),
-        value.mapping_offset, 1,
+        @schema.Unqualified(name),
+        value.mapping_input.unwrap(),
+        value.mapping_offset,
+        1,
       )
       value.mapping_offset = offset
       if compared is Some(compared) {
         if compared == 0 {
           if projection {
-            value.names.push(@schema.reference_name(
-              @schema.field_at(value.schema, value.projection).unwrap().name,
-            ))
+            value.names.push(
+              @schema.reference_name(
+                @schema.field_at(value.schema, value.projection).unwrap().name,
+              ),
+            )
             value.columns.push(value.mapping_index)
             value.projection += 1
           } else {
-            let term = @results.port_order_term_at(
-              value.port, value.order_term,
-            ).unwrap()
+            let term = @results.port_order_term_at(value.port, value.order_term).unwrap()
             value.terms.push({
               column: value.mapping_index,
               descending: term.direction == @order.Desc,
@@ -308,8 +334,14 @@ fn start_completed_result_rows(
     names: [],
     terms: [],
     comparison: {
-      left: -1, right: -1, terms: 0, term: 0, phase: -1, offset: 0,
-      charge: { offset: 0, next: 0, remaining: 0, }, tree: None,
+      left: -1,
+      right: -1,
+      terms: 0,
+      term: 0,
+      phase: -1,
+      offset: 0,
+      charge: { offset: 0, next: 0, remaining: 0, },
+      tree: None,
     },
     mapping_phase: 0,
     mapping_index: 0,
@@ -390,6 +422,9 @@ fn advance_completed_result_rows_impl(
   let count = IndexedRows::row_count(value.table)
   let mut spent = 0
   while spent < quantum && !value.done {
+    if value.closed {
+      return Err(Unavailable)
+    }
     if value.projection < @schema.field_count(value.schema) {
       match advance_result_column_mapping(value, true) {
         Ok(_) => ()
@@ -468,14 +503,19 @@ fn advance_completed_result_rows_impl(
     } else if value.right == value.end {
       true
     } else {
-      match
-        bounded_row_comparison_step_with(
-          value.comparison,
-          value.terms,
-          value.order_work,
-          (row, column) => Some(IndexedRows::read_cell(value.table, row, column)),
-          value.rows[value.left], value.rows[value.right], value.terms.length(),
-        ) {
+      let compared = bounded_row_comparison_step_with(
+        value.comparison,
+        value.terms,
+        value.order_work,
+        (row, column) => Some(IndexedRows::read_cell(value.table, row, column)),
+        value.rows[value.left],
+        value.rows[value.right],
+        value.terms.length(),
+      )
+      if value.closed {
+        return Err(Unavailable)
+      }
+      match compared {
         Ok(Some(comparison)) => comparison <= 0
         Ok(None) => {
           spent += 1
