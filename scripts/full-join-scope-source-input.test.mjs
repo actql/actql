@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {fullJoinScopeProgram, fullJoinScopeSuccesses, fullJoinScopeRefusals}
+import {fullJoinScopeProgram, fullJoinScopeSuccesses, fullJoinScopeRefusals,
+  fullUsingScopeProgram, fullUsingScopeSuccesses}
   from './fixtures/full-join-scope-source-input.mjs';
 
 test('FULL control retains conditional keys both unmatched sides and declared order', () => {
@@ -21,6 +22,23 @@ test('FULL control retains conditional keys both unmatched sides and declared or
   assert.ok(cases.get('full-join-scope-pipe-current-row').text.includes('|> FULL JOIN'));
   assert.equal(new Set([...fullJoinScopeSuccesses, ...fullJoinScopeRefusals]
     .map(item => item.name)).size, fullJoinScopeSuccesses.length + fullJoinScopeRefusals.length);
+});
+
+test('FULL USING expectations distinguish coalescence qualified keys and alias order', () => {
+  const cases = new Map(fullUsingScopeSuccesses.map(item => [item.name, item]));
+  assert.deepEqual(JSON.parse(cases.get('full-join-scope-using-independent-json').text), fullUsingScopeProgram);
+  assert.deepEqual(fullUsingScopeProgram.stages[1].steps[4].derive,
+    {id: {coalesce: [{field: 'lid'}, {field: 'rid'}]}});
+  assert.deepEqual(cases.get('full-join-scope-using-merged-star').expected.map(row => row.id), [1, 2, 3]);
+  assert.deepEqual(cases.get('full-join-scope-using-alias-order').expected.map(row => row.id), [-3, -2, -1]);
+  assert.deepEqual(cases.get('full-join-scope-using-qualified-order').expected.map(row => row.id), [-1, -2, -3]);
+  const composite = cases.get('full-join-scope-using-composite-null-keys');
+  assert.deepEqual(composite.columns.map(column => column.name), ['amount', 'id', 'lid', 'rid']);
+  assert.deepEqual(composite.expected.filter(row => row.id === 2), [
+    {amount: null, id: 2, lid: 2, rid: null}, {amount: null, id: 2, lid: null, rid: 2}]);
+  assert.deepEqual(cases.get('full-join-scope-using-later-join').expected.at(-1), {id: 3, lid: null, rid: 3});
+  assert.deepEqual(cases.get('full-join-scope-using-empty-typed').expected, []);
+  assert.ok(fullJoinScopeRefusals[0].text.includes('USING (id, `ID`)'));
 });
 
 test('FULL acceptance is included in normal packed execution', async () => {
