@@ -41,8 +41,19 @@ Twelve normal cases and five preparation refusals are registered in the ordinary
 
 Existing public checks retain Named Result rows, type/nullability/column order, stream completion, private-field absence, request resend/attach/reread identity and refusal admission/provider-I/O counts. Tests must not patch generated Programs or change expected rows/bounds to pass.
 
-Fresh clean normal five-package Local/HTTPS acceptance is pending. Focused source/checker success is not execution completion. Required exact-submission CI, Wasm/native/full Core/full packed/proof/performance and broader grouped composition remain unverified. No manual CI restart or merge.
+Fresh clean normal five-package Local/HTTPS acceptance passes for the selected twelve normal cases and five refusals at `e6e5f0fabc2404b88f2d119932f8f05630a68e93`; final evidence follows. This does not establish broader Frontend execution completion. Required exact-submission CI, Wasm/native/full Core/full packed/proof/performance and broader grouped composition remain unverified. No manual CI restart or merge.
 
 ## Normal dependency/main integration
 
 The corrected #920 parent `8dbe714b81794849dcad0def193cf370b827d74b` is normally merged as `11cd67428cf0db2b1672fa0f3b10affcd672c5e0`. This adopts current main `aeaf13f15addf1687c1cd87b12b4657a8c984e9a`, including Client wire/submission and retained ARM64 proof records. The JOIN normal fixture uses the supported `MAX_OUTPUT_ROWS 10`; no old WITH annotation is reintroduced. No conflict or history rewrite. #920 remains an unmerged dependency, so the first Draft PR targets its branch; final target is main after parent integration.
+
+
+## Fixed-source public acceptance and main target
+
+Integrated implementation `6f6a18ed498af2cf343e030f5305cc2bb8660633` passes the eight focused new controls (`run-W2h3om`, `focused-test-0U9wyl`) and readonly compilation-manifest freshness. Normal evidence-only parent integration yields clean producer `e6e5f0fabc2404b88f2d119932f8f05630a68e93`; `git diff` confirms no change in src/scripts/packages/adapters/spec from that tested implementation.
+
+`run-hxUMyx` passes normal five-package production and the selected public Local/HTTPS consumer. Each entrance completes twelve normal cases and five preparation refusals, using the unchanged independent expected rows, contracts, column order, NULLs, multiplicities and JOIN ceiling 10. Named Result/stream/private-field/request resend/attach/reread assertions and refusal admission/provider-I/O checks pass. The same installation passes the README control and real missing-current-generated-wire-asset rejection; no legacy wire is used.
+
+Receipt `worktrees/.codex-scratch/public-query-evidence-UT3MFl/summary.json`, `010.stdout.log` and `010.stderr.log` retain clean exact e6e, passed/complete, five tarball digests, artifactsRemoved=true and no evidence errors. Manifest `/private/tmp/actql-b-order-grouped-e6e5f0fab-pack/packed-client-packages.json` digests match the receipt directly. It is not relabeled to a later revision.
+
+#920 is now merged with submitted HEAD `11be481758ed29fe5770af58ff3c6a01354979cf` and main merge `ff4ace1ea0f7bffd2741c9fe3eab54a0f013dd1b`. Its product source matches the accepted parent 8dbe. After the public gate terminates, that main is normally merged as `6135d10ac8ffbc9fc1ffe9341160d32b95813664`. No conflict and no src/scripts/packages/adapters/spec change from the e6e producer. The subsequent record changes documentation only. The PR can target main, with no unmerged dependency. Exact final-HEAD hosted CI remains a separate requirement; no manual restart, broad rerun or merge.
