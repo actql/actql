@@ -93,7 +93,8 @@ pub fn client_result_transformation_matches(
 /// its completed producer/managed bridge live until the returned export closes.
 /// This handle grants neither execution authority nor a new retention hold.
 pub struct ClientResultTransformationPreparation {
-  selection : ClientResultTransformation
+  occurrence : @execution.ManagedResultOccurrence
+  definition : @publication.PublicationContract
   preparation : @execution.CompletedResultRelationExportPreparation
   limits : PublicationOutputExportLimits
 }
@@ -107,9 +108,30 @@ pub fn start_client_result_transformation(
   ClientResultTransformationPreparation,
   ClientResultTransformationIssue,
 ] {
-  @execution.start_completed_result_relation_export(
+  start_result_publication_export(
     output,
     selection.occurrence,
+    selection.definition,
+    limits,
+  )
+}
+
+///|
+/// The same Result view owner can prepare an exact captured occurrence without
+/// an additional Client selection. The occurrence still supplies the checked
+/// projection and total publication order; this is not an unselected row dump.
+pub fn start_result_publication_export(
+  output : @execution.CompletedOutput,
+  occurrence : @execution.ManagedResultOccurrence,
+  definition : @publication.PublicationContract,
+  limits : PublicationOutputExportLimits,
+) -> Result[
+  ClientResultTransformationPreparation,
+  ClientResultTransformationIssue,
+] {
+  @execution.start_completed_result_relation_export(
+    output,
+    occurrence,
     {
       max_fields: limits.max_result_fields,
       max_mapping_work: limits.max_result_mapping_work,
@@ -123,7 +145,7 @@ pub fn start_client_result_transformation(
     limits.schema,
     limits.max_batch_bytes,
   )
-  .map(preparation => { selection, preparation, limits, })
+  .map(preparation => { occurrence, definition, preparation, limits, })
   .map_err(issue => Output(issue))
 }
 
@@ -154,11 +176,11 @@ pub fn ClientResultTransformationPreparation::finish(
     replay_values: self.limits.values,
     replay_wire: self.limits.payload_wire,
     max_batch_bytes: self.limits.max_batch_bytes,
-    definition: Some(self.selection.definition),
+    definition: Some(self.definition),
     declared_fields: Some(
       @results.fields(
         @results.port_result(
-          @execution.managed_result_occurrence_port(self.selection.occurrence),
+          @execution.managed_result_occurrence_port(self.occurrence),
         ),
       ),
     ),

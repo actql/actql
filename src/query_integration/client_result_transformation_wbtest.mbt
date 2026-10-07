@@ -297,7 +297,61 @@ test "checked Client Result transformation orders before identity and evidence" 
     )
     is Err(ForeignSelection),
   )
+  assert_true(
+    @publication_host.start_captured_managed_result_publication_export(
+      run, 0, completed, unrelated_bridge, output, export_limits,
+    )
+    is Err(ForeignSelection),
+  )
   @execution.close_managed_publication_bridge(unrelated_bridge)
+  let unselected_cancelled = @publication_host.start_captured_managed_result_publication_export(
+    run,
+    0,
+    completed,
+    bridge,
+    output,
+    export_limits,
+    max_pins=1,
+  ).unwrap()
+  assert_eq(unselected_cancelled.advance(1).unwrap(), (false, 1))
+  unselected_cancelled.cancel()
+  unselected_cancelled.cancel()
+  assert_true(unselected_cancelled.advance(1) is Err(InvalidState))
+  let unselected_limited = @publication_host.start_captured_managed_result_publication_export(
+    run,
+    0,
+    completed,
+    bridge,
+    output,
+    { ..export_limits, max_result_order_work: 0, },
+    max_pins=1,
+  ).unwrap()
+  assert_true(
+    unselected_limited.advance(1000)
+    is Err(Transform(Output(ResultView(Limit)))),
+  )
+  unselected_limited.cancel()
+  let unselected = @publication_host.start_captured_managed_result_publication_export(
+    run,
+    0,
+    completed,
+    bridge,
+    output,
+    export_limits,
+    max_pins=1,
+  ).unwrap()
+  while !unselected.advance(1).unwrap().0 {
+
+  }
+  let unselected_export = unselected.finish().unwrap()
+  unselected.cancel()
+  let unselected_rows = StringBuilder()
+  while unselected_export.next().unwrap() is Some(chunk) {
+    unselected_rows.write_string(chunk)
+  }
+  unselected_rows.write_string(unselected_export.finish().unwrap())
+  assert_eq(unselected_rows.to_string(), "[{\"id\":1},{\"id\":2},{\"id\":3}]")
+  unselected_export.cancel()
   let released_result = @publication_host.start_captured_managed_result_transformation(
     selected, run, 0, completed, bridge, output, export_limits,
   )

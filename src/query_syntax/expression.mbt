@@ -104,8 +104,34 @@ pub fn expression_node(expression : Expression, index : Int) -> ExpressionNode? 
 ///|
 // A child retains the parsed owner and source spans; it is never reparsed.
 pub fn expression_child(expression : Expression, index : Int) -> Expression? {
+  expression_subtree(expression, index, [])
+}
+
+///|
+// A compiler may bind proven evaluated subtrees to private physical fields.
+// This preserves source spans and work evidence; it does not evaluate an AST.
+pub fn expression_with_field_bindings(
+  expression : Expression,
+  bindings : Array[(Int, NamePart)],
+) -> Expression? {
+  expression_subtree(expression, expression.root, bindings)
+}
+
+///|
+fn expression_subtree(
+  expression : Expression,
+  index : Int,
+  bindings : Array[(Int, NamePart)],
+) -> Expression? {
   if index < 0 || index >= expression.nodes.length() {
     return None
+  }
+  let fields : Array[NamePart?] = Array::make(expression.nodes.length(), None)
+  for (node, field) in bindings {
+    if node < 0 || node >= fields.length() || fields[node] is Some(_) {
+      return None
+    }
+    fields[node] = Some(field)
   }
   let reachable = Array::make(expression.nodes.length(), false)
   let pending = [index]
@@ -115,6 +141,9 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
       continue
     }
     reachable[next] = true
+    if fields[next] is Some(_) {
+      continue
+    }
     match expression.nodes[next].kind {
       Unary(_, child)
       | Parenthesized(child)
@@ -154,25 +183,29 @@ pub fn expression_child(expression : Expression, index : Int) -> Expression? {
       continue
     }
     let node = expression.nodes[old]
-    let kind = match node.kind {
-      Unary(op, child) => Unary(op, remap[child])
-      Binary(op, left, right) => Binary(op, remap[left], remap[right])
-      Parenthesized(child) => Parenthesized(remap[child])
-      Cast(child, target) => Cast(remap[child], target)
-      Property(child, name) => Property(remap[child], name)
-      Call(path, arguments) =>
-        Call(path.copy(), arguments.map(argument => remap[argument]))
-      ArrayConstructor(items, target) =>
-        ArrayConstructor(items.map(item => remap[item]), target)
-      Predicate(op, arguments) =>
-        Predicate(op, arguments.map(argument => remap[argument]))
-      SearchedCase(branches, otherwise) =>
-        SearchedCase(
-          branches.map(branch => (remap[branch.0], remap[branch.1])),
-          remap[otherwise],
-        )
-      Reference(path) => Reference(path.copy())
-      kind => kind
+    let kind = if fields[old] is Some(field) {
+      Reference([field])
+    } else {
+      match node.kind {
+        Unary(op, child) => Unary(op, remap[child])
+        Binary(op, left, right) => Binary(op, remap[left], remap[right])
+        Parenthesized(child) => Parenthesized(remap[child])
+        Cast(child, target) => Cast(remap[child], target)
+        Property(child, name) => Property(remap[child], name)
+        Call(path, arguments) =>
+          Call(path.copy(), arguments.map(argument => remap[argument]))
+        ArrayConstructor(items, target) =>
+          ArrayConstructor(items.map(item => remap[item]), target)
+        Predicate(op, arguments) =>
+          Predicate(op, arguments.map(argument => remap[argument]))
+        SearchedCase(branches, otherwise) =>
+          SearchedCase(
+            branches.map(branch => (remap[branch.0], remap[branch.1])),
+            remap[otherwise],
+          )
+        Reference(path) => Reference(path.copy())
+        kind => kind
+      }
     }
     nodes.push({ ..node, kind, })
   }

@@ -504,7 +504,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       preparedProgram: prepared, authorityScopeCid: cid('a'), namespaceId: 'local',
       storeAuthorityCid: cid('c'), now: () => captured
         ? new Date().toISOString() : '2026-09-30T00:00:00.000Z'};
-    const plan = captured ? acquiredTaskPublicationPlan({...options,
+    let plan = captured ? acquiredTaskPublicationPlan({...options,
       acquired: acquiredTaskRunAdmission(options), captured,
       sourceEvidenceWire: await captured.issueSourceEvidence({
         authorityScopeCid: options.authorityScopeCid,
@@ -512,6 +512,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid,
       captureStartedAt: captured.captureStartedAt,
       captureCompletedAt: captured.captureCompletedAt}) : sourceFreeTaskPlan(options);
+    if (route.withoutClientSelection) {
+      // This optional selection is not the captured graph's ResultPort. The
+      // ordinary publication API must still use that exact checked occurrence.
+      plan = Object.freeze({...plan, results: Object.freeze(plan.results.map(
+        ({transformation, ...result}) => Object.freeze(result)))});
+    }
     retained = await createLocalRetainedStore({parentDirectory: directory,
       capacityBytes: 8 * 1024 * 1024, maxFrameBytes: 1024 * 1024});
     publication = await openLocalPublicationStore({
@@ -793,8 +799,10 @@ for (const mode of ['success', 'cancel-during-result-order']) {
   });
 }
 
-for (const mode of ['success', 'cancel-during-result-schema']) {
-  test(`retained Named Result schema yields within recursive contracts: ${mode}`, async () => {
+for (const withoutClientSelection of [false, true]) {
+ for (const mode of ['success', 'cancel-during-result-schema']) {
+  test(`retained Named Result schema yields within recursive contracts: ${mode}${
+    withoutClientSelection ? ' without Client selection' : ''}`, async () => {
     const fields = Object.fromEntries(Array.from({length: 65}, (_, index) =>
       [`k${1000 + index}`, {type: 'number', nullable: false}]));
     const payload = first => Object.fromEntries(Object.keys(fields).map((name, index) =>
@@ -841,8 +849,10 @@ for (const mode of ['success', 'cancel-during-result-schema']) {
       assert.equal(observations().dispatches, 3);
       assert.equal(observations().completedDispatches, 3);
     }, mode, undefined, undefined, false,
-    {observeResultPreparation: true, observeSchemaPreparation: true});
+    {observeResultPreparation: true, observeSchemaPreparation: true,
+      withoutClientSelection});
   });
+ }
 }
 
 for (const {family, name} of [

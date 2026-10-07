@@ -543,6 +543,11 @@ pub fn completed_relation_export_snapshot(
   max_depth : Int,
 ) -> Result[(String, Array[String]), CompletedExportIssue] {
   guard receipt.rows.source is Some(source) else { return Err(Closed) }
+  // A snapshot must borrow the exact finished export view that issued this
+  // receipt. Equal rows or even the same completion cannot substitute it.
+  if !physical_equal(value.export_identity, receipt.rows.export_identity) {
+    return Err(ForeignMaterial)
+  }
   if !completed_output_available(source) {
     return Err(Unavailable)
   }

@@ -119,6 +119,33 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
+  const replayReady = async (value, retained, fields, original) => {
+    const requestId = retained.requestId;
+    if (flights.has(requestId)) return original;
+    // A ready receipt establishes acceptance, not physical dispatch. Only
+    // explicit replay re-enters the existing Run owner; lookup stays read-only.
+    const flight = (async () => {
+      const preparedProgram = await prepareSubmit({...value, requestId});
+      const current = await authorize(value);
+      if (current.authorityScopeCid !== fields.authorityScopeCid ||
+          current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      const reply = await submit({...value, requestId, preparedProgram,
+        submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
+          intentCid: value.intentCid, currentAuthorization: true}});
+      const observed = await authorize(value);
+      if (observed.authorityScopeCid !== fields.authorityScopeCid ||
+          observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      if (reply.kind === 'held' || ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+        .some(key => reply.ref?.[key] !== original.admission.ref[key])) {
+        fail('InvalidClientHostSubmissionOutcome');
+      }
+      // Dispatch revalidation cannot replace an immutable acceptance receipt,
+      // including when the existing owner refuses a changed Source binding.
+      return original;
+    })().finally(() => {if (flights.get(requestId) === flight) flights.delete(requestId);});
+    flights.set(requestId, flight);
+    return await flight;
+  };
   const submitIntent = async request => {
     const value = snapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
@@ -133,6 +160,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
+      if (result.kind === 'ready') return await replayReady(value, retained, fields, result);
       if (result.kind !== 'preparing') return await discloseOutcome(value, result, fields, retained);
     }
     if (retained === undefined) {
