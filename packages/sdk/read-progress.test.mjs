@@ -28,6 +28,27 @@ async function result(t, respond) {
   return {result: (await client.attach(ref)).result('answer'), reads};
 }
 
+test('a pending opening and a lost response retain one immutable attempt without retry', async t => {
+  let reject, started;
+  const invoked = new Promise(resolve => {started = resolve;});
+  const pending = new Promise((_resolve, refuse) => {reject = refuse;});
+  const f = await result(t, () => {started(); return pending;});
+  const reader = f.result.rows();
+  const attemptId = reader.attemptId;
+  assert.equal(reader.state(), 'not_started');
+  const next = reader[Symbol.asyncIterator]().next();
+  await invoked;
+  assert.equal(reader.state(), 'opening');
+  assert.equal(reader.rowsYielded(), 0);
+  assert.deepEqual(f.reads, [attemptId]);
+  const refused = assert.rejects(next, error => error.attemptId === attemptId && error.rowsYielded === 0);
+  reject(new TypeError('opening response lost'));
+  await refused;
+  assert.equal(reader.state(), 'open_unknown');
+  await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
+  assert.deepEqual(f.reads, [attemptId]);
+});
+
 test('120 yielded rows remain a prefix and a fresh read does not append or retry', async t => {
   const text = Array.from({length: 120}, (_, index) => `{"value":${index + 1}}\n`).join('');
   const f = await result(t, number => new Response(text + (number === 1 ? '' : '\x1e')));
