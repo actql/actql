@@ -365,3 +365,19 @@ finds no missing single-parent declaration. Actual current-main history
 admission follows separately. Physical originals still prove the exact
 `b7a692658` campaign; current main's later bounded output/Host changes were
 not recompiled or retroactively covered by that original.
+
+At post-integration correction SHA
+`c9f8ade588265a12c42e795fb398c6b22d2af6e2`, the actual-original consumer
+selection passed **10/10** (`run-peIxmX`, `focused-test-2pgF4K`):
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs
+```
+
+This reconsumes the immutable `b7a692658` originals with the current consumer;
+it does not recompile current main or promote local originals. The new
+actual-history start `run-BTL7Fd` was refused before execution by another
+worktree's live heavy owner (`run-n1FGDR`). No other-owner lock was changed.
+Post-integration retained-history acceptance remains pending, separate from
+the accepted pre-integration `986ac17dc` result.
