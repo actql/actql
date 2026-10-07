@@ -411,7 +411,10 @@ fn closure_diagnostic_category(
         | Calendar(BudgetExceeded)
         | Profiles(BudgetExceeded)
         | Index(BudgetExceeded) => CompileLimit
-        Scalars(InvalidValue(_, _)) | Frames(InvalidFrame(_)) => InvalidInput
+        Scalars(InvalidValue(_, _))
+        | Frames(InvalidFrame(_))
+        | Ranges(ReversedRange(_))
+        | Queries(InvalidQuery(_) | DimensionMismatch(_, _, _)) => InvalidInput
         _ => UnclassifiedFailure
       }
     InvalidLimits => InvalidConfiguration
