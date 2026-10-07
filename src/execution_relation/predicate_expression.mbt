@@ -23,14 +23,36 @@ pub fn start_predicate_expression(
   max_frames : Int,
   max_workspace_slots : Int,
 ) -> Result[PredicateExpressionExecution, EvalIssue] {
-  start_expression_execution(
+  start_predicate_expression_with_input(
     expression,
-    input,
-    [],
+    MapExpressionInput(input),
     max_work,
     max_frames,
     max_workspace_slots,
-  ).map(inner => { inner, finished: false, })
+  )
+}
+
+///|
+/// Sequence snapshots borrow checked schema names without hashing them. Both
+/// public map callers and indexed callers use the same semantic frame owner.
+fn start_predicate_expression_with_input(
+  expression : @lower.Expression,
+  input : ExpressionInput,
+  max_work : Int,
+  max_frames : Int,
+  max_workspace_slots : Int,
+) -> Result[PredicateExpressionExecution, EvalIssue] {
+  expression_frame_with_input(
+    expression,
+    input,
+    [],
+    { remaining: max_work, max_frames, },
+    row_workspace(max_workspace_slots),
+    None,
+  ).map(frame => {
+    let inner : ExpressionExecution = { frame, finished: false, }
+    { inner, finished: false, }
+  })
 }
 
 ///|

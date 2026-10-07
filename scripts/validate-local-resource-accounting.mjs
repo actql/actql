@@ -1859,24 +1859,33 @@ export function validateResourceAccounting({
       const role = `${kind}_compound_output_port_public`;
       if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }
-    const metadataKinds = {join:'join', nest:'nest', interval_join:'interval', asof_join:'asof'};
+    const metadataKinds = {join:'join', nest:'nest', interval_join:'interval',
+      asof_join:'asof', group:'count', sequence:'sequence'};
     if (metadataKinds[route.operation] && ['RelA','TEA'].includes(route.family)) {
       const kind = metadataKinds[route.operation];
-      const file = path.join(root, `src/execution_relation/bounded_${route.operation}.mbt`);
+      const kernel = {group:'global_count', sequence:'sequence_match'}[route.operation] ?? route.operation;
+      const file = path.join(root, `src/execution_relation/bounded_${kernel}.mbt`);
       const source = fs.existsSync(file) ? fs.readFileSync(file,'utf8') : '';
       const cursorFile = path.join(root,'src/execution_relation/row_metadata_cursor.mbt');
       const cursor = fs.existsSync(cursorFile) ? fs.readFileSync(cursorFile,'utf8') : '';
-      if (['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+      const lookup = kind === 'count' ? 'row_metadata_lookup' : 'charged_row_metadata_lookup';
+      if ([`start_${lookup}(`, `advance_${lookup}(`,
         'close_row_metadata_lookup('].some(marker=>!source.includes(marker)) ||
         ['start_row_metadata_lookup(', 'advance_row_metadata_lookup(',
           'text_function_scalar(', 'spend_control('].some(marker=>!cursor.includes(marker)) ||
         /let names_of\s*=|let resolve\s*=\s*fn/u.test(source)) {
         fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
       }
-      if (kind === 'join' && (['start_row_name_charge(', 'advance_row_name_charge(',
+      if (['join','count','sequence'].includes(kind) && (['start_row_name_charge(', 'advance_row_name_charge(',
         'close_row_name_charge('].some(marker=>!source.includes(marker)) ||
         /spend_control_text\s*\(|@schema\.reference_name\s*\(/u.test(source))) {
-        fail(`${label}: join compound metadata production cursor connection is missing`);
+        fail(`${label}: ${kind} compound metadata production cursor connection is missing`);
+      }
+      if (kind === 'sequence' && (['indexed_expression_input(',
+        'start_predicate_expression_with_input(', 'bounded_sequence_pattern_name(',
+        'advance_bounded_text_charge('].some(marker=>!source.includes(marker)) ||
+        /charge_text_append\s*\(|Map\[String,\s*Value\]/u.test(source))) {
+        fail(`${label}: sequence compound metadata production cursor connection is missing`);
       }
       for (const part of ['limit','workspace','quantum','stop']) {
         const role = `${kind}_compound_metadata_${part}`;

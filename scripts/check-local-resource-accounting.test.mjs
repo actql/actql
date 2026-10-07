@@ -3922,7 +3922,7 @@ test('compound output ports require operation-specific limit quantum stop and pu
 
 test('compound metadata requires operation-connected boundary and public evidence', () => {
   for (const [operation,kind] of [['join','join'], ['nest','nest'], ['interval_join','interval'],
-    ['asof_join','asof']]) {
+    ['asof_join','asof'], ['group','count'], ['sequence','sequence']]) {
     for (const part of ['limit','workspace','quantum','stop','public']) {
       const role=`${kind}_compound_metadata_${part}`;
       assert.match(run(undefined,routes=>{
@@ -3947,6 +3947,16 @@ test('compound metadata rejects missing production lookup charge and cleanup', (
     ['advance_row_metadata_lookup(', 'text_function_scalar(', 'spend_control(']]);
   cases.push(['src/execution_relation/bounded_join.mbt',
     ['start_row_name_charge(', 'advance_row_name_charge(', 'close_row_name_charge(']]);
+  cases.push(['src/execution_relation/bounded_global_count.mbt',
+    ['start_row_metadata_lookup(', 'advance_row_metadata_lookup(',
+      'close_row_metadata_lookup(', 'start_row_name_charge(',
+      'advance_row_name_charge(', 'close_row_name_charge(']]);
+  cases.push(['src/execution_relation/bounded_sequence_match.mbt',
+    ['start_charged_row_metadata_lookup(', 'advance_charged_row_metadata_lookup(',
+      'close_row_metadata_lookup(', 'start_row_name_charge(',
+      'advance_row_name_charge(', 'close_row_name_charge(',
+      'indexed_expression_input(', 'start_predicate_expression_with_input(',
+      'bounded_sequence_pattern_name(', 'advance_bounded_text_charge(']]);
   for (const [relative,markers] of cases) {
     const file=join(root,relative);
     for (const marker of markers) {
