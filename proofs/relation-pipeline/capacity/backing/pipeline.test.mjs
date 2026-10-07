@@ -12,7 +12,7 @@ function observation(c, target) {
   const arrayCapacity = Object.fromEntries(Object.entries(b).map(([k, v]) => [k, Number(v)]));
   const maps = mapBounds(c, registry);
   return { faults: [{ kind: 'capacity observation', event: 'checkpoint', arrayCapacity,
-    metadataPreparation: { stepped: false, lookup: false, termColumn: false, nameCharge: false, snapshotEntries: 0, sourceEntries: 0 },
+    metadataPreparation: { stepped: false, lookup: false, source: false, generatedField: -1, generatedSeen: 0, termColumn: false, nameCharge: false, snapshotEntries: 0, sourceEntries: 0 },
     mapCapacity: maps.capacity, mapEntries: maps.entries,
     ...(target === 'native' ? { nativeMaps: nativeUnitFixture(maps), nativeArrays: nativeArrayUnitFixture(b) } : {}),
     mapAliases: { inputBinding: false, inputProjection: false, bindingProjection: false },
@@ -47,9 +47,9 @@ test('JS is limited to independently checked visible lengths', () => {
 
 test('new retained metadata work is not silently admitted into the small DISTINCT byte scope', () => {
   const c = cases[0];
-  for (const field of ['stepped', 'lookup', 'termColumn', 'nameCharge', 'snapshotEntries', 'sourceEntries']) {
+  for (const field of ['stepped', 'lookup', 'source', 'generatedField', 'generatedSeen', 'termColumn', 'nameCharge', 'snapshotEntries', 'sourceEntries']) {
     const o = observation(c, 'native');
-    o.faults[0].metadataPreparation[field] = field.endsWith('Entries') ? 1 : true;
+    o.faults[0].metadataPreparation[field] = field === 'generatedField' ? 0 : field === 'generatedSeen' || field.endsWith('Entries') ? 1 : true;
     assert.throws(() => inspectPipelineBacking(c, o, registry, 'native', 'native'), /outside the admitted DISTINCT pilot/);
   }
 });
