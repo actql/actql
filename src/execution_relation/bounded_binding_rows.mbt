@@ -52,6 +52,13 @@ priv enum BoundedOutputCell {
 }
 
 ///|
+priv enum BindingRowSource {
+  InputColumn(Int)
+  BindingColumn(Int)
+  GeneratedColumn
+}
+
+///|
 priv enum BindingLogicalOutput {
   DenseBindingLogicalRow(SteppedLogicalRow[Array[Value]])
   PresenceBindingLogicalRow(SteppedLogicalRow[Ref[Array[@admitted.Value?]]])
@@ -538,6 +545,8 @@ priv struct BoundedBindingRowsState {
   output_names : Array[String]
   input_ordinals : Map[String, Int]
   binding_ordinals : Map[String, Int]
+  row_sources : Array[BindingRowSource]
+  mut name_charge : RowNameCharge?
   projection_ordinals : Map[String, Int]?
   json_path : Array[String]?
   json_source_column : Int
@@ -613,7 +622,7 @@ priv struct BoundedBindingRowsState {
   mut input_row : Int
   mut row : Int
   mut column : Int
-  mut snapshot : Map[String, Value]
+  mut snapshot : Array[(String, Value)]
   mut binding_execution : OrderedBindingsExecution?
   mut predicate_execution : ExpressionFrame?
   mut values : Array[Value]
@@ -813,7 +822,11 @@ fn cleanup_bounded_binding_rows_state(state : BoundedBindingRowsState) -> Bool {
   state.input_roots = []
   state.slot_roots = []
   state.values = []
-  state.snapshot = Map([])
+  state.snapshot = []
+  if state.name_charge is Some(cursor) {
+    close_row_name_charge(cursor)
+  }
+  state.name_charge = None
   state.output_row = []
   state.checked_row = []
   state.capture_row = []
@@ -1206,8 +1219,21 @@ fn bounded_binding_rows_step(
               Err(issue) =>
                 return fail_bounded_binding_rows(issue, progress, used)
             }
-            if !charge_text(state.input_values, state.input_names[column]) {
-              return fail_bounded_binding_rows(InputLimit, progress, used)
+            match
+              advance_binding_name_value(
+                state,
+                state.input_names[column],
+                state.input_values,
+              ) {
+              Err(NameValueLimit) =>
+                return fail_bounded_binding_rows(InputLimit, progress, used)
+              Err(NameWorkspaceLimit) =>
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              Ok(false) => {
+                used += 1
+                continue
+              }
+              Ok(true) => ()
             }
             guard charged is Some(value) else {
               if !charge_node(state.input_values, 2) {
@@ -1824,7 +1850,7 @@ fn bounded_binding_rows_step(
             Ok(_) => ()
           }
         }
-        state.snapshot = Map([])
+        state.snapshot = []
         state.output_row = []
         state.checked_row = []
         state.capture_row = []
@@ -1962,9 +1988,9 @@ fn bounded_binding_rows_step(
                 return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
               }
               state.predicate_execution = match
-                expression_frame(
+                expression_frame_with_input(
                   predicate,
-                  state.snapshot,
+                  indexed_expression_input(state.snapshot),
                   [],
                   state.control,
                   state.workspace,
@@ -1989,35 +2015,52 @@ fn bounded_binding_rows_step(
                 )
               }
               state.binding_execution = Some(
-                if state.ordered {
-                  start_ordered_bindings_execution(
-                    state.bindings,
-                    state.snapshot,
-                    state.control,
-                    state.workspace,
-                    scope,
-                    state.row,
-                  )
-                } else {
-                  start_snapshot_bindings_execution(
-                    state.bindings,
-                    state.snapshot,
-                    state.control,
-                    state.workspace,
-                    scope,
-                    state.row,
-                  )
-                },
+                start_bindings_with_input(
+                  state.bindings,
+                  indexed_expression_input(state.snapshot),
+                  state.control,
+                  state.workspace,
+                  scope,
+                  state.row,
+                  state.ordered,
+                ),
               )
               state.phase = EvaluateBindings
             }
           }
           continue
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, state.input_names[state.column]) {
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        if state.name_charge is None {
+          if !reserve_slots(state.workspace, 1) ||
+            !spend_control(state.control, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          if state.input_names[state.column].length() > 64 {
+            guard start_row_name_charge(
+                state.input_names[state.column],
+                state.workspace,
+              )
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.name_charge = Some(cursor)
+            used += 1
+            continue
+          }
+          if !spend_control_text(state.control, state.input_names[state.column]) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+        } else {
+          let cursor = state.name_charge.unwrap()
+          match advance_row_name_charge(cursor, Some(state.control), None) {
+            Err(_) =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            Ok(false) => {
+              used += 1
+              continue
+            }
+            Ok(true) => state.name_charge = None
+          }
         }
         let field = @schema.field_at(
           bounded_binding_input_schema(state.input),
@@ -2028,7 +2071,7 @@ fn bounded_binding_rows_step(
             is Some(value) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
-          state.snapshot[state.input_names[state.column]] = value
+          state.snapshot.push((state.input_names[state.column], value))
         } else {
           // Conditional cells never enter ordinary expression scope, even
           // when this particular row happens to contain a value.
@@ -2112,7 +2155,7 @@ fn bounded_binding_rows_step(
                   Ok(_) => ()
                 }
                 release_slots(state.workspace, state.snapshot.length())
-                state.snapshot = Map([])
+                state.snapshot = []
                 state.row += 1
                 state.phase = BeginRow
               }
@@ -2151,8 +2194,10 @@ fn bounded_binding_rows_step(
           Some(indices) => indices[state.row]
           None => state.row
         }
-        let name = state.output_names[state.column]
-        let cell = if state.binding_ordinals.get(name) is Some(slot) {
+        guard binding_row_source(state, state.column) is Some(row_source) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        let cell = if row_source is BindingColumn(slot) {
           guard state.values.get(slot) is Some(value) &&
             @schema.field_at(state.output_schema, state.column) is Some(field) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
@@ -2181,7 +2226,7 @@ fn bounded_binding_rows_step(
           }
           Some(checked.value)
         } else {
-          guard state.input_ordinals.get(name) is Some(column) else {
+          guard row_source is InputColumn(column) else {
             return fail_bounded_binding_rows(InvalidExecution, progress, used)
           }
           match
@@ -2256,52 +2301,74 @@ fn bounded_binding_rows_step(
           state.phase = CheckOutputRow
           continue
         }
-        if !reserve_slots(state.workspace, 1) ||
-          (if state.take_range is Some(_) {
-            !spend_control(state.control, 1)
-          } else {
-            !spend_control_text(state.control, state.output_names[state.column])
-          }) {
-          return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+        if state.name_charge is None {
+          if !reserve_slots(state.workspace, 1) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+          if state.take_range is Some(_) {
+            if !spend_control(state.control, 1) {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+          } else if state.output_names[state.column].length() > 64 {
+            guard start_row_name_charge(
+                state.output_names[state.column],
+                state.workspace,
+              )
+              is Some(cursor) else {
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            }
+            state.name_charge = Some(cursor)
+            used += 1
+            continue
+          } else if !spend_control_text(
+              state.control,
+              state.output_names[state.column],
+            ) {
+            return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+          }
+        } else {
+          match
+            advance_row_name_charge(
+              state.name_charge.unwrap(),
+              Some(state.control),
+              None,
+            ) {
+            Err(_) =>
+              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            Ok(false) => {
+              used += 1
+              continue
+            }
+            Ok(true) => state.name_charge = None
+          }
         }
         let name = state.output_names[state.column]
         let source_row = match state.sorted_indices {
           Some(indices) => indices[state.row]
           None => state.row
         }
-        let value = match state.projection_ordinals {
-          Some(projection) =>
-            match projection.get(name) {
-              Some(index) =>
-                bounded_binding_input_cell(state.input, source_row, index)
-              None =>
-                if name == state.json_output_name {
-                  state.json_picked
-                } else if state.watermark is Some(_) {
-                  match name {
-                    "watermark_ms" => Some(Number(state.watermark_current))
-                    "watermark_late" => Some(Boolean(state.watermark_late))
-                    "watermark_decision" =>
-                      Some(
-                        Text(if state.watermark_late { "mark" } else { "keep" }),
-                      )
-                    _ => None
-                  }
-                } else if state.lag is Some((_, output, _)) && name == output {
-                  state.lag_values.get(source_row)
-                } else {
-                  None
-                }
-            }
-          None =>
-            match state.binding_ordinals.get(name) {
-              Some(index) => state.values.get(index)
-              None =>
-                match state.input_ordinals.get(name) {
-                  Some(index) =>
-                    bounded_binding_input_cell(state.input, state.row, index)
-                  None => None
-                }
+        guard binding_row_source(state, state.column) is Some(row_source) else {
+          return fail_bounded_binding_rows(InvalidExecution, progress, used)
+        }
+        let value = match row_source {
+          InputColumn(index) =>
+            bounded_binding_input_cell(state.input, source_row, index)
+          BindingColumn(index) => state.values.get(index)
+          GeneratedColumn =>
+            if name == state.json_output_name {
+              state.json_picked
+            } else if state.watermark is Some(_) {
+              match name {
+                "watermark_ms" => Some(Number(state.watermark_current))
+                "watermark_late" => Some(Boolean(state.watermark_late))
+                "watermark_decision" =>
+                  Some(Text(if state.watermark_late { "mark" } else { "keep" }))
+                _ => None
+              }
+            } else if state.lag is Some((_, output, _)) && name == output {
+              state.lag_values.get(source_row)
+            } else {
+              None
             }
         }
         guard value is Some(value) else {
@@ -2345,33 +2412,33 @@ fn bounded_binding_rows_step(
           Some(indices) => indices[state.row]
           None => state.row
         }
-        let exact_admitted = match state.projection_ordinals {
-          Some(projection) =>
-            match projection.get(state.output_names[state.column]) {
-              Some(source_column) =>
-                match
-                  @schema.field_at(
-                    bounded_binding_input_schema(state.input),
-                    source_column,
-                  ) {
-                  Some(source_field) =>
-                    if bounded_binding_same_admitted_contract(
-                        source_field.contract,
-                        field.contract,
-                      ) {
-                      bounded_binding_input_admitted_cell(
-                        state.input,
-                        source_row,
-                        source_column,
-                      )
-                    } else {
-                      None
-                    }
-                  None => None
-                }
-              None => None
-            }
-          None => None
+        let exact_admitted = if state.projection_ordinals is Some(_) {
+          match binding_row_source(state, state.column) {
+            Some(InputColumn(source_column)) =>
+              match
+                @schema.field_at(
+                  bounded_binding_input_schema(state.input),
+                  source_column,
+                ) {
+                Some(source_field) =>
+                  if bounded_binding_same_admitted_contract(
+                      source_field.contract,
+                      field.contract,
+                    ) {
+                    bounded_binding_input_admitted_cell(
+                      state.input,
+                      source_row,
+                      source_column,
+                    )
+                  } else {
+                    None
+                  }
+                None => None
+              }
+            _ => None
+          }
+        } else {
+          None
         }
         if exact_admitted is None &&
           !bounded_small_output_value(state.output_row[state.column]) {
@@ -2435,8 +2502,19 @@ fn bounded_binding_rows_step(
         } else if state.output_charge_column < state.output_names.length() {
           let column = state.output_charge_column
           if state.output_charge_measure is None {
-            if !charge_text(state.output_values, state.output_names[column]) {
-              return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+            match
+              advance_binding_name_value(
+                state,
+                state.output_names[column],
+                state.output_values,
+              ) {
+              Err(_) =>
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              Ok(false) => {
+                used += 1
+                continue
+              }
+              Ok(true) => ()
             }
             let value = if state.preserve_presence {
               guard state.presence_cells.get(column) is Some(cell) else {
@@ -2521,12 +2599,29 @@ fn bounded_binding_rows_step(
           let column = state.capture_charge_column
           if state.preserve_presence {
             if state.capture_charge_measure is None {
-              if !charge_text(output.buffer.budget, state.output_names[column]) {
-                return fail_bounded_binding_rows(
-                  Capture(CaptureLimit),
-                  progress,
-                  used,
-                )
+              match
+                advance_binding_name_value(
+                  state,
+                  state.output_names[column],
+                  output.buffer.budget,
+                ) {
+                Err(NameValueLimit) =>
+                  return fail_bounded_binding_rows(
+                    Capture(CaptureLimit),
+                    progress,
+                    used,
+                  )
+                Err(NameWorkspaceLimit) =>
+                  return fail_bounded_binding_rows(
+                    Rows(RowLimit),
+                    progress,
+                    used,
+                  )
+                Ok(false) => {
+                  used += 1
+                  continue
+                }
+                Ok(true) => ()
               }
               guard state.presence_cells[column] is Some(value) else {
                 if !charge_node(output.buffer.budget, 2) {
@@ -2610,15 +2705,25 @@ fn bounded_binding_rows_step(
             ExactAdmittedOutputCell(value) => value
           }
           if state.capture_charge_measure is None {
-            if !charge_text(
+            match
+              advance_binding_name_value(
+                state,
+                @schema.field_reference_name_at(output.buffer.schema, column).unwrap(),
                 output.buffer.budget,
-                @schema.reference_name(field.name),
               ) {
-              return fail_bounded_binding_rows(
-                Capture(CaptureLimit),
-                progress,
-                used,
-              )
+              Err(NameValueLimit) =>
+                return fail_bounded_binding_rows(
+                  Capture(CaptureLimit),
+                  progress,
+                  used,
+                )
+              Err(NameWorkspaceLimit) =>
+                return fail_bounded_binding_rows(Rows(RowLimit), progress, used)
+              Ok(false) => {
+                used += 1
+                continue
+              }
+              Ok(true) => ()
             }
             guard start_stepped_measure_result(
                 Captured(admitted),
@@ -2873,7 +2978,7 @@ fn bounded_binding_rows_step(
           state.checked_row.length() +
           state.capture_row.length(),
         )
-        state.snapshot = Map([])
+        state.snapshot = []
         state.values = []
         state.slot_roots = []
         state.output_row = []
@@ -3285,10 +3390,10 @@ fn start_bounded_binding_rows_with_input(
     }
   }
   let input_names = Array::makei(input_width, index => {
-    @schema.reference_name(@schema.field_at(input_schema, index).unwrap().name)
+    @schema.field_reference_name_at(input_schema, index).unwrap()
   })
   let output_names = Array::makei(output_width, index => {
-    @schema.reference_name(@schema.field_at(output_schema, index).unwrap().name)
+    @schema.field_reference_name_at(output_schema, index).unwrap()
   })
   let input_ordinals : Map[String, Int] = Map([])
   for index, name in input_names {
@@ -3425,6 +3530,39 @@ fn start_bounded_binding_rows_with_input(
     }
     _ => None
   }
+  let row_sources = []
+  // Small immutable metadata keeps its previous admitted map footprint. These
+  // length checks are bounded; large/long-name rows resolve once before reuse.
+  let small_metadata = input_width <= 8 &&
+    output_width <= 8 &&
+    bindings.length() <= 8 &&
+    input_names.all(name => name.length() <= 64) &&
+    output_names.all(name => name.length() <= 64) &&
+    bindings.all(binding => binding.0.length() <= 64)
+  if !small_metadata {
+    if !admit_metadata(output_width) {
+      return Err(InvalidExecution)
+    }
+    for name in output_names {
+      let source = match projection_ordinals {
+        Some(projection) =>
+          match projection.get(name) {
+            Some(index) => InputColumn(index)
+            None => GeneratedColumn
+          }
+        None =>
+          match binding_ordinals.get(name) {
+            Some(index) => BindingColumn(index)
+            None =>
+              match input_ordinals.get(name) {
+                Some(index) => InputColumn(index)
+                None => return Err(InvalidExecution)
+              }
+          }
+      }
+      row_sources.push(source)
+    }
+  }
   let output = match
     prepare_admitted_output(owner, @pipeline.Step(step), max_rows, values) {
     Ok(value) => value
@@ -3497,6 +3635,8 @@ fn start_bounded_binding_rows_with_input(
     output_names,
     input_ordinals,
     binding_ordinals,
+    row_sources,
+    name_charge: None,
     projection_ordinals,
     json_path: match json_pick {
       Some((_, path, _)) => Some(path)
@@ -3604,7 +3744,7 @@ fn start_bounded_binding_rows_with_input(
     input_row: 0,
     row: 0,
     column: 0,
-    snapshot: Map([]),
+    snapshot: [],
     binding_execution: None,
     predicate_execution: None,
     values: [],
