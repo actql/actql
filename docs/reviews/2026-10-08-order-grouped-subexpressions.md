@@ -57,3 +57,19 @@ Integrated implementation `6f6a18ed498af2cf343e030f5305cc2bb8660633` passes the 
 Receipt `worktrees/.codex-scratch/public-query-evidence-UT3MFl/summary.json`, `010.stdout.log` and `010.stderr.log` retain clean exact e6e, passed/complete, five tarball digests, artifactsRemoved=true and no evidence errors. Manifest `/private/tmp/actql-b-order-grouped-e6e5f0fab-pack/packed-client-packages.json` digests match the receipt directly. It is not relabeled to a later revision.
 
 #920 is now merged with submitted HEAD `11be481758ed29fe5770af58ff3c6a01354979cf` and main merge `ff4ace1ea0f7bffd2741c9fe3eab54a0f013dd1b`. Its product source matches the accepted parent 8dbe. After the public gate terminates, that main is normally merged as `6135d10ac8ffbc9fc1ffe9341160d32b95813664`. No conflict and no src/scripts/packages/adapters/spec change from the e6e producer. The subsequent record changes documentation only. The PR can target main, with no unmerged dependency. Exact final-HEAD hosted CI remains a separate requirement; no manual restart, broad rerun or merge.
+
+## Subsequent main snapshot integration
+
+After the selected e6e public evidence, main advanced to
+`4fdcffb63f651e3dafa7dceaaf58a36a3e199cdb` with resumed retained Result snapshot
+preparation. It is adopted by normal merge
+`61bab12fee80ad8c05ecbab321109180527b6278`, preserving both parents and the new
+publication owner. There is no merge conflict or Frontend source change.
+
+Focused post-merge ORDER controls pass **8/8** in `run-DzupZC`,
+`focused-test-jbZ7Jj`; readonly compilation manifest freshness also passes.
+Earlier e6e Local/HTTPS acceptance remains attributed to its exact producer.
+The newly merged common runtime/publication inputs differ from that producer,
+so the old manifest is not reused or relabeled as a new integration receipt.
+Post-snapshot-integration packed execution and exact submitted-SHA hosted CI
+remain unverified. No repeated full local suite, manual CI run/rerun or merge.
