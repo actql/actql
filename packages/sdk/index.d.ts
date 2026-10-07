@@ -86,7 +86,10 @@ export type CheckRequirementFrontier = Readonly<{
 /** Known public context selections from the original completed check; no write permission. */
 export type CheckContextRequirement = Readonly<{
   code: 'host_capacity_policy_required';
-  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {supplier: 'checking_context_owner'}>;
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {schema_pointer: '/schema'}>;
+}> | Readonly<{
+  code: 'numeric_reduction_profile_required';
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {profile_cid: string}>;
 }>;
 export declare function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined;
 /** Copied, partial and uninterpretable reports have no comparable frontier. */
@@ -325,6 +328,7 @@ export interface Result {
   all(options?: ReadOptions): Promise<unknown[]>;
   one(options?: ReadOptions): Promise<unknown>;
   scalar(options?: ReadOptions): Promise<unknown>;
+  /** Detached, recursively frozen snapshot of this lookup's admitted response. */
   deliveryAttempt(attemptId: string,
     options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
 }

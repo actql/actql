@@ -20,13 +20,23 @@ if (contexts) {
   for (const requirement of contexts) {
     const supplier: 'checking_context_owner' = requirement.facts.supplier;
     const stage: 'checking' = requirement.facts.stage;
-    const schemaCid: string = requirement.facts.schema_cid;
+    if (requirement.code === 'numeric_reduction_profile_required') {
+      const profileCid: string = requirement.facts.profile_cid;
+      // @ts-expect-error A pinned profile condition is not a schema-pointer condition.
+      requirement.facts.schema_pointer;
+      void profileCid;
+    } else {
+      const schemaCid: string = requirement.facts.schema_cid;
+      // @ts-expect-error Capacity admission does not select a numeric profile.
+      requirement.facts.profile_cid;
+      void schemaCid;
+    }
     // @ts-expect-error The context is not the caller's authored input location.
     requirement.location;
     // @ts-expect-error A Requirement grants no policy write/approval or Run permission.
     requirement.next;
     // @ts-expect-error The retained condition remains immutable.
     requirement.facts.supplier = 'caller';
-    void supplier; void stage; void schemaCid;
+    void supplier; void stage;
   }
 }

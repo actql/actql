@@ -1442,3 +1442,53 @@ Requirement codes are rejected in the violation list. Previous schema pins are
 rejected explicitly, including an older SDK paired with a new Host. The separate
 `actql-diagnostics/0.1` contract and its frozen evidence are unchanged; no
 compatibility adapter or legacy execution path is introduced.
+
+### Known numeric reduction profile requirement
+
+An aggregate slot can cause the existing checker to return
+`NeedsInputs(NumericReductionProfile)`. Public check projects only that actual
+request as `numeric_reduction_profile_required`, with a closed `profile_cid`
+admission condition, supplier `checking_context_owner`, stage `checking` and
+`checking_context_missing` coverage. SUM/AVG require the repository-pinned
+numeric profile; COUNT does not acquire a fabricated numeric obligation.
+The installed Host's existing numeric-profile admission hook supplies the
+context and invokes ordinary whole-input checking again. The earlier report
+stays undetermined and bound to its original context. Profile membership is
+neither reduction-member selection nor execution/capture permission.
+
+The owner's request carries a generated Program cursor for the aggregate slot.
+That cursor is not a SQL location. This projection publishes no generated path,
+contributor value, selected member, location or edit. Protected Source resolution
+can stop checking before the numeric obligation is known; missing/denied/delegated
+publications then retain the same generic protected observation. Independent
+parameter violations remain input errors without exposing actual values.
+
+`getCheckContextRequirements` retains the discriminated capacity/schema and
+numeric/profile conditions from original SDK response custody. A copy does not
+acquire custody; parameter supplementation stops at either nonparameter condition.
+Malformed numeric facts, unadmitted pins, extra data, generated positions or a
+Requirement moved into the violation list are protocol failures. This extends
+the closed public check schemas/CIDs and their coordinated Host, wire, SDK,
+catalog and fixtures. `actql-diagnostics/0.1` and historical evidence are unchanged.
+No compatibility execution, automatic profile installation or input persistence
+API is added.
+
+The current public text lowerer does not yet connect REGEX_MATCH, NFKC or
+PARSE_TIMESTAMP to the common Program expression owner. Those allowed calls
+retain implementation-limit diagnostics before a text-time policy request can
+be known. Diagnosis must not infer a Requirement by reparsing the function name
+or by reading the environment independently of the checker. Other profile,
+artifact, bounded-row and template obligations remain separate extensions.
+
+`Result.deliveryAttempt` admits the existing Owner's lookup response against
+the requested attempt, Run and Result, copies it, and validates the copy again
+before recursively freezing it. Each call returns a detached observation:
+reuse of a Host response container or a later terminal observation cannot
+change an earlier streaming record. A clone failure or a copy that no longer
+satisfies the wire contract is `InvalidHostAttemptLookup`, never an empty or
+successful observation. This boundary adds no lookup, delivery, cancellation
+or execution operation and changes no wire schema or identity domain.
+
+An immutable lookup snapshot proves only the admitted observation received by
+that call. It does not by itself establish authoritative Delivery opening or
+receipt-backed read completion, nor successful publication of a submitted Run.
