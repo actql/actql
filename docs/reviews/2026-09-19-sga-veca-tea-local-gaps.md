@@ -6661,3 +6661,21 @@ Availability callbacks, input cancel/dispose walks, retired-Carrier walks,
 other scratch and Native physical-byte correspondence remain. This is not a
 wall-clock/GC bound, pristine packed campaign or all-Local completion. See the
 [dispatch retirement record](2026-10-07-local-dispatch-scratch-retirement.md).
+
+### Incremental managed input stop collections (2026-10-07)
+
+The cancel/dispose hooks request cancellation immediately, then revoke at most
+64 bridge/import entries or phase boundaries per callback. Pending entries
+continue through the existing cleanup callback. Input roots and the common
+reservation remain until revocation and stopped-provider cleanup succeed;
+the release witness cannot bypass the pending cursor.
+
+At clean `94b7d15250e11a874f46b885f816ad139fcdfc04`, real-Store public Host
+and source guards passed 27/27. The affected JS selection passed 35/35 during
+dirty-source preparation; the unchanged implementation was then committed.
+The current unit depends on #830. This does not establish a whole-callback
+latency bound: unfinished input buffers still use synchronous row-container
+cancellation. Connecting them to existing incremental buffer reclamation is
+the next concrete boundary. Availability and retired-Carrier walks, other
+scratch and Native correspondence remain. See the
+[input stop collection record](2026-10-07-local-input-stop-slices.md).
