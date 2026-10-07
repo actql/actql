@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash, createPrivateKey, createPublicKey, generateKeyPairSync, sign} from 'node:crypto';
 import {chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile} from
   'node:fs/promises';
+import {writeFileSync} from 'node:fs';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
@@ -28,6 +29,7 @@ import {exportPinnedEffectInput, preparePinnedEffectSourceHoldings,
   from './effect-input-export.mjs';
 import {verifyPinnedEffectPlan} from './effect-plan-verify.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
+import {issuedEffectSetReceiptWires} from '../host-common/effect-receipt-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueCompletedEffectfulComputationEvidence,
   storeCompletedRunResultSet} from
@@ -3214,3 +3216,199 @@ test('C5: a cancellation after the physical start reservation releases nothing e
       assert.deepEqual(await holdingStates(x.directory), ['held']);
     }
   });
+
+// Child-only crash fixture. The parent chooses an exact durable row boundary;
+// process.exit bypasses the installed Site's catch/finally and every normal
+// cleanup path. Recovery uses the same journal, capture and approved Run.
+if (process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE !== undefined) {
+  test('partial Effect historical refusal crash fixture', async t => {
+    const phase = process.env.ACTQL_TEST_PARTIAL_EFFECT_PHASE;
+    const rowState = process.env.ACTQL_TEST_PARTIAL_EFFECT_ROW;
+    const refusal = process.env.ACTQL_TEST_PARTIAL_EFFECT_REFUSAL;
+    const directory = process.env.ACTQL_TEST_HOST_CRASH_ROOT;
+    const recordPath = join(directory, 'partial-effect-observation.json');
+    const fixture = await effectFixture();
+    const sends = [], diagnostics = [], receipts = [], memberReceipts = [];
+    let captureCount = 0;
+    let targetInventories = 0;
+    let recoveredStage;
+    const hooks = {directory, mappingCids: fixture.mappingCids, sends};
+    const installed = createInstalledEffectSite({
+      environmentWire: fixture.environmentWire,
+      privateEvidenceKey: Buffer.alloc(32, 74),
+      leaseMs: 1000,
+      targetReadAuthorization: {accountConfiguration: effectCommitConfiguration(),
+        context: {principal: owner, contextCid: contentCid({targetFixture: directory})}},
+      targetReadInventory: () => {
+        targetInventories++;
+        return [{readTuple: {connection: 'reference', resource: 'records', operation: 'read'},
+          physicalBinding: {version: 'fixture-effect-target/0.1', mappings: [...fixture.mappingCids]}}];
+      },
+      async prepareCaptured(facts) {
+        captureCount++;
+        return prepareReferenceCapture(facts, hooks);
+      },
+      prepareRecovered(facts) {
+        assert.ok(facts.continuation.target_read_binding,
+          'recovery retains the authenticated original target binding');
+        if (phase === 'recover' && (refusal === 'read' || refusal === 'commit')) {
+          assert.equal(facts.targetReads, undefined,
+            'settlement never opens a fresh target-read authorization owner');
+        } else {
+          assert.deepEqual(facts.targetReads.captureBinding(), facts.continuation.target_read_binding);
+        }
+        const stage = prepareReferenceRecovery(facts, hooks);
+        recoveredStage = stage;
+        if (phase === 'seed') {
+          const dispatch = stage.apply.dispatchRow;
+          const crash = () => {
+            const effect = runtimeCore(facts.moon).effectApplicationControl;
+            const states = stage.receipt.members.flatMap(member => member.rowOwners.map(owner =>
+              effect.ledgerEntryStateCode(stage.apply.ledger.currentAdmitted(
+                effect.logicalItemLocatorCid(owner.claim.locator)))));
+            const locators = stage.receipt.members.flatMap(member => member.rowOwners.map(owner =>
+              effect.logicalItemLocatorCid(owner.claim.locator)));
+            writeFileSync(join(directory, 'partial-effect-seed.json'), JSON.stringify({states, locators,
+              started: facts.checkpointJournal.hasStartedResume(facts.view.checkpointCid),
+              resume: facts.checkpointJournal.currentResume(facts.view.checkpointCid)}));
+            process.exit(77);
+          };
+          stage.apply.dispatchRow = async row => {
+            if (rowState === 'prepared') crash();
+            if (rowState === 'accepted' || rowState === 'unknown') {
+              sends.push([row.memberIndex, row.rowIndex]);
+              try {
+                await captureClaimedEffectResponse({ledger: stage.apply.ledger, claim: row.claim,
+                  requestCid: row.claim.canonicalRequestCid, execute: async () => {
+                    if (rowState === 'unknown') throw new Error('ReferenceEffectReplyLost');
+                    return {observation: {useCid: referenceCid('use'), statusCode: 202, body: Buffer.alloc(0)}};
+                  }});
+              } catch (error) {
+                if (rowState !== 'unknown' || error.message !== 'ReferenceEffectReplyLost') throw error;
+                const effect = runtimeCore(facts.moon).effectApplicationControl;
+                const head = stage.apply.ledger.currentAdmitted(effect.logicalItemLocatorCid(row.claim.locator));
+                stage.apply.ledger.append(effect.ledgerEntryWire(
+                  effect.issueNextLedgerEntry(head, 'unknown', '', 4096, 64, 4)));
+                crash();
+              }
+              const contract = {id: 'reference-operation', version: '0.1', cid: referenceCid('operation-contract')};
+              stage.apply.ledger.recordAdmittedRowOutcome({claim: row.claim, preview: stage.receipt.preview,
+                memberIndex: row.memberIndex, previewRowIndex: row.rowIndex, outcomeWire: canonicalJson({
+                  state: 'accepted', operation_ref: {$actql_ref: 'resource', version: 'actql-resource-ref/0.1',
+                    resource_kind: 'operation', provider_namespace: 'reference',
+                    provider_identity_cid: referenceCid('provider'), authority_scope_cid: referenceCid('authority'),
+                    boundary_cid: referenceCid('operation-boundary'), identity_cid: referenceCid('operation')},
+                  poll_contract: contract, result_schema: contract, reconciliation_contract: contract,
+                  cancel_capability: 'unsupported',
+                })});
+              stage.apply.ledger.commitAdmittedRowOutcome({claim: row.claim, preview: stage.receipt.preview,
+                memberIndex: row.memberIndex, previewRowIndex: row.rowIndex});
+            } else {
+              await dispatch(row);
+            }
+            crash();
+          };
+        } else if (refusal === 'guard') {
+          const refresh = stage.apply.refreshPreflight;
+          stage.apply.refreshPreflight = async facts => ({
+            ...await refresh(facts), guardVersions: [referenceCid('changed'), referenceCid('changed')],
+          });
+        }
+        return stage;
+      },
+    });
+    const effectInstallation = {...installed, async resume(facts) {
+      const result = await installed.resume(facts);
+      if (result.result?.issuedSet !== undefined) {
+        const wires = issuedEffectSetReceiptWires(result.result.issuedSet,
+          recoveredStage.apply.ledger, recoveredStage.preview);
+        receipts.push(JSON.parse(wires.setWire));
+        memberReceipts.push(...wires.memberWires.map(wire => JSON.parse(wire)));
+      }
+      return result;
+    }};
+    const account = () => protectedHost(undefined, {
+      accountConfiguration: effectCommitConfiguration(
+        phase === 'recover' && refusal === 'read' ? 'deny' : 'allow',
+        phase === 'recover' && refusal === 'commit' ? 'deny' : 'delegate'),
+      checkpointTtlMs: refusal === 'answer_deadline' ? 3000 : 30000,
+      leaseMs: 1000, resumeAfterAnswer: false,
+      observe: (name, detail) => diagnostics.push({name, detail}),
+    });
+    if (phase === 'seed') {
+      let host = await remoteHost(t, account(), {directory, effectInstallation});
+      const run = await (await host.as('owner-token')).aql(fixture.document,
+        {format: 'json', requestId: 'partial-effect-refusal'});
+      await waitFor(async () => (await run.status()).status === 'waiting_checkpoint');
+      const [checkpoint] = (await (await host.as('reviewer-token')).checkpoints()).items;
+      await (await host.as('reviewer-token')).resolveCheckpoints([
+        {checkpoint, decision: 'approved'}], {signer: {...signer,
+        authorityScopeCid: run.ref.authorityScopeCid}});
+      writeFileSync(recordPath, JSON.stringify({ref: run.ref, checkpoint}));
+      await host.close();
+      host = await remoteHost(t, {...account(), resumeAfterAnswer: true}, {directory, effectInstallation});
+      const resumed = await (await host.as('owner-token')).attach(run.ref);
+      await waitFor(async () => (await resumed.status()).status === 'succeeded');
+      assert.fail('the resumed physical dispatch must terminate the child at the chosen durable row boundary');
+    }
+    const saved = JSON.parse(await readFile(recordPath, 'utf8'));
+    const seeded = JSON.parse(await readFile(join(directory, 'partial-effect-seed.json'), 'utf8'));
+    const readyAt = Math.max(seeded.resume.leaseExpiresMs + 50,
+      refusal === 'answer_deadline' ? Date.parse(saved.checkpoint.expiresAt) + 50 : Date.now());
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, readyAt - Date.now())));
+    const host = await remoteHost(t, {...account(), resumeAfterAnswer: true}, {directory, effectInstallation});
+    const run = await (await host.as('owner-token')).attach(saved.ref);
+    let state;
+    await waitFor(async () => {
+      state = await run.status();
+      return ['succeeded', 'failed', 'needs_reconciliation'].includes(state.status);
+    }).catch(async error => {
+      error.message = JSON.stringify({state: await run.status(), sends, receipts, diagnostics});
+      throw error;
+    });
+    await host.close();
+    const ledgerDatabase = new DatabaseSync(join(directory, 'effect-ledger', 'effect-ledger.sqlite3'), {readOnly: true});
+    let durableStates;
+    try {
+      const current = ledgerDatabase.prepare(`SELECT e.entry_json FROM effect_ledger_heads h
+        JOIN effect_ledger_entries e ON e.entry_cid = h.entry_cid WHERE h.logical_item_locator_cid = ?`);
+      durableStates = seeded.locators.map(locator => JSON.parse(current.get(locator).entry_json).state);
+    } finally { ledgerDatabase.close(); }
+    const restarted = await remoteHost(t, {...account(), resumeAfterAnswer: true}, {directory, effectInstallation});
+    const again = await (await restarted.as('owner-token')).attach(saved.ref);
+    const restartedState = await again.status();
+    assert.equal(restartedState.status, state.status, 'the same durable Run outcome survives another restart');
+    if (refusal === 'read' || refusal === 'commit') {
+      assert.equal(state.terminal_error?.code, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
+      assert.equal(restartedState.terminal_error?.code, 'ACTQL_E_RESUME_REVALIDATION_FAILED');
+      assert.equal(targetInventories, 0, 'settlement never restores a live target-read inventory');
+    }
+    await restarted.close();
+    const result = {state, sends, receipts, memberReceipts, durableStates, captureCount, diagnostics};
+    writeFileSync(join(directory, 'partial-effect-result.json'), JSON.stringify(result));
+    assert.equal(captureCount, 0, 'recovery never recomputes the original input');
+    // Effect attestations have no expiry field. The resolved Checkpoint's
+    // answer deadline is not a revocation of its already committed approval.
+    if (refusal === 'none' || refusal === 'answer_deadline') {
+      assert.equal(state.status, 'succeeded');
+      assert.deepEqual(sends, [[0, 1]], 'only the original proven-unsent row may continue');
+      assert.equal(receipts.length, 1);
+      assert.equal(receipts[0].status, 'applied');
+      assert.deepEqual(durableStates, ['applied', 'applied']);
+      return;
+    }
+    assert.deepEqual(sends, [], 'recovery never resends an applied or refused row');
+    assert.deepEqual(durableStates, [rowState, 'prepared'], 'previous sends and unsent intents remain distinct');
+    assert.equal(state.status, rowState === 'unknown' ? 'needs_reconciliation' : 'failed');
+    if (rowState === 'prepared' && refusal === 'guard') {
+      assert.deepEqual(receipts, []);
+    } else {
+      assert.equal(receipts.length, 1, 'the common owner must issue the complete row partition');
+      assert.equal(receipts[0].status, rowState === 'unknown' ? 'unknown_outcome'
+        : rowState === 'prepared' ? 'failed' : 'partial_failure');
+      assert.equal(memberReceipts.length, 1);
+      assert.deepEqual(memberReceipts[0].rows.map(row => row.state),
+        [rowState === 'prepared' ? 'unattempted' : rowState, 'unattempted']);
+    }
+  });
+}
