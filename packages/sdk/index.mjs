@@ -1105,10 +1105,20 @@ async function connectSelected(selected, port) {
   let profile;
   try { profile = await controlValue(profileResponse); }
   catch (cause) { throw new ClientError('InvalidHostProfile', {cause}); }
-  if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
-  const confirmed = Object.freeze({...profile,
-    capabilities: Object.freeze([...profile.capabilities]),
-    limits: Object.freeze({...profile.limits})});
+  try {
+    // Negotiated scope and limits use the same owned observation as later
+    // replies. Neither validation nor conversion may rebind that context.
+    profile = captureResponse(profile);
+    if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
+    const observation = profile;
+    const observedKey = structuralKey(profile);
+    profile = structuredClone(profile);
+    if (!validClientProfile(profile, selected.wire)) fail('InvalidHostProfile');
+    if (structuralKey(profile) !== observedKey) fail('InvalidHostProfile');
+    if (structuralKey(observation) !== observedKey) fail('InvalidHostProfile');
+    profile = observation;
+  } catch { fail('InvalidHostProfile'); }
+  const confirmed = freezeInput(profile);
 
   const execution = admission => {
     if (!validClientAdmission(admission, selected.wire)) {
