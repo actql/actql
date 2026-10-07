@@ -13,6 +13,7 @@ test "prepared map kernel preserves canonical binding order and defensive access
   assert_true(physical_equal(@lowering_relation.kernel_owner(kernel), owner))
   assert_eq(@lowering_relation.kernel_step(kernel), 1)
   assert_eq(@lowering_relation.kernel_input(kernel), "values_0")
+  assert_true(@lowering_relation.kernel_json_pick(kernel) is None)
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.SnapshotMap(bindings) else {
     fail("map")
@@ -285,7 +286,18 @@ test "json pick kernel retains exact checked field path and output" {
   assert_eq(column, @schema.Unqualified("payload"))
   assert_eq(path, ["inner", "leaf"])
   assert_eq(output, "picked")
+  let view = @lowering_relation.kernel_json_pick(kernel).unwrap()
+  assert_eq(@lowering_relation.json_pick_column(view), column)
+  assert_eq(@lowering_relation.json_pick_output(view), output)
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 0), Some("inner"))
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
+  assert_true(@lowering_relation.json_pick_path_at(view, -1) is None)
+  assert_true(@lowering_relation.json_pick_path_at(view, 2) is None)
   path.clear()
+  // Mutating the defensive legacy export cannot alter the read-only view.
+  assert_eq(@lowering_relation.json_pick_path_count(view), 2)
+  assert_eq(@lowering_relation.json_pick_path_at(view, 1), Some("leaf"))
   guard @lowering_relation.kernel_body(kernel)
     is @lowering_relation.JsonPick(_, again, _) else {
     fail("json pick")

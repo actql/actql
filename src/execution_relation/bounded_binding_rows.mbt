@@ -566,7 +566,7 @@ priv struct BoundedBindingRowsState {
   mut term_column : Int?
   mut name_charge : RowNameCharge?
   projection_ordinals : Map[String, Int]?
-  json_path : Array[String]?
+  json_path : @lower.PreparedJsonPick?
   mut json_source_column : Int
   json_output_name : String
   mut watermark : (
@@ -2167,7 +2167,7 @@ fn bounded_binding_rows_step(
           used += 1
           continue
         }
-        if state.json_segment == path.length() {
+        if state.json_segment == @lower.json_pick_path_count(path) {
           state.json_picked = Some(
             match state.json_current {
               None => Null
@@ -2218,7 +2218,14 @@ fn bounded_binding_rows_step(
                     used,
                   )
               }
-              let segment = path[state.json_segment]
+              guard @lower.json_pick_path_at(path, state.json_segment)
+                is Some(segment) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
               if next > segment.length() ||
                 name[offset] != segment[offset] ||
                 (next == offset + 2 && name[offset + 1] != segment[offset + 1]) {
@@ -2228,8 +2235,11 @@ fn bounded_binding_rows_step(
               used += 1
               continue
             }
-            if state.json_name_matches &&
-              name.length() == path[state.json_segment].length() {
+            guard @lower.json_pick_path_at(path, state.json_segment)
+              is Some(segment) else {
+              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            }
+            if state.json_name_matches && name.length() == segment.length() {
               state.json_current = Some(value)
               state.json_segment += 1
               state.json_field = 0
@@ -3418,58 +3428,67 @@ fn start_bounded_binding_rows_with_input(
       true
     }
   }
-  // Admit the copied typed view before reading it. Name arrays and ordinal
-  // maps are admitted below using their actual sizes before construction.
+  // Preserve the prepared-view admission before reading it, even when its
+  // path is borrowed. Name arrays/maps are admitted before construction.
   if !admit_metadata(binding_count) {
     return Err(InvalidExecution)
   }
-  let body = @lower.kernel_body(kernel)
+  // JSON path access is borrowed and indexed. Other kernels retain their
+  // existing defensive body view; do not fabricate a partial JsonPick body.
+  let json_pick = @lower.kernel_json_pick(kernel)
+  let body = if json_pick is Some(_) {
+    None
+  } else {
+    Some(@lower.kernel_body(kernel))
+  }
   // Keyed DISTINCT already owns projection followed by full-row comparison.
   // Only its Required projected columns are read by the comparator/output;
   // ChargeInput still admits every original cell, including omitted columns.
-  let keyed_distinct = body is @lower.DistinctRows &&
+  let keyed_distinct = body is Some(@lower.DistinctRows) &&
     @lower.kernel_distinct_projection(kernel) is Some(_) &&
     @schema.all_fields_required(output_schema)
   let preserve_presence = !@schema.all_fields_required(input_schema) &&
     (
-      body is @lower.Filter(_) ||
-      body is @lower.SnapshotMap(_) ||
-      body is @lower.OrderedBindings(_) ||
-      body is @lower.StableSort(_) ||
-      body is @lower.Limit(_, _, _) ||
+      body is Some(@lower.Filter(_)) ||
+      body is Some(@lower.SnapshotMap(_)) ||
+      body is Some(@lower.OrderedBindings(_)) ||
+      body is Some(@lower.StableSort(_)) ||
+      body is Some(@lower.Limit(_, _, _)) ||
       (
-        body is @lower.DistinctRows &&
+        body is Some(@lower.DistinctRows) &&
         @lower.kernel_distinct_projection(kernel) is None
       )
     )
   if !@schema.all_fields_required(input_schema) &&
     !preserve_presence &&
-    !(body is @lower.Select(_)) &&
+    !(body is Some(@lower.Select(_))) &&
     !keyed_distinct {
     return Err(InvalidExecution)
   }
   if preserve_presence &&
-    !(body is @lower.SnapshotMap(_) || body is @lower.OrderedBindings(_)) &&
+    !(body is Some(@lower.SnapshotMap(_)) ||
+    body is Some(@lower.OrderedBindings(_))) &&
     !physical_equal(input_schema, output_schema) {
     return Err(InvalidExecution)
   }
   let (bindings, ordered, predicate, select_mode, take_range, sort_kernel) = match
     body {
-    @lower.OrderedBindings(bindings) =>
+    Some(@lower.OrderedBindings(bindings)) =>
       (bindings, true, None, false, None, None)
-    @lower.SnapshotMap(bindings) => (bindings, false, None, false, None, None)
-    @lower.Filter(expression) =>
+    Some(@lower.SnapshotMap(bindings)) =>
+      (bindings, false, None, false, None, None)
+    Some(@lower.Filter(expression)) =>
       ([], false, Some(expression), false, None, None)
-    @lower.AssertAll(expression) =>
+    Some(@lower.AssertAll(expression)) =>
       ([], false, Some(expression), false, None, None)
-    @lower.AssertUnique(_) => ([], false, None, false, None, None)
-    @lower.JsonPick(_, _, _) => ([], false, None, false, None, None)
-    @lower.Watermark(_, _, _, _) => ([], false, None, false, None, None)
-    @lower.Lag(_, _) => ([], false, None, false, None, Some(kernel))
-    @lower.Select(_) => ([], false, None, true, None, None)
-    @lower.DistinctRows => ([], false, None, false, None, None)
-    @lower.DedupeRows => ([], false, None, false, None, None)
-    @lower.StableSort(_) =>
+    Some(@lower.AssertUnique(_)) => ([], false, None, false, None, None)
+    None if json_pick is Some(_) => ([], false, None, false, None, None)
+    Some(@lower.Watermark(_, _, _, _)) => ([], false, None, false, None, None)
+    Some(@lower.Lag(_, _)) => ([], false, None, false, None, Some(kernel))
+    Some(@lower.Select(_)) => ([], false, None, true, None, None)
+    Some(@lower.DistinctRows) => ([], false, None, false, None, None)
+    Some(@lower.DedupeRows) => ([], false, None, false, None, None)
+    Some(@lower.StableSort(_)) =>
       (
         [],
         false,
@@ -3478,7 +3497,7 @@ fn start_bounded_binding_rows_with_input(
         Some((0, bounded_binding_input_row_count(input))),
         Some(kernel),
       )
-    @lower.TopK(top_count, _) => {
+    Some(@lower.TopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
@@ -3490,7 +3509,7 @@ fn start_bounded_binding_rows_with_input(
       }
       ([], false, None, false, Some((0, selected)), Some(kernel))
     }
-    @lower.PartitionedTopK(top_count, _) => {
+    Some(@lower.PartitionedTopK(top_count, _)) => {
       if top_count < 1L {
         return Err(InvalidExecution)
       }
@@ -3503,7 +3522,7 @@ fn start_bounded_binding_rows_with_input(
         Some(kernel),
       )
     }
-    @lower.Limit(take_count, offset, _) => {
+    Some(@lower.Limit(take_count, offset, _)) => {
       let prepared = @lower.bound_preparation(owner)
       guard @lower.node_at(prepared, step) is Some(node) &&
         take_count > 0L &&
@@ -3533,9 +3552,9 @@ fn start_bounded_binding_rows_with_input(
     !admit_metadata(bindings.length()) {
     return Err(InvalidExecution)
   }
-  let sort_only = body is @lower.StableSort(_) ||
-    body is @lower.TopK(_, _) ||
-    body is @lower.PartitionedTopK(_, _)
+  let sort_only = body is Some(@lower.StableSort(_)) ||
+    body is Some(@lower.TopK(_, _)) ||
+    body is Some(@lower.PartitionedTopK(_, _))
   if !@schema.all_fields_required(input_schema) &&
     !select_mode &&
     !preserve_presence &&
@@ -3543,18 +3562,18 @@ fn start_bounded_binding_rows_with_input(
     return Err(InvalidExecution)
   }
   let partition_limit = match body {
-    @lower.PartitionedTopK(count, _) => Some(count)
+    Some(@lower.PartitionedTopK(count, _)) => Some(count)
     _ => None
   }
-  let partition_terms = if body is @lower.Lag(_, _) {
+  let partition_terms = if body is Some(@lower.Lag(_, _)) {
     @lower.kernel_lag_partition_count(kernel)
   } else if partition_limit is Some(_) {
     @lower.kernel_top_k_partition_count(kernel)
   } else {
     0
   }
-  let dedupe = body is @lower.DedupeRows
-  let distinct = body is @lower.DistinctRows || dedupe
+  let dedupe = body is Some(@lower.DedupeRows)
+  let distinct = body is Some(@lower.DistinctRows) || dedupe
   let dedupe_key_terms = if dedupe {
     @lower.kernel_dedupe_key_count(kernel)
   } else {
@@ -3568,25 +3587,21 @@ fn start_bounded_binding_rows_with_input(
   if dedupe && dedupe_order_terms == 0 {
     return Err(InvalidExecution)
   }
-  let assertion = body is @lower.AssertAll(_)
+  let assertion = body is Some(@lower.AssertAll(_))
   let unique_keys = match body {
-    @lower.AssertUnique(keys) => Some(keys)
+    Some(@lower.AssertUnique(keys)) => Some(keys)
     _ => None
   }
-  let json_pick = match body {
-    @lower.JsonPick(column, path, output) => Some((column, path, output))
-    _ => None
-  }
-  let watermark_kind = body is @lower.Watermark(_, _, _, _)
-  let lag_kind = body is @lower.Lag(_, _)
+  let watermark_kind = body is Some(@lower.Watermark(_, _, _, _))
+  let lag_kind = body is Some(@lower.Lag(_, _))
   if watermark_kind && output_width != input_width + 3 {
     return Err(InvalidExecution)
   }
   if lag_kind && output_width != input_width + 1 {
     return Err(InvalidExecution)
   }
-  if json_pick is Some((_, path, _)) &&
-    (path.is_empty() || output_width != input_width + 1) {
+  if json_pick is Some(view) &&
+    (@lower.json_pick_path_count(view) == 0 || output_width != input_width + 1) {
     return Err(InvalidExecution)
   }
   if unique_keys is Some(keys) && keys.is_empty() {
@@ -3680,7 +3695,7 @@ fn start_bounded_binding_rows_with_input(
     input_ordinals[name] = index
   }
   let watermark = match body {
-    @lower.Watermark(time, timestamp, policy, threshold) => {
+    Some(@lower.Watermark(time, timestamp, policy, threshold)) => {
       let column = if stepped_metadata {
         -1
       } else {
@@ -3713,9 +3728,9 @@ fn start_bounded_binding_rows_with_input(
   }
   let metadata_source = if stepped_metadata {
     match body {
-      @lower.JsonPick(column, _, _) => Some(column)
-      @lower.Watermark(time, _, _, _) => Some(time)
-      @lower.Lag(_, _) => @lower.kernel_lag(kernel).map(view => view.0)
+      None => json_pick.map(@lower.json_pick_column)
+      Some(@lower.Watermark(time, _, _, _)) => Some(time)
+      Some(@lower.Lag(_, _)) => @lower.kernel_lag(kernel).map(view => view.0)
       _ => None
     }
   } else {
@@ -3730,7 +3745,8 @@ fn start_bounded_binding_rows_with_input(
       binding_ordinals[binding.0] = index
     }
   }
-  let metadata_projection = if stepped_metadata && body is @lower.Select(_) {
+  let metadata_projection = if stepped_metadata &&
+    body is Some(@lower.Select(_)) {
     guard @lower.prepare_projection(@lower.kernel_checked(kernel)) is Some(view) &&
       @lower.projection_field_count(view) == output_width else {
       return Err(InvalidExecution)
@@ -3754,7 +3770,7 @@ fn start_bounded_binding_rows_with_input(
     Some(Map([]))
   } else {
     match body {
-      @lower.Select(fields) => {
+      Some(@lower.Select(fields)) => {
         let projection : Map[String, Int] = Map([])
         for field in fields {
           let output_name = @schema.reference_name(field.output)
@@ -3770,7 +3786,7 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.DistinctRows => {
+      Some(@lower.DistinctRows) => {
         let projection : Map[String, Int] = Map([])
         match @lower.kernel_distinct_projection(kernel) {
           Some(view) =>
@@ -3796,12 +3812,12 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.StableSort(_)
-      | @lower.TopK(_, _)
-      | @lower.PartitionedTopK(_, _)
-      | @lower.Limit(_, _, _)
-      | @lower.DedupeRows
-      | @lower.AssertUnique(_) => {
+      Some(@lower.StableSort(_))
+      | Some(@lower.TopK(_, _))
+      | Some(@lower.PartitionedTopK(_, _))
+      | Some(@lower.Limit(_, _, _))
+      | Some(@lower.DedupeRows)
+      | Some(@lower.AssertUnique(_)) => {
         let projection : Map[String, Int] = Map([])
         for name in output_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3814,8 +3830,10 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.JsonPick(source, _, output) => {
+      None if json_pick is Some(view) => {
         let projection : Map[String, Int] = Map([])
+        let source = @lower.json_pick_column(view)
+        let output = @lower.json_pick_output(view)
         let source_name = @schema.reference_name(source)
         if input_ordinals.get(source_name) is None ||
           input_ordinals.contains(output) ||
@@ -3830,7 +3848,7 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.Watermark(_, _, _, _) => {
+      Some(@lower.Watermark(_, _, _, _)) => {
         let projection : Map[String, Int] = Map([])
         for name in input_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3845,7 +3863,7 @@ fn start_bounded_binding_rows_with_input(
         }
         Some(projection)
       }
-      @lower.Lag(_, _) => {
+      Some(@lower.Lag(_, _)) => {
         let projection : Map[String, Int] = Map([])
         for name in input_names {
           guard input_ordinals.get(name) is Some(index) else {
@@ -3949,21 +3967,20 @@ fn start_bounded_binding_rows_with_input(
     term_column: None,
     name_charge: None,
     projection_ordinals,
-    json_path: match json_pick {
-      Some((_, path, _)) => Some(path)
-      None => None
-    },
+    json_path: json_pick,
     json_source_column: match json_pick {
-      Some((source, _, _)) =>
+      Some(view) =>
         if stepped_metadata {
           -1
         } else {
-          input_ordinals.get(@schema.reference_name(source)).unwrap_or(-1)
+          input_ordinals
+          .get(@schema.reference_name(@lower.json_pick_column(view)))
+          .unwrap_or(-1)
         }
       None => -1
     },
     json_output_name: match json_pick {
-      Some((_, _, output)) => output
+      Some(view) => @lower.json_pick_output(view)
       None => ""
     },
     watermark,

@@ -1,6 +1,6 @@
 {
   "version": "actql-provider-construction-source-review/0.1",
-  "currentRecipeDigest": "e262d006e3a406605b50e72162b4ac02d820816e0e00d160312f0f87225a501a",
+  "currentRecipeDigest": "098f99e464510d5c3e57bdb03518f5be1aa37c212e90ed9579aeef002908c485",
   "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
   "historicalSourcePremises": {
     "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
@@ -8,13 +8,38 @@
   },
   "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
   "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
-  "selectedDigest": "4f02d43052c899c9105574f72dd17cda04caa3695390d93ef73e972bf4cb8227",
+  "selectedDigest": "cf621b3794e2fa55a0786a296a5fa021eb9c624bda963efcb5ea00160bcac8ec",
   "managedDigest": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
   "generatedVariants": [
-    {"revision": "b98a50ff763d1367e344fdfa8aea380ec8749132", "digest": "7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a", "additionalExclusions": ["GraphUnionStep", "GraphSubtractionStep"], "constructorRename": true},
-    {"revision": "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa", "digest": "689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3", "additionalExclusions": []},
-    {"revision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0", "digest": "7a18f31821151781fd8c370863923dc0106c388ab37d9f2be98adfbe03b03f40", "additionalExclusions": ["GraphUnionStep"]},
-    {"revision": "cec9df396e18bff4b206c80130bdb607fa29b84a", "digest": "68ad70b2a67cb422c4826e2f1312532c364fc3744070a43a374930d2497f4f93", "additionalExclusions": ["GraphUnionStep", "GraphSubtractionStep"]}
+    {
+      "revision": "b98a50ff763d1367e344fdfa8aea380ec8749132",
+      "digest": "7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a",
+      "additionalExclusions": [
+        "GraphUnionStep",
+        "GraphSubtractionStep"
+      ],
+      "constructorRename": true
+    },
+    {
+      "revision": "eb74d7b65d0f338ef5862a7d9cd7397744a08eaa",
+      "digest": "689b1f1eaef074e44132348bf9927349324c94325fb10ebf304191e6cb7b6ac3",
+      "additionalExclusions": []
+    },
+    {
+      "revision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",
+      "digest": "7a18f31821151781fd8c370863923dc0106c388ab37d9f2be98adfbe03b03f40",
+      "additionalExclusions": [
+        "GraphUnionStep"
+      ]
+    },
+    {
+      "revision": "cec9df396e18bff4b206c80130bdb607fa29b84a",
+      "digest": "68ad70b2a67cb422c4826e2f1312532c364fc3744070a43a374930d2497f4f93",
+      "additionalExclusions": [
+        "GraphUnionStep",
+        "GraphSubtractionStep"
+      ]
+    }
   ],
   "wrapperDigests": {
     "managed_provider": "97c7881276b3a72486a9095b5c320496b231e97ef7aef148f6e3a45f8e52128b",
@@ -22,13 +47,18 @@
     "managed_provider_with_numeric": "6e0874df3465c9ec6b0fcba89e3f2a38be09ed117746d522dd2120ec272c0cb9"
   },
   "selectedFactoryOutsideAcceptsDigest": "989e69dea3f181b35dadd08d62c417247d86c33776afab06d419630f10890a4c",
-  "constructionCaptureInputs": ["limits", "measurement", "family"],
+  "constructionCaptureInputs": [
+    "limits",
+    "measurement",
+    "family"
+  ],
   "changedResponsibilities": [
     "retained receiving-input preparation changes callback execution and parent state, outside candidate construction; the complete selected factory is byte-identical to b98a50ff763d1367e344fdfa8aea380ec8749132",
     "GraphConstructionStep replaces the constructor spelling in the existing row-kernel exclusion only; historical source normalization adds no runtime alias",
     "accepts allocates used_by_later during callback execution, excluded from construction-only bytes",
     "completed Array owner, backing, output references, generations and release overlap require separate lifetime correspondence",
-    "Waiting and Settling join validated per-poll work extraction; their poll objects are not constructor allocations"
+    "Waiting and Settling join validated per-poll work extraction; their poll objects are not constructor allocations",
+    "The selected_binding_rows_supported callback adds only the constant-size opaque JsonPick guard; removing that exact guard yields the reviewed parent source. Constructor bodies, captures and their byte premises are unchanged; prepared-view execution remains outside construction-only bounds."
   ],
   "nativeCensus": {
     "sourceRevision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",
