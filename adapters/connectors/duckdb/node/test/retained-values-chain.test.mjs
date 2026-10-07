@@ -992,7 +992,7 @@ for (const mode of ['success', 'cancel-during-result-snapshot']) {
   });
 }
 
-for (const phase of ['success', 'context-check', 'rows-check']) {
+for (const phase of ['success', 'root-check', 'context-check', 'rows-check']) {
   test(`retained Captured Run issuance yields through final evidence checking: ${phase}`, async () => {
     const first = {id: 1, note: `${'é'.repeat(257)}e\u0301\r\n😀`};
     const second = {id: 2, note: null};
@@ -1011,6 +1011,7 @@ for (const phase of ['success', 'context-check', 'rows-check']) {
       if (mode === 'success') {
         const owner = await run();
         assert.equal(owner.status, 'published');
+        assert.ok(route.capturePhases.has('root-check'));
         assert.ok(route.capturePhases.has('context-check'));
         assert.ok(route.capturePhases.has('rows-check'));
         await assertPublishedRows(publication, plan, owner.execution, [second, first]);
