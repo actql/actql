@@ -71,9 +71,16 @@ fn[T] prepare_managed_occurrence_selection(
   max_work : Int,
   computed : Bool,
 ) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
-  let cursor = match begin_managed_occurrence_selection(
-    plan, selected_rows, max_cells, max_work, computed, true, fn(_, _) { true },
-  ) {
+  let cursor = match
+    begin_managed_occurrence_selection(
+      plan,
+      selected_rows,
+      max_cells,
+      max_work,
+      computed,
+      true,
+      fn(_, _) { true },
+    ) {
     Ok(cursor) => cursor
     Err(issue) => return Err(issue)
   }
@@ -86,6 +93,7 @@ fn[T] prepare_managed_occurrence_selection(
   }
   take_managed_view_selection(cursor)
 }
+
 ///|
 /// Original source occurrence for the output position. Not a content identity
 /// and not authority to read the material; normal pin/admission still applies.

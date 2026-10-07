@@ -54,7 +54,13 @@ pub fn[T] begin_managed_view_selection(
   validate_occurrence? : (Int, Int) -> Bool = fn(_, _) { true },
 ) -> Result[ManagedViewSelectionPreparation[T], ManagedSelectionMeasureIssue] {
   begin_managed_occurrence_selection(
-    plan, Indices(rows), max_cells, max_work, false, true, validate_occurrence,
+    plan,
+    Indices(rows),
+    max_cells,
+    max_work,
+    false,
+    true,
+    validate_occurrence,
   )
 }
 
@@ -72,7 +78,12 @@ pub fn[T] begin_managed_view_slice(
     return Err(InvalidSelection)
   }
   begin_managed_occurrence_selection(
-    plan, Slice(start, count), max_cells, max_work, false, true,
+    plan,
+    Slice(start, count),
+    max_cells,
+    max_work,
+    false,
+    true,
     validate_occurrence,
   )
 }
@@ -87,35 +98,77 @@ fn[T] begin_managed_occurrence_selection(
   copy_index : Bool,
   validate_occurrence : (Int, Int) -> Bool,
 ) -> Result[ManagedViewSelectionPreparation[T], ManagedSelectionMeasureIssue] {
-  if max_cells < 0 || max_work < 0 { return Err(InvalidLimits) }
+  if max_cells < 0 || max_work < 0 {
+    return Err(InvalidLimits)
+  }
   let width = plan.columns.length()
   let count = supplied.length()
   let mut work = max_work
   if copy_index {
-    if width > 0 && count > max_cells / width { return Err(Limit) }
+    if width > 0 && count > max_cells / width {
+      return Err(Limit)
+    }
     let cells = count * width
-    let copy_work = match supplied { Indices(_) => count; Slice(_, _) => 0 }
-    if cells > work || copy_work > work - cells { return Err(Limit) }
+    let copy_work = match supplied {
+      Indices(_) => count
+      Slice(_, _) => 0
+    }
+    if cells > work || copy_work > work - cells {
+      return Err(Limit)
+    }
     work -= cells + copy_work
   }
-  if !managed_producer_read_available(plan.input) { return Err(ForeignInput) }
+  if !managed_producer_read_available(plan.input) {
+    return Err(ForeignInput)
+  }
   let receipt = plan.input.output.material.receipt
-  guard receipt.row_measurements is Some(source) else { return Err(MissingIndex) }
-  if count > receipt.rows || (plan.rows != SelectedRows && count != receipt.rows) {
+  guard receipt.row_measurements is Some(source) else {
+    return Err(MissingIndex)
+  }
+  if count > receipt.rows ||
+    (plan.rows != SelectedRows && count != receipt.rows) {
     return Err(InvalidSelection)
   }
-  if count > work { return Err(Limit) }
+  if count > work {
+    return Err(Limit)
+  }
   work -= count
   let copy_rows = copy_index && supplied is Indices(_)
   Ok({
-    plan, supplied, row_count: count, width,
-    source_width: @schema.field_count(receipt.schema), source,
-    copy_index, computed, validate_occurrence,
-    rows: if copy_rows { Indices([]) } else { supplied },
-    phase: if copy_rows { CopyRows } else { ValidateRows },
-    position: 0, column: 0, previous: -1, increasing: true,
-    seen: Map([]), work, bytes: 0, nodes: 0, maximum: 0, null_rows: 0,
-    measurements: [], columns: [], index: None, closed: false, reading: false,
+    plan,
+    supplied,
+    row_count: count,
+    width,
+    source_width: @schema.field_count(receipt.schema),
+    source,
+    copy_index,
+    computed,
+    validate_occurrence,
+    rows: if copy_rows {
+      Indices([])
+    } else {
+      supplied
+    },
+    phase: if copy_rows {
+      CopyRows
+    } else {
+      ValidateRows
+    },
+    position: 0,
+    column: 0,
+    previous: -1,
+    increasing: true,
+    seen: Map([]),
+    work,
+    bytes: 0,
+    nodes: 0,
+    maximum: 0,
+    null_rows: 0,
+    measurements: [],
+    columns: [],
+    index: None,
+    closed: false,
+    reading: false,
   })
 }
 
@@ -125,14 +178,18 @@ fn[T] begin_managed_occurrence_selection(
 pub fn[T] cancel_managed_view_selection_preparation(
   cursor : ManagedViewSelectionPreparation[T],
 ) -> Bool {
-  if cursor.closed { return false }
+  if cursor.closed {
+    return false
+  }
   cursor.closed = true
   cursor.rows = Slice(0, 0)
   cursor.supplied = Slice(0, 0)
   cursor.seen = Map([])
   cursor.columns = []
   cursor.measurements = []
-  if cursor.index is Some(index) { discard_managed_row_measurements(index) }
+  if cursor.index is Some(index) {
+    discard_managed_row_measurements(index)
+  }
   cursor.index = None
   true
 }
@@ -142,11 +199,15 @@ pub fn[T] advance_managed_view_selection(
   cursor : ManagedViewSelectionPreparation[T],
   quantum : Int,
 ) -> Result[(Bool, Int), ManagedSelectionMeasureIssue] {
-  if cursor.closed || cursor.reading || quantum <= 0 { return Err(Closed) }
+  if cursor.closed || cursor.reading || quantum <= 0 {
+    return Err(Closed)
+  }
   cursor.reading = true
   let result = advance_managed_view_selection_active(cursor, quantum)
   cursor.reading = false
-  if result is Err(_) { cancel_managed_view_selection_preparation(cursor) |> ignore }
+  if result is Err(_) {
+    cancel_managed_view_selection_preparation(cursor) |> ignore
+  }
   result
 }
 
@@ -156,63 +217,85 @@ fn[T] advance_managed_view_selection_active(
   quantum : Int,
 ) -> Result[(Bool, Int), ManagedSelectionMeasureIssue] {
   for step in 0..<quantum {
-    if cursor.closed { return Err(Closed) }
-    if !managed_producer_read_available(cursor.plan.input) { return Err(ForeignInput) }
-    if cursor.closed { return Err(Closed) }
+    if cursor.closed {
+      return Err(Closed)
+    }
+    if !managed_producer_read_available(cursor.plan.input) {
+      return Err(ForeignInput)
+    }
+    if cursor.closed {
+      return Err(Closed)
+    }
     if cursor.phase != CopyRows && cursor.rows.length() != cursor.row_count {
       return Err(InvalidSelection)
     }
     match cursor.phase {
       CopyRows => {
-        if cursor.supplied.length() != cursor.row_count { return Err(InvalidSelection) }
+        if cursor.supplied.length() != cursor.row_count {
+          return Err(InvalidSelection)
+        }
         if cursor.position == cursor.row_count {
           cursor.position = 0
           cursor.phase = ValidateRows
         } else {
-          guard cursor.rows is Indices(rows) else { return Err(InvalidSelection) }
+          guard cursor.rows is Indices(rows) else {
+            return Err(InvalidSelection)
+          }
           rows.push(cursor.supplied.get(cursor.position).unwrap())
           cursor.position += 1
         }
       }
-      ValidateRows => {
+      ValidateRows =>
         if cursor.position == cursor.row_count {
           cursor.position = 0
           if !cursor.increasing {
-            if cursor.row_count > cursor.work { return Err(Limit) }
+            if cursor.row_count > cursor.work {
+              return Err(Limit)
+            }
             cursor.work -= cursor.row_count
             cursor.phase = CheckDuplicates
-          } else { cursor.phase = BeginColumns }
+          } else {
+            cursor.phase = BeginColumns
+          }
         } else {
           let row = cursor.rows.get(cursor.position).unwrap()
           let available = cursor.plan.input.output.material.receipt.rows
-          if row < 0 || row >= available || row == cursor.previous ||
+          if row < 0 ||
+            row >= available ||
+            row == cursor.previous ||
             (cursor.plan.rows == AllRows && cursor.position != row) ||
             !(cursor.validate_occurrence)(cursor.position, row) {
             return Err(InvalidSelection)
           }
-          if cursor.closed { return Err(Closed) }
-          if row < cursor.previous { cursor.increasing = false }
+          if cursor.closed {
+            return Err(Closed)
+          }
+          if row < cursor.previous {
+            cursor.increasing = false
+          }
           cursor.previous = row
           cursor.position += 1
         }
-      }
-      CheckDuplicates => {
+      CheckDuplicates =>
         if cursor.position == cursor.row_count {
           cursor.seen = Map([])
           cursor.phase = BeginColumns
         } else {
           let row = cursor.rows.get(cursor.position).unwrap()
-          if cursor.seen.contains(row) { return Err(InvalidSelection) }
+          if cursor.seen.contains(row) {
+            return Err(InvalidSelection)
+          }
           cursor.seen[row] = true
           cursor.position += 1
         }
-      }
       BeginColumns => {
-        if cursor.width > cursor.work { return Err(Limit) }
+        if cursor.width > cursor.work {
+          return Err(Limit)
+        }
         cursor.work -= cursor.width
         cursor.phase = BeginColumn
       }
-      BeginColumn => {
+      BeginColumn =>
         if cursor.column == cursor.width {
           cursor.column = 0
           cursor.phase = if cursor.copy_index { BuildColumns } else { Complete }
@@ -223,21 +306,27 @@ fn[T] advance_managed_view_selection_active(
               cursor.column += 1
             }
             Some(_) => {
-              if cursor.row_count > cursor.work { return Err(Limit) }
+              if cursor.row_count > cursor.work {
+                return Err(Limit)
+              }
               cursor.work -= cursor.row_count
               cursor.position = 0
-              cursor.bytes = 0; cursor.nodes = 0
-              cursor.maximum = 0; cursor.null_rows = 0
+              cursor.bytes = 0
+              cursor.nodes = 0
+              cursor.maximum = 0
+              cursor.null_rows = 0
               cursor.phase = MeasureColumn
             }
           }
         }
-      }
-      MeasureColumn => {
+      MeasureColumn =>
         if cursor.position == cursor.row_count {
           let measurement : ManagedColumnMeasurement = {
-            rows: cursor.row_count, bytes: cursor.bytes, nodes: cursor.nodes,
-            max_value_bytes: cursor.maximum, null_rows: cursor.null_rows,
+            rows: cursor.row_count,
+            bytes: cursor.bytes,
+            nodes: cursor.nodes,
+            max_value_bytes: cursor.maximum,
+            null_rows: cursor.null_rows,
             admitted_depth: cursor.plan.input.output.material.receipt.measured_depth,
           }
           cursor.measurements.push(Some(measurement))
@@ -248,40 +337,56 @@ fn[T] advance_managed_view_selection_active(
           let origin = cursor.plan.columns[cursor.column].unwrap()
           let column = cursor.plan.input.columns[origin]
           guard managed_row_measurement_get(
-              cursor.source, row * cursor.source_width + column,
-            ) is Some((bytes, nodes, null)) else { return Err(ForeignInput) }
-          cursor.bytes += bytes; cursor.nodes += nodes
+              cursor.source,
+              row * cursor.source_width + column,
+            )
+            is Some((bytes, nodes, null)) else {
+            return Err(ForeignInput)
+          }
+          cursor.bytes += bytes
+          cursor.nodes += nodes
           cursor.maximum = Int::max(cursor.maximum, bytes)
-          if null { cursor.null_rows += 1 }
+          if null {
+            cursor.null_rows += 1
+          }
           cursor.position += 1
         }
-      }
-      BuildColumns => {
+      BuildColumns =>
         if cursor.column == cursor.width {
           cursor.phase = AllocateIndex
         } else {
           let measurement = match cursor.measurements[cursor.column] {
             Some(value) => value
             None => {
-              if !cursor.computed { return Err(UnsupportedColumns) }
-              { rows: cursor.row_count, bytes: 0, nodes: 0,
-                max_value_bytes: 0, null_rows: 0, admitted_depth: 0 }
+              if !cursor.computed {
+                return Err(UnsupportedColumns)
+              }
+              {
+                rows: cursor.row_count,
+                bytes: 0,
+                nodes: 0,
+                max_value_bytes: 0,
+                null_rows: 0,
+                admitted_depth: 0,
+              }
             }
           }
           cursor.columns.push(measurement)
           cursor.column += 1
         }
-      }
       AllocateIndex => {
         // A checked physical allocation bound precedes this allocation. This
         // quantum bounds traversal, not the allocator's wall-clock latency.
         guard new_managed_row_measurements(cursor.row_count * cursor.width)
-          is Some(index) else { return Err(Limit) }
+          is Some(index) else {
+          return Err(Limit)
+        }
         cursor.index = Some(index)
-        cursor.position = 0; cursor.column = 0
+        cursor.position = 0
+        cursor.column = 0
         cursor.phase = CopyCells
       }
-      CopyCells => {
+      CopyCells =>
         if cursor.position == cursor.row_count || cursor.width == 0 {
           cursor.phase = Complete
         } else {
@@ -291,18 +396,23 @@ fn[T] advance_managed_view_selection_active(
               guard managed_row_measurement_get(
                   cursor.source,
                   row * cursor.source_width + cursor.plan.input.columns[origin],
-                ) is Some(cell) else { return Err(ForeignInput) }
+                )
+                is Some(cell) else {
+                return Err(ForeignInput)
+              }
               cell
             }
             None => (0, 0, false)
           }
-          if !managed_row_measurement_push(cursor.index.unwrap(), cell) { return Err(Limit) }
+          if !managed_row_measurement_push(cursor.index.unwrap(), cell) {
+            return Err(Limit)
+          }
           cursor.column += 1
           if cursor.column == cursor.width {
-            cursor.column = 0; cursor.position += 1
+            cursor.column = 0
+            cursor.position += 1
           }
         }
-      }
       Complete => return Ok((true, step + 1))
     }
   }
@@ -315,7 +425,10 @@ fn[T] advance_managed_view_selection_active(
 pub fn[T] take_managed_view_selection(
   cursor : ManagedViewSelectionPreparation[T],
 ) -> Result[ManagedViewSelection[T], ManagedSelectionMeasureIssue] {
-  if cursor.closed || cursor.reading || cursor.phase != Complete || !cursor.copy_index {
+  if cursor.closed ||
+    cursor.reading ||
+    cursor.phase != Complete ||
+    !cursor.copy_index {
     return Err(Closed)
   }
   cursor.reading = true
@@ -326,14 +439,21 @@ pub fn[T] take_managed_view_selection(
     return Err(if available { Closed } else { ForeignInput })
   }
   let selection : ManagedViewSelection[T] = {
-    plan: cursor.plan, rows: cursor.rows,
-    facts: { rows: cursor.row_count, columns: cursor.columns,
-      admission_usage: { work: 0, nodes: 0, text_bytes: 0 } },
-    index: cursor.index.unwrap(), claimed: false,
+    plan: cursor.plan,
+    rows: cursor.rows,
+    facts: {
+      rows: cursor.row_count,
+      columns: cursor.columns,
+      admission_usage: { work: 0, nodes: 0, text_bytes: 0, },
+    },
+    index: cursor.index.unwrap(),
+    claimed: false,
   }
   cursor.closed = true
-  cursor.rows = Slice(0, 0); cursor.index = None
+  cursor.rows = Slice(0, 0)
+  cursor.index = None
   cursor.supplied = Slice(0, 0)
-  cursor.columns = []; cursor.measurements = []
+  cursor.columns = []
+  cursor.measurements = []
   Ok(selection)
 }

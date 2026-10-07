@@ -193,9 +193,16 @@ fn[T] managed_occurrence_measurements(
   selected_rows : ManagedOccurrences,
   max_work : Int,
 ) -> Result[Array[ManagedColumnMeasurement?], ManagedSelectionMeasureIssue] {
-  let cursor = match begin_managed_occurrence_selection(
-    plan, selected_rows, 0, max_work, false, false, fn(_, _) { true },
-  ) {
+  let cursor = match
+    begin_managed_occurrence_selection(
+      plan,
+      selected_rows,
+      0,
+      max_work,
+      false,
+      false,
+      fn(_, _) { true },
+    ) {
     Ok(cursor) => cursor
     Err(issue) => return Err(issue)
   }

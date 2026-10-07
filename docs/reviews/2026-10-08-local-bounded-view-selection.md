@@ -16,8 +16,9 @@ without allocating an unnecessary row map. Sorted take retains its actual
 permutation and existing uniqueness checks.
 
 This branch starts from #872 at
-`b17b183784d71e2e4c3bbf2f85324146ed16496f`. Its final target is main; maintain
-the parent review base while that dependency is unmerged.
+`b17b183784d71e2e4c3bbf2f85324146ed16496f`. That dependency is now merged.
+The adopted main is `04b1e822091b3b02fded57e88d13591d0e5dfa29`, incorporated
+by normal merges. This unit targets main with no unmerged parent dependency.
 
 ## Custody and accounting
 
@@ -112,8 +113,42 @@ At the parent HEAD plus the implementation diff:
 
 Attempt IDs resolve under `_build/local-checks/attempts` and
 `_build/focused-evidence`. Runtime preparation builds only the consumed
-DuckDB Host/conformance checkout roots. The installed Program-preparation
-module is reused locally; no packed artifact is produced or claimed.
+DuckDB Host/conformance checkout roots. After main integration, the changed
+installed Program-preparation module was rebuilt from integrated source:
+
+```sh
+node scripts/local-checks.mjs build moon --timeout-seconds 180 -- \
+  --target js --release src/connectors_builtin_node
+```
+
+No packed artifact is produced or claimed.
+
+## Fixed-source integration evidence
+
+The verified integrated source is
+`1b8d0c668f61e9b4536652c13e1c6a8ed616dbf9`, with a clean worktree for each
+test. The commands above completed with complete output and released locks:
+
+- Program-preparation runtime build: `run-p1OWW2`, two compilation tasks.
+- Focused JS: 27/27, `run-1vukcE` / `focused-test-tWQ4kl`.
+- Actual DuckDB/Store callers, serial: 2/2 top-level cases,
+  `run-6DTX3U` / `focused-test-EGVE0N`.
+
+Earlier clean-source results remain attached to their original revisions:
+`8be9697769f72cdf220547f3b907abd159bac500` passed 27/27 JS and 2/2 Node
+(`run-Sns2Tk`, `run-WRmiGU`);
+`e976945fbcfc360d97770a818ed6155312db1d3b` passed 27/27 JS and 2/2 Node
+(`run-Nvgcyb`, `run-3BITAO`). These are not relabeled as final-source evidence.
+
+Main's unknown-reference diagnostics and shared history normalization records
+are retained. Integration removed an accidentally duplicated diagnostic test;
+the diagnostic files match the adopted main and introduce no Local delta.
+The historical #866 history failure is not repaired independently here;
+main's shared fixes are adopted without bypassing or deleting declarations.
+Actual retained-history verification was not rerun for this unit.
+
+The subsequent evidence-only commit changes this report, not the verified
+implementation. Submitted-HEAD hosted verification is recorded in the PR.
 
 ## Remaining scope
 
@@ -124,7 +159,6 @@ trusted availability/occurrence callbacks, physical chunk admission, Local
 row-file finish and other blocking callers are separate boundaries.
 
 Full Core, Wasm/Native core execution, packed/HTTPS, performance and proof
-campaigns are not run for this unit. The known unchanged-main actual-history
-failure from #866 is preserved, not independently repaired or bypassed.
-Final-head hosted CI is unverified while this dependency PR remains Draft.
+campaigns are not run for this unit.
+Final-head hosted CI is unverified while this PR remains Draft.
 The whole retained Local goal is not complete.

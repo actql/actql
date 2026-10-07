@@ -491,7 +491,8 @@ pub fn[T] prepare_managed_fixed_query_selection(
   max_cells : Int,
   max_work : Int,
 ) -> Result[@execution.ManagedViewSelection[T], NativeQueryIssue] {
-  let cursor = match begin_managed_fixed_query_selection(value, rows, max_cells, max_work) {
+  let cursor = match
+    begin_managed_fixed_query_selection(value, rows, max_cells, max_work) {
     Ok(cursor) => cursor
     Err(issue) => return Err(issue)
   }
