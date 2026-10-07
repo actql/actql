@@ -188,6 +188,110 @@ test "Captured Run issuer binds exact Result values and field order" {
 }
 
 ///|
+fn captured_preparation_test_start() -> CapturedRunIssuancePreparation {
+  let chain = captured_run_test_chain()
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  start_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+    32768,
+  )
+}
+
+///|
+test "Captured Run preparation keeps final evidence checking and quantum-independent identity" {
+  let mut identity = None
+  let mut total = None
+  for quantum in [1, 7, 64] {
+    let preparation = captured_preparation_test_start()
+    let mut work = 0
+    let mut saw_context_check = false
+    let mut saw_rows_check = false
+    let mut finished = false
+    for _ in 0..<500000 {
+      let (done, used) = preparation.advance(quantum).unwrap()
+      assert_true(used <= quantum)
+      work += used
+      let phase = captured_run_preparation_fixture_phase(preparation)
+      if phase == "context-check" {
+        saw_context_check = true
+      }
+      if phase == "rows-check" {
+        saw_rows_check = true
+      }
+      if done {
+        finished = true
+        break
+      }
+      assert_true(used > 0)
+    }
+    assert_true(finished)
+    if quantum == 1 {
+      assert_true(saw_context_check && saw_rows_check)
+    }
+    let contract = preparation.finish().unwrap()
+    let wire = publication_contract_json(contract)
+    assert_true(wire.contains("\"result_values\":{\"answer\":[{\"value\":7}]}"))
+    assert_true(wire.contains("\"result_fields\":{\"answer\":[\"value\"]}"))
+    if identity is Some(previous) {
+      assert_eq(publication_contract_identity(contract), previous)
+    }
+    identity = Some(publication_contract_identity(contract))
+    if total is Some(previous) {
+      assert_eq(work, previous)
+    }
+    total = Some(work)
+    assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
+    assert_eq(captured_run_preparation_fixture_phase(preparation), "closed")
+  }
+}
+
+///|
+test "Captured Run preparation cancels after real progress at every aggregate boundary" {
+  for
+    wanted in [
+      "context", "envelope", "seal", "context-check", "rows-check", "done",
+    ] {
+    let preparation = captured_preparation_test_start()
+    let mut progress = 0
+    let mut reached = false
+    for _ in 0..<500000 {
+      let (_, used) = preparation.advance(1).unwrap()
+      progress += used
+      if captured_run_preparation_fixture_phase(preparation) == wanted {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached && progress > 0)
+    preparation.cancel()
+    preparation.cancel()
+    assert_eq(captured_run_preparation_fixture_phase(preparation), "closed")
+    assert_true(preparation.advance(1) is Err(CaptureIssuanceEncoding))
+    assert_true(preparation.finish() is Err(CaptureIssuanceEncoding))
+  }
+}
+
+///|
 test "a self-identified Receipt cannot publish an unauthorized decision" {
   let chain = captured_run_test_chain()
   let snapshot = admit_captured_result_snapshot(

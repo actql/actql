@@ -1,6 +1,6 @@
 // Exercise the installed Host configuration entry, not a post-lowering edit.
 import {generateKeyPairSync} from 'node:crypto';
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
@@ -9,7 +9,13 @@ import {connect} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-const {directory, entrance, output, ref, submissionRef: originalSubmission} = JSON.parse(process.argv[2]);
+const {directory, entrance, output, ref, submissionRef: originalSubmission,
+  interruptAfterRows, originalAttemptId} = JSON.parse(process.argv[2]);
+const deliveriesDirectory = join(directory, 'host/publication/deliveries');
+async function savedAttempts() {
+  const names = (await readdir(deliveriesDirectory)).filter(name => /^[0-9a-f]{64}$/u.test(name)).sort();
+  return Promise.all(names.map(name => readFile(join(deliveriesDirectory, name, 'attempt.json'), 'utf8')));
+}
 const keys = generateKeyPairSync('ed25519');
 let computes = 0;
 const authorization = {
@@ -42,6 +48,8 @@ try {
   console.log('INSTALLED_READ_121_PHASE', 'connected');
   const program = JSON.parse(await readFile(new URL('./fixtures/read-121.program.json', import.meta.url), 'utf8'));
   const submissionRef = originalSubmission ?? client.newSubmission({nonce: 'installed-read-121'});
+  if (originalSubmission === undefined) await writeFile(join(directory, 'submission-ref.json'),
+    JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
   const run = ref === undefined ? await client.start(program, {submissionRef}) : await client.attach(ref);
   console.log('INSTALLED_READ_121_PHASE', 'submitted');
   const status = await run.wait({signal: AbortSignal.timeout(15000)});
@@ -49,15 +57,34 @@ try {
   const request = await client.lookupSubmission(submissionRef);
   console.log('INSTALLED_READ_121_PHASE', 'request-found');
   const result = run.result('answer');
+  let originalFirst, originalSecond, lookupBefore, lookupAfter;
+  if (originalAttemptId !== undefined) {
+    lookupBefore = await savedAttempts();
+    originalFirst = await result.deliveryAttempt(originalAttemptId);
+    originalSecond = await result.deliveryAttempt(originalAttemptId);
+    lookupAfter = await savedAttempts();
+  }
   const description = await result.describe();
   console.log('INSTALLED_READ_121_PHASE', 'described');
   const reader = result.rows();
-  const rows = await Array.fromAsync(reader);
+  const rows = [];
+  for await (const row of reader) {
+    rows.push(row);
+    if (rows.length === interruptAfterRows) break;
+  }
   console.log('INSTALLED_READ_121_PHASE', 'read', rows.length);
   const attempt = await result.deliveryAttempt(reader.attemptId);
+  const originalAfterRead = originalAttemptId === undefined ? undefined :
+    await result.deliveryAttempt(originalAttemptId);
+  const attempts = await savedAttempts();
+  const grants = await Promise.all(attempts.map(async wire => {
+    const cid = JSON.parse(wire).result_read_grant_cid;
+    return JSON.parse(await readFile(join(directory, 'host/publication/contracts', `${cid.slice(7)}.json`), 'utf8'));
+  }));
   console.log('INSTALLED_READ_121_PHASE', 'receipt', attempt.record?.state);
-  await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, status, request,
-    description, rows, attempt, readState: reader.state(), computes}));
+  await writeFile(output, JSON.stringify({pid: process.pid, ref: run.ref, submissionRef, status, request,
+    description, rows, attempt, readState: reader.state(), rowsYielded: reader.rowsYielded(), computes,
+    originalFirst, originalSecond, originalAfterRead, lookupBefore, lookupAfter, attempts, grants}));
 } catch (error) {
   console.log('INSTALLED_READ_121_FAILURE', error.code ?? error.name, error.message);
   throw error;

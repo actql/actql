@@ -57,7 +57,7 @@ const retainedProducerHolderRecreation =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_PRODUCER_HOLDER_RECREATION === '1';
 const retainedHandoffInterruption = process.env.ACTQL_TEST_RESIDENT_RETAINED_HANDOFF_INTERRUPTION;
 if (retainedHandoffInterruption !== undefined &&
-  !['receiver-committed', 'consumer-borrowed'].includes(retainedHandoffInterruption)) {
+  !['transfer-pending', 'receiver-committed', 'consumer-borrowed'].includes(retainedHandoffInterruption)) {
   throw new Error('unknown retained handoff interruption');
 }
 if (retainedHandoffInterruption !== undefined && retainedProducerHolderRecreation) {
@@ -155,6 +155,9 @@ try {
   const runHost = await import(pathToFileURL(
     process.env.ACTQL_TEST_RUN_HOST_CORE_MODULE ??
       join(repository, 'packages/run-host-core/index.mjs')).href);
+  const retainedTransferOwner = retainedConsumerMode
+    ? await import(pathToFileURL(join(repository, 'packages/transfer-core/index.mjs')).href)
+    : undefined;
   const portable = runtimeCore(moonModule);
   const siteControl = portable.remoteSiteControl;
 
@@ -938,14 +941,30 @@ try {
         assert.ok(allocations.length > 0);
         assert.ok(allocations.every(row => ['sealed', 'reused'].includes(row.body.split('\n')[3])));
         const readers = retainedJournalRows('remote_transfer_destination_reader');
+        const transfers = retainedJournalRows('remote_transfer');
+        const receipts = retainedJournalRows('remote_transfer_destination_receipt');
+        if (retainedHandoffInterruption === 'transfer-pending') {
+          assert.equal(transfers.length, 1, 'one original Transfer before receiver commit');
+          const durable = retainedTransferOwner.admitDurableJson(transfers[0].body, limits);
+          const record = retainedTransferOwner.restoreDurable(durable);
+          assert.equal(retainedTransferOwner.durableRequestCid(durable),
+            runHost.retainedInputPlanFacts(plan).transfer.cid);
+          assert.equal(retainedTransferOwner.directProgress(record), 1, 'Transfer is still copying');
+          assert.equal(retainedTransferOwner.recordIsDestinationCommitted(record), false);
+          assert.ok(allocations.length < retainedTransferOwner.chunks(
+            retainedTransferOwner.recordRequest(record)).length,
+          'unwritten chunks remain at the interrupted boundary');
+          assert.deepEqual(receipts, [], 'no receiver commit receipt at the interrupted boundary');
+          assert.deepEqual(readers, [], 'no input borrower before receiver commit');
+        }
         await writeFile(join(root, `retained-${retainedHandoffInterruption}-snapshot.json`),
-          JSON.stringify({allocations, readers}), {mode: 0o600});
+          JSON.stringify({allocations, readers, transfers, receipts}), {mode: 0o600});
         await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
           line.point === point), 'retained holder physical interruption');
         await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
           'retained holder physical exit');
         assert.equal((await entries()).length, 1, 'consumer has not started at the interrupted boundary');
-        return {allocations, readers};
+        return {allocations, readers, transfers, receipts};
       };
       let interruptedReceiver;
       const producerDispatch = dispatchFor('retained-producer', 1);
@@ -1020,17 +1039,48 @@ try {
       }
       const physicalTransfer = within(gateway.retainedTransfer({dispatch: producerDispatch, plan}),
         'physical retained input transfer').catch(error => error);
-      if (retainedHandoffInterruption === 'receiver-committed') {
+      if (['transfer-pending', 'receiver-committed'].includes(retainedHandoffInterruption)) {
         interruptedReceiver = await waitForHandoffInterruption();
         assert.deepEqual(interruptedReceiver.readers, []);
       }
       let result = await physicalTransfer;
       if (result instanceof Error) throw result;
-      if (retainedHandoffInterruption === 'receiver-committed') {
-        assert.deepEqual(retainedJournalRows('remote_transfer_destination_allocation'),
-          interruptedReceiver.allocations, 'committed receiver allocations are not rewritten');
+      if (['transfer-pending', 'receiver-committed'].includes(retainedHandoffInterruption)) {
+        const resumedAllocations = retainedJournalRows('remote_transfer_destination_allocation');
+        if (retainedHandoffInterruption === 'transfer-pending') {
+          for (const original of interruptedReceiver.allocations) {
+            assert.deepEqual(resumedAllocations.find(row => row.record_key === original.record_key),
+              original, 'reconstruction preserves every already-sealed chunk and its physical generation');
+          }
+        } else {
+          assert.deepEqual(resumedAllocations, interruptedReceiver.allocations,
+            'committed receiver allocations are not rewritten');
+        }
         assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
           line.request_cid === siteControl.identity(producerDispatch)));
+        if (retainedHandoffInterruption === 'transfer-pending') {
+          const transfers = retainedJournalRows('remote_transfer');
+          assert.equal(transfers.length, 1, 'reconstruction resumes the original Transfer');
+          assert.equal(transfers[0].record_key, interruptedReceiver.transfers[0].record_key);
+          const durable = retainedTransferOwner.admitDurableJson(transfers[0].body, limits);
+          assert.equal(retainedTransferOwner.durableRequestCid(durable),
+            runHost.retainedInputPlanFacts(plan).transfer.cid);
+          assert.equal(retainedTransferOwner.recordIsDestinationCommitted(
+            retainedTransferOwner.restoreDurable(durable)), true);
+          assert.equal(resumedAllocations.length, retainedTransferOwner.chunks(
+            retainedTransferOwner.recordRequest(retainedTransferOwner.restoreDurable(durable))).length,
+          'only the original manifest chunks are completed');
+          assert.equal(retainedJournalRows('remote_transfer_destination_receipt').length, 1);
+          assert.equal((await entries()).length, 1, 'reconstruction cannot start Source or consumer again');
+          for (const kind of ['holder-paused', 'holder-killed']) {
+            assert.equal(site.lines.filter(line => line.kind === kind &&
+              line.point === 'retained-transfer-pending').length, 1,
+            'only the original holder is interrupted');
+          }
+          assert.equal(site.lines.filter(line => line.kind === 'holder-restored' &&
+            line.request_cid === siteControl.identity(producerDispatch)).length, 1,
+          'one reconstruction of the original producer custody');
+        }
       }
       if (retainedCoordinatorReconstruction) {
         assert.equal(gateway.pending(), 0);
@@ -1373,7 +1423,10 @@ try {
         producerHolderRecreated: retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined,
         middleHolderRecreated: retainedMiddleRecreation,
         retainedHandoffInterruption: retainedHandoffInterruption ?? null,
-        committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined,
+        transferResumedBeforeCommit: retainedHandoffInterruption === 'transfer-pending',
+        pendingReceiverAllocationsPreserved: retainedHandoffInterruption === 'transfer-pending',
+        committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined &&
+          retainedHandoffInterruption !== 'transfer-pending',
         originalBorrowReturnedOnce: retainedHandoffInterruption === 'consumer-borrowed',
         cancelledBeforeConsumer: retainedCancelBeforeConsumer,
         receiverHoldingReclaimed: true, resultReread: !retainedCancelBeforeConsumer,

@@ -1,0 +1,17 @@
+{
+  "name": "@fixture/external-numeric",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./strategy": "./adapters/strategy-bundle.mjs"
+  },
+  "files": [
+    "moon.mod",
+    "src",
+    "adapters"
+  ],
+  "scripts": {
+    "prepack": "node --check adapters/strategy-bundle.mjs"
+  }
+}

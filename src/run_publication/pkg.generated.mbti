@@ -134,6 +134,8 @@ pub fn captured_effect_source_table_input_from_capture(EffectPreviewIdentity, In
 
 pub fn captured_local_effect_source_json(CapturedLocalEffectSourceEvidence, Int, Int, Int) -> String?
 
+pub fn captured_run_preparation_fixture_phase(CapturedRunIssuancePreparation) -> String
+
 pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String, String, Int, Int, Int) -> Result[Unit, EffectRowOutcomeIssue]
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
@@ -674,6 +676,10 @@ pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(Str
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
 
+pub fn start_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, Int) -> CapturedRunIssuancePreparation
+
+pub fn start_effectful_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[(String, String)], Int, Int, Int, Int, dependency_inventory? : CapturedEffectDependencyInventory?) -> CapturedRunIssuancePreparation
+
 pub fn trusted_clock_not_before(String?, String) -> Bool
 
 pub fn validate_captured_effect_dependency_bodies(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, CapturedEffectDependencyLimits) -> Result[Unit, CapturedEffectDependencyIssue]
@@ -807,6 +813,11 @@ pub(all) enum CapturedRunIssuanceIssue {
   CaptureIssuanceContract(PublicationContractIssue)
   CaptureIssuanceChain(RunEvidenceChainIssue)
 } derive(Eq, @debug.Debug)
+
+type CapturedRunIssuancePreparation
+pub fn CapturedRunIssuancePreparation::advance(Self, Int) -> Result[(Bool, Int), CapturedRunIssuanceIssue]
+pub fn CapturedRunIssuancePreparation::cancel(Self) -> Unit
+pub fn CapturedRunIssuancePreparation::finish(Self) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
 type CheckedPublicationInventory
 

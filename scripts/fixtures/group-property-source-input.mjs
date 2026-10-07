@@ -69,6 +69,169 @@ const text = (name, tail, extra = {}) => ({
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
   ...extra,
 });
+// Implicit leaf names survive GROUP even when the object receiver itself does
+// not. The machine control above independently defines values, NULL groups,
+// multiplicity and the checked column contracts.
+export const groupedImplicitPropertyNameSuccesses = [
+  {name: 'group-property-implicit-grouped-independent-json', format: 'json',
+    text: JSON.stringify(json), expected, columns, sourceReadCount: 0},
+  text('implicit-grouped-path',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score ORDER BY score'),
+  text('implicit-grouped-qualified-path',
+    'SELECT objects.payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score ORDER BY score'),
+  text('implicit-grouped-quoted-spelling',
+    'SELECT `objects`.`payload`.`SCORE`, COUNT(*) AS n FROM objects GROUP BY objects.payload.score ORDER BY `SCORE` NULLS LAST',
+    {expected: [{SCORE: 10, n: 1}, {SCORE: 20, n: 2}, {SCORE: null, n: 2}],
+      columns: [{name: 'SCORE', contract: {...number, nullable: true}}, columns[1]]}),
+  text('implicit-grouped-qualify',
+    'SELECT id, payload.score, COUNT(*) AS n, ROW_NUMBER() OVER (ORDER BY id) AS rank '
+      + 'FROM objects GROUP BY id, payload.score QUALIFY score > 10 AND rank > 0 ORDER BY id',
+    {expected: [{id: 1, score: 20, n: 1, rank: 1}, {id: 4, score: 20, n: 1, rank: 4}],
+      columns: [{name: 'id', contract: number}, columns[0], columns[1],
+        {name: 'rank', contract: number}]}),
+  text('implicit-grouped-join-qualify',
+    'SELECT l.id, l.payload.score, COUNT(*) AS n, ROW_NUMBER() OVER (ORDER BY l.id) AS rank '
+      + 'FROM objects AS l JOIN objects AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 '
+      + 'GROUP BY l.id, l.payload.score QUALIFY score > 10 AND rank > 0 ORDER BY id',
+    {expected: [{id: 1, score: 20, n: 1, rank: 1}, {id: 4, score: 20, n: 1, rank: 4}],
+      columns: [{name: 'id', contract: number}, columns[0], columns[1],
+        {name: 'rank', contract: number}]}),
+  text('implicit-grouped-cte',
+    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score) '
+      + 'SELECT score, n FROM summary ORDER BY score'),
+  text('implicit-grouped-join',
+    'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score ORDER BY score'),
+  text('implicit-grouped-predicate-parameter-limit',
+    'SELECT payload.score, COUNT(*) AS n FROM objects WHERE id > @cut GROUP BY payload.score '
+      + 'ORDER BY score DESC NULLS LAST LIMIT 1',
+    {parameterDeclarations: {...parameterDeclarations, cut: number},
+      parameters: {...parameters, cut: 1}, expected: [{score: 20, n: 1}]}),
+  text('implicit-grouped-empty',
+    'SELECT payload.score, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY payload.score ORDER BY score',
+    {expected: []}),
+];
+export const groupedImplicitPropertyNameRefusals = [
+  text('implicit-grouped-key-does-not-restore-receiver',
+    'SELECT payload, COUNT(*) AS n FROM objects GROUP BY payload.score'),
+  text('implicit-grouped-key-does-not-restore-member',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score + 1'),
+  text('implicit-grouped-ungrouped-receiver',
+    'SELECT other.score, COUNT(*) AS n FROM objects GROUP BY payload.score'),
+  text('implicit-grouped-removed-range',
+    'SELECT objects.payload.score, COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score'),
+  text('implicit-grouped-duplicate-leaf-name',
+    'SELECT payload.score, other.score, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score'),
+].map(item => ({...item, expectedCode: 'ClientProgramInvalidInput'}));
+// Explicit and implicit SELECT aliases use the same GROUP/HAVING scope.
+// The two collision controls deliberately keep a qualified input whose values
+// select the opposite row; no implementation output supplies these expectations.
+const havingImplicitRows = [{score: 20, n: 2}];
+const havingImplicitJson = {version: 'actql/0.1', id: 'fixture.having_implicit_alias', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+    {filter: {gt: [{field: 'key'}, {literal: 10}]}},
+    {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},
+    {select: [{score: 'key'}, 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['score', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const havingCollisionSource = 'DATA colliding = SELECT 1 AS id, 100 AS score, @a AS payload '
+  + 'UNION ALL SELECT 2 AS id, 0 AS score, @b AS payload; ';
+const havingCollisionRows = [
+  {id: 1, score: 100, payload: {score: 10}},
+  {id: 2, score: 0, payload: {score: 20}},
+];
+const havingCollisionJson = {version: 'actql/0.1', id: 'fixture.having_collision', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, score: number, payload}, rows: havingCollisionRows}, as: 'colliding'},
+    {from: 'colliding', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key', 'score'], aggregates: {n: {fn: 'count'}}}},
+    {filter: {gt: [{field: 'key'}, {literal: 10}]}},
+    {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},
+    {select: [{score: 'key'}, 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['score', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+export const groupHavingImplicitAliasSuccesses = [
+  {name: 'group-property-having-implicit-independent-json', format: 'json',
+    text: JSON.stringify(havingImplicitJson), expected: havingImplicitRows, columns, sourceReadCount: 0},
+  text('having-implicit-retained-key',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score HAVING score > 10 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-group-alias',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score + 1 > 11 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-qualified-projection',
+    'SELECT objects.payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-member',
+    'SELECT (payload).score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-quoted-alias',
+    'SELECT `objects`.`payload`.`score`, COUNT(*) AS n FROM objects GROUP BY `SCORE` HAVING `SCORE` > 10 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-hidden-count',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING COUNT(score) > 1 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-cte',
+    'WITH summary AS (SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING score > 10) '
+      + 'SELECT score, n FROM summary ORDER BY score', {expected: havingImplicitRows}),
+  text('having-implicit-join',
+    'SELECT l.payload.score, COUNT(*) AS n FROM objects AS l JOIN objects AS r '
+      + 'ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY score HAVING score > 10 ORDER BY score',
+    {expected: havingImplicitRows}),
+  text('having-implicit-object-receiver',
+    'SELECT payload.score + 1 AS bucket, (@wrapper).payload, COUNT(*) AS n FROM objects '
+      + 'GROUP BY objects.payload.score + 1 HAVING payload.score + 1 > 12 ORDER BY bucket',
+    {parameterDeclarations: {...parameterDeclarations,
+      wrapper: {type: 'object', nullable: false, fields: {payload}}},
+      parameters: {...parameters, wrapper: {payload: {score: 20}}},
+      expected: [{bucket: null, payload: {score: 20}, n: 2},
+        {bucket: 11, payload: {score: 20}, n: 1}, {bucket: 21, payload: {score: 20}, n: 2}],
+      columns: [{name: 'bucket', contract: {...number, nullable: true}},
+        {name: 'payload', contract: {...payload, additional_properties: false}}, columns[1]]}),
+  text('having-implicit-object-qualified-control',
+    'SELECT payload.score + 1 AS bucket, (@wrapper).payload, COUNT(*) AS n FROM objects '
+      + 'GROUP BY objects.payload.score + 1 HAVING objects.payload.score + 1 > 12 ORDER BY bucket',
+    {parameterDeclarations: {...parameterDeclarations,
+      wrapper: {type: 'object', nullable: false, fields: {payload}}},
+      parameters: {...parameters, wrapper: {payload: {score: 20}}},
+      expected: [{bucket: 21, payload: {score: 20}, n: 2}],
+      columns: [{name: 'bucket', contract: {...number, nullable: true}},
+        {name: 'payload', contract: {...payload, additional_properties: false}}, columns[1]]}),
+  text('having-implicit-empty',
+    'SELECT payload.score, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY score HAVING score > 10 ORDER BY score',
+    {expected: []}),
+  {name: 'group-property-having-implicit-collision-independent-json', format: 'json',
+    text: JSON.stringify(havingCollisionJson), expected: [{score: 20, n: 1}], columns, sourceReadCount: 0},
+  {name: 'group-property-having-implicit-collision-alias', format: 'aql-text',
+    text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
+      + 'GROUP BY score, colliding.score HAVING score > 10 ORDER BY score',
+    parameterDeclarations, parameters, expected: [{score: 20, n: 1}], columns, sourceReadCount: 0},
+  {name: 'group-property-having-implicit-collision-qualified-input', format: 'aql-text',
+    text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
+      + 'GROUP BY score, colliding.score HAVING colliding.score > 10 ORDER BY score',
+    parameterDeclarations, parameters, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
+  {name: 'group-property-having-implicit-collision-where-input', format: 'aql-text',
+    text: havingCollisionSource + 'SELECT payload.score, COUNT(*) AS n FROM colliding '
+      + 'WHERE score > 10 GROUP BY score ORDER BY score',
+    parameterDeclarations, parameters, expected: [{score: 10, n: 1}], columns, sourceReadCount: 0},
+];
+export const groupHavingImplicitAliasRefusals = [
+  text('having-implicit-ambiguous-group',
+    'SELECT payload.score, other.score, COUNT(*) AS n FROM objects GROUP BY score'),
+  text('having-implicit-ambiguous-having',
+    'SELECT payload.score, other.score, COUNT(*) AS n FROM objects GROUP BY payload.score HAVING score > 10'),
+  text('having-implicit-computed-key-does-not-restore-member',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING score > 10'),
+  text('having-implicit-removed-range',
+    'SELECT payload.score, COUNT(*) AS n FROM objects AS current GROUP BY score HAVING objects.payload.score > 10'),
+  text('having-implicit-ungrouped-receiver',
+    'SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING other.score > 10'),
+  text('having-implicit-alias-not-visible-to-where',
+    'SELECT payload.score, COUNT(*) AS n FROM objects WHERE score > 10 GROUP BY score'),
+].map(item => ({...item, expectedCode: 'ClientProgramInvalidInput'}));
 // Fixed shorthand expectations include cases where grouping-first and
 // aggregate-first sorting would produce different public row orders.
 export const pipeAggregateOrderSuccesses = [
@@ -299,7 +462,92 @@ export const havingGroupedSubexpressionRefusals = [
     'SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10'),
 ];
 
+// COUNT+key orders the less frequent larger key first: sorting the grouping
+// key alone instead would reverse these rows. The Program is hand-authored.
+const orderGroupedRows = [{bucket: 3, n: 1}, {bucket: 2, n: 4}];
+const orderGroupedColumns = [{name: 'bucket', contract: number}, {name: 'n', contract: number}];
+const orderGroupedSource = 'DATA samples = SELECT 1 AS x UNION ALL SELECT 2 AS x '
+  + 'UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 1 AS x; ';
+const orderGroupedJson = {version: 'actql/0.1', id: 'fixture.order_grouped_subexpression', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {x: number}, rows: [{x: 1}, {x: 2}, {x: 1}, {x: 1}, {x: 1}]}, as: 'samples'},
+    {from: 'samples', derive: {key: {add: [{field: 'x'}, {literal: 1}]}}},
+    {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+    {derive: {sort_key: {add: [{field: 'n'}, {field: 'key'}]}}},
+    {sort: [{field: 'sort_key', dir: 'asc', nulls: 'first'}]},
+    {select: [{bucket: 'key'}, 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const orderPropertyRows = [{bucket: null, n: 2}, {bucket: 21, n: 2}, {bucket: 11, n: 1}];
+const orderAliasColumns = [havingAliasColumns[0], havingAliasColumns[1], havingAliasColumns[2]];
+export const orderGroupedSubexpressionSuccesses = [
+  {name: 'group-property-order-subexpression-independent-json', format: 'json',
+    text: JSON.stringify(orderGroupedJson), expected: orderGroupedRows,
+    columns: orderGroupedColumns, sourceReadCount: 0},
+  {name: 'group-property-order-subexpression-count-key', format: 'aql-text',
+    text: orderGroupedSource + 'SELECT x + 1 AS bucket, COUNT(*) AS n FROM samples '
+      + 'GROUP BY x + 1 ORDER BY n + (samples.x + 1)',
+    expected: orderGroupedRows, columns: orderGroupedColumns, sourceReadCount: 0},
+  {name: 'group-property-order-subexpression-unselected-key', format: 'aql-text',
+    text: orderGroupedSource + 'SELECT COUNT(*) AS n FROM samples '
+      + 'GROUP BY x + 1 ORDER BY n + (samples.x + 1)',
+    expected: [{n: 1}, {n: 4}], columns: [{name: 'n', contract: number}], sourceReadCount: 0},
+  text('order-subexpression-hidden-count-property',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 '
+      + 'ORDER BY COUNT(*) - (`objects`.`payload`.`score` + 1) NULLS FIRST',
+    {expected: orderPropertyRows, columns: havingGroupedColumns}),
+  text('order-subexpression-distinct-selected-key',
+    'SELECT DISTINCT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 '
+      + 'ORDER BY n - (objects.payload.score + 1) NULLS FIRST',
+    {expected: orderPropertyRows, columns: havingGroupedColumns}),
+  text('order-subexpression-alias-property',
+    'SELECT payload.score + 1 AS bucket, @b AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 '
+      + 'ORDER BY payload.score + 1 NULLS LAST, bucket DESC NULLS LAST',
+    {expected: [havingAliasRows[2], havingAliasRows[1], havingAliasRows[0]], columns: orderAliasColumns}),
+  text('order-subexpression-qualified-input-property',
+    'SELECT payload.score + 1 AS bucket, @b AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 '
+      + 'ORDER BY objects.payload.score + 1 NULLS LAST, bucket DESC NULLS LAST',
+    {expected: [havingAliasRows[1], havingAliasRows[2], havingAliasRows[0]], columns: orderAliasColumns}),
+  text('order-subexpression-join',
+    'SELECT l.payload.score + 1 AS bucket, COUNT(*) AS n FROM objects AS l JOIN objects AS r ON l.id = r.id '
+      + 'MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score + 1 ORDER BY n - (l.payload.score + 1) NULLS FIRST',
+    {expected: orderPropertyRows, columns: havingGroupedColumns}),
+  text('order-subexpression-implicit-member-alias',
+    'DATA shaped = SELECT id AS score, other AS payload FROM objects; '
+      + 'SELECT (payload).score, COUNT(*) AS n FROM shaped GROUP BY (payload).score, score + 1 ORDER BY score + 1',
+    {expected: [{score: 100, n: 1}, {score: 200, n: 1}, {score: 300, n: 1}, {score: 400, n: 1}, {score: 500, n: 1}],
+      columns: [{name: 'score', contract: number}, {name: 'n', contract: number}]}),
+  text('order-subexpression-empty',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 '
+      + 'ORDER BY n + (objects.payload.score + 1)',
+    {expected: [], columns: havingGroupedColumns}),
+  {name: 'group-property-order-subexpression-negative-alias', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x ORDER BY x + 1',
+    expected: [{x: -2, n: 1}, {x: -1, n: 1}], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+  {name: 'group-property-order-subexpression-qualified-scalar-input', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x ORDER BY samples.x + 1',
+    expected: [{x: -1, n: 1}, {x: -2, n: 1}], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+];
+export const orderGroupedSubexpressionRefusals = [
+  text('order-subexpression-partial-key',
+    'SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY payload.score'),
+  text('order-subexpression-ungrouped-receiver',
+    'SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY other.score + 1'),
+  text('order-subexpression-distinct-removed-key',
+    'SELECT DISTINCT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY objects.payload.score + 1'),
+  text('order-subexpression-distinct-overwritten-key',
+    'SELECT DISTINCT -id AS id, COUNT(*) AS n FROM objects GROUP BY objects.id ORDER BY objects.id + 1'),
+  text('order-subexpression-closed-pipe-scope',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 '
+      + 'ORDER BY bucket |> ORDER BY objects.payload.score + 1'),
+];
+
 export const groupPropertySuccesses = [
+  ...groupHavingImplicitAliasSuccesses,
+  ...orderGroupedSubexpressionSuccesses,
+  ...groupedImplicitPropertyNameSuccesses,
   ...havingGroupedSubexpressionSuccesses,
   ...sqlGroupedSubexpressionSuccesses,
   ...pipeAggregateExpressionSuccesses,
@@ -420,4 +668,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals, sqlGroupedSubexpressionRefusals, havingGroupedSubexpressionRefusals);
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals, sqlGroupedSubexpressionRefusals, havingGroupedSubexpressionRefusals, orderGroupedSubexpressionRefusals, groupedImplicitPropertyNameRefusals, groupHavingImplicitAliasRefusals);
