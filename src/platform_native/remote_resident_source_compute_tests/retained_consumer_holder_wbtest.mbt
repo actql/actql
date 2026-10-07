@@ -19,8 +19,33 @@ fn retained_consumer_holder_case(
   destination_bytes : Int64,
   current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
+  chain_task? : Int? = None,
+  chain_context? : RetainedNativeChainContext? = None,
   output_unavailable? : Bool = false,
 ) -> Unit raise {
+  // Every completed resident consumer has durable file custody. Chain cases
+  // additionally make the original Source path unavailable to later tasks.
+  let source = match chain_task {
+    None => configuration.source
+    Some(task) => {
+      assert_true(task == 1 || task == 2)
+      assert_true(chain_context is Some(_))
+      let missing = name + ".source-must-not-open"
+      let root = @filesystem.open_root(root_path).unwrap()
+      assert_true(root.inspect_generation(missing).unwrap() is None)
+      {
+        ..configuration.source,
+        retained_output_root: Some(root_path),
+        database_path: root_path + "/" + missing,
+      }
+    }
+  }
+  let configuration = { ..configuration, source, }
+  let document = if chain_task is Some(_) {
+    retained_native_chain_document
+  } else {
+    resident_compute_document
+  }
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
     "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
@@ -37,7 +62,7 @@ fn retained_consumer_holder_case(
     materials.run_definition,
     environment,
     resident_effect_source_environment,
-    resident_compute_document,
+    document,
     None,
   ).unwrap()
   let binding = @host.client_retained_task_input_binding(input)
@@ -127,9 +152,28 @@ fn retained_consumer_holder_case(
       ),
     },
   }
-  let (bundles, active, journal) = retained_runtime_owners(
+  let (bundles, fixture_active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
+  let active = if chain_task is Some(_) {
+    let role = "consumer:" + @remote.dispatch_request_identity(dispatch)
+    let exact = bundles
+      .acquire_active_component(
+        @bundle.native_active_runtime_component_cid(fixture_active),
+        @bundle.native_active_runtime_target_triple(fixture_active),
+        role,
+      )
+      .unwrap()
+    assert_true(
+      bundles
+      .release(@bundle.native_active_runtime_process_hold_id(fixture_active))
+      .unwrap(),
+    )
+    assert_eq(@bundle.native_active_runtime_process_hold_id(exact), role)
+    exact
+  } else {
+    fixture_active
+  }
   // The same existing Site Owner saves the exact envelope before execution.
   journal.retain_dispatch_envelope(dispatch, envelope).unwrap()
   journal.accept(dispatch).unwrap() |> ignore
@@ -199,6 +243,42 @@ fn retained_consumer_holder_case(
       @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
       revision,
     )
+    if chain_task is Some(task) {
+      assert_eq(task, 2)
+      assert_eq(journal.start_claimant(dispatch).unwrap(), None)
+      assert_true(handoff.reclaim().unwrap())
+      assert_false(handoff.reclaim().unwrap())
+      assert_eq(
+        destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+        0L,
+      )
+      assert_true(
+        bundles
+        .release(@bundle.native_active_runtime_process_hold_id(active))
+        .unwrap(),
+      )
+      // No Runtime or borrow was opened. After the actual holder/receiver
+      // cleanup, use the common release transitions for this cancelled record.
+      journal
+      .commit_transition(
+        @remote.prepare_begin_remote_release(journal.require(dispatch).unwrap()).unwrap(),
+      )
+      .unwrap()
+      |> ignore
+      journal
+      .commit_transition(
+        @remote.prepare_confirm_remote_release(
+          journal.require(dispatch).unwrap(),
+        ).unwrap(),
+      )
+      .unwrap()
+      |> ignore
+      let (_, _, cleanup, _, _) = @remote.dispatch_record_state(
+        journal.require(dispatch).unwrap(),
+      )
+      assert_true(cleanup is @remote.CleanupReleased)
+      assert_eq(entries.val, 0)
+    }
     assert_true(journal.close())
     assert_true(bundles.close().unwrap())
     return
@@ -224,7 +304,11 @@ fn retained_consumer_holder_case(
     return
   }
   let executed = run().unwrap()
-  assert_true(executed.result_definition_cid is Some(_))
+  if chain_task == Some(1) {
+    assert_eq(executed.result_definition_cid, None)
+  } else {
+    assert_true(executed.result_definition_cid is Some(_))
+  }
   assert_eq(entries.val, 1)
   assert_eq(
     duplicate
@@ -264,118 +348,138 @@ fn retained_consumer_holder_case(
   }
   let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
   let missing_intent = "sha256:" + "e".repeat(64)
-  let saved_revision = @remote.dispatch_record_revision(
-    journal.require(dispatch).unwrap(),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      admission,
-      delegated,
-      attempt,
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => true,
+  if chain_task != Some(1) {
+    let saved_revision = @remote.dispatch_record_revision(
+      journal.require(dispatch).unwrap(),
     )
-    is Err(@resident.Runtime(@runtime.CompletedRestorationPending)),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      admission,
-      delegated,
-      attempt,
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => false,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Runtime(@runtime.CompletedRestorationPending)),
     )
-    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      admission,
-      delegated,
-      "another-attempt",
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => true,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => false,
+      )
+      is Err(@resident.Refused(@resident_protocol.NotCurrent)),
     )
-    is Err(@resident.EnvelopeMissing),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      {
-        ..admission,
-        source: Some(("connector://other/source#v", "sha256:" + "0".repeat(64))),
-      },
-      delegated,
-      attempt,
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => true,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        "another-attempt",
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.EnvelopeMissing),
     )
-    is Err(@resident.Refused(@resident_protocol.ForeignSource)),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      admission,
-      { ..delegated, coordinator_authority: "foreign-coordinator", },
-      attempt,
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => true,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        {
+          ..admission,
+          source: Some(
+            ("connector://other/source#v", "sha256:" + "0".repeat(64)),
+          ),
+        },
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Refused(@resident_protocol.ForeignSource)),
     )
-    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
-  )
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      site,
-      admission,
-      delegated,
-      attempt,
-      missing_intent,
-      () => "2100-01-01T00:00:00.000Z",
-      () => true,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        { ..delegated, coordinator_authority: "foreign-coordinator", },
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Refused(@resident_protocol.NotCurrent)),
     )
-    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
-  )
-  let foreign_site = @site.create_site(
-    scope[0],
-    2,
-    scope[2],
-    4,
-    4,
-    1048576L,
-    1048576L,
-  ).unwrap()
-  assert_true(
-    @resident.prepare_resident_saved_output(
-      journal,
-      foreign_site,
-      admission,
-      delegated,
-      attempt,
-      missing_intent,
-      () => "2026-10-05T00:00:00.000Z",
-      () => true,
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2100-01-01T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Refused(@resident_protocol.NotCurrent)),
     )
-    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
-  )
-  assert_eq(
-    @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
-    saved_revision,
-  )
-  assert_eq(entries.val, 1)
-  assert_true(journal.pending_output_intents().unwrap().is_empty())
+    let foreign_site = @site.create_site(
+      scope[0],
+      2,
+      scope[2],
+      4,
+      4,
+      1048576L,
+      1048576L,
+    ).unwrap()
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        foreign_site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+    )
+    assert_eq(
+      @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+      saved_revision,
+    )
+    assert_eq(entries.val, 1)
+    assert_true(journal.pending_output_intents().unwrap().is_empty())
+  } else {
+    // The intermediate file is a retained producer, never this Run's Named
+    // Result. Restoring a saved public Output cannot select its local slot.
+    assert_true(
+      @resident.prepare_resident_saved_output(
+        journal,
+        site,
+        admission,
+        delegated,
+        attempt,
+        missing_intent,
+        () => "2026-10-05T00:00:00.000Z",
+        () => true,
+      )
+      is Err(@resident.Refused(@resident_protocol.UnsupportedTask)),
+    )
+  }
   // Completion must name the original file custody before it is available for
   // Output. A process-local completion alone cannot survive holder loss.
   let custody = @dispatch_journal.recovered_site_dispatch_file_custody(
@@ -416,6 +520,29 @@ fn retained_consumer_holder_case(
     @dispatch_journal.native_output_file_custody_content_cid(custody),
   )
   assert_true(read_back.close())
+  {
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    let after_handoff = @site.site_status(site)
+    let replay = @resident.prepare_resident_retained_consumer(
+      handoff,
+      producer_journal,
+      admission,
+      poll,
+      "2026-10-05T00:00:00.000Z",
+      {
+        max_binding_bytes: 262144,
+        max_chunks: 100,
+        max_manifest_bytes: 4096,
+        max_referenced_bytes: 1048576L,
+      },
+    ).unwrap()
+    assert_true(physical_equal(replay, owner))
+    assert_eq(@site.site_status(site), after_handoff)
+    assert_eq(entries.val, 1)
+  }
   let subject = @dispatch_journal.recovered_site_dispatch_subject(
     journal.observation(dispatch).unwrap(),
   ).unwrap()
@@ -423,13 +550,72 @@ fn retained_consumer_holder_case(
   let facts = executed.runtime
     .inspect_output_facts(dispatch, fields[1])
     .unwrap()
-  assert_eq(facts.row_count, 1)
-  assert_eq(
-    facts.result_schema_cid,
-    "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
-  )
-  // A live Result reader prevents Runtime cleanup. The same consumer and both
-  // independent holdings retain their responsibility until the reader ends.
+  if chain_task is Some(task) {
+    let (_, expected_schema, _) = retained_native_chain_expected(task)
+    assert_eq(facts.row_count, 3)
+    assert_eq(facts.result_schema_cid, expected_schema)
+    assert_eq(
+      facts.material_generation,
+      retained_native_chain_generation(dispatch, task),
+    )
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      0L,
+    )
+    if task == 1 {
+      // The middle's actual durable completion and actual output Runtime are
+      // the producer of edge (2, 0). The original Source is never substituted.
+      let context = chain_context.unwrap()
+      let edge = @host.prepare_client_retained_input_edge(
+        materials.prepared,
+        compilation,
+        materials.admission,
+        materials.run_definition,
+        2,
+        0,
+      ).unwrap()
+      let observed = journal.observation(dispatch).unwrap()
+      let evidence = @dispatch_journal.recovered_site_dispatch_evidence(
+        observed,
+      ).unwrap()
+      let producer = @host.prepare_client_retained_input_producer(
+        edge,
+        journal.require(dispatch).unwrap(),
+        evidence,
+        subject,
+      ).unwrap()
+      acquisition_runtime_transfer_consumer(
+        materials,
+        admission,
+        configuration,
+        compilation,
+        context.caller,
+        context.selected,
+        executed.runtime,
+        journal,
+        dispatch,
+        producer,
+        fields[1],
+        site,
+        sqlite,
+        root_path,
+        name + ".middle-output",
+        through_consumer_holder=true,
+        consumer_task=2,
+        chain_context=Some(context),
+      )
+      assert_true(@host.client_retained_input_producer_available(producer))
+      assert_eq(entries.val, 1)
+    }
+  } else {
+    assert_eq(facts.row_count, 1)
+    assert_eq(
+      facts.result_schema_cid,
+      "sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513",
+    )
+  }
+  // A live Result reader prevents output-file cleanup. Its independent file
+  // custody stays live after the committed handoff retired the input.
   let reader = executed.runtime
     .open_output_reader(dispatch, fields[1], 128)
     .unwrap()
@@ -437,9 +623,9 @@ fn retained_consumer_holder_case(
   assert_true(file_root.verify_generation("output-" + occurrence, generation))
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-    destination_bytes,
+    0L,
   )
-  assert_true(handoff.reclaim() is Err(_))
+  assert_false(handoff.reclaim().unwrap())
   assert_true(
     handoff.current_reply(current_query) is Err(@resident.CleanupPending),
   )
@@ -453,7 +639,15 @@ fn retained_consumer_holder_case(
       break
     }
   }
-  assert_eq(@utf8.decode(Bytes::from_array(bytes)), "[{\"id\":3}]")
+  if chain_task is Some(task) {
+    let (expected_rows, _, expected_content) = retained_native_chain_expected(
+      task,
+    )
+    assert_eq(@utf8.decode(Bytes::from_array(bytes)), expected_rows)
+    assert_eq("sha256:" + @sha.hex(Bytes::from_array(bytes)), expected_content)
+  } else {
+    assert_eq(@utf8.decode(Bytes::from_array(bytes)), "[{\"id\":3}]")
+  }
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
@@ -465,10 +659,11 @@ fn retained_consumer_holder_case(
     journal.require(dispatch).unwrap(),
   )
   assert_true(cleanup is @remote.CleanupReleased)
-  // Returning the borrow does not reclaim the independent receiver.
+  // The exact durable file was verified above before input retirement; its
+  // reader has now finished and formal output cleanup is independently done.
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
-    destination_bytes,
+    0L,
   )
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

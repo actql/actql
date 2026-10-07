@@ -11,6 +11,7 @@ extern "C" fn cleanup_fail_root_sync(
 
 ///|
 struct StoppedCleanupFixture {
+  admission : ResidentRunAdmission
   journal : @journal.Journal
   receiver : @transfer_journal.Journal
   root : @filesystem.Root
@@ -122,7 +123,11 @@ fn cleanup_complete(
 }
 
 ///|
-fn stopped_cleanup_fixture(name : String) -> StoppedCleanupFixture {
+fn stopped_cleanup_fixture(
+  name : String,
+  complete_consumer? : Bool = true,
+  borrow_input? : Bool = true,
+) -> StoppedCleanupFixture {
   let sqlite_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap_or_else(() => {
       abort("SQLite required")
     },
@@ -270,16 +275,23 @@ fn stopped_cleanup_fixture(name : String) -> StoppedCleanupFixture {
     ).unwrap(),
   )
   .unwrap()
-  cleanup_complete(journal, site, consumer, manifest) |> ignore
-  receiver
-  .acquire_destination_reader(
-    transfer,
-    receipt,
-    @remote.dispatch_request_identity(consumer),
-  )
-  .unwrap()
-  |> ignore
+  if complete_consumer {
+    cleanup_complete(journal, site, consumer, manifest) |> ignore
+  } else {
+    journal.accept(consumer).unwrap() |> ignore
+  }
+  if borrow_input {
+    receiver
+    .acquire_destination_reader(
+      transfer,
+      receipt,
+      @remote.dispatch_request_identity(consumer),
+    )
+    .unwrap()
+    |> ignore
+  }
   {
+    admission,
     journal,
     receiver,
     root,
@@ -449,6 +461,118 @@ test "stopped retained cleanup retains reservation through physical sync failure
     0L,
   )
   stopped_cleanup_apply(f, () => true).unwrap()
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+fn stopped_cleanup_saved(
+  f : StoppedCleanupFixture,
+  current : () -> Bool,
+) -> () -> Bool {
+  prepare_resident_saved_input_cleanup(
+    f.journal,
+    f.receiver,
+    Some(f.root),
+    f.admission,
+    f.consumer,
+    1024L,
+    current,
+  )
+  .unwrap()
+  .unwrap()
+}
+
+///|
+test "historical input cleanup admits accepted occurrence without creating a reader" {
+  let f = stopped_cleanup_fixture(
+    "accepted-without-reader",
+    complete_consumer=false,
+    borrow_input=false,
+  )
+  let original_revision = @remote.dispatch_record_revision(
+    f.journal.require(f.consumer).unwrap(),
+  )
+  let cleanup = stopped_cleanup_saved(f, () => true)
+  assert_true(cleanup())
+  assert_true(cleanup())
+  assert_eq(f.receiver.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(
+    f.receiver.release_destination_reader(
+      f.transfer,
+      f.receipt,
+      @remote.dispatch_request_identity(f.consumer),
+    )
+    is Err(@transfer_journal.Physical(@sqlite.NotFound)),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(f.journal.require(f.consumer).unwrap()),
+    original_revision,
+  )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+test "historical input cleanup requires stop and retries the original accepted borrow" {
+  let f = stopped_cleanup_fixture("accepted-stop", complete_consumer=false)
+  let current = Ref(false)
+  let cleanup = stopped_cleanup_saved(f, () => current.val)
+  assert_false(cleanup())
+  f.receiver
+  .validate_destination_reader(
+    f.transfer,
+    f.receipt,
+    @remote.dispatch_request_identity(f.consumer),
+  )
+  .unwrap()
+  assert_eq(
+    f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+    10L,
+  )
+  current.val = true
+  assert_true(cleanup())
+  assert_true(cleanup())
+  assert_eq(f.receiver.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_false(
+    @remote.remote_runtime_record_released(
+      f.journal.require(f.consumer).unwrap(),
+    ),
+  )
+  assert_true(f.journal.close())
+  assert_true(f.receiver.close())
+}
+
+///|
+test "historical input cleanup rechecks stop between reader return and reclaim" {
+  let f = stopped_cleanup_fixture(
+    "accepted-stop-revoked",
+    complete_consumer=false,
+  )
+  let calls = Ref(0)
+  let restored = Ref(false)
+  let cleanup = stopped_cleanup_saved(f, () => {
+    calls.val = calls.val + 1
+    restored.val || calls.val == 1
+  })
+  assert_false(cleanup())
+  assert_eq(calls.val, 2)
+  assert_true(
+    f.receiver.validate_destination_reader(
+      f.transfer,
+      f.receipt,
+      @remote.dispatch_request_identity(f.consumer),
+    )
+    is Err(_),
+  )
+  assert_eq(
+    f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
+    10L,
+  )
+  restored.val = true
+  assert_true(cleanup())
+  assert_eq(f.receiver.destination_capacity_usage().unwrap().reserved_bytes, 0L)
+  assert_true(cleanup())
   assert_true(f.journal.close())
   assert_true(f.receiver.close())
 }

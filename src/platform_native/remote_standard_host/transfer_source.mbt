@@ -53,8 +53,9 @@ struct NativeRemoteStandardPhysicalSource {
 /// this owner alone decides framing, row admission, completion, and capture.
 struct NativeRemoteStandardPhysicalAdmission {
   token : NativeRemoteTransferSourceToken
-  sequence : @query.QuerySequence
-  program : @context.ProgramSourceIdentity
+  capture : (@query.QuerySequence, @context.ProgramSourceIdentity)?
+  preparation : @execution.CompletionPreparation
+  target : @pipeline.Target
   limits : NativeRemoteStandardTransferSourceLimits
   framing : NativeRemoteStandardRowFraming
   output : @execution.AdmittedOutput
@@ -392,6 +393,34 @@ pub fn prepare_native_remote_standard_physical_admission(
   NativeRemoteStandardPhysicalAdmission,
   NativeRemoteStandardInputFailure,
 ] {
+  prepare_native_remote_standard_output_admission(
+    input,
+    physical,
+    codec,
+    @execution.generated_completion_preparation(
+      @query.query_generated_sequence(sequence),
+    ),
+    @pipeline.Step(1),
+    Some((sequence, program)),
+    limits,
+  )
+}
+
+///|
+/// Both capture and completed-input import use this one bounded verifier.
+/// The caller fixes the checked preparation and target before physical I/O.
+fn prepare_native_remote_standard_output_admission(
+  input : NativeRemoteStandardTransferInput,
+  physical : NativeRemoteStandardPhysicalSource,
+  codec : NativeRemoteStandardRowCodec,
+  preparation : @execution.CompletionPreparation,
+  target : @pipeline.Target,
+  capture : (@query.QuerySequence, @context.ProgramSourceIdentity)?,
+  limits : NativeRemoteStandardTransferSourceLimits,
+) -> Result[
+  NativeRemoteStandardPhysicalAdmission,
+  NativeRemoteStandardInputFailure,
+] {
   let request = input.request
   let token : NativeRemoteTransferSourceToken = {
     physical,
@@ -450,8 +479,8 @@ pub fn prepare_native_remote_standard_physical_admission(
   }
   let output = match
     @execution.prepare_admitted_output(
-      @query.query_sequence_owner(sequence),
-      @pipeline.Step(1),
+      @execution.completion_preparation_owner(preparation),
+      target,
       row_count,
       limits.values,
     ) {
@@ -461,8 +490,9 @@ pub fn prepare_native_remote_standard_physical_admission(
   }
   Ok({
     token,
-    sequence,
-    program,
+    capture,
+    preparation,
+    target,
     limits,
     framing: codec.framing,
     output,
@@ -519,14 +549,11 @@ pub fn feed_native_remote_standard_physical_admission(
 }
 
 ///|
-/// Completes physical verification and establishes the common captured source.
+/// Completes physical verification at the exact admitted output target.
 /// A failure retains the physical cleanup owner for explicit retry.
-pub fn finish_native_remote_standard_physical_admission(
+fn finish_native_remote_standard_output_admission(
   admission : NativeRemoteStandardPhysicalAdmission,
-) -> Result[
-  NativeRemoteStandardTransferSource,
-  NativeRemoteStandardInputFailure,
-] {
+) -> Result[NativeRemoteRetainedTaskOutput, NativeRemoteStandardInputFailure] {
   if admission.terminal {
     return Err(transfer_source_failure(None, InvalidProfile))
   }
@@ -564,10 +591,8 @@ pub fn finish_native_remote_standard_physical_admission(
   }
   let port = match
     @execution.prepare_trusted_output_port(
-      @execution.generated_completion_preparation(
-        @query.query_generated_sequence(admission.sequence),
-      ),
-      @pipeline.Step(1),
+      admission.preparation,
+      admission.target,
       admission.limits.max_entries,
       admission.limits.max_name_bytes,
       fn(proof : NativeRemoteTransferOutputEvidence) {
@@ -591,12 +616,36 @@ pub fn finish_native_remote_standard_physical_admission(
         transfer_source_failure(Some(admission.token), Completion(issue)),
       )
   }
+  Ok({
+    token: admission.token,
+    output: completed,
+    wire_bytes: admission.wire_bytes.to_int(),
+  })
+}
+
+///|
+/// Source capture retains its original query Owner and Program check. A
+/// completed task import never enters this Source-only projection.
+pub fn finish_native_remote_standard_physical_admission(
+  admission : NativeRemoteStandardPhysicalAdmission,
+) -> Result[
+  NativeRemoteStandardTransferSource,
+  NativeRemoteStandardInputFailure,
+] {
+  guard admission.capture is Some((sequence, program)) else {
+    return Err(cancel_transfer_source_admission(admission, InvalidProfile))
+  }
+  let verified = match
+    finish_native_remote_standard_output_admission(admission) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let capture = match
-    @query.prepare_trusted_capture_port(admission.sequence, admission.program, fn(
-      proof : NativeRemoteTransferOutputEvidence,
+    @query.prepare_trusted_capture_port(sequence, program, fn(
+      proof : NativeRemoteRetainedTaskOutput,
     ) {
-      if physical_equal(proof, evidence) && transfer_source_live(proof.token) {
-        Some((completed, admission.wire_bytes.to_int()))
+      if physical_equal(proof, verified) && transfer_source_live(proof.token) {
+        Some((proof.output, proof.wire_bytes))
       } else {
         None
       }
@@ -605,7 +654,7 @@ pub fn finish_native_remote_standard_physical_admission(
     Err(issue) =>
       return Err(transfer_source_failure(Some(admission.token), Capture(issue)))
   }
-  let source = match @query.capture_verified_source(capture, evidence) {
+  let source = match @query.capture_verified_source(capture, verified) {
     Ok(value) => value
     Err(issue) =>
       return Err(transfer_source_failure(Some(admission.token), Capture(issue)))
@@ -1328,18 +1377,32 @@ pub fn acquire_native_remote_standard_physical_source(
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  let streamed = (physical.stream)(limits.max_read_bytes, fn(index, bytes) {
-    feed_native_remote_standard_physical_admission(admission, index, bytes).map_err(_ => {
-        "physical-admission"
-      },
-    )
-  })
-  match streamed {
+  match stream_native_remote_standard_physical_admission(admission) {
     Ok(_) => ()
-    Err(issue) =>
-      return Err(cancel_transfer_source_admission(admission, Physical(issue)))
+    Err(issue) => return Err(issue)
   }
   finish_native_remote_standard_physical_admission(admission)
+}
+
+///|
+/// Stream through the same bounded decoder for Source and task-output import.
+fn stream_native_remote_standard_physical_admission(
+  admission : NativeRemoteStandardPhysicalAdmission,
+) -> Result[Unit, NativeRemoteStandardInputFailure] {
+  let streamed = (admission.token.physical.stream)(
+    admission.limits.max_read_bytes,
+    (index, bytes) => {
+      feed_native_remote_standard_physical_admission(admission, index, bytes).map_err(_ => {
+          "physical-admission"
+        },
+      )
+    },
+  )
+  match streamed {
+    Ok(_) => Ok(())
+    Err(issue) =>
+      Err(cancel_transfer_source_admission(admission, Physical(issue)))
+  }
 }
 
 ///|
@@ -1384,12 +1447,19 @@ pub fn native_remote_standard_transfer_captured_source(
 pub fn finish_native_remote_standard_transfer_source(
   owner : NativeRemoteStandardTransferSource,
 ) -> Bool {
-  owner.token.active = false
-  if owner.token.released {
+  finish_transfer_source_token(owner.token)
+}
+
+///|
+fn finish_transfer_source_token(
+  token : NativeRemoteTransferSourceToken,
+) -> Bool {
+  token.active = false
+  if token.released {
     return true
   }
-  if (owner.token.physical.release)() {
-    owner.token.released = true
+  if (token.physical.release)() {
+    token.released = true
     true
   } else {
     false

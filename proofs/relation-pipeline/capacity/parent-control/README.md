@@ -117,3 +117,61 @@ arguments and the executed primitive constructor allocation/return sequences.
 It validates their finite 64 requested-byte component independently; the existing
 80-byte conditional allowance is not reduced. This does not prove whole-parent
 lifetime or allocator footprint bounds.
+
+## Driver root and common reservation retirement
+
+The driver's actual `provider_execution` root is retained while physical stop
+or provider cleanup is pending. On successful cleanup the driver caches final
+provider work and clears that root. This corrects the census's former premise
+that the driver continues to retain the provider after successful cleanup.
+An external fixture reference, immutable callback and the driver's control Ref
+can remain live: clearing this root is not physical GC destruction.
+`driver-retirement-source.mjs` admits the reviewed stop/cleanup/work/root order,
+installed observational scratch witness and common reservation return boundary.
+It rejects changes rather than automatically rebinding hashes.
+
+The bounded Native-only diagnostic reuses the existing MATCH nodes and edges
+Host helper, including its independent rows, acquired-input two-consumer
+holding checks and false/error/retry provider. It adds synchronous borrowed
+observations of the actual driver control Ref, without retaining a foreign
+pointer or adding an Owner. The Ref descriptor and requested extent are checked
+against the pinned Native ABI; observed addresses are scoped to each invocation.
+Pending cleanup must preserve the same provider. Successful cleanup must clear
+that root, reduce scratch reservation without changing output holding/retention,
+and repeated cleanup must not issue another provider call or return more credit.
+The existing Host assertions are retained verbatim.
+
+```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
+node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs
+```
+
+Run the second command on a clean fixed HEAD, in the pinned Native environment,
+through the existing bounded local guard. It selects one Native test containing
+two existing Host cases; it does not run the full Core or packed acceptance.
+In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks
+unselected top-level whitebox tests and helper declarations outside a conservative
+named-declaration closure rooted at the selected fixture. Identifiers inside
+comments, literals and interpolation also extend that closure. Fixture enums are
+retained by their named type; common constructor spellings such as `Complete`
+are not treated as references to unrelated fixture types. Actual compilation
+must resolve selected constructor bindings under the retained signatures.
+Retained helper declarations and their assertions remain unchanged. Imports are
+limited to aliases referenced by the same retained text. Unknown declarations,
+attributes, interpolated raw lines, ambiguous names and malformed input reject
+projection. The compiler still uses `--deny-warn`; projection does not waive
+unused declarations/imports or any other diagnostic. This is a local compilation
+projection, not removal of repository tests, a complete semantic dependency
+analysis, a CI selection policy or reuse authority. The full source inventory,
+kept/omitted declaration ranges (UTF-16 offsets), original/projected digests,
+imports and exact executed overlay are rederived by the final consumer.
+Guard termination restores the owned source after the child exits.
+The pinned Moon summary establishes exactly one executed/passed test; it does
+not report a skipped-case count.
+The observation overlay is bound into a compiled marker, restored byte for byte,
+and the actual executable/log are archived before the independent final consumer
+accepts the immutable producer record. Negative receipt substitutions exercise
+that consumer. Local finite observations are never Actions originals or reuse
+qualification. Whole-parent lifetime/allocator upper bounds, Ledger holding
+**generation** correspondence and physical GC destruction remain unresolved;
+no structural count or point request is promoted to a physical upper bound.
