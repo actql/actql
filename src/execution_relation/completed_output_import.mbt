@@ -8,6 +8,7 @@ struct CompletedOutputImport {
   stream : AdmittedOutputStream
   mut open : Bool
   mut reading : Bool
+  mut completed : Bool
 }
 
 ///|
@@ -50,6 +51,7 @@ pub fn prepare_producer_output_import(
   values : ValueLimits,
   wire : RowWireLimits,
   max_batch_bytes : Int,
+  deferred_reclamation? : Bool = false,
 ) -> Result[CompletedOutputImport, CompletedImportIssue] {
   if !producer_read_available(input) {
     return Err(Unavailable)
@@ -60,6 +62,7 @@ pub fn prepare_producer_output_import(
     values,
     wire,
     max_batch_bytes,
+    deferred_reclamation~,
   )
 }
 
@@ -70,6 +73,7 @@ pub fn prepare_completed_output_import(
   values : ValueLimits,
   wire : RowWireLimits,
   max_batch_bytes : Int,
+  deferred_reclamation? : Bool = false,
 ) -> Result[CompletedOutputImport, CompletedImportIssue] {
   if !completed_output_available(source) {
     return Err(Unavailable)
@@ -98,7 +102,9 @@ pub fn prepare_completed_output_import(
     Ok(stream) => stream
     Err(issue) => return Err(Encoding(issue))
   }
-  Ok({ source, admitted, stream, open: true, reading: false, })
+  admitted.buffer.deferred_reclamation = deferred_reclamation
+  stream.buffer.deferred_reclamation = deferred_reclamation
+  Ok({ source, admitted, stream, open: true, reading: false, completed: false, })
 }
 
 ///|
@@ -107,9 +113,37 @@ pub fn cancel_completed_output_import(value : CompletedOutputImport) -> Bool {
     return false
   }
   value.open = false
-  cancel_admitted_output(value.admitted) |> ignore
-  cancel_admitted_output_stream(value.stream) |> ignore
+  revoke_admitted_buffer(value.admitted.buffer)
+  value.stream.open = false
+  value.stream.measurement = None
+  revoke_admitted_buffer(value.stream.buffer)
   true
+}
+
+///|
+/// A completed conversion transferred its rows; only private failed or
+/// unfinished admission buffers may be reclaimed. No source is re-read.
+pub fn advance_cancel_completed_output_import(
+  value : CompletedOutputImport,
+  quantum : Int,
+) -> Bool {
+  if value.completed {
+    return true
+  }
+  value.admitted.buffer.deferred_reclamation = true
+  value.stream.buffer.deferred_reclamation = true
+  cancel_completed_output_import(value) |> ignore
+  if quantum <= 0 ||
+    value.reading ||
+    value.admitted.buffer.reading ||
+    value.stream.reading ||
+    value.stream.buffer.reading {
+    return false
+  }
+  if !advance_admitted_buffer_reclamation(value.admitted.buffer, quantum) {
+    return false
+  }
+  advance_admitted_buffer_reclamation(value.stream.buffer, quantum)
 }
 
 ///|
@@ -213,6 +247,7 @@ pub fn finish_completed_output_import(
       table,
     ),
   }
+  value.completed = true
   Ok({
     completion,
     target: original.target,

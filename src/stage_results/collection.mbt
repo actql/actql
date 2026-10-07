@@ -12,6 +12,7 @@ pub(all) enum CollectionIssue {
   StageCountMismatch
   ForeignPipeline(Int)
   ForeignResults(Int)
+  ForeignTableInputs(Int)
   BudgetExceeded(Int)
 } derive(Eq, Debug)
 
@@ -24,6 +25,7 @@ pub fn collect_checked(
   operations : @parameters.CollectedOperations,
   stages : Array[@results.CheckedResults],
   limits : CollectionLimits,
+  table_inputs? : Array[@results.CheckedTableInputs?]? = None,
 ) -> Result[Checked, CollectionIssue] {
   if limits.max_results < 0 ||
     limits.max_work < 0 ||
@@ -35,12 +37,16 @@ pub fn collect_checked(
   if stages.length() != @parameters.stage_count(source) {
     return Err(StageCountMismatch)
   }
+  if table_inputs is Some(inputs) && inputs.length() != stages.length() {
+    return Err(StageCountMismatch)
+  }
   let prior = @parameters.operations_usage(operations).work
   if prior > limits.max_work {
     return Err(BudgetExceeded(0))
   }
   let mut left = { ..limits, max_work: limits.max_work - prior, }
   let owned : Array[@results.CheckedResults] = []
+  let retained_inputs : Array[@results.CheckedTableInputs?] = []
   for i in 0..<stages.length() {
     if left.max_work == 0 {
       return Err(BudgetExceeded(i))
@@ -77,10 +83,41 @@ pub fn collect_checked(
       max_results: left.max_results - count,
     }
     owned.push(checked)
+    let inputs = table_inputs.bind(inputs => inputs.get(i).bind(input => input))
+    match (@decode.lookup(body, "table_inputs"), inputs) {
+      (None, None) => ()
+      (Some(expected), Some(inputs)) => {
+        if !physical_equal(
+            @results.table_inputs_pipeline(inputs),
+            @results.pipeline(checked),
+          ) ||
+          @decode.tree_index(expected, @results.table_inputs_source(inputs)) !=
+          @decode.tree_index(expected, expected) {
+          return Err(ForeignTableInputs(i))
+        }
+        let used = @results.table_inputs_usage(inputs)
+        let count = @results.table_input_count(inputs)
+        if used.work > left.max_work ||
+          used.nodes > left.max_nodes ||
+          used.text_bytes > left.max_text_bytes ||
+          count > left.max_results {
+          return Err(BudgetExceeded(i))
+        }
+        left = {
+          max_work: left.max_work - used.work,
+          max_nodes: left.max_nodes - used.nodes,
+          max_text_bytes: left.max_text_bytes - used.text_bytes,
+          max_results: left.max_results - count,
+        }
+      }
+      _ => return Err(ForeignTableInputs(i))
+    }
+    retained_inputs.push(inputs)
   }
   Ok({
     operations,
     stages: owned,
+    table_inputs: retained_inputs,
     usage: {
       work: limits.max_work - left.max_work,
       nodes: limits.max_nodes - left.max_nodes,

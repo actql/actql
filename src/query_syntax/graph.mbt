@@ -180,14 +180,13 @@ fn QueryParser::graph_edge(
   let constraint = self.graph_constraint()
   self.graph_symbol(93)
   self.graph_symbol(45)
-  if !incoming {
-    let token = self.advance()
-    if token.value != Operator(">") {
-      raise QueryAbort(
-        "GRAPH_PATTERN_UNSUPPORTED_SHAPE: directed edge required",
-        token.start,
-      )
-    }
+  let direction = if incoming {
+    "in"
+  } else if self.peek().value == Operator(">") {
+    ignore(self.advance())
+    "out"
+  } else {
+    "both"
   }
   let mut min_hops = 1L
   let mut max_hops = 1L
@@ -219,11 +218,7 @@ fn QueryParser::graph_edge(
     variable,
     label,
     constraint,
-    direction: if incoming {
-      "in"
-    } else {
-      "out"
-    },
+    direction,
     quantified,
     min_hops,
     max_hops,

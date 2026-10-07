@@ -101,3 +101,20 @@ This PR does not alter that other owner's Native boundary or relax the scanner.
 The negative wire must stay rejected when that fixture is corrected by its owner.
 Current pipeline campaigns, Linux consumer installation, authenticated originals,
 comparison, skip activation and transfer-inclusive net savings remain unverified.
+
+## Integration review follow-up
+
+At `ff409b1d6534101256850b6e22d51d8b197ce5f5`, the complete real Git
+foundation history passed under the existing 600-second guard in approximately
+328 seconds (`run-VgiA3g`). The preceding integration exposed the missing
+`2674919805eb63c356cffe4030f97b0afb47cfc3` Table package resolution,
+then three original resolutions whose late compound-parent receipt was absent
+when each original was introduced. The repair adds the exact source-bound
+resolution and immutable-original supplements. No validation rule, original
+receipt, source tree or runtime acceptance condition is weakened.
+
+The subsequent main merge `3d8ac31fbe4c0044e105180c0429bee7ad930f9e` has no
+new protected-source resolution obligations and preserves all inherited record
+blobs and modes. That incremental check is distinct from replaying the complete
+history at this later revision. Local acceptance does not authenticate an
+Actions origin or demonstrate reusable main evidence or net hosted CI savings.

@@ -37,6 +37,7 @@ pub enum LocalProgramIssue {
   Results(Int, @results.Issue)
   Order(Int, @results.OrderCheckIssue)
   Ports(Int, @results.PortIssue)
+  TableInputs(Int, @results.Issue)
   Wiring(WiringIssue)
 }
 
@@ -329,7 +330,31 @@ pub fn prepare_local_program(
     work -= used.work
     nodes -= used.nodes
     text -= used.text_bytes
-    let owner = match bind_ports(collected, ports) {
+    let table_inputs = match @decode.lookup(body, "table_inputs") {
+      None => None
+      Some(source) => {
+        let inputs = match
+          @results.check_table_inputs(pipeline, source, {
+            max_results: results,
+            max_work: work,
+            max_nodes: nodes,
+            max_text_bytes: text,
+            max_depth: limits.max_depth,
+          }) {
+          Ok(inputs) => inputs
+          Err(issue) => return Err(TableInputs(i, issue))
+        }
+        results -= @results.table_input_count(inputs)
+        let table_used = @results.table_inputs_usage(inputs)
+        work -= table_used.work
+        nodes -= table_used.nodes
+        text -= table_used.text_bytes
+        wiring_work += table_used.work
+        wiring_text += table_used.text_bytes
+        Some(inputs)
+      }
+    }
+    let owner = match bind_ports(collected, ports, table_inputs~) {
       Err(e) => return Err(Import(i, e))
       Ok(v) => v
     }

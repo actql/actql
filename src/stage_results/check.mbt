@@ -3,6 +3,7 @@ pub enum Issue {
   InvalidLimits
   WorkLimit
   Stage(Int, @results.Issue)
+  TableInputs(Int, @results.Issue)
 }
 
 ///|
@@ -17,6 +18,7 @@ pub(all) struct Usage {
 struct Checked {
   operations : @parameters.CollectedOperations
   stages : Array[@results.CheckedResults]
+  table_inputs : Array[@results.CheckedTableInputs?]
   usage : Usage
 }
 
@@ -42,6 +44,7 @@ pub fn check(
   let mut remaining = { ..limits, max_work: limits.max_work - prior_work, }
   let source = @parameters.operations_source(operations)
   let stages : Array[@results.CheckedResults] = []
+  let table_inputs : Array[@results.CheckedTableInputs?] = []
   for i in 0..<@parameters.stage_count(source) {
     if remaining.max_work == 0 {
       return Err(WorkLimit)
@@ -72,10 +75,32 @@ pub fn check(
       max_text_bytes: remaining.max_text_bytes - usage.text_bytes,
     }
     stages.push(checked)
+    let inputs = match @decode.lookup(body, "table_inputs") {
+      None => None
+      Some(declarations) => {
+        let inputs = match
+          @results.check_table_inputs(pipeline, declarations, remaining) {
+          Ok(inputs) => inputs
+          Err(issue) => return Err(TableInputs(i, issue))
+        }
+        let used = @results.table_inputs_usage(inputs)
+        remaining = {
+          ..remaining,
+          max_work: remaining.max_work - used.work,
+          max_results: remaining.max_results -
+          @results.table_input_count(inputs),
+          max_nodes: remaining.max_nodes - used.nodes,
+          max_text_bytes: remaining.max_text_bytes - used.text_bytes,
+        }
+        Some(inputs)
+      }
+    }
+    table_inputs.push(inputs)
   }
   Ok({
     operations,
     stages,
+    table_inputs,
     usage: {
       work: limits.max_work - remaining.max_work,
       results: limits.max_results - remaining.max_results,
@@ -98,4 +123,14 @@ pub fn stage_at(value : Checked, index : Int) -> @results.CheckedResults? {
 ///|
 pub fn usage(value : Checked) -> Usage {
   value.usage
+}
+
+///|
+/// The closed private input belongs to the same checked Stage as its public
+/// ports. It is not an ordinary Result and is not an execution permit.
+pub fn stage_table_inputs_at(
+  value : Checked,
+  index : Int,
+) -> @results.CheckedTableInputs? {
+  value.table_inputs.get(index).bind(input => input)
 }
