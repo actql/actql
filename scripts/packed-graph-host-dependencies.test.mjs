@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {dirname, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
 
 test('packed Graph Host consumers retain their transitive local module imports', async () => {
   const scripts = fileURLToPath(new URL('./', import.meta.url));
@@ -22,4 +23,25 @@ test('packed Graph Host consumers retain their transitive local module imports',
       pending.push(dependency);
     }
   }
+});
+
+test('packed Graph Host families have disjoint complete Local and HTTPS selections', () => {
+  const profiles = ['graph','graph-projections','graph-definitions','graph-labels',
+    'graph-traversal-modes','graph-traversal-selectors','presence-filter',
+    'presence-selection','selector-derive','relation-subgraph','presence-keyed-distinct',
+    'presence-whole-distinct','presence-group','delta-application',
+    'delta-relation-composition','delta-diff','graph-union','graph-subtraction'];
+  assert.equal(graphPublicHostCases.length, 36);
+  assert.equal(new Set(graphPublicHostCases.map(item => item.name)).size, 36);
+  for (const mode of ['local','remote']) {
+    assert.deepEqual(graphPublicHostCases.filter(item => item.mode === mode)
+      .map(item => item.profile).sort(), [...profiles].sort());
+  }
+  for (const {name} of graphPublicHostCases) {
+    const pattern = new RegExp(graphPublicHostPattern(name), 'u');
+    assert.deepEqual(graphPublicHostCases.filter(item => pattern.test(item.name))
+      .map(item => item.name), [name]);
+  }
+  const punctuated = 'Graph (A+B) [key] $snapshot';
+  assert.ok(new RegExp(graphPublicHostPattern(punctuated), 'u').test(punctuated));
 });
