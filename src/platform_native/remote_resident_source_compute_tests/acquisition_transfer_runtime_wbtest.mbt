@@ -21,6 +21,7 @@ fn acquisition_runtime_transfer_consumer(
   name : String,
   through_consumer_holder? : Bool = false,
   cancel_consumer_before_start? : Bool = false,
+  consumer_output_unavailable? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
   consumer_start_expiry? : Bool = false,
@@ -574,6 +575,7 @@ fn acquisition_runtime_transfer_consumer(
       bytes,
       current_query,
       cancel_before_start=cancel_consumer_before_start,
+      output_unavailable=consumer_output_unavailable,
     )
     assert_true(@host.client_retained_input_producer_available(producer))
     assert_true(transfer.reclaim().unwrap())

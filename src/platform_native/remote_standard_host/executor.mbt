@@ -187,6 +187,7 @@ pub fn prepare_native_remote_standard_captured_run_owner(
   run : @native_host.NativeStandardStrategyRun,
   finish_output_owner : () -> Bool,
   finish_input_owner : () -> Bool,
+  output_storage? : (() -> Result[@retained_file.NativeRetainedTaskFile, String])? = None,
 ) -> NativeRemoteStandardRunOwner {
   {
     run: Compute(run),
@@ -196,7 +197,7 @@ pub fn prepare_native_remote_standard_captured_run_owner(
     output_finished: false,
     input_finished: false,
     source_observation: None,
-    output_storage: None,
+    output_storage,
   }
 }
 

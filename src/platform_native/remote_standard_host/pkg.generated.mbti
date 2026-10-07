@@ -107,7 +107,7 @@ pub fn prepare_native_remote_standard_acquired_run_owner(@physical_strategy.Capt
 
 pub fn prepare_native_remote_standard_acquired_task_owner(@physical_strategy.CapturedDAG, Int, @execution_query.CapturedInputSource, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
 
-pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool) -> NativeRemoteStandardRunOwner
+pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool, output_storage? : (() -> Result[@retained_task_file.NativeRetainedTaskFile, String])?) -> NativeRemoteStandardRunOwner
 
 pub fn prepare_native_remote_standard_compute_owner(@host_native.NativeStandardStrategyRun, () -> Bool) -> NativeRemoteStandardComputeOwner
 

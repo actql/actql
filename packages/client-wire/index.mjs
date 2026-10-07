@@ -152,9 +152,9 @@ export function validSubmitPreparationError(value) {
 
 export const validClientConnection = validConnectionShape;
 
-// A check observes the JSON value actually submitted at this boundary.
+// Client requests observe the JSON value actually submitted at this boundary.
 // Preserve ordinary JSON serialization, but never replace source numbers.
-export function snapshotCheckRequest(value) {
+function snapshotRequest(value, numberError) {
   return JSON.parse(JSON.stringify(value, (_key, item) => {
     let number = item, boxed = false;
     if (item !== null && typeof item === 'object') {
@@ -167,11 +167,18 @@ export function snapshotCheckRequest(value) {
     if (boxed) number = +item;
     if (typeof number === 'number' &&
         (!Number.isFinite(number) || Object.is(number, -0))) {
-      throw new TypeError('UnrepresentableCheckNumber');
+      throw new TypeError(numberError);
     }
     return boxed ? number : item;
   }));
 }
+
+// One serialization owner for check and submit. Preserve the existing check
+// helper's error spelling for direct consumers. SDK callers map local refusal.
+export const snapshotClientRequest = value =>
+  snapshotRequest(value, 'UnrepresentableClientNumber');
+export const snapshotCheckRequest = value =>
+  snapshotRequest(value, 'UnrepresentableCheckNumber');
 
 export function validClientBody(operation, body) {
   const bodyKeys = clientHostRequestKeys(operation);
