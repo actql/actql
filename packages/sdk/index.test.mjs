@@ -10,6 +10,7 @@ import './check-session-presentation.test.mjs';
 import './check-presentation.test.mjs';
 import './check-protocol-failures.test.mjs';
 import './resource-protocol-failures.test.mjs';
+import './profile-observation.test.mjs';
 import './effect-uncertainty.test.mjs';
 import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
