@@ -1,17 +1,23 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {admitRunDefinition, privateRunDefinition, sealRunEvidenceValue,
+import {readFileSync} from 'node:fs';
+import {admitRunDefinition, privateRunDefinition, admitEnvironment, prepare, compileValues, issueAllowedRun,
+  issueSourceFreeRunDefinition,
   prepareRunCancellationIdentity, runCancellationIntentCid,
   prepareRunCancellationOperation} from './index.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
-const definition = runId => admitRunDefinition(sealRunEvidenceValue('run_definition',
-  JSON.stringify({version: 'actql-run-definition/0.1', scope_id: 'scope-a', run_id: runId,
-    compiled_plan_cid: cid('1'), invocation_template_cid: cid('2'),
-    authorization_context_cid: cid('3'), input_artifact_set_cid: cid('4'),
-    created_at: '2026-10-07T00:00:00.000Z', valid_until: '2098-01-01T00:00:00.000Z'}),
-  {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64}).wire);
+const read = name => readFileSync(new URL(`../sdk/fixtures/${name}`, import.meta.url), 'utf8');
+const environmentWire = read('values.environment.json').trimEnd();
+const prepared = prepare(read('values.json'), 'json',
+  admitEnvironment(environmentWire, JSON.parse(environmentWire).evidence_bundle_cid, {rela: true}));
+const compilation = compileValues(prepared);
+const admission = issueAllowedRun(prepared, compilation, {
+  executionContextCid: cid('b'), hostPolicyCid: cid('c'),
+  expiresAt: '2099-01-01T00:00:00.000Z'}).admission;
+const definition = runId => issueSourceFreeRunDefinition(prepared, compilation,
+  admission, 'scope-a', runId, '2026-10-07T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
 const scope = {namespaceId: 'workspace-a', authorityScopeCid: cid('a'),
   cancelId: 'original-cancel', expectedRevision: 19};
 const facts = {currentRevision: 19, currentAuthorization: true,
