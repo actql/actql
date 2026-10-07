@@ -10,6 +10,7 @@ import {DuckDBInstance} from '@duckdb/node-api';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {exportPhysicalValue, bindPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
+import {finishManagedOutputReceipt} from '../managed-output-finish.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
 import {encodeManagedColumnFrame, managedColumnCodecContractCid} from '../managed-column-codec.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
@@ -161,6 +162,31 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
           physicalManifest(
             moon, body, observed.length, codec, result.value.fields,
           ));
+        if (revoke === 'none') {
+          const cancelledSetup = checked(fixture.managedTakeFixture(
+            configured, completed, profile, ...contracts, () => true));
+          const cancelledView = checked(moon.managedSelectedOutputOpen(
+            fixture.managedTakeValues(cancelledSetup),
+            fixture.managedTakeSelection(cancelledSetup),
+            fixture.managedFileTransportLimits(), () => true));
+          const controller = new AbortController();
+          let polls = 0;
+          try {
+            // This probes the bridge's partial verifier boundary, not a new
+            // execution proof or a public Run cancellation terminal.
+            await assert.rejects(finishManagedOutputReceipt(() => {
+              const poll = checked(moon.managedOutputAdvanceFinish(cancelledView, 1));
+              polls++;
+              assert.deepEqual(poll, {_0: false, _1: 1});
+              assert.equal(moon.managedOutputAvailable(cancelledView), false);
+              setImmediate(() => controller.abort());
+              return poll;
+            }, controller.signal), {name: 'AbortError'});
+            assert.equal(polls, 1);
+          } finally { moon.managedOutputCancel(cancelledView); }
+          assert.throws(() => checked(moon.managedOutputRetain(cancelledView, 0n, () => true)));
+          assert.equal(moon.managedCompletedAvailable(completed), true);
+        }
         if (revoke === 'none') for (const representation of ['validated', 'preserved', 'computed', 'chained']) {
           let settled = false;
           const deriving = representation === 'computed';
@@ -363,7 +389,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
             held.body = await writer.sealPhysical();
             settled = true;
             if (representation === 'validated') checked(moon.managedOutputAccept(taken, rows.length, JSON.stringify(columns)));
-            checked(moon.managedOutputFinish(taken));
+            await finishManagedOutputReceipt(quantum => checked(
+              moon.managedOutputAdvanceFinish(taken, quantum)));
             if (deriving) {
               assert.deepEqual(checked(moon.managedOutputAdmissionUsage(taken)), empty ? [0, 0, 0] : [16, 4, 12]);
               assert.equal(checked(moon.managedOutputMeasurementIndexCells(taken)), rows.length * 3);
@@ -697,7 +724,8 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
               if (representation === 'validated') {
                 checked(moon.managedOutputAccept(filterOutput, rows.length, JSON.stringify(columns)));
               }
-              checked(moon.managedOutputFinish(filterOutput));
+              await finishManagedOutputReceipt(quantum => checked(
+                moon.managedOutputAdvanceFinish(filterOutput, quantum)));
               const admission = checked(moon.managedOutputAdmissionUsage(filterOutput));
               if (representation === 'preserved') {
                 assert.deepEqual(admission, [0, 0, 0], 'unchanged selected values must not be readmitted in Core');
