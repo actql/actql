@@ -394,6 +394,46 @@ not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
 
+## ARRAY constructors
+
+`[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
+order and duplicates through the ordinary finite `array` expression. Elements
+use the common checker for compatible types, NULL context, parameters and
+constructor capability checks; the Frontend does not stringify values or
+infer a second type system. The parser's existing work, node and depth limits
+also cover array children. An empty list needs unique type context.
+
+The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+Annotations use the existing typed `empty_array.items` evidence. A nonempty
+annotated array uses an ordinary constant-true lazy `if` with that empty-array
+peer, so the common checker checks the declared item type and evaluates the
+actual elements once. It does not add an element CAST. NULL elements retain
+their nullable contract even when the annotation provides a nonnullable peer.
+
+After ordinary checking, source preparation rejects resolved ARRAY types whose
+immediate item type is ARRAY. This includes constructors, references to typed
+columns or parameters, and Relation outputs such as ARRAY_AGG; inspecting
+literal syntax alone is insufficient. Recursive type inspection is bounded by
+the source profile's work limit. An intervening closed object is permitted,
+but does not hide a directly nested ARRAY elsewhere within that object. JSON
+payload arrays are JSON values, not SQL ARRAY types. Recursive arrays in
+JSON/YAML Program input retain their common contract. Source-profile rejection
+occurs before durable Run admission and provider I/O. Expression refusals retain
+the common expression's original location; producer-schema refusals identify
+the existing Unit, input/step and field without inventing an expression origin.
+
+The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
+also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
+`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
+contract currently rejects JSON item types, and the selected finite Number
+profile does not establish exact INT64 semantics. Additional type annotations
+remain explicitly unsupported; an unresolved `[]` is not silently assigned
+Number or JSON. The source and independently authored Program rejection of
+JSON arrays are dependency evidence, not execution acceptance. ActQL's
+nullable-array Result serialization remains its existing delivery profile;
+it is not a claim about BigQuery's Result serialization.
+
 ## Declared UNNEST value tables
 
 Direct `FROM UNNEST(@items) AS element [WITH OFFSET AS position]` accepts
@@ -832,17 +872,33 @@ set; it is not equality on an `entity_type` property. Edge labels likewise
 come from their definition's label set. The retired `LABELS` property
 annotation does not establish a current Graph definition or grant authority.
 
-A fixed directed path retains each authored node and edge occurrence. Its
+Full edge patterns `-[]->`, `<-[]-`, and `-[]-` select outgoing, incoming,
+and either-direction traversal respectively. Fillers and finite quantifiers
+retain the same scope and bounds in each direction. An any-direction pattern
+uses the existing logical `traverse` direction `both`; it does not construct
+reverse edges or change definition-scoped edge identities. Exact duplicate
+paths follow the common traversal contract, including a single self-loop
+occurrence rather than two synthetic directional edges. Abbreviated `->`,
+`<-`, and `-` have the same meaning as the corresponding full empty edges,
+with no variable, label, or local constraint. They use the same finite bounds
+and path modes. Use a full edge when a filler is needed. `--` remains a SQL
+line-comment introducer, not an alternative any-direction edge spelling.
+This selected spelling follows the [GoogleSQL element-pattern reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#element_pattern)
+(consulted 2026-10-07); it adds no new Graph execution contract.
+
+A fixed path retains each authored node and edge occurrence. Its
 local predicates are evaluated at their demanded prefix: the starting node
 over the initial node scope, then each reached edge and node after the
 corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
 definition-scoped typed edge key, and ACYCLIC excludes node revisits. Separate paths with
 the same endpoints remain separate rows unless the query requests DISTINCT.
-The Script frontend passes a fixed directed pattern's reached-node `WHERE`
+The Script frontend passes a fixed pattern's reached-node `WHERE`
 or property-map to the corresponding `traverse.hops[i].node_where`. A
 qualified receiver names that hop's node variable; it does not capture another
 pattern variable. Static candidates follow the edge label and direction and
-its declared endpoint definitions. Ordinary checking validates property
+its declared endpoint definitions. Any-direction hops include both endpoint
+definitions as static candidates; the initial selector does not prove a
+narrower reached schema. Ordinary checking validates property
 presence, types and nullable object access across every reached candidate.
 A reached-node label is admitted only when every static candidate carries it;
 otherwise the missing per-hop label filter is explicitly unsupported.

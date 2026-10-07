@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {checkDriverRetirementSource, driverPath, scratchRetirementPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
+import {checkDriverRetirementSource, driverPath, scratchRetirementPath, inputStopPath, bridgeReclamationPath, importReclamationPath, strategyPath,blockAfter} from './driver-retirement-source.mjs';
 import {retirementOverlay,retirementExecutable,retirementExecutionArtifacts} from './driver-retirement-overlay.mjs';
 import {inspectDriverRetirement} from './driver-retirement-inspect.mjs';
 import {snapshot,hash} from '../../inventory.mjs';
@@ -87,7 +87,21 @@ for (const [name,path,from,to] of [
   ['scratch witness skips partial retirement',driverPath,'scratch_retirement.phase == Retired &&','true &&'],
   ['driver starts with retired cursor',driverPath,'let scratch_retirement = local_managed_scratch_retirement()','let scratch_retirement = {phase: Retired, index: 0}'],
   ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||'],
-  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) {','      false {'],
+  ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||'],
+  ['retirement skips pending input revocation',driverPath,'(!live.val && input_stop.phase != Stopped)','false'],
+  ['scratch witness skips pending input revocation',driverPath,'(live.val || input_stop.phase == Stopped) &&','true &&'],
+  ['input revocation bulk closes',inputStopPath,'while steps < 64','while steps < 64000'],
+  ['input revocation allows reentrancy',inputStopPath,'if cursor.advancing {','if false {'],
+  ['input revocation skips import cancellation',inputStopPath,'!cancel_import(importer)','false'],
+  ['input revocation skips pending bridge',inputStopPath,'!close_bridge(bridge)','false'],
+  ['input revocation drops bridge root',inputStopPath,'let input = bridges[cursor.index].val','let input = bridges[cursor.index].val\nbridges[cursor.index].val = None'],
+  ['cleanup skips pending input revocation',driverPath,'if !stop_owned_inputs() {','if false {'],
+  ['driver bulk-reclaims one bridge',driverPath,'advance_close_managed_producer_bridge(bridge, 1)','advance_close_managed_producer_bridge(bridge, 64000)'],
+  ['driver drops pending snapshot importer',driverPath,'retained_imports.push(importing)','ignore(importing)'],
+  ['bridge mutates handed-off rows',bridgeReclamationPath,'if bridge.handed_off {','if false {'],
+  ['bridge skips active reader',bridgeReclamationPath,'quantum <= 0 || bridge.admitted.buffer.reading','quantum <= 0'],
+  ['import mutates completed rows',importReclamationPath,'if value.completed {','if false {'],
+  ['import skips partial buffer',importReclamationPath,'if !advance_admitted_buffer_reclamation(value.admitted.buffer, quantum) {','if false {'],
   ['retirement starts complete',scratchRetirementPath,'{ phase: Bridges, index: 0, }','{ phase: Retired, index: 0, }'],
   ['retirement clears too many roots',scratchRetirementPath,'while steps < 64','while steps < 64000'],
   ['retirement skips read roots',scratchRetirementPath,'reads[cursor.index] = None','ignore(reads[cursor.index])'],

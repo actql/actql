@@ -162,32 +162,38 @@ fn QueryParser::graph_edge(
     ignore(self.advance())
   }
   self.graph_symbol(45)
-  self.graph_symbol(91)
-  let variable = if self.has("WHERE") {
-    None
-  } else {
-    match self.peek().value {
-      Word(_) | QuotedName(_) => Some(self.name())
-      _ => None
+  let (variable, label, constraint) = if self.peek().value == Symbol(91) {
+    self.graph_symbol(91)
+    let variable = if self.has("WHERE") {
+      None
+    } else {
+      match self.peek().value {
+        Word(_) | QuotedName(_) => Some(self.name())
+        _ => None
+      }
     }
-  }
-  let label = if self.peek().value == Symbol(58) {
-    self.graph_symbol(58)
-    Some(self.name())
-  } else {
-    None
-  }
-  let constraint = self.graph_constraint()
-  self.graph_symbol(93)
-  self.graph_symbol(45)
-  if !incoming {
-    let token = self.advance()
-    if token.value != Operator(">") {
-      raise QueryAbort(
-        "GRAPH_PATTERN_UNSUPPORTED_SHAPE: directed edge required",
-        token.start,
-      )
+    let label = if self.peek().value == Symbol(58) {
+      self.graph_symbol(58)
+      Some(self.name())
+    } else {
+      None
     }
+    let constraint = self.graph_constraint()
+    self.graph_symbol(93)
+    self.graph_symbol(45)
+    (variable, label, constraint)
+  } else {
+    // Abbreviated edges have no filler; direction and finite bounds use the
+    // same AST and common lowering as the corresponding full empty edge.
+    (None, None, None)
+  }
+  let direction = if incoming {
+    "in"
+  } else if self.peek().value == Operator(">") {
+    ignore(self.advance())
+    "out"
+  } else {
+    "both"
   }
   let mut min_hops = 1L
   let mut max_hops = 1L
@@ -219,11 +225,7 @@ fn QueryParser::graph_edge(
     variable,
     label,
     constraint,
-    direction: if incoming {
-      "in"
-    } else {
-      "out"
-    },
+    direction,
     quantified,
     min_hops,
     max_hops,

@@ -1069,12 +1069,47 @@ export async function connect(options) {
 // returns typed control values and Result frames; it is never a public URL.
 export async function connectInProcess(options, port) {
   if (port === null || typeof port !== 'object' ||
-      typeof port.perform !== 'function') fail('InvalidLocalHostPort');
+      typeof port.perform !== 'function' ||
+      port.close !== undefined && typeof port.close !== 'function' ||
+      port.seal !== undefined && typeof port.seal !== 'function') fail('InvalidLocalHostPort');
   return connectSelected(inProcessOptions(options), port);
 }
 
 async function connectSelected(selected, port) {
   let closed = false;
+  let closeFlight;
+  let released = false;
+  const activeReaders = new Set();
+  const readerCleanups = new Set();
+  function close() {
+    // Revoke new use before returning, including while physical cleanup waits.
+    closed = true;
+    let sealFailed = false;
+    try { port?.seal?.(); } catch { sealFailed = true; }
+    for (const reader of activeReaders) reader.abort();
+    if (closeFlight !== undefined) return closeFlight;
+    closeFlight = Promise.resolve().then(async () => {
+      const readers = [...activeReaders];
+      // Abort before return(): a pending next or backpressured Local producer
+      // must settle without another application call into the iterator.
+      for (const reader of readers) reader.abort();
+      await Promise.allSettled(readers.map(reader => reader.finish()));
+      const failures = [];
+      for (const cleanup of [...readerCleanups]) {
+        try { await cleanup(); readerCleanups.delete(cleanup); }
+        catch (error) { failures.push(error); }
+      }
+      if (sealFailed || failures.length) {
+        throw new ClientError('ClientCleanupPending', {cleanupPending: true});
+      }
+      if (!released) {
+        try { await port?.close?.(); }
+        catch { throw new ClientError('ClientCleanupPending', {cleanupPending: true}); }
+        released = true;
+      }
+    }).finally(() => { closeFlight = undefined; });
+    return closeFlight;
+  }
   const dispatchedCancellations = new WeakSet();
   const dispatchedSubmissions = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
@@ -1244,14 +1279,15 @@ async function connectSelected(selected, port) {
         let state = 'not_started';
         let rowsYielded = 0;
         const controller = new AbortController();
-        const iterate = async function* () {
+        const iterate = async function* (ownedReader) {
           if (state !== 'not_started') fail('ReadAttemptAlreadyStarted');
           state = 'opening';
           const abort = () => controller.abort();
           options.signal?.addEventListener('abort', abort, {once: true});
           if (options.signal?.aborted) controller.abort();
           let wireBytes = 0, line = '';
-          let stream, failure;
+          let stream, failure, localCleanup;
+          activeReaders.add(ownedReader);
           try {
             const response = await runRequest('read', {
               resultName: name, format: port === undefined ? 'jsonl' :
@@ -1261,6 +1297,10 @@ async function connectSelected(selected, port) {
               if (response?.kind !== 'rows' ||
                   typeof response.frames?.[Symbol.asyncIterator] !==
                     'function') fail('InvalidResultStream');
+              if (typeof response.close === 'function') {
+                localCleanup = () => response.close();
+                readerCleanups.add(localCleanup);
+              }
               for await (const frame of response.frames) {
                 controller.signal.throwIfAborted();
                 if (frame === null || typeof frame !== 'object' ||
@@ -1349,6 +1389,9 @@ async function connectSelected(selected, port) {
               try {
                 if (state !== 'complete') await stream.cancel();
               } catch (cause) {
+                // Remote delivery uncertainty stays on this read. Releasing
+                // its local lock is not a remote cleanup acknowledgment, and
+                // a closed stream supplies no Host cleanup retry witness.
                 if (failure) {
                   failure.cleanupError = cause;
                   retainReadExplanation(failure, context, rowsYielded, 'read_incomplete', true);
@@ -1362,13 +1405,33 @@ async function connectSelected(selected, port) {
             // Cancel the reader before aborting its fetch: our own abort
             // must not turn successful early cleanup into an AbortError.
             if (state !== 'complete') controller.abort();
+            if (localCleanup !== undefined) {
+              try {
+                await localCleanup();
+                readerCleanups.delete(localCleanup);
+              } catch (cause) {
+                if (failure) {
+                  failure.cleanupError = cause;
+                  retainReadExplanation(failure, context, rowsYielded,
+                    readExplanations.get(failure)?.observation ?? 'read_incomplete', true);
+                }
+                else failure = retainReadExplanation(new ClientError('ResultReadCleanupUnknown',
+                  {attemptId, rowsYielded, cause}), context, rowsYielded, 'cleanup_unknown');
+              }
+            }
+            activeReaders.delete(ownedReader);
             // A pending iterator.return() skips code after finally.
             if (failure) throw failure;
           }
         };
         const reader = Object.freeze({attemptId, state: () => state,
           rowsYielded: () => rowsYielded,
-          [Symbol.asyncIterator]: iterate});
+          [Symbol.asyncIterator]() {
+            const owned = {abort: () => controller.abort(new ClientError('ClientClosed')),
+              finish: () => iterator.return()};
+            const iterator = iterate(owned);
+            return iterator;
+          }});
         readerContexts.set(reader, context);
         return reader;
       };
@@ -1380,28 +1443,40 @@ async function connectSelected(selected, port) {
           confirmed.limits.maxBatchRows);
         const maxBytes = tighter(options.maxBatchRetainedValueBytes,
           confirmed.limits.maxBatchRetainedValueBytes);
-        return Object.freeze({attemptId: reader.attemptId,
-          state: reader.state,
-          rowsYielded: () => rowsYielded,
-          async *[Symbol.asyncIterator]() {
-            let batch = [], bytes = 0;
-            try {
-              for await (const row of reader) {
-                const size = retainedValueBytes(row);
-                if (size > maxBytes) fail('ResultBatchLimit');
-                if (batch.length === maxRows || bytes + size > maxBytes) {
-                  rowsYielded += batch.length;
-                  yield batch; batch = []; bytes = 0;
-                }
-                batch.push(row); bytes += size;
-              }
-              if (batch.length) {
+        const iterate = async function* (ownedReader) {
+          activeReaders.add(ownedReader);
+          let batch = [], bytes = 0;
+          try {
+            for await (const row of reader) {
+              const size = retainedValueBytes(row);
+              if (size > maxBytes) fail('ResultBatchLimit');
+              if (batch.length === maxRows || bytes + size > maxBytes) {
                 rowsYielded += batch.length;
-                yield batch;
+                yield batch; batch = []; bytes = 0;
               }
-            } catch (cause) {
-              throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
+              batch.push(row); bytes += size;
             }
+            if (batch.length) {
+              rowsYielded += batch.length;
+              yield batch;
+            }
+          } catch (cause) {
+            throw readFailure(cause, readerContexts.get(reader), rowsYielded, readExplanations.get(cause));
+          } finally {
+            // A yielded batch belongs to the application. Drop our retained
+            // reference without mutating that already returned value.
+            batch = [];
+            activeReaders.delete(ownedReader);
+          }
+        };
+        return Object.freeze({attemptId: reader.attemptId,
+          state: reader.state, rowsYielded: () => rowsYielded,
+          [Symbol.asyncIterator]() {
+            // The underlying row reader owns abort. This outer scope also
+            // owns a buffered next row/batch and must be returned on close.
+            const owned = {abort() {}, finish: () => iterator.return()};
+            const iterator = iterate(owned);
+            return iterator;
           }});
       };
 
@@ -2083,7 +2158,8 @@ async function connectSelected(selected, port) {
         signed: frozen,
       });
     },
-    close() { closed = true; },
+    close,
+    [Symbol.asyncDispose]: close,
   });
 }
 

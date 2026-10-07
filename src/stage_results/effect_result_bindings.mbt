@@ -6,6 +6,7 @@ pub(all) enum EffectResultBindingIssueKind {
   MissingResult
   MissingField
   InvalidCommandTarget
+  UnsupportedTableInput
 } derive(Eq, Debug)
 
 ///|
@@ -222,6 +223,11 @@ pub fn bind_effect_results(
   let members : Array[EffectResultBinding] = []
   for index in 0..<count {
     let header = @syntax.effect_header_at(headers, index).unwrap()
+    // Until the separate checked private port is connected to capture and
+    // Table Preview, never downgrade it to a source-free ordinary Store.
+    if @syntax.effect_header_source_table_input(header) is Some(_) {
+      return Err(binding_issue(UnsupportedTableInput, header))
+    }
     let fields : Array[EffectResultFieldBinding] = []
     let result = match @syntax.effect_header_source_result(header) {
       None => None

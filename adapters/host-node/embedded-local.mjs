@@ -7,7 +7,7 @@ import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {connectInProcess} from '../../packages/sdk/host-port.mjs';
+import {createEmbeddedHostRegistry, installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {admitHostRootFormat} from './host-root-format.mjs';
@@ -56,8 +56,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
-import {createInstalledHostShutdown,
-  retainInstalledHostInitializationFailure} from
+import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
@@ -92,7 +91,7 @@ const plus = (date, milliseconds) => new Date(Date.parse(date) +
   milliseconds).toISOString();
 const clientOperationError = (code, cause) => Object.assign(
   new Error(code, cause === undefined ? undefined : {cause}), {code});
-const profiles = new Map();
+const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 
 const bytesCid = bytes => `sha256:${createHash('sha256')
   .update(bytes).digest('hex')}`;
@@ -2419,16 +2418,7 @@ export async function openInstalledRemoteHttpHost({directory,
   // refused before they touch the Store.
   const handling = new Set();
   let closing = false;
-  const shutdown = createInstalledHostShutdown({
-    stop: () => host.checkpoints?.stop(),
-    drain: () => host.dispatchOwner.drain(),
-    retire: () => host.retireTerminalEffects(),
-    checkpoint: () => host.checkpoints?.close(),
-    journal: () => host.journal.close(),
-    source: () => host.sourceProfile?.close(),
-    effect: () => host.installedEffect?.close(),
-    store: () => host.store.close(),
-  });
+  const shutdown = installedHostShutdown(host);
   return Object.freeze({
     handler(request, response) {
       if (closing) {
@@ -2514,10 +2504,9 @@ export async function connectEmbeddedLocal(options) {
   const root = installation?.directory === undefined ? localStateRoot() :
     resolve(installation.directory);
   const identity = await embeddedInstallationIdentity(root, installation);
-  let opened = profiles.get(root);
-  if (opened === undefined) {
-    opened = Object.freeze({identity,
-      host: openInstalledHost({root, authorization: installation?.authorization,
+  const {installation: _installation, ...clientOptions} = options;
+  return profiles.connect(root, identity,
+    () => openInstalledHost({root, authorization: installation?.authorization,
         sourceProfilePath: installation?.sourceProfilePath,
         sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,
@@ -2528,15 +2517,5 @@ export async function connectEmbeddedLocal(options) {
         resultDataPolicy: installation?.resultDataPolicy,
         hostCapacityPolicy: installation?.hostCapacityPolicy,
         retainedRelationOutput: installation?.retainedRelationOutput,
-        valuesMaxRows: installation?.valuesMaxRows})});
-    profiles.set(root, opened);
-    opened.host.catch(() => {
-      if (profiles.get(root) === opened) profiles.delete(root);
-    });
-  } else if (!sameEmbeddedInstallation(opened.identity, identity)) {
-    throw new TypeError('InstalledHostConfigurationMismatch');
-  }
-  const host = await opened.host;
-  const {installation: _installation, ...clientOptions} = options;
-  return connectInProcess(clientOptions, host.port);
+        valuesMaxRows: installation?.valuesMaxRows}), clientOptions);
 }

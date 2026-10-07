@@ -25,7 +25,9 @@ const {connect} = await import('@actql/node');
 const options = {mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory: resolve('state')}};
 const client = await connect(options);
+let sibling;
 try {
+  sibling = await connect(options);
   const mode = process.argv[2];
   const execution = mode === 'restart'
     ? await client.attach(JSON.parse(await readFile('run.json', 'utf8')))
@@ -41,7 +43,32 @@ try {
   const lookup = await client.lookupRequest('without-duckdb');
   assert.deepEqual(lookup.ref, execution.ref);
   if (mode !== 'restart') await writeFile('run.json', JSON.stringify(execution.ref));
-} finally { client.close(); }
+  const ownerPath = resolve('state/publication/owner/owner.json');
+  const originalOwner = await readFile(ownerPath, 'utf8');
+  const paused = result.batches({maxBatchRows: 1});
+  const iterator = paused[Symbol.asyncIterator]();
+  assert.deepEqual((await iterator.next()).value, [{id: 1}]);
+  await client.close();
+  assert.deepEqual(await iterator.next(), {done: true, value: undefined});
+  assert.equal(paused.rowsYielded(), 1);
+  assert.equal(await readFile(ownerPath, 'utf8'), originalOwner);
+  assert.deepEqual(await (await sibling.attach(execution.ref)).result('answer').all(),
+    [{id: 1}, {id: 2}]);
+  await sibling.close();
+  await assert.rejects(readFile(ownerPath), {code: 'ENOENT'});
+  const reopened = await connect(options);
+  try {
+    assert.notEqual(await readFile(ownerPath, 'utf8'), originalOwner);
+    const found = await reopened.lookupRequest('without-duckdb');
+    assert.deepEqual(found.ref, execution.ref);
+    assert.deepEqual(await (await reopened.attach(found.ref)).result('answer').all(),
+      [{id: 1}, {id: 2}]);
+    const repeated = await reopened.aql(await readFile('values.json', 'utf8'),
+      {format: 'json', requestId: 'without-duckdb'});
+    assert.deepEqual(repeated.ref, execution.ref);
+  } finally { await reopened.close(); }
+  await assert.rejects(readFile(ownerPath), {code: 'ENOENT'});
+} finally { await client.close(); await sibling?.close(); }
 assert.deepEqual(physicalLoads, [], 'unselected DuckDB must not be resolved or loaded');
 hook.deregister();
 

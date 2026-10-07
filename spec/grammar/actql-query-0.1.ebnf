@@ -55,7 +55,9 @@ graph_match   = "MATCH", [ identifier, "=" ],
 graph_node    = "(", [ identifier ], [ ":", identifier ],
                 [ graph_constraint ], ")" ;
 graph_edge    = ( "-[", graph_filler, "]->"
-                | "<-[", graph_filler, "]-" ),
+                | "<-[", graph_filler, "]-"
+                | "-[", graph_filler, "]-"
+                | "-" | "<-" | "->" ),
                 [ graph_quantifier ] ;
 graph_filler  = [ identifier ], [ ":", identifier ],
                 [ graph_constraint ] ;
@@ -154,6 +156,12 @@ assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
+array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
+                    "[", [ expression, { ",", expression } ], "]" ;
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64"
+                | "TIMESTAMP" | "JSON" ;
+(* ARRAY annotations and compatible item types use the common checker.
+   JSON constructors/default INT64 remain common-contract coverage gaps. *)
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
 numeric_token = ? existing query numeric token; exact admission is separate ? ;

@@ -668,12 +668,19 @@ test('baseline preimages and changed normative pins independently determine the 
     proof: pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'),
     resultPlan: pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'),
   };
+  // Freeze the source-contract closure before Table-private inputs. Adding a
+  // source field changes its registered contract even for this Values-only Unit.
+  const beforeTableDependencies = {
+    unit: pin('8005b84110e571bd881c8f153f104b6a35e476a7ef6302dc53224d086492b471'),
+    proof: pin('0a5ee06cede8dbd3fbefeb008249b49b39d07c694a50c433cd201cb9be9adad2'),
+    resultPlan: pin('d6b68f1a47ee1c233db5d072fe8210d89bf942b97236a37dae7acd491882994e'),
+  };
   assert.equal(currentDependencies.unit,
-    pin('8005b84110e571bd881c8f153f104b6a35e476a7ef6302dc53224d086492b471'));
+    pin('54f5a2da3c5f2439a13630dec8a8098ef550d9befcca8ac298ac22aac3cecd8f'));
   assert.equal(currentDependencies.proof,
-    pin('0a5ee06cede8dbd3fbefeb008249b49b39d07c694a50c433cd201cb9be9adad2'));
+    pin('b9b589e8f084c3ba2b8abaf6d888f037d76e56c2ceb23a0120ffe8c027912e8e'));
   assert.equal(currentDependencies.resultPlan,
-    pin('d6b68f1a47ee1c233db5d072fe8210d89bf942b97236a37dae7acd491882994e'));
+    pin('6286d2d4d7603a61da71d464c0043b98647e94b1997ae9b1dc94bda51fa34a3a'));
   // Preserve the schema-closure predecessor before qualified-star text routing.
   assert.equal(vector(pin('1b837dfa56c76782890525a6a4d39239a5675d719223c7de0c70231f89efd7d7'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
@@ -690,8 +697,32 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a'),
     cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the fixed-hop predecessor before adding any-direction edge syntax.
+  assert.equal(vector(pin('675ce07e2792ad6736f526ffb894e987463ff1eee7f94dfd8e391bcfbfc3dd20'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('35c252c2f80d29f142d35879ca8fb1f828e218266faf062494db1f21f4ace648'));
+  // Retain the any-direction full-edge Run preimage under its grammar pin.
+  assert.equal(vector(pin('3766a009afd7d8e22904ace1507becb871c62c5fb0dd969f7ee0886c17892c55'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('f17353ea4d0b6c8c65a30a3069582c42b396dfebf24bbbe7231423c59e4f5e9f'));
+  // Retain the abbreviated-edge predecessor without rebinding its saved Run.
+  assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('21982c4ae013552cb120f9e32e35c672b6c23092e8fa47323d4fabbe5ca00033'));
+  // Preserve the constructor-only ARRAY profile before closing reference and
+  // aggregate type bypasses. Rehash the complete independent Run preimage.
+  assert.equal(vector(pin('eb7c8d7239e90b612a3bca095d29d74a828e47187609a893ff4d7406ac6512a6'),
+    pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('c46844e63f6f33150c8312b057491f00a6ab775d62ae36bba779c929cdcbae2d'));
+  assert.equal(vector(pin('4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9'),
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('26501230bde03bc47e0e4e772e4971b048de85af47b9626771a1904375eddd92'));
+  assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a'));
+  assert.equal(current.run.run_definition_cid,
+    pin('d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
