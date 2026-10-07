@@ -478,13 +478,13 @@
     },
     {
       "id": "retirement-and-custody",
-      "objects": "parent execution and captured Refs still reachable through LocalManagedDispatchOperations after cleanup; accepted output and its upstream holdings; stored CompletedOutput occurrences and their original CompletedSequence.result_identity anchors until reverse cleanup; empty replacement owner overlaps the old completed container",
+      "objects": "driver control Ref and immutable callbacks may remain reachable through LocalManagedDispatchOperations; its provider root is cleared only after stop and successful cleanup; separately retained parent execution references and accepted output and its upstream holdings; stored CompletedOutput occurrences and their original CompletedSequence.result_identity anchors until reverse cleanup; empty replacement owner overlaps the old completed container",
       "phases": [
         "cleanup-pending",
         "cleanup-complete",
         "retained-owner-after-cleanup"
       ],
-      "basis": "cleanup does not destroy immutable callbacks; driver provider_execution is retained; ownership and reservation correspondence must be demonstrated; the process-local completion identity is not a ledger holding generation; both remain distinct correspondence obligations",
+      "basis": "cleanup does not destroy immutable callbacks or the control Ref; the actual driver caches final work then clears provider_execution only after stop and successful cleanup; external fixture references may still retain the parent; exact driver/common-owner source admission is checked separately and reservation retirement/custody correspondence must be demonstrated; the process-local completion identity is not a ledger holding generation; both remain distinct correspondence obligations",
       "status": "reservation retirement/custody correspondence pending; no physical-GC completion claim"
     }
   ],

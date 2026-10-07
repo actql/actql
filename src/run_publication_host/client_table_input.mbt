@@ -227,10 +227,14 @@ pub fn client_table_preview_commit_outcome(
   max_depth : Int,
 ) -> Result[String, ClientTableInputIssue] {
   @effect.project_table_commit_outcome(
-    value.input.operation, response_wire, status_code,
+    value.input.operation,
+    response_wire,
+    status_code,
     @execution.completed_relation_export_measurement(
       value.input.artifact.export_receipt,
     ).row_count.to_int64(),
-    max_bytes, max_nodes, max_depth,
+    max_bytes,
+    max_nodes,
+    max_depth,
   ).map_err(issue => Commit(issue))
 }
