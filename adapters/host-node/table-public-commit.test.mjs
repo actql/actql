@@ -3,13 +3,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, sign} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {readFile, writeFile, readdir} from 'node:fs/promises';
+import {createServer} from 'node:https';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
+import {connect} from '../../packages/sdk/index.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
@@ -458,8 +462,44 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
 });
 }
 
-test('Table sparse materialization exposes the existing Result presence boundary before writes', async t => {
+async function sparseTableClientOpener(t, root, transport) {
+  if (transport === 'Local') return connectEmbeddedLocal;
+  const priorCertificates = getCACertificates('default');
+  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+    '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
+    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: root, stdio: 'ignore'});
+  const key = await readFile(join(root, 'host.key'));
+  const cert = await readFile(join(root, 'host.crt'));
+  setDefaultCACertificates([...priorCertificates, cert.toString()]);
+  t.after(() => setDefaultCACertificates(priorCertificates));
+  return async options => {
+    const host = await openInstalledRemoteHttpHost({...options.installation,
+      authenticate: header => header === 'Bearer table-fixture' ? userInfo().username : undefined});
+    const server = createServer({key, cert}, host.handler);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const client = await connect({mode: 'remote', durability: 'durable', token: 'table-fixture',
+      endpoint: `https://127.0.0.1:${server.address().port}/`});
+    let closed = false;
+    return Object.freeze({...client, async close() {
+      if (closed) return;
+      await client.close();
+      if (server.listening) {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
+      const result = await host.close();
+      assert.equal(result.storeCleanupPending, false);
+      assert.equal(result.authorizationCleanupPending, false);
+      assert.deepEqual(result.pendingRetention, []);
+      closed = true;
+    }});
+  };
+}
+
+for (const transport of ['Local', 'HTTPS']) {
+test(`Table sparse private input commits through ${transport} after approval while ordinary Result presence remains required`, async t => {
   const f = await tablePhysicalFixture(t), declared = declaration('person_key');
+  const openClient = await sparseTableClientOpener(t, f.root, transport);
   const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
   const effectProfilePath = join(f.root, 'sparse-effect.json');
   await writeFile(effectProfilePath, JSON.stringify({
@@ -473,12 +513,15 @@ test('Table sparse materialization exposes the existing Result presence boundary
         kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
         provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
         resource_kind: 'Table', provider_object_identity_cids: []}}], limits: {}}));
-  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
-    installation: {directory: join(f.root, 'sparse-host'), effectProfilePath,
-      authorization: {accountConfiguration: account(), reviewReaders: [principalId],
-        reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
-          publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-        hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}}});
+  const observations = [];
+  const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'sparse-host'), effectProfilePath, authorization}};
+  let client = await openClient(options);
   try {
     const sparse = JSON.parse(await readFile(new URL('../../scripts/fixtures/graph-presence.program.json', import.meta.url), 'utf8'));
     sparse.id = 'sparse-table';
@@ -494,8 +537,8 @@ test('Table sparse materialization exposes the existing Result presence boundary
     stage.effects = program([]).stages[0].effects;
     sparse.results.answer.from.result = 'answer';
     // The root public Result exports only guaranteed person_key. The stage's
-    // closed input to Store still requires p and therefore cannot yet carry
-    // the complete sparse Relation through the existing Result-based spelling.
+    // Result-based spelling still requires p. The separate private Table input
+    // below must not weaken this ordinary Named Result contract.
     await assert.rejects(client.aql(JSON.stringify(sparse), {format: 'json', requestId: 'sparse-table-input'}), error => {
       t.diagnostic(inspect({phase: 'sparse-table-input', error}, {depth: 8}));
       assert.equal(error.code, 'ClientProgramRejected');
@@ -536,8 +579,91 @@ test('Table sparse materialization exposes the existing Result presence boundary
     assert.equal((await terminal(projectedRun, [], t)).status, 'succeeded');
     assert.deepEqual(plain(await projectedRun.result('answer').all()).map(row => row.person_key).sort(), [1, 2, 3]);
     assert.deepEqual(commits(f.catalog), [], 'Read-only Graph controls write no Table');
+    const privateInput = plain(sparse);
+    privateInput.id = 'sparse-private-table';
+    const privateStage = privateInput.stages[0];
+    privateStage.table_inputs = {rows: privateStage.results.rows};
+    delete privateStage.results.rows;
+    privateStage.effects.save.store.from = {table_input: 'rows'};
+    privateStage.steps.push({from: 'rows', sort: [
+      {field: 'person_key', dir: 'asc', nulls: 'first'}], as: 'ordered'});
+    privateStage.table_inputs.rows.from = 'ordered';
+    privateStage.results.answer.from = 'ordered';
+    const input = JSON.stringify(privateInput);
+    let run = await client.aql(input, {format: 'json', requestId: 'sparse-private-input'});
+    await waiting(run, observations, t);
+    assert.deepEqual(commits(f.catalog), [], 'Private capture does not authorize a commit');
+    const checkpoint = (await client.checkpoints()).items[0];
+    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+    const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+    assert.equal(preview.effects[0].source_table_input, 'rows');
+    assert.equal(preview.effects[0].count, 1);
+    assert.equal(preview.effects[0].approval, 'required');
+    const operation = preview.effects[0].changes[0].intended_changes.value;
+    const originalRef = run.ref;
+    await client.close();
+    client = await openClient(options);
+    run = await client.aql(input, {format: 'json', requestId: 'sparse-private-input'});
+    assert.deepEqual(run.ref, originalRef);
+    assert.equal((await client.checkpoints()).items[0].checkpointCid, checkpoint.checkpointCid);
+    assert.deepEqual(commits(f.catalog), [], 'Restart does not send a private Table operation');
+    const answered = await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    assert.deepEqual(answered.results.map(value => value.status), ['committed']);
+    assert.equal((await terminal(run, observations, t)).status, 'succeeded');
+    assert.deepEqual(plain(await run.result('answer').all()),
+      [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
+    assert.equal(commits(f.catalog).length, 1);
+    assert.deepEqual(commits(f.catalog)[0].operation, operation);
+    assert.deepEqual((await client.resolveCheckpoints(answered.signed)).results.map(value => value.status),
+      ['duplicate']);
+    assert.equal(commits(f.catalog).length, 1, 'Duplicate approval does not resend');
   } finally { await client.close(); }
+  const committed = commits(f.catalog)[0];
+  const selector = {catalog_identity_cid: f.catalog.catalogCid, namespace: ['test'], table_name: 'rows',
+    table_uuid: committed.receipt.table_uuid, schema_cid: committed.receipt.schema_cid};
+  const frozen = await f.bridge.resolveGeneration(selector);
+  assert.equal(frozen.ok, true);
+  assert.deepEqual(JSON.parse(frozen.result.schema_wire), {
+    person_key: {nullable: false, type: 'number'},
+    p: {contract: {nullable: true, type: 'number'}, presence: 'conditional'}});
+  assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result),
+    [{person_key: 1, p: 7}, {person_key: 2, p: null}, {person_key: 3}],
+    'Iceberg preserves value, explicit NULL and omission after the origin Host closes');
+  const sourceProfilePath = join(f.root, 'sparse-source.json');
+  await writeFile(sourceProfilePath, JSON.stringify({version: 'actql-installed-table-source/0.1',
+    connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(),
+    targets: [{resource, selector, schemaWire: frozen.result.schema_wire}],
+    limits: {maxPages: 3, maxPageBytes: 65536, maxPageRows: 16, maxCaptureRows: 16}}));
+  const later = await openClient({mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'sparse-reader'), sourceProfilePath, authorization}});
+  try {
+    const reader = {version: 'actql/0.1', id: 'read-sparse-table', stages: [{id: 'read',
+      inputs: {input: {connector: 'table', resource}},
+      steps: [{filter: 'person_key >= 0', as: 'kept'},
+        {select: ['person_key'], as: 'output'}],
+      results: {rows: {from: 'output', fields: ['person_key']}}},
+      // Use the existing acquisition -> Compute publication path. Direct
+      // publication of an acquisition-only task has no receipt capability.
+      {id: 'compute', inputs: {input: {result: {stage: 'read', result: 'rows'}}},
+        steps: [{derive: {checked_key: 'person_key + 0'}, as: 'checked'},
+          {select: ['person_key'], as: 'output'}],
+        results: {rows: {from: 'output', fields: ['person_key']}}}],
+      results: {answer: {from: {stage: 'compute', result: 'rows'}}}};
+    const run = await later.start(reader, {requestId: 'read-after-origin-release'});
+    assert.equal((await terminal(run, observations, t)).status, 'succeeded');
+    assert.deepEqual(plain(await run.result('answer').all()),
+      [{person_key: 1}, {person_key: 2}, {person_key: 3}]);
+    assert.equal(commits(f.catalog).length, 1, 'A new reader never resends the originating Effect');
+  } catch (error) {
+    t.diagnostic(inspect({readerError: error, observations}, {depth: 12}));
+    throw error;
+  } finally { await later.close(); }
 });
+}
 
 test('Table installed HTTP Host retires capture custody before completing close', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();

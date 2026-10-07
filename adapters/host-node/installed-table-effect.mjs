@@ -7,7 +7,8 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
 import {issueCompletedEffectfulComputationEvidence,
-  releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet}
+  releaseCompletedRunPreparedPayloads, releasePreparedResults, storeCompletedRunResultSet,
+  prepareCompletedEffectfulPublication}
   from '../host-common/completed-run-publication.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {installedRowEffectUnit} from './installed-row-effect.mjs';
@@ -157,6 +158,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     let ledger, closed = false, disposed = false;
     let flight;
     const materials = [];
+    const schemas = [];
     const drain = async () => {
       if (disposed) return true;
       for (let index=0; index<materials.length; index++) {
@@ -168,12 +170,20 @@ export async function createInstalledTableEffect({moon, environmentWire,
         // the existing WeakMap custody, without disposing another input.
         materials[index] = undefined;
       }
+      for (let index=0; index<schemas.length; index++) {
+        const prepared = schemas[index];
+        if (prepared === undefined) continue;
+        await prepared.release();
+        if (prepared.status().pending) return false;
+        schemas[index] = undefined;
+      }
       if (ledger && !closed) { ledger.close(); closed = true; }
       disposed = true;
       return true;
     };
     const owner = Object.freeze({
       materials,
+      schemas,
       setLedger(value) { if (ledger) fail('TableLedgerAlreadyOwned'); ledger = value; },
       async close() {},
       cleanup() {
@@ -181,7 +191,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
         if (flight === undefined) flight = drain().finally(() => { flight = undefined; });
         return flight;
       },
-      cleanupPending: () => !disposed && (materials.some(Boolean) || Boolean(ledger && !closed)),
+      cleanupPending: () => !disposed &&
+        (materials.some(Boolean) || schemas.some(Boolean) || Boolean(ledger && !closed)),
     });
     return owner;
   };
@@ -307,6 +318,13 @@ export async function createInstalledTableEffect({moon, environmentWire,
           capturedTableRecoveryRecord({control, tableInput, tablePreview: authored.tablePreviews[index]})),
         contractLimits: plan.contractLimits});
       for (const [index,holding] of retained.holdings.entries()) {
+        // A private input schema differs from the public Result projection.
+        // Keep its exact checked bytes under the existing Store schema lease;
+        // public publication adopts it, or the same cleanup owner releases it.
+        const schema = await store.putPreparedResultSchema(
+          control.tableInputSchemaWire(authored.tableInputs[index]),
+          authored.operations[index].schema_cid, plan.runDefinition.identity);
+        owner.schemas.push(schema.prepared);
         owner.materials.push(await prepareCapturedTableCommit({control, store, holding,
           tableInput: authored.tableInputs[index], identity: authored.identities[index],
           tablePreview: authored.tablePreviews[index], bridge, reservation: limits.reservation,
@@ -377,7 +395,8 @@ export async function createInstalledTableEffect({moon, environmentWire,
     const targets = body.effects.map((member,index) => {
       const saved = provider.members[index];
       const target = resolve({_1: member.effect_id, _2: member.effect_kind, _3: member.target, _4: member.mapping,
-        _5: member.resolved_mapping_contract_cid, _6: member.source_result});
+        _5: member.resolved_mapping_contract_cid, _6: member.source_result,
+        _8: member.source_table_input});
       if (saved?.effect_id !== member.effect_id || saved.mapping_cid !== target.mappingCid ||
         member.changes.length !== 1 || member.capability_evidence_cid !== target.capabilityCid) {
         fail('InstalledTableInstallationChanged');
@@ -404,10 +423,16 @@ export async function createInstalledTableEffect({moon, environmentWire,
         programId: provider.program_id, nodeId: provider.stage_id,
         maxRows: targets.length, maxWork: limits.maxWork});
       const recoveredInputs = [];
+      const inventory = prepareCompletedEffectfulPublication({execution: null,
+        store, control, storedResults, computation, preview});
       for (let index=0; index<targets.length; index++) {
-        recoveredInputs.push(await prepareRecoveredTableInput({recovered: durable, store,
+        const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, signal}));
+          tableLimits: limits.material, signal});
+        recoveredInputs.push(input);
+        const schema = await store.putPreparedResultSchema(input.schemaWire,
+          JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);
+        owner.schemas.push(schema.prepared);
       }
       const scopes = scopesOf(targets);
       // Read evidence under the installation's current gate before any lookup

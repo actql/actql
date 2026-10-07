@@ -198,6 +198,47 @@ fn local_effect_export_receipt(
 }
 
 ///|
+test "private Table and Result Effect ports compile through one checked Plan owner" {
+  for empty in [false, true] {
+    let (document, environment, limits) = local_effect_export_fixture(
+      table=true,
+      empty~,
+    )
+    let owner = @publication_host.prepare_client_effect_computation(
+      document,
+      Json,
+      environment,
+      None,
+      [],
+      limits,
+    ).unwrap()
+    let manifests = @publication_host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ).unwrap()
+    let compilation = @publication_host.issue_prepared_client_effect_compilation(
+      owner,
+      manifests,
+      @publication_host.client_standard_values_sequence_limits(),
+      1000,
+      10000,
+      1000000,
+      100000,
+      100,
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @publication_host.client_effect_compilation_owner(compilation),
+        owner,
+      ),
+    )
+  }
+}
+
+///|
 fn local_effect_open_run(
   prepared : @publication_host.PreparedClientEffectComputation,
 ) -> (

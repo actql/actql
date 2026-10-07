@@ -89,7 +89,7 @@ await assert.rejects(prepareRecoveredTableInput({...options,
   requestScope: effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'another-request', 128)}),
   {code: 'MoonBitHostFailure'});
 const original = recovered.connectorRecovery[0];
-assert.equal(table.schemaWire, '{"id":{"nullable":false,"type":"number"}}');
+assert.equal(table.schemaWire, input.expectedSchemaWire);
 for (const schema_wire of ['{}', table.schemaWire + ' ']) {
   await assert.rejects(prepareRecoveredTableInput({...options, recovered: {...recovered,
     connectorRecovery: [{...original, wire: JSON.stringify({...JSON.parse(original.wire), schema_wire})}]}}),
@@ -152,9 +152,15 @@ await store.close();
 process.stdout.write(JSON.stringify(result));
 `;
 
-for (const [empty, privateTableInput] of [[false,false], [true,false], [false,true], [true,true]]) {
-  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} ${privateTableInput ? 'private input' : 'Result'} semantic Preview in a new process`,
-    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, onTablePreview: async f => {
+for (const [empty, privateTableInput, sparseTableInput] of [[false,false], [true,false], [false,true], [true,true], [false,true,true], [true,true,true]]) {
+  test(`Table durable capture restores ${empty ? 'empty' : 'nonempty'} ${sparseTableInput ? 'sparse private input' : privateTableInput ? 'private input' : 'Result'} semantic Preview in a new process`,
+    async t => exerciseEffectSourceSet(t, {empty, privateTableInput, sparseTableInput, onTablePreview: async f => {
+      const rowCount = empty ? 0 : sparseTableInput ? 3 : 2;
+      const expectedRows = empty ? [] : sparseTableInput ?
+        [{k: 1, p: 7}, {k: 2, p: null}, {k: 3}] : [{id: 1}, {id: 2}];
+      const expectedSchemaWire = sparseTableInput ?
+        '{"k":{"nullable":false,"type":"number"},"p":{"contract":{"nullable":true,"type":"number"},"presence":"conditional"}}' :
+        '{"id":{"nullable":false,"type":"number"}}';
       const control = f.sourceControl;
       const limits = f.options.contractLimits;
       const context = f.options.localEvidenceContext;
@@ -201,8 +207,9 @@ for (const [empty, privateTableInput] of [[false,false], [true,false], [false,tr
             maxBuffer: 1024 * 1024, input: JSON.stringify({
               store: {...f.storeConfiguration, privateEvidenceKey: undefined},
               runWire: context.runDefinition.wire, limits, tableLimits: f.tableLimits,
-              receipt: receiptFixture(f.operations[0], empty ? 0 : 2),
-              foreignRowCount: receiptFixture(f.operations[0], empty ? 1 : 3)})});
+              expectedSchemaWire,
+              receipt: receiptFixture(f.operations[0], rowCount),
+              foreignRowCount: receiptFixture(f.operations[0], rowCount + 1)})});
         assert.equal(child.status, 0, child.stderr);
         assert.equal(child.error, undefined);
         const recovered = JSON.parse(child.stdout);
@@ -212,16 +219,16 @@ for (const [empty, privateTableInput] of [[false,false], [true,false], [false,tr
         assert.deepEqual(recovered.holdings.map(({holdingCid}) => holdingCid),
           retained.holdings.map(holding => holding.holdingCid));
         assert.deepEqual(recovered.holdings.map(({rows}) => rows),
-          [empty ? [] : [{id: 1}, {id: 2}], empty ? [] : [{id: 1}, {id: 2}]]);
+          [expectedRows, expectedRows]);
         assert.deepEqual(recovered.holdings.map(({manifestCid}) => manifestCid),
           retained.holdings.map(holding => holding.artifact.identity));
         assert.deepEqual(recovered.table, {operationWire: f.tableInput.wire,
-          mappingWire: f.storage.wire, schemaWire: '{"id":{"nullable":false,"type":"number"}}',
+          mappingWire: f.storage.wire, schemaWire: expectedSchemaWire,
           subjectCid: f.tablePreview.subjectCid,
           memberIndex: 0,
           rowPreviewCid: control.tablePreviewLedgerBinding(f.tablePreview).rowPreviewCid,
-          rows: empty ? [] : [{id: 1}, {id: 2}]});
-        assert.equal(f.execution.completed.length, 1);
+          rows: expectedRows});
+        if (!sparseTableInput) assert.equal(f.execution.completed.length, 1);
         retirementStore = await openLocalPublicationStore(f.storeConfiguration, control);
         f.replaceStoreForCleanup(retirementStore);
         storeClosed = false;

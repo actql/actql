@@ -82,6 +82,27 @@ pub fn checked_effect_table_input_at(
 }
 
 ///|
+pub fn checked_effect_table_input_member(
+  value : CheckedEffectTableInputPort,
+) -> Int {
+  value.member_index
+}
+
+///|
+pub fn checked_effect_table_input_stage(
+  value : CheckedEffectTableInputPort,
+) -> Int {
+  value.stage
+}
+
+///|
+pub fn checked_effect_table_input_task(
+  value : CheckedEffectTableInputPort,
+) -> Int {
+  value.task
+}
+
+///|
 pub fn captured_effect_table_input_at(
   value : CapturedEffectInputs,
   index : Int,
@@ -141,6 +162,8 @@ pub fn captured_effect_table_input_name(
   value : CapturedEffectTableInput,
 ) -> String {
   @ports.table_input_name(
-    @execution.managed_table_input_occurrence_definition(value.source.occurrence),
+    @execution.managed_table_input_occurrence_definition(
+      value.source.occurrence,
+    ),
   )
 }

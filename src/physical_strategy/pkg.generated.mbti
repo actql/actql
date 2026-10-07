@@ -364,6 +364,12 @@ pub fn checked_effect_source_task(CheckedEffectSourcePort) -> Int
 
 pub fn checked_effect_table_input_at(CheckedEffectComputationDAG, Int) -> CheckedEffectTableInputPort?
 
+pub fn checked_effect_table_input_member(CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_stage(CheckedEffectTableInputPort) -> Int
+
+pub fn checked_effect_table_input_task(CheckedEffectTableInputPort) -> Int
+
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
 pub fn checked_task_output_matches(CheckedTaskReference, @execution_relation.CompletedOutput) -> Bool
