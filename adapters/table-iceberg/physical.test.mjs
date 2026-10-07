@@ -25,7 +25,7 @@ test('pinned Catalog publication binds original receipt atomically', () => {
       encoding: 'utf8', timeout: 60000, maxBuffer: 1024 * 1024,
     });
   assert.equal(run.status, 0, `${run.error ?? ''}\n${run.stdout}${run.stderr}`);
-  assert.match(run.stderr, /Ran 5 tests/u);
+  assert.match(run.stderr, /Ran 9 tests/u);
   assert.match(run.stderr, /\nOK\n/u);
 });
 
