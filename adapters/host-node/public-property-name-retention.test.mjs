@@ -327,7 +327,9 @@ test('public retained Values completion names preserve Unicode and preparation c
 test('public retained Append completion names preserve duplicates and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'append-completion',
     id=>completionProgram(id,'append'),
-    [{id:1,value:7},{id:1,value:7},{id:1,value:7},{id:2,value:null}],
+    // Both Values operands prove their logical order. Append preserves every
+    // left row before every right row, rather than sorting the combined IDs.
+    [{id:1,value:7},{id:1,value:7},{id:2,value:null},{id:1,value:7}],
     {type:'number',nullable:true},2));
 test('public retained Set completion names preserve ALL DISTINCT and preparation custody',
   {timeout:180_000},async t=>{

@@ -71,7 +71,8 @@ The existing public retained-name harness adds ordinary Programs for Values,
 Append, both Set operators and both duplicate modes, and Cross Join. Each
 producer emits a long Unicode-named column, then explicitly renames it for
 three public Named Results (`published`, `consumed_a`, `consumed_b`). Fixed
-expected rows preserve NULL, duplicates and canonical public order. The
+expected rows preserve NULL, duplicates and contractual public order, including
+Append's inherited left-then-right sequence. The
 actual Embedded Local Host and retained Store exercise repeated-request reuse,
 post-progress cancellation, physical-stop confirmation, nonpublication and
 final snapshot reclamation. This public barrier observes preparation progress;
@@ -82,6 +83,15 @@ evidence to each of the five operations. Removing any required role fails the
 resource checker. These supplement the existing operation-specific assurance;
 they do not replace work/workspace evidence with a name correspondence table.
 Submitted-source public execution receipts are reported separately in the PR.
+
+The first submitted-source Host selection at
+`cb465ff1c513d976d64fb9f13f04ed400e3d83c1` passed 8/9
+(`run-IwtMED`, `focused-test-eBQoME`). Append failed a row-order expectation:
+the fixture incorrectly expected a combined ID sort. Both Values operands
+prove logical order, and the language's Append rule requires all left rows
+before all right rows. The independently authored expected sequence is now
+`(1,7), (1,7), (2,NULL), (1,7)` for each public consumer. No product ordering
+or unordered comparison was introduced to make the test pass.
 
 ## Remaining obligations
 
