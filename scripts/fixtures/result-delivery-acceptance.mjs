@@ -60,6 +60,18 @@ function fixture(api, control, options = {}) {
     async confirmCommittedIndex() { return JSON.parse(index.wire); },
     async readPublicationContract(identity, name) { return read(identity, name); },
     async readCommittedResultRetentionExtension() {},
+    ...(typeof options.lookup === 'function' ? {async lookupDeliveryAttempt(request) {
+      if (!state.selected) return undefined;
+      const attempt = JSON.parse(state.selected.wire);
+      if (attempt.attempt_id !== request.attemptId ||
+          attempt.run_definition_cid !== request.indexKey.runDefinitionCid ||
+          attempt.result_name !== request.resultName) return undefined;
+      const record = state.record && JSON.parse(state.record.wire);
+      const hostReleaseReceipt = record?.result_delivery_receipt_cid === undefined
+        ? undefined : JSON.parse(read(record.result_delivery_receipt_cid,
+          'result_delivery_receipt').wire);
+      return options.lookup({attempt, record, hostReleaseReceipt}, request);
+    }} : {}),
     async observeTrustedClock() {},
     async createDeliveryAttempt(wire, grantWire) {
       state.admissions++;
@@ -111,6 +123,7 @@ function fixture(api, control, options = {}) {
   };
   const authority = api.installResultAccessAuthority({
     authorizeResultReadRequest: () => true,
+    ...(typeof options.lookup === 'function' ? {authorizeDeliveryAttemptLookup: () => state.allowed} : {}),
     admitResultRead: () => ({authorizationContextCid: cid('2'), dataCeilingCid: cid('a'),
       egressAdmissionCid: cid('3'), expiresAt: '2026-10-02T00:00:00.000Z',
       maxBytes: options.maxBytes ?? 1024, maxUses: 1}),
