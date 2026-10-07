@@ -55,4 +55,3 @@ export async function tablePhysicalFixture(t, entry) {
     callerRequestId: 'table-operation', maxEntryBytes: 4096});
   return {root, catalog, mapping, schemaWire, operation, bridge, prepare, claim, open};
 }
-
