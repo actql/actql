@@ -558,6 +558,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
+  const continueAcceptedCancellation = async (ref, accepted) => {
+    if (accepted.kind === 'already_terminal') return;
+    dispatchOwner.cancel(ref);
+    try { await cancelEffectContinuation(ref); }
+    finally { void checkpoints?.sweep(); }
+  };
   // Request-level cancellation already owns its own pre-Run receipt. Its
   // transfer to a defined Run remains separate from a Client cancel operation.
   const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
@@ -581,11 +587,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     const accepted = journal.requestCancellation(ref, {
       currentAuthorization: true, publicationCommitted,
     }, moon, control);
-    if (accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
-    }
+    await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -598,16 +600,31 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientCancellationDenied');
     }
-    const recorded = journal.recordCancellationOperation(ref, {
-      cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
-      modelCancellationOwner: checkpoints?.journal,
-    }, moon, control);
-    const accepted = recorded.cancellation;
-    if (recorded.recorded && accepted.kind !== 'already_terminal') {
-      dispatchOwner.cancel(ref);
-      await cancelEffectContinuation(ref);
-      void checkpoints?.sweep();
+    let recorded;
+    try {
+      recorded = journal.recordCancellationOperation(ref, {
+        cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+        modelCancellationOwner: checkpoints?.journal,
+      }, moon, control);
+    } catch (cause) {
+      // A lost COMMIT acknowledgement can leave an accepted original operation.
+      // Observe its exact durable identity before waking the existing stop and
+      // continuation owners. Pending or unavailable custody grants no authority
+      // to advance cancellation, and the lost reply remains unknown to the SDK.
+      let retained;
+      try {
+        retained = journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+          {currentAuthorization: hostConnection({principalId: actual, connection, ref})},
+          moon, control);
+      } catch { /* Recovery remains with the durable journal and its existing sweep. */ }
+      if (retained?.kind === 'found') {
+        try { await continueAcceptedCancellation(ref, retained.cancellation); }
+        catch { /* Preserve the original unknown reply; cleanup remains owned. */ }
+      }
+      throw cause;
     }
+    const accepted = recorded.cancellation;
+    if (recorded.recorded) await continueAcceptedCancellation(ref, accepted);
     return accepted;
   };
   const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
@@ -2170,6 +2187,27 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           // An older physical-close record cannot acknowledge a new
           // continuation's reclamation. Only its current owner can do that.
           const restorationReclaimed = () => !restorationDispatchEntered || restorationStopConfirmed;
+          const retainStoppedModelReconciliation = () => {
+            const stopped = journal.lookupRunDefinition(ref, moon, control);
+            if (!checkpoints.journal.hasUnresolvedModelCalls(runId) ||
+                effectRun?.reconciliation(ref) !== undefined ||
+                !restorationReclaimed() || stopped?.physicalCloseConfirmed !== true ||
+                dispatchOwner.operation(ref) !== undefined) return false;
+            const reconciliation = issueInstalledUnpublishedRunState(moon, {runId,
+              observedAt: now(), resultNames: stopped.resultNames,
+              dispatchReserved: true, preDispatchFailureConfirmed: false,
+              cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+              executionUnknown: true});
+            if (journal.lookupRunDefinition(ref, moon, control)?.revision !== stopped.revision) return false;
+            const lifecycle = checkpoints.journal.getRunState(runId);
+            if (claim !== undefined && lifecycle?.status === 'resuming' && leaseFailure === undefined) {
+              checkpoints.journal.completeResume(claim, {runStateWire: JSON.stringify(reconciliation)});
+            } else if (claim === undefined && lifecycle?.status === 'running') {
+              checkpoints.journal.finishRun(runId, {status: 'needs_reconciliation',
+                runStateWire: JSON.stringify(reconciliation)});
+            }
+            return checkpoints.journal.getRunState(runId)?.status === 'needs_reconciliation';
+          };
           const runRestoredModel = async () => {
             assertCurrent();
             const current = journal.lookupRunDefinition(ref, moon, control);
@@ -2229,21 +2267,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
               const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
-              const stopped = journal.lookupRunDefinition(ref, moon, control);
               const effectReconciliation = effectRun?.reconciliation(ref);
               // This restoration returned only after its physical Owner's
               // stop and cleanup. Retain its unresolved outcome in the same
               // Run journal, so later sweeps do not reopen a Running frame.
-              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
-                restorationStopConfirmed &&
-                stopped?.physicalCloseConfirmed === true &&
-                dispatchOwner.operation(ref) === undefined
-                ? issueInstalledUnpublishedRunState(moon, {runId,
-                  observedAt: now(), resultNames: stopped.resultNames,
-                  dispatchReserved: true, preDispatchFailureConfirmed: false,
-                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
-                  executionUnknown: true})
-                : !unresolvedModel ? effectReconciliation : undefined;
+              if (unresolvedModel) {
+                retainStoppedModelReconciliation();
+                return;
+              }
+              const reconciliation = effectReconciliation;
               if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
@@ -2279,6 +2311,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
             }
           }).catch(async error => {
             const code = error?.code ?? error?.message;
+            // Cancellation can win before this restoration physically enters.
+            // Its confirmed prior stop still retains unknown Model responsibility;
+            // it must not leave a Running journal that only public lookup projects.
+            if (retainStoppedModelReconciliation()) return;
             const stopped = journal.lookupRunDefinition(ref, moon, control);
             if (stopped?.physicalCloseConfirmed === true &&
                 await confirmNodeRunCancellation({ref, journal, store, checkpoints,

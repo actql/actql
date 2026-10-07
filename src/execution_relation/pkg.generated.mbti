@@ -117,6 +117,8 @@ pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[Pred
 
 pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[ProducerRead?, ProducerReadIssue]
 
+pub fn advance_relation_schema_identity(RelationSchemaIdentityPreparation, Int) -> Result[(Bool, Int), RelationSchemaIdentityIssue]
+
 pub fn advance_row_wire_order(RowWireOrderPreparation, Int) -> Result[(Bool, Int), RowWireIssue]
 
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
@@ -306,6 +308,8 @@ pub fn[T] cancel_managed_view_selection_preparation(ManagedViewSelectionPreparat
 pub fn cancel_predicate_expression(PredicateExpressionExecution) -> Bool
 
 pub fn cancel_prepare_producer_read(ProducerReadPreparation) -> Unit
+
+pub fn cancel_relation_schema_identity(RelationSchemaIdentityPreparation) -> Bool
 
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
 
@@ -602,6 +606,8 @@ pub fn[T] finish_managed_publication_bridge(ManagedPublicationBridge[T]) -> Resu
 pub fn[P] finish_managed_verified_output(ManagedVerifiedOutputPort[P], P) -> Result[ManagedOutputValueReceipt, ManagedVerifiedOutputIssue]
 
 pub fn[P, T] finish_managed_view_output(ManagedViewOutputPort[P, T], P) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue]
+
+pub fn finish_relation_schema_identity(RelationSchemaIdentityPreparation) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
 
 pub fn finish_retained_content_read(RetainedContentRead) -> Result[AdmittedOutputStreamReceipt, RetainedContentReadIssue]
 
@@ -1256,6 +1262,8 @@ pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, I
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
 
 pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
+
+pub fn start_relation_schema_identity(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue]
 
 pub fn start_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrderPreparation, RowWireIssue]
 
@@ -2336,6 +2344,8 @@ pub(all) enum RelationSchemaIdentityIssue {
   InvalidLimits
   FieldLimit
   Encoding(@encode_core.EncodeFailure)
+  Closed
+  NotFinished
 }
 
 pub(all) struct RelationSchemaIdentityLimits {
@@ -2344,6 +2354,8 @@ pub(all) struct RelationSchemaIdentityLimits {
   max_nodes : Int
   max_depth : Int
 }
+
+type RelationSchemaIdentityPreparation
 
 pub(all) struct RetainedColumnMeasurement {
   rows : Int

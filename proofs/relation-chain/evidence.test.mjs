@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { bindings, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
+import { bindings, pauseBindings, pauseFixture, pausePremises, pauseGuarantees, executedPauseCoverage, stopBindings, stopFixture, stopPremises, stopGuarantees, executedStopCoverage, checkBindings, executedCoverage, fixture, graph, premises, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const clone = value => structuredClone(value);
 function evidence(target = 'js') {
@@ -102,4 +102,84 @@ for (const [label, corrupt] of [
 ]) test(`reject ${label}`, () => {
   const e = evidence(); corrupt(e);
   assert.throws(() => validate(e.nodes, e.report, e.current, 'js'));
+});
+
+function pauseEvidence(target = 'js') {
+  const e = stoppingEvidence(target);
+  e.nodes = graph([...bindings(), ...stopBindings(), ...pauseBindings()], target);
+  e.report.runs[`pause-connection-${target}`] = {...clone(e.report.runs[`connection-${target}`]), count: 2,
+    command: ['moon', 'test', pauseFixture, '--target', target, '--deny-warn'],
+    coverage: executedPauseCoverage()};
+  return e;
+}
+test('pause claim inherits common stop laws with its own independently executed connection', () => {
+  checkBindings(root, [...bindings(), ...stopBindings(), ...pauseBindings()]);
+  for (const target of ['js', 'wasm', 'native']) {
+    const e = pauseEvidence(target);
+    assert.equal(validate(e.nodes, e.report, e.current, target).length, 5);
+    assert.deepEqual(e.nodes.at(-1).guarantees, pauseGuarantees);
+    assert.deepEqual(e.nodes.at(-1).dependencies, ['model', 'registered-child/stop-pause:connection']);
+  }
+});
+for (const [label, change] of [
+  ['old six-case connection substituted', e => {e.report.runs['pause-connection-js'].command[2] = stopFixture;}],
+  ['only one stop trigger executed', e => {e.report.runs['pause-connection-js'].count = 1;}],
+  ['pause custody premise absent', e => {e.nodes.at(-1).premises = pausePremises.slice(0, -1);} ],
+  ['missing independent pause coverage', e => {delete e.report.runs['pause-connection-js'].coverage;}],
+  ['slot broadened on both sides', e => {
+    e.nodes.at(-1).scope.profile = 'arbitrary Model slots';
+    e.report.runs['pause-connection-js'].coverage.scopes[0].profile = 'arbitrary Model slots';
+  }],
+  ['pause classified as formal implementation proof', e => {e.nodes.at(-2).kind = 'formal-model';}],
+  ['pause treated as stop confirmation', e => {e.nodes.at(-1).guarantees.push('Waiting confirms physical stop');}],
+]) test(`refuse pause evidence: ${label}`, () => {
+  const e = pauseEvidence(); change(e);
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'));
+});
+test('actual pause forwarding and distinct zero-work acceptance remain mandatory', () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const source = readFileSync(root + path, 'utf8');
+  const from = 'Waiting(..) | Settling(_, ..) => Ok(poll)';
+  assert.equal(source.split(from).length, 3);
+  assert.throws(() => checkBindings(root, pauseBindings(), {
+    read: p => p === path ? source.replace(from, '_ => Ok(poll)') : readFileSync(root + p, 'utf8'),
+  }), /exact stop pause forwarding/);
+});
+
+for (const [label, transform] of [
+  ['unrelated nonempty text', _ => ['no remaining obligations']],
+  ['all obligations embedded in one string', values => [values.join('; ')]],
+  ['string instead of list', values => values.join('; ')],
+  ['duplicate obligation', values => [...values, values[0]]],
+]) test(`all chain scopes preserve independent residual obligations: ${label}`, () => {
+  for (const [b, make] of [[bindings()[0], evidence], [stopBindings()[0], stoppingEvidence], [pauseBindings()[0], pauseEvidence]]) {
+    const changed = transform(b.residual);
+    assert.throws(() => checkBindings(root, [{...b, residual: changed}]), /Missing chain residual/);
+    const e = make();
+    const claim = e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation);
+    claim.residual = changed;
+    assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+  }
+});
+test('each prompt, stop and pause residual is individually required while additional local obligations remain allowed', () => {
+  for (const [b, make] of [[bindings()[0], evidence], [stopBindings()[0], stoppingEvidence], [pauseBindings()[0], pauseEvidence]]) {
+    for (const omitted of b.residual) {
+      const remaining = b.residual.filter(value => value !== omitted);
+      assert.throws(() => checkBindings(root, [{...b, residual: remaining}]), /Missing chain residual/);
+      const e = make();
+      e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation).residual = remaining;
+      assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
+    }
+    const expanded = {...b, residual: [...b.residual].reverse().concat('additional explicitly retained local obligation')};
+    checkBindings(root, [expanded]);
+    const e = make();
+    e.nodes.find(node => node.kind === 'derived' && node.scope.operation === b.operation).residual = expanded.residual;
+    assert(validate(e.nodes, e.report, e.current, 'js').some(node => node.scope.operation === b.operation));
+  }
+});
+test('chain common premises cannot be satisfied by a concatenated string', () => {
+  const b = bindings()[0];
+  assert.throws(() => checkBindings(root, [{...b, premises: b.premises.join('; ')}]), /Missing child premise/);
+  const e = evidence(); e.nodes.find(node => node.kind === 'derived').premises = b.premises.join('; ');
+  assert.throws(() => validate(e.nodes, e.report, e.current, 'js'), /Missing or unsupported obligations/);
 });
