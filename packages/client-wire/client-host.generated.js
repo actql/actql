@@ -595,6 +595,9 @@ const schemas = {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
+          "checkObservation": {
+            "$ref": "check_outcome"
+          },
           "problem": {
             "type": "object",
             "required": [
@@ -693,6 +696,9 @@ const schemas = {
           "intentCid": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "checkObservation": {
+            "$ref": "check_outcome"
           },
           "problem": {
             "type": "object",

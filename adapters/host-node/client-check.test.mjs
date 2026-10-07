@@ -885,6 +885,68 @@ for (const [entrance, open] of Object.entries(entrances)) {
     }
   });
 
+  test(`${entrance}: rejected source submission carries original syntax checking without stored input observation`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const [text, byte, position] of [
+      ['SELECT', 6, {line: 0, character: 6}],
+      ['/*😀*/\r\nSELECT', 16, {line: 1, character: 6}],
+      ["\ufeffSELECT 'é😀e\u0301' AS x,\r\n", 29, {line: 1, character: 0}],
+    ]) {
+      const original = await client.newSubmission();
+      let error;
+      try {await client.startSource(text, {format: 'sql', submissionRef: original});}
+      catch (cause) {error = cause;}
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid', '[check-mutation:submission-check-public]');
+      const input = sdk.getCheckInput(checked, 'source');
+      assert.deepEqual(input, {documentId: 'source', revision: checked.report.inputs[0].revision, kind: 'text', text});
+      assert.deepEqual(checked.report.inputs, [{document_id: 'source', revision: input.revision, kind: 'text', byte_length: byte}]);
+      assert.deepEqual(checked.report.reasons, [{code: 'query_syntax_invalid', location: {
+        kind: 'text', document_id: 'source', revision: input.revision,
+        start_byte: byte, end_byte: byte, precision: 'exact'}}]);
+      assert.deepEqual(sdk.resolveCheckTextRange(checked, checked.report.reasons[0].location).range,
+        {start: position, end: position}, '[check-mutation:submission-check-public-position]');
+      const lookup = await client.lookupSubmission(original);
+      assert.deepEqual(lookup, outcome);
+      assert.equal(sdk.getSubmissionCheckObservation(lookup), undefined,
+        '[check-mutation:submission-check-reference-only]');
+      assert.equal(sdk.getSubmissionCheckObservation(structuredClone(error)), undefined);
+      assert.equal(sdk.getCheckInput(structuredClone(checked), 'source'), undefined);
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: submission checking preserves safe parameter origin beside protected resolution`, async t => {
+    const projections = [];
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      let error;
+      try {await client.startSource(query, {format: 'sql', parameterDeclarations: declarations,
+        parameters: {minimum: 'twenty'}});}
+      catch (cause) {error = cause;}
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+      const checked = sdk.getSubmissionCheckObservation(error);
+      assert.equal(checked?.report.verdict, 'invalid');
+      const values = sdk.getCheckInput(checked, 'parameters');
+      assert.deepEqual(values.value, {minimum: 'twenty'});
+      assert.deepEqual(checked.report.reasons, [{code: 'supplied_value_type_mismatch',
+        facts: {parameter: 'minimum', expected_type: 'number', actual_type: 'string'},
+        location: {document_id: 'parameters', revision: values.revision,
+          kind: 'structured', pointer: '/minimum'}}], '[check-mutation:submission-check-public-parameter]');
+      assert.deepEqual(checked.report.coverage, {limits: [], unresolved:
+        configuration === configurations.allowed ? [] : protectedSource});
+      projections.push({problem: outcome.problem, coverage: checked.report.coverage,
+        facts: checked.report.reasons.map(reason => ({code: reason.code, facts: reason.facts}))});
+      client.assertNoExecution();
+    }
+    assert.deepEqual(projections[1], projections[2]);
+  });
+
   test(`${entrance}: authored syntax locations retain exact UTF-8 input revisions`, async t => {
     const client = await open(t, configurations.denied);
     // Fixed byte expectations, hand-counted independently of parser output.

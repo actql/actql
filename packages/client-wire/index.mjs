@@ -147,12 +147,13 @@ function submissionFactsMatch(value, expected, intentCid) {
 // binding is checked by the journal; a received reply additionally needs the
 // selected connection below.
 export function validStoredSubmissionOutcome(value, expected, intentCid) {
-  return validSubmissionOutcomeShape(value) && submissionFactsMatch(value, expected, intentCid) &&
+  return validSubmissionOutcomeShape(value) && value.checkObservation === undefined && submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || value.admission.durability === 'durable');
 }
 
 export function validSubmissionOutcome(value, selected, expected, intentCid) {
   return validSubmissionOutcomeShape(value) &&
+    (value.checkObservation === undefined || validCheckOutcome(value.checkObservation)) &&
     submissionFactsMatch(value, expected, intentCid) &&
     (value.kind !== 'ready' || validClientAdmission(value.admission, selected)) &&
     (value.kind !== 'held' || validSubmitReply(value.held, selected, expected.nonce));

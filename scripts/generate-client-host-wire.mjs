@@ -100,7 +100,8 @@ export function buildClientHostWire(registry, protocol) {
     `export const validCheckOutcomeShape = value => ` +
     `valid(value, schemas.check_outcome) && value.outcome_schema_cid === checkOutcomeSchemaCid;\n`;
   const requestRules = requestResponseRules(registry, schemas);
-  const native = nativeClientWire(schemas, rules, requestRules);
+  const native = nativeClientWire(schemas, rules, requestRules, {reason: protocol.artifact_schema_cids.check_reason,
+    outcome: protocol.artifact_schema_cids.check_outcome});
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export declare const checkOutcomeProtocol: Readonly<{version: ${JSON.stringify(checkVersion)}; ` +
     `reasonSchemaCid: string; outcomeSchemaCid: string; ` +
