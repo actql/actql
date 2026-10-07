@@ -105,3 +105,14 @@ This unit depends on the unmerged shorthand-ordering PR #906. Preserve that
 stack until the parent reaches main; final merge target is main. No full Core,
 all-target, full packed campaign, proof/performance campaign, manual CI rerun or
 merge has been performed for this unit.
+
+## Published-parent control correction
+
+The SQL private-looking-star control fails on published `324a326a90a6b42696b2353e68348c49114dc095`
+(`run-pIuEjG`, `focused-test-el0DgH`): the expected aggregate slot still used
+`aql_select_aggregate_4`. The current allocator reserves eight entries independently
+of the proposed SQL grouped-subexpression change: two input columns, two group
+keys, two named GROUP projections and two retained result keys. The complete
+expected Program now uses `_8`. Values, key bindings, projection, sort, public
+columns and contracts are unchanged. This fixture correction does not claim a
+new runtime acceptance or relabel the earlier package evidence.
