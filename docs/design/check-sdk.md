@@ -1431,9 +1431,14 @@ are omitted from the protocol error. Explanation/locale edits confer no write
 retry, cancellation, Compute restart or reconciliation authority. Status lookup
 continues to enforce current Host authorization; the retained reference grants
 no access. Copies, serialized or forged errors have no explanation custody.
-Credential and transport refusals retain their existing separate behavior and
-are not labelled as received malformed state observations. No automatic lookup
-or additional operation is performed by presentation.
+Failure to obtain an observation, including credential, transport or closed-Client
+refusal, retains `unavailable/observation_unavailable` separately from received
+malformed facts. The error preserves only public Client code/status metadata;
+borrowed messages, nested causes and provider details are discarded. A fresh
+error owns each call's original target even if the transport reuses an exception.
+No dispatch, acceptance, Run outcome or current access is certified by this
+classification. No automatic lookup or additional operation is performed by
+presentation.
 
 This SDK weak association lasts only while its original error remains reachable;
 there is no timed retention guarantee or new Host persistence/retrieval API.
