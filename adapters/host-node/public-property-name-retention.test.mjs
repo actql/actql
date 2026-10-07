@@ -181,7 +181,7 @@ function borrowedBindingsProgram(id,ordered=false) {
   return value;
 }
 
-function unaryCompletionProgram(id, kind) {
+function unaryCompletionProgram(id, kind, longInput=false) {
   const value = program(id), source = value.stages[0], producer = value.stages[1];
   source.steps[0].values = {schema:{id:{type:'number',nullable:false},
     payload:{type:'number',nullable:true}}, rows:[{id:1,payload:7},{id:2,payload:null}]};
@@ -210,6 +210,15 @@ function unaryCompletionProgram(id, kind) {
     throw new Error(`Unknown unary completion fixture: ${kind}`);
   }
   producer.steps = [operation];
+  if(longInput && kind==='count'){
+    const inputName=`${member}_input_key`;
+    source.steps[0].values={schema:{[inputName]:{type:'number',nullable:false},
+      payload:{type:'number',nullable:true}},
+      rows:[{[inputName]:1,payload:7},{[inputName]:2,payload:null}]};
+    source.results.rows.fields=[inputName,'payload'];
+    operation.group.by=[inputName];
+    producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
+  }
   if (kind !== 'unpivot') {
     producer.steps.push({derive:{value:{field:member}},as:'derived'});
   }
@@ -217,7 +226,7 @@ function unaryCompletionProgram(id, kind) {
   return value;
 }
 
-function compoundCompletionProgram(id, kind) {
+function compoundCompletionProgram(id, kind, longInput=false) {
   const value=program(id),source=value.stages[0],producer=value.stages[1];
   source.steps[0].values={schema:{id:{type:'number',nullable:false},
     payload:{type:'number',nullable:true},clock:{type:'number',nullable:false},
@@ -251,6 +260,33 @@ function compoundCompletionProgram(id, kind) {
     throw new Error(`Unknown compound completion fixture: ${kind}`);
   }
   producer.steps=[{from:'l',...operation,as:'generated'}];
+  if(longInput){
+    const inputName=`${member}_input_key`;
+    const schema=source.steps[0].values.schema;
+    schema[inputName]=schema.id;delete schema.id;
+    source.steps[0].values.rows=source.steps[0].values.rows.map(({id,...row})=>
+      ({...row,[inputName]:id}));
+    source.results.rows.fields=source.results.rows.fields.map(name=>
+      name==='id'?inputName:name);
+    if(kind==='join'){
+      operation.join.on=[{left:inputName,right:inputName}];
+      operation.join.select.id=`left.${inputName}`;
+    }else if(kind==='nest')operation.nest.on=[{left:inputName,right:inputName}];
+    else if(kind==='interval'){
+      operation.interval_join.on=[{left:inputName,right:inputName}];
+      operation.interval_join.select.id=`left.${inputName}`;
+    }else if(kind==='asof'){
+      operation.asof_join.by=[{left:inputName,right:inputName}];
+      operation.asof_join.left_id=inputName;
+      operation.asof_join.right_tie_break=[inputName];
+      operation.asof_join.select.id=`left.${inputName}`;
+    }else if(kind==='sequence'){
+      operation.sequence.id=inputName;
+      operation.sequence.pattern[0].where=`${inputName} = 1`;
+      operation.sequence.pattern[1].where=`${inputName} = 2`;
+    }else throw new Error(`Unsupported metadata fixture: ${kind}`);
+    if(kind==='nest')producer.steps.push({derive:{id:{field:inputName}},as:'identified'});
+  }
   if(kind==='sequence'){
     producer.steps.push({select:[{id:'start_id'},{value:`${member}_id`}],as:'out'});
   }else{
@@ -412,6 +448,14 @@ test('public retained COUNT completion names preserve counts and post-progress c
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-count',
     id=>unaryCompletionProgram(id,'count'),[{id:1,value:1},{id:2,value:0}],
     {type:'number',nullable:false}));
+test('public retained COUNT source metadata preserves counts and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'count-source-metadata',
+    id=>unaryCompletionProgram(id,'count',true),[{id:1,value:1},{id:2,value:0}],
+    {type:'number',nullable:false}));
+test('public retained sequence source metadata preserves results and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'sequence-source-metadata',
+    id=>compoundCompletionProgram(id,'sequence',true),[{id:1,value:2}],
+    {type:'number',nullable:false}));
 test('public retained row-window completion names preserve NULL and post-progress custody',
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-window',
     id=>unaryCompletionProgram(id,'window')));
@@ -447,6 +491,20 @@ test('public retained sequence compound completion names preserve result and pos
 test('public retained Values completion names preserve Unicode and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'values-completion',completionProgram,
     expected,{type:'number',nullable:true},0));
+
+for(const [kind,title] of [
+  ['join','public retained join source metadata preserves results and post-progress custody'],
+  ['nest','public retained nest source metadata preserves results and post-progress custody'],
+  ['interval','public retained interval source metadata preserves results and post-progress custody'],
+  ['asof','public retained asof source metadata preserves results and post-progress custody'],
+]){
+  const rows=kind==='nest'?[{id:1,value:[{amount:7}]},{id:2,value:[{amount:null}]}]:expected;
+  const contract=kind==='nest'?{type:'array',nullable:false,
+    items:{type:'object',nullable:false,additional_properties:false,
+      fields:{amount:{type:'number',nullable:true}}}}:{type:'number',nullable:true};
+  test(title,{timeout:90_000},t=>verifyRetainedNames(t,`${kind}-source-metadata`,
+    id=>compoundCompletionProgram(id,kind,true),rows,contract));
+}
 test('public retained Append completion names preserve duplicates and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'append-completion',
     id=>completionProgram(id,'append'),

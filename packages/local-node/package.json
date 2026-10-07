@@ -9,8 +9,13 @@
   },
   "dependencies": {
     "@actql/client-wire": "0.0.0-development",
-    "@actql/sdk": "0.0.0-development",
+    "@actql/sdk": "0.0.0-development"
+  },
+  "peerDependencies": {
     "@duckdb/node-api": "1.5.5-r.4"
+  },
+  "peerDependenciesMeta": {
+    "@duckdb/node-api": {"optional": true}
   },
   "exports": {
     ".": {"types": "./index.d.ts", "default": "./index.mjs"},

@@ -246,6 +246,7 @@ pub(all) enum RowSourceIssue {
   MissingField(String)
   UnexpectedField(String)
   Value(String)
+  Presence(@execution_relation.RelationPresenceIssue)
   Capture(@execution_relation.CaptureIssue)
   Closed
 } derive(@debug.Debug)

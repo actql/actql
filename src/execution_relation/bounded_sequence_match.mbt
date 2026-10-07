@@ -98,7 +98,8 @@ priv struct BoundedSequenceState {
   output_schema : @schema.Schema
   mut output_names : Array[String]
   mut resolve_field : Int
-  mut resolve_scan : Int
+  mut metadata_lookup : ChargedRowMetadataLookup?
+  mut name_charge : RowNameCharge?
   timestamp : Bool
   pattern_count : Int
   per_key_limit : Int
@@ -142,7 +143,7 @@ priv struct BoundedSequenceState {
   mut partials : Array[Array[BoundedSequencePartial]]
   mut row_matches : Array[Bool]
   mut matches : Array[BoundedSequencePartial]
-  predicate_input : Map[String, Value]
+  predicate_input : Array[(String, Value)]
   mut predicate_field : Int
   mut predicate_position : Int
   mut predicate_pattern : Int
@@ -151,6 +152,11 @@ priv struct BoundedSequenceState {
   mut output_column : Int
   mut output_key : Int
   mut output_pattern : Int
+  mut output_name_offset : Int
+  mut output_key_started : Bool
+  mut output_label_part : Int
+  mut output_label_started : Bool
+  output_label_charge : BoundedTextCharge
   mut output_scope : SlotScope?
   mut output_row : Array[Value]
   mut checked_row : Array[@admitted.Value]
@@ -230,6 +236,14 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
     cleanup_bounded_output_row_charge(cursor)
     state.output_charge = None
   }
+  if state.metadata_lookup is Some(cursor) {
+    close_row_metadata_lookup(cursor.lookup)
+    state.metadata_lookup = None
+  }
+  if state.name_charge is Some(cursor) {
+    close_row_name_charge(cursor)
+    state.name_charge = None
+  }
   if state.sort is Some(active) {
     // A stopped parent can still own a pending child comparison. Confirm the
     // child's stop before releasing its callback state or borrowed cells.
@@ -284,7 +298,7 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
   }
   state.output_row = []
   state.checked_row = []
-  state.predicate_input.clear()
+  clear_bounded_sequence_predicate_input(state)
   state.workspace.live = 0
   if !state.accepted.val {
     state.rows.val = None
@@ -488,9 +502,53 @@ fn bounded_sequence_request_predicate(
   state.predicate_position = position
   state.predicate_pattern = pattern
   state.predicate_field = 0
-  state.predicate_input.clear()
+  clear_bounded_sequence_predicate_input(state)
   state.continuation = continuation
   state.phase = BuildPredicateInput
+}
+
+///|
+fn clear_bounded_sequence_predicate_input(state : BoundedSequenceState) -> Unit {
+  release_slots(state.workspace, state.predicate_input.length())
+  state.predicate_input.clear()
+}
+
+///|
+/// Compare a checked pattern role without allocating label + suffix. This is
+/// exact UTF-16 spelling equality, not identity or normalization. Each call
+/// inspects at most 64 units; the caller preserves original label charges.
+fn bounded_sequence_pattern_name(
+  state : BoundedSequenceState,
+  name : String,
+  label : String,
+  suffix : String,
+) -> Bool? {
+  if name.length() < label.length() ||
+    name.length() - label.length() != suffix.length() {
+    state.output_name_offset = 0
+    return Some(false)
+  }
+  let mut used = 0
+  while state.output_name_offset < name.length() && used < 64 {
+    let offset = state.output_name_offset
+    let expected = if offset < label.length() {
+      label[offset]
+    } else {
+      suffix[offset - label.length()]
+    }
+    state.output_name_offset += 1
+    used += 1
+    if name[offset] != expected {
+      state.output_name_offset = 0
+      return Some(false)
+    }
+  }
+  if state.output_name_offset == name.length() {
+    state.output_name_offset = 0
+    Some(true)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -622,11 +680,14 @@ fn bounded_sequence_step(
           state.phase = ResolveColumns
           continue
         }
-        guard @schema.field_at(state.input_schema, state.input_names.length())
-          is Some(field) else {
+        guard @schema.field_reference_name_at(
+            state.input_schema,
+            state.input_names.length(),
+          )
+          is Some(name) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        state.input_names.push(@schema.reference_name(field.name))
+        state.input_names.push(name)
         used += 1
         progress += 1
       }
@@ -635,9 +696,6 @@ fn bounded_sequence_step(
         if state.resolve_field == key_count + 2 {
           state.phase = LoadOutputNames
           continue
-        }
-        if state.resolve_scan == state.input_names.length() {
-          return bounded_sequence_failure(InvalidExecution, progress, used)
         }
         let field = if state.resolve_field < key_count {
           @lower.sequence_match_key_at(state.kernel, state.resolve_field)
@@ -649,25 +707,44 @@ fn bounded_sequence_step(
         guard field is Some(field) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        let reference = @schema.reference_name(field)
-        let name = state.input_names[state.resolve_scan]
-        if !spend_control(state.control, 1) ||
-          !spend_control_text(state.control, reference) ||
-          !spend_control_text(state.control, name) {
-          return bounded_sequence_failure(Rows(RowLimit), progress, used)
-        }
-        if name == reference {
-          if state.resolve_field < key_count {
-            state.key_columns.push(state.resolve_scan)
-          } else if state.resolve_field == key_count {
-            state.identity_column = state.resolve_scan
-          } else {
-            state.time_column = state.resolve_scan
+        if state.metadata_lookup is None {
+          guard start_charged_row_metadata_lookup(
+              state.input_schema,
+              field,
+              state.workspace,
+              true,
+            )
+            is Some(cursor) else {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
           }
-          state.resolve_field += 1
-          state.resolve_scan = 0
-        } else {
-          state.resolve_scan += 1
+          state.metadata_lookup = Some(cursor)
+        }
+        match
+          advance_charged_row_metadata_lookup(
+            state.metadata_lookup.unwrap(),
+            state.control,
+          ) {
+          Err(issue) =>
+            return bounded_sequence_failure(Rows(issue), progress, used + 1)
+          Ok(None) => ()
+          Ok(Some(column)) => {
+            state.metadata_lookup = None
+            if column < 0 {
+              return bounded_sequence_failure(
+                InvalidExecution,
+                progress,
+                used + 1,
+              )
+            }
+            if state.resolve_field < key_count {
+              state.key_columns.push(column)
+            } else if state.resolve_field == key_count {
+              state.identity_column = column
+            } else {
+              state.time_column = column
+            }
+            state.resolve_field += 1
+          }
         }
         used += 1
         progress += 1
@@ -678,11 +755,14 @@ fn bounded_sequence_step(
           state.phase = InitializePredicates
           continue
         }
-        guard @schema.field_at(state.output_schema, state.output_names.length())
-          is Some(field) else {
+        guard @schema.field_reference_name_at(
+            state.output_schema,
+            state.output_names.length(),
+          )
+          is Some(name) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        state.output_names.push(@schema.reference_name(field.name))
+        state.output_names.push(name)
         used += 1
         progress += 1
       }
@@ -1168,9 +1248,9 @@ fn bounded_sequence_step(
             return bounded_sequence_failure(InvalidExecution, progress, used)
           }
           match
-            start_predicate_expression(
+            start_predicate_expression_with_input(
               expression,
-              state.predicate_input,
+              indexed_expression_input(state.predicate_input),
               state.control.remaining,
               state.control.max_frames,
               state.workspace.limit - state.workspace.live,
@@ -1190,12 +1270,36 @@ fn bounded_sequence_step(
         }
         let row = state.ordered[state.predicate_position]
         let column = state.predicate_field
+        if state.name_charge is None {
+          guard start_row_name_charge(
+              state.input_names[column],
+              state.workspace,
+            )
+            is Some(cursor) else {
+            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          }
+          state.name_charge = Some(cursor)
+        }
+        match
+          advance_row_name_charge(
+            state.name_charge.unwrap(),
+            Some(state.control),
+            None,
+          ) {
+          Err(issue) =>
+            return bounded_sequence_failure(Rows(issue), progress, used + 1)
+          Ok(false) => {
+            used += 1
+            continue
+          }
+          Ok(true) => state.name_charge = None
+        }
         guard bounded_sequence_input_cell(state.input, row, column)
           is Some(value) &&
-          spend_control_text(state.control, state.input_names[column]) else {
+          reserve_slots(state.workspace, 1) else {
           return bounded_sequence_failure(Rows(RowLimit), progress, used)
         }
-        state.predicate_input[state.input_names[column]] = value
+        state.predicate_input.push((state.input_names[column], value))
         state.predicate_field += 1
         used += 1
         progress += 1
@@ -1224,7 +1328,7 @@ fn bounded_sequence_step(
             } else {
               0
             }
-            state.predicate_input.clear()
+            clear_bounded_sequence_predicate_input(state)
             bounded_sequence_resume_predicate(state)
           }
         }
@@ -1264,6 +1368,11 @@ fn bounded_sequence_step(
         }
         state.output_key = 0
         state.output_pattern = 0
+        state.output_name_offset = 0
+        state.output_key_started = false
+        state.output_label_part = 0
+        state.output_label_started = false
+        reset_bounded_text_charge(state.output_label_charge)
         state.phase = ResolveOutputKey
       }
       ResolveOutputKey => {
@@ -1275,10 +1384,25 @@ fn bounded_sequence_step(
             is Some(key) else {
             return bounded_sequence_failure(InvalidExecution, progress, used)
           }
-          if !spend_control(state.control, 1) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
+          if !state.output_key_started {
+            if !spend_control(state.control, 1) {
+              return bounded_sequence_failure(Rows(RowLimit), progress, used)
+            }
+            state.output_key_started = true
           }
-          if @schema.reference_name(key) == name {
+          let (order, offset, _) = @schema.compare_reference_fragment(
+            key,
+            @schema.Unqualified(name),
+            state.output_name_offset,
+            64,
+          )
+          state.output_name_offset = offset
+          if order is None {
+            used += 1
+            continue
+          }
+          state.output_key_started = false
+          if order is Some(0) {
             guard bounded_sequence_input_cell(
                 state.input,
                 first,
@@ -1324,10 +1448,64 @@ fn bounded_sequence_step(
         let name = state.output_names[state.output_column]
         let match_ = state.matches[state.output_match]
         let source = state.ordered[match_.positions[state.output_pattern]]
-        if !charge_text_append(state.control, label, 3) {
-          return bounded_sequence_failure(Rows(RowLimit), progress, used)
+        if state.output_label_part == 0 || state.output_label_part == 2 {
+          if !state.output_label_started {
+            if !spend_control(state.control, 1) {
+              return bounded_sequence_failure(Rows(RowLimit), progress, used)
+            }
+            state.output_label_started = true
+          }
+          match
+            advance_bounded_text_charge(
+              state.output_label_charge,
+              state.control,
+              label,
+            ) {
+            Err(_) =>
+              return bounded_sequence_failure(
+                Rows(RowLimit),
+                progress,
+                used + 1,
+              )
+            Ok(false) => ()
+            Ok(true) => {
+              if !spend_control(
+                  state.control,
+                  if state.output_label_part == 0 {
+                    3
+                  } else {
+                    8
+                  },
+                ) {
+                return bounded_sequence_failure(
+                  Rows(RowLimit),
+                  progress,
+                  used + 1,
+                )
+              }
+              state.output_label_part += 1
+              state.output_label_started = false
+              reset_bounded_text_charge(state.output_label_charge)
+            }
+          }
+          used += 1
+          continue
         }
-        if name == label + "_id" {
+        let matches = bounded_sequence_pattern_name(
+          state,
+          name,
+          label,
+          if state.output_label_part == 1 {
+            "_id"
+          } else {
+            "_time_ms"
+          },
+        )
+        if matches is None {
+          used += 1
+          continue
+        }
+        if matches is Some(true) && state.output_label_part == 1 {
           guard bounded_sequence_input_cell(
               state.input,
               source,
@@ -1339,17 +1517,15 @@ fn bounded_sequence_step(
           state.output_row.push(value)
           state.output_column += 1
           state.phase = BuildOutputRow
+        } else if state.output_label_part == 1 {
+          state.output_label_part = 2
+        } else if matches is Some(true) {
+          state.output_row.push(Number(state.clocks[source].to_double()))
+          state.output_column += 1
+          state.phase = BuildOutputRow
         } else {
-          if !charge_text_append(state.control, label, 8) {
-            return bounded_sequence_failure(Rows(RowLimit), progress, used)
-          }
-          if name == label + "_time_ms" {
-            state.output_row.push(Number(state.clocks[source].to_double()))
-            state.output_column += 1
-            state.phase = BuildOutputRow
-          } else {
-            state.output_pattern += 1
-          }
+          state.output_pattern += 1
+          state.output_label_part = 0
         }
         used += 1
         progress += 1
@@ -1594,7 +1770,8 @@ fn start_bounded_sequence_match_input(
     output_schema,
     output_names: [],
     resolve_field: 0,
-    resolve_scan: 0,
+    metadata_lookup: None,
+    name_charge: None,
     timestamp: @lower.sequence_match_uses_timestamp(kernel),
     pattern_count,
     per_key_limit,
@@ -1642,7 +1819,7 @@ fn start_bounded_sequence_match_input(
     partials: [],
     row_matches: [],
     matches: [],
-    predicate_input: Map([]),
+    predicate_input: [],
     predicate_field: 0,
     predicate_position: 0,
     predicate_pattern: 0,
@@ -1651,6 +1828,11 @@ fn start_bounded_sequence_match_input(
     output_column: 0,
     output_key: 0,
     output_pattern: 0,
+    output_name_offset: 0,
+    output_key_started: false,
+    output_label_part: 0,
+    output_label_started: false,
+    output_label_charge: { offset: 0, next: 0, remaining: 0, },
     output_scope: None,
     output_row: [],
     checked_row: [],

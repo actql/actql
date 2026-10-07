@@ -163,11 +163,6 @@ fn charge_row(
 }
 
 ///|
-fn charge_named(control : ControlBudget, name : String) -> Bool {
-  spend_control(control, 1) && spend_control_text(control, name)
-}
-
-///|
 /// Resolve one checked field against physical column names. Every inspected
 /// candidate is charged before comparing it, so callers cannot accidentally
 /// turn a wide schema scan into unbounded control work.
@@ -188,16 +183,4 @@ fn resolve_column(
     }
   }
   Err(InvalidRows)
-}
-
-///|
-/// Charge the complete UTF-8 size before allocating a derived label.
-fn charge_text_append(
-  control : ControlBudget,
-  prefix : String,
-  ascii_suffix_bytes : Int,
-) -> Bool {
-  ascii_suffix_bytes >= 0 &&
-  charge_named(control, prefix) &&
-  spend_control(control, ascii_suffix_bytes)
 }

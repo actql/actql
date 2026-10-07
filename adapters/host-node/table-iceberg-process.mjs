@@ -4,6 +4,7 @@
 // from an absent response or receipt. All process stop facts use the existing
 // managed-process owner; none are taken from an IPC acknowledgement.
 import {isAbsolute} from 'node:path';
+import {createHash} from 'node:crypto';
 import {prepareManagedExecution, startManagedExecution} from './process-channel.mjs';
 import {encodeProcessFrame} from './process-frames.mjs';
 
@@ -68,10 +69,15 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
-    prepareWrite({operation, mapping, rows, reservation}) {
-      const payload = snapshot({operation, mapping, rows, reservation});
+    prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
+      if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
+      const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
       if (!cid(payload.operation?.request_cid) || !Array.isArray(payload.rows)) {
         fail('InvalidTablePhysicalPreparation');
+      }
+      if (typeof payload.schema_wire !== 'string' || Buffer.byteLength(payload.schema_wire, 'utf8') > 65536 ||
+          `sha256:${createHash('sha256').update(payload.schema_wire, 'utf8').digest('hex')}` !== payload.operation.schema_cid) {
+        fail('InvalidTableLogicalSchema');
       }
       // Charge/validate the entire transport envelope before claiming a send,
       // including empty typed input. This is a bounded initial I/O profile, not
@@ -118,6 +124,22 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       const payload = snapshot({receipt, mapping});
       preflight('read', payload);
       return invoke('read', payload, signal);
+    },
+    async resolveGeneration(selector, signal) {
+      const payload = snapshot({selector});
+      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
+          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
+          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
+          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
+            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
+          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
+          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
+          typeof payload.selector.table_uuid !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
+        fail('InvalidTableReadSelector');
+      }
+      preflight('resolve_generation', payload);
+      return invoke('resolve_generation', payload, signal);
     },
     status(prepared) {
       const owned = own(prepared);
