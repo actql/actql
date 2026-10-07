@@ -4103,6 +4103,20 @@
           "fixture": "json pick admits independently counted leaf work and workspace"
         },
         {
+          "role": "borrowed_json_path_work",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_json_path_wbtest.mbt",
+          "fixture": "borrowed JSON path preserves Unicode probes and independent work limits"
+        },
+        {
+          "role": "borrowed_json_path_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/borrowed_json_path_wbtest.mbt",
+          "fixture": "borrowed JSON path stops inside a later Unicode segment"
+        },
+        {
           "role": "generated_metadata_quantum",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -4174,6 +4188,13 @@
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "json pick",
           "case": "jsonPickProgram"
+        },
+        {
+          "role": "borrowed_json_path_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained borrowed JSON path preserves Unicode NULL and post-progress custody"
         },
         {
           "role": "generated_metadata_public",

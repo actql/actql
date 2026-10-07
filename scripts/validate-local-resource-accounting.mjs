@@ -1816,6 +1816,14 @@ export function validateResourceAccounting({
         fail(`${label}: generated metadata public fixture is missing`);
       }
     }
+    if (route.family === 'RelA' && route.operation === 'json_pick') {
+      for (const role of ['borrowed_json_path_work', 'borrowed_json_path_stop']) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('borrowed_json_path_public')) {
+        fail(`${label}: borrowed JSON path public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive' &&
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {

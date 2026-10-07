@@ -2,6 +2,9 @@
 /// Checked Relation execution shared by single-step and chained tasks.
 /// Family providers do not reinterpret RelA after a Carrier bridge.
 fn selected_binding_rows_supported(kernel : @lower.PreparedKernel) -> Bool {
+  if @lower.kernel_json_pick(kernel) is Some(_) {
+    return true
+  }
   match @lower.kernel_body(kernel) {
     @lower.AssertAll(_)
     | @lower.AssertUnique(_)
