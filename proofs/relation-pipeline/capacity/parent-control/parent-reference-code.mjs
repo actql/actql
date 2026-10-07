@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {hash} from '../../inventory.mjs';
 import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
+import {inspectParentCaptureCode} from './parent-capture-sites.mjs';
 
 const nm='/usr/bin/nm',objdump='/usr/bin/objdump';
 const parentName=name=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
@@ -34,7 +35,9 @@ function generated(object,exe) {
       assert(raw.includes('Disassembly of section'),'Missing Ref disassembly');return raw.slice(raw.indexOf('Disassembly of section'));
     }).join('\n');
   }
-  return {symbols,object:dump(object,objectEntries,[parent[0][2]],true),
+  const captureSymbols=exeEntries.filter(m=>m[2]==='moonbit_decref' || m[2].startsWith(parent[0][2]+'C') || /managed__provider__execution__with__child__work__issue$/.test(m[2]))
+    .map(m=>`${m[1]} T ${m[2]}`).join('\n')+'\n';
+  return {symbols,captureSymbols,object:dump(object,objectEntries,[parent[0][2]],true),
     linked:dump(exe,exeEntries,[parent[0][2],...referenceHelpers],false)};
 }
 export function collectParentReferenceCode(root,runtime,callbackCode) {
@@ -44,7 +47,8 @@ export function collectParentReferenceCode(root,runtime,callbackCode) {
   const object=join(root,callbackCode.archive),exe=join(root,'_build/native/debug/test/connectors/local/local.whitebox_test.exe');
   assert.equal(hash(readFileSync(object)),callbackCode.objectDigest,'Native object changed before Ref collection');
   const code=generated(object,exe),logs={};
-  for(const [key,text] of Object.entries(code)) {
+  for(const key of ['symbols','object','linked']) {
+    const text=code[key];
     const digest=hash(text),path=`${dir}/${digest}.parent-ref-${key}`;
     if(!existsSync(join(root,path)))writeFileSync(join(root,path),text,{flag:'wx'});
     assert.equal(hash(readFileSync(join(root,path))),digest);logs[key]={path,digest};
@@ -65,12 +69,13 @@ export function auditParentReferenceCode(report,start,root,read) {
   assert.deepEqual(proof.tools,{nm:hash(readFileSync(nm)),objdump:hash(readFileSync(objdump))},'Ref inspection tool changed');
   const exe=report.archives['_build/native/debug/test/connectors/local/local.whitebox_test.exe'];assert(exe,'Missing executed Ref binary');
   const regenerated=generated(join(root,proof.archive),join(root,exe));
-  for(const [key,text] of Object.entries(regenerated)) {
+  for(const key of ['symbols','object','linked']) {
+    const text=regenerated[key];
     const entry=proof.logs[key];assert.match(entry.digest,/^[a-f0-9]{64}$/);
     assert.equal(entry.path,`${dir}/${entry.digest}.parent-ref-${key}`);
     const original=read(entry.path);assert.equal(hash(original),entry.digest);assert.equal(original.toString(),text,'Ref code observations differ from actual archived bytes');
   }
   const result=inspectParentReferenceCode(start,regenerated.symbols,regenerated.object,regenerated.linked);
   assert(result.references.every(r=>r.requestedBytes<=16),'Primitive Ref exceeds conditional component');
-  return result;
+  return {...result,captures:inspectParentCaptureCode(start,regenerated.symbols+regenerated.captureSymbols,regenerated.object,regenerated.linked)};
 }
