@@ -422,23 +422,27 @@ test('public retained unnest completion names preserve NULL and post-progress cu
   {timeout:90_000}, t=>verifyRetainedNames(t,'unary-unnest',
     id=>unaryCompletionProgram(id,'unnest')));
 
-for(const [kind,title] of [
-  ['join','public retained join compound completion names preserve result and post-progress custody'],
-  ['nest','public retained nest compound completion names preserve result and post-progress custody'],
-  ['interval','public retained interval compound completion names preserve result and post-progress custody'],
-  ['asof','public retained asof compound completion names preserve result and post-progress custody'],
-  ['sequence','public retained sequence compound completion names preserve result and post-progress custody'],
-]){
+function verifyCompoundRetainedNames(t,kind){
   const rows=kind==='nest'?[{id:1,value:[{amount:7}]},{id:2,value:[{amount:null}]}]:
     kind==='sequence'?[{id:1,value:2}]:expected;
   const contract=kind==='nest'?{type:'array',nullable:false,
     items:{type:'object',nullable:false,additional_properties:false,
       fields:{amount:{type:'number',nullable:true}}}}:
     {type:'number',nullable:kind!=='sequence'};
-  test(title,
-    {timeout:90_000},t=>verifyRetainedNames(t,`${kind}-compound-completion`,
-      id=>compoundCompletionProgram(id,kind),rows,contract));
+  return verifyRetainedNames(t,`${kind}-compound-completion`,
+    id=>compoundCompletionProgram(id,kind),rows,contract);
 }
+
+test('public retained join compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'join'));
+test('public retained nest compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'nest'));
+test('public retained interval compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'interval'));
+test('public retained asof compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'asof'));
+test('public retained sequence compound completion names preserve result and post-progress custody',
+  {timeout:90_000},t=>verifyCompoundRetainedNames(t,'sequence'));
 
 test('public retained Values completion names preserve Unicode and preparation custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'values-completion',completionProgram,
