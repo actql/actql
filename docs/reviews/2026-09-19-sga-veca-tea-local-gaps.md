@@ -6421,6 +6421,29 @@ correspondence. General producer preparation, other kernel metadata and
 installed availability callbacks remain separate. See the
 [output-port record](2026-10-07-local-output-port-preparation.md).
 
+### Unary retained completion-port preparation (2026-10-07)
+
+Group/analytic/pivot, COUNT, row window, unpivot and unnest now drive the
+existing trusted-output preparation cursor in their initial bounded resume
+phase. Exact input admission, output identity and logical work/workspace
+limits remain unchanged. Independent name-byte boundaries, Unicode, quantum
+invariance and phase-specific stop/cleanup tests are connected to each route.
+Five normal retained-Store producer/two-consumer Host cases are connected.
+
+On clean source `d6315f754e30fa282ef8ea53c56f362346fcba86`, those Host cases
+passed 5/5 and the corrected window boundary case passed 1/1 on JS. The earlier
+affected JS batch passed 63/64, including all ten new preparation tests; its
+one failing physical watchdog is the corrected case above. The source guard,
+20 production-call mutations and snapshot custody checks passed 4/4 earlier.
+Runtime was regenerated and checked from integrated source. The Host check
+uses checkout runtime and pinned borrowed dependencies, not packed artifacts.
+Earlier timeouts and the pre-discovery missing-dependency failure remain
+recorded separately; they are not rewritten as passes. This limited portable
+acceptance is not full Local Compute or Native capacity completion.
+Join/Nest/interval/as-of/Sequence preparation and Native capacity correspondence
+remain separate. See the
+[unary preparation record](2026-10-07-local-unary-port-preparation.md).
+
 ### Resumable Values and binary completion preparation (2026-10-07)
 
 Values, Append, EXCEPT/INTERSECT ALL and DISTINCT, and Cross Join drive the
