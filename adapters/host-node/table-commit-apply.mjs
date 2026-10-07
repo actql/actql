@@ -153,6 +153,10 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         decision.tuple.operation !== 'effect' || decision.subjectCid !== subjectCid ||
         decision.basis !== 'resumed' || !cid(decision.checkpointCid) ||
         !cid(decision.resolutionCid)) fail('TableCommitApprovalRequired');
+    // Semantic Preview/request CIDs cannot distinguish legitimate copies
+    // authored under different scopes. Admit the actual claim against the
+    // exact typed Preview before any durable send claim or provider call.
+    control.admitTablePreviewClaim(material.tablePreview, members[index].claims[0]);
     return material;
   });
   return async ({memberIndex, rowIndex, claim}) => {
@@ -161,6 +165,7 @@ export function bindApprovedTableCommitDispatch({control, ledger, prepared,
         material === undefined) fail('ForeignTableCommitDispatch');
     signal?.throwIfAborted();
     material.assertAvailable();
+    control.admitTablePreviewClaim(material.tablePreview, claim);
     await captureClaimedEffectResponse({ledger, claim,
       requestCid: material.requestCid,
       execute: () => material.bridge.execute(material.physical,

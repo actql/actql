@@ -2764,6 +2764,12 @@ function publicationControl(moon) {
         operationWire: moon.clientProgramTablePreviewOperationJson(owned),
       });
     },
+    admitTablePreviewClaim(preview, claim) {
+      const binding = control.tablePreviewLedgerBinding(preview);
+      return checked(moon.strategyEffectMemberRowAdmit(binding.preview,
+        binding.memberIndex, 0, 'store', claim.scope, binding.rowPreviewCid,
+        claim.locator, claim.key));
+    },
     checkSourceFreeLocalEffectPreviewIdentities(owner, inputs, wire,
       runIdentityCid, authoringContextCid, identities, limits) {
       issuanceLimits(limits, 'local Effect Preview identities');
