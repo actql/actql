@@ -243,3 +243,26 @@ The earlier incomplete timeout and execution-before-lock refusals remain
 separate diagnostics. They are not counted among these accepted originals.
 Hosted full pipeline, exploration, other targets, Actions origin/qualification,
 ordinary-PR reuse and inclusive net savings are still outside this local result.
+
+## Current-main retained-history correction
+
+At committed evidence/consumer SHA
+`151d0f3d51d2fb390631892a6517b39ce53d898f`, actual-original replay passed
+10/10 (`run-NTiFIN`, `focused-test-C3MAPi`). The actual history command
+`node --import /private/tmp/g-foundation-git-timing.mjs
+proofs/relation-pipeline/history.mjs --write` ran under the 900-second guard
+`run-jMLa0c` and failed at `Spurious foundation merge bases`. Its failure is
+retained separately; it produced no accepted final manifest.
+
+The inherited main record `resolve-manifest-provider-runtime-pack-main`
+(source `d9088eb9f13058ebdadfe22ce8133e4ae6e329c5`) contains an exact singleton
+`mergeBases` field without the existing required normalization supplement.
+Actual ordered parents and `git --no-replace-objects merge-base --all` confirm
+only `426d857dff443d59f992b9e7db20a27ee9176554`. Add
+`normalize-manifest-provider-runtime-pack-single-base-d9088eb9` under the
+existing strict normalization rule, bound to the unchanged original digest
+`55e088312fb497b52e3a9a876494826267ee4415d46d68186bbe6bdfe22ac476`.
+No original declaration, protected source, validator, input obligation or
+acceptance rule is changed. This repairs inherited declaration representation,
+not a confirmed product defect or a physical-execution guarantee. Actual
+retained-history validation must rerun after this material correction.
