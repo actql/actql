@@ -1123,6 +1123,70 @@ for (const [entrance, open] of Object.entries(entrances)) {
     assert.deepEqual(problems[1], problems[2]);
   });
 
+  test(`${entrance}: original submission projects implementation limits only from public checking`, async t => {
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      for (const [text, sourceDependent] of [
+        ['SELECT UNKNOWN_FUNCTION(1) AS n', false],
+        ['SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records', true],
+      ]) {
+        const publicLimit = !sourceDependent || configuration === configurations.allowed;
+        const checked = await client.check(text, {format: 'sql'});
+        assert.equal(checked.report.verdict, 'undetermined');
+        assert.deepEqual(checked.report.coverage.limits.map(limit => limit.code), publicLimit
+          ? ['implementation_limit'] : []);
+        assert.deepEqual(checked.report.coverage.unresolved, publicLimit ? []
+          : [{boundary: 'source_resolution', reason: 'unresolved_protected'}]);
+        const original = await client.newSubmission();
+        let error;
+        try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
+        catch (cause) { error = cause; }
+        const outcome = sdk.getSubmissionOutcome(error);
+        assert.equal(outcome?.kind, 'not_accepted');
+        assert.deepEqual(outcome.problem, publicLimit
+          ? {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'}
+          : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+          '[check-mutation:submission-implementation-public]');
+        const explanation = sdk.explainSubmission(error);
+        assert.equal(explanation.observation, 'not_accepted');
+        assert.equal(explanation.preparationIssue?.kind, publicLimit ? 'implementation_limit' : undefined);
+        assert.deepEqual(explanation.next.submissionRef, original);
+        assert.deepEqual(await client.lookupSubmission(original), outcome);
+        let invalid;
+        try {
+          await client.startSource(text, {format: 'sql',
+            parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'twenty'}});
+        } catch (cause) { invalid = cause; }
+        assert.deepEqual(sdk.getSubmissionOutcome(invalid)?.problem,
+          {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+          '[check-mutation:submission-implementation-independent]');
+      }
+      client.assertNoExecution();
+    }
+  });
+
+  test(`${entrance}: Source-dependent unsupported refusal hides absent and denied Sources`, async t => {
+    const text = 'SELECT NTILE(4) OVER (ORDER BY id) AS n FROM records';
+    const problems = [];
+    for (const configuration of [configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      const checked = await client.check(text, {format: 'sql'});
+      assert.equal(checked.report.verdict, 'undetermined');
+      assert.deepEqual(checked.report.coverage, {limits: [],
+        unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      let error;
+      try { await client.startSource(text, {format: 'sql'}); }
+      catch (cause) { error = cause; }
+      const outcome = sdk.getSubmissionOutcome(error);
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        '[check-mutation:submission-implementation-private]');
+      problems.push(outcome.problem);
+      client.assertNoExecution();
+    }
+    assert.deepEqual(problems[0], problems[1]);
+  });
+
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
     'one and withholds nothing else', async t => {
     const seen = {};

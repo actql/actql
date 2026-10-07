@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
-import {openReadOpeningFixture, connectOpeningHost, openingProgram, openingExpected} from './client-read-opening.fixture.mjs';
+import {openReadOpeningFixture, connectOpeningHost, openingProgram, openingExpected, traceReadRecovery} from './client-read-opening.fixture.mjs';
 
 async function attempts(directory) {
   const root = join(directory, 'publication', 'deliveries');
@@ -17,23 +17,28 @@ async function attempts(directory) {
 for (const entrance of ['local', 'https']) {
   for (const phase of ['before-commit', 'after-commit']) {
     test(`${entrance}: opening reply lost ${phase} is looked up without reopening or consuming another grant`, {timeout: 20000}, async () => {
+      traceReadRecovery('opening-case:start', {entrance, loss: phase});
       const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-read-opening-', label: `${entrance} ${phase}`});
       const directory = scratch.path;
       execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
         '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
         '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: directory, stdio: 'ignore'});
+      traceReadRecovery('certificate:finished', {entrance});
       const fixture = await openReadOpeningFixture(directory);
       const host = await connectOpeningHost(fixture, entrance, directory);
+      traceReadRecovery('connection:finished', {entrance});
       let ref, attemptId, observed;
       try {
         // Publish the unmodified normal Program through the public submit path.
         const run = await host.client.start(openingProgram,
           {submissionRef: host.client.newSubmission({nonce: 'opening-run'})});
+        traceReadRecovery('submission:finished', {entrance});
         ref = run.ref;
         assert.equal((await run.status()).status, 'succeeded');
         const result = run.result('answer');
         const baseline = result.rows();
         assert.deepEqual(await Array.fromAsync(baseline), openingExpected);
+        traceReadRecovery('baseline-read:finished', {entrance});
         await host.settled();
         const completed = await result.deliveryAttempt(baseline.attemptId);
         assert.equal(completed.kind, 'found');
@@ -46,6 +51,7 @@ for (const entrance of ['local', 'https']) {
         const returned = [];
         await assert.rejects(async () => {for await (const row of reader) returned.push(row);},
           error => error.attemptId === attemptId && error.rowsYielded === 0);
+        traceReadRecovery('lost-read:finished', {entrance, loss: phase});
         await host.settled();
         assert.deepEqual(returned, []);
         assert.equal(reader.state(), 'open_unknown');
@@ -83,13 +89,18 @@ for (const entrance of ['local', 'https']) {
         assert.deepEqual(await attempts(directory), retained);
         assert.deepEqual(fixture.counts, {admissions: 2, readers: 1, computes: 1, definitions: 1});
         assert.equal((await run.status()).status, 'succeeded');
+        traceReadRecovery('original-lookup:finished', {entrance});
       } finally {
+        traceReadRecovery('original-close:start', {entrance});
         await host.close(); await fixture.close();
+        traceReadRecovery('original-close:finished', {entrance});
       }
       const beforeRestart = await attempts(directory);
       const output = join(directory, 'restart.json');
+      traceReadRecovery('restore-process:start', {entrance});
       execFileSync(process.execPath, [fileURLToPath(new URL('./client-read-opening-restart.fixture.mjs', import.meta.url)),
         JSON.stringify({directory, entrance, ref, attemptId, output})], {timeout: 15000, stdio: 'pipe'});
+      traceReadRecovery('restore-process:finished', {entrance});
       const restored = JSON.parse(await readFile(output, 'utf8'));
       assert.deepEqual(restored.ref, ref);
       assert.equal(restored.status, 'succeeded');

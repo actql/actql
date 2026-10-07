@@ -101,6 +101,7 @@ const submitRejections = new Set([
   'ClientProgramInvalidInput', 'ClientParametersInvalid',
   'ClientParametersTooLarge', 'ClientProgramNeedsInputs',
   'ClientProgramRejected', 'ClientProgramUnsupported', 'ClientProgramAnalysisLimit',
+  'ClientProgramImplementationLimit',
   'ClientAuthenticationDenied', 'ClientConnectionDenied',
   'ClientRunStartDenied', 'ClientRequestIntentConflict',
   'ACTQL_E_ACCOUNT_DENIED', 'ACTQL_E_ACCOUNT_NO_MATCH',
