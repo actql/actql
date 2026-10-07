@@ -45,3 +45,22 @@ test('packed Graph Host families have disjoint complete Local and HTTPS selectio
   const punctuated = 'Graph (A+B) [key] $snapshot';
   assert.ok(new RegExp(graphPublicHostPattern(punctuated), 'u').test(punctuated));
 });
+
+
+test('fixed-hop node predicate source controls are copied and included in normal acceptance', async () => {
+  const {graphHopNodePredicateSuccesses: successes, graphHopNodePredicateRefusals: refusals}
+    = await import('./fixtures/graph-hop-node-predicate-source-input.mjs');
+  assert.equal(successes.length, 13);
+  assert.equal(refusals.length, 8);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 21);
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  assert.ok(driver.includes("'graph-hop-node-predicate-source-input.mjs'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphPropertyPredicateSuccesses, ...graphHopNodePredicateSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphPropertyPredicateRefusals, ...graphHopNodePredicateRefusals)'));
+  const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
+  assert.equal(controls.length, 2);
+  assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].node_where.gt[1].literal, 10);
+  assert.equal(controls[1].stages[0].steps[4].traverse.hops[1].node_where.eq[1].literal, 2);
+});
