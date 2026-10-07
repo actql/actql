@@ -32,6 +32,16 @@ test('unrelated source and provenance changes preserve a closed Session input id
   assert.equal(old.key, candidate.key);
 });
 
+test('shared pipeline original-consumer imports and directory membership cannot change behind an unchanged Session key', () => {
+  const files = new Map(base); files.set('proofs/relation-pipeline/execution-original.mjs', 'reviewed shared consumer');
+  const original = inventory(files);
+  files.set('proofs/relation-pipeline/execution-original.mjs', 'changed consumer');
+  assert.equal(compareInputs(original, inventory(files)).eligible, false);
+  files.set('proofs/relation-pipeline/execution-original.mjs', 'reviewed shared consumer');
+  files.set('proofs/relation-pipeline/new-import.mjs', 'new module');
+  assert.equal(compareInputs(original, inventory(files)).eligible, false);
+});
+
 for (const [label, mutate] of [
   ['source bytes', files => files.set('src/bounded_execution/session.mbt', 'changed body')],
   ['oracle bytes', files => files.set('src/bounded_execution/session_contract_wbtest.mbt', 'changed expectation')],

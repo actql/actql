@@ -33,7 +33,7 @@ pub fn[P, T] prepare_managed_output_retention_port(
 ) -> Result[ManagedOutputRetentionPort[P, T], ManagedOutputRetentionIssue] {
   // Install before receiving values. Do not authorize a completed receipt by
   // comparing only its owner/target or a content/physical digest afterwards.
-  if !stream.open || stream.reading || stream.rows != 0 {
+  if !stream.open || stream.reading || stream.finish_started || stream.rows != 0 {
     return Err(Closed)
   }
   Ok({

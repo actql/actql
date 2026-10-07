@@ -78,6 +78,7 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
+    'connector-manifest-selection',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }
@@ -85,8 +86,8 @@ function run(t, requested, {fail, wrapper, version, additionalProvider = false, 
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
-      `src/${entry.providerBundle}/moon.pkg`, entry.source.module,
-      ...(entry.effect === undefined ? [] : [entry.effect.module]), ...entry.assets]) {
+      `src/${entry.providerBundle}/moon.pkg`,
+      ...[entry.source, entry.effect].filter(Boolean).map(role => role.module), ...entry.assets]) {
       put(directory, path, readFileSync(join(root, path)));
     }
   }

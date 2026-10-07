@@ -99,6 +99,8 @@ pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_
 
 pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[InferRowsPreparationPoll, InferPreparationIssue]
 
+pub fn advance_managed_output_values_finish(ManagedOutputValues, Int) -> Result[ManagedOutputFinishAdvance, ManagedOutputValueIssue]
+
 pub fn advance_managed_output_values_reclamation(ManagedOutputValues, Int) -> Bool
 
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
@@ -2006,6 +2008,11 @@ pub(all) enum ManagedObligationIssue {
 } derive(Eq, @debug.Debug)
 
 type ManagedObligations
+
+pub(all) struct ManagedOutputFinishAdvance {
+  receipt : ManagedOutputValueReceipt?
+  steps : Int
+}
 
 pub(all) enum ManagedOutputRetentionIssue {
   Closed
