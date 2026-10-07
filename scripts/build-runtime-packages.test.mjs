@@ -235,6 +235,19 @@ distribution[3] = distribution[3].replace(
 );
 distribution[3] += ' packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs';
 
+// Preserve main's response-capture regression and add the optional-dependency
+// boundaries to the existing prepared distribution gate, without another job.
+distribution[3] += ' packages/sdk/response-capture.test.mjs';
+distribution[3] = distribution[3].replace(
+  'scripts/packed-client-packages.test.mjs ',
+  'scripts/packed-client-packages.test.mjs scripts/packed-package-boundaries.test.mjs ',
+).replace(
+  'adapters/host-node/embedded-installation.test.mjs ',
+  'adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs ',
+);
+distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs'),
+  0, 'node scripts/test-packed-local-without-duckdb.mjs');
+
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
   // Both the link and its target belong to this test. Recursive removal of
