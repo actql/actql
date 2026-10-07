@@ -69,6 +69,24 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
+    // Pure installed-target validation. A selector binds a Table, not a read
+    // grant or a generation; only the authorized resolver freezes a head.
+    checkReadSelector(selector) {
+      const payload = snapshot({selector});
+      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
+          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
+          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
+          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
+            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
+          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
+          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
+          typeof payload.selector.table_uuid !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
+        fail('InvalidTableReadSelector');
+      }
+      Object.freeze(payload.selector.namespace);
+      return Object.freeze(payload.selector);
+    },
     prepareWrite({operation, mapping, rows, reservation, schemaWire}) {
       if (typeof schemaWire !== 'string') fail('InvalidTableLogicalSchema');
       const payload = snapshot({operation, mapping, rows, reservation, schema_wire: schemaWire});
@@ -94,8 +112,10 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       if (owned.attempted) fail('TablePhysicalReconcileOnly');
       owned.attempted = true;
       const result = await invoke('write', owned.payload, signal, () => { owned.stopped = true; });
-      if (typeof result?.ok !== 'boolean' || !keys(result, result.ok ? ['ok', 'result'] : ['ok', 'code']) ||
-          (!result.ok && typeof result.code !== 'string')) fail('InvalidTablePhysicalReply');
+      if (typeof result?.ok !== 'boolean' || !(keys(result, ['ok', 'result']) ||
+          (!result.ok && keys(result, ['ok', 'code']) && typeof result.code === 'string'))) {
+        fail('InvalidTablePhysicalReply');
+      }
       return Object.freeze({observation: Object.freeze({useCid,
         statusCode: result.ok ? 200 : 409,
         body: Buffer.from(JSON.stringify(result))})});
@@ -126,18 +146,7 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       return invoke('read', payload, signal);
     },
     async resolveGeneration(selector, signal) {
-      const payload = snapshot({selector});
-      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
-          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
-          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
-          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
-            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
-          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
-          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
-          typeof payload.selector.table_uuid !== 'string' ||
-          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
-        fail('InvalidTableReadSelector');
-      }
+      const payload = {selector: bridge.checkReadSelector(selector)};
       preflight('resolve_generation', payload);
       return invoke('resolve_generation', payload, signal);
     },

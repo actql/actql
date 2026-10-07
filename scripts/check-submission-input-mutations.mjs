@@ -12,6 +12,10 @@ const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'request-record-loss') return ['local', 'https'].map(entrance => ({
+    name: `${entrance}: missing submission record preserves uncertainty despite an already published Run`,
+    assertions: [{id: assertion, operator: assertion === 'request-record-loss-kind' ? 'strictEqual' : 'deepStrictEqual'}],
+  }));
   if (phase.startsWith('request-cancel-')) {
     const names = {
       'request-cancel-admission': ['clone changes request identity', 'clone changes known branch', 'clone changes Run reference', 'clone throws'].map(fault => `request cancellation rejects ${fault}`),
@@ -131,6 +135,14 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request record loss is presented as durable nonacceptance',
+    "    answer.kind === 'not_found' ? 'lookup_unresolved'",
+    "    answer.kind === 'not_found' ? 'not_accepted'",
+    'request-record-loss', 'request-record-loss-kind'],
+  ['request record loss recommends a new submission',
+    "{operation: 'lookupRequest', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
+    "{operation: 'submit', requestId: context.requestId,\n          lookupContext: context.lookupContext},",
+    'request-record-loss', 'request-record-loss-advice'],
   ['request cancellation malformed body becomes an exchange failure',
     '      try { answer = await controlValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }',
     "      try { answer = await controlValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
@@ -270,26 +282,22 @@ const mutations = [
     "        if (value instanceof Response) fail('InvalidLocalHostPortResponse');",
     'cancellation-unknown', 'cancel-unknown-explanation'],
   ['cancellation response reuse changes an earlier Run observation',
-    'received = structuredClone(response);', 'received = response;',
+    'received = detachResponse(received);', 'received = response;',
     'cancellation-custody', 'cancel-custody'],
   ['cancellation clone failure leaks an unassociated error',
-    'try { received = structuredClone(response); }',
-    'received = structuredClone(response); try {}',
+    "        let received;\n        try {\n          received = captureResponse(response);",
+    "        let received = structuredClone(captureResponse(response));\n        try {\n          received = captureResponse(response);",
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
-  ['cancellation clone erasure bypasses shape validation',
-    "        if (!validCancellation(received) ||\n" +
-      "            structuralKey(received) !== observedKey ||\n" +
-      "            received.ref.namespaceId !== ref.namespaceId ||\n" +
-      "            received.ref.authorityScopeCid !== ref.authorityScopeCid ||\n" +
-      "            received.ref.runDefinitionCid !== ref.runDefinitionCid) {\n" +
-      "          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n" +
-      "            context, 'outcome_unknown');\n        }",
-    '',
+  ['cancellation clone erasure bypasses copy and shape validation',
+    'received = detachResponse(received);\n          if (!validCancellation(received, cancelRef))',
+    'received = structuredClone(received);\n          if (false)',
     'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
-    `received.ref.${field} !== ref.${field}`,
-    'false',
+    'received = detachResponse(received);\n' +
+      "          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');",
+    'received = structuredClone(received);\n' +
+      `          if (!validCancellation(received, {...cancelRef, ${field}: received.cancelRef.${field}})) fail('InvalidHostCancellation');`,
     `cancellation-clone:clone changes ${field}`, 'cancel-clone-invalid',
   ]),
   ['check reporting budget is blamed on an invalid input',
@@ -366,6 +374,7 @@ const mutations = [
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
   const file = phase === 'request-cancel-preparation' ? preparationAcceptance
+    : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
     : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
     : phase === 'request-ended-public' ? preparationAcceptance
     : phase === 'request-absent-public' ? acceptance
@@ -412,11 +421,6 @@ try {
       if (altered.split(anchor).length !== 2) throw new Error(`Capture fault anchor not unique: ${name}`);
       altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
         .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
-    }
-    if (phase.startsWith('cancellation-clone:clone changes')) {
-      const guard = '            structuralKey(received) !== observedKey ||\n';
-      if (altered.split(guard).length !== 2) throw new Error(`Copied cancellation guard not unique: ${name}`);
-      altered = altered.replace(guard, '');
     }
     writeFileSync(file, altered);
     results.push({name, phase, rejected: !accepted(phase, assertion)});

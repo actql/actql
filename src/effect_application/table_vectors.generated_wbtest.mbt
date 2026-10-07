@@ -40,3 +40,23 @@ fn table_vector_replacement_receipt() -> String {
 fn table_vector_replacement_receipt_cid() -> String {
   "sha256:2ac329ac4d2f26dfd8d0780ee35687d0e085ed8b8b5a9c8a8da65c1a0841dfe0"
 }
+
+///|
+fn table_vector_create_conflict_receipt() -> String {
+  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"reason\":\"CreateNameConflict\",\"receipt_cid\":\"sha256:57294509f766211dd6bd1872e880445c1596217aabbd57553604d72644e94bda\",\"request_cid\":\"sha256:c530fd541add2614c3f78d1f7adef22b9d2e10fdc578c194a438a24357b84ed2\",\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-table-noncommit-receipt/0.1\"}"
+}
+
+///|
+fn table_vector_create_conflict_receipt_cid() -> String {
+  "sha256:57294509f766211dd6bd1872e880445c1596217aabbd57553604d72644e94bda"
+}
+
+///|
+fn table_vector_replace_conflict_receipt() -> String {
+  "{\"catalog_identity_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"effect_identity_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"reason\":\"ExpectedGenerationConflict\",\"receipt_cid\":\"sha256:16b627714ded67a26b756c2f0013c2c12a86d0e9daa8d1820be1c2894667955a\",\"request_cid\":\"sha256:901222bd0b6207e5c53458ea61fb7c8af814ea7c02eece04975f7afcb8aed57a\",\"schema_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"storage_mapping_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"version\":\"actql-table-noncommit-receipt/0.1\"}"
+}
+
+///|
+fn table_vector_replace_conflict_receipt_cid() -> String {
+  "sha256:16b627714ded67a26b756c2f0013c2c12a86d0e9daa8d1820be1c2894667955a"
+}

@@ -6,7 +6,7 @@ import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {validCheckpointPage, validCheckpointReview, validClientAdmission,
-  validClientBody, validClientProfile, validDeliveryAttemptLookup,
+  validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
@@ -32,18 +32,34 @@ const publicFailure = error => localErrors.has(error) ? error
   : publicError(publicClientErrorCode(error), publicClientErrorStatus(error));
 
 function publicResultRows(response) {
+  // Keep a failed delivery record's exact retry owner off public errors. The
+  // SDK may release this response only after that owner confirms settlement.
+  let cleanupFailure;
   return Object.freeze({kind: 'rows', frames: Object.freeze({
     async *[Symbol.asyncIterator]() {
       try { yield* response.frames; }
-      catch (error) { throw publicFailure(error); }
+      catch (error) {
+        if (error?.cleanupPending === true) cleanupFailure = error;
+        throw publicFailure(error);
+      }
     },
-  })});
+  }), async close() {
+    if (cleanupFailure === undefined) return;
+    const handle = cleanupFailure.cleanupHandle;
+    try {
+      if (typeof handle?.retry !== 'function' ||
+          typeof handle?.status !== 'function') throw cleanupFailure;
+      if (handle.status().pending !== false) await handle.retry();
+      if (handle.status().pending !== false) throw cleanupFailure;
+      cleanupFailure = undefined;
+    } catch { throw publicError('ResultReadCleanupUnknown', 500); }
+  }});
 }
 
 export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
-  cancel, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
+  cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
@@ -192,7 +208,18 @@ export function createNodeInProcessClientHost({
         }
         return answer;
       }
-      if (operation === 'cancel') return await invoke(cancel);
+      if (operation === 'cancel') {
+        const answer = await invoke(cancel);
+        if (!validCancellation(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellation');
+        return answer;
+      }
+      if (operation === 'lookup-cancellation') {
+        const answer = await invoke(lookupCancellation);
+        if (!validCancellationLookup(answer, {...ref, cancelId: body.cancelId,
+          expectedRevision: body.expectedRevision})) fail('InvalidClientHostCancellationLookup');
+        return answer;
+      }
       if (operation === 'result-describe') {
         const answer = await describeAuthorizedResult(resultService, {
           indexKey: ref, principalId, purpose: 'inspect',

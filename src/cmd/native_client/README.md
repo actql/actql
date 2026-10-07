@@ -31,7 +31,7 @@ an ambiguous submission can be looked up or resent with the same intent.
 `lookup-request` only queries existing request history and rejects malformed
 Host replies instead of reporting them as successful lookups.
 
-`attach`, `status`, `wait`, `cancel`, `reconcile`, `read` and
+`attach`, `status`, `wait`, `cancel`, `lookup-cancellation`, `reconcile`, `read` and
 `delivery-attempt` use an explicit Run reference file. `read` requires a
 caller-saved attempt ID. It accepts only a complete JSONL response with the
 normal terminator and writes exact payload bytes to stdout after completion.
@@ -42,6 +42,16 @@ cancel the Run. `delivery-attempt` admits the published MoonBit attempt,
 record and Host release receipt contracts, binds them to the requested
 attempt, Run and Result, and rejects missing or contradictory evidence. It
 does not request payload replay or hash payload bytes.
+
+`cancel` requires a caller-saved `--cancel-id` and `--expected-revision`, in
+addition to the original Run reference file. Obtain the revision from the
+Run's current control observation before issuing a new operation, and retain
+all three inputs. `lookup-cancellation` takes those same inputs and only
+observes the original operation; it does not cancel again. Replies must match
+the exact Run, operation ID and original revision. An accepted cancellation
+must advance that revision. Lost cancel replies report `CancellationUnknown`
+with the exact `cancel-ref` and lookup command. An unknown lookup is not
+evidence that cancellation was refused, physically stopped, or released.
 
 This is a transport development artifact. The binary does not include
 embedded Local providers. The mTLS fixture in

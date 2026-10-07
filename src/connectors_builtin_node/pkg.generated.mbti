@@ -58,6 +58,12 @@ pub fn client_broad_residual_prepare(@actql/actql/connectors/duckdb/host.BroadHo
 
 pub fn client_broad_residual_stopped(@client_local_host.ClientBroadResidual) -> Bool
 
+pub fn client_cancellation_admit_record(String, String, String, @run_publication.PublicationContract, Int) -> @run_publication_host.ClientCancellationIdentity?
+
+pub fn client_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String
+
+pub fn client_cancellation_operation_action(@run_publication_host.ClientCancellationIdentity, @run_publication_host.ClientCancellationIdentity, Bool, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Int
+
 pub fn client_program_acknowledge_infer_call_settlement(@model_execution.ModelCallSettlement) -> Bool
 
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?

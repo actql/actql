@@ -3920,6 +3920,39 @@ test('compound output ports require operation-specific limit quantum stop and pu
   }
 });
 
+test('shared output reclamation requires installed custody and independent fixtures', () => {
+  const baseline = validateResourceAccounting({root,manifest:manifestTemplate,
+    routes:routesTemplate,sources:sourceTemplate});
+  assert.deepEqual(baseline.errors.filter(error=>error.includes('shared output reclamation')),[]);
+  for (const [relative,marker] of [
+    ['src/execution_relation/bounded_values.mbt',
+      'reclaim_bounded_admitted_output(output, state.accepted.val)'],
+    ['src/connectors/local/values_provider.mbt',
+      '@execution.bounded_values_cleanup_pending('],
+    ['src/execution_relation/admitted_input.mbt',
+      'row[row.length() - 1] = @admitted.null_value()'],
+    ['src/execution_relation/admitted_input.mbt',
+      'row.cells[row.cells.length() - 1] = None'],
+    ['src/execution_relation/admitted_output.mbt', 'if accepted {'],
+    ...[
+      'bounded Values retains output reclamation custody across cleanup slices',
+      'bounded output append failure keeps private rows until sliced cleanup',
+      'sliced reclamation never mutates sealed output or presence source cells',
+      'failed completion retains sealed unaccepted output for sliced cleanup',
+      'cleanup change does not imply completion after an unaccepted kernel result',
+    ].map(name=>['src/execution_relation/admitted_output_reclamation_wbtest.mbt',
+      `test "${name}"`]),
+  ]) {
+    const file=join(root,relative),source=sourceTemplate[file];
+    assert.ok(source?.exists && source.text.includes(marker));
+    const sources=Object.freeze({...sourceTemplate,
+      [file]:Object.freeze({...source,text:source.text.replaceAll(marker,'missing_reclamation')})});
+    const result=validateResourceAccounting({root,manifest:manifestTemplate,
+      routes:routesTemplate,sources});
+    assert.match(result.errors.join('\n'),/shared output reclamation/u);
+  }
+});
+
 test('sequence position assurance requires boundary and retained public evidence', () => {
   for (const part of ['quantum','workspace','stop','cleanup','public']) {
     const role=`sequence_position_${part}`;

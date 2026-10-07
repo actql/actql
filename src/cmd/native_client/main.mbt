@@ -57,6 +57,17 @@ fn positive_int(value : String, name : String) -> Int raise ClientStop {
 }
 
 ///|
+fn cancellation_revision(value : String) -> Int raise ClientStop {
+  let parsed : Int = @string.from_str(value) catch {
+    _ => stop("invalid integer option --expected-revision")
+  }
+  if parsed < 0 {
+    stop("invalid integer option --expected-revision")
+  }
+  parsed
+}
+
+///|
 fn text_file(
   root : String,
   name : String,
@@ -215,6 +226,120 @@ fn held_reply(text : String, request_id : String) -> Bool {
 }
 
 ///|
+// The requested operation is reconstructed only from the bytes this command
+// submitted. Numeric JSON spellings never change its integer revision.
+fn cancellation_reference(request_wire : Bytes) -> Json? {
+  let text = @utf8.decode(request_wire) catch { _ => return None }
+  let value = @json.parse(text) catch { _ => return None }
+  guard value is Object(fields) &&
+    fields.get("ref") is Some(Object(reference)) &&
+    fields.get("cancelId") is Some(cancel_id) &&
+    fields.get("expectedRevision") is Some(revision) else {
+    return None
+  }
+  let combined : Map[String, Json] = Map([])
+  for key, value in reference {
+    combined[key] = value
+  }
+  combined["cancelId"] = cancel_id
+  combined["expectedRevision"] = revision
+  let result = Json::object(combined)
+  if wire_cancellation_ref_shape(result) {
+    Some(result)
+  } else {
+    None
+  }
+}
+
+///|
+fn same_cancellation_target(
+  left : Map[String, Json],
+  right : Map[String, Json],
+) -> Bool {
+  json_text(left, "namespaceId") == json_text(right, "namespaceId") &&
+  json_text(left, "authorityScopeCid") == json_text(right, "authorityScopeCid") &&
+  json_text(left, "runDefinitionCid") == json_text(right, "runDefinitionCid")
+}
+
+///|
+fn same_cancellation_reference(value : Json, expected : Json) -> Bool {
+  guard wire_cancellation_ref_shape(value) &&
+    wire_cancellation_ref_shape(expected) &&
+    value is Object(actual) &&
+    expected is Object(requested) &&
+    actual.get("expectedRevision") is Some(Number(actual_revision, ..)) &&
+    requested.get("expectedRevision") is Some(Number(requested_revision, ..)) else {
+    return false
+  }
+  same_cancellation_target(actual, requested) &&
+  json_text(actual, "cancelId") == json_text(requested, "cancelId") &&
+  actual_revision == requested_revision
+}
+
+///|
+fn valid_cancellation_outcome(value : Json, expected : Json) -> Bool {
+  guard wire_cancellation_shape(value) &&
+    value is Object(fields) &&
+    expected is Object(requested) &&
+    fields.get("cancelRef") is Some(cancel_ref) &&
+    same_cancellation_reference(cancel_ref, expected) &&
+    fields.get("ref") is Some(Object(reference)) &&
+    same_cancellation_target(reference, requested) &&
+    fields.get("revision") is Some(Number(revision, ..)) &&
+    requested.get("expectedRevision") is Some(Number(original_revision, ..)) else {
+    return false
+  }
+  revision >= original_revision &&
+  (
+    json_text(fields, "kind") != Some("accepted") ||
+    revision > original_revision
+  )
+}
+
+///|
+fn valid_cancellation_reply(
+  value : Json,
+  request_wire : Bytes,
+  lookup : Bool,
+) -> Bool {
+  guard cancellation_reference(request_wire) is Some(expected) else {
+    return false
+  }
+  if !lookup {
+    return valid_cancellation_outcome(value, expected)
+  }
+  guard wire_cancellation_lookup_shape(value) && value is Object(fields) else {
+    return false
+  }
+  match json_text(fields, "kind") {
+    Some("found") =>
+      fields.get("cancellation") is Some(outcome) &&
+      valid_cancellation_outcome(outcome, expected)
+    Some("unknown") =>
+      fields.get("cancelRef") is Some(reference) &&
+      same_cancellation_reference(reference, expected)
+    _ => false
+  }
+}
+
+///|
+fn cancellation_unknown(request_wire : Bytes) -> String {
+  guard cancellation_reference(request_wire) is Some(reference) else {
+    return "CancellationUnknown"
+  }
+  let writer = @encode.writer(4096, 32, 4) catch {
+    _ => return "CancellationUnknown"
+  }
+  let wire = try {
+    @encode.emit_json(reference, writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return "CancellationUnknown"
+  }
+  "CancellationUnknown cancel-ref=" + wire + " lookup=lookup-cancellation"
+}
+
+///|
 fn admitted_lookup_contract(
   name : String,
   value : Json,
@@ -357,8 +482,30 @@ fn request_body(
     }
     "lookup-request" =>
       fields["requestId"] = Json::string(required(child, "request-id"))
-    "attach" | "status" | "cancel" | "reconcile" =>
+    "attach" | "status" | "reconcile" =>
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
+    "cancel" | "lookup-cancellation" => {
+      let reference = json_file(root, required(child, "ref-file"), 8192L)
+      guard wire_run_ref_shape(reference) && reference is Object(original) else {
+        stop("InvalidCancellationReference")
+      }
+      let cancel_id = Json::string(required(child, "cancel-id"))
+      let revision = Json::number(
+        cancellation_revision(required(child, "expected-revision")).to_double(),
+      )
+      let combined : Map[String, Json] = Map([])
+      for key, value in original {
+        combined[key] = value
+      }
+      combined["cancelId"] = cancel_id
+      combined["expectedRevision"] = revision
+      if !wire_cancellation_ref_shape(Json::object(combined)) {
+        stop("InvalidCancellationReference")
+      }
+      fields["ref"] = reference
+      fields["cancelId"] = cancel_id
+      fields["expectedRevision"] = revision
+    }
     "wait" => {
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
       fields["until"] = match optional(child, "until") {
@@ -445,6 +592,13 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("cancel", options=[
         @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("cancel-id", required=true),
+        @argparse.OptionArg("expected-revision", required=true),
+      ]),
+      @argparse.Command("lookup-cancellation", options=[
+        @argparse.OptionArg("ref-file", required=true),
+        @argparse.OptionArg("cancel-id", required=true),
+        @argparse.OptionArg("expected-revision", required=true),
       ]),
       @argparse.Command("reconcile", options=[
         @argparse.OptionArg("ref-file", required=true),
@@ -562,6 +716,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       stop("SubmissionUnknown request-id=" + required(child, "request-id"))
     Err(_) if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
+    Err(_) if route == "cancel" => stop(cancellation_unknown(body))
     Err(_) => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
@@ -576,6 +731,9 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     if route == "read" {
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
     }
+    if route == "cancel" && result.status >= 500 {
+      stop(cancellation_unknown(body))
+    }
     stop("ClientHostHTTP" + result.status.to_string())
   }
   let text = @utf8.decode(result.body) catch {
@@ -584,6 +742,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("SubmissionUnknown request-id=" + required(child, "request-id"))
       } else if route == "read" {
         stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
+      } else if route == "cancel" {
+        stop(cancellation_unknown(body))
       } else {
         stop("invalid UTF-8 Host response")
       }
@@ -599,6 +759,15 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   if route == "attach" && !attached_reference_matches(body, text) {
     stop("ForeignHostAdmission")
   }
+  if (route == "cancel" || route == "lookup-cancellation") &&
+    @source.parse_json(text, {
+      max_input_bytes: response_max,
+      max_nodes: 128,
+      max_depth: 8,
+    })
+    is Err(_) {
+    stop("InvalidHostCancellation " + cancellation_unknown(body))
+  }
   if route == "read" {
     if !text.has_suffix("\u{1e}") {
       stop("IncompleteResultStream attempt-id=" + required(child, "attempt-id"))
@@ -606,7 +775,16 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     text[:text.length() - 1].to_owned()
   } else {
     let value = @json.parse(text) catch {
-      _ => stop("invalid JSON Host response")
+      _ =>
+        if route == "cancel" || route == "lookup-cancellation" {
+          stop("InvalidHostCancellation " + cancellation_unknown(body))
+        } else {
+          stop("invalid JSON Host response")
+        }
+    }
+    if (route == "cancel" || route == "lookup-cancellation") &&
+      !valid_cancellation_reply(value, body, route == "lookup-cancellation") {
+      stop("InvalidHostCancellation " + cancellation_unknown(body))
     }
     if route == "lookup-request" &&
       !wire_request_lookup(value, required(child, "request-id")) {

@@ -27,9 +27,9 @@ fn keyed_start_definitions(
 ///|
 // This is schema-name projection, not Graph admission. The common owner
 // still validates global property types, label sets, keys and identities.
-fn keyed_node_fields(
-  definition : @query.GraphNodeDefinition,
-  node : @query.GraphNodePattern,
+fn keyed_label_fields(
+  labels : Array[@query.GraphLabel],
+  requested_label : @query.NamePart?,
   input : Input,
 ) -> Array[String] raise Abort {
   // The common constructor retains the first spelling of each property in
@@ -39,8 +39,8 @@ fn keyed_node_fields(
   let seen : Map[String, Bool] = Map([])
   let selected : Array[String] = []
   let mut matched = false
-  for label in definition.labels {
-    let selected_label = match node.label {
+  for label in labels {
+    let selected_label = match requested_label {
       Some(name) => same_name(label.name, name)
       None => true
     }
@@ -80,6 +80,95 @@ fn keyed_node_fields(
 }
 
 ///|
+fn keyed_node_fields(
+  definition : @query.GraphNodeDefinition,
+  node : @query.GraphNodePattern,
+  input : Input,
+) -> Array[String] raise Abort {
+  keyed_label_fields(definition.labels, node.label, input)
+}
+
+///|
+fn keyed_edge_fields(
+  graph : ScriptGraph,
+  edge : @query.GraphEdgePattern,
+) -> Array[String] raise Abort {
+  let fields : Array[String] = []
+  let seen : Map[String, Bool] = Map([])
+  for definition in graph.mapping.edges {
+    let selected = match edge.label {
+      Some(name) => definition.labels.any(label => same_name(label.name, name))
+      None => true
+    }
+    if selected {
+      let input = property_mapping_input(definition.producer, graph.inputs)
+      // Traversal predicates use each candidate definition's full property
+      // scope. The common checker establishes presence and compatible types
+      // across every candidate; this union only resolves authored names.
+      for field in keyed_label_fields(definition.labels, None, input) {
+        let folded = ascii_upper(field)
+        if !seen.contains(folded) {
+          seen[folded] = true
+          fields.push(field)
+        }
+      }
+    }
+  }
+  fields
+}
+
+///|
+// Resolve only authored names. The common checker intersects the properties
+// and types of every static candidate; runtime rows cannot narrow that scope.
+fn keyed_hop_node_fields(
+  graph : ScriptGraph,
+  edge : @query.GraphEdgePattern,
+  node : @query.GraphNodePattern,
+) -> Array[String] raise Abort {
+  let edges = graph.mapping.edges.filter(definition => {
+    match edge.label {
+      Some(name) => definition.labels.any(label => same_name(label.name, name))
+      None => true
+    }
+  })
+  let candidates = graph.mapping.nodes.filter(definition => {
+    edges.any(edge_definition => {
+      let endpoint = if edge.direction == "in" {
+        edge_definition.source
+      } else {
+        edge_definition.destination
+      }
+      same_name(definition.name, endpoint.definition)
+    })
+  })
+  if node.label is Some(label) {
+    // There is no per-hop node-label filter. A requested label can only be
+    // discharged by every static reached definition, never by a property.
+    if !graph.mapping.nodes.any(definition => {
+        definition.labels.any(candidate => same_name(candidate.name, label))
+      }) ||
+      !candidates.all(definition => {
+        definition.labels.any(candidate => same_name(candidate.name, label))
+      }) {
+      raise Abort(UnsupportedGraph)
+    }
+  }
+  let fields : Array[String] = []
+  let seen : Map[String, Bool] = Map([])
+  for definition in candidates {
+    let input = property_mapping_input(definition.producer, graph.inputs)
+    for field in keyed_node_fields(definition, { ..node, label: None, }, input) {
+      let folded = ascii_upper(field)
+      if !seen.contains(folded) {
+        seen[folded] = true
+        fields.push(field)
+      }
+    }
+  }
+  fields
+}
+
+///|
 fn keyed_property_field(
   path : Array[@query.NamePart],
   variable : @query.NamePart?,
@@ -107,16 +196,17 @@ fn keyed_property_field(
 }
 
 ///|
-fn keyed_node_constraint(
+fn keyed_constraint(
   construction : Construction,
-  node : @query.GraphNodePattern,
+  constraint : @query.GraphConstraint?,
+  variable : @query.NamePart?,
   fields : Array[String],
   max_work : Int,
 ) -> @builder.Node raise Abort {
   // Only property predicates become ordinary expressions. Static labels are
-  // passed independently to match_nodes and never compared with a property.
+  // passed independently to the Graph owner, never compared with a property.
   let resolve = fn(path : Array[@query.NamePart]) -> String? {
-    keyed_property_field(path, node.variable, fields)
+    keyed_property_field(path, variable, fields)
   }
   let append = fn(expression : @query.Expression) -> @builder.Node raise Abort {
     match
@@ -130,13 +220,13 @@ fn keyed_node_constraint(
       Err(error) => raise Abort(Expression(error))
     }
   }
-  match node.constraint {
+  match constraint {
     None => construction.object([("literal", construction.add(Bool(true)))])
     Some(Predicate(expression)) => append(expression)
     Some(Properties(properties)) => {
       let predicates : Array[@builder.Node] = []
       for (field, expression) in properties {
-        let name = match keyed_property_field([field], node.variable, fields) {
+        let name = match keyed_property_field([field], variable, fields) {
           Some(name) => name
           None => raise Abort(UnknownColumn)
         }
@@ -176,9 +266,10 @@ fn keyed_start_match(
 ) -> @builder.Node raise Abort {
   // Label membership belongs to match_nodes. Never replace it by a
   // comparison with a property, even if a property has the same name.
-  let predicate = keyed_node_constraint(
+  let predicate = keyed_constraint(
     construction,
-    node,
+    node.constraint,
+    node.variable,
     fields,
     limits.max_expression_work,
   )
@@ -373,27 +464,23 @@ fn lower_script_keyed_graph_query(
   } else {
     let bounded = pattern.edges.length() == 1 && pattern.edges[0].quantified
     if pattern.nodes.length() != pattern.edges.length() + 1 ||
-      pattern.edges.any(edge => {
-        edge.variable is Some(_) || edge.constraint is Some(_)
-      }) ||
+      pattern.edges.any(edge => edge.variable is Some(_)) ||
       (pattern.edges.any(edge => edge.quantified) && !bounded) {
       raise Abort(UnsupportedGraph)
     }
-    for index in 1..<pattern.nodes.length() {
-      let node = pattern.nodes[index]
+    if bounded {
+      let node = pattern.nodes[1]
       if graph.mapping.nodes.length() > 1 &&
         node.label is Some(label) &&
         !graph.mapping.nodes.all(definition => {
           definition.labels.any(candidate => same_name(candidate.name, label))
         }) {
-        // Without a common per-hop node-label filter, admitting this pattern
-        // would silently drop a demanded endpoint constraint.
         raise Abort(UnsupportedGraph)
       }
       ignore(keyed_node_fields(definition, node, input))
       if node.constraint is Some(_) {
-        // Endpoint and intermediate predicates require a definition-scoped
-        // binding, not an equality join on the JSON identity carrier.
+        // Homogeneous node_where tests every reached hop. A quantified
+        // pattern's endpoint condition must not be applied to intermediates.
         raise Abort(UnsupportedGraph)
       }
     }
@@ -427,26 +514,62 @@ fn lower_script_keyed_graph_query(
           ("edge_types", construction.array([construction.text(label.value)])),
         )
       }
-    } else {
-      params.push(
-        (
-          "hops",
-          construction.array(
-            pattern.edges.map(edge => {
-              let hop = [("direction", construction.text(edge.direction))]
-              if edge.label is Some(label) {
-                hop.push(
-                  (
-                    "edge_types",
-                    construction.array([construction.text(label.value)]),
-                  ),
-                )
-              }
-              construction.object(hop)
-            }),
+      if edge.constraint is Some(_) {
+        params.push(
+          (
+            "edge_where",
+            keyed_constraint(
+              construction,
+              edge.constraint,
+              None,
+              keyed_edge_fields(graph, edge),
+              limits.max_expression_work,
+            ),
           ),
-        ),
-      )
+        )
+      }
+    } else {
+      let hops : Array[@builder.Node] = []
+      for index, edge in pattern.edges {
+        let node = pattern.nodes[index + 1]
+        let node_fields = keyed_hop_node_fields(graph, edge, node)
+        let hop = [("direction", construction.text(edge.direction))]
+        if edge.label is Some(label) {
+          hop.push(
+            ("edge_types", construction.array([construction.text(label.value)])),
+          )
+        }
+        if edge.constraint is Some(_) {
+          hop.push(
+            (
+              "edge_where",
+              keyed_constraint(
+                construction,
+                edge.constraint,
+                None,
+                keyed_edge_fields(graph, edge),
+                limits.max_expression_work,
+              ),
+            ),
+          )
+        }
+        if node.constraint is Some(_) {
+          hop.push(
+            (
+              "node_where",
+              keyed_constraint(
+                construction,
+                node.constraint,
+                node.variable,
+                node_fields,
+                limits.max_expression_work,
+              ),
+            ),
+          )
+        }
+        hops.push(construction.object(hop))
+      }
+      params.push(("hops", construction.array(hops)))
     }
     let paths = pipe_physical_name(reserved, "aql_keyed_paths_")
     reserved.push(paths)
