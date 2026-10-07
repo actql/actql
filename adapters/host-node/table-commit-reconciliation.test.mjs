@@ -141,6 +141,35 @@ for (const empty of [false, true]) {
           }}}), {code: 'EffectLedgerCapacityExceeded'});
         assert.equal(saveFailure.readClaimedResponse(claim), undefined);
 
+        // A sealed original noncommit lookup uses the same current-authority,
+        // immutable response and common terminal Receipt boundary as a commit.
+        const refused = await possible('noncommit');
+        const noncommit = seal({version: 'actql-table-noncommit-receipt/0.1',
+          request_cid: operation.request_cid, effect_identity_cid: operation.effect_identity_cid,
+          catalog_identity_cid: operation.catalog_identity_cid, schema_cid: operation.schema_cid,
+          storage_mapping_cid: operation.storage_mapping_cid, reason: 'CreateNameConflict'});
+        const failed = await reconcileOriginalTableCommit({...options(refused), bridge: {
+          reconcileOperation: async actual => {
+            assert.deepEqual(actual, operation);
+            return {ok: false, result: noncommit};
+          }}});
+        assert.equal(failed.status, 'failed');
+        assert.equal(JSON.parse(failed.receipt.wire).typed_outcome.error.code, 'CreateNameConflict');
+        assert.deepEqual(JSON.parse(failed.receipt.wire).typed_outcome.error.details, noncommit);
+        const failedHistory = refused.history(effect.logicalItemLocatorCid(locator), 8);
+        refused.close();
+        const failedReopened = open('noncommit');
+        assert.equal((await reconcileOriginalTableCommit({...options(failedReopened),
+          bridge: {reconcileOperation: () => assert.fail('Saved noncommit must not query or write again')}}))
+          .receipt.identity, failed.receipt.identity);
+        assert.deepEqual(failedReopened.history(effect.logicalItemLocatorCid(locator), 8), failedHistory);
+        assert.equal(failedReopened.readClaimedResponse(claim).statusCode, 409);
+        const rawConflict = await possible('raw-conflict');
+        assert.deepEqual(await reconcileOriginalTableCommit({...options(rawConflict),
+          bridge: {reconcileOperation: async () => ({ok: false, code: 'ExpectedGenerationConflict'})}}),
+        {status: 'unknown'});
+        assert.equal(rawConflict.readClaimedResponse(claim), undefined);
+
         // Two read-only recoveries overlap after the same original dispatch.
         const concurrent = await possible('concurrent');
         let lookups = 0, release;

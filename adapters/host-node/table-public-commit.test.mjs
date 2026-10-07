@@ -108,6 +108,127 @@ async function terminal(run, observations, t) {
   }
 }
 
+test('Table public concurrent replace commits one expected generation without automatic overwrite', async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
+  const launcher = join(f.root, 'concurrent-replace');
+  await writeFile(launcher, `#!${python}
+import json, os, sys, time
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from process_worker import serve
+root = Path(__file__).parent
+def factory(*args):
+    from catalog import TableCatalog
+    class ConcurrentCatalog(TableCatalog):
+        def write_claimed(self, *args, **kwargs):
+            with (root / "writes.log").open("a") as stream:
+                stream.write(args[0]["request_cid"] + "\\n")
+            return super().write_claimed(*args, **kwargs)
+        def before_publication(self):
+            request = self.context[0]
+            if request["action"] != "replace":
+                return
+            path = root / ("staged-" + request["request_cid"][7:])
+            path.write_text(json.dumps(request))
+            deadline = time.monotonic() + 30
+            while not (root / ("release-" + request["request_cid"][7:])).exists():
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("FixturePublicationBarrier")
+                time.sleep(0.01)
+    return ConcurrentCatalog(*args)
+with os.fdopen(3, "r+b", buffering=0) as channel:
+    serve(channel, factory)
+`, {mode: 0o700});
+  const keys = generateKeyPairSync('ed25519'), observations = [];
+  const authorization = {accountConfiguration: account(),
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    reviewReaders: [userInfo().username],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const opened = [];
+  const open = async (name, rows, expectedTable = null) => {
+    const effectProfilePath = join(f.root, `${name}-effect.json`);
+    await writeFile(effectProfilePath, JSON.stringify({version: 'actql-installed-table-effect/0.1',
+      connectorId: 'table', connection, python: launcher, catalog: f.catalog,
+      accountConfigurationWire: account(), environmentWire: declared.wire,
+      targets: [{effectId: 'save', resource, targetRef, mappingRef,
+        mappingCid: declared.mapping.mapping_contract_cid, action: expectedTable === null ? 'create' : 'replace',
+        catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows', expectedTable,
+        permissions: ['scope:store'], footprint: {kind: 'collection',
+          resource_identity_scheme_cid: contentCid(tableContract), provider_namespace: 'table',
+          provider_boundary_cid: f.catalog.catalogCid, resource_kind: 'Table', provider_object_identity_cids: []}}],
+      limits: {reservation: {bytes: 1048576, files: 16}}}));
+    const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
+      installation: {directory: join(f.root, name), effectProfilePath, authorization}});
+    opened.push(client);
+    const run = await client.aql(JSON.stringify(program(rows, name)), {format: 'json', requestId: name});
+    await waiting(run, observations, t);
+    const checkpoint = (await client.checkpoints()).items[0];
+    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+    const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+    const operation = preview.effects[0].changes[0].intended_changes.value;
+    assert.deepEqual(operation.expected_table, expectedTable);
+    const approve = () => client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    return {client, run, operation, approve};
+  };
+  try {
+    const created = await open('create-base', expectedRows);
+    assert.equal(commits(f.catalog).length, 0);
+    await created.approve();
+    assert.equal((await terminal(created.run, observations, t)).status, 'succeeded');
+    const original = commits(f.catalog)[0];
+    const expected = {table_uuid: original.receipt.table_uuid, generation_cid: original.receipt.generation_cid};
+    const winnerRows = [{id: 10, tag: null}, {id: 10, tag: null}];
+    const first = await open('replace-first', winnerRows, expected);
+    const second = await open('replace-second', [{id: 20, tag: 'second'}], expected);
+    assert.equal(commits(f.catalog).length, 1, 'Both replacements still require approval');
+    await Promise.all([first.approve(), second.approve()]);
+    const signal = AbortSignal.timeout(30000);
+    const staged = value => join(f.root, `staged-${value.operation.request_cid.slice(7)}`);
+    for (;;) {
+      signal.throwIfAborted();
+      const ready = await Promise.all([first, second].map(value =>
+        readFile(staged(value), 'utf8').then(wire => {
+          assert.deepEqual(JSON.parse(wire), value.operation);
+          return true;
+        }).catch(error => { if (error.code === 'ENOENT') return false; throw error; })));
+      if (ready.every(Boolean)) break;
+      await delay(20, undefined, {signal});
+    }
+    assert.equal(commits(f.catalog).length, 1, 'Both writers staged against the same old head');
+    await writeFile(join(f.root, `release-${first.operation.request_cid.slice(7)}`), 'commit');
+    assert.equal((await terminal(first.run, observations, t)).status, 'succeeded');
+    await writeFile(join(f.root, `release-${second.operation.request_cid.slice(7)}`), 'commit');
+    const loser = await terminal(second.run, observations, t);
+    t.diagnostic(JSON.stringify({phase: 'concurrent-replace', loser, commits: commits(f.catalog),
+      firstOperation: first.operation, secondOperation: second.operation}));
+    assert.equal(loser.status, 'failed', 'Expected-version conflict is not a successful or unknown commit');
+    assert.equal(commits(f.catalog).length, 2);
+    assert.deepEqual(multiset(await first.run.result('answer').all()), winnerRows);
+    const noncommit = await f.bridge.reconcileOperation(second.operation);
+    assert.equal(noncommit.ok, false);
+    assert.equal(noncommit.result.version, 'actql-table-noncommit-receipt/0.1');
+    assert.equal(noncommit.result.request_cid, second.operation.request_cid);
+    assert.equal(noncommit.result.reason, 'ExpectedGenerationConflict');
+    assert.equal((await second.run.reconcile()).status, 'failed');
+    assert.equal(commits(f.catalog).length, 2);
+    assert.deepEqual((await readFile(join(f.root, 'writes.log'), 'utf8')).trim().split('\n').sort(),
+      [created.operation.request_cid, first.operation.request_cid, second.operation.request_cid].sort(),
+      'Each approved occurrence enters the writer once; conflict never retries');
+  } finally {
+    // Release either barrier on a failed assertion, then let each existing Host
+    // drain its own process/custody. Never kill another test or delete a live file.
+    for (const name of await readdir(f.root)) {
+      if (name.startsWith('staged-')) await writeFile(join(f.root, name.replace('staged-', 'release-')), 'stop');
+    }
+    for (const client of opened.reverse()) await client.close();
+  }
+});
+
 test('Table public lost commit reply reconciles the original Run without another write', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
