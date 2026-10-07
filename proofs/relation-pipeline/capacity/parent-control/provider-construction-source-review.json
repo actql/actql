@@ -1,6 +1,6 @@
 {
   "version": "actql-provider-construction-source-review/0.1",
-  "currentRecipeDigest": "53696a8b167ab66c11f4354c75a475daad78f5b06691c233d8c5730488eee1ac",
+  "currentRecipeDigest": "698c9e6e46ceac867727afed69c16a5eafd6b9dbeffc779a329effe38d258a6c",
   "originalRecipeDigest": "cf00b1b46f2ce78e37ab22eb14872dbfb63c1607c0382fc27124fa6b1ff0dc71",
   "historicalSourcePremises": {
     "src/connectors/local/managed_provider.mbt": "40b1b803e586d1dbce5eb0dabc9888d57ae0eb28bebbcee7e0d3b4fd5fa00950",
@@ -8,7 +8,7 @@
   },
   "introductionRevision": "58fd19eade59cf3bcbf6a859c9821471346e3b41",
   "historicalReviewRevision": "7d7cc6cfc6e7b46379fc85c8ac223bd380cbd200",
-  "selectedDigest": "30bd9c86dadd9ce26940046216ebfa640453ab0f34f2224068e7c1ea6b87e07d",
+  "selectedDigest": "40dbff3cc79f6d83d2dffd2f2d41bf514738bcaa5c1a728b810fcf6d343b892f",
   "managedDigest": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
   "generatedVariants": [
     {
@@ -59,7 +59,9 @@
     "completed Array owner, backing, output references, generations and release overlap require separate lifetime correspondence",
     "Waiting and Settling join validated per-poll work extraction; their poll objects are not constructor allocations",
     "The selected_binding_rows_supported callback adds only the constant-size opaque JsonPick guard; removing that exact guard yields the reviewed parent source. Constructor bodies, captures and their byte premises are unchanged; prepared-view execution remains outside construction-only bounds.",
-    "Opaque row bindings, unique keys and projection extend only the constant-size support guard. Removing the exact four-view guard still yields the same previously reviewed whole source; constructor captures, bodies and conditional component bytes are unchanged."
+    "Opaque row bindings, unique keys and projection extend only the constant-size support guard. Removing the exact four-view guard still yields the same previously reviewed whole source; constructor captures, bodies and conditional component bytes are unchanged.",
+    "The lower binding-rows cleanup transition Bool is converted through cleanup_pending to managed completion. Only that existing cleanup branch changes; construction and capture fields remain identical.",
+    "The existing pure scratch-eligibility helper additionally admits detached Values and UNNEST completion. Its exact reviewed body changes no construction, allocation or callback capture; accepted output and pending cleanup responsibility require separately executed lifetime cases."
   ],
   "nativeCensus": {
     "sourceRevision": "2fa9a8dfe3d9589083d4db0846f53ec7a112d0f0",
@@ -68,5 +70,27 @@
     "indexedBytes": 1184,
     "scalarDynamicCallbacks": 20,
     "scalarPayloadBytesObserved": false
+  },
+  "lifecycleReview": {
+    "previousRevision": "fe269370560b4a0466bb0ffed74c813a7f846d2c",
+    "previousSelectedDigest": "30bd9c86dadd9ce26940046216ebfa640453ab0f34f2224068e7c1ea6b87e07d",
+    "cleanupRevision": "a9edb078d801d547fbf19aae56c39c4233f32d00",
+    "detachedCompletionRevision": "eb3a7a78a7426a9be397b62545e76984a25aba43",
+    "cleanupGuarantee": "managed completion is derived from the existing lower cleanup_pending witness, not its transition Bool",
+    "retainedObligation": "accepted output generation remains available after private-scratch cleanup; false/error retain the same child for retry",
+    "capacityScope": "constructor bodies/captures and conditional component bytes unchanged; no full parent/pipeline or physical-reclamation upper bound",
+    "previousProviderDigests": {
+      "src/connectors/local/cross_join_provider.mbt": "5e97a162cbdfd269f080e307ee8d83acea6d3dd8dc45109111bc0ba3038a8504",
+      "src/connectors/local/append_provider.mbt": "bab2e85f63fc65be964d947a7711fdec8f2cfffb7475b40732b9c022a7a65e0f",
+      "src/connectors/local/set_provider.mbt": "8f97716b1ab6daa3319b8171e553f0b9d6f6fa4e14f6102e247b5c1d6da959f6",
+      "src/connectors/local/nest_provider.mbt": "31a31d52d9d2b19a98d88143ce29246f06bf504ce7a1ccc9556c6b0e0166c1eb",
+      "src/connectors/local/global_count_provider.mbt": "0bea3843025c495c8b292e463aa5659af155ce86c50f6425b0f5edbc4c86edbc",
+      "src/connectors/local/group_provider.mbt": "d9450f48ff2fa87f42e496e0fc8385f8e384d5327cbf71fae62afd9930504a40",
+      "src/connectors/local/row_window_provider.mbt": "e59f475513cade43547c45f990c29126a5e55ee5643c92b0d30f74ed6770de1b",
+      "src/connectors/local/unpivot_provider.mbt": "8022ae1076ac075dd7ed061ab8b3f1008b31c9dfcf11a2e65eff2070b50aee20",
+      "src/connectors/local/unnest_provider.mbt": "1c4054924f8db5bb0a4c8a9613ac2e7e283ffa657722fe1902be1c233872d65a",
+      "src/connectors/local/values_provider.mbt": "1cd214806cd6692fbe502b42a94c8d730b6b033c5db6adf957f63e0ffcf39d8f"
+    },
+    "excludedAllocation": "set/Nest Result.map cleanup callback evaluation, temporary execution allocations, accepted output payloads and physical reclamation remain outside the construction component"
   }
 }

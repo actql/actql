@@ -14,6 +14,8 @@ pub fn advance_local_materializing_attempt(LocalMaterializingAttempt, Int) -> Re
 
 pub fn advance_local_materializing_cleanup(LocalMaterializingAttempt, Int) -> Bool
 
+pub fn advance_local_output_export(LocalMaterializingAttempt, Int) -> Result[@execution_relation.CompletedOutputExportAdvance, LocalMaterializingIssue]
+
 pub fn advance_managed_provider(ManagedProviderExecution, Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
 pub fn append_local_materializing_input(LocalMaterializingAttempt, Int, String) -> Result[Unit, LocalMaterializingIssue]

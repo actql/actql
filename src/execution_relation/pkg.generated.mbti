@@ -89,6 +89,8 @@ pub fn advance_cancel_completed_output_import(CompletedOutputImport, Int) -> Boo
 
 pub fn[T] advance_close_managed_producer_bridge(ManagedProducerBridge[T], Int) -> Bool
 
+pub fn advance_completed_output_export(CompletedOutputExport, Int, Int) -> Result[CompletedOutputExportAdvance, CompletedExportIssue]
+
 pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
@@ -428,6 +430,8 @@ pub fn completed_has_cell_access(CompletedOutput) -> Bool
 pub fn completed_output(CompletedSequence, @pipeline_typing.Target) -> CompletedOutput?
 
 pub fn completed_output_available(CompletedOutput) -> Bool
+
+pub fn completed_output_export_workspace_slots(ValueLimits, RowWireLimits) -> Int?
 
 pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
@@ -1680,6 +1684,12 @@ pub(all) enum CompletedImportIssue {
 type CompletedOutput
 
 type CompletedOutputExport
+
+pub(all) struct CompletedOutputExportAdvance {
+  batch : String?
+  complete : Bool
+  steps : Int
+}
 
 type CompletedOutputExportReceipt
 
