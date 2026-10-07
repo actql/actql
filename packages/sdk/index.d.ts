@@ -222,7 +222,8 @@ export type CancellationExplanation = Readonly<{
 }> | Readonly<{observation: 'outcome_unknown';
   next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
 }>);
-/** Read-only advice; an operation reference does not certify stop or release. */
+/** Read-only advice from cancel or an exact lookup; the original operation
+ * reference and recorded outcome certify neither physical stop nor release. */
 export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
