@@ -543,6 +543,14 @@ pub fn join_kernel_profile(PreparedJoinKernel) -> PreparedInnerJoin
 
 pub fn join_kernel_step(PreparedJoinKernel) -> Int
 
+pub fn json_pick_column(PreparedJsonPick) -> @relation_schema.FieldName
+
+pub fn json_pick_output(PreparedJsonPick) -> String
+
+pub fn json_pick_path_at(PreparedJsonPick, Int) -> String?
+
+pub fn json_pick_path_count(PreparedJsonPick) -> Int
+
 pub fn kernel_analytic(PreparedKernel) -> PreparedAnalytic?
 
 pub fn kernel_body(PreparedKernel) -> KernelBody
@@ -578,6 +586,8 @@ pub fn kernel_is_partitioned_top_k(PreparedKernel) -> Bool
 pub fn kernel_is_projection(PreparedKernel) -> Bool
 
 pub fn kernel_is_sort(PreparedKernel) -> Bool
+
+pub fn kernel_json_pick(PreparedKernel) -> PreparedJsonPick?
 
 pub fn kernel_lag(PreparedKernel) -> (@relation_schema.FieldName, String, Int64)?
 
@@ -1587,6 +1597,8 @@ type PreparedInnerJoin
 type PreparedIntervalJoin
 
 type PreparedJoinKernel
+
+type PreparedJsonPick
 
 type PreparedKernel
 
