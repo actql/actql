@@ -10,6 +10,7 @@ import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
+import {graphPublicHostCases, graphPublicHostPattern} from './fixtures/graph-host-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -148,6 +149,10 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
+for (const path of ['fixtures/graph-host-cases.mjs', 'fixtures/graph-delta-application.mjs',
+  'fixtures/graph-union.mjs', 'fixtures/graph-subtraction.mjs']) {
+  await writeFile(join(root, path), await readFile(join(repository, 'scripts', path)));
+}
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/graph-presence.program.json'),
@@ -586,8 +591,14 @@ await mkdir(join(root, 'tls'));
 await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
 await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
 await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
-console.log(run(process.execPath, ['--test', 'graph-public-host.test.mjs',
-  'graph-source-snapshot.test.mjs'], root,
+// Each independent family retains its original 60s case / 180s process bound.
+// The shared registration selects every Local and HTTPS family exactly once.
+for (const {name} of graphPublicHostCases) {
+  console.log(run(process.execPath, ['--test', '--test-name-pattern',
+    graphPublicHostPattern(name), 'graph-public-host.test.mjs'], root,
+    {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
+}
+console.log(run(process.execPath, ['--test', 'graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--graph-source-only')) return;
 await exerciseNativeGraphSource();

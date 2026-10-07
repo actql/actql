@@ -64,6 +64,10 @@ const accepted = (file, expected) => {
 };
 const original = readFileSync(path, 'utf8');
 const results = [];
+// Refuse stale anchors before starting any actual acceptance processes.
+for (const [name, from] of mutations) {
+  if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);
+}
 try {
   for (const [name, from, to, file, expected, bypassLaterCopy] of mutations) {
     if (original.split(from).length !== 2) throw new Error(`Mutation anchor not unique: ${name}`);

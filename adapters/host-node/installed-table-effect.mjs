@@ -48,6 +48,24 @@ const defaults = Object.freeze({
   reservation: {bytes: 16777216, files: 64},
 });
 
+// Installation and runtime use the same finite budget vocabulary. A typo must
+// not silently select a default, including inside a nested physical budget.
+export function checkInstalledTableEffectLimits(supplied = {}) {
+  const object = value => value !== null && typeof value === 'object' &&
+    !Array.isArray(value);
+  if (!object(supplied) || Object.keys(supplied).some(key => !Object.hasOwn(defaults, key))) {
+    fail('InvalidInstalledTableEffectLimits');
+  }
+  for (const [key, value] of Object.entries(supplied)) {
+    const model = defaults[key];
+    if (typeof model === 'object'
+      ? !object(value) || Object.entries(value).some(([name, bound]) =>
+        !Object.hasOwn(model, name) || !positive(bound))
+      : !positive(value)) fail('InvalidInstalledTableEffectLimits');
+  }
+  return supplied;
+}
+
 // `targets` are explicit installed member/Mapping bindings, not a Program's request
 // for an arbitrary Catalog/name. Each binding fixes create or an approved
 // replacement generation. Publication/republication of those bindings belongs
@@ -56,6 +74,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
   connectorId, connectorRegistration, connectorRevision, connection,
   runtimeBundleCid, bindingCid, catalogCid, targets, bridge, authorization,
   ledgerRoot, limits: suppliedLimits = {}}) {
+  checkInstalledTableEffectLimits(suppliedLimits);
   const limits = Object.freeze(Object.fromEntries(Object.entries(defaults)
     .map(([key,value]) => [key, typeof value === 'object'
       ? Object.freeze({...value, ...suppliedLimits[key]})

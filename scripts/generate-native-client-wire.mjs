@@ -66,7 +66,8 @@ export function nativeClientWire(schemas, rules, requestRules) {
     return name;
   }
   for (const name of ['connection','profile','admission','run_ref',
-    'lookup_found','lookup_not_found','lookup_unknown','held']) emit(schemas[name], `wire_${name}_shape`);
+    'lookup_found','lookup_not_found','lookup_unknown','held',
+    'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');
   for (const [name, rule] of Object.entries(rules)) {
     const lines = [`if !wire_connection_shape(selected) || !wire_${name}_shape(value) { return Some(InvalidShape) }`,
