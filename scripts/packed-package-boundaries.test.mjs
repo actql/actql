@@ -57,6 +57,20 @@ test('installed graph refuses an optional peer with a missing exported file', as
   assert.throws(() => auditPackedPackages(root, ['entry']), {code: 'MODULE_NOT_FOUND'});
 });
 
+test('installed graph refuses an optional peer without package metadata', async t => {
+  const {root} = await peerFixture(t);
+  await mkdir(join(root, 'node_modules/@fixture/optional'), {recursive: true});
+  assert.throws(() => auditPackedPackages(root, ['entry']), {code: 'MODULE_NOT_FOUND'});
+});
+
+test('installed graph refuses an optional peer with a dangling package link', async t => {
+  const {root} = await peerFixture(t);
+  await mkdir(join(root, 'node_modules/@fixture'), {recursive: true});
+  await symlink(join(root, 'missing-peer'),
+    join(root, 'node_modules/@fixture/optional'), 'dir');
+  assert.throws(() => auditPackedPackages(root, ['entry']), {code: 'MODULE_NOT_FOUND'});
+});
+
 test('installed graph refuses optional peers resolved outside the consumer', async t => {
   const {root, install} = await peerFixture(t);
   const outside = await mkdtemp(join(tmpdir(), 'packed-peer-outside-'));
