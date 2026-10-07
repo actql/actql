@@ -474,6 +474,59 @@ foreign replacement. Loss of exclusive custody retains responsibility.
 This extends cleanup accounting within the existing owner. It changes no wire
 identity, execution evidence, generation-restart authority or release contract.
 
+### Single-input retained task chains
+
+The Native resident profile admits one Source acquisition followed by checked
+single-input tasks and one terminal Named Result. Each dependent task consumes
+the immediately preceding task's output; any control dependency must name that
+same predecessor. Fan-out, fan-in, multiple acquisitions and multiple terminal
+Results require additional composition and remain refused
+by this profile; the common checked graph retains its broader capabilities.
+
+An intermediate task uses its predecessor's typed completed output, not the
+original Source capture preparation. The physical strategy Owner keeps the
+original checked graph and an execution view containing that predecessor and
+consumer. The view maps local execution coordinates back to original task,
+input-producer and control-predecessor coordinates. Original task references,
+policy consultation, generated-sequence selection, output generation and Result
+ownership continue to use those original coordinates. Imported row and verified
+wire-byte statistics describe the completed predecessor and do not manufacture
+a Source observation or completed ancestor tasks.
+
+The consumer's file-backed output becomes independent only after the exact
+file generation and output evidence are durably committed. The Runtime then
+retires the original Compute export and confirms existing Run cleanup before
+returning the incoming reader and receiver capacity. Cleanup failure keeps the
+same responsibility available for retry. Ordinary output reads may use the
+committed file while retirement is pending, but the next retained manifest
+handoff waits for confirmed input cleanup. Resource ceilings and logical work
+are unchanged.
+
+The resident holder explicitly supplies this retirement responsibility.
+Direct executor callers that do not supply it keep their existing input-borrow
+lifetime through Runtime release, while still requiring durable output files.
+Generic failure cleanup before commitment cannot invoke receiver retirement.
+
+A holder indexes execution, outgoing handoff, successor and output cleanup by
+exact dispatch identity. Retransmission selects the same occurrence and cannot
+replace its successor or revive an input borrow. Cleanup proceeds from child
+to parent; an early parent release remains pending until its child is safe.
+Output reports are durably handed off before physical output cleanup.
+
+After a middle holder stops, restoration uses the original completed evidence,
+file custody, consumer component holding and saved incoming binding. It neither
+reacquires Source nor re-enters Compute. Historical cleanup-address admission
+belongs to the common retained-input cleanup Owner. A checked route identifies
+the original edge, while durable producer evidence and the consumer's accepted
+record bind the exact reader responsibility. Accepted, failed, cancelled and
+release-retry states grant cleanup addresses without granting use or execution.
+The physical caller must still establish exclusive stop and current Site scope.
+Only an exact absent reader key can mean that an accepted occurrence never
+borrowed; the original Transfer and receipt must exist. Other readers continue
+to fence receiver reclamation. File cleanup and formal task release remain
+separate responsibilities and cannot be inferred from returning this reader.
+
+
 ## Transport and authentication
 
 The initial control candidate is authenticated outbound HTTPS. The selection

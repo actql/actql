@@ -19,7 +19,8 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {createRequire} from 'node:module';
 import {residentSourceEnvironment, sourceProgram, sourceRows,
   sourceRef, sourceContractCid, retainedSourceProgram, retainedSourceRows,
-  retainedSourceSchemaCid} from './fixtures/resident-source.mjs';
+  retainedSourceSchemaCid, retainedChainProgram, retainedChainRows,
+  retainedChainSchemaCid} from './fixtures/resident-source.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -42,7 +43,11 @@ import {openSqliteTransferJournal} from
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const retainedConsumerMode = process.argv.includes('--retained-consumer-only') ||
+const retainedChainMode = process.argv.includes('--retained-chain-only') ||
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_CHAIN_ONLY === '1';
+const retainedMiddleRecreation =
+  process.env.ACTQL_TEST_RESIDENT_RETAINED_MIDDLE_RECREATION === '1';
+const retainedConsumerMode = retainedChainMode || process.argv.includes('--retained-consumer-only') ||
   process.env.ACTQL_TEST_RESIDENT_RETAINED_CONSUMER_ONLY === '1';
 const retainedCoordinatorReconstruction =
   process.env.ACTQL_TEST_RESIDENT_RETAINED_COORDINATOR_RECONSTRUCTION === '1';
@@ -63,6 +68,13 @@ if ((retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
   throw new Error('retained fault selection requires the retained consumer case');
 }
 const sourceMode = process.argv.includes('--source-only') || retainedConsumerMode;
+if (retainedChainMode && (retainedCoordinatorReconstruction || retainedCancelBeforeConsumer ||
+  retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined)) {
+  throw new Error('select the chain case independently from two-task fault cases');
+}
+if (retainedMiddleRecreation && !retainedChainMode) {
+  throw new Error('middle holder recreation requires the three-task chain case');
+}
 const cancelMode = process.argv.includes('--cancel-only') ||
   process.env.ACTQL_TEST_RESIDENT_CANCEL_ONLY === '1';
 const releaseMaintenanceMode = process.argv.includes('--release-maintenance-only') ||
@@ -349,7 +361,7 @@ try {
   await writeFile(join(engineRoot, 'fragment.json'), fragment);
 
   // The issuing side (the Cloud's role) prepares and authorizes the Run.
-  const programText = retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
+  const programText = retainedChainMode ? retainedChainProgram : retainedConsumerMode ? retainedSourceProgram : sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
   const environmentWire = sourceMode ? (await residentSourceEnvironment(repository)).wire
     : (await readFile(join(repository,
@@ -883,8 +895,11 @@ try {
       return args;
     };
     if (retainedConsumerMode) {
+      const taskCount = retainedChainMode ? 3 : 2;
+      const expectedRows = retainedChainMode ? retainedChainRows : retainedSourceRows;
+      const expectedSchemaCid = retainedChainMode ? retainedChainSchemaCid : retainedSourceSchemaCid;
       assert.deepEqual(runHost.taskExecutionShape(retainedPrepared, retainedCompilation),
-        {taskCount: 2, acquisitionCount: 1});
+        {taskCount, acquisitionCount: 1});
       const sourceGrantCid = physicalCid('retained-source-grant');
       const destinationGrantCid = physicalCid('retained-destination-grant');
       const routeCapabilityCid = physicalCid('retained-route');
@@ -895,6 +910,8 @@ try {
         '--retained-destination-grant-cid', destinationGrantCid,
         '--retained-route-capability-cid', routeCapabilityCid,
         '--retained-consumer-engine-bytes', '67108864',
+        ...(retainedMiddleRecreation
+          ? ['--holder-kill-at', 'completed-retained-intermediate'] : []),
         ...(retainedProducerHolderRecreation
           ? ['--holder-kill-at', 'completed-producer'] : []),
         ...(retainedHandoffInterruption === undefined ? [] : [
@@ -965,7 +982,7 @@ try {
         'producer completion is not checked Run completion');
       assert.equal(inspectProgress().publicationReady, false);
       assert.equal(JSON.parse(inspectProgress().stateWire).status, 'running');
-      assert.deepEqual(inspectProgress().resultTasks, [1]);
+      assert.deepEqual(inspectProgress().resultTasks, [taskCount - 1]);
       const edge = runHost.prepareRetainedTaskInputEdge(retainedPrepared, retainedCompilation,
         retainedAdmission, retainedDefinition, 1, 0);
       const producerCurrent = () => ({
@@ -1096,8 +1113,8 @@ try {
       const input = runHost.prepareRetainedTaskInput(producer, receipt, 'direct-destination', {
         ...current, readTransfer: () => receiverFacts.transferRecordWire,
       }, limits);
-      const consumerBinding = runHost.retainedTaskInputFacts(input).wire;
-      const issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
+      let consumerBinding = runHost.retainedTaskInputFacts(input).wire;
+      let issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
         retainedAdmission, retainedDefinition,
         runHost.prepareTaskRequest(retainedPrepared, retainedCompilation, coordinatorAuthority, 'retained-request'),
         1, {taskAttempt: 1, dispatchId: 'retained-consumer', siteKey, siteGeneration: 1,
@@ -1105,11 +1122,12 @@ try {
           connectorRevision: 'local/1', strategyRevision: 'strategy/1',
           obligationsCid: physicalCid('resident-obligations'), budgetCid: siteControl.budgetIdentity(budget),
           evidenceIssuerCapabilityCid: issuerCapability, grantCid: operationCapability}, input);
-      const consumerDispatch = siteControl.admitJson(issued.wire, issued.cid);
+      let consumerDispatch = siteControl.admitJson(issued.wire, issued.cid);
+      const middleDispatch = consumerDispatch;
       await ensureOutputReceiver(consumerDispatch);
       assert.equal(inspectProgress().nextTask, undefined,
         'persisted consumer intent owns its original attempt');
-      const consumerEnvelope = coordinator.pollDispatchMaterialsJson(
+      let consumerEnvelope = coordinator.pollDispatchMaterialsJson(
         coordinator.admitDispatchJson(issued.wire, issued.cid), consumerBinding, 1048576, materials);
       let resultCid;
       if (retainedCancelBeforeConsumer) {
@@ -1140,7 +1158,15 @@ try {
         const consumerDelivery = within(gateway.dispatch({dispatch: consumerDispatch,
           inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
         'retained consumer actual holder relay').catch(error => error);
-        if (retainedHandoffInterruption === 'consumer-borrowed') {
+        if (retainedMiddleRecreation) {
+          await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+            line.point === 'completed-retained-intermediate'), 'durable middle holder interruption');
+          await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'),
+            'middle holder physical exit');
+          assert.equal(gateway.withdraw({dispatch: consumerDispatch}), true);
+          const interruptedDelivery = await consumerDelivery;
+          assert.equal(interruptedDelivery.code, 'RemoteDispatchWithdrawn');
+        } else if (retainedHandoffInterruption === 'consumer-borrowed') {
           interruptedReceiver = await waitForHandoffInterruption();
           assert.equal(interruptedReceiver.readers.length, 1);
           assert.equal(interruptedReceiver.readers[0].revision, 0);
@@ -1164,22 +1190,97 @@ try {
           const delivered = await consumerDelivery;
           if (delivered instanceof Error) throw delivered;
         }
-        const terminal = await settledQuery(consumerDispatch, 'retained consumer');
-        assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], retainedSourceSchemaCid);
+        let terminal = await settledQuery(consumerDispatch, 'retained consumer');
+        if (retainedChainMode) {
+          assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4],
+            'sha256:6495e79b694d6e9c2240123ed4cadce8a5568370ec4d89032438bbf9ce22f628');
+          assert.equal(inspectProgress().nextTask, 2);
+          assert.equal(inspectProgress().executionComplete, false);
+          if (retainedMiddleRecreation) {
+            await waitFor(() => site.lines.some(line => line.kind === 'holder-killed' &&
+              line.point === 'completed-retained-intermediate'), 'durable middle holder interruption');
+            await waitFor(() => site.lines.some(line => line.kind === 'holder-exited'), 'middle holder physical exit');
+            assert.equal((await entries()).length, 2);
+          }
+          const returnedInput = retainedJournalRows('remote_transfer_destination_reader');
+          assert.equal(returnedInput.length, 1);
+          assert.equal(returnedInput[0].body.split('\n')[3], issued.cid);
+          assert.equal(returnedInput[0].body.split('\n')[4], 'released',
+            'durable middle output returns its input before the next task');
+          if (!retainedMiddleRecreation) {
+            await within(gateway.dispatch({dispatch: consumerDispatch,
+              inputBindingBody: consumerBinding, dispatchEnvelope: consumerEnvelope}),
+            'middle exact replay after input retirement');
+            assert.equal((await entries()).length, 2);
+          }
+          const nextEdge = runHost.prepareRetainedTaskInputEdge(retainedPrepared,
+            retainedCompilation, retainedAdmission, retainedDefinition, 2, 0);
+          const middleProducer = runHost.prepareRetainedInputProducer(nextEdge, () => ({
+            authority: coordinatorAuthority,
+            durableRecordWire: retainedCoordinatorRecords.get(siteControl.identity(middleDispatch)).wire,
+          }));
+          const nextCurrent = {...current,
+            authorized: (dispatchCid, wire) => dispatchCid === siteControl.identity(middleDispatch) &&
+              JSON.parse(wire).source_grant_cid === sourceGrantCid &&
+              JSON.parse(wire).destination_grant_cid === destinationGrantCid &&
+              JSON.parse(wire).route_capability_cid === routeCapabilityCid};
+          const nextIntent = runHost.prepareRetainedInputIntent(middleProducer, {
+            sourceGrantCid, destinationGrantCid, routeCapabilityCid,
+            transferAttempt: 'retained-input-2', transferMaxBytes: 1048576n,
+            transferExpiresUnixMs: BigInt(Date.parse(validUntil)),
+          });
+          const nextLimits = {maxChunks: limits.maxChunks,
+            maxManifestBytes: limits.maxManifestBytes,
+            maxReferencedBytes: limits.maxReferencedBytes};
+          const nextPlan = await within(gateway.retainedPlan({dispatch: middleDispatch,
+            intent: nextIntent, current: nextCurrent, limits: nextLimits}), 'middle retained plan');
+          if (retainedMiddleRecreation) {
+            assert.ok(site.lines.some(line => line.kind === 'holder-restored' &&
+              line.request_cid === siteControl.identity(middleDispatch)));
+            assert.equal((await entries()).length, 2, 'restoration cannot re-enter Source or middle Compute');
+          }
+          const nextResult = await within(gateway.retainedTransfer({dispatch: middleDispatch,
+            plan: nextPlan}), 'middle physical retained transfer');
+          const nextReply = await within(gateway.retainedCurrent({dispatch: middleDispatch,
+            plan: nextPlan, queryId: 'middle-receiver-current', limits: nextLimits}), 'middle current receiver');
+          const nextFacts = runHost.retainedInputCurrentReplyFacts(nextReply);
+          const nextReceipt = runHost.retainedInputResultFacts(nextResult).receipt;
+          assert.deepEqual(nextFacts.receipt, nextReceipt);
+          const nextInput = runHost.prepareRetainedTaskInput(middleProducer, nextReceipt,
+            'direct-destination', {...nextCurrent, readTransfer: () => nextFacts.transferRecordWire}, limits);
+          consumerBinding = runHost.retainedTaskInputFacts(nextInput).wire;
+          issued = runHost.issueRetainedTaskDispatch(retainedPrepared, retainedCompilation,
+            retainedAdmission, retainedDefinition, rootRequest, 2, {
+              taskAttempt: 1, dispatchId: 'retained-final', siteKey, siteGeneration: 1,
+              runtimeBundleCid: envelope.runtimeBundleCid, connectorRegistration: 'local',
+              connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+              obligationsCid: physicalCid('resident-obligations'), budgetCid: siteControl.budgetIdentity(budget),
+              evidenceIssuerCapabilityCid: issuerCapability, grantCid: operationCapability,
+            }, nextInput);
+          consumerDispatch = siteControl.admitJson(issued.wire, issued.cid);
+          await ensureOutputReceiver(consumerDispatch);
+          consumerEnvelope = coordinator.pollDispatchMaterialsJson(
+            coordinator.admitDispatchJson(issued.wire, issued.cid), consumerBinding, 1048576, materials);
+          assert.equal(prepareTaskStart(consumerDispatch, 2), true);
+          await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
+            dispatchEnvelope: consumerEnvelope}), 'final actual holder relay');
+          terminal = await settledQuery(consumerDispatch, 'retained final task');
+        }
+        assert.equal(siteControl.managedOutputSubjectProjection(terminal.subject)[4], expectedSchemaCid);
         const output = await planOutput(consumerDispatch, terminal, 'retained-consumer');
         await within(requestOutput(consumerDispatch, output), 'retained consumer Output');
         const received = [];
         resultCid = transferControl.identity(output.planned.transferRequest);
         await receiver.consume(resultCid, () => true,
           (_index, frame) => received.push(Buffer.from(frame)));
-        assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), retainedSourceRows);
-        assert.equal((await entries()).length, 2);
+        assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), expectedRows);
+        assert.equal((await entries()).length, taskCount);
         await waitFor(() => reportState().pending === 0, 'retained consumer durable Output ACK');
         assert.equal(reportState().pending, 0, 'real typed Output ACK must be durably admitted');
         assert.equal(inspectProgress().executionComplete, true);
         assert.equal(inspectProgress().publicationReady, true);
         assert.deepEqual(inspectProgress().tasks.map(task => task.nextWork),
-          ['none', 'publication']);
+          retainedChainMode ? ['none', 'none', 'publication'] : ['none', 'publication']);
         assert.equal(JSON.parse(inspectProgress().stateWire).status, 'running',
           'Native execution and ACK do not commit public Cloud publication');
         assert.equal(inspectProgress().cleanupComplete, false,
@@ -1188,9 +1289,10 @@ try {
         // create another start claim or reacquire Source.
         await within(gateway.dispatch({dispatch: consumerDispatch, inputBindingBody: consumerBinding,
           dispatchEnvelope: consumerEnvelope}), 'retained consumer duplicate');
-        assert.equal((await entries()).length, 2);
+        assert.equal((await entries()).length, taskCount);
       }
       await within(gateway.release({dispatch: consumerDispatch}), 'retained consumer release');
+      if (retainedChainMode) await within(gateway.release({dispatch: middleDispatch}), 'retained middle release');
       await within(gateway.release({dispatch: producerDispatch}), 'retained producer release');
       await waitFor(() => site.lines.some(line => line.kind === 'holder-released'), 'both task physical release');
       await waitFor(() => site.lines.some(line => line.kind === 'retained-holder-settled'),
@@ -1200,7 +1302,8 @@ try {
         'cleanup_responsibilities', 'held_bytes', 'reserved_retention_bytes',
         'reserved_execution_bytes']) assert.equal(capacity[name], '0', name);
       assert.deepEqual(await readdir(retainedRoot), [], 'receiver holding physically reclaimed');
-      for (const dispatch of [producerDispatch, consumerDispatch]) {
+      for (const dispatch of retainedChainMode ? [producerDispatch, middleDispatch, consumerDispatch]
+        : [producerDispatch, consumerDispatch]) {
         const released = await within(gateway.query({dispatch}), 'exact task released');
         assert.equal(released.state[2], 2);
       }
@@ -1209,17 +1312,17 @@ try {
       assert.equal(inspectProgress().cleanupComplete, true,
         'both exact task observations must confirm cleanup');
       assert.deepEqual(inspectProgress().tasks.map(task => task.cleanup),
-        ['released', 'released']);
+        Array(taskCount).fill('released'));
       if (retainedCancelBeforeConsumer) {
         assert.equal(JSON.parse(inspectProgress().stateWire).status, 'cancelled');
         assert.equal(inspectProgress().publicationReady, false);
       }
-      assert.equal((await entries()).length, retainedCancelBeforeConsumer ? 1 : 2);
+      assert.equal((await entries()).length, retainedCancelBeforeConsumer ? 1 : taskCount);
       if (resultCid !== undefined) {
         const reread = [];
         await receiver.consume(resultCid, () => true,
           (_index, frame) => reread.push(Buffer.from(frame)));
-        assert.deepEqual(JSON.parse(Buffer.concat(reread).toString('utf8')), retainedSourceRows);
+        assert.deepEqual(JSON.parse(Buffer.concat(reread).toString('utf8')), expectedRows);
       }
       site.child.kill('SIGTERM');
       await within(site.exited, 'retained consumer control shutdown');
@@ -1255,9 +1358,9 @@ try {
       } finally { database.close(); }
       console.log(JSON.stringify({kind: 'native-retained-consumer-verified',
         runDefinitionCid: definition.identity, producerDispatchCid: siteControl.identity(producerDispatch),
-        consumerDispatchCid: issued.cid, checkedTasks: 2, sourceAcquisitions: acquisitions.length,
-        producerEntries: 1, consumerEntries: retainedCancelBeforeConsumer ? 0 : 1,
-        rows: retainedCancelBeforeConsumer ? [] : retainedSourceRows,
+        consumerDispatchCid: issued.cid, checkedTasks: taskCount, sourceAcquisitions: acquisitions.length,
+        producerEntries: 1, consumerEntries: retainedCancelBeforeConsumer ? 0 : taskCount - 1,
+        rows: retainedCancelBeforeConsumer ? [] : expectedRows,
         typedOutputAck: !retainedCancelBeforeConsumer, formalRelease: true, reservedPayloadBytes: 0,
         pendingIntents: 0, siteCapacity: capacity,
         coordinatorReconstructed: retainedCoordinatorReconstruction,
@@ -1267,6 +1370,7 @@ try {
         publicationReady: inspectProgress().publicationReady,
         taskCleanup: inspectProgress().tasks.map(task => task.cleanup),
         producerHolderRecreated: retainedProducerHolderRecreation || retainedHandoffInterruption !== undefined,
+        middleHolderRecreated: retainedMiddleRecreation,
         retainedHandoffInterruption: retainedHandoffInterruption ?? null,
         committedReceiverAllocationsUnchanged: interruptedReceiver !== undefined,
         originalBorrowReturnedOnce: retainedHandoffInterruption === 'consumer-borrowed',
