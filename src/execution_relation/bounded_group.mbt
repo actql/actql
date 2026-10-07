@@ -134,6 +134,7 @@ fn bounded_group_supported_without_numeric(
 
 ///|
 priv enum BoundedGroupPhase {
+  PrepareCompletionPort
   ChargeInput
   Evaluate
   BuildOutput
@@ -157,7 +158,8 @@ priv struct BoundedGroupState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedGroupPhase
   mut evaluation : BoundedRowsEvaluation?
   pending : Array[(Array[Value], Int)]
@@ -230,6 +232,10 @@ fn bounded_group_failure(
 
 ///|
 fn cleanup_bounded_group_state(state : BoundedGroupState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.evaluation is Some(evaluation) {
     (evaluation.close)()
     state.evaluation = None
@@ -327,6 +333,31 @@ fn bounded_group_step(
       return bounded_group_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_group_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_group_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_group_failure(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ChargeInput
+          }
+        }
+        used += 1
+      }
       ChargeInput => {
         if state.charge_row == global_count_input_count(state.input) {
           state.phase = Evaluate
@@ -599,6 +630,9 @@ fn bounded_group_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_group_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_group_failure(InvalidExecution, progress, used)
         }
@@ -611,7 +645,7 @@ fn bounded_group_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => bounded_group_failure(Completion(issue), progress, used)
         }
@@ -737,14 +771,13 @@ fn start_bounded_group_with_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[global_count_trusted_input(input)],
+      Some([global_count_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -831,6 +864,7 @@ fn start_bounded_group_with_input(
         ) {
         Ok(value) => value
         Err(_) => {
+          cancel_trusted_output_preparation(port_preparation)
           cancel_admitted_output(output) |> ignore
           return Err(InvalidExecution)
         }
@@ -861,8 +895,9 @@ fn start_bounded_group_with_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ChargeInput,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     evaluation: Some(evaluation),
     pending,
     finished: false,

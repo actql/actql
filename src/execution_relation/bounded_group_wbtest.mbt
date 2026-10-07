@@ -46,6 +46,7 @@ fn bounded_relation_start(
   fragment : Bool,
   max_work? : Int = 1000,
   max_entries? : Int = 1000,
+  name_bytes? : Int = 10000,
   constrain? : (GeneratedSequence) -> GeneratedSequence = generated => generated,
 ) -> (
   @bounded.Control,
@@ -132,7 +133,7 @@ fn bounded_relation_start(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   )
   (control, execution, source)
 }

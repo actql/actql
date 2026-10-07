@@ -101,6 +101,7 @@ fn global_count_trusted_input(
 
 ///|
 priv enum BoundedGlobalCountPhase {
+  PrepareCompletionPort
   ResolveInput
   ResolveKeys
   ResolveAggregates
@@ -131,7 +132,8 @@ priv struct BoundedGlobalCountState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedGlobalCountPhase
   ordinals : Map[String, Int]
   mut input_names : Array[String]
@@ -231,6 +233,10 @@ fn global_count_failure(
 
 ///|
 fn cleanup_bounded_global_count_state(state : BoundedGlobalCountState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.sort_execution is Some(execution) {
     if !bounded_index_sort_stopped(execution) {
       @bounded.request_cancel(state.engine) |> ignore
@@ -302,6 +308,31 @@ fn bounded_global_count_step(
       return global_count_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return global_count_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return global_count_failure(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ResolveInput
+          }
+        }
+        used += 1
+      }
       ResolveInput => {
         if state.field == width {
           state.field = 0
@@ -861,6 +892,9 @@ fn bounded_global_count_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return global_count_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return global_count_failure(InvalidExecution, progress, used)
         }
@@ -873,7 +907,7 @@ fn bounded_global_count_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => global_count_failure(Completion(issue), progress, used)
         }
@@ -937,14 +971,13 @@ fn start_bounded_global_count_with_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[global_count_trusted_input(input)],
+      Some([global_count_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -968,8 +1001,9 @@ fn start_bounded_global_count_with_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ResolveInput,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     ordinals: Map([]),
     input_names: [],
     key_names: Map([]),

@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedRowWindowPhase {
+  PrepareCompletionPort
   ResolveInputField
   ResolveOutputField
   ChargeInput
@@ -93,7 +94,8 @@ priv struct BoundedRowWindowState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedRowWindowPhase
   mut input_names : Array[String]
   mut output_columns : Array[Int]
@@ -175,6 +177,10 @@ fn bounded_row_window_failure(
 
 ///|
 fn cleanup_bounded_row_window_state(state : BoundedRowWindowState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -225,6 +231,31 @@ fn bounded_row_window_step(
       return bounded_row_window_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_row_window_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_row_window_failure(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_row_window_failure(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ResolveInputField
+          }
+        }
+        used += 1
+      }
       ResolveInputField => {
         if state.field == width {
           if state.time_column < 0 ||
@@ -571,6 +602,9 @@ fn bounded_row_window_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_row_window_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_row_window_failure(InvalidExecution, progress, used)
         }
@@ -587,7 +621,7 @@ fn bounded_row_window_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) =>
             bounded_row_window_failure(Completion(issue), progress, used)
@@ -664,14 +698,13 @@ fn start_bounded_row_window_with_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[bounded_window_trusted_input(input)],
+      Some([bounded_window_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -695,8 +728,9 @@ fn start_bounded_row_window_with_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ResolveInputField,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     input_names: [],
     output_columns: [],
     input_ordinals: Map([]),

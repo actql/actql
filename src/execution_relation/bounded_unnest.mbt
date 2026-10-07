@@ -68,6 +68,7 @@ fn unnest_bounded_trusted_input(
 
 ///|
 priv enum BoundedUnnestPhase {
+  PrepareCompletionPort
   ResolveInput
   ResolveOutput
   ChargeInput
@@ -95,7 +96,8 @@ priv struct BoundedUnnestState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedUnnestPhase
   mut names : Array[String]
   ordinals : Map[String, Int]
@@ -169,6 +171,10 @@ fn fail_bounded_unnest(
 
 ///|
 fn cleanup_bounded_unnest_state(state : BoundedUnnestState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -215,6 +221,31 @@ fn bounded_unnest_step(
       return fail_bounded_unnest(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return fail_bounded_unnest(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return fail_bounded_unnest(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return fail_bounded_unnest(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ResolveInput
+          }
+        }
+        used += 1
+      }
       ResolveInput => {
         if state.field == width {
           if state.source_column < 0 {
@@ -508,6 +539,9 @@ fn bounded_unnest_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return fail_bounded_unnest(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return fail_bounded_unnest(InvalidExecution, progress, used)
         }
@@ -520,7 +554,7 @@ fn bounded_unnest_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => fail_bounded_unnest(Completion(issue), progress, used)
         }
@@ -593,14 +627,13 @@ fn start_bounded_unnest_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[unnest_bounded_trusted_input(input)],
+      Some([unnest_bounded_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -628,8 +661,9 @@ fn start_bounded_unnest_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ResolveInput,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     names: [],
     ordinals: Map([]),
     output_columns: [],

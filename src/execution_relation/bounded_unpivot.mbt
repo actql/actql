@@ -66,6 +66,7 @@ fn unpivot_trusted_input(input : BoundedUnpivotInput) -> TrustedOutputInput {
 
 ///|
 priv enum BoundedUnpivotPhase {
+  PrepareCompletionPort
   ResolveInputField
   ResolveColumn
   ResolveKeep
@@ -93,7 +94,8 @@ priv struct BoundedUnpivotState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedUnpivotPhase
   mut names : Array[String]
   ordinals : Map[String, Int]
@@ -166,6 +168,10 @@ fn fail_bounded_unpivot(
 
 ///|
 fn cleanup_bounded_unpivot_state(state : BoundedUnpivotState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.output_recheck = None
@@ -217,6 +223,31 @@ fn bounded_unpivot_step(
       return fail_bounded_unpivot(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return fail_bounded_unpivot(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return fail_bounded_unpivot(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val { rows.val } else { None }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return fail_bounded_unpivot(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ResolveInputField
+          }
+        }
+        used += 1
+      }
       ResolveInputField => {
         if state.field == width {
           state.field = 0
@@ -511,6 +542,9 @@ fn bounded_unpivot_step(
         used += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return fail_bounded_unpivot(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return fail_bounded_unpivot(InvalidExecution, progress, used)
         }
@@ -523,7 +557,7 @@ fn bounded_unpivot_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => fail_bounded_unpivot(Completion(issue), progress, used)
         }
@@ -599,14 +633,13 @@ fn start_bounded_unpivot_input(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port_with_inputs(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[unpivot_trusted_input(input)],
+      Some([unpivot_trusted_input(input)]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -632,8 +665,9 @@ fn start_bounded_unpivot_input(
     rows,
     live,
     accepted,
-    port,
-    phase: ResolveInputField,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     names: [],
     ordinals: Map([]),
     columns: [],
