@@ -78,7 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
-  PipeAggregate(Array[NamePart?])
+  PipeAggregate(Array[NamePart?], Array[NamePart])
 } derive(Eq)
 
 ///|
@@ -416,7 +416,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
           copy_projections(projections),
           match scope {
             SqlSelect => SqlSelect
-            PipeAggregate(names) => PipeAggregate(names.copy())
+            PipeAggregate(names, embedded) =>
+              PipeAggregate(names.copy(), embedded.copy())
           },
         ),
       )
@@ -500,6 +501,15 @@ priv struct QueryParser {
   mut source_depth : Int
   mut synthetic_sources : Int
   cte_scopes : Array[Array[(NamePart, NamePart)]]
+}
+
+///|
+priv struct PipeAggregateOrder {
+  position : Int
+  direction : String
+  nulls : String
+  start : Int
+  end : Int
 }
 
 ///|
@@ -993,11 +1003,13 @@ fn QueryParser::optional_output_alias(
 fn QueryParser::projections(
   self : QueryParser,
   aggregate_expressions? : Bool = false,
+  ordering? : Array[PipeAggregateOrder]? = None,
 ) -> (Array[Projection], Array[(NamePart, AggregateCall)]) raise QueryAbort {
   let values : Array[Projection] = []
   let embedded : Array[(NamePart, AggregateCall)] = []
   while true {
     self.node()
+    let start = self.peek().start
     let receiver = self.range_star_receiver()
     let projection = if self.peek().value == Symbol(42) {
       ignore(self.advance())
@@ -1058,6 +1070,16 @@ fn QueryParser::projections(
       self.value_projection(embedded, aggregate_expressions~)
     }
     values.push(projection)
+    if ordering is Some(terms) && (self.has("ASC") || self.has("DESC")) {
+      let (direction, nulls) = self.order_suffix()
+      terms.push({
+        position: values.length(),
+        direction,
+        nulls,
+        start,
+        end: token_at(self.source, self.index - 1).unwrap().end,
+      })
+    }
     if self.peek().value != Symbol(44) {
       break
     }
@@ -1317,8 +1339,14 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
 fn QueryParser::group_keys(
   self : QueryParser,
   names? : Array[NamePart?]? = None,
+  ordering? : Array[PipeAggregateOrder]? = None,
 ) -> Array[Expression] raise QueryAbort {
   self.keyword("GROUP")
+  let order_all = ordering is Some(_) && self.has("AND")
+  if order_all {
+    self.keyword("AND")
+    self.keyword("ORDER")
+  }
   self.keyword("BY")
   if self.peek().value == Symbol(40) &&
     self.source.tokens.get(self.index + 1).map(token => token.value) ==
@@ -1330,9 +1358,21 @@ fn QueryParser::group_keys(
   let keys : Array[Expression] = []
   while true {
     self.node()
+    let start = self.peek().start
     keys.push(self.expression())
     if names is Some(names) {
       names.push(self.optional_output_alias())
+    }
+    if ordering is Some(terms) &&
+      (order_all || self.has("ASC") || self.has("DESC") || self.has("NULLS")) {
+      let (direction, nulls) = self.order_suffix()
+      terms.push({
+        position: keys.length(),
+        direction,
+        nulls,
+        start,
+        end: token_at(self.source, self.index - 1).unwrap().end,
+      })
     }
     if self.peek().value != Symbol(44) {
       break
@@ -1340,6 +1380,68 @@ fn QueryParser::group_keys(
     ignore(self.advance())
   }
   keys
+}
+
+///|
+fn QueryParser::order_suffix(
+  self : QueryParser,
+) -> (String, String) raise QueryAbort {
+  let direction = if self.has("DESC") {
+    self.keyword("DESC")
+    "desc"
+  } else if self.has("ASC") {
+    self.keyword("ASC")
+    "asc"
+  } else {
+    "asc"
+  }
+  let nulls = if self.has("NULLS") {
+    self.keyword("NULLS")
+    if self.has("FIRST") {
+      self.keyword("FIRST")
+      "first"
+    } else {
+      self.keyword("LAST")
+      "last"
+    }
+  } else if direction == "asc" {
+    "first"
+  } else {
+    "last"
+  }
+  (direction, nulls)
+}
+
+///|
+// Shorthand sorts use the evaluated AGGREGATE output positions. They never
+// expand an input expression after its grouping alias has replaced that name.
+fn QueryParser::aggregate_order_term(
+  self : QueryParser,
+  item : PipeAggregateOrder,
+  offset : Int,
+) -> SortTerm raise QueryAbort {
+  self.node()
+  self.spend(1)
+  if self.expression_nodes >= self.limits.expression.max_nodes {
+    raise QueryAbort("Expression node limit", item.start)
+  }
+  self.expression_nodes += 1
+  {
+    expression: {
+      source: self.source,
+      nodes: [
+        {
+          kind: Number((item.position + offset).to_string()),
+          start: item.start,
+          end: item.end,
+        },
+      ],
+      root: 0,
+      work: 1,
+    },
+    direction: item.direction,
+    nulls: item.nulls,
+  }
 }
 
 ///|
@@ -1360,29 +1462,7 @@ fn QueryParser::order(
       }
       None => self.expression()
     }
-    let direction = if self.has("DESC") {
-      self.keyword("DESC")
-      "desc"
-    } else if self.has("ASC") {
-      self.keyword("ASC")
-      "asc"
-    } else {
-      "asc"
-    }
-    let nulls = if self.has("NULLS") {
-      self.keyword("NULLS")
-      if self.has("FIRST") {
-        self.keyword("FIRST")
-        "first"
-      } else {
-        self.keyword("LAST")
-        "last"
-      }
-    } else if direction == "asc" {
-      "first"
-    } else {
-      "last"
-    }
+    let (direction, nulls) = self.order_suffix()
     terms.push({ expression, direction, nulls, })
     if self.peek().value != Symbol(44) {
       break
@@ -2143,22 +2223,68 @@ fn QueryParser::pipe_tail(
       operations.push(Alias(self.name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
-      let aggregates = if self.has("GROUP") {
-        []
+      let aggregate_order : Array[PipeAggregateOrder] = []
+      let (aggregates, embedded) = if self.has("GROUP") {
+        ([], [])
       } else {
-        let (values, _) = self.projections()
-        values
+        self.projections(
+          aggregate_expressions=true,
+          ordering=Some(aggregate_order),
+        )
       }
-      if aggregates.any(projection => projection.aggregate is None) {
-        raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
+      if aggregates.any(projection => {
+          if projection.name is None ||
+            projection.analytic is Some(_) ||
+            projection.star is Some(_) {
+            return true
+          }
+          if projection.aggregate is Some(_) {
+            return false
+          }
+          guard projection.expression is Some(expression) else { return true }
+          !expression.nodes.any(node => {
+            node.kind is Reference(path) &&
+            embedded.any(pair => path == [pair.0])
+          })
+        }) {
+        raise QueryAbort(
+          "AGGREGATE requires named expressions containing aggregate calls",
+          self.peek().start,
+        )
       }
       let names : Array[NamePart?] = []
+      let group_order : Array[PipeAggregateOrder] = []
       let keys = if self.has("GROUP") {
-        self.group_keys(names=Some(names))
+        self.group_keys(names=Some(names), ordering=Some(group_order))
       } else {
         []
       }
-      operations.push(Group(keys, aggregates, PipeAggregate(names)))
+      let calls = embedded.map(pair => {
+        expression: None,
+        aggregate: Some(pair.1),
+        analytic: None,
+        name: Some(pair.0),
+        star: None,
+        except_columns: [],
+        replacements: [],
+      })
+      operations.push(
+        Group(
+          keys,
+          aggregates + calls,
+          PipeAggregate(names, embedded.map(pair => pair.0)),
+        ),
+      )
+      if !group_order.is_empty() || !aggregate_order.is_empty() {
+        let terms : Array[SortTerm] = []
+        for item in group_order {
+          terms.push(self.aggregate_order_term(item, 0))
+        }
+        for item in aggregate_order {
+          terms.push(self.aggregate_order_term(item, keys.length()))
+        }
+        operations.push(Order(terms))
+      }
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")

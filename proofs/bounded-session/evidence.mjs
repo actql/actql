@@ -9,6 +9,19 @@ export const premises = [
   'cleanup callback true means complete reclamation',
 ];
 export const guarantees = ['delta accounting', 'terminal seals advance', 'cleanup retry without compute'];
+// These existing authored obligations are independent of caller-supplied claims.
+// Additional local obligations are allowed; omission and substring matches are not.
+export const setResidual = Object.freeze([
+  'set comparison, NULL equality, order and duplicate multiplicity',
+  'kernel initialization and every internal phase charge work correctly',
+  'set-specific scratch reclamation and two-input ownership',
+  'two-consumer custody, driver and physical backend acceptance',
+]);
+export function includesObligations(actual, required) {
+  return Array.isArray(actual) && actual.every(item => typeof item === 'string' && item.trim().length > 0) &&
+    new Set(actual).size === actual.length && required.every(item => actual.includes(item));
+}
+
 // Reviewed coverage of the actual fixture, independent of requested bindings.
 // Expanding this table requires reviewing/changing that fixture, not relabeling
 // a derived claim. Digests pin that review's code; they do not prove its scope.
@@ -120,13 +133,13 @@ export function validate(nodes, report, current, expectedTarget) {
     }
     if (node.kind === 'derived') {
       if (!reviewedScopes.some(scope => scopeMatches(node.scope, scope, scopeKeys))) throw new Error('Scope is outside independently executed connection coverage');
-      for (const premise of premises) if (!node.premises.includes(premise)) throw new Error(`Missing premise: ${premise}`);
+      for (const premise of premises) if (!includesObligations(node.premises, [premise])) throw new Error(`Missing premise: ${premise}`);
       for (const dependency of ['session', 'adapter', `${node.id}:connection`]) {
         if (!node.dependencies.includes(dependency)) throw new Error(`Missing dependency: ${dependency}`);
       }
       if (JSON.stringify(node.guarantees) !== JSON.stringify(guarantees)) throw new Error('Unsupported guarantee');
-      if (!node.residual?.length) throw new Error('Kernel and environment obligations must remain explicit');
-      if (node.scope.operation === 'nest' && !nestResidual.every(p => node.residual.includes(p))) throw new Error('Missing Nest-specific residual obligation');
+      if (!includesObligations(node.residual, node.scope.operation === 'nest' ? nestResidual : setResidual))
+        throw new Error(`Missing ${node.scope.operation === 'nest' ? 'Nest' : 'Set'}-specific residual obligation`);
       if (node.scope.operation === 'nest') for (const suite of nestLocalSuites) {
         const result = report.runs[`${suite.id}-${expectedTarget}`];
         const command = ['moon', 'test', suite.fixture, '--target', expectedTarget, '--deny-warn',
@@ -234,12 +247,14 @@ export function checkBindings(root, bindings) {
     if (!provider.includes('bounded_session_execution(') || !provider.includes(`@execution.${binding.kernel}(`)) {
       throw new Error(`Missing reviewed adapter/kernel connection: ${binding.operation}`);
     }
-    if (!premises.every(p => binding.premises.includes(p))) {
+    if (!includesObligations(binding.premises, premises)) {
       throw new Error('Invalid variant or missing premise');
     }
     if (binding.operation === 'nest') {
       checkNestObligations(root);
-      if (!nestResidual.every(p => binding.residual.includes(p))) throw new Error('Missing Nest-specific residual obligation');
+      if (!includesObligations(binding.residual, nestResidual)) throw new Error('Missing Nest-specific residual obligation');
+    } else if (!includesObligations(binding.residual, setResidual)) {
+      throw new Error('Missing Set-specific residual obligation');
     }
   }
 }
