@@ -1080,6 +1080,25 @@ for (const [entrance, open] of Object.entries(entrances)) {
         unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
+  test(`${entrance}: original submission retains a disclosed analysis budget without input blame`, async t => {
+    const client = await open(t, configurations.allowed);
+    const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
+    const original = await client.newSubmission();
+    let error;
+    try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
+    catch (cause) { error = cause; }
+    const outcome = sdk.getSubmissionOutcome(error);
+    assert.equal(outcome?.kind, 'not_accepted');
+    assert.deepEqual(outcome.problem, {code: 'ClientProgramAnalysisLimit',
+      classification: 'implementation_limit'}, '[check-mutation:submission-budget-public]');
+    const explanation = sdk.explainSubmission(error);
+    assert.equal(explanation.observation, 'not_accepted');
+    assert.equal(explanation.preparationIssue?.kind, 'analysis_budget_exhausted');
+    assert.deepEqual(explanation.next.submissionRef, original);
+    assert.deepEqual(await client.lookupSubmission(original), outcome);
+    client.assertNoExecution();
+  });
+
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
     'one and withholds nothing else', async t => {
     const seen = {};
