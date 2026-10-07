@@ -136,12 +136,17 @@ export async function openReadOpeningFixture(directory, loss,
 }
 
 export async function connectOpeningHost(fixture, entrance, tlsDirectory,
-  {loseReadTerminator = false} = {}) {
+  {loseReadTerminator = false, deliveryLookupReply} = {}) {
   let armed = loseReadTerminator, terminatorLosses = 0;
   if (entrance === 'local') {
     const host = createNodeInProcessClientHost(fixture.services);
     const port = {async perform(operation, ...args) {
       const response = await host.perform(operation, ...args);
+      if (operation === 'delivery-attempt' && deliveryLookupReply) {
+        const replacement = deliveryLookupReply(response);
+        if (replacement === undefined) throw new Error('InjectedDeliveryLookupLoss');
+        return replacement;
+      }
       if (operation !== 'read' || !armed) return response;
       armed = false;
       return {kind: 'rows', frames: {async *[Symbol.asyncIterator]() {
@@ -165,6 +170,15 @@ export async function connectOpeningHost(fixture, entrance, tlsDirectory,
     negotiate: () => ({...negotiate(), mode: 'remote', owner: 'remote'})});
   const pending = new Set();
   const server = createServer({key, cert}, (request, response) => {
+    if (request.url.endsWith('/delivery-attempt') && deliveryLookupReply) {
+      const end = response.end.bind(response);
+      response.end = (bytes, ...args) => {
+        // Fault injection occurs after the real authorized Owner lookup.
+        const replacement = deliveryLookupReply(JSON.parse(bytes));
+        if (replacement === undefined) {response.destroy(); return response;}
+        return end(typeof replacement === 'string' ? replacement : JSON.stringify(replacement), ...args);
+      };
+    }
     if (request.url.endsWith('/read')) {
       fixture.loseReply(() => response.destroy());
       if (armed) {

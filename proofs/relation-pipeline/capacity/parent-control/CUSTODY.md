@@ -32,6 +32,16 @@ remaining scratch once. Ledger tests cover the historical early credit and
 unused-retention retention, invalid owner/holding/range and duplicate calls.
 There is no new owner, ledger or allocation-byte formula.
 
+The Local driver's bridge/import/read/CID/issuer scratch roots now retire through
+a private 64-step cursor after the same stop/cleanup and callback gates. Its
+installed witness checks cursor completion, without initiating cleanup or
+rescanning all roots. Exact source guards also bind the slice and late input
+write rejection. The common reservation retirement boundary is unchanged.
+See the [dispatch retirement record](../../../../docs/reviews/2026-10-07-local-dispatch-scratch-retirement.md)
+for the fixed-SHA JS/public evidence and remaining collection/Native boundaries.
+Prior Native execution evidence stays tied to its original source and is not
+relabeled as execution of this cursor.
+
 ## Actual execution boundary
 
 The typed corpus supplies the numeric/NULL `distinct/filter` operation pair and
