@@ -56,27 +56,7 @@ try {
   for(const p of temporary)if(existsSync(join(root,p))){assert.equal(read(p).toString(),overlays[p],'Owned overlay changed');unlinkSync(join(root,p));}
   assert.deepEqual(snapshot(root),source,'Byte-for-byte restoration failed');
 }
-const log=read(logPath), digest=hash(log);
-const archivedLog=`${directory}/logs/${digest}.log`;mkdirSync(join(root,directory,'logs'),{recursive:true});
-if(!existsSync(join(root,archivedLog)))writeFileSync(join(root,archivedLog),log,{flag:'wx'});
-const report={version:'actql-current-chain-native-diagnostic/0.1',target:'native',revision,source,runtime,toolchain,
-  authority:'local-physical-finite-correspondence',reuseAuthorized:false,unconditionalAllocationBytes:false,
-  command:['moon','test','--target','native',currentFixture,'--deny-warn'],exit:runExit,boundary,buildIdentity,
-  model:{...model,receiptPath:modelReceiptPath},retainedCore:encodeCoreBound(retainedParentCoreBound(2)),
-  logPath:archivedLog,logDigest:digest,
-  overlayDigests:Object.fromEntries(Object.entries(overlays).map(([p,t])=>[p,hash(t)])),
-  executedSource,artifacts:executedArtifacts,archives,records,restored:true};
-const original=`${directory}/originals/${hash(JSON.stringify(report))}.json`;
-mkdirSync(join(root,directory,'originals'),{recursive:true});
-if(!existsSync(join(root,original)))writeFileSync(join(root,original),JSON.stringify(report,null,2)+'\n',{flag:'wx'});
-const {auditCurrentChain}=await import('./current-audit.mjs');
-report.providerConstruction=auditCurrentChain(report,source,read).providerConstruction;
-const {auditParentStartup}=await import('./audit.mjs');
-const accepted=auditParentStartup(report,source,read);
-const {rejectParentSubstitutions}=await import('./regression.mjs');
-console.log(rejectParentSubstitutions(report,source,read));
-mkdirSync(join(root,'.artifacts/relation-pipeline/capacity/parent-control-probe'),{recursive:true});
-const acceptedOriginal=`${directory}/originals/${hash(JSON.stringify(report))}.json`;
-if(!existsSync(join(root,acceptedOriginal)))writeFileSync(join(root,acceptedOriginal),JSON.stringify(report,null,2)+'\n',{flag:'wx'});
-writeFileSync(join(root,'.artifacts/relation-pipeline/capacity/parent-control-probe/all.json'),JSON.stringify(report,null,2)+'\n');
-console.log(JSON.stringify({original,accepted}));
+const {sealCurrentExecution}=await import('./current-seal.mjs');
+sealCurrentExecution({root,revision,source,runtime,toolchain,boundary,buildIdentity,
+  model:{...model,receiptPath:modelReceiptPath},logPath,runExit,overlays,
+  executedSource,executedArtifacts,archives,records},read);
