@@ -77,7 +77,47 @@ refusals, including an independent JSON control, nullable keys/receivers,
 duplicates, alias collisions, WHERE/HAVING/ORDER/LIMIT, JOIN, CTE, empty input
 and repeated keys. The existing runner selects this same corpus with
 `--sql-grouped-subexpression-only` without changing Programs or expectations.
-Fresh clean-SHA five-package Local/HTTPS execution will be recorded in the PR
-after it actually completes. It is not established by the parser/checker tests.
+Fresh clean-SHA five-package Local/HTTPS execution passed as recorded below. It is not established by the parser/checker tests.
 Full Core, Wasm/native, full packed/proof/performance and required CI remain
 unverified; no manual CI rerun is requested.
+
+## Fresh packed evidence
+
+Normal producer and the selected public consumer completed in `run-UEPJhp`,
+exit 0, complete=true, locksReleased=true, at clean source
+`fb75335a8fedb61dd94447f04796a1ab3a0eaa9a`.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-sql-grouped-fb75335a8-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-sql-grouped-fb75335a8-pack node scripts/test-packed-public-query.mjs --sql-grouped-subexpression-only
+```
+
+Embedded Local and HTTPS each pass nine normal cases and four preparation
+refusals. Named rows, full Result.describe contracts, column order, NULLs,
+multiplicity, sorting, stream completion and private-column absence are checked.
+Existing owned-request resend/attach/reread and refusal Run-admission/provider-I/O
+counts remain checked. No source/Program transformation occurs in the tests.
+README Local/HTTPS startup succeeds; omitting the current generated wire asset
+fails with ERR_MODULE_NOT_FOUND, without legacy rescue.
+
+External evidence is `worktrees/.codex-scratch/public-query-evidence-hkJ6sK/summary.json`
+and `010.stdout.log`: source SHA exactly fb75335a8, dirty=false, all ten commands
+exit 0 with complete output, complete=true, no evidence errors. The successful
+private install and Stores were automatically removed; logs and receipts remain.
+Manifest: `/private/tmp/actql-b-sql-grouped-fb75335a8-pack/packed-client-packages.json`.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | 2b338fd190176568aaa56695e89a14b8a2faa4cb0efc2acdbd8cf035f6a6653f |
+| sdk | 5ce098629cca48ea851bdfdd01d71e2b19076535699902a691143b0f2b698869 |
+| run-host-core | f0226a602d55ec4ddef34da8ccf22f4ed383b196859026ba2efdb608b96d90a3 |
+| local-node | c84f67b9ccbfc6e08f42e118bb8dfbb24d166e80b53dc07198cba99462b6dad2 |
+| node | b8732a1abfd7be7954ef172b65390747114517e6884ebe8e74b20070104ba18b |
+
+Parent #906 is now merged. Parent #910's current
+`78f3db8cb18a9c42e3f8c729214fb93c4b31a1aa` normally merges that main.
+Aligning this branch with it creates `df0ce20eff73acde6df1010cde9d790de19d6765`;
+its diff from packed fb75335a8 is empty for packages/src/adapters/spec/scripts
+and normative query rules. This subsequent review-record update changes only
+this document. The packed manifest is not relabeled as a later commit.
+Required current-HEAD CI and non-JS/full campaigns remain unverified.
