@@ -279,11 +279,16 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const body = JSON.parse(await readFile(join(root, captureRows
       ? 'adapters/host-node/fixtures/query-amount-environment.json'
       : 'packages/sdk/fixtures/values.environment.json'), 'utf8'));
-    if (route.family === 'graph') {
-      Object.assign(body.host_policy_profile.capacity, {
+    if (route.family === 'graph' || route.observeSchemaPreparation) {
+      if (route.family === 'graph') Object.assign(body.host_policy_profile.capacity, {
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, max_graph_construction_edges: 1000,
       });
+      // Two independently authored 65-field object cells fit this explicit
+      // fixture policy. This is not an exact nested-byte boundary test.
+      if (route.observeSchemaPreparation) {
+        body.host_policy_profile.capacity.max_nested_value_bytes = 4096;
+      }
       delete body.evidence_bundle_cid;
       body.evidence_bundle_cid = 'sha256:' + createHash('sha256')
         .update(canonicalText(body)).digest('hex');
