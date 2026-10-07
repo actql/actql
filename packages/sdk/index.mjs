@@ -86,6 +86,7 @@ const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
 const requestLookupExplanations = new WeakMap();
+const requestCancellationExplanations = new WeakMap();
 // Validated observations keep only a weak, immutable presentation snapshot.
 // This is not an Effect ledger or a certificate joining Owner revisions.
 const effectUncertainties = new WeakMap();
@@ -262,6 +263,10 @@ export function explainRequestLookup(result, options) {
   return localizeOperation(requestLookupExplanations.get(result), 'request', options);
 }
 
+export function explainRequestCancellation(result, options) {
+  return localizeOperation(requestCancellationExplanations.get(result), 'requestCancellation', options);
+}
+
 export function explainEffectUncertainty(state, options) {
   return localizeOperation(effectUncertainties.get(state), 'effect', options);
 }
@@ -361,6 +366,38 @@ const retainRequestLookupFailure = (error, context, observation) => {
   }));
   return retained;
 };
+
+const requestCancellationCause = cause => {
+  // Preserve only already public Client metadata, not borrowed source or
+  // credential messages, nested causes, locators or cleanup handles.
+  const code = cause instanceof ClientError ? cause.code : 'ClientTransportUnknown';
+  const status = cause instanceof ClientError ? cause.status : undefined;
+  return new ClientError(code,
+    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+};
+const requestCancellationHint = 'Keep the original request reference and inspect the current request or named Run under current authorization. This observation grants no permission to resubmit, release resources or repeat an external Effect.';
+const retainRequestCancellationExplanation = (result, context, observation, problem) => {
+  const summaries = {
+    accepted: 'The Host recorded cancellation of this request. This response does not establish physical stop or resource release.',
+    already_requested: 'The Host reports a previously recorded cancellation of this request. This response does not establish physical stop or resource release.',
+    already_terminal: 'The Host reports that this request is already terminal. This response does not establish its execution outcome, physical stop or resource release.',
+    outcome_unknown: 'No usable observation of this request cancellation was returned. Durable recording, physical stop and resource release are not established by this observation.',
+  };
+  requestCancellationExplanations.set(result, freezeInput({observation,
+    requestId: context.requestId, ...(problem === undefined ? {} : {problem}),
+    summary: summaries[observation], hint: requestCancellationHint,
+    ...(problem === undefined && result.ref !== undefined ? {revision: result.revision} : {}),
+    next: problem === undefined && result.ref !== undefined
+      ? {operation: 'status', ref: {...result.ref}}
+      : {operation: 'lookupRequest', requestId: context.requestId,
+        lookupContext: context.lookupContext},
+  }));
+  return result;
+};
+const uninterpretableRequestCancellation = context => retainRequestCancellationExplanation(
+  new ClientError('CancellationUnknown', {requestId: context.requestId,
+    cause: new ClientError('InvalidHostRequestCancellation')}),
+  context, 'outcome_unknown', 'response_uninterpretable');
 
 const structuredNodeExists = (value, pointer) => {
   if (typeof pointer !== 'string' || pointer.length > 4096 ||
@@ -1607,23 +1644,39 @@ async function connectSelected(selected, port) {
     // withdraws a cancellation the Host already recorded.
     cancelRequest: async (requestId, {signal} = {}) => {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
+      const context = freezeInput({requestId,
+        lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
       let answer;
       try {
-        const response = await exchange('cancel-request', {requestId},
-          signal);
+        const response = await exchange('cancel-request', {requestId}, signal);
         answer = await controlValue(response);
       } catch (cause) {
-        if (cause instanceof ClientError &&
-            cause.code !== 'ClientTransportUnknown' &&
-            !(cause.status >= 500)) throw cause;
-        throw new ClientError('CancellationUnknown', {requestId, cause});
+        // Preserve the existing Client error contract in a per-call wrapper.
+        // Code/status select no Owner outcome or explanation permission.
+        const error = cause instanceof ClientError &&
+            cause.code !== 'ClientTransportUnknown' && !(cause.status >= 500)
+          ? new ClientError(cause.code, {
+            ...(cause.status === undefined ? {} : {status: cause.status}),
+            ...(cause.cause === undefined ? {} : {cause: requestCancellationCause(cause.cause)}),
+          }) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});
+        throw retainRequestCancellationExplanation(error, context,
+          'outcome_unknown', 'exchange_failed');
       }
       if (!validRequestCancellation(answer, requestId)) {
-        throw new ClientError('CancellationUnknown', {requestId,
-          cause: new ClientError('InvalidHostRequestCancellation')});
+        throw uninterpretableRequestCancellation(context);
       }
-      return Object.freeze({...answer, ...(answer.ref === undefined ? {} :
-        {ref: Object.freeze({...answer.ref})})});
+      const original = {kind: answer.kind, revision: answer.revision,
+        ref: answer.ref === undefined ? undefined : {...answer.ref}};
+      try {
+        answer = structuredClone(answer);
+        if (!validRequestCancellation(answer, requestId) ||
+            answer.kind !== original.kind || answer.revision !== original.revision ||
+            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>
+              answer.ref?.[field] !== original.ref?.[field])) {
+          throw new ClientError('InvalidHostRequestCancellation');
+        }
+      } catch { throw uninterpretableRequestCancellation(context); }
+      return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);
     },
     // Resources an installed connection shows to this caller, from the
     // Host's current Catalog observation. A listing is display material:
@@ -1809,6 +1862,9 @@ export function formatSubmission(result, options) {
 }
 export function formatRequestLookup(result, options) {
   return formatOperationExplanation(explainRequestLookup(result), 'request', options);
+}
+export function formatRequestCancellation(result, options) {
+  return formatOperationExplanation(explainRequestCancellation(result), 'requestCancellation', options);
 }
 export function formatCancellation(result, options) {
   return formatOperationExplanation(explainCancellation(result), 'cancellation', options);
