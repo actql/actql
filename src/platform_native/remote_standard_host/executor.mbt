@@ -784,7 +784,11 @@ fn execute_native_remote_standard_task(
           return remote_standard_failure(bound, "missing-standard-task")
         Err(_) => return remote_standard_failure(bound, "standard-task-failed")
       }
-      if completion.task != expected_task {
+      if @native_host.native_standard_strategy_original_task(
+          run,
+          completion.task,
+        ) !=
+        Some(expected_task) {
         return remote_standard_failure(bound, "foreign-standard-task")
       }
       if !bound.finish_input() {

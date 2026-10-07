@@ -31,3 +31,33 @@ test "retained projection preserves original consumer producer and control coord
   assert_true(@strategy.prepare_retained_task_projection(graph, 0) is Err(_))
   assert_true(@strategy.prepare_retained_task_projection(graph, 3) is Err(_))
 }
+
+///|
+test "resident source admits a checked three-stage single-input chain" {
+  let (admission, request, body, binding, _) = resident_source_dispatch_fixture(
+    document=retained_chain_document,
+  )
+  let materials = admit_materials(
+    admission, request, body, binding, "2026-10-06T00:00:00.000Z",
+  ).unwrap()
+  assert_true(
+    resident_source_dispatch_role(materials, request)
+    is Ok(InternalSourceProducer),
+  )
+}
+
+///|
+test "resident linear profile refuses legal fanout without changing common graph admission" {
+  let document = retained_chain_document
+    .replace(
+      old="\"stage\":\"middle\",\"result\":\"r\"",
+      new="\"stage\":\"acquire\",\"result\":\"r\"",
+    )
+    .replace(old="\"n * 2\"", new="\"id * 2\"")
+  let (_, _, _, _, prepared) = resident_source_dispatch_fixture(document~)
+  assert_eq(
+    @strategy.graph_task_count(@host.prepared_client_graph(prepared)),
+    3,
+  )
+  assert_false(resident_linear_graph(@host.prepared_client_graph(prepared)))
+}
