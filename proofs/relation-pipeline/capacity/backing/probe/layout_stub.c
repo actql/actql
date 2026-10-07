@@ -83,12 +83,12 @@ uint64_t actql_proof_map_layout(void *map, int32_t selector) {
 /* Formatting allocation belongs to the observer, not the measured Map leaves.
  * Every Map argument is borrowed; only numeric identity/extent facts escape. */
 moonbit_string_t actql_proof_map_json(void *input, void *binding,
-                                    void *projection, void *snapshot) {
-  void *maps[4] = {input, binding, projection, snapshot};
-  const char *names[4] = {"inputOrdinals", "bindingOrdinals", "projectionOrdinals", "snapshot"};
+                                    void *projection) {
+  void *maps[3] = {input, binding, projection};
+  const char *names[3] = {"inputOrdinals", "bindingOrdinals", "projectionOrdinals"};
   char buffer[2048];
   size_t used = (size_t)snprintf(buffer, sizeof buffer, ",\"nativeMaps\":{");
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     int written = snprintf(buffer + used, sizeof buffer - used,
       "%s\"%s\":{\"owner\":\"%" PRIu64 "\",\"table\":\"%" PRIu64
       "\",\"slots\":%" PRIu64 ",\"entries\":%" PRIu64

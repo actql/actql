@@ -9,10 +9,9 @@ test('declared field order includes internal and trailing padding', () => {
   assert.equal(admittedMapExtent(0), 120n); assert.equal(admittedMapExtent(3), 264n);
   assert.throws(() => admittedMapExtent(7));
 });
-test('empty replacement remains live in the conditional four-table arithmetic', () => {
+test('three ordinal tables exclude the tuple Array snapshot', () => {
   for (const w of [1, 2, 3]) {
-    assert.equal(distinctMapExtent(w), 480n + 96n * BigInt(w));
-    assert.equal(distinctMapExtent(w, true), 600n + 96n * BigInt(w));
+    assert.equal(distinctMapExtent(w), 360n + 96n * BigInt(w));
   }
   assert.throws(() => distinctMapExtent(4));
 });

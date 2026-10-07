@@ -51,3 +51,19 @@ test('same resource fault requires observed reserve/release deltas, not a mutati
   assert.equal(violation({ kind: 'capacity observation', event: 'premature-release', keep: 0, delta: 0 }), null);
   assert.equal(violation({ kind: 'capacity observation', event: 'output-transfer', sharedOutput: false }), 'output custody lost');
 });
+
+test('typed census refuses an old snapshot Map or changed cursor workspace ownership', () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  for (const [suffix, before, after] of [
+    ['bounded_binding_rows.mbt', 'snapshot : Array[(String, Value)]', 'snapshot : Map[String, Value]'],
+    ['row_metadata_cursor.mbt', 'workspace : RowWorkspace', 'workspace : RowWorkspace?'],
+    ['row_name_charge.mbt', 'closed : Bool', 'closed : Int'],
+  ]) {
+    assert.throws(() => checkCensus(root, path => {
+      const source = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+      if (!path.endsWith(suffix)) return source;
+      assert(source.includes(before));
+      return source.replace(before, after);
+    }), /Unreviewed retained representation/);
+  }
+});
