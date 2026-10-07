@@ -733,8 +733,17 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('ebd0959e213d515f8fe993989cc39976660e5a45918ea6fa8951a5a41e08cc4c'));
-  assert.equal(current.run.run_definition_cid,
+  // Keep the independently pinned literal-membership parent; it did not
+  // include the adopted finite Graph spelling grammar.
+  assert.equal(vector(pin('2fca45d69a94d9d91a6903f72007bccb09bf2c945cfca7187d61808222eac60f'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('1e580903177ae141bc703bead4e9164bd200f4d60e7cde63d89dd04ea5be3bf6'));
+  // Preserve the combined ARRAY/finite Graph parent before this integration.
+  assert.equal(vector(pin('422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('082b73d16ed8513f88c55ce75cd1d1a78043ec08c57c02a757a3eba5e0e4dd54'));
+  assert.equal(current.run.run_definition_cid,
+    pin('8eb2bb63ec3c66f0457ad25820daa0e49bce63c368536b640b2e38b6d79e7bc3'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
