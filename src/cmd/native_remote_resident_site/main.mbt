@@ -2604,8 +2604,7 @@ fn serve_holder_output(
                       @bundle.native_active_runtime_target_triple(
                         execution.active_runtime,
                       ),
-                      "consumer:" +
-                      @remote.dispatch_request_identity(
+                      consumer_process_hold_identity(
                         @resident_host.resident_retained_consumer_request(owner),
                       ),
                     ) {

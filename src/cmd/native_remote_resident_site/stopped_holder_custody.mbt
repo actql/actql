@@ -1,4 +1,10 @@
 ///|
+// Acquisition and cleanup address the same exact retained consumer component.
+fn consumer_process_hold_identity(request : @remote.DispatchRequest) -> String {
+  "consumer:" + @remote.dispatch_request_identity(request)
+}
+
+///|
 /// The exclusive holder slot proves that no former process can keep using
 /// these exact files or readers. Historical binding admission selects the
 /// existing cleanup Owners; no payload use or fresh borrow is authorized here.
@@ -94,7 +100,7 @@ fn settle_stopped_holder_custody(
       }
       // Source, receiver and borrow responsibility must be discharged before
       // the existing formal-release owner can return the producer capability.
-      match
+      let confirmed = match
         @resident_host.reclaim_stopped_resident_source_output(
           owner.journal,
           run_admission(matches),
@@ -114,6 +120,16 @@ fn settle_stopped_holder_custody(
           cleanup_current,
           recorded=Some(original),
         ) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      let (_, checked_consumer) = @host.client_retained_source_cleanup_requests(
+        confirmed,
+      )
+      // Older recovery used the holder claimant for this component. Use the
+      // same identity as acquisition, from the Owner-confirmed relationship.
+      match
+        owner.bundles.release(consumer_process_hold_identity(checked_consumer)) {
         Ok(_) => ()
         Err(_) => return false
       }

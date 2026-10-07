@@ -674,7 +674,10 @@ fn stopped_source_cleanup_apply(
   f : StoppedCleanupFixture,
   current : () -> Bool,
   recorded? : Bool = false,
-) -> Result[Unit, ResidentStoppedSourceCleanupIssue] {
+) -> Result[
+  @host.ClientRetainedSourceCleanup,
+  ResidentStoppedSourceCleanupIssue,
+] {
   reclaim_stopped_resident_source_output(
     f.journal,
     f.admission,
@@ -829,7 +832,18 @@ test "stopped Source cleanup waits for consumer release and receiver retry befor
     f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
   )
   for _ in 0..<2 {
-    stopped_source_cleanup_apply(f, () => true).unwrap()
+    let confirmed = stopped_source_cleanup_apply(f, () => true).unwrap()
+    let (producer, consumer) = @host.client_retained_source_cleanup_requests(
+      confirmed,
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(producer),
+      @remote.dispatch_request_identity(f.producer),
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(consumer),
+      @remote.dispatch_request_identity(f.consumer),
+    )
     assert_true(f.root.inspect_generation(name) is Ok(None))
     assert_eq(
       f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
@@ -900,7 +914,18 @@ test "recorded Source cleanup waits for consumer release and receiver retry afte
     f.receiver.destination_capacity_usage().unwrap().reserved_bytes > 0L,
   )
   for _ in 0..<2 {
-    stopped_source_cleanup_apply(f, () => true, recorded=true).unwrap()
+    let confirmed = stopped_source_cleanup_apply(f, () => true, recorded=true).unwrap()
+    let (producer, consumer) = @host.client_retained_source_cleanup_requests(
+      confirmed,
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(producer),
+      @remote.dispatch_request_identity(f.producer),
+    )
+    assert_eq(
+      @remote.dispatch_request_identity(consumer),
+      @remote.dispatch_request_identity(f.consumer),
+    )
     assert_true(f.root.inspect_generation(name) is Ok(None))
     assert_eq(
       f.receiver.destination_capacity_usage().unwrap().reserved_bytes,
