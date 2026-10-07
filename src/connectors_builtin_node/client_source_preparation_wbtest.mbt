@@ -1,0 +1,54 @@
+///|
+test "Source preparation retains known lowerer input violations for disclosure" {
+  let issues : Array[@query_program.Issue] = [
+    UnknownColumn,
+    AmbiguousColumn,
+    AmbiguousRelation,
+    DuplicateOutput,
+  ]
+  for issue in issues {
+    assert_eq(
+      client_source_preparation_issue_code(Frontend(QueryLowering(issue))),
+      "source_invalid_input",
+    )
+  }
+}
+
+///|
+test "Source preparation does not classify protected resolution as invalid input" {
+  assert_eq(
+    client_source_preparation_issue_code(
+      Frontend(QueryLowering(UnknownRelation)),
+    ),
+    "source_unresolved",
+  )
+  assert_eq(
+    client_source_preparation_issue_code(
+      Frontend(QueryLowering(InvalidContext)),
+    ),
+    "source_rejected",
+  )
+  assert_eq(client_source_preparation_issue_code(Limit), "source_limit")
+}
+
+///|
+test "Source preparation keeps unsupported forms separate from input violations" {
+  let issues : Array[@query_program.Issue] = [
+    UnsupportedProjection,
+    UnsupportedGrouping,
+    UnsupportedAggregate,
+    UnsupportedHaving,
+    UnsupportedOrdering,
+    UnsupportedAnalytic,
+    UnsupportedSet,
+    UnsupportedJoin,
+    UnsupportedCte,
+    UnsupportedGraph,
+  ]
+  for issue in issues {
+    assert_eq(
+      client_source_preparation_issue_code(Frontend(QueryLowering(issue))),
+      "source_unsupported",
+    )
+  }
+}

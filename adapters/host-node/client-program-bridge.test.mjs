@@ -182,8 +182,8 @@ test('public source preparation binds installed aliases before checking a Progra
   for (const [text, format, code] of [
     ['SELECT id FROM', 'sql', 'source_invalid_input'],
     ['FROM records |> SELECT id', 'sql', 'source_invalid_input'],
-    ['SELECT id FROM absent', 'sql', 'source_rejected'],
-    ['SELECT absent FROM records', 'sql', 'source_rejected'],
+    ['SELECT id FROM absent', 'sql', 'source_unresolved'],
+    ['SELECT absent FROM records', 'sql', 'source_invalid_input'],
   ]) {
     const outcome = prepare(text, format);
     assert.equal(moon.clientProgramPreparationReady(outcome), undefined);

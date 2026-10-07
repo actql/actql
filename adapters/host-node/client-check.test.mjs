@@ -256,6 +256,41 @@ for (const [entrance, open] of Object.entries(entrances)) {
     }
   });
 
+  test(`${entrance}: original submission explanations hide private resolution and preserve independent input violations`, async t => {
+    const clients = await Promise.all([
+      open(t, configurations.absent), open(t, configurations.denied),
+    ]);
+    for (const parameters of [null, {minimum: 'twenty'}]) {
+      const expected = parameters === null
+        ? {code: 'ClientProgramRejected', classification: 'operation_failed'}
+        : {code: 'ClientProgramInvalidInput', classification: 'invalid_input'};
+      const problems = [];
+      for (const client of clients) {
+        const pending = client.startSource('SELECT missing AS n FROM records WHERE amount >= @minimum', {
+          format: 'sql', parameterDeclarations: declarations, parameters,
+        });
+        const original = sdk.getSubmissionInput(pending);
+        let outcome;
+        await assert.rejects(pending, error => {
+          assert.equal(error.code, 'SubmissionNotAccepted');
+          outcome = sdk.getSubmissionOutcome(error);
+          assert.equal(outcome.kind, 'not_accepted');
+          assert.deepEqual(outcome.problem, expected, '[check-mutation:submission-private-input]');
+          assert.deepEqual(sdk.explainSubmission(error).problem, expected);
+          assert.deepEqual(JSON.parse(sdk.formatSubmission(error, {format: 'json'})).explanation.problem, expected);
+          problems.push(outcome.problem);
+          return true;
+        });
+        const found = await client.lookupSubmission(original.submissionRef);
+        assert.deepEqual(found, outcome);
+        client.assertNoExecution();
+      }
+      assert.deepEqual(problems[0], problems[1], '[check-mutation:submission-private-input]');
+    }
+  });
+}
+
+for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: typed Requirement frontiers retain context and ignore presentation order`, async t => {
     let responses = 0;
     const reorder = outcome => {
