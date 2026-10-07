@@ -18,7 +18,7 @@ import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, 
   publicFixtureEnvironment, modelConfiguration} from
   './fixtures/composed-infer-effect-input.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
-import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {packedClientPackage, packedNpmCache, pinnedDuckDBPackage} from './packed-client-packages.mjs';
 import {readTwoSourceJournal} from './fixtures/two-source-public-query.mjs';
 import {graphCompositionExpectations, graphResultDataPolicy,
   computationCustodySince} from './fixtures/graph-infer-effect-input.mjs';
@@ -191,7 +191,8 @@ try {
     })))));
   await writeFile(join(root, 'package.json'),
     '{"private":true,"type":"module"}\n');
-  run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts],
+  run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts,
+    await pinnedDuckDBPackage(repository)],
     root);
   assert((await readFile(join(root, 'node_modules/@actql/local-node',
     '_build/js/release/build/connectors/salesforce/host_node/host_node.js')))
