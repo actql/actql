@@ -150,5 +150,33 @@
     "passed": null,
     "existingCleanupCallerTestsExecuted": false,
     "scope": "Compilation/execution could not be separated from this missing summary. Earlier 17/17 is not evidence for this merged source."
+  },
+  "integratedGeneratedJsDiagnostic": {
+    "source": "72aaa1ab43d5d3bf437fd542176dafb54a43546f",
+    "scope": "Direct execution of the unchanged pinned MoonBit-generated JS driver. Distinct from a successful bounded moon test preparation and from Native execution.",
+    "selection": [
+      {
+        "file": "client_retained_receiver_cleanup_wbtest.mbt",
+        "passed": 5
+      },
+      {
+        "file": "client_retained_input_cleanup_wbtest.mbt",
+        "passed": 12
+      }
+    ],
+    "passed": 17,
+    "receipt": "receiver-generated-js-GoKrfM",
+    "command": "node _build/js/debug/test/run_publication_host/run_publication_host.whitebox_test.js <exact file_and_index selection for the two recorded files>",
+    "limitSeconds": 60,
+    "elapsedMs": 40306,
+    "artifactSha256": "4c148a562215cd3c86dc863aef8e91494bb6f810c551016902622b6c286cdae3",
+    "sourceMapSha256": "460f8463fa7ce28fe1f7df7e1f27805d8f3f643db4867282883b0f1d5612e28f",
+    "embeddedSourcesVerified": 782,
+    "generatedDriverEmbedded": false,
+    "generatedDriverSha256": "9258eaa4c2b51fc47a8ac5206596437f2d4748e0bc000027a0aaae4e1e770763",
+    "preparationCompletedWithinBound": false,
+    "originalPreparationFailurePreserved": true,
+    "artifactEdited": false,
+    "nativeCoverageClaimed": false
   }
 }

@@ -52,7 +52,17 @@ and portable Owner tests passed before main integration. At the integrated
 source, Native caller checking and interface generation pass, but the portable
 receiver selection reaches its 60-second bound without a test summary. The
 subsequent existing cleanup caller selection is therefore unexecuted. Earlier
-17/17 success is not claimed for this integrated source. A clean-source normal Native executable build
+17/17 success from that earlier invocation is not claimed for this integrated source.
+
+The JS output was subsequently observed to have been written after the parent
+preparation deadline. Its source map embeds 782 files, all equal to the current
+source bytes; the sole nonembedded generated driver and output digests are
+recorded separately. Direct execution of the unchanged pinned generated driver
+selects only the receiver and existing cleanup files. All 17 cases have exact
+matching start/result events and empty failure messages within the 60-second
+execution bound. This is generated-artifact execution evidence, not successful
+bounded preparation or Native physical execution. The initial failed receipt
+remains unchanged. A clean-source normal Native executable build
 also exceeded its 180-second preparation bound; no recovery was executed with it.
 Both the final recorded-graph test and normal command were additionally attempted
 in the standard release profile at the same bounds; both preparations timed out
