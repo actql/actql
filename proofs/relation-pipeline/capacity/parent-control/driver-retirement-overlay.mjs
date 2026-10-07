@@ -32,7 +32,7 @@ export function retirementOverlay(read,source) {
     [retirementFixture]:readFileSync(new URL('./driver-retirement-fixture.mbt',import.meta.url),'utf8')};
   // The generated fixture is selected only on Native; no other backend gains
   // a declaration referencing the Native-only borrowed observer.
-  overlay['src/query_integration/moon.pkg']=read('src/query_integration/moon.pkg').toString()+'\noptions(targets: {"driver_retirement_native_wbtest.mbt": ["native"]})\n';
+  overlay['src/query_integration/moon.pkg']=once(read('src/query_integration/moon.pkg').toString(), 'options(\n', 'options(\n  targets: {"driver_retirement_native_wbtest.mbt": ["native"]},\n');
   const boundary={sourceDigest:source.digest,target:'native',command:['moon','test','--target','native',retirementFixture,'--deny-warn'],
     observationInputs:Object.fromEntries(Object.entries(overlay).map(([p,t])=>[p,hash(t)]))};
   const buildIdentity=hash(JSON.stringify(boundary));

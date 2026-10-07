@@ -18,6 +18,8 @@ test('current driver/common owner source and additive Native overlay are admitte
   assert.match(overlay[driverPath],/println\(driver_retirement_probe\(provider_execution, setup.task, 3\)\)/);
   assert.equal((overlay[driverPath].match(/cleanup_managed_provider\(active\)/g)??[]).length,
     (read(driverPath).toString().match(/cleanup_managed_provider\(active\)/g)??[]).length);
+  assert.equal(overlay['src/query_integration/moon.pkg'].split('options(').length,2, 'Reuse existing package options');
+  assert.match(overlay['src/query_integration/moon.pkg'], /cc-link-flags/);
   const host = 'src/query_integration/graph_host_custody_wbtest.mbt';
   assert.equal((overlay[host].match(/assert_(?:true|eq)\(/g)??[]).length,
     (read(host).toString().match(/assert_(?:true|eq)\(/g)??[]).length);
