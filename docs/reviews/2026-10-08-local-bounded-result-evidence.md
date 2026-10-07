@@ -126,6 +126,15 @@ Receipts remain under `_build/local-checks/attempts` and
 Neither is reported as passing acceptance. Generator commands without the
 pinned toolchain environment also refused before the successful checks.
 
+## Formatting follow-up
+
+The follow-up inventory work found that the earlier multi-path `moonfmt`
+invocation did not format every supplied file. The affected sources are now
+formatted with one invocation per file, and stdin/output comparisons check
+the resulting bytes. The correction does not change validation logic or
+contract literals. Previous execution receipts retain their original source
+provenance; a formatting check is not a fresh execution or hosted CI result.
+
 ## Remaining boundaries
 
 Durable binding inventory checks, request/index inventories, long Result

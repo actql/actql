@@ -73,7 +73,9 @@ fn exact_derivation_witness(value : @json.CanonicalValue, cid : String) -> Bool 
   if @json.array_count(values) != 1 {
     return false
   }
-  guard object_fields(@json.array_at(values, 0).unwrap()) is Ok(fields) else { return false }
+  guard object_fields(@json.array_at(values, 0).unwrap()) is Ok(fields) else {
+    return false
+  }
   fields.length() == 2 &&
   optional_string(field_value(fields, "kind")) == Some("derivation") &&
   optional_string(field_value(fields, "cid")) == Some(cid)
@@ -232,7 +234,9 @@ fn validate_result_artifact_for_producer(
   evidence : ResultOrderingEvidence,
   retention : PublicationContract,
 ) -> Result[Unit, ResultArtifactEvidenceIssue] {
-  let check = start_result_artifact_check(producer_cid, artifact, evidence, retention)
+  let check = start_result_artifact_check(
+    producer_cid, artifact, evidence, retention,
+  )
   while true {
     match check.step() {
       Err(issue) => {
@@ -459,7 +463,9 @@ fn ordering_derivation_cid(ordering : PublicationContract) -> String? {
   if @json.array_count(values) != 1 {
     return None
   }
-  guard object_fields(@json.array_at(values, 0).unwrap()) is Ok(fields) else { return None }
+  guard object_fields(@json.array_at(values, 0).unwrap()) is Ok(fields) else {
+    return None
+  }
   if optional_string(field_value(fields, "kind")) != Some("derivation") {
     return None
   }
@@ -482,7 +488,12 @@ pub fn validate_result_evidence_set(
   // This explicit blocking entry point drains the same inventory as the
   // budgeted commit owner, without adding a workspace limit to its API.
   let check = start_result_evidence_preparation(
-    definitions, artifacts, derivations, orderings, retentions, None,
+    definitions,
+    artifacts,
+    derivations,
+    orderings,
+    retentions,
+    None,
   )
   while true {
     match check.advance(256) {
