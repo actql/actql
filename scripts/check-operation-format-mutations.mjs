@@ -9,6 +9,26 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'submission analysis budget loses implementation-limit classification',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "ClientProgramAnalysisLimit: 'implementation_limit'",
+    to: "ClientProgramAnalysisLimit: 'operation_failed'",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: original submission retains a disclosed analysis budget without input blame`,
+      'submission-budget-public', 'deepStrictEqual'))},
+  {name: 'submission analysis budget ignores current public disclosure',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(\n          limit => limit.code === 'analysis_budget_exhausted')",
+    to: 'true',
+    targets: [target('retained Source analysis budget rechecks original intent and current disclosure without preparation',
+      'submission-budget-disclosure', 'deepStrictEqual')]},
+  {name: 'submission analysis budget loses safe SDK guidance',
+    path: 'packages/sdk/index.mjs', file: 'packages/sdk/submission-explanations.test.mjs',
+    from: "if (explanation.problem?.code === 'ClientProgramAnalysisLimit' &&\n      explanation.problem.classification === 'implementation_limit')",
+    to: 'if (false)',
+    targets: ['not_accepted', 'preparation_failed'].map(phase => target(
+      `submission analysis budget explains ${phase} without choosing the phase from its code`,
+      'submission-budget-guidance', 'deepStrictEqual'))},
   {name: 'submission disclosure reuses a previously visible Source problem',
     path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
     from: '    if (disclosable) return outcome;', to: '    if (true) return outcome;',
