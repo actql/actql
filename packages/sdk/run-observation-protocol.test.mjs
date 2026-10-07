@@ -203,7 +203,9 @@ const held = () => ({kind: 'held', requestId: 'saved', prepareAttemptId: 'origin
   state: 'resuming', durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
 const lookup = () => ({kind: 'found', requestId: 'saved', ref: {...ref},
   durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
-const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7});
+const originalCancellation = {cancelId: 'captured-cancel', expectedRevision: 6};
+const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7,
+  cancelRef: {...ref, ...originalCancellation}});
 async function responseFixture(t, reply) {
   const operations = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
@@ -239,7 +241,7 @@ const paths = [
   assert: answer => assert.deepEqual({held: answer.held.prepareAttemptId,
     explanation: sdk.explainSubmission(answer).prepareAttemptId},
   {held: 'original-attempt', explanation: 'original-attempt'}, '[check-mutation:response-capture-held]')},
-  {name: 'cancel', reply: cancellation, call: f => f.run.cancel(), code: 'InvalidHostCancellation',
+  {name: 'cancel', reply: cancellation, call: f => f.run.cancel(originalCancellation), code: 'CancellationUnknown',
     key: 'kind', first: 'accepted', later: 'already_terminal',
     assert: answer => assert.deepEqual({kind: answer.kind, revision: answer.revision,
       observation: sdk.explainCancellation(answer).observation},
@@ -258,7 +260,7 @@ const paths = [
     assert: answer => assert.deepEqual({context: answer.report.context_ref,
       revision: sdk.getCheckInput(answer, 'source').revision},
     {context: 'ctx:independent-schema-pin', revision: 'rev:' + '1'.repeat(64)}, '[check-mutation:response-capture-check]')},
-  {name: 'cancelRequest', reply: () => ({...cancellation(), requestId: 'saved'}),
+  {name: 'cancelRequest', reply: () => ({kind: 'accepted', ref: {...ref}, revision: 7, requestId: 'saved'}),
     call: f => f.client.cancelRequest('saved'), code: 'CancellationUnknown',
     key: 'kind', first: 'accepted', later: 'already_terminal',
     assert: answer => assert.deepEqual({kind: answer.kind,
@@ -299,7 +301,15 @@ for (const path of paths) {
     if (path.name === 'lookupRequest') assert.equal(sdk.explainRequestLookup(error).next.requestId, 'saved');
     if (path.name === 'cancel') assert.equal(sdk.explainCancellation(error).observation, 'outcome_unknown');
     if (path.name === 'held submit') assert.equal(sdk.getSubmissionInput(error).requestId, 'saved');
-    assert.equal(sdk.explainDeliveryAttempt(error), undefined);
+    if (path.name === 'deliveryAttempt') {
+      assert.deepEqual(sdk.explainDeliveryAttempt(error), {
+        observation: 'lookup_uninterpretable',
+        summary: 'This SDK could not interpret the DeliveryAttempt lookup response. Read opening and delivery remain unresolved.',
+        hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+        next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId: 'read-a',
+          lookupContext: {endpoint: 'actql:embedded', scopeRef: 'observation-principal'}},
+      }, '[check-mutation:response-capture-delivery-failure]');
+    } else assert.equal(sdk.explainDeliveryAttempt(error), undefined);
     assert.equal(f.operations.length, 3);
   });
 }

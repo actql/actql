@@ -137,11 +137,12 @@ fn cross_join_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_cross_join(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_cross_join_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_cross_join_issue(issue, step))
             }
           },

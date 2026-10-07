@@ -26,5 +26,5 @@ export function settleSavedTableCommit({control, ledger, tablePreview, claim,
     memberIndex: binding.memberIndex, previewRowIndex: 0};
   ledger.recordAdmittedRowOutcome({...options, outcomeWire});
   const terminal = ledger.commitAdmittedRowOutcome(options);
-  return Object.freeze({status: 'applied', receipt: terminal.receipt});
+  return Object.freeze({status: terminal.receipt.terminalState, receipt: terminal.receipt});
 }

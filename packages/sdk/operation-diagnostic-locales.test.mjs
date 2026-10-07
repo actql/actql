@@ -25,7 +25,8 @@ async function fixture(t) {
       if (operation === 'status') return unknown;
       if (operation === 'cancel') {
         if (cancellation === 'outcome_unknown') throw new Error('private-cancel-cause');
-        return {kind: cancellation, ref: body.ref, revision: 7};
+        return {kind: cancellation, ref: body.ref, cancelRef: {...body.ref,
+          cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7};
       }
       if (operation === 'read') return {kind: 'rows', frames: (async function* () {
         yield {value: {value: 1}, byteLength: 12};
@@ -70,14 +71,16 @@ test('cancellation locale retains the recorded request and unconfirmed stop', as
   ]) {
     f.cancel(kind);
     let result;
-    try {result = await execution.cancel();} catch (error) {result = error;}
+    const cancelRef = {...ref, cancelId: `locale-${kind}`, expectedRevision: 6};
+    try {result = await execution.cancel({cancelId: cancelRef.cancelId, expectedRevision: 6});} catch (error) {result = error;}
     const before = [...f.calls];
     const expected = {observation: kind, ...(kind === 'outcome_unknown' ? {} : {revision: 7}),
-      summary, next: {operation: 'status', ref}};
+      summary, next: kind === 'outcome_unknown'
+        ? {operation: 'lookupCancellation', cancelRef} : {operation: 'status', ref}};
     const localized = sdk.explainCancellation(result, {locale: 'ja'});
     assert.deepEqual(localized, expected, '[check-mutation:operation-cancel-locale]');
     assert.equal(Object.isFrozen(localized), true);
-    assert.equal(Object.isFrozen(localized.next.ref), true);
+    assert.equal(Object.isFrozen(localized.next.ref ?? localized.next.cancelRef), true);
     assert.equal(sdk.explainCancellation({...result}, {locale: 'ja'}), undefined);
     assert.deepEqual(f.calls, before, '[check-mutation:operation-locale-passive]');
   }
@@ -119,7 +122,7 @@ test('operation locale identity is separate from check schemas and malformed opt
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'ja'}, 'ja'], [{locale: 'ja-JP'}, 'ja'],
     [{locale: 'unknown'}, 'en'], [{get locale() {throw new Error('private-locale');}}, 'en']]) {
     const info = sdk.getOperationPresentationInfo(options);
-    assert.deepEqual(info, {locale, translationRevision: `2026-10-07.operations.${locale}.5`},
+    assert.deepEqual(info, {locale, translationRevision: `2026-10-07.operations.${locale}.6`},
       '[check-mutation:operation-locale-identity]');
     assert.equal(Object.isFrozen(info), true);
   }

@@ -163,11 +163,12 @@ fn selected_binding_rows_execution(
           return Ok(true)
         }
         match @execution.cleanup_bounded_binding_rows(active) {
-          Ok(true) => {
-            reclaimed.val = true
-            Ok(true)
+          Ok(_) => {
+            reclaimed.val = !@execution.bounded_binding_rows_cleanup_pending(
+              active,
+            )
+            Ok(reclaimed.val)
           }
-          Ok(false) => Ok(false)
           Err(issue) => Err(selected_binding_rows_issue(issue, step))
         }
       },

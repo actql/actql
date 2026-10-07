@@ -173,6 +173,116 @@ test "Table commit projection admits only the original receipt and exact row cou
 }
 
 ///|
+test "Table conflict projection binds an original durable noncommit receipt" {
+  let (_, create_cid) = table_sealed_value(
+    table_vector_create_conflict_receipt(),
+    "receipt_cid",
+    8192,
+    256,
+    8,
+  ).unwrap()
+  let (_, replace_cid) = table_sealed_value(
+    table_vector_replace_conflict_receipt(),
+    "receipt_cid",
+    8192,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(create_cid, table_vector_create_conflict_receipt_cid())
+  assert_eq(replace_cid, table_vector_replace_conflict_receipt_cid())
+  for
+    (request_wire, receipt_wire, reason) in [
+      (
+        table_vector_create(),
+        table_vector_create_conflict_receipt(),
+        "CreateNameConflict",
+      ),
+      (
+        table_vector_replace(),
+        table_vector_replace_conflict_receipt(),
+        "ExpectedGenerationConflict",
+      ),
+    ] {
+    let operation = admit_table_operation(request_wire, 8192, 256, 8).unwrap()
+    let response = "{\"ok\":false,\"result\":" + receipt_wire + "}"
+    let outcome = project_table_commit_outcome(
+      operation, response, 409, 3L, 8192, 256, 8,
+    ).unwrap()
+    assert_eq(
+      outcome,
+      "{\"error\":{\"code\":\"" +
+      reason +
+      "\",\"details\":" +
+      receipt_wire +
+      ",\"message\":\"Table operation did not commit\"},\"state\":\"failed\"}",
+    )
+    assert_true(
+      @publication.parse_effect_outcome_shape(outcome, 8192, 256, 8) is Ok(_),
+    )
+    for status in [200, 202, 500] {
+      assert_true(
+        project_table_commit_outcome(
+          operation, response, status, 3L, 8192, 256, 8,
+        )
+        is Err(Unconfirmed),
+      )
+    }
+    for
+      field in [
+        "request_cid", "effect_identity_cid", "catalog_identity_cid", "schema_cid",
+        "storage_mapping_cid",
+      ] {
+      let source = @source.parse_json(receipt_wire, {
+        max_input_bytes: 8192,
+        max_nodes: 256,
+        max_depth: 8,
+      }).unwrap()
+      let value = @json.from_source(source, 256, 8, 8192) catch {
+        _ => abort("fixture")
+      }
+      let changed = @json.object_with_string_field(
+        @json.object_without_field(value, field).unwrap(),
+        field,
+        "sha256:" + "f".repeat(64),
+      ).unwrap()
+      let changed_wire = @json.stringify_value(changed, 8192, 256, 8) catch {
+        _ => abort("fixture")
+      }
+      let foreign = "{\"ok\":false,\"result\":" +
+        table_test_reseal(changed_wire, "receipt_cid") +
+        "}"
+      assert_true(
+        project_table_commit_outcome(operation, foreign, 409, 3L, 8192, 256, 8)
+        is Err(Receipt(ForeignOperation)),
+      )
+    }
+    let wrong_reason = table_test_reseal(
+      receipt_wire.replace(
+        old=reason,
+        new=if operation.replace {
+          "CreateNameConflict"
+        } else {
+          "ExpectedGenerationConflict"
+        },
+      ),
+      "receipt_cid",
+    )
+    assert_true(
+      project_table_commit_outcome(
+        operation,
+        "{\"ok\":false,\"result\":" + wrong_reason + "}",
+        409,
+        3L,
+        8192,
+        256,
+        8,
+      )
+      is Err(Receipt(ForeignOperation)),
+    )
+  }
+}
+
+///|
 test "Table commit projection never infers commit or noncommit from an HTTP status" {
   let operation = admit_table_operation(table_vector_create(), 8192, 256, 8).unwrap()
   for

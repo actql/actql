@@ -2,67 +2,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtemp, readFile, rm, access} from 'node:fs/promises';
+import {readFile, access} from 'node:fs/promises';
 import {join} from 'node:path';
-import {tmpdir} from 'node:os';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {openEffectLedger} from './effect-ledger.mjs';
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 import {createIcebergPhysicalBridge} from './table-iceberg-process.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
+import {machineCid} from '../../scripts/actql-spec-family.mjs';
 
 const python = pathToFileURL(process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)));
 const directory = fileURLToPath(new URL('../table-iceberg/', import.meta.url));
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const control = runtimeCore(moon).effectApplicationControl;
-const seal = (value, field) => ({...value, [field]: machineCid(value)});
 // The bounded channel snapshots plain records with null prototypes. Compare
 // exact JSON data, not that defensive in-memory layout. No normalization,
 // sorting, omission/defaulting or identity recomputation occurs here.
 const wireValue = value => JSON.parse(JSON.stringify(value));
 
-async function fixture(t, entry) {
-  const root = await mkdtemp(join(tmpdir(), 'actql-table-process-'));
-  t.after(() => rm(root, {recursive: true, force: true}));
-  const catalog = {database: join(root, 'catalog.db'), warehouse: join(root, 'warehouse'),
-    catalogCid: cid('3'), limits: {bytes: 16777216, files: 256, operations: 32}};
-  // Explicit Host installation setup. No operation or user data is written.
-  const setup = spawnSync(fileURLToPath(python), ['-c',
-    'import json,sys; from catalog import TableCatalog; c=json.loads(sys.argv[1]); t=TableCatalog(c["database"],c["warehouse"],c["catalogCid"],c["limits"]); t.create_namespace("test"); t.engine.dispose()',
-    JSON.stringify(catalog)], {cwd: directory, encoding: 'utf8', timeout: 20000});
-  assert.ifError(setup.error);
-  assert.equal(setup.status, 0, setup.stderr);
-  const mapping = JSON.parse(await readFile(new URL('../table-iceberg/fixtures/presence-mapping.json', import.meta.url), 'utf8'));
-  const schemaWire = (await readFile(new URL('../table-iceberg/fixtures/presence-schema.json', import.meta.url), 'utf8')).trimEnd();
-  const scope = control.logicalRequestScope(cid('a'), 'table-operation', 32);
-  const operation = (action = 'create', expected = null, suffix = 'rows') => seal({
-    version: 'actql-table-operation/0.1', logical_request_scope_cid: control.logicalRequestScopeCid(scope),
-    effect_identity_cid: cid('2'), action, catalog_identity_cid: catalog.catalogCid,
-    namespace: ['test'], table_name: suffix, expected_table: expected,
-    input_artifact_cid: cid('4'), input_relation_cid: cid('5'),
-    schema_cid: mapping.schema_cid, storage_mapping_cid: mapping.mapping_cid,
-    data_policy_cid: cid('6')}, 'request_cid');
-  const bridge = createIcebergPhysicalBridge({python, run: 'table-run', catalog, ...(entry ? {entry} : {})});
-  const prepare = (operation, rows) => bridge.prepareWrite({operation, mapping, rows, schemaWire,
-    reservation: {bytes: 1048576, files: 16}});
-  const claim = operation => {
-    // One logical whole-Relation operation; no per-row content/item key. This
-    // test constructs a common claim directly, not a Program approval fixture.
-    const key = control.dispatchKey(scope, cid('b'), canonicalText({operation: operation.request_cid}), 256, 16, 4);
-    const locator = control.logicalItemLocator(scope, 'program-1', 'node-1', 'Store',
-      canonicalText({operation: operation.request_cid}), 256, 512, 16, 4);
-    const basis = control.ledgerBasis(scope, locator, key, cid('c'), cid('d'), cid('e'),
-      operation.request_cid, cid('0'), 'unavailable', cid('1'), cid('2'));
-    return {scope, locator, key, basis, intentFingerprintCid: cid('e'), canonicalRequestCid: operation.request_cid};
-  };
-  const open = () => openEffectLedger({moon, root: join(root, 'ledger'), authorityScopeCid: cid('a'),
-    callerRequestId: 'table-operation', maxEntryBytes: 4096});
-  return {root, catalog, mapping, schemaWire, operation, bridge, prepare, claim, open};
-}
+// Share this exact physical setup with installed read acceptance.
+const fixture = tablePhysicalFixture;
 
 test('Table managed framing rejects malformed material and performs partial I/O exactly', () => {
   const result = spawnSync(fileURLToPath(python), ['-m', 'unittest', '-v', 'process_worker_test'],
@@ -184,6 +146,45 @@ test('real commit followed by process loss stays possible-dispatch after Ledger 
   assert.equal(recovered.result.request_cid, operation.request_cid);
   assert.deepEqual(wireValue((await f.bridge.read(recovered.result, f.mapping)).result), [{id: 1}]);
   assert.equal((await f.bridge.cleanup(prepared)).result.retained, true);
+});
+
+test('lost noncommit reply recovers the original durable fence without resending', async t => {
+  const f = await fixture(t);
+  const first = await f.bridge.execute(f.prepare(f.operation(), [{id: 1}]), {useCid: cid('7')});
+  const committed = JSON.parse(first.observation.body).result;
+  const {request_cid: _, ...body} = f.operation();
+  const preimage = {...body, input_relation_cid: cid('9')};
+  const operation = {...preimage, request_cid: machineCid(preimage)};
+  const lost = createIcebergPhysicalBridge({python, run: 'table-run', catalog: f.catalog,
+    entry: new URL('../table-iceberg/fixtures/lost-noncommit-process.py', import.meta.url)});
+  const prepared = lost.prepareWrite({operation, mapping: f.mapping, rows: [{id: 2}],
+    reservation: {bytes: 1048576, files: 16}, schemaWire: f.schemaWire});
+  const claim = f.claim(operation), ledger = f.open();
+  try {
+    await assert.rejects(captureClaimedEffectResponse({ledger, claim, requestCid: operation.request_cid,
+      execute: () => lost.execute(prepared, {useCid: cid('7')})}));
+    assert.equal(ledger.readClaimedResponse(claim), undefined, 'Lost reply is not a terminal fact');
+    assert.deepEqual(lost.status(prepared), {attempted: true, stopped: true});
+  } finally { ledger.close(); }
+  const reopened = f.open();
+  t.after(() => reopened.close());
+  const recovered = wireValue(await f.bridge.reconcileOperation(operation));
+  assert.equal(recovered.ok, false);
+  assert.equal(recovered.result.reason, 'CreateNameConflict');
+  assert.equal(recovered.result.request_cid, operation.request_cid);
+  const projection = JSON.parse(checked(moon.clientProgramTableOperationCommitOutcome(
+    canonicalText(operation), JSON.stringify(recovered), 409, 1n, 65536, 4096, 16)));
+  assert.equal(projection.state, 'failed');
+  assert.deepEqual(projection.error.details, recovered.result);
+  assert.equal((await captureClaimedEffectResponse({ledger: reopened, claim,
+    requestCid: operation.request_cid, execute: () => assert.fail('Lost refusal must not send again')})).claimed, false);
+  const cleaned = wireValue(await lost.cleanup(prepared));
+  assert.equal(cleaned.result.retained, false);
+  assert.equal(cleaned.result.pending, false);
+  assert.deepEqual(wireValue(await f.bridge.reconcileOperation(operation)), recovered,
+    'Cleanup cannot erase the original noncommit fact');
+  assert.deepEqual(wireValue((await f.bridge.read(committed, f.mapping)).result), [{id: 1}],
+    'Conflict cleanup must preserve the winning Table');
 });
 
 test('positive staging then cancellation waits for actual stop before fenced cleanup', async t => {

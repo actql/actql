@@ -160,6 +160,9 @@ def dispatch(body, catalog_factory=None):
                 result = catalog.resolve_generation(payload["selector"])
             else:
                 result = catalog.cleanup_after_stop(payload["operation"])
+            if command in ("write", "reconcile") and isinstance(result, dict) and \
+                    result.get("version") == "actql-table-noncommit-receipt/0.1":
+                return {"ok": False, "result": result}
             return {"ok": True, "result": result}
         except PhysicalRefusal as error:
             # An explicitly validated physical refusal is still not a common

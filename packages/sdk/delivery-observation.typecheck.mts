@@ -18,8 +18,9 @@ if (explanation) {
     const bytes: number = explanation.hostConfirmedByteCount;
     void [receipt, bytes];
   }
-  if (explanation.observation === 'lookup_unresolved') {
-    // @ts-expect-error An absent lookup has no receipt or confirmed byte count.
+  if (explanation.observation === 'lookup_unresolved' ||
+      explanation.observation === 'lookup_unavailable' || explanation.observation === 'lookup_uninterpretable') {
+    // @ts-expect-error Absent or failed lookup observations supply no receipt or confirmed byte count.
     const bytes: number = explanation.hostConfirmedByteCount;
   }
 }

@@ -123,7 +123,9 @@ fn cleanup_bounded_join_state(state : BoundedJoinState) -> Bool {
   }
   state.pending = None
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.names = []
@@ -548,7 +550,6 @@ fn bounded_join_step(
         guard state.output is Some(output) else {
           return bounded_join_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -705,6 +706,8 @@ pub fn start_bounded_join(
       presence_rows: [],
       open: true,
       reading: false,
+      reclaiming: false,
+      deferred_reclamation: true,
     },
   }
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
@@ -807,6 +810,12 @@ pub fn advance_bounded_join(
       Ok(BoundedJoinStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_join_cleanup_pending(value : BoundedJoinExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

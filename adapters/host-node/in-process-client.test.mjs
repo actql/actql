@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createServer} from 'node:http';
 import {generateKeyPairSync, sign} from 'node:crypto';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, explainReadFailure} from '../../packages/sdk/index.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {mkdtemp, rmdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -225,6 +225,76 @@ test('pre-aborted Local read never admits a delivery or physical reader',
     assert.equal(f.state.readers, 0);
     assert.equal(f.physical.status().activeReaders, 0);
   });
+
+for (const kind of ['rows', 'batches']) {
+  test(`public Client close releases paused ${kind} and leaves a sibling usable`, async t => {
+    const f = await localDelivery(t);
+    const boundRef = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
+    const port = createNodeInProcessClientHost({authenticate: () => 'principal',
+      authorizeConnection: () => true, negotiate: () => profile,
+      attach: () => ({ref: boundRef, durability: 'volatile', revision: 1}),
+      resultService: f.service, maxRowBytes: 1024});
+    const first = await connectInProcess({mode: 'local', owner: 'local'}, port);
+    const second = await connectInProcess({mode: 'local', owner: 'local'}, port);
+    t.after(async () => {await first.close(); await second.close();});
+    const reader = (await first.attach(boundRef)).result('answer')[kind]({maxBatchRows: 1});
+    const iterator = reader[Symbol.asyncIterator]();
+    assert.deepEqual((await iterator.next()).value, kind === 'rows' ? {value: 7} : [{value: 7}]);
+    await within(first.close());
+    assert.equal(f.physical.status().activeReaders, 0);
+    assert.equal(f.physical.status().reservedReadBufferBytes, 0);
+    assert.equal(JSON.parse(f.state.record.wire).state, 'cancelled');
+    assert.equal(reader.rowsYielded(), 1);
+    assert.deepEqual(await iterator.next(), {done: true, value: undefined});
+    assert.equal(f.body.available(), true);
+    // This bounded Store fixture owns one delivery attempt; it deliberately
+    // cannot admit a second read. Packed Local acceptance covers sibling rows.
+    assert.deepEqual((await second.attach(boundRef)).ref, boundRef);
+    await f.body.consume(async () => {});
+  });
+}
+
+test('public Client close retries retained delivery records without reopening the read', async t => {
+  let blocked = true;
+  const f = await localDelivery(t, {beforeAppend(record) {
+    if (blocked && JSON.parse(record.wire).state !== 'streaming') {
+      throw new Error('private-terminal-record-failure');
+    }
+  }});
+  const boundRef = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')};
+  const client = await connectInProcess({mode: 'local', owner: 'local'},
+    createNodeInProcessClientHost({authenticate: () => 'principal',
+      authorizeConnection: () => true, negotiate: () => profile,
+      attach: () => ({ref: boundRef, durability: 'volatile', revision: 1}),
+      resultService: f.service, maxRowBytes: 1024}));
+  t.after(async () => {blocked = false; await client.close();});
+  const reader = (await client.attach(boundRef)).result('answer').rows();
+  const iterator = reader[Symbol.asyncIterator]();
+  await iterator.next();
+  await assert.rejects(iterator.return(), error => {
+    const explanation = explainReadFailure(error);
+    assert.equal(explanation.attemptId, reader.attemptId);
+    assert.equal(explanation.rowsYielded, 1);
+    assert.equal(explanation.cleanup, 'unknown');
+    assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), /private-terminal-record-failure/);
+    return true;
+  });
+  await assert.rejects(client.close(), error => {
+    assert.equal(error.code, 'ClientCleanupPending');
+    assert.equal(error.cleanupPending, true);
+    assert.equal(error.cause, undefined);
+    return true;
+  });
+  assert.equal(f.physical.status().activeReaders, 0);
+  assert.equal(f.state.admissions, 1);
+  assert.equal(f.state.grantUses, 1);
+  blocked = false;
+  await client.close();
+  assert.equal(f.state.admissions, 1);
+  assert.equal(f.state.grantUses, 1);
+  assert.equal(JSON.parse(f.state.record.wire).state, 'cancelled');
+  assert.equal(f.state.records.length, 2);
+});
 
 test('Local consumer return settles a paused read without revoking its body',
   async t => {
