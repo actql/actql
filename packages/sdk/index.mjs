@@ -50,6 +50,19 @@ const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunS
   return error;
 };
 
+const unavailableRunObservation = (failure, ref, operation) => {
+  let error;
+  try { error = requestCancellationCause(failure); }
+  catch { error = new ClientError('ClientTransportUnknown'); }
+  runObservationFailures.set(error, freezeInput({kind: 'unavailable',
+    problem: 'observation_unavailable', operation,
+    next: {operation: 'status', ref: {...ref}},
+    summary: 'The Run observation could not be completed. Its execution, Effect, publication and release outcomes are not established by this failure.',
+    hint: 'Refresh the original Run under current authorization. This observation establishes no execution, Effect, publication or release outcome and grants no write retry.',
+  }));
+  return error;
+};
+
 const rejectedRunProblem = value => {
   try {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'malformed_response';
@@ -1283,9 +1296,11 @@ async function connectSelected(selected, port) {
     };
 
     const readRunObservation = async (operation, body, signal) => {
-      // Credential/transport refusals occur before interpreting a received
-      // observation and retain their existing operation-specific behavior.
-      const response = await runRequest(operation, body, signal);
+      // Failure to obtain an observation admits no Run facts, including when
+      // credentials or a closed connection prevent dispatch entirely.
+      let response;
+      try { response = await runRequest(operation, body, signal); }
+      catch (failure) { throw unavailableRunObservation(failure, ref, operation); }
       let state;
       try { state = await responseValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
