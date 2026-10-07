@@ -56,10 +56,11 @@ test "unkeyed FULL joined-row scope keeps the common identity refusal" {
 }
 
 ///|
-test "FULL shared scope retains unsupported USING and invalid ON refusals" {
+test "FULL shared scope rejects duplicate USING keys and invalid ON" {
   for
     source in [
-      "SELECT * FROM t AS l FULL JOIN t AS r USING (x) MAX_OUTPUT_ROWS 10", "SELECT * FROM t FULL JOIN r ON t.x > r.k MAX_OUTPUT_ROWS 10",
+      "SELECT * FROM t AS l FULL JOIN t AS r USING (x, `X`) MAX_OUTPUT_ROWS 10",
+      "SELECT * FROM t FULL JOIN r ON t.x > r.k MAX_OUTPUT_ROWS 10",
     ] {
     assert_true(
       compile(
