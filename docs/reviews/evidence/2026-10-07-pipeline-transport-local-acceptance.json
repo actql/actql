@@ -1,0 +1,125 @@
+{
+  "version": "actql-pipeline-transport-local-acceptance/0.1",
+  "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+  "parentPr": 815,
+  "parentRevision": "ce0da26a89bc044606359225fa07fc3f7e02977d",
+  "authority": "local-only",
+  "actionsRun": null,
+  "reuseAuthorized": false,
+  "evidence": [
+    {
+      "name": "transport-diagnostic-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-transport-diagnostic-summary.gz",
+      "sha256": "ef3efded247f26dedd15ad6f71a9e2c4e9bb4da409b19fdd7657ddcabfc62b97",
+      "uncompressedSha256": "de6afa8b8e7cf7f8c239c11b8329377671e442b74c4afd77b7f52e52d9fcf619",
+      "sourceRevision": null,
+      "dirtyDiagnostic": true
+    },
+    {
+      "name": "transport-diagnostic-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-transport-diagnostic-stdout.gz",
+      "sha256": "37f3f587fe03f9d9330ff0edf0e358f7f32aff7348f39005badca8399b6a3409",
+      "uncompressedSha256": "3bb5911ac2c5c0256099d90448c108c7af5cb87bc89b7919eb7124a05c8f1156",
+      "sourceRevision": null,
+      "dirtyDiagnostic": true
+    },
+    {
+      "name": "fixed-source-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-fixed-source-summary.gz",
+      "sha256": "dec02eaa2d99dd7602c3ef67153fdfb73d410fcabf1a64f1dfe28cdafb290c5c",
+      "uncompressedSha256": "86f07ebbaebf9606c548dff80f5418891eba1ca95ee52bc45a51c0bd1f744aab",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "fixed-source-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-fixed-source-stdout.gz",
+      "sha256": "26a7c2f7a3c8bfcec054d227efade2ec62ad9ad4fbbc57a2bd23936da72bc25d",
+      "uncompressedSha256": "34935a11eca97241e040d5e5c0567f97f5c6ba12f4b4e9daff2ffcce3418bd06",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "consumer-workflow-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-consumer-workflow-summary.gz",
+      "sha256": "aff554e5405ebc7f5c207ee071ac6adb5b120e2077173cc792f1be5a07821416",
+      "uncompressedSha256": "8d7a4938cd9754fcd5663868d5e3062ce94b8c18fbee1333fc6e0554b937f754",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "consumer-workflow-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-consumer-workflow-stdout.gz",
+      "sha256": "f8057a27216ea26d24961e4bfff7e5ab36ad6e468f891255f6e3283c71ee9fff",
+      "uncompressedSha256": "4e3ebbfc5b3b706a3bd7ad82bfebb91ebd890e95ba698b63c70684c80f198a71",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "history-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-history-summary.gz",
+      "sha256": "a5a9857c64e1c71949e78f5539a382aebeecb4d74d699533af7fbf66643f4b9e",
+      "uncompressedSha256": "82a9c2a13e106186eb8165bacd9c51d854c97afa2f8c184ee892e94034f12fc5",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "history-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-history-stdout.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "uncompressedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    },
+    {
+      "name": "foundation",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-transport-foundation.gz",
+      "sha256": "1b9f6b3baa81a0d74841a86d5ed9ea12b3e2f58661ca96ff499796beb4b09294",
+      "uncompressedSha256": "5c82e4b69dc215cfe473e1dabaf0ff22c099c99fc9fc9fd0e1b7fec7031ca459",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "dirtyDiagnostic": false
+    }
+  ],
+  "checks": [
+    {
+      "name": "fixed-source original adapter and scientific consumer",
+      "passed": 63,
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e"
+    },
+    {
+      "name": "workflow and required aggregate",
+      "passed": 4,
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e"
+    },
+    {
+      "name": "actual full source history",
+      "status": "passed",
+      "sourceRevision": "7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e",
+      "startedAt": "2026-10-07T12:02:12.220Z",
+      "endedAt": "2026-10-07T12:06:52.499Z"
+    }
+  ],
+  "diagnostics": [
+    {
+      "name": "transport and retained Session authentication",
+      "passed": 50,
+      "dirty": true,
+      "guard": "run-9VoQPB",
+      "sourceRevision": null
+    }
+  ],
+  "runtime": {
+    "node": "22.23.2",
+    "leanPin": "leanprover/lean4:v4.30.0-rc1",
+    "leanWorkers": 1,
+    "host": "local macOS arm64",
+    "productionCheckerTimeoutMs": 30000
+  },
+  "unverified": [
+    "new full three-target pipeline scientific campaign and Linux publication",
+    "live Actions transport and actual full-main qualification",
+    "pipeline isolation and shadow comparison",
+    "limited reuse, related-input fresh execution and net runner savings"
+  ],
+  "inheritedResidual": "Owned-version scanner rejects the existing Native negative token at retained_task_input_wbtest.mbt:782; unchanged by this unit. Previous fixed-source failure is preserved in #815, not repeated or waived here."
+}

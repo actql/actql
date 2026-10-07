@@ -40,3 +40,32 @@ mock. Keep feature-branch/PR originals ineligible for main-origin acquisition.
 The workflow retains all existing scientific, target and capacity audits.
 Local evidence establishes only decoder/transport/checker correspondence, not
 new three-target campaigns, Linux isolation or actual hosted provenance.
+
+## Fixed-source local results
+
+Implementation: `10008d8007bca70cfb0225dc83ee71bfbdc4833c`.
+Declaration and tested clean source: `7bc3c7ae06aa7e982e5996d61ba00da10dfb6d4e`.
+[Preserved summaries and stdout](evidence/2026-10-07-pipeline-transport-local-acceptance.json)
+bind each compressed and uncompressed artifact independently.
+
+At the clean tested source, the existing bounded/nonzero Node wrapper ran the
+archive, original adapter and scientific-audit caller tests: 63/63 passed.
+The changed workflow and existing final aggregate contract tests passed 4/4.
+The actual full repository foundation validator completed successfully in about
+280 seconds. This is local execution time, not hosted net savings. The earlier
+dirty-tree diagnostic passed 50/50, including all 23 retained Session origin
+tests; it is labelled separately rather than attributed to the later clean SHA.
+
+The actual checker used the existing Lean pin with explicit local `-j 1` on
+macOS arm64 and the unchanged production 30-second timeout. Controlled reports
+and API/ZIP fixtures do not establish actual Actions execution or a current
+three-target mutation campaign. The Actions-only publication guard was not
+bypassed for local testing. Fresh publication calls no API; original acquisition
+failures cannot become a prerequisite of the fresh scientific audit.
+
+The inherited owned-version scan failure in the Native negative fixture at
+`retained_task_input_wbtest.mbt:782` remains disclosed in #815. This unit changes
+neither that fixture nor the scanner and does not repeat or waive that failure.
+The next units remain actual execution isolation, independent full-main
+qualification and fresh shadow comparison, limited activation, related-input
+fresh execution, and collection/transfer/authentication-inclusive net savings.
