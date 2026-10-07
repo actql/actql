@@ -28,7 +28,7 @@ test('Table scope binding rejects foreign Preview keys and standalone saved sett
     const operation = seal({...body, logical_request_scope_cid: effect.logicalRequestScopeCid(foreignScope)},
       'request_cid');
     const input = control.bindTableInput(f.prepared, f.inputs, 0, f.artifact,
-      f.identity, foreignScope, canonicalJson(operation), limits);
+      f.identity, foreignScope, canonicalJson(operation), f.storage.wire, limits);
     const draft = structuredClone(f.template);
     draft.effects[0].changes[0].target_row_identity = operation.request_cid;
     draft.effects[0].changes[0].intended_changes.value = operation;

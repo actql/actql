@@ -3287,6 +3287,7 @@ pub fn client_program_bind_table_input(
   identity : @publication_host.ClientEffectLocalIdentity,
   scope : @effect.LogicalRequestScope,
   operation_wire : String,
+  mapping_wire : String,
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
@@ -3294,19 +3295,13 @@ pub fn client_program_bind_table_input(
   @publication_host.ClientTableInput,
   @publication_host.ClientTableInputIssue,
 ] {
-  let physical = match
-    @local_table.issue_table_storage_mapping(
-      @publication_host.client_effect_local_relation_export_receipt(artifact),
+  let reference = match
+    @effect.admit_storage_mapping_reference(
+      RelationKind,
+      mapping_wire,
       max_bytes,
       max_nodes,
       max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(PhysicalMapping)
-  }
-  let reference = match
-    @local_table.storage_mapping_reference(
-      physical, max_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Mapping(issue))
@@ -3318,19 +3313,35 @@ pub fn client_program_bind_table_input(
 }
 
 ///|
-#export_name("clientProgramTableStorageMappingJson")
-pub fn client_program_table_storage_mapping_json(
+#export_name("clientProgramLocalTableStorageMappingJson")
+pub fn client_program_local_table_storage_mapping_json(
   value : @local_table.IcebergStorageMapping,
 ) -> String {
   @local_table.table_storage_mapping_json(value)
 }
 
 ///|
-#export_name("clientProgramTableStorageMappingCid")
-pub fn client_program_table_storage_mapping_cid(
+#export_name("clientProgramLocalTableStorageMappingCid")
+pub fn client_program_local_table_storage_mapping_cid(
   value : @local_table.IcebergStorageMapping,
 ) -> String {
   @local_table.table_storage_mapping_cid(value)
+}
+
+///|
+#export_name("clientProgramAdmitLocalTableStorageMapping")
+pub fn client_program_admit_local_table_storage_mapping(
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @local_table.IcebergStorageMapping,
+  @local_table.IcebergStorageMappingIssue,
+] {
+  @local_table.admit_table_storage_mapping(
+    wire, max_bytes, max_nodes, max_depth,
+  )
 }
 
 ///|
@@ -3384,16 +3395,13 @@ pub fn client_program_bind_recovered_table_preview(
   @publication_host.RecoveredClientTablePreview,
   @publication_host.ClientTableInputIssue,
 ] {
-  let physical = match
-    @local_table.admit_table_storage_mapping(
-      mapping_wire, table_max_bytes, table_max_nodes, table_max_depth,
-    ) {
-    Ok(value) => value
-    Err(_) => return Err(PhysicalMapping)
-  }
   let reference = match
-    @local_table.storage_mapping_reference(
-      physical, table_max_bytes, table_max_nodes, table_max_depth,
+    @effect.admit_storage_mapping_reference(
+      RelationKind,
+      mapping_wire,
+      table_max_bytes,
+      table_max_nodes,
+      table_max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Mapping(issue))

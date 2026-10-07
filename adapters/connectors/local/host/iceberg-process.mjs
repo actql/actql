@@ -26,6 +26,16 @@ export function projectIcebergCommitResponse({control, responseWire, statusCode,
   return control.localTableCommitResponse(responseWire, statusCode, limits);
 }
 
+// These physical-contract hooks are selected with this Connector. Shared
+// input/capture owners retain their opaque result, never issue Iceberg fields.
+export function issueIcebergStorageMapping({control, artifact, limits}) {
+  return control.localEffectTableStorageMapping(artifact, limits);
+}
+
+export function admitIcebergStorageMapping({control, mappingWire, limits}) {
+  return control.admitLocalTableStorageMapping(mappingWire, limits);
+}
+
 export function createIcebergPhysicalBridge({python, run, catalog,
   entry = new URL('../iceberg/process_worker.py', import.meta.url)}) {
   const config = snapshot(catalog);
@@ -79,6 +89,8 @@ export function createIcebergPhysicalBridge({python, run, catalog,
     return invoke('reconcile', payload, signal);
   };
   const bridge = Object.freeze({
+    issueStorageMapping: issueIcebergStorageMapping,
+    admitStorageMapping: admitIcebergStorageMapping,
     projectCommitResponse: projectIcebergCommitResponse,
     // Pure installed-target validation. A selector binds a Table, not a read
     // grant or a generation; only the authorized resolver freezes a head.

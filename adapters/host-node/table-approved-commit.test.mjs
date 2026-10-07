@@ -13,7 +13,8 @@ import {ensureCheckpointRuntime, accountConfiguration, accountEntry} from './aut
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
 import {preparePinnedEffectSourceHoldings, readPinnedEffectTableInput} from './effect-input-export.mjs';
-import {createIcebergPhysicalBridge} from '../connectors/local/host/iceberg-process.mjs';
+import {createIcebergPhysicalBridge, issueIcebergStorageMapping, admitIcebergStorageMapping}
+  from '../connectors/local/host/iceberg-process.mjs';
 import {prepareCapturedTableCommit, prepareRecoveredTableCommit, bindApprovedTableCommitDispatch,
   refreshCapturedTableTargets, capturedTableCommitPhysicalStatus,
   cleanupCapturedTableCommit} from './table-commit-apply.mjs';
@@ -53,6 +54,8 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
         // captured owners. The independently authored fixture remains the
         // oracle for operation material, not the installed Preview producer.
         const authored = authorTableOperationPreview({moon, control,
+          bridge: {issueStorageMapping: issueIcebergStorageMapping,
+            admitStorageMapping: admitIcebergStorageMapping},
           prepared: f.prepared, inputs: f.inputs, checkedHost: f.checkedHost,
           requestScope: f.scope,
           context: {runDefinition: f.definition, runInvocation: f.invocation,
@@ -113,6 +116,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
         };
         const bridge = createIcebergPhysicalBridge({python, run: 'captured-table', catalog});
         const tableInputs = [], tablePreviews = [], materials = [], members = [];
+        const issuedBeforeDispatch = f.mappingIssuanceCount();
         const preview = JSON.parse(f.authored._0);
         for (const [index, member] of preview.effects.entries()) {
           const identity = authored.identities[index];
@@ -142,6 +146,8 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
           holding: retained.holdings[0], tableInput: f.tableInput, identity: f.identity,
           tablePreview: f.tablePreview, bridge, reservation: {bytes: 1048576, files: 16},
           maxBytes: 100000, limits});
+        assert.equal(f.mappingIssuanceCount(), issuedBeforeDispatch,
+          'Dispatch must reuse the approved mapping, not issue a new one');
         assert.deepEqual(capturedTableCommitPhysicalStatus(discarded),
           {attempted: false, stopped: false});
         assert.deepEqual(await cleanupCapturedTableCommit({prepared: discarded}),
@@ -223,7 +229,7 @@ for (const [empty, sparseTableInput] of [[false, false], [true, false], [false, 
             assert.equal(recovered.computation.capturedRun.identity, computation.capturedRun.identity);
             for (let index = 0; index < tableInputs.length; index++) {
               const recoveredInput = await prepareRecoveredTableInput({recovered, store: activeStore,
-                control, memberIndex: index, requestScope: f.scope,
+                control, bridge, memberIndex: index, requestScope: f.scope,
                 contractLimits: f.options.contractLimits, tableLimits: limits});
               assert.equal(recoveredInput.operationWire, tableInputs[index].wire);
               assert.equal(recoveredInput.mappingWire, f.storage.wire);

@@ -4,7 +4,6 @@ pub(all) enum ClientTableInputIssue {
   ForeignIdentity
   NotStore
   Mapping(@effect.TableContractIssue)
-  PhysicalMapping
   Operation(@effect.TableContractIssue)
   ForeignInput
   Preview(@effect.TablePreviewIssue)

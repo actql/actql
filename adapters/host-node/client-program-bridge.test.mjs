@@ -5839,10 +5839,15 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             metadata_delete_by: '2026-09-24T04:00:00.000Z',
             clock_contract_cid: cid('0')}), publicationLimits);
         const issuedArguments = [];
+        let mappingIssuanceCount = 0;
         const issuerName = privateTableInput ?
           'issueSourceFreeLocalEffectTableArtifact' :
           'issueSourceFreeLocalEffectResultArtifact';
         const issuerControl = Object.freeze({...control,
+          localEffectTableStorageMapping(...args) {
+            mappingIssuanceCount++;
+            return control.localEffectTableStorageMapping(...args);
+          },
           [issuerName](...args) {
             if (distinctResults && issuedArguments.length === 1) {
               // Equal Result values do not let the first preparation claim
@@ -5934,10 +5939,24 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
           operation.request_cid = canonicalHashWithoutSelf(operation,
             'request_cid');
           const bind = wire => control.bindTableInput(prepared, inputs, 0,
-            artifact, identity, scope, wire, tableLimits);
+            artifact, identity, scope, wire, storage.wire, tableLimits);
           if (writeKind === 'store') {
             const boundTable = bind(canonicalJson(operation));
             assert.equal(boundTable.wire, canonicalJson(operation));
+            // Shared binding validates content/schema correspondence without
+            // interpreting the selected Connector's physical mapping fields.
+            const opaqueBody = {version: 'fixture-physical-mapping/0.1',
+              schema_cid: input.result_schema_cid, backend_field: 'opaque'};
+            const opaque = {...opaqueBody,
+              mapping_cid: canonicalHashWithoutSelf(opaqueBody, 'mapping_cid')};
+            const opaqueOperation = {...operation, storage_mapping_cid: opaque.mapping_cid};
+            opaqueOperation.request_cid = canonicalHashWithoutSelf(opaqueOperation, 'request_cid');
+            const opaqueBound = control.bindTableInput(prepared, inputs, 0,
+              artifact, identity, scope, canonicalJson(opaqueOperation),
+              canonicalJson(opaque), tableLimits);
+            assert.equal(control.tableInputStorageMappingWire(opaqueBound), canonicalJson(opaque));
+            assert.throws(() => control.admitLocalTableStorageMapping(
+              canonicalJson(opaque), tableLimits), {code: 'MoonBitHostFailure'});
             assert.equal(control.tableInputMatchesSource(boundTable,
               artifact, identity), true);
             const otherIdentity = control.issueSourceFreeLocalEffectIdentity(
@@ -5956,11 +5975,11 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
                 {code: 'MoonBitHostFailure'});
             }
             assert.throws(() => control.bindTableInput(prepared, inputs, 1,
-              artifact, identity, scope, canonicalJson(operation), tableLimits),
+              artifact, identity, scope, canonicalJson(operation), storage.wire, tableLimits),
             {code: 'MoonBitHostFailure'});
             assert.throws(() => control.bindTableInput(prepared, inputs, 0,
               artifact, {...identity}, scope, canonicalJson(operation),
-              tableLimits), {name: 'TypeError'});
+              storage.wire, tableLimits), {name: 'TypeError'});
 
             // A Table is one operation even when its checked Relation is empty.
             // Reuse the ordinary checked Run/Preview and item-key owners; no
@@ -6016,6 +6035,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             const tablePreview = control.bindTablePreview(tableInput,
               captured, 0);
             await onTablePreview?.({moon, control, sourceControl: issuerControl,
+              mappingIssuanceCount: () => mappingIssuanceCount,
               effect, prepared, inputs, artifact, identity, sources, store,
               checkedHost: owned,
               captured, tableInput, tablePreview, template, authored, bindPreview,

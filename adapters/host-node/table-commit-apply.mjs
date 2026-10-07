@@ -56,8 +56,7 @@ export async function prepareCapturedTableCommit({control, store, holding,
     fail('UnavailableTableCommitInput');
   }
   const operation = JSON.parse(binding.operationWire);
-  const mapping = JSON.parse(control.localEffectTableStorageMapping(
-    holding.localResultArtifact, limits).wire);
+  const mapping = JSON.parse(control.tableInputStorageMappingWire(tableInput));
   // Pure bounded preparation, before any durable send claim. No Catalog I/O.
   const schemaWire = control.tableInputSchemaWire(tableInput);
   const physical = bridge.prepareWrite({operation, mapping, rows, reservation, schemaWire});

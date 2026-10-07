@@ -40,6 +40,8 @@ import {recoverCompletedEffectfulComputation, prepareCompletedEffectfulPublicati
   suspendCompletedEffectfulComputation} from './adapters/host-common/completed-run-publication.mjs';
 import {prepareRecoveredTableInput, readRecoveredTableInput}
   from './adapters/host-node/table-capture-recovery.mjs';
+import {admitIcebergStorageMapping}
+  from './adapters/connectors/local/host/iceberg-process.mjs';
 const input = JSON.parse(fs.readFileSync(0, 'utf8'));
 const control = runtimeCore(moon).publicationControl;
 const physicalStore = await openLocalPublicationStore({...input.store,
@@ -66,7 +68,13 @@ const inventory = prepareCompletedEffectfulPublication({execution: null, store, 
 const effect = runtimeCore(moon).effectApplicationControl;
 const scope = effect.logicalRequestScope('sha256:' + 'e'.repeat(64), 'table-bind', 128);
 const options = {recovered, store, control, memberIndex: 0, requestScope: scope,
-  contractLimits: input.limits, tableLimits: input.tableLimits};
+  contractLimits: input.limits, tableLimits: input.tableLimits,
+  bridge: {admitStorageMapping: admitIcebergStorageMapping}};
+await assert.rejects(prepareRecoveredTableInput({...options, bridge: undefined}),
+  {code: 'MissingTableMappingValidator'});
+await assert.rejects(prepareRecoveredTableInput({...options,
+  bridge: {admitStorageMapping: values => ({wire: values.mappingWire + ' '})}}),
+  {code: 'ForeignTableRecoveryMapping'});
 const table = await prepareRecoveredTableInput(options);
 const tableRows = await readRecoveredTableInput({prepared: table, maxBytes: 100000});
 const tableBinding = control.tablePreviewLedgerBinding(table.tablePreview);

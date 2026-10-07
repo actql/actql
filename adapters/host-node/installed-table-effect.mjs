@@ -92,7 +92,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
     !Array.isArray(targets) || targets.length === 0 ||
     typeof authorization?.authorize !== 'function' ||
     !['prepareWrite','execute','inspect','cleanup','status','reconcileOperation',
-      'projectCommitResponse']
+      'projectCommitResponse','issueStorageMapping','admitStorageMapping']
       .every(name => typeof bridge?.[name] === 'function') ||
     Object.values(limits).some(value => typeof value === 'object'
       ? Object.values(value).some(bound => !positive(bound)) : !positive(value))) {
@@ -296,7 +296,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
           run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
       if (sources.dependencies !== undefined) retainPinnedEffectDependencyPayloads({sources,
         execution, store, storedResults, control, runDefinition: plan.runDefinition});
-      const authored = authorTableOperationPreview({moon, control, prepared, inputs,
+      const authored = authorTableOperationPreview({moon, control, prepared, inputs, bridge,
         checkedHost, requestScope, context: {...context, storeAuthorityCid: store.storeAuthorityCid},
         members: descriptors.map((entry,index) => ({stageIndex: unit.stageIndex,
           effectId: entry.effectId, payload: sources.members[index].payload, target: targets[index]})), limits});
@@ -429,7 +429,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
       for (let index=0; index<targets.length; index++) {
         const input = await prepareRecoveredTableInput({recovered: durable, store,
           control, memberIndex: index, requestScope, contractLimits: localContractLimits,
-          tableLimits: limits.material, signal});
+          tableLimits: limits.material, bridge, signal});
         recoveredInputs.push(input);
         const schema = await store.putPreparedResultSchema(input.schemaWire,
           JSON.parse(input.operationWire).schema_cid, inventory.chain.runDefinition.identity);

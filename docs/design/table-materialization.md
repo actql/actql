@@ -174,6 +174,12 @@ but foreign captured owner, or a resealed request with substituted input facts
 cannot supply that binding. The binding retains the existing owners; it does
 not establish a second input-custody or execution owner.
 
+The selected Connector issues and admits its physical storage mapping before
+binding. Shared input admission validates only the exact mapping CID, schema
+CID and Carrier kind; it does not issue or interpret backend field layouts.
+The first Table consumer accepts Relation input only. References for other
+Carrier kinds do not establish a supported writer or authorize flattening.
+
 This is input/content binding only. Target installation, approval, current
 authority, retained source availability, durable dispatch and Catalog commit
 remain separate gates. A valid binding must never be interpreted as permission
@@ -202,6 +208,10 @@ The member count is one even for zero input rows. The request CID correlation,
 required approval and expected-generation guard are sealed before apply.
 Authoring does not stage files, dispatch, establish current authorization or
 replace the installed capability's separate admission.
+
+The selected bridge supplies synchronous `issueStorageMapping` and
+`admitStorageMapping` hooks. Live commit preparation reuses the bound mapping
+bytes rather than issuing a new physical layout after approval.
 
 The Table Preview's `result_artifact_cid` names the semantic completed Result
 Artifact bound by the operation. Its separate source binding comes from the
@@ -242,8 +252,9 @@ member. The closed material record contains `mapping_wire`, `operation_wire`
 and `schema_wire`; omitted schema material is refused without reconstruction.
 A recovered typed
 Table view derives the operation from that member's sealed Preview, re-admits
-the exact mapping, and matches the original request scope, semantic Result
-Artifact, schema, logical Relation, policy and physical source occurrence.
+the exact mapping through the selected Connector's `admitStorageMapping`,
+without regeneration or substitution, and matches the original request scope,
+semantic Result Artifact, schema, logical Relation, policy and physical source occurrence.
 Capture validation and Table material admission have separate explicit limits;
 recovery does not widen the Table contract's limits. Missing material or a
 different operation is a refusal, not a request to regenerate Compute or schema.
@@ -416,11 +427,10 @@ responsibility intact. The Ledger saves the original physical bytes, not the
 projected logical envelope. Projection neither authorizes another send nor
 replaces the original response during recovery.
 
-The narrow machine contract and bounded common admission below specify the
-operation and receipt; they do not claim ordinary Program execution is already
-connected. Subsequent units implement the real writer/Catalog transaction, bulk
-Effect lowering/application and published Local/HTTPS acceptance. Existing
-unsupported-Effect guards stay in place until that full consumer boundary closes.
+The machine contracts and bounded common admission specify the supported
+operation and receipt boundaries. A Connector must connect its declared
+operation/Carrier combination to the existing writer, capture and Effect
+owners; unsupported combinations are refused before staging or dispatch.
 SQL/Pipe/CTAS use the same checked action via the Frontend owner, not a second
 writer. Public acceptance must cover approval, response loss, process restart,
 concurrent replace, later commits, missing/NULL/value, typed empty input and
