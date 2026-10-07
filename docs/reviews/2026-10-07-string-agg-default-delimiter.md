@@ -66,12 +66,40 @@ These are focused execution, not full Core or CI success.
 
 ## Public acceptance
 
-Pending a clean source commit and its normally prepacked five-package manifest.
-Use the existing `--aggregate-property-order-only` runner; compare Named Result
-rows, describe type/nullability/column order, stream completion, one Source
-acquisition, same-request Run identity and no acquisition on reread/attach.
-Preparation refusals require zero admission and provider acquisition. Preserve
-the existing demanded-expression failure with no partial Result.
+Source SHA: `697f18fc11a971329868b38c77dc65d4b8969b2a`. Normally prepacked
+manifest: `/private/tmp/actql-b-string-agg-default-697f18fc1-pack/packed-client-packages.json`.
+The final report-only commit changes no runtime or acceptance fixture input;
+the execution evidence remains tied to the source SHA rather than being renamed.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-string-agg-default-697f18fc1-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-string-agg-default-697f18fc1-pack node scripts/test-packed-public-query.mjs --aggregate-property-order-only
+```
+
+Both commands used pinned PATH/MOON_HOME, the existing private npm cache,
+offline dependency installation and optional dependencies. No prepack was
+skipped and no adapter overlay or lowered-Program patch was used.
+
+External Embedded Local and public HTTPS each passed 17 normal cases, seven
+preparation refusals and one deliberate demanded-expression execution failure.
+Named Result rows, describe type/nullability/column order, stream completion,
+one Source acquisition, same-request Run identity and no acquisition on
+reread/attach were checked. Refusals verified zero admission/provider
+acquisition; the execution failure verified no partial Result.
+
+Receipt: `worktrees/.codex-scratch/public-query-evidence-kqjMMY`, passed/complete,
+no evidence errors; this run's temporary installation was removed. Command 008
+exited 0 in 276334 ms. The existing runner also passed 11 profile checks and
+README/SDK-asset smoke checks. Protected untracked `review-artifacts` explains
+the receipt's dirty flag; tracked source and all package build inputs were clean.
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `0212e9f37cde525589a0e8d48b62151e73ce53153ef75948974cb9f672659523` |
+| sdk | `fe085d7d7e2cce344c2c4daf18f33ca477dcee9189e96552816cf9eee6b10972` |
+| run-host-core | `c30ec73dbc24d074d9d887b0eaab3387b95d55cd4b5ac11879cfe5775f7542de` |
+| local-node | `8222ae51ec98e8588fe10fd0daf9ac81fc42383d1fbc619cf8d906269f8cc9fa` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 Keep Draft until review and required verification. Full Core, Wasm/Native,
 proof, broad packed, performance and Cloud execution are unverified. No manual
