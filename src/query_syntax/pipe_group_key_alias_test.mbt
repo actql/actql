@@ -5,13 +5,15 @@ test "Pipe grouping-key aliases retain authored names without changing expressio
       "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id AS bucket, amount", "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id bucket, amount",
     ] {
     let query = parse_query(source, query_limits()).unwrap()
-    guard operation_at(query, 0) is Some(Group(keys, _, PipeAggregate(names))) else {
+    guard operation_at(query, 0)
+      is Some(Group(keys, _, PipeAggregate(names, _))) else {
       fail("grouping names belong to the Pipe output scope")
     }
     assert_eq(names, [Some({ value: "bucket", quoted: false, }), None])
     assert_eq(keys.length(), 2)
     names.clear()
-    guard operation_at(query, 0) is Some(Group(_, _, PipeAggregate(retained))) else {
+    guard operation_at(query, 0)
+      is Some(Group(_, _, PipeAggregate(retained, _))) else {
       fail("the query retains its grouping metadata")
     }
     assert_eq(retained.length(), 2)
@@ -24,7 +26,7 @@ test "Pipe grouping-key aliases preserve quoting and remain distinct from SQL GR
     "FROM records |> AGGREGATE GROUP BY id AS `GROUP`",
     query_limits(),
   ).unwrap()
-  guard operation_at(query, 0) is Some(Group(_, _, PipeAggregate(names))) else {
+  guard operation_at(query, 0) is Some(Group(_, _, PipeAggregate(names, _))) else {
     fail("the explicit quoted key alias is retained")
   }
   assert_eq(names, [Some({ value: "GROUP", quoted: true, })])

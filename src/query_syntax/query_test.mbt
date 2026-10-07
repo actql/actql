@@ -19,7 +19,7 @@ test "SQL grouping and Pipe aggregation retain their distinct column scopes" {
       ),
       (
         "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id",
-        GroupingScope::PipeAggregate([None]),
+        GroupingScope::PipeAggregate([None], []),
       ),
     ] {
     let query = parse_query(text, query_limits()).unwrap()
@@ -276,8 +276,7 @@ test "SQL set operators keep explicit multiplicity and final ordering" {
 test "OVER syntax rejects unknown windows and unsupported frame kinds" {
   for
     text in [
-      "SELECT ROW_NUMBER() OVER w AS pos FROM rows",
-      "SELECT ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
+      "SELECT ROW_NUMBER() OVER w AS pos FROM rows", "SELECT ROW_NUMBER() OVER (ORDER BY id RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id GROUPS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS pos FROM rows",
       "SELECT ROW_NUMBER() OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW EXCLUDE CURRENT ROW) AS pos FROM rows",
     ] {
