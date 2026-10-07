@@ -294,7 +294,7 @@ test "captured evidence cancellation retires private checks without retiring inp
   }
   let captured = issuer.finish().unwrap()
   let original = publication_contract_json(captured)
-  for phase in ["context-check", "rows-check"] {
+  for phase in ["root-check", "receipt-check", "context-check", "rows-check"] {
     let check = captured_validation_test_start(chain, captured)
     let mut reached = false
     for _ in 0..<100000 {
@@ -329,6 +329,60 @@ test "captured evidence cancellation retires private checks without retiring inp
     4096,
     32,
   ).unwrap()
+}
+
+///|
+test "captured receipt checking yields before context with admitted Model evidence" {
+  let chain = captured_run_test_chain(with_model=true)
+  let snapshot = admit_captured_result_snapshot(
+    chain.definition,
+    chain.artifact,
+    "[{\"value\":7}]",
+    ["value"],
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let captured = issue_effect_free_captured_run(
+    chain.run,
+    chain.invocation,
+    [chain.definition],
+    [chain.artifact],
+    chain.manifest,
+    chain.receipt,
+    [snapshot],
+    [],
+    chain.authoring,
+    chain.models,
+    65536,
+    4096,
+    32,
+  ).unwrap()
+  let original = publication_contract_json(captured)
+  let check = captured_validation_test_start(chain, captured)
+  let mut receipt_polls = 0
+  for _ in 0..<10000 {
+    let (done, used) = check.advance(1).unwrap()
+    assert_eq(used, 1)
+    assert_true(!done)
+    let phase = computation_evidence_check_fixture_phase(check)
+    assert_true(phase != "context-check")
+    if phase == "receipt-check" {
+      receipt_polls += 1
+      if receipt_polls > 64 {
+        break
+      }
+    }
+  }
+  assert_eq(receipt_polls, 65)
+  check.cancel()
+  assert_eq(computation_evidence_check_fixture_phase(check), "closed")
+  assert_eq(publication_contract_json(captured), original)
+  let replay = captured_validation_test_start(chain, captured)
+  while !replay.advance(7).unwrap().0 {
+    ()
+  }
+  replay.finish().unwrap()
 }
 
 ///|
