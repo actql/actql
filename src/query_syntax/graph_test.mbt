@@ -71,7 +71,7 @@ test "Graph MATCH rejects open, repeated and unowned patterns" {
     text in [
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->+(b) |> SELECT a.id", "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,}(b) |> SELECT a.id",
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,1}(b)-[:R]->(c) |> SELECT a.id",
-      "FROM GRAPH g |> MATCH ACYCLIC (a)-[e:R]->{1,2}(b) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a)-[:R]->{1,2}(b) |> SELECT a.id",
+      "FROM GRAPH g |> MATCH ACYCLIC (a)-[e:R]->{1,2}(b) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a)-[:R]->{2,1}(b) |> SELECT a.id",
       "FROM GRAPH g |> MATCH UNKNOWN (a) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a) |> MATCH WALK (b) |> SELECT a.id",
       "FROM rows |> MATCH WALK (a) |> SELECT a.id", "FROM GRAPH g |> SELECT id",
     ] {
@@ -160,7 +160,7 @@ test "Graph path mode defaults to WALK without changing shape or source bounds" 
   assert_eq(path.edges[0].direction, "out")
   assert_true(
     parse_query(
-      "FROM GRAPH g |> MATCH p = (a)-[:R]->{1,2}(b) |> SELECT PATH_LENGTH(p) AS depth",
+      "FROM GRAPH g |> MATCH p = (a)-[:R]->{2,1}(b) |> SELECT PATH_LENGTH(p) AS depth",
       query_limits(),
     )
     is Err(_),
