@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {exchangeLimits, observeResponseHeaders, ownHttpRequest,
+import {checkHttpRequestMethodBody, exchangeLimits, observeResponseHeaders, ownHttpRequest,
   ownRequestHeaders, ownResponseHeaderNames, requestTarget} from
   './http-exchange.mjs';
 
@@ -50,12 +50,50 @@ test('an owned request fixes method, target, headers and body together', () => {
     headers: [['user-agent', 'u']], body: '{}'});
   assert.deepEqual(ownHttpRequest({method: 'GET', path: '/x'}),
     {method: 'GET', target: '/x', headers: []});
-  assert.throws(() => ownHttpRequest({method: 'DELETE', path: '/x'}),
+  assert.throws(() => ownHttpRequest({method: 'TRACE', path: '/x'}),
     {code: 'InvalidHttpRequestMethod'});
   assert.throws(() => ownHttpRequest({method: 'GET', path: '/x', body: '{}'}),
     {code: 'InvalidHttpRequestBody'});
   assert.throws(() => ownHttpRequest({method: 'POST', path: '/x',
     body: Buffer.from('{}')}), {code: 'InvalidHttpRequestBody'});
+});
+
+test('shared method/body rules preserve legacy shapes and bound new methods', () => {
+  for (const method of ['GET', 'DELETE']) {
+    assert.deepEqual(ownHttpRequest({method, path: '/items/1'}),
+      {method, target: '/items/1', headers: []});
+    assert.doesNotThrow(() => checkHttpRequestMethodBody(method, undefined,
+      {requireBody: true}));
+    for (const body of ['', '{}', null, Buffer.from('{}')]) {
+      assert.throws(() => ownHttpRequest({method, path: '/items/1', body}),
+        {code: 'InvalidHttpRequestBody'});
+    }
+  }
+  for (const method of ['POST', 'PATCH', 'PUT']) {
+    for (const body of ['', '{}', '{"name":"café"}']) {
+      assert.deepEqual(ownHttpRequest({method, path: '/items/1', body}),
+        {method, target: '/items/1', headers: [], body});
+      assert.doesNotThrow(() => checkHttpRequestMethodBody(method, body,
+        {requireBody: true}));
+    }
+    for (const body of [null, 0, {}, Buffer.from('{}')]) {
+      assert.throws(() => ownHttpRequest({method, path: '/items/1', body}),
+        {code: 'InvalidHttpRequestBody'});
+    }
+    assert.throws(() => checkHttpRequestMethodBody(method, undefined,
+      {requireBody: true}), {code: 'InvalidHttpRequestBody'});
+  }
+  for (const method of ['POST', 'PATCH']) {
+    assert.deepEqual(ownHttpRequest({method, path: '/items/1'}),
+      {method, target: '/items/1', headers: []},
+      'the typed legacy envelope still allows an absent body');
+  }
+  assert.throws(() => ownHttpRequest({method: 'PUT', path: '/items/1'}),
+    {code: 'InvalidHttpRequestBody'});
+  for (const method of ['HEAD', 'OPTIONS', 'TRACE', 'put', 'delete', '', null]) {
+    assert.throws(() => checkHttpRequestMethodBody(method, undefined),
+      {code: 'InvalidHttpRequestMethod'});
+  }
 });
 
 test('response header observation admits only declared names under caps', () => {

@@ -203,7 +203,9 @@ const held = () => ({kind: 'held', requestId: 'saved', prepareAttemptId: 'origin
   state: 'resuming', durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
 const lookup = () => ({kind: 'found', requestId: 'saved', ref: {...ref},
   durability: 'durable', lookupExpiresAt: '2099-01-01T00:00:00.000Z'});
-const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7});
+const originalCancellation = {cancelId: 'captured-cancel', expectedRevision: 6};
+const cancellation = () => ({kind: 'accepted', ref: {...ref}, revision: 7,
+  cancelRef: {...ref, ...originalCancellation}});
 async function responseFixture(t, reply) {
   const operations = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
@@ -239,7 +241,7 @@ const paths = [
   assert: answer => assert.deepEqual({held: answer.held.prepareAttemptId,
     explanation: sdk.explainSubmission(answer).prepareAttemptId},
   {held: 'original-attempt', explanation: 'original-attempt'}, '[check-mutation:response-capture-held]')},
-  {name: 'cancel', reply: cancellation, call: f => f.run.cancel(), code: 'InvalidHostCancellation',
+  {name: 'cancel', reply: cancellation, call: f => f.run.cancel(originalCancellation), code: 'CancellationUnknown',
     key: 'kind', first: 'accepted', later: 'already_terminal',
     assert: answer => assert.deepEqual({kind: answer.kind, revision: answer.revision,
       observation: sdk.explainCancellation(answer).observation},
@@ -258,7 +260,7 @@ const paths = [
     assert: answer => assert.deepEqual({context: answer.report.context_ref,
       revision: sdk.getCheckInput(answer, 'source').revision},
     {context: 'ctx:independent-schema-pin', revision: 'rev:' + '1'.repeat(64)}, '[check-mutation:response-capture-check]')},
-  {name: 'cancelRequest', reply: () => ({...cancellation(), requestId: 'saved'}),
+  {name: 'cancelRequest', reply: () => ({kind: 'accepted', ref: {...ref}, revision: 7, requestId: 'saved'}),
     call: f => f.client.cancelRequest('saved'), code: 'CancellationUnknown',
     key: 'kind', first: 'accepted', later: 'already_terminal',
     assert: answer => assert.deepEqual({kind: answer.kind,

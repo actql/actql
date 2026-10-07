@@ -249,3 +249,67 @@ pub fn client_run_cancellation_confirmed(
     revision_unchanged,
   })
 }
+
+///|
+#export_name("clientCancellationAdmitRecord")
+pub fn client_cancellation_admit_record(
+  namespace_id : String,
+  authority_scope_cid : String,
+  cancel_id : String,
+  run_definition : @publication.PublicationContract,
+  expected_revision : Int,
+) -> @publication_host.ClientCancellationIdentity? {
+  match
+    @publication_host.prepare_client_cancellation_identity(
+      namespace_id, authority_scope_cid, cancel_id, run_definition, expected_revision,
+    ) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
+#export_name("clientCancellationIntentCid")
+pub fn client_cancellation_intent_cid(
+  value : @publication_host.ClientCancellationIdentity,
+) -> String {
+  @publication_host.client_cancellation_intent_cid(value)
+}
+
+///|
+#export_name("clientCancellationOperationAction")
+pub fn client_cancellation_operation_action(
+  requested : @publication_host.ClientCancellationIdentity,
+  retained : @publication_host.ClientCancellationIdentity,
+  has_retained : Bool,
+  run_definition : @publication.PublicationContract,
+  current_revision : Int,
+  current_authorization : Bool,
+  terminal_observed : Bool,
+  cancellation_requested : Bool,
+) -> Int {
+  match
+    @publication_host.prepare_client_cancellation_operation(
+      requested,
+      if has_retained {
+        Some(retained)
+      } else {
+        None
+      },
+      run_definition,
+      current_revision,
+      current_authorization,
+      terminal_observed,
+      cancellation_requested,
+    ) {
+    Ok(RecordCancellation(AcceptCancellation)) => 0
+    Ok(RecordCancellation(AlreadyRequested)) => 1
+    Ok(RecordCancellation(AlreadyTerminal)) => 2
+    Ok(ReplayOriginalCancellation) => 3
+    Err(ChangedIntent) => 4
+    Err(DifferentOperation) => 5
+    Err(RevisionConflict) => 6
+    Err(AuthorizationDenied) => 7
+    Err(ForeignRunDefinition) => 8
+  }
+}
