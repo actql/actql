@@ -30,17 +30,30 @@ export function nativeFunctionRanges(entries, names) {
 export function extractNativeRanges(text, ranges) {
   const marker = 'Disassembly of section .text:';
   assert.equal(text.split(marker).length, 2, 'Missing or repeated Native text disassembly');
-  const rows = [], body = text.slice(text.indexOf(marker) + marker.length);
-  let address;
+  const body = text.slice(text.indexOf(marker) + marker.length);
+  const sorted = [...ranges].sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+  const bodies = new Map(sorted.map(range => [range.name, []]));
+  assert.equal(bodies.size, sorted.length, 'Duplicate extracted Native function');
+  for (let index = 0; index < sorted.length; index++) {
+    assert(sorted[index].start < sorted[index].end, 'Empty selected Native function range');
+    if (index > 0) assert(sorted[index].start >= sorted[index - 1].end, 'Overlapping extracted Native ranges');
+  }
+  let address, index = 0;
   for (const line of body.split('\n')) {
     const match = line.match(/^\s*([0-9a-f]+)(?: <[^>]+>)?:/);
-    if (match) address = BigInt(`0x${match[1]}`);
+    if (match) {
+      const next = BigInt(`0x${match[1]}`);
+      assert(address === undefined || next >= address, 'Regressive Native disassembly addresses');
+      address = next;
+      while (index < sorted.length && address >= sorted[index].end) index++;
+    }
     else assert(line.trim() === '', 'Unaddressed Native disassembly output');
-    if (address !== undefined) rows.push({address, line});
+    if (index < sorted.length && address !== undefined && address >= sorted[index].start)
+      bodies.get(sorted[index].name).push(line);
   }
   const selected = new Map();
   for (const range of ranges) {
-    const lines = rows.filter(row => row.address >= range.start && row.address < range.end).map(row => row.line);
+    const lines = bodies.get(range.name);
     while (lines.at(-1)?.trim() === '') lines.pop();
     const opening = lines[0]?.match(/^([0-9a-f]+) <([^>]+)>:$/);
     assert(opening && BigInt(`0x${opening[1]}`) === range.start && opening[2] === range.name,

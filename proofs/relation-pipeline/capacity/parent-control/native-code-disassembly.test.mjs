@@ -74,3 +74,10 @@ test('64-bit addresses remain exact rather than becoming rounded Number offsets'
   assert.equal(range.end,0x20000000000011n);
   assert.equal(extractNativeRanges(marker+'20000000000001 <first>:\n 20000000000001: ret\n',[range]).size,1);
 });
+test('single-pass extraction rejects regressive addresses and overlapping requested ranges',()=>{
+  const ranges=nativeFunctionRanges(entries,['first','second']);
+  assert.throws(()=>extractNativeRanges(batch.replace(' 106: ret',' 100: ret'),ranges),/Regressive/);
+  assert.throws(()=>extractNativeRanges(batch,[ranges[0],{...ranges[1],start:0x108n}]),/Overlapping/);
+  assert.throws(()=>extractNativeRanges(batch,[ranges[0],ranges[0]]),/Duplicate/);
+  assert.throws(()=>extractNativeRanges(batch,[{...ranges[0],end:0x100n}]),/Empty/);
+});
