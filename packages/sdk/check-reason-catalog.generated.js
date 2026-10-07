@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-10-07.1",
-  "reasonSchemaCid": "sha256:d9639a46b9b524e0655a11a04fde8043241487b1375286f7383bee700c654e9c"
+  "revision": "2026-10-07.2",
+  "reasonSchemaCid": "sha256:672a0158dfe91c7525eb7d02efbcf80b0094a05ecfa2b42fe08df945dd26fa53"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {
@@ -286,6 +286,31 @@ const entries = freeze({
       }
     ]
   },
+  "checking_context_missing": {
+    "code": "checking_context_missing",
+    "condition": "A known checking-context input is missing under the original bound scope; this is not a supplied parameter violation.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Known public checking-context selection only; no selected policy values, private Source facts or environment path is disclosed.",
+    "locations": [],
+    "default_severity": "warning",
+    "family": "limit",
+    "examples": [
+      {
+        "file": "adapters/host-node/client-check.test.mjs",
+        "scenario": "Missing public Host capacity selection stays undetermined; supplying a new admitted environment triggers ordinary rechecking."
+      }
+    ],
+    "presentation": {
+      "default": {
+        "key": "reason.checking_context_missing",
+        "english": [
+          "Required checking-context inputs are missing.",
+          "Review the disclosed Requirement with the checking-context owner; supplying an unrelated parameter does not fulfill it."
+        ]
+      },
+      "variants": []
+    }
+  },
   "expression_type_mismatch": {
     "code": "expression_type_mismatch",
     "condition": "An expression violates its required argument type.",
@@ -397,6 +422,31 @@ const entries = freeze({
         "scenario": "Graph components expose typed argument violations"
       }
     ]
+  },
+  "host_capacity_policy_required": {
+    "code": "host_capacity_policy_required",
+    "condition": "The existing common checker issued HostCapacityPolicy while checking the bound input; it does not prove the remaining Program or a template scope.",
+    "facts_schema": "#/reason_schema",
+    "disclosure": "Known public checking-context selection only; no selected policy values, private Source facts or environment path is disclosed.",
+    "locations": [],
+    "default_severity": "info",
+    "family": "requirement",
+    "examples": [
+      {
+        "file": "adapters/host-node/client-check.test.mjs",
+        "scenario": "Missing public Host capacity selection stays undetermined; supplying a new admitted environment triggers ordinary rechecking."
+      }
+    ],
+    "presentation": {
+      "default": {
+        "key": "reason.host_capacity_policy_required",
+        "english": [
+          "The checking context has no selected Host capacity policy.",
+          "Ask the checking-context owner to supply a policy admitted by the referenced schema, then check the complete bound input again."
+        ]
+      },
+      "variants": []
+    }
   },
   "implementation_limit": {
     "code": "implementation_limit",

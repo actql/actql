@@ -30,6 +30,13 @@ parameters, connection selection and lookup context. Local and HTTPS use the
 same JSON-value snapshot. Text is not normalized or converted to different
 newlines. Credentials and signing keys are not added to this snapshot.
 
+`check`, `start` and `aql` share numeric-preserving JSON request serialization.
+NaN, infinities and negative zero are refused, including nested parameters,
+Program values, declaration defaults, boxed Numbers and `toJSON` results.
+The snapshot is made once before credentials or transport. A submit refusal
+uses `InvalidClientPayload`; check retains `InvalidCheckRequest`. Neither is
+`SubmissionUnknown`, and neither can reach Host preparation or Run acceptance.
+
 ```js
 import {getSubmissionInput} from '@actql/sdk';
 
@@ -150,6 +157,12 @@ new delivery attempt; a reader exposes `attemptId` before iteration.
 `deliveryAttempt(id)` inspects the existing Host attempt and release receipt
 without sending payload. It rejects a reply bound to another attempt, Run,
 Result or serialization contract, and invalid record/receipt combinations.
+A reader stays `opening` until it receives the opening response (HTTPS) or
+an accepted row (lazy Local frames). Failure before that observation leaves
+`open_unknown`, the original `attemptId`, and zero returned rows. Inspect
+that attempt with `deliveryAttempt(id)` before deciding on an explicit new
+read. A `not_found` lookup does not prove that opening never committed, and
+lookup never reopens the payload or consumes another grant use.
 A release receipt never proves that the Client
 received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
