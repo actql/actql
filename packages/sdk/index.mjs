@@ -1646,10 +1646,9 @@ async function connectSelected(selected, port) {
       if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
       const context = freezeInput({requestId,
         lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef}});
-      let answer;
+      let response, answer;
       try {
-        const response = await exchange('cancel-request', {requestId}, signal);
-        answer = await controlValue(response);
+        response = await exchange('cancel-request', {requestId}, signal);
       } catch (cause) {
         // Preserve the existing Client error contract in a per-call wrapper.
         // Code/status select no Owner outcome or explanation permission.
@@ -1662,6 +1661,8 @@ async function connectSelected(selected, port) {
         throw retainRequestCancellationExplanation(error, context,
           'outcome_unknown', 'exchange_failed');
       }
+      try { answer = await controlValue(response); }
+      catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);
       }

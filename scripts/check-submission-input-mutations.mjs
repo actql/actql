@@ -19,6 +19,7 @@ const expected = (phase, assertion = 'submission-input') => {
       'request-cancel-custody': ['accepted', 'already_requested', 'already_terminal'].flatMap(kind => [false, true].map(withRun => `request cancellation retains ${kind} ${withRun ? 'with Run' : 'without Run'} without stop or release claims`)),
       'request-cancel-failure': ['request cancellation failures detach reused credential errors without choosing outcome from their codes'],
       'request-cancel-private': ['request cancellation failure keeps safe recovery metadata without borrowed private causes'],
+      'request-cancel-parse': ['request cancellation malformed HTTP body remains an uninterpretable response rather than a failed exchange'],
       'request-cancel-stop': ['local', 'https'].map(entrance => `${entrance}: request cancellation acceptance retains an unconfirmed physical stop`),
       'request-cancel-public': ['local', 'https'].map(entrance => `${entrance}: request cancellation acceptance retains an unconfirmed physical stop`),
       'request-cancel-loss': ['local', 'https'].flatMap(entrance => ['before-dispatch', 'after-commit'].map(phase => `${entrance}: request cancellation loss ${phase} keeps the original lookup without inventing acceptance`)),
@@ -130,6 +131,10 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request cancellation malformed body becomes an exchange failure',
+    '      try { answer = await controlValue(response); }\n      catch { throw uninterpretableRequestCancellation(context); }',
+    "      try { answer = await controlValue(response); }\n      catch { throw retainRequestCancellationExplanation(new ClientError('CancellationUnknown', {requestId}), context, 'outcome_unknown', 'exchange_failed'); }",
+    'request-cancel-parse', 'request-cancel-parse'],
   ['request cancellation raw causes leak private values',
     "}) : new ClientError('CancellationUnknown', {requestId, cause: requestCancellationCause(cause)});",
     "}) : new ClientError('CancellationUnknown', {requestId, cause});",

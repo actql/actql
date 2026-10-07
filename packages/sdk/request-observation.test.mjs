@@ -334,3 +334,20 @@ test('request cancellation failure keeps safe recovery metadata without borrowed
   assert.equal(failure.cause.cause, undefined);
   assert.equal(sdk.explainRequestCancellation(failure).problem, 'exchange_failed');
 });
+
+test('request cancellation malformed HTTP body remains an uninterpretable response rather than a failed exchange', async t => {
+  let calls = 0;
+  mock.method(globalThis, 'fetch', async () => ++calls === 1
+    ? Response.json({...profile, mode: 'remote', owner: 'remote'})
+    : new Response('private-broken-response', {headers: {'content-type': 'application/json'}}));
+  t.after(() => mock.restoreAll());
+  const client = await sdk.connect({mode: 'remote', endpoint: 'https://example.test/', token: 'fixture-token'});
+  t.after(() => client.close());
+  let failure;try {await client.cancelRequest('saved');} catch (error) {failure = error;}
+  assert.equal(sdk.explainRequestCancellation(failure).problem, 'response_uninterpretable',
+    '[check-mutation:request-cancel-parse]');
+  assert.equal(failure.code, 'CancellationUnknown');
+  assert.equal(failure.requestId, 'saved');
+  assert.doesNotMatch(inspect(failure, {showHidden: true, depth: 8}), /private-broken-response/u);
+  assert.equal(calls, 2);
+});
