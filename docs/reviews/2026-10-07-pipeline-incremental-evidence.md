@@ -60,3 +60,19 @@ post-restoration replay, preparation/build/hash/transfer/authentication/checker
 costs and complete enclosing job intervals in later comparisons. The family is
 complete only after relevant-input fresh execution and real positive net savings
 are demonstrated; a report-only adapter is an intermediate review unit.
+
+## Retained-history prerequisite
+
+The real repository check found the existing main merge
+`b4850d69afc65a04a8a634f358b234b1c182d612` lacked its `package.json`
+resolution. Both parent bytes and the selected output are identical, but the two
+actual maximal bases require a source-bound resolution. Add only that missing
+record with all 136 ancestral package source groups. No original declaration,
+source tree, maximal-base rule or dependency obligation is rewritten.
+
+The repaired history then reached the 600-second local guard. The composer now
+uses its already-required complete, unsimplified Git parent walk for parent and
+ancestry lookup, preserving ordered parent facts and rejecting incomplete graph
+output. It retains every tree/blob/mode, maximal-base, source, introduction and
+dependency check. This removes repeated Git process startup; it is not evidence
+reuse, narrower history validation, or a claim about hosted net CI savings.
