@@ -976,9 +976,15 @@ pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
+pub fn[T] start_captured_managed_result_publication_export(@physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
+
 pub fn[T] start_captured_managed_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
+pub fn start_captured_result_publication_export(@physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
+
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
+
+pub fn start_result_publication_export(@execution_relation.CompletedOutput, @execution_relation.ManagedResultOccurrence, @run_publication.PublicationContract, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
 pub fn submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
 
@@ -1721,7 +1727,8 @@ pub(all) enum ClientResultTransformationIssue {
 }
 
 pub struct ClientResultTransformationPreparation {
-  selection : ClientResultTransformation
+  occurrence : @execution_relation.ManagedResultOccurrence
+  definition : @run_publication.PublicationContract
   preparation : @execution_relation.CompletedResultRelationExportPreparation
   limits : PublicationOutputExportLimits
 }

@@ -6895,3 +6895,23 @@ Blocking convenience publication callers, snapshot copies, physical chunk
 admission and runtime allocation/contiguous-string latency remain separate
 boundaries. The existing asynchronous Result transformation route is covered;
 all retained Local paths and all-target/packed completion are not claimed.
+
+### Captured publication preparation follow-up (2026-10-08)
+
+The JS Named Result adapter now polls the existing preparation owner even when
+the optional extra Client selection is absent. The captured graph still fixes
+the exact occurrence, projection, order and definition; Source/cell pins and
+managed bridge generation checks are retained. Cancellation reaches the same
+pending preparation, and custody transfers or retires once without fallback.
+
+The [publication preparation evidence](2026-10-08-local-bounded-publication-preparation.md)
+records clean-source common JS 24/24, controls 15/15 and actual Host 6/6.
+The Host cases include unselected success and positive-progress cancellation
+through real retained/publication Stores, exact Named Result rows/order for
+two consumers, non-publication and final release without another Compute.
+This depends on #907 and its #904 parent until their adoption by main.
+
+Explicit blocking Native/direct-output callers, replay metadata, snapshot and
+field-list copies/validation, physical chunk admission and runtime allocation
+remain separate boundaries. This is not all-target/packed or whole-Local
+completion; no product capacity or semantic limit was weakened.

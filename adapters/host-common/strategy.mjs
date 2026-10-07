@@ -1111,7 +1111,7 @@ export async function runInstalledStrategy(
               ),
               signal,
               () => publication.transformation === undefined
-                ? core.outputExportControl.finishManagedResultImport(importing)
+                ? core.outputExportControl.finishManagedResultImport(importing, signal)
                 : core.outputExportControl.transformManagedResultImport(
                   importing, publication.transformation, signal),
             );
