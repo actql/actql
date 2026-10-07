@@ -112,3 +112,47 @@ started. This is neither a product failure nor public acceptance. The other
 owner's lock, checkout, processes and artifacts are untouched. Continue with
 independent light integration/publication work; resume this same selected
 acceptance when the common execution slot is available.
+
+## Completed selected public acceptance
+
+After D's recorded run became terminal, `run-wyL44R` acquired the shared guard
+and produced the normal five packages from clean
+`fa3f38250f4b1a723df3e434fec5f073fe25c982`. Commands:
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-grouped-implicit-fa3f38250-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-grouped-implicit-fa3f38250-pack \
+  node scripts/test-packed-public-query.mjs --grouped-implicit-property-names-only
+```
+
+Embedded Local and HTTPS each pass all ten normal cases and all five exact-code
+preparation refusals. Independent Named Result rows and Result.describe full
+contracts/column order, NULL/duplicate/order controls, complete reads, hidden-field
+absence, owned-request resend/attach/reread and refusal zero Run admission/source
+I/O all pass. Grouped JOIN/QUALIFY returns the independent IDs 1 and 4 with ranks
+1 and 4. The same private installation passes the README control and fresh-process
+refusal of a genuinely missing current generated wire asset.
+
+Receipt `worktrees/.codex-scratch/public-query-evidence-LknDIQ/summary.json` is
+passed/complete, clean exact fa3f, all commands complete with full output,
+artifactsRemoved=true and no evidence errors. `010.stdout.log` and
+`010.stderr.log` retain the selected public output. No generated Program or old
+client-wire was patched into the install. Private installation/Store artifacts
+are reclaimed; the producer manifest and tarballs remain fixed to fa3f.
+
+All five digests match both the receipt and
+`/private/tmp/actql-b-grouped-implicit-fa3f38250-pack/packed-client-packages.json`:
+
+| Package | SHA-256 |
+|---|---|
+| client-wire | `06b8073f0d1cb35a7668ffb98c1c7912939429b492ebaeb4985ed452c7ff619a` |
+| sdk | `5dffa523c053269385de29b3e93f435f38a04491da7a81992a679630d878270f` |
+| run-host-core | `d4dbf817c037496d8550044fbf411113c28da4b944b5199464e2602f2f8b44fb` |
+| local-node | `e91b3e33074bb7f9721f97942de4fe634223956bb685bb7c9d8cb1438a2542f2` |
+| node | `b8732a1abfd7be7954ef172b65390747114517e6884ebe8e74b20070104ba18b` |
+
+The subsequent evidence-only commit changes no `src/scripts/packages/adapters/spec`
+inputs. Public success is attributed to fa3f, not silently to that later SHA.
+Exact final submitted-SHA hosted CI and the broader unexecuted targets/campaigns
+remain outstanding. This closes the selected Frontend naming/runtime boundary,
+not the whole Frontend objective. Draft remains for review; no merge.
