@@ -985,7 +985,8 @@ const schemas = {
     "required": [
       "ref",
       "kind",
-      "revision"
+      "revision",
+      "cancelRef"
     ],
     "additionalProperties": false,
     "properties": {
@@ -1025,8 +1026,239 @@ const schemas = {
         "type": "integer",
         "minimum": 0,
         "maximum": 2147483647
+      },
+      "cancelRef": {
+        "type": "object",
+        "required": [
+          "namespaceId",
+          "authorityScopeCid",
+          "runDefinitionCid",
+          "cancelId",
+          "expectedRevision"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "cancelId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          }
+        }
       }
     }
+  },
+  "cancellation_ref": {
+    "type": "object",
+    "required": [
+      "namespaceId",
+      "authorityScopeCid",
+      "runDefinitionCid",
+      "cancelId",
+      "expectedRevision"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "namespaceId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "authorityScopeCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "runDefinitionCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "cancelId": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "expectedRevision": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 2147483647
+      }
+    }
+  },
+  "cancellation_lookup": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "cancellation"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "found"
+          },
+          "cancellation": {
+            "type": "object",
+            "required": [
+              "ref",
+              "kind",
+              "revision",
+              "cancelRef"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "ref": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "kind": {
+                "enum": [
+                  "accepted",
+                  "already_requested",
+                  "already_terminal"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              },
+              "cancelRef": {
+                "type": "object",
+                "required": [
+                  "namespaceId",
+                  "authorityScopeCid",
+                  "runDefinitionCid",
+                  "cancelId",
+                  "expectedRevision"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "namespaceId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "authorityScopeCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "runDefinitionCid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "cancelId": {
+                    "type": "string",
+                    "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "expectedRevision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind",
+          "cancelRef"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "unknown"
+          },
+          "cancelRef": {
+            "type": "object",
+            "required": [
+              "namespaceId",
+              "authorityScopeCid",
+              "runDefinitionCid",
+              "cancelId",
+              "expectedRevision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "namespaceId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "authorityScopeCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "runDefinitionCid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "cancelId": {
+                "type": "string",
+                "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "expectedRevision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 2147483647
+              }
+            }
+          }
+        }
+      }
+    ]
   },
   "request_cancellation": {
     "type": "object",
@@ -9851,7 +10083,15 @@ const operationKeys = {
   ],
   "cancel": [
     "connection",
-    "ref"
+    "ref",
+    "cancelId",
+    "expectedRevision"
+  ],
+  "lookup-cancellation": [
+    "connection",
+    "ref",
+    "cancelId",
+    "expectedRevision"
   ],
   "reconcile": [
     "connection",
@@ -9987,6 +10227,8 @@ export const validResolveItemShape = value => valid(value, schemas.resolve_item)
 export const validResolveResultShape = value => valid(value, schemas.resolve_result);
 export const validSubmitPreparationErrorShape = value => valid(value, schemas.submit_preparation_error);
 export const validCancellationShape = value => valid(value, schemas.cancellation);
+export const validCancellationRefShape = value => valid(value, schemas.cancellation_ref);
+export const validCancellationLookupShape = value => valid(value, schemas.cancellation_lookup);
 export const validRequestCancellationShape = value => valid(value, schemas.request_cancellation);
 export const validResourceListingShape = value => valid(value, schemas.resource_listing);
 export const validResourceInspectionShape = value => valid(value, schemas.resource_inspection);

@@ -41,12 +41,36 @@ const defaults = Object.freeze({
   maxWork: 10000, maxFrontierWork: 1000, maxRevisions: 100,
   maxInputBytes: 1000000, maxEntryBytes: 1000000,
   preview: {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64},
-  material: {maxWireBytes: 1000000, maxNodes: 100000, maxDepth: 64, maxWork: 10000},
+  // Table operation/receipt admission has a smaller closed envelope than the
+  // containing Effect Preview. These bounds also admit storage mappings.
+  material: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16, maxWork: 10000},
   key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8},
   locator: {maxBytes: 4096},
   entry: {maxWireBytes: 1000000, maxNodes: 1000, maxDepth: 32},
   reservation: {bytes: 16777216, files: 64},
 });
+
+// Installation and runtime use the same finite budget vocabulary. A typo must
+// not silently select a default, including inside a nested physical budget.
+export function checkInstalledTableEffectLimits(supplied = {}) {
+  const object = value => value !== null && typeof value === 'object' &&
+    !Array.isArray(value);
+  if (!object(supplied) || Object.keys(supplied).some(key => !Object.hasOwn(defaults, key))) {
+    fail('InvalidInstalledTableEffectLimits');
+  }
+  for (const [key, value] of Object.entries(supplied)) {
+    const model = defaults[key];
+    if (typeof model === 'object'
+      ? !object(value) || Object.entries(value).some(([name, bound]) =>
+        !Object.hasOwn(model, name) || !positive(bound))
+      : !positive(value)) fail('InvalidInstalledTableEffectLimits');
+  }
+  if (Object.entries(supplied.material ?? {}).some(([key, bound]) =>
+    bound > (key === 'maxWork' ? 2147483647 : defaults.material[key]))) {
+    fail('InvalidInstalledTableEffectLimits');
+  }
+  return supplied;
+}
 
 // `targets` are explicit installed member/Mapping bindings, not a Program's request
 // for an arbitrary Catalog/name. Each binding fixes create or an approved
@@ -56,6 +80,7 @@ export async function createInstalledTableEffect({moon, environmentWire,
   connectorId, connectorRegistration, connectorRevision, connection,
   runtimeBundleCid, bindingCid, catalogCid, targets, bridge, authorization,
   ledgerRoot, limits: suppliedLimits = {}}) {
+  checkInstalledTableEffectLimits(suppliedLimits);
   const limits = Object.freeze(Object.fromEntries(Object.entries(defaults)
     .map(([key,value]) => [key, typeof value === 'object'
       ? Object.freeze({...value, ...suppliedLimits[key]})
@@ -424,7 +449,11 @@ export async function createInstalledTableEffect({moon, environmentWire,
       };
       return Object.freeze({...commonStage({control, store, execution: null, storedResults,
         computation, preview, applyPreview, ledger, body, members: recorded.members, scopes,
-        owner, request: provider.request, attempt: provider.attempt,
+        owner, request: provider.request,
+        // JSON omits an undefined optional key. Restore the existing closed
+        // publication-attempt shape without issuing a new attempt or key.
+        attempt: {...provider.attempt,
+          externalIdempotencyKey: provider.attempt?.externalIdempotencyKey},
         contractLimits: localContractLimits, now: () => new Date().toISOString(),
         continuationWire: wire(provider)}),
         apply: {moon, store, publicationControl: control, computation, preview, ledger,

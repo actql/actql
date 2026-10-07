@@ -86,6 +86,7 @@ async function fixture(t, options = {}) {
           attempts: query('SELECT ordinal, state, entry_json, settlement_json FROM resume_model_attempts ORDER BY ordinal'),
           checkpoints: query('SELECT checkpoint_cid, closure, checkpoint_wire FROM checkpoints ORDER BY persisted_at'),
           fences: query('SELECT run_id FROM run_cancellation_fences'),
+          runs: query('SELECT run_id, status, version, run_state_wire FROM runs'),
         };
       } finally { database.close(); }
     },
@@ -107,6 +108,17 @@ const assertInputReleased = report => {
 const assertSends = (f, expected) => {
   assert.deepEqual(f.lines('provider-calls.jsonl').map(value => value.text), expected);
 };
+
+function cancellationCustody(f) {
+  const database = new DatabaseSync(join(f.root, 'host', 'requests',
+    'client-requests.sqlite3'), {readOnly: true});
+  try {
+    return {operations: database.prepare(`SELECT cancel_id, expected_revision,
+      outcome_wire, outcome_cid FROM client_cancellation_operations`).all().map(row => ({...row})),
+    issued: database.prepare('SELECT issued_count FROM client_cancellation_custody').get().issued_count,
+    requested: database.prepare('SELECT cancellation_requested FROM client_requests').get().cancellation_requested};
+  } finally { database.close(); }
+}
 
 // Verify the independently observed saved record is backed by encrypted
 // physical Store bytes. Read-only inspection never repairs/creates evidence.
@@ -395,6 +407,125 @@ for (const transport of ['local', 'https']) {
     assertSends(f, []);
     assert.equal(f.journal().fences.length, 1);
   });
+
+  test(`public Model ${transport}: lost fence acknowledgement retains original pending cancellation across restart`, async t => {
+    const f = await fixture(t, {transport});
+    const waiting = f.phase('wait');
+    const lost = f.phase('cancel-fence-loss');
+    assertSameRun(waiting, lost);
+    assert.equal(lost.cancellationRecovery.unknownCode, 'CancellationUnknown');
+    const cancelRef = f.read('cancel-ref.json');
+    assert.equal(cancelRef.cancelId, 'model-fence-original-cancel');
+    assert.deepEqual(lost.cancellationRecovery.cancelRef, cancelRef);
+    assertSends(f, []);
+    assert.equal(f.journal().fences.length, 1);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    const custody = () => cancellationCustody(f);
+    const pending = {operations: [{cancel_id: 'model-fence-original-cancel',
+      expected_revision: cancelRef.expectedRevision, outcome_wire: null, outcome_cid: null}],
+    issued: 1, requested: 0};
+    assert.deepEqual(custody(), pending);
+    // A fresh process only attaches and observes. It cannot finish the pending
+    // request operation or interpret the missing outcome as non-acceptance.
+    const lookup = f.phase('lookup-cancel-fence-loss');
+    assertSameRun(waiting, lookup);
+    assert.deepEqual(lookup.cancellationRecovery.first, {kind: 'unknown', cancelRef});
+    assert.deepEqual(lookup.cancellationRecovery.second, {kind: 'unknown', cancelRef});
+    assert.deepEqual(custody(), pending);
+    assert.equal(f.journal().fences.length, 1);
+    assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+    assertSends(f, []);
+  });
+
+  for (const commitLoss of ['before', 'after']) {
+    test(`public Model ${transport}: original cancellation survives ${commitLoss} final COMMIT reply loss`, async t => {
+      const f = await fixture(t, {transport, commitLoss});
+      const waiting = f.phase('wait');
+      const lost = f.phase('cancel-commit-loss');
+      assertSameRun(waiting, lost);
+      assert.equal(lost.cancellationRecovery.unknownCode, 'CancellationUnknown');
+      const cancelRef = f.read('cancel-ref.json');
+      assert.equal(cancelRef.cancelId, 'model-commit-original-cancel');
+      const custody = () => cancellationCustody(f);
+      const snapshot = custody();
+      assert.equal(snapshot.issued, 1);
+      assert.equal(snapshot.operations.length, 1);
+      assert.equal(snapshot.requested, commitLoss === 'after' ? 1 : 0);
+      const expected = commitLoss === 'before' ? {kind: 'unknown', cancelRef}
+        : {kind: 'found', cancellation: {ref: waiting.ref, cancelRef,
+          kind: 'accepted', revision: cancelRef.expectedRevision + 1}};
+      assert.deepEqual(lost.cancellationRecovery.first, expected);
+      assert.deepEqual(lost.cancellationRecovery.second, expected);
+      if (commitLoss === 'after') {
+        assert.equal(lost.status, 'cancelled', 'committed cancellation stops the live Run without resend');
+        assert.equal(lost.control.cancellation_requested, true);
+        assert.equal(lost.control.physical_stop, 'confirmed');
+        assert.deepEqual(JSON.parse(snapshot.operations[0].outcome_wire), expected.cancellation);
+      } else {
+        assert.equal(lost.control.cancellation_requested, false);
+        assert.equal(snapshot.operations[0].outcome_wire, null);
+      }
+      assert.equal(f.journal().fences.length, 1);
+      assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+      assertSends(f, []);
+      const lookup = f.phase('lookup-cancel-commit-loss');
+      assertSameRun(waiting, lookup);
+      assert.deepEqual(lookup.cancellationRecovery.first, expected);
+      assert.deepEqual(lookup.cancellationRecovery.second, expected);
+      assert.deepEqual(custody(), snapshot, 'exact lookup cannot finish, rewrite or resend cancellation');
+      assert.equal(f.journal().fences.length, 1);
+      assert.deepEqual(slotStates(f.journal()), ['Unsent']);
+      assertSends(f, []);
+    });
+  }
+
+  for (const commitLoss of ['before', 'after']) {
+    test(`public Model ${transport}: sent unknown retains original cancellation after ${commitLoss} final COMMIT reply loss`, async t => {
+      const f = await fixture(t, {transport, commitLoss, immediate: true});
+      const entered = f.phase('sent-unknown', {providerReplyLoss: 'crash'}, 77);
+      assert.equal(entered.boundary, 'provider_response_lost');
+      // The send process exits before it can observe public Run state. Bind
+      // its captured ref to the already-written original inventory, rather
+      // than inventing a state response for the crashed process.
+      const original = {ref: entered.ref, runId: f.journal().scopes[0].run_id};
+      assert.equal(typeof original.runId, 'string');
+      assertSends(f, ['alpha']);
+      assert.deepEqual(slotStates(f.journal()), ['EnteredUnknown']);
+      const lost = f.phase('cancel-commit-loss', {providerReplyLoss: 'crash'});
+      assertSameRun(original, lost);
+      assert.equal(lost.status, 'needs_reconciliation', 'unresolved call cannot become cancelled');
+      const retainedRun = f.journal().runs[0];
+      assert.equal(retainedRun.status, 'needs_reconciliation');
+      assert.equal(JSON.parse(retainedRun.run_state_wire).status, 'needs_reconciliation');
+      const cancelRef = f.read('cancel-ref.json');
+      const expected = commitLoss === 'before' ? {kind: 'unknown', cancelRef}
+        : {kind: 'found', cancellation: {ref: original.ref, cancelRef,
+          kind: 'accepted', revision: cancelRef.expectedRevision + 1}};
+      assert.deepEqual(lost.cancellationRecovery.first, expected);
+      assert.deepEqual(lost.cancellationRecovery.second, expected);
+      const snapshot = cancellationCustody(f);
+      assert.equal(snapshot.issued, 1);
+      assert.equal(snapshot.operations.length, 1);
+      assert.equal(snapshot.requested, commitLoss === 'after' ? 1 : 0);
+      if (commitLoss === 'after') assert.deepEqual(
+        JSON.parse(snapshot.operations[0].outcome_wire), expected.cancellation);
+      else assert.equal(snapshot.operations[0].outcome_wire, null);
+      const attempts = f.journal().attempts;
+      assert.equal(attempts.length, 1);
+      assert.equal(attempts[0].state, 'EnteredUnknown');
+      assert.equal(f.journal().fences.length, 1);
+      const lookup = f.phase('lookup-cancel-commit-loss', {expectedModelUnknown: true});
+      assertSameRun(original, lookup);
+      assert.equal(lookup.status, 'needs_reconciliation');
+      assert.deepEqual(lookup.cancellationRecovery.first, expected);
+      assert.deepEqual(lookup.cancellationRecovery.second, expected);
+      assert.deepEqual(cancellationCustody(f), snapshot);
+      assert.deepEqual(f.journal().attempts, attempts, 'lookup cannot settle an unknown provider response');
+      assert.deepEqual(f.journal().runs[0], retainedRun, 'restart cannot reopen the settled restoration');
+      assert.equal(f.journal().fences.length, 1);
+      assertSends(f, ['alpha']);
+    });
+  }
 
   test(`public Model ${transport}: cancellation after one saved response retains it and prevents later sends`, async t => {
     const f = await fixture(t, {transport, count: 3});

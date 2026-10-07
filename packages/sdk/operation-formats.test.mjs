@@ -16,7 +16,8 @@ async function observations(t, {requestId = 'original-request', effects = ['save
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
       if (operation === 'submit') throw new Error('private-provider-message');
-      if (operation === 'cancel') return {kind: 'accepted', ref: body.ref, revision: 7};
+      if (operation === 'cancel') return {kind: 'accepted', ref: body.ref,
+        cancelRef: {...body.ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7};
       if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'run-a',
         status: 'needs_reconciliation', updated_at: '2026-10-07T00:00:00.000Z',
         next_action: {kind: 'reconcile', effects}, result_available: false,
@@ -34,7 +35,7 @@ async function observations(t, {requestId = 'original-request', effects = ['save
   let submission, read;
   try { await client.start({params: {}, stages: []}, {requestId}); } catch (error) {submission = error;}
   const run = await client.attach(ref);
-  const cancellation = await run.cancel(), effect = await run.status();
+  const cancellation = await run.cancel({cancelId: 'format-cancel', expectedRevision: 6}), effect = await run.status();
   try { await Array.fromAsync(run.result('answer').rows()); } catch (error) {read = error;}
   return {calls, cases: [
     ['submission', submission, sdk.explainSubmission, sdk.formatSubmission, 'acceptance_unknown'],

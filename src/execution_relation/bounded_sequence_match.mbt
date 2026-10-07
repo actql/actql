@@ -284,7 +284,9 @@ fn cleanup_bounded_sequence_state(state : BoundedSequenceState) -> Bool {
     state.predicate_execution = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   if state.output_scope is Some(scope) {
@@ -1791,7 +1793,6 @@ fn bounded_sequence_step(
         guard state.output is Some(output) else {
           return bounded_sequence_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -1888,7 +1889,12 @@ fn start_bounded_sequence_match_input(
     output_limit = Int64::min(output_limit.to_int64(), output).to_int()
   }
   let output = match
-    prepare_admitted_output(owner, @pipeline.Step(step), output_limit, values) {
+    prepare_bounded_admitted_output(
+      owner,
+      @pipeline.Step(step),
+      output_limit,
+      values,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
   }

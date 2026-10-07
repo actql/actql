@@ -10,6 +10,7 @@ import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 
 const cid = value => typeof value === 'string' &&
@@ -254,7 +255,7 @@ function admissionEvidenceShape(value) {
         Object.keys(original).sort().join(',') !==
           'boundInvocationTemplateWire,compiledPlanWire,preparedInvocationWire,runAuthorizationWire,runDefinitionWire' ||
         Object.values(original).some(wire => typeof wire !== 'string' || wire === '') ||
-        canonicalJson(original) !== value.modelOriginalRunWire ||
+        canonicalValueJson(original) !== value.modelOriginalRunWire ||
         original.preparedInvocationWire !== value.prepared ||
         original.runAuthorizationWire !== value.authorization) return false;
   }
@@ -364,18 +365,54 @@ const journalColumns = [...columns.split(',').map(name => name.trim()),
   'physical_close_confirmed', 'observed_terminal_outcome',
   'reconciliation_state_wire'].sort();
 
+// Additive custody in the existing request journal. The original format marker
+// is retained byte-for-byte; partially introduced custody is never reset.
+const cancellationMarkerName = 'cancellation-operations-format.json';
+const cancellationMarker = Buffer.from(JSON.stringify({
+  version: 'actql-client-request-journal/0.1', feature: 'cancellation_operations',
+}));
+const cancellationColumns = ['namespace_id', 'authority_scope_cid', 'cancel_id',
+  'run_definition_cid', 'expected_revision', 'intent_fingerprint_cid',
+  'outcome_wire', 'outcome_cid'].sort();
+
+function inspectCancellationStorage(database, enabled) {
+  const tables = database.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'
+    AND name IN ('client_cancellation_operations', 'client_cancellation_custody')`).all();
+  if (!enabled && tables.length === 0) return;
+  if (!enabled || tables.length !== 2) fail('UnknownClientRequestJournalFormat');
+  const fields = database.prepare('PRAGMA table_info(client_cancellation_operations)')
+    .all().map(field => field.name).sort();
+  const custodyFields = database.prepare('PRAGMA table_info(client_cancellation_custody)')
+    .all().map(field => field.name).sort();
+  const records = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations').get().n;
+  const custody = database.prepare('SELECT singleton, issued_count FROM client_cancellation_custody').all();
+  if (JSON.stringify(fields) !== JSON.stringify(cancellationColumns) ||
+      JSON.stringify(custodyFields) !== JSON.stringify(['issued_count', 'singleton']) ||
+      custody.length !== 1 || custody[0].singleton !== 1 ||
+      !Number.isSafeInteger(custody[0].issued_count) || custody[0].issued_count < 0 ||
+      custody[0].issued_count !== records) fail('UnknownClientRequestJournalFormat');
+}
+
 // A read-only SQLite connection can still create -shm beside a WAL database.
 // Inspect a private copy and refuse a source that changes during inspection.
 function inspectJournalSnapshot(directory, databasePath, markerPath) {
   const entries = readdirSync(directory).sort();
+  const featurePath = join(directory, cancellationMarkerName);
+  const enabled = entries.includes(cancellationMarkerName);
+  if (enabled && (!lstatSync(featurePath).isFile() ||
+      !readFileSync(featurePath).equals(cancellationMarker))) {
+    fail('UnknownClientRequestJournalFormat');
+  }
   inspectSqliteSnapshot(databasePath, database => {
     const fields = database.prepare('PRAGMA table_info(client_requests)')
       .all().map(field => field.name).sort();
     if (JSON.stringify(fields) !== JSON.stringify(journalColumns)) {
       fail('UnknownClientRequestJournalFormat');
     }
+    inspectCancellationStorage(database, enabled);
   }, {code: 'UnknownClientRequestJournalFormat',
     validateSource: () => readFileSync(markerPath).equals(journalMarker) &&
+      (!enabled || readFileSync(featurePath).equals(cancellationMarker)) &&
       JSON.stringify(readdirSync(directory).sort()) === JSON.stringify(entries)});
 }
 
@@ -482,6 +519,31 @@ export function openClientRequestJournal(directory, {
       }
       syncDirectory(root);
     }
+    if (!existsSync(join(root, cancellationMarkerName))) {
+      transaction.run(() => database.exec(`
+        CREATE TABLE client_cancellation_operations (
+          namespace_id TEXT NOT NULL,
+          authority_scope_cid TEXT NOT NULL,
+          cancel_id TEXT NOT NULL,
+          run_definition_cid TEXT NOT NULL REFERENCES client_requests(run_definition_cid),
+          expected_revision INTEGER NOT NULL CHECK (expected_revision >= 0),
+          intent_fingerprint_cid TEXT NOT NULL,
+          outcome_wire TEXT,
+          outcome_cid TEXT,
+          CHECK ((outcome_wire IS NULL) = (outcome_cid IS NULL)),
+          PRIMARY KEY (namespace_id, authority_scope_cid, cancel_id)
+        ) STRICT;
+        CREATE TABLE client_cancellation_custody (
+          singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+          issued_count INTEGER NOT NULL CHECK (issued_count >= 0)
+        ) STRICT;
+        INSERT INTO client_cancellation_custody VALUES (1, 0);
+      `));
+      const marker = openSync(join(root, cancellationMarkerName), 'wx', 0o600);
+      try { writeFileSync(marker, cancellationMarker); fsyncSync(marker); }
+      finally { closeSync(marker); }
+      syncDirectory(root);
+    }
   // Statement preparation is part of initialization: no journal owner has
   // been returned yet. Keep it under the same single cleanup boundary.
   const ensureOpen = () => {
@@ -518,6 +580,18 @@ export function openClientRequestJournal(directory, {
   const selectRun = database.prepare(`SELECT run_definition_cid
     FROM client_requests WHERE run_definition_cid = ?`);
   const count = database.prepare('SELECT COUNT(*) AS n FROM client_requests');
+  const cancellationCount = database.prepare('SELECT COUNT(*) AS n FROM client_cancellation_operations');
+  const cancellationIssued = database.prepare('SELECT issued_count FROM client_cancellation_custody WHERE singleton = 1');
+  const cancellationSelect = database.prepare(`SELECT * FROM client_cancellation_operations
+    WHERE namespace_id = ? AND authority_scope_cid = ? AND cancel_id = ?`);
+  const cancellationInsert = database.prepare(`INSERT INTO client_cancellation_operations
+    (namespace_id, authority_scope_cid, cancel_id, run_definition_cid,
+     expected_revision, intent_fingerprint_cid) VALUES (?, ?, ?, ?, ?, ?)`);
+  const assertCancellationCustody = () => {
+    const n = Number(cancellationCount.get().n);
+    if (cancellationIssued.get()?.issued_count !== n) fail('ClientRequestJournalCorrupt');
+    return n;
+  };
   const insert = database.prepare(`INSERT INTO client_requests (${columns})
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   const reserve = database.prepare(`UPDATE client_requests
@@ -536,6 +610,81 @@ export function openClientRequestJournal(directory, {
       run_definition_cid = ? AND dispatch_reserved = 1 AND
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
+
+  const validCancellationRef = ref => text(ref?.namespaceId) &&
+    cid(ref?.authorityScopeCid) && cid(ref?.runDefinitionCid) &&
+    text(ref?.cancelId) && Number.isInteger(ref?.expectedRevision) &&
+    ref.expectedRevision >= 0 && ref.expectedRevision <= 2147483647;
+  const ownedCancellationRef = ref => Object.freeze({namespaceId: ref.namespaceId,
+    authorityScopeCid: ref.authorityScopeCid, runDefinitionCid: ref.runDefinitionCid,
+    cancelId: ref.cancelId, expectedRevision: ref.expectedRevision});
+  const cancellationKnownFailure = error => [
+    'ClientCancellationDenied', 'ClientCancellationIntentConflict',
+    'ClientCancellationRevisionConflict', 'ClientRequestJournalCapacity',
+  ].includes(error?.code);
+  const cancellationDefinition = (ref, requestControl, publicationControl) => {
+    const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    if (row === undefined) fail('ClientCancellationDenied');
+    retainedIdentity(row, requestControl);
+    if (!Number.isInteger(row.revision) || row.revision < 0 || row.revision > 2147483647) {
+      fail('ClientCancellationRevisionConflict');
+    }
+    return {row, facts: retainedRunFacts(row, publicationControl, maxRunDefinitionWireBytes)};
+  };
+  const cancellationIdentity = (ref, definition, control) => {
+    const identity = control.clientCancellationAdmitRecord(ref.namespaceId,
+      ref.authorityScopeCid, ref.cancelId, definition, ref.expectedRevision);
+    if (identity === undefined) fail('ClientCancellationDenied');
+    return identity;
+  };
+  const cancellationReadmission = (record, requestControl, publicationControl) => {
+    const cancelRef = Object.freeze({namespaceId: record.namespace_id,
+      authorityScopeCid: record.authority_scope_cid,
+      runDefinitionCid: record.run_definition_cid, cancelId: record.cancel_id,
+      expectedRevision: record.expected_revision});
+    if (!validCancellationRef(cancelRef)) fail('ClientRequestJournalCorrupt');
+    const {facts} = cancellationDefinition(cancelRef, requestControl, publicationControl);
+    const identity = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
+    if (requestControl.clientCancellationIntentCid(identity) !== record.intent_fingerprint_cid) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    if (record.outcome_wire === null && record.outcome_cid === null) {
+      return {identity, cancelRef, outcome: undefined};
+    }
+    if (typeof record.outcome_wire !== 'string' ||
+        Buffer.byteLength(record.outcome_wire) > 4096 || !cid(record.outcome_cid) ||
+        `sha256:${createHash('sha256').update(record.outcome_wire).digest('hex')}` !== record.outcome_cid) {
+      fail('ClientRequestJournalCorrupt');
+    }
+    let outcome;
+    try { outcome = JSON.parse(record.outcome_wire); }
+    catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
+    if (outcome === null || typeof outcome !== 'object' ||
+        Object.keys(outcome).sort().join(',') !== 'cancelRef,kind,ref,revision' ||
+        !['accepted', 'already_requested', 'already_terminal'].includes(outcome.kind) ||
+        !Number.isInteger(outcome.revision) || outcome.revision < cancelRef.expectedRevision ||
+        outcome.kind === 'accepted' && outcome.revision === cancelRef.expectedRevision ||
+        outcome.revision > 2147483647 ||
+        canonicalValueJson(outcome.cancelRef) !== canonicalValueJson(cancelRef) ||
+        canonicalValueJson(outcome.ref) !== canonicalValueJson({namespaceId: cancelRef.namespaceId,
+          authorityScopeCid: cancelRef.authorityScopeCid, runDefinitionCid: cancelRef.runDefinitionCid}) ||
+        canonicalValueJson(outcome) !== record.outcome_wire) fail('ClientRequestJournalCorrupt');
+    return {identity, cancelRef, outcome: Object.freeze({...outcome,
+      ref: Object.freeze(outcome.ref), cancelRef})};
+  };
+  const cancellationAction = (requested, retained, facts, row, currentAuthorization,
+    publicationCommitted, requestControl) => {
+    const action = requestControl.clientCancellationOperationAction(requested,
+      retained ?? requested, retained !== undefined, facts.runDefinition,
+      Number(row.revision), currentAuthorization,
+      publicationCommitted || facts.preDispatchFailureConfirmed ||
+        facts.physicalCloseConfirmed && facts.observedTerminalOutcome !== null,
+      facts.cancellationRequested);
+    if (action === 4) fail('ClientCancellationIntentConflict');
+    if (action === 6) fail('ClientCancellationRevisionConflict');
+    if (![0, 1, 2, 3].includes(action)) fail('ClientCancellationDenied');
+    return action;
+  };
 
   const acceptRecord = (identity, {namespaceId, runDefinitionCid,
     runDefinitionWire, resultNames, runAdmissionEvidence, revision = 0, lookupExpiresAt}, control) => {
@@ -606,7 +755,7 @@ export function openClientRequestJournal(directory, {
             {runDefinitionWire: existing.run_definition_wire}),
           resultNames: retainedResultNames(existing)});
       }
-      if (Number(count.get().n) >= maxRecords) {
+      if (Number(count.get().n) + assertCancellationCustody() >= maxRecords) {
         fail('ClientRequestJournalCapacity');
       }
       if (selectRun.get(runDefinitionCid) !== undefined) {
@@ -921,6 +1070,108 @@ export function openClientRequestJournal(directory, {
         return Object.freeze({ref: admission(row).ref,
           kind: ['accepted', 'already_requested', 'already_terminal'][action],
           revision: Number(row.revision) + (action === 0 ? 1 : 0)});
+      });
+    },
+    // Persist the immutable operation before touching the Model fence journal.
+    // Pending custody is unknown, not acceptance. The final outcome and Run
+    // cancellation flag commit together in this existing physical owner.
+    recordCancellationOperation(ref, {cancelId, expectedRevision,
+      currentAuthorization, publicationCommitted, modelCancellationOwner},
+      requestControl, publicationControl) {
+      ensureOpen();
+      const cancelRef = ownedCancellationRef({...ref, cancelId, expectedRevision});
+      if (!validCancellationRef(cancelRef) || typeof currentAuthorization !== 'boolean' ||
+          typeof publicationCommitted !== 'boolean') fail('InvalidClientCancellationOperation');
+      if (!currentAuthorization) fail('ClientCancellationDenied');
+      const pending = transact('cancel_admission', 'ClientCancellationUnknown',
+        cancellationKnownFailure, () => {
+          const custodyCount = assertCancellationCustody();
+          const {row, facts} = cancellationDefinition(ref, requestControl, publicationControl);
+          const identity = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
+          const record = cancellationSelect.get(ref.namespaceId, ref.authorityScopeCid, cancelId);
+          const retained = record === undefined ? undefined :
+            cancellationReadmission(record, requestControl, publicationControl);
+          const action = cancellationAction(identity, retained?.identity, facts, row,
+            currentAuthorization, publicationCommitted, requestControl);
+          if (retained !== undefined) return {...retained, facts, action};
+          if (Number(count.get().n) + custodyCount >= maxRecords) fail('ClientRequestJournalCapacity');
+          cancellationInsert.run(ref.namespaceId, ref.authorityScopeCid, cancelId,
+            ref.runDefinitionCid, expectedRevision, requestControl.clientCancellationIntentCid(identity));
+          database.prepare(`UPDATE client_cancellation_custody SET issued_count = issued_count + 1
+            WHERE singleton = 1`).run();
+          return {identity, cancelRef, outcome: undefined, facts, action};
+        });
+      if (pending.outcome !== undefined) return Object.freeze({cancellation: pending.outcome, recorded: false});
+      const originalRunWire = pending.facts.runAdmissionEvidence?.modelOriginalRunWire;
+      if (originalRunWire !== undefined && !publicationCommitted &&
+          !pending.facts.preDispatchFailureConfirmed &&
+          !(pending.facts.physicalCloseConfirmed && pending.facts.observedTerminalOutcome !== null)) {
+        try {
+          if (typeof modelCancellationOwner?.fenceRunCancellation !== 'function' ||
+              typeof modelCancellationOwner?.modelCancellationFenced !== 'function') {
+            fail('ClientCancellationModelFenceUnavailable');
+          }
+          // Only the checkpoint Owner can establish the fence, using the
+          // retained original input rather than the current Host configuration.
+          modelCancellationOwner.fenceRunCancellation({originalRunWire});
+          const runId = publicationControl.runDefinitionRunId(pending.facts.runDefinition);
+          if (modelCancellationOwner.modelCancellationFenced(runId, ref.runDefinitionCid) !== true) {
+            fail('ClientCancellationModelFenceUnconfirmed');
+          }
+        } catch (cause) { fail('ClientCancellationUnknown', cause); }
+      }
+      return transact('cancel_commit', 'ClientCancellationUnknown', cancellationKnownFailure, () => {
+        assertCancellationCustody();
+        const record = cancellationSelect.get(ref.namespaceId, ref.authorityScopeCid, cancelId);
+        if (record === undefined) fail('ClientRequestJournalCorrupt');
+        const retained = cancellationReadmission(record, requestControl, publicationControl);
+        const {row, facts} = cancellationDefinition(ref, requestControl, publicationControl);
+        cancellationAction(pending.identity, retained.identity, facts, row,
+          currentAuthorization, publicationCommitted, requestControl);
+        if (retained.outcome !== undefined) return Object.freeze({cancellation: retained.outcome, recorded: false});
+        const action = requestControl.clientRunCancellationAction(facts.runDefinition,
+          ref.runDefinitionCid, currentAuthorization,
+          publicationCommitted || facts.preDispatchFailureConfirmed ||
+            facts.physicalCloseConfirmed && facts.observedTerminalOutcome !== null,
+          facts.cancellationRequested);
+        if (![0, 1, 2].includes(action)) fail('ClientCancellationDenied');
+        if (action === 0 && row.revision >= 2147483647) fail('ClientCancellationRevisionConflict');
+        if (action === 0) database.prepare(`UPDATE client_requests SET
+          cancellation_requested = 1, revision = revision + 1
+          WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`).run(
+          ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+        const outcome = Object.freeze({ref: admission(row).ref, cancelRef: retained.cancelRef,
+          kind: ['accepted', 'already_requested', 'already_terminal'][action],
+          revision: Number(row.revision) + (action === 0 ? 1 : 0)});
+        const wire = canonicalValueJson(outcome);
+        const checksum = `sha256:${createHash('sha256').update(wire).digest('hex')}`;
+        if (database.prepare(`UPDATE client_cancellation_operations SET outcome_wire = ?, outcome_cid = ?
+          WHERE namespace_id = ? AND authority_scope_cid = ? AND cancel_id = ?
+            AND outcome_wire IS NULL`).run(wire, checksum, ref.namespaceId,
+          ref.authorityScopeCid, cancelId).changes !== 1) fail('ClientRequestJournalCorrupt');
+        return Object.freeze({cancellation: outcome, recorded: true});
+      });
+    },
+    // An exact, authorized observation. It never fences, starts execution or
+    // completes a pending operation; absent custody is not proof of rejection.
+    lookupCancellationOperation(cancelRef, {currentAuthorization},
+      requestControl, publicationControl) {
+      ensureOpen();
+      if (!validCancellationRef(cancelRef) || typeof currentAuthorization !== 'boolean') {
+        fail('InvalidClientCancellationLookup');
+      }
+      if (!currentAuthorization) fail('ClientCancellationDenied');
+      return transact('cancel_lookup', 'ClientCancellationLookupUnknown', cancellationKnownFailure, () => {
+        assertCancellationCustody();
+        const {row, facts} = cancellationDefinition(cancelRef, requestControl, publicationControl);
+        const requested = cancellationIdentity(cancelRef, facts.runDefinition, requestControl);
+        const record = cancellationSelect.get(cancelRef.namespaceId, cancelRef.authorityScopeCid, cancelRef.cancelId);
+        if (record === undefined) return Object.freeze({kind: 'unknown',
+          cancelRef: ownedCancellationRef(cancelRef)});
+        const retained = cancellationReadmission(record, requestControl, publicationControl);
+        cancellationAction(requested, retained.identity, facts, row, currentAuthorization, false, requestControl);
+        return retained.outcome === undefined ? Object.freeze({kind: 'unknown', cancelRef: retained.cancelRef}) :
+          Object.freeze({kind: 'found', cancellation: retained.outcome});
       });
     },
     // Only the live execution owner may report a completed physical close.

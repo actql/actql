@@ -548,7 +548,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
-  const cancel = async ({ref, principalId: actual, connection}) => {
+  // Request-level cancellation already owns its own pre-Run receipt. Its
+  // transfer to a defined Run remains separate from a Client cancel operation.
+  const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientRunCancellationDenied');
     }
@@ -576,6 +578,35 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return accepted;
   };
+  const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
+    // Recheck current connection authority after the publication observation.
+    // The journal then compares the original revision under its write lock.
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    const recorded = journal.recordCancellationOperation(ref, {
+      cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+      modelCancellationOwner: checkpoints?.journal,
+    }, moon, control);
+    const accepted = recorded.cancellation;
+    if (recorded.recorded && accepted.kind !== 'already_terminal') {
+      dispatchOwner.cancel(ref);
+      await cancelEffectContinuation(ref);
+      void checkpoints?.sweep();
+    }
+    return accepted;
+  };
+  const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    return journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+      {currentAuthorization: true}, moon, control);
+  };
   // Cancel a request by its ID. For a request this Host held, the
   // cancellation is first made durable on its prepare attempt, so a resume
   // (on this or a later start) cannot start it and hands it to the Run.
@@ -592,7 +623,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const existing = journal.lookupDefinition({namespaceId, authorityScopeCid,
       requestId}, moon, control);
     if (existing !== undefined) {
-      const run = await cancel({ref: existing.ref, principalId: actual,
+      const run = await cancelRequestRun({ref: existing.ref, principalId: actual,
         connection});
       void checkpoints?.sweep();
       return {requestId, ref: run.ref, revision: run.revision,
@@ -1421,7 +1452,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
-    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
+    if (canonicalValueJson(reproduced, {dataKeys: true}) !==
+        canonicalValueJson(captured, {dataKeys: true})) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
@@ -1744,10 +1776,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       throw new AggregateError(failures, 'EffectCaptureCleanupPending');
     }
   };
-  const sweepEffectRuns = async () => {
+  const sweepEffectRuns = async ({reconcileRef} = {}) => {
     if (effectRun === undefined || checkpoints === undefined) return false;
     let busy = false;
-    try { await retireIncompleteEffects(); }
+    // A requested observation owns only its original Run. Global capture
+    // retirement belongs to ordinary sweeps and final Host shutdown.
+    try { if (reconcileRef === undefined) await retireIncompleteEffects(); }
     catch (error) {
       busy = true;
       diagnostic('effect_capture_retirement_failed', {
@@ -1757,6 +1791,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.listRunCheckpoints({after, limit: 100});
       for (const view of page) {
+        if (reconcileRef !== undefined &&
+            (view.runDefinitionCid !== reconcileRef.runDefinitionCid ||
+             view.kind !== 'effect_set')) continue;
         if (!['effect_set', 'read_access'].includes(view.kind) || view.prepareAttemptId !== null) {
           continue;
         }
@@ -1776,11 +1813,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           }
           continue;
         }
-        if (runStatus !== 'resuming') continue;
-        if (checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
+        const observing = reconcileRef !== undefined && runStatus === 'needs_reconciliation';
+        if (runStatus !== 'resuming' && !observing) continue;
+        if (!observing && checkpoints.journal.currentResume(view.checkpointCid)?.state === 'completed') continue;
         if (effectResumeFlights.has(key) ||
             dispatchOwner.operation(ref) !== undefined) {
           busy = true;
+          if (observing && effectResumeFlights.has(key)) {
+            await effectResumeFlights.get(key);
+          }
           continue;
         }
         try {
@@ -1916,6 +1957,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           const flight = dispatchOwner.track(ref, {
             run: ({signal, retainExecution, beginPhysicalWork}) =>
               effectInstallation.resume(Object.freeze({ref, view,
+                reconciliationOnly: observing,
                 continuation, retained, moon, control, store,
                 storeAuthorityCid, authorityScopeCid, signal,
                 retainExecution, beginPhysicalWork,
@@ -1969,9 +2011,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               void checkpoints.sweep();
             }
           });
+          if (observing) await flight;
         } catch (error) {
           diagnostic('effect_resume_failed', {ref,
             code: error?.code ?? error?.message});
+          if (reconcileRef !== undefined) throw error;
         }
         busy = true;
       }
@@ -1979,6 +2023,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       after = page.at(-1).checkpointCid;
     }
     return busy;
+  };
+  const reconcile = async ({ref, principalId: actual, connection, signal}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('RunStateAccessDenied');
+    }
+    signal?.throwIfAborted();
+    const state = await observeRun({ref, principalId: actual});
+    // An explicit Effect observation never restarts Compute, reopens approval
+    // or converts an execution-unknown Run into an invented Effect inventory.
+    if (state.status === 'needs_reconciliation' &&
+        state.next_action?.kind === 'reconcile') {
+      await sweepEffectRuns({reconcileRef: ref});
+    }
+    return observeRun({ref, principalId: actual});
   };
   const modelResumeFlights = new Map();
   const sweepModelRuns = async () => {
@@ -2149,8 +2207,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             if (result?.status === 'waiting_checkpoint') return;
             const lifecycle = checkpoints.journal.getRunState(runId);
             if (result?.status === 'needs_reconciliation') {
-              const reconciliation = effectRun?.reconciliation(ref);
-              if (reconciliation !== undefined && !checkpoints.journal.hasUnresolvedModelCalls(runId)) {
+              const unresolvedModel = checkpoints.journal.hasUnresolvedModelCalls(runId);
+              const stopped = journal.lookupRunDefinition(ref, moon, control);
+              const effectReconciliation = effectRun?.reconciliation(ref);
+              // This restoration returned only after its physical Owner's
+              // stop and cleanup. Retain its unresolved outcome in the same
+              // Run journal, so later sweeps do not reopen a Running frame.
+              const reconciliation = unresolvedModel && effectReconciliation === undefined &&
+                restorationStopConfirmed &&
+                stopped?.physicalCloseConfirmed === true &&
+                dispatchOwner.operation(ref) === undefined
+                ? issueInstalledUnpublishedRunState(moon, {runId,
+                  observedAt: now(), resultNames: stopped.resultNames,
+                  dispatchReserved: true, preDispatchFailureConfirmed: false,
+                  cancelledBeforeStart: false, observedTerminalOutcome: 'none',
+                  executionUnknown: true})
+                : !unresolvedModel ? effectReconciliation : undefined;
+              if (reconciliation !== undefined) {
                 if (claim !== undefined && lifecycle?.status === 'resuming') {
                   checkpoints.journal.completeResume(claim,
                     {runStateWire: JSON.stringify(reconciliation)});
@@ -2257,7 +2330,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, check, attach,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, cancel, cancelRequest,
+    stateService, resultService, observeRun, wait, reconcile, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),

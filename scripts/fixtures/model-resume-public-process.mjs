@@ -6,6 +6,7 @@ import {appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync} from
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
+import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -212,6 +213,7 @@ const installation = {directory: path('host'), modelInstallation, authorization,
           assert.ok(fixtureInputs.includes(text), `The fixed input changed: ${text}`);
           assert.ok(!calls().some(value => value.text === text), `Duplicate physical send: ${text}`);
           log('provider-calls.jsonl', {text, providerRevision, phase});
+          if (options.providerReplyLoss === 'crash') crash('provider_response_lost', {text});
           if (['approve-crash-unknown', 'immediate-crash-unknown'].includes(phase) &&
               text === 'bravo') crash('provider_response_lost', {text});
           return moon.clientProgramModelResponse(request, JSON.stringify({reason: null, risk: fixtureRisk.get(text)}),
@@ -244,6 +246,16 @@ async function until(check) {
   } while (Date.now() < deadline);
   throw new Error(`PublicModelBoundaryTimeout: ${JSON.stringify(observations.slice(-12))}`);
 }
+async function unknownRunRetained() {
+  const state = await run.status();
+  const database = new DatabaseSync(path('host/checkpoints/journal/checkpoint-journal.sqlite3'),
+    {readOnly: true});
+  try {
+    const retained = database.prepare('SELECT status FROM runs WHERE run_id = ?').get(state.run_id);
+    return state.status === 'needs_reconciliation' && retained?.status === 'needs_reconciliation'
+      ? state : undefined;
+  } finally { database.close(); }
+}
 try {
   if (transport === 'https') {
     setDefaultCACertificates([...getCACertificates('default'), readFileSync(path('host.crt'), 'utf8')]);
@@ -256,7 +268,9 @@ try {
       endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-owner'});
   } else client = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
   try {
-    run = await client.start(program, {requestId: 'public-model-resume'});
+    run = phase === 'lookup-cancel-fence-loss' || phase === 'lookup-cancel-commit-loss'
+      ? await client.attach(read('run.json'))
+      : await client.start(program, {requestId: 'public-model-resume'});
     if (existsSync(path('run.json'))) {
       const original = read('run.json');
       assert.deepEqual(run.ref, original);
@@ -313,6 +327,7 @@ try {
     output({summary, review, runId: state?.run_id, status: state?.status ?? 'held'});
   } else {
     let resolution;
+    let cancellationRecovery;
     if (phase.startsWith('approve') || phase === 'reject') {
       const kind = phase === 'approve-source' ? 'read_access' : 'model_invocation';
       const summary = read(`${kind}-summary.json`);
@@ -323,7 +338,95 @@ try {
     } else if (phase === 'duplicate') {
       resolution = await client.resolveCheckpoints(read('model_invocation-signed.json'));
     } else if (phase === 'cancel' || phase === 'cancel-unknown') await run.cancel();
-    if (phase === 'approve-source') {
+    else if (phase === 'cancel-fence-loss') {
+      const before = await run.status();
+      const cancelRef = {...run.ref, cancelId: 'model-fence-original-cancel',
+        expectedRevision: before.control.revision};
+      save('cancel-ref.json', cancelRef);
+      // Lose only the actual Model fence COMMIT acknowledgement. The separate
+      // request journal has already retained the pending operation identity.
+      const originalExec = DatabaseSync.prototype.exec;
+      let lost = false;
+      DatabaseSync.prototype.exec = function(sql) {
+        const fence = sql === 'COMMIT' && !lost && this.prepare(
+          "SELECT name FROM sqlite_master WHERE name = 'run_cancellation_fences'").get() !== undefined
+          ? this.prepare('SELECT run_id FROM run_cancellation_fences WHERE run_id = ?')
+            .get(before.run_id) : undefined;
+        const result = originalExec.call(this, sql);
+        if (fence !== undefined) {
+          lost = true;
+          throw new Error('FixtureModelFenceCommitReplyLost');
+        }
+        return result;
+      };
+      try {
+        await assert.rejects(run.cancel({cancelId: cancelRef.cancelId,
+          expectedRevision: cancelRef.expectedRevision}), error => {
+          assert.equal(error.code, 'CancellationUnknown');
+          assert.deepEqual(error.cancelRef, cancelRef);
+          cancellationRecovery = {cancelRef, unknownCode: error.code};
+          return true;
+        });
+        assert.equal(lost, true, 'the real Model fence commit was observed');
+      } finally { DatabaseSync.prototype.exec = originalExec; }
+    } else if (phase === 'cancel-commit-loss') {
+      const before = await run.status();
+      const cancelRef = {...run.ref, cancelId: 'model-commit-original-cancel',
+        expectedRevision: before.control.revision};
+      save('cancel-ref.json', cancelRef);
+      const originalExec = DatabaseSync.prototype.exec;
+      let lost = false;
+      DatabaseSync.prototype.exec = function(sql) {
+        const outcome = sql === 'COMMIT' && !lost && this.prepare(
+          "SELECT name FROM sqlite_master WHERE name = 'client_cancellation_operations'").get() !== undefined
+          ? this.prepare('SELECT outcome_wire FROM client_cancellation_operations WHERE cancel_id = ?')
+            .get(cancelRef.cancelId)?.outcome_wire : undefined;
+        // Fault the final request-journal transaction, not the earlier pending
+        // identity or the independent Model fence transaction.
+        if (outcome != null) {
+          lost = true;
+          if (options.commitLoss === 'after') originalExec.call(this, sql);
+          throw new Error('FixtureCancelCommitReplyLost');
+        }
+        return originalExec.call(this, sql);
+      };
+      try {
+        await assert.rejects(run.cancel({cancelId: cancelRef.cancelId,
+          expectedRevision: cancelRef.expectedRevision}), error => {
+          assert.equal(error.code, 'CancellationUnknown');
+          assert.deepEqual(error.cancelRef, cancelRef);
+          return true;
+        });
+        assert.equal(lost, true, 'the final original cancellation COMMIT was observed');
+      } finally { DatabaseSync.prototype.exec = originalExec; }
+      const first = await run.lookupCancellation(cancelRef);
+      const second = await run.lookupCancellation(cancelRef);
+      assert.deepEqual(second, first);
+      cancellationRecovery = {cancelRef, first, second, unknownCode: 'CancellationUnknown'};
+      if (options.providerReplyLoss) await until(unknownRunRetained);
+      else if (options.commitLoss === 'after') await until(async () => {
+        const state = await run.status();
+        return state.status === 'cancelled' ? state : undefined;
+      });
+    } else if (phase === 'lookup-cancel-commit-loss') {
+      const cancelRef = read('cancel-ref.json');
+      const first = await run.lookupCancellation(cancelRef);
+      const second = await run.lookupCancellation(cancelRef);
+      assert.deepEqual(second, first);
+      cancellationRecovery = {cancelRef, first, second};
+      if (options.expectedModelUnknown) await until(unknownRunRetained);
+    } else if (phase === 'lookup-cancel-fence-loss') {
+      const cancelRef = read('cancel-ref.json');
+      const first = await run.lookupCancellation(cancelRef);
+      const second = await run.lookupCancellation(cancelRef);
+      assert.deepEqual(first, {kind: 'unknown', cancelRef});
+      assert.deepEqual(second, first);
+      cancellationRecovery = {cancelRef, first, second};
+    }
+    if (cancellationRecovery !== undefined) {
+      const state = await run.status();
+      output({runId: state.run_id, status: state.status, control: state.control, cancellationRecovery});
+    } else if (phase === 'approve-source') {
       const found = await until(async () => {
         const lookup = await client.lookupRequest('public-model-resume');
         return lookup.kind === 'found' ? lookup : undefined;
