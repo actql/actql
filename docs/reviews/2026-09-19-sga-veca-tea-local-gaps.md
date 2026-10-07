@@ -6391,6 +6391,7 @@ this public evidence separately from the map and private ordered cases.
 Focused JS passed 18/18 and targeted Node passed 5/5 on the working tree.
 These do not certify packed/HTTPS or Native Host cancellation, initial
 metadata preparation, or the parent's Native allocation correspondence.
-Main `8f84de5a69c5e4534634fa0faec0852a6f99b112` is integrated; #731 remains
-the unmerged dependency. See the
+After #731 merged, main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was
+integrated, including the reviewed observer/census alignment. No unmerged
+parent remains. Its source alignment is not a Native campaign result. See the
 [public ordered binding record](2026-10-07-local-retained-ordered-bindings.md).

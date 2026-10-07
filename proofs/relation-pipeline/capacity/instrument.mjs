@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 const rows = 'src/execution_relation/bounded_binding_rows.mbt';
 const sort = 'src/execution_relation/bounded_index_sort.mbt';
-const reads = 'src/execution_relation/producer_read.mbt';
+const reads = 'src/execution_relation/producer_read_preparation.mbt';
 const providers = 'src/connectors/local/managed_provider.mbt';
 const packagePath = 'src/execution_relation/moon.pkg';
 export const generatedObservers = {
@@ -65,23 +65,31 @@ options(
     ['    match state.phase {\n      Initialize', '    println("ACTQL_PIPELINE_FAULT:{\\"kind\\":\\"capacity observation\\",\\"event\\":\\"index\\",\\"source\\":" + state.source.length().to_string() + ",\\"target\\":" + state.target.length().to_string() + ",\\"count\\":" + state.count.to_string() + ",\\"alias\\":" + (state.source.length() > 0 && physical_equal(state.source, state.target)).to_string() + "}")\n    match state.phase {\n      Initialize'],
   ],
   [reads]: [
-    ['  Ok({ bound, schema, columns, max_entries, max_name_bytes, })', `  let observed : ProducerRead = { bound, schema, columns, max_entries, max_name_bytes, }
-  let shared = match (observed.bound.output.table, bound.output.table) {
-    (Some(RowTable(a)), Some(RowTable(b))) => physical_equal(a.rows, b.rows)
-    (Some(AdmittedTable(a)), Some(AdmittedTable(b))) => physical_equal(a.rows, b.rows)
-    (Some(ColumnTable(a)), Some(ColumnTable(b))) => physical_equal(a.columns, b.columns)
-    (Some(NumberTable(a)), Some(NumberTable(b))) => {
-      let mut same = physical_equal(a.columns, b.columns)
-      for i in 0..<a.columns.length() {
-        same = same && physical_equal(a.columns[i].values, b.columns[i].values) &&
-          physical_equal(a.columns[i].valid, b.columns[i].valid)
-      }
-      same
-    }
-    _ => false
-  }
-  println("ACTQL_PIPELINE_FAULT:{\\"kind\\":\\"capacity observation\\",\\"event\\":\\"input-view\\",\\"sharedBacking\\":" + shared.to_string() + ",\\"rows\\":" + completed_row_count(observed.bound.output).to_string() + ",\\"columns\\":" + columns.length().to_string() + ",\\"consumer\\":" + bound.consumer_step.unwrap_or(-1).to_string() + "}")
-  Ok(observed)`],
+    ['        return Ok(\n          Some({\n            bound: cursor.bound,\n            schema: cursor.schema,\n            columns: cursor.columns,\n            max_entries: cursor.max_entries,\n            max_name_bytes: cursor.max_name_bytes,\n          }),\n        )', `        let bound = cursor.bound
+        let columns = cursor.columns
+        let observed : ProducerRead = {
+          bound: cursor.bound,
+          schema: cursor.schema,
+          columns: cursor.columns,
+          max_entries: cursor.max_entries,
+          max_name_bytes: cursor.max_name_bytes,
+        }
+        let shared = match (observed.bound.output.table, bound.output.table) {
+          (Some(RowTable(a)), Some(RowTable(b))) => physical_equal(a.rows, b.rows)
+          (Some(AdmittedTable(a)), Some(AdmittedTable(b))) => physical_equal(a.rows, b.rows)
+          (Some(ColumnTable(a)), Some(ColumnTable(b))) => physical_equal(a.columns, b.columns)
+          (Some(NumberTable(a)), Some(NumberTable(b))) => {
+            let mut same = physical_equal(a.columns, b.columns)
+            for i in 0..<a.columns.length() {
+              same = same && physical_equal(a.columns[i].values, b.columns[i].values) &&
+                physical_equal(a.columns[i].valid, b.columns[i].valid)
+            }
+            same
+          }
+          _ => false
+        }
+        println("ACTQL_PIPELINE_FAULT:{\\"kind\\":\\"capacity observation\\",\\"event\\":\\"input-view\\",\\"sharedBacking\\":" + shared.to_string() + ",\\"rows\\":" + completed_row_count(observed.bound.output).to_string() + ",\\"columns\\":" + columns.length().to_string() + ",\\"consumer\\":" + bound.consumer_step.unwrap_or(-1).to_string() + "}")
+        return Ok(Some(observed))`],
   ],
 };
 export function instrument(path, original) {
@@ -90,7 +98,7 @@ export function instrument(path, original) {
     const copy = mutations.find(m => m.name === 'handoff-copy-without-accounting');
     if (path === reads && original.includes(copy.after)) {
       before = copy.after;
-      after = after.replace('let observed : ProducerRead = { bound,', `let observed : ProducerRead = { bound: ${copy.binding},`);
+      after = after.replace('bound: cursor.bound,', `bound: ${copy.binding},`);
     }
     assert.equal(changed.split(before).length, 2, `Ambiguous observation site ${path}`);
     changed = changed.replace(before, after);
@@ -109,9 +117,9 @@ export const mutations = [
     before: '            release_slots(state.workspace, count)\n            state.sorted_indices = Some(indices)',
     after: '            release_slots(state.workspace, count)\n            release_slots(state.workspace, count)\n            state.sorted_indices = Some(indices)', fault: 'live DISTINCT scratch underreserved', event: 'index-transfer', resource: 'index-result custody transfer' },
   { name: 'handoff-copy-without-accounting', path: reads,
-    before: '  Ok({ bound, schema, columns, max_entries, max_name_bytes, })',
-    binding: 'if bound.consumer_step is Some(_) { { ..bound, output: copy_completed_output_independent(bound.output, completed_row_count(bound.output), completed_column_count(bound.output)).unwrap(), } } else { bound }',
-    after: '  Ok({ bound: if bound.consumer_step is Some(_) { { ..bound, output: copy_completed_output_independent(bound.output, completed_row_count(bound.output), completed_column_count(bound.output)).unwrap(), } } else { bound }, schema, columns, max_entries, max_name_bytes, })',
+    before: '            bound: cursor.bound,',
+    binding: 'if cursor.bound.consumer_step is Some(_) { { ..cursor.bound, output: copy_completed_output_independent(cursor.bound.output, completed_row_count(cursor.bound.output), completed_column_count(cursor.bound.output)).unwrap(), } } else { cursor.bound }',
+    after: '            bound: if cursor.bound.consumer_step is Some(_) { { ..cursor.bound, output: copy_completed_output_independent(cursor.bound.output, completed_row_count(cursor.bound.output), completed_column_count(cursor.bound.output)).unwrap(), } } else { cursor.bound },',
     fault: 'borrowed backing was replaced', event: 'input-view', resource: 'checked handoff backing ownership', edge: true },
   { name: 'oversized-metadata-map', path: rows,
     before: '  let input_ordinals : Map[String, Int] = Map([])',

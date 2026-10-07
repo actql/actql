@@ -3,11 +3,15 @@
 ## Completion unit and integration
 
 This unit closes the public Plan encoding gap recorded by #731. It follows
-`f9b78149fb9ff14b562e850cd6fc4a0efd3cbf03` and keeps that unmerged parent.
+`f9b78149fb9ff14b562e850cd6fc4a0efd3cbf03` without recreating its work.
 Main `8f84de5a69c5e4534634fa0faec0852a6f99b112` was normally merged at
 `873858cbbc725debc57e4d32f392385df3be98de`. Local changes were preserved in
 a scoped stash and restored without conflicts. Current Graph contracts and
-the parent's checked metadata owners remain authoritative.
+the parent's checked metadata owners remain authoritative. During validation,
+#731 reached main at `12c56b6d67f233d735664bb59786dd13b86e1d97`.
+Main `6a083adc55fdf91a3c3f105393ce4eb870b285d7` was then normally merged,
+including G's allocation observer/census correspondence and full USING scope.
+No conflict or unmerged parent remains; the PR targets main.
 
 The ordinary Program is a Values producer, ordered derive and Select,
 followed by two independent consumer tasks. Ten authored bindings shadow a
@@ -91,11 +95,12 @@ output.
 ## Remaining work
 
 This closes public retained ordered derive, not Local Compute as a whole.
-The parent's Native observer/census correspondence remains separate and owned
-by G; this change adds no driver state or new physical allocation profile.
+The parent's Native observer/census source alignment was adopted from main;
+this change adds no driver state or new physical allocation profile. A Native
+capacity campaign was not executed here and is not implied by adoption.
 Initial metadata preparation and availability analysis are not certified as
 resumable by this unit. Native Host in-flight cancellation remains a separate
 completion unit. Full Core, Wasm/Native execution, packed Local/HTTPS,
 capacity/proof campaigns, performance and public stop-latency measurements
 were not run. Local success is not hosted CI success. Keep the PR Draft while
-dependencies and the remaining verification/review boundary are unresolved.
+the remaining verification/review boundary is unresolved.
