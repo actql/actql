@@ -44,7 +44,11 @@ fn provider_work_attempt(
     values: {
       ..fixed_compute_attempt_limits().retention,
       max_nodes: 1000,
-      max_text_bytes: if imported_rows == 1 { 100 } else { 1000 },
+      max_text_bytes: if imported_rows == 1 {
+        100
+      } else {
+        1000
+      },
     },
     wire: if imported_rows == 1 {
       retained_attempt_wire_limits()
@@ -199,15 +203,23 @@ test "retained materializing chain preserves its independent work boundary" {
         if terminal {
           break
         }
-        match @local_connector.advance_local_materializing_attempt(attempt, quantum) {
+        match
+          @local_connector.advance_local_materializing_attempt(attempt, quantum) {
           Ok(step) =>
             if step.complete {
               assert_eq(max_work, 82)
-              assert_eq(@local_connector.local_materializing_cumulative_work(attempt), Ok(82L))
+              assert_eq(
+                @local_connector.local_materializing_cumulative_work(attempt),
+                Ok(82L),
+              )
               @strategy.settle_task_execution(run, ticket, true).unwrap()
-              let output = @local_connector.local_materializing_completed_output(attempt).unwrap()
+              let output = @local_connector.local_materializing_completed_output(
+                attempt,
+              ).unwrap()
               assert_eq(@execution.completed_row_count(output), 1)
-              assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3.0)))
+              assert_true(
+                @execution.completed_cell(output, 0, 0) is Some(Number(3.0)),
+              )
               terminal = true
             }
           Err(Candidate(Execution(InputLimit))) => {
@@ -215,7 +227,8 @@ test "retained materializing chain preserves its independent work boundary" {
             assert_false(@strategy.captured_task_completed(run, 3))
             terminal = true
           }
-          Err(_) => fail("materializing work boundary failed for an unrelated cause")
+          Err(_) =>
+            fail("materializing work boundary failed for an unrelated cause")
         }
       }
       assert_true(terminal)

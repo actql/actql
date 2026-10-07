@@ -99,3 +99,11 @@ Native release observation and pipeline CI configuration were preserved.
 The Local materializing and Node cleanup implementation had no incoming overlap.
 This integration is not a new runtime or public-Host execution receipt; the
 existing preparation evidence remains tied to its original source.
+
+The materializing work-boundary fixture was subsequently formatted with the
+pinned formatter. Only layout changed; its independent 82/81 limits and typed
+failure assertions are unchanged. Changed-file formatter comparison and
+`git diff --check` passed. A project-wide formatter check found separate main
+differences in `src/platform_native/executor_slot/executor_slot_native.mbt` and
+`src/query_syntax/query_test.mbt`; those files are outside this change and the
+full formatting check is not claimed as successful.
