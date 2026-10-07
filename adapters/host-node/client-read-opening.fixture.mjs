@@ -35,8 +35,12 @@ export async function openReadOpeningFixture(directory, loss) {
     maxContractNodes: 100000, maxContractDepth: 64}, control);
   const journal = openClientRequestJournal(join(directory, 'requests'));
   const counts = {admissions: 0, readers: 0, computes: 0, definitions: 0};
-  let allowed = true, armed = loss, loseReply;
+  let allowed = true, armed = loss, loseReply, beforeSuccessRecord;
   const observed = {...store,
+    async appendDeliveryRecord(wire) {
+      if (JSON.parse(wire).state === 'succeeded') await beforeSuccessRecord?.();
+      return store.appendDeliveryRecord(wire);
+    },
     async createDeliveryAttempt(wire, grantWire) {
       counts.admissions++;
       const phase = armed; armed = undefined;
@@ -98,6 +102,7 @@ export async function openReadOpeningFixture(directory, loss) {
     }, resultService, stateService, maxRowBytes: 1024,
   };
   return {services, counts, store, journal,
+    beforeSuccessRecord: callback => {beforeSuccessRecord = callback;},
     arm: phase => {armed = phase;}, authorize: value => {allowed = value;},
     loseReply: callback => {loseReply = callback;},
     async close() {journal.close(); await store.close();}};

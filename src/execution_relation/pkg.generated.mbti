@@ -97,6 +97,8 @@ pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[Infer
 
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
+pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[ProducerRead?, ProducerReadIssue]
+
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
@@ -248,6 +250,8 @@ pub fn[P] cancel_managed_verified_output_port(ManagedVerifiedOutputPort[P]) -> B
 pub fn[P, T] cancel_managed_view_output_port(ManagedViewOutputPort[P, T]) -> Bool
 
 pub fn cancel_predicate_expression(PredicateExpressionExecution) -> Bool
+
+pub fn cancel_prepare_producer_read(ProducerReadPreparation) -> Unit
 
 pub fn cancel_retained_content_read(RetainedContentRead) -> Bool
 
@@ -969,6 +973,8 @@ pub fn producer_read_input_index(ProducerRead) -> Int
 
 pub fn producer_read_matches_operation_input(ProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
 
+pub fn producer_read_preparation_is_small(ProducerReadPreparation) -> Bool
+
 pub fn producer_read_receiver(ProducerRead) -> @lowering_relation.BoundPrepared
 
 pub fn producer_read_retained_material(ProducerRead) -> RetainedOutputMaterial?
@@ -1160,6 +1166,8 @@ pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Val
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
+
+pub fn start_prepare_producer_read(@lowering_relation.BoundPrepared, BoundProducerInput, Int, Int) -> Result[ProducerReadPreparation, ProducerReadIssue]
 
 pub fn start_supplied_record_guard(@bounded_execution.Control, SuppliedRelationRead, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
 
@@ -2167,6 +2175,8 @@ pub(all) enum ProducerReadIssue {
   ProducerUnavailable
   ForeignRepresentation
 }
+
+type ProducerReadPreparation
 
 type ProducerStorage
 
