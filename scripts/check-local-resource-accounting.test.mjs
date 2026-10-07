@@ -3854,6 +3854,36 @@ test('ordered metadata assurance requires limits stop quantum and public evidenc
   }
 });
 
+test('generated metadata assurance requires limits stop quantum and public evidence', () => {
+  for (const [operation, kind, role] of [
+    ['json_pick', 'boundary_tests', 'generated_metadata_workspace'],
+    ['json_pick', 'boundary_tests', 'generated_metadata_work'],
+    ...['json_pick', 'watermark_rows', 'lag'].flatMap(operation => [
+      [operation, 'boundary_tests', 'generated_metadata_quantum'],
+      [operation, 'boundary_tests', 'generated_metadata_stop'],
+      [operation, 'environment_tests', 'generated_metadata_public'],
+    ]),
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:generated_metadata_(?:workspace|work|quantum|stop)|generated metadata public) fixture is missing/u);
+  }
+});
+
+test('borrowed JSON path assurance requires limits stop and public evidence', () => {
+  for (const [kind, role] of [['boundary_tests', 'borrowed_json_path_work'],
+    ['boundary_tests', 'borrowed_json_path_stop'],
+    ['environment_tests', 'borrowed_json_path_public']]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === 'json_pick');
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:borrowed_json_path_(?:work|stop)|borrowed JSON path public) fixture is missing/u);
+  }
+});
+
 test('string aggregation assurance requires limits stop and public evidence', () => {
   for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
     ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {
