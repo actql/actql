@@ -2388,12 +2388,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, workspaceId, sourceProfilePath, sourceProfilePaths,
+  loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders,
   resultDataPolicy, retainedRelationOutput, hostCapacityPolicy, valuesMaxRows}) {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
+      typeof loopbackHttp !== 'boolean' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
     throw new TypeError('InvalidInstalledRemoteHost');
   }
@@ -2404,7 +2406,7 @@ export async function openInstalledRemoteHttpHost({directory,
     modelInstallation, registerModelProviders, resultDataPolicy,
     retainedRelationOutput, hostCapacityPolicy, valuesMaxRows});
   const handle = createClientHttpHandler({
-    ...host.hostOperations, authenticate, maxRequestBytes: 65536,
+    ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
   });
   // A request's handling can outlive its response: a Result read records
   // its delivery attempt after the last bytes are sent. Close waits for

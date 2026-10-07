@@ -21,7 +21,9 @@ independently. Decode each exactly once. The Workspace ID is case-sensitive,
 bounded to 256 UTF-16 units, and is not a display name, filesystem path,
 Organization, OSS namespace or authority scope. Dot segments, decoded slash
 or backslash, controls, malformed escapes and extra path segments are refused.
-No query or fragment is accepted in this initial form. An empty credential,
+The only admitted query is the exact `?transport=http` opt-in described below;
+unknown, repeated, encoded, empty and differently cased query fields are refused.
+No fragment is accepted. An empty credential,
 ambiguous userinfo or characters unsuitable for a Fetch header are refused
 before I/O. The whole input is bounded to 16,384 characters and a decoded
 credential to 8,192 characters.
@@ -32,7 +34,7 @@ separate token string or synchronous/asynchronous getter. Supplying both is an
 error even when the values agree; there is no precedence rule. The SDK does
 not read environment variables, create credentials, save them or renew them.
 
-The parser constructs a fresh credential-free HTTPS origin from the authority.
+The parser constructs a fresh credential-free origin from the authority.
 It never changes an `actql:` URL's scheme in place, uses its original string
 as an HTTP URL, or follows a discovered origin. Credentials enter only the
 Authorization header for that origin. Redirects remain refused. Credentials
@@ -77,11 +79,43 @@ create replay permission.
 ## Local and deployment boundaries
 
 `actql://localhost:port/workspace` denotes an already running network Host,
-not an embedded directory. In this first binding it also uses HTTPS and
+not an embedded directory. Without a query it uses HTTPS and
 ordinary certificate verification. Applications provision their Host and TLS
 trust explicitly. There is no HTTP downgrade or certificate-warning bypass.
-Explicit loopback HTTP and an in-process `open()` facade are separate work;
-their absence must not be disguised as an automatic fallback.
+
+`actql://localhost:port/workspace?transport=http` explicitly selects Node
+loopback HTTP. Exact `localhost` is pinned to `127.0.0.1` before transport;
+it performs no DNS resolution or IPv6 fallback. A canonical dotted IPv4
+address in `127.0.0.0/8` or an IPv6 literal equal to `::1` is also accepted.
+Named aliases, trailing-dot names, shortened/octal/hex/integer IPv4, mapped
+IPv6, zones and remote addresses are refused before credential callbacks or network I/O.
+An explicit port zero is refused; no failed connection selects another port,
+protocol, Host or embedded installation.
+
+Opted-in HTTP uses a private Node POST transport with its own non-proxy Agent.
+It bypasses global Fetch/HTTP proxy configuration without changing it. The
+response remains a bounded-queue stream consumed by the existing SDK read
+limits, cancellation and error/custody path. Redirects and upgrades are refused.
+Package-internal conditional imports keep Node modules out of browser builds;
+unsupported platforms fail with `LoopbackHttpUnavailable` before fetching a
+credential. HTTPS continues to use the existing platform Fetch implementation.
+
+The installed HTTP Host can enable `loopbackHttp: true`. Before authentication,
+the ingress checks the actual accepting Server's OS-reported bind and the
+socket's local/remote addresses and port. Wildcard/public binds, Unix sockets,
+missing/closed listeners, mapped IPv6 and TLS in this mode are refused. Host
+and forwarded headers grant no local status. Loopback is not an authenticated
+identity: the ordinary bearer callback and per-request Workspace binding still
+apply, including to requests from a browser or local reverse proxy.
+HTTP supplies no TLS confidentiality or cryptographic server authentication;
+this opt-in assumes the local operating-system/process boundary is trusted.
+
+The embedding application still creates its HTTP server, attaches
+`host.handler`, explicitly listens on a numeric loopback address and closes
+the server before awaiting `host.close()`. This option does not bind a socket,
+launch a daemon, change proxy/TLS settings or configure a public listener.
+Omitting it retains the existing caller-owned HTTP(S) installation contract;
+it does not attest that an arbitrary caller-installed listener is secure.
 
 The existing `{mode, endpoint, token}` API and `Promise<Client>` connection
 handshake remain available. SQL/AQL, Execution, Result and lifecycle behavior

@@ -45,6 +45,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
   `]);
   for (const name of ['check-presentation.mjs', 'operation-presentation.mjs',
     'operation-formats.mjs', 'json-value-wire.generated.mjs', 'connection-string.mjs',
+    'loopback-http.mjs', 'loopback-http-unavailable.mjs',
     'check-reason-catalog.generated.js', 'check-reason-catalog.generated.d.ts']) {
     assert.equal(packages[1].files.filter(file => file.path === name).length, 1);
   }
@@ -62,6 +63,7 @@ test('packed SDK public exports and browser bundle include their presentation mo
     'node_modules/@actql/sdk/connection-string.mjs',
     'node_modules/@actql/sdk/index.mjs',
     'node_modules/@actql/sdk/json-value-wire.generated.mjs',
+    'node_modules/@actql/sdk/loopback-http-unavailable.mjs',
     'node_modules/@actql/sdk/operation-formats.mjs',
     'node_modules/@actql/sdk/operation-presentation.mjs',
   ]);
@@ -87,6 +89,7 @@ test('browser SDK consumer localizes a pinned Problem without I/O or input custo
     'packages/sdk/connection-string.mjs',
     'packages/sdk/index.mjs',
     'packages/sdk/json-value-wire.generated.mjs',
+    'packages/sdk/loopback-http-unavailable.mjs',
     'packages/sdk/operation-formats.mjs',
     'packages/sdk/operation-presentation.mjs',
   ]);

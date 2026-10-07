@@ -5,6 +5,7 @@ import {generateKeyPairSync} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
+import {createServer as createHttpServer} from 'node:http';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -15,13 +16,19 @@ const program = {version: 'actql/0.1', id: 'workspace-connection-values',
   as: 'selected'}], results: {rows: {from: 'selected', fields: ['id']}}}],
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
 
-export async function exerciseWorkspaceConnection({directory, sdk, node, openHost}) {
-  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+export async function exerciseWorkspaceConnection({directory, sdk, node, openHost,
+  loopbackHttp = false, address = '127.0.0.1'}) {
+  let key, cert;
+  if (!loopbackHttp) {
+    execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
     '-keyout', 'host.key', '-out', 'host.crt', '-days', '1', '-subj', '/CN=localhost',
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], {cwd: directory, stdio: 'ignore'});
-  const [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(directory, name))));
-  const originalCAs = getCACertificates('default');
-  setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
+    [key, cert] = await Promise.all(['host.key', 'host.crt'].map(name => readFile(join(directory, name))));
+  }
+  const originalCAs = loopbackHttp ? undefined : getCACertificates('default');
+  if (originalCAs !== undefined) setDefaultCACertificates([...originalCAs, cert.toString('utf8')]);
+  const originalFetch = globalThis.fetch;
+  if (loopbackHttp) globalThis.fetch = () => {throw new Error('LoopbackUsedGlobalFetch');};
   const keys = generateKeyPairSync('ed25519');
   const principal = userInfo().username;
   const counts = {A: 0, B: 0};
@@ -43,20 +50,27 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
   try {
     for (const label of ['A', 'B']) {
       hosts.push(await openHost({directory: join(directory, `host-${label}`),
-        workspaceId: `workspace-${label}`, authorization: authorization(label),
+        workspaceId: `workspace-${label}`, authorization: authorization(label), loopbackHttp,
         authenticate: header => credentials.get(header?.slice('Bearer '.length)) === label
           ? principal : undefined}));
     }
-    server = createServer({key, cert}, (request, response) => {
+    const handler = (request, response) => {
       // Select the existing installed owner from the verified fixture
       // credential's immutable scope, never from the submitted assertion.
       const label = credentials.get(request.headers.authorization?.slice('Bearer '.length));
       return hosts[label === 'B' ? 1 : 0].handler(request, response);
+    };
+    server = loopbackHttp ? createHttpServer(handler) : createServer({key, cert}, handler);
+    await new Promise((resolve, reject) => {
+      server.once('error', reject);
+      server.listen({port: 0, host: address}, () => {server.off('error', reject); resolve();});
     });
-    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    const endpoint = `https://localhost:${server.address().port}/`;
-    const uri = label => `actql://localhost:${server.address().port}/workspace-${label}`;
-    const secretDsn = `actql://token:${encodeURIComponent('fixture-A:+/@?#%')}@localhost:${server.address().port}/workspace-A`;
+    const literal = address === '::1' ? '[::1]' : address;
+    const authority = loopbackHttp && address === '::1' ? '[::1]' : 'localhost';
+    const query = loopbackHttp ? '?transport=http' : '';
+    const endpoint = `${loopbackHttp ? 'http' : 'https'}://${loopbackHttp ? literal : 'localhost'}:${server.address().port}/`;
+    const uri = label => `actql://${authority}:${server.address().port}/workspace-${label}${query}`;
+    const secretDsn = `actql://token:${encodeURIComponent('fixture-A:+/@?#%')}@${authority}:${server.address().port}/workspace-A${query}`;
     const a = await node.connect(secretDsn); clients.push(a);
     let refreshed = 'fixture-A-refreshed';
     const rotating = await sdk.connect(uri('A'), {token: async () => refreshed}); clients.push(rotating);
@@ -100,12 +114,18 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
     await assert.rejects(sdk.connect(uri('B'), {token: 'fixture-A-refreshed'}),
       {code: 'ClientConnectionDenied'});
     // The original endpoint API remains usable without an unsolicited echo.
-    const legacy = await sdk.connect({mode: 'remote', endpoint, token: 'fixture-A-refreshed'});
-    clients.push(legacy);
-    assert.equal(Object.hasOwn(legacy.profile, 'workspaceId'), false);
-    assert.deepEqual((await legacy.attach(runA.ref)).ref, runA.ref);
+    if (loopbackHttp) {
+      await assert.rejects(sdk.connect({mode: 'remote', endpoint, token: 'fixture-A-refreshed'}),
+        {code: 'InvalidConnectionEndpoint'});
+    } else {
+      const legacy = await sdk.connect({mode: 'remote', endpoint, token: 'fixture-A-refreshed'});
+      clients.push(legacy);
+      assert.equal(Object.hasOwn(legacy.profile, 'workspaceId'), false);
+      assert.deepEqual((await legacy.attach(runA.ref)).ref, runA.ref);
+    }
     return {counts: {...counts}, rows: [{id: 1}, {id: 2}],
-      distinctScopes: true, originalRunReused: true, unexpectedDispatches: 0};
+      distinctScopes: true, originalRunReused: true, unexpectedDispatches: 0,
+      transport: loopbackHttp ? 'loopback-http' : 'https', address};
   } finally {
     for (const client of clients) await client.close();
     if (server !== undefined) {
@@ -117,6 +137,7 @@ export async function exerciseWorkspaceConnection({directory, sdk, node, openHos
       assert.equal(closed.authorizationCleanupPending, false);
       assert.deepEqual(closed.pendingRetention, []);
     }
-    setDefaultCACertificates(originalCAs);
+    globalThis.fetch = originalFetch;
+    if (originalCAs !== undefined) setDefaultCACertificates(originalCAs);
   }
 }

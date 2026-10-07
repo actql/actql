@@ -1,4 +1,6 @@
 import test from 'node:test';
+import './loopback-http.test.mjs';
+import './loopback-http-browser.test.mjs';
 import assert from 'node:assert/strict';
 import {inspect} from 'node:util';
 import {parseConnectionString, connectionStringCredential} from
@@ -42,6 +44,43 @@ test('network localhost and IPv6 remain explicit HTTPS network targets', () => {
     {endpoint: 'https://localhost/', workspaceId: 'local'});
   assert.deepEqual(parseConnectionString('actql://[::1]:8443/local'),
     {endpoint: 'https://[::1]:8443/', workspaceId: 'local'});
+});
+
+test('HTTP requires an exact opt-in and pins localhost without DNS resolution', () => {
+  for (const [host, endpoint] of [
+    ['localhost', '127.0.0.1'], ['LOCALHOST', '127.0.0.1'],
+    ['127.0.0.1', '127.0.0.1'], ['127.20.30.40', '127.20.30.40'],
+    ['[::1]', '[::1]'], ['[0:0:0:0:0:0:0:1]', '[::1]'],
+  ]) {
+    const value = parseConnectionString(`actql://${host}:8080/workspace?transport=http`);
+    assert.deepEqual(value, {endpoint: `http://${endpoint}:8080/`, workspaceId: 'workspace'});
+  }
+  const value = parseConnectionString('actql://token:private%40token@localhost:8080/w%3Fq?transport=http');
+  assert.equal(value.workspaceId, 'w?q');
+  assert.equal(connectionStringCredential(value), 'private@token');
+  assert.equal(inspect(value, {showHidden: true}).includes('private'), false);
+});
+
+test('HTTP refuses remote names, noncanonical IPv4 and alternate query spellings', () => {
+  for (const host of ['example.test', 'localhost.', 'nested.localhost', '127.example.test',
+    '127.1', '2130706433', '0x7f000001', '0177.0.0.1', '127.000.0.1',
+    '0.0.0.0', '192.168.1.1', '169.254.169.254', '127.0.0.256',
+    '[::]', '[::ffff:127.0.0.1]', '[2001:db8::1]']) {
+    assert.throws(() => parseConnectionString(`actql://${host}:8080/workspace?transport=http`),
+      {message: 'InvalidConnectionString'});
+  }
+  assert.throws(() => parseConnectionString('actql://localhost:0/workspace?transport=http'),
+    {message: 'InvalidConnectionString'});
+  for (const query of ['', 'transport=https', 'transport=HTTP', 'Transport=http',
+    '%74ransport=http', 'transport=%68ttp', 'transport=http&transport=http',
+    'transport=http&other=x', 'other=x&transport=http', 'transport=http#fragment']) {
+    let failure;
+    try { parseConnectionString(`actql://token:private-token@localhost:8080/workspace?${query}`); }
+    catch (error) { failure = error; }
+    assert.equal(failure?.message, 'InvalidConnectionString');
+    assert.equal(failure.cause, undefined);
+    assert.doesNotMatch(inspect(failure, {showHidden: true}), /private-token/);
+  }
 });
 
 test('credentials decode once and never introduce URL structure', () => {

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import './loopback-http.test.mjs';
 import {createServer} from 'node:http';
 import {clientHostOperations, validClientBody} from '../../packages/client-wire/index.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
