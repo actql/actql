@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 export const driverPath='src/connectors/local/driver/managed_dispatch.mbt';
+export const scratchRetirementPath='src/connectors/local/driver/scratch_retirement.mbt';
 export const strategyPath='src/physical_strategy/task_execution.mbt';
 const clean=s=>s.replace(/\/\/[^\n]*/g,'').replace(/\s+/g,'').replace(/,\)/g,')');
 export function blockAfter(source,anchor) {
@@ -28,14 +29,62 @@ const release=`{
 const scratch=`{
     ( disposed.val || (settled.val && finalization_ready.val) || (settled.val && carrier.val is Some(_)) ) &&
     scratch_uses.val == 0 && provider_execution.val is None &&
-    bridges.all(handle => handle.val is None) && retained_imports.all(handle => handle.val is None) &&
-    reads.all(read => read is None) &&
+    scratch_retirement.phase == Retired &&
     ( !disposed.val || retained.val is Some(_) ||
       (ordinary.val is None && finalization_payload.val is None && finalization_available.val is None &&
        finalization_receipt.val is None && finalization_material.val is None && finalization_completed.val is None) ) &&
     finalization_values.val is None && finalization_retention.val is None && finalization_stream.val is None &&
-    finalization_result_preparation.val is None && finalization_cids.all(cid => cid is None) && finalization_issuers.is_empty()
+    finalization_result_preparation.val is None
   }`;
+const ownedScratch=`{
+  if !(disposed.val || (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
+    scratch_uses.val != 0 || provider_execution.val is Some(_) {
+    return
+  }
+  if !advance_local_managed_scratch_retirement(scratch_retirement, bridges, retained_imports,
+    reads, finalization_cids, finalization_issuers,) {
+    return
+  }
+  if finalization_values.val is Some(values) {
+    @execution.dispose_managed_output_values_scratch(values)
+  }
+  finalization_values.val = None
+  finalization_retention.val = None
+  finalization_stream.val = None
+  finalization_result_preparation.val = None
+  if disposed.val && retained.val is None {
+    release_output_aliases()
+  }
+}`;
+const rootSlice=`{
+  let mut steps = 0
+  while steps < 64 {
+    match cursor.phase {
+      Bridges => if cursor.index < bridges.length() {
+        bridges[cursor.index].val = None
+        cursor.index += 1
+      } else { cursor.phase = Imports; cursor.index = 0 }
+      Imports => if cursor.index < imports.length() {
+        imports[cursor.index].val = None
+        cursor.index += 1
+      } else { cursor.phase = Reads; cursor.index = 0 }
+      Reads => if cursor.index < reads.length() {
+        reads[cursor.index] = None
+        cursor.index += 1
+      } else { cursor.phase = Cids; cursor.index = 0 }
+      Cids => if cursor.index < cids.length() {
+        cids[cursor.index] = None
+        cursor.index += 1
+      } else { cursor.phase = Issuers; cursor.index = 0 }
+      Issuers => if !issuers.is_empty() {
+        issuers.pop() |> ignore
+      } else { issuers.shrink_to_fit(); cursor.phase = Retired }
+      Retired => return true
+    }
+    steps += 1
+  }
+  cursor.phase == Retired
+}`.replaceAll(';','');
 const retirement=`{
   if !execution.disposed || !execution.execution_settled || !task_execution_matches(run, execution) {
     return
@@ -67,12 +116,20 @@ const retirement=`{
 }`;
 export function checkDriverRetirementSource(read) {
   const driver=read(driverPath).toString(),strategy=read(strategyPath).toString();
+  const roots=read(scratchRetirementPath).toString();
   assert.equal(clean(blockAfter(driver,'let release_provider_scratch = fn()')),clean(release),'Changed provider stop/cleanup/work/root retirement ordering');
   assert.equal(clean(blockAfter(driver,'scratch_released: fn()')),clean(scratch),'Changed installed driver scratch witness');
+  assert.equal(clean(blockAfter(driver,'let release_owned_scratch = fn()')),clean(ownedScratch),'Changed installed incremental root retirement guard');
+  assert.equal(clean(blockAfter(roots,'fn local_managed_scratch_retirement(')),clean('{ { phase: Bridges, index: 0, } }'),'Changed initial scratch retirement phase');
+  assert.equal(clean(blockAfter(roots,'advance_local_managed_scratch_retirement(')),clean(rootSlice),'Changed bounded scratch root retirement slice');
+  assert.equal(clean(blockAfter(roots,'fn local_managed_input_writes_open(')),clean('{ live && !settled && !disposed }'),'Changed late input write rejection');
+  assert.equal((driver.match(/let scratch_retirement = local_managed_scratch_retirement\(\)/g)??[]).length,1,'Changed installed scratch cursor construction');
+  assert.equal((driver.match(/local_managed_input_writes_open\(/g)??[]).length,5,'Changed import/bridge write guards');
   assert.equal(clean(blockAfter(strategy,'fn release_task_execution(')),clean(retirement),'Changed common reservation retirement boundary');
   assert.match(driver.replace(/\s+/g,' '),/let provider_execution : Ref\[@local\.ManagedProviderExecution\?\] = Ref\(None\)/);
   assert.deepEqual([...driver.matchAll(/provider_execution\.val\s*=\s*([^\n]+)/g)].map(m=>m[1].trim()),['None','Some(started)'],'Unreviewed provider root replacement');
   return {scope:'exact reviewed driver scratch-root and common reservation retirement boundaries',
     retainsProviderUntilStoppedAndCleanupSuccess:true,clearsProviderAfterCleanupSuccess:true,
-    cachesFinalProviderWorkBeforeDroppingRoot:true,wholePhysicalLifetimeUpper:false,ledgerGenerationCorrespondence:false};
+    cachesFinalProviderWorkBeforeDroppingRoot:true,incrementalScratchRootRetirement:true,
+    wholePhysicalLifetimeUpper:false,ledgerGenerationCorrespondence:false};
 }
