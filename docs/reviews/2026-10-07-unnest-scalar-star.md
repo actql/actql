@@ -75,9 +75,8 @@ node scripts/local-checks.mjs test node -- \
   Those test mistakes are retained in `focused-test-E6OHxj` (9/11). They did not
   justify changing common parameter admission or refusal rules.
 - Changed MoonBit files were formatted; `git diff --check` passed.
-- Packed Local/HTTPS acceptance is the remaining verification step at this
-  commit. Three-target/full Core, full packed corpus, CLI/native and CI have not
-  been run for this unit. Selected local success is not CI success.
+- Three-target/full Core, full packed corpus, CLI/native and CI have not been
+  run for this unit. Selected local success is not CI success.
 
 ## Resume and cleanup
 
@@ -88,3 +87,54 @@ sources, integrated commits, original tarballs, logs and borrowed dependencies
 were retained. The exact receipt is
 `review-artifacts/b-resume-2026-10-07/cleanup-old-string-format.json`.
 No other worktree or shared cache was removed.
+
+## Fresh packed Local/HTTPS evidence
+
+Implementation and normal five-package producer SHA:
+`d1b71482c0cbcfcfd2ca618bb88000ad0f715419`.
+No prepack scripts were skipped, no adapter overlay was applied, and the shared
+manifest's clean-build-input and tarball digest checks were retained.
+
+```sh
+node scripts/packed-client-packages.mjs /private/tmp/actql-b-unnest-star-d1b71482c-pack
+ACTQL_PACKED_CLIENT_PACKAGES=/private/tmp/actql-b-unnest-star-d1b71482c-pack \
+ACTQL_TEST_NPM_CACHE=/private/tmp/actql-graph-composition-probe-e90/npm-cache \
+node scripts/test-packed-public-query.mjs --unnest-source-only
+```
+
+The private external installation passed thirteen successes (one independent
+JSON control plus twelve source cases) and eight preparation refusals in each
+Embedded Local and HTTPS mode. Named Result rows, exact ordered contracts,
+nullability, column order, stream completion, absence of private fields,
+same-request Run reuse and rereading without provider acquisition were checked
+by the unchanged public harness. Refusals preserve zero Run admission/provider
+I/O. The selected corpus uses no external Source or Model calls.
+
+Original receipt and logs:
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/public-query-evidence-R9mX6z`.
+Command `008` exited 0 with no signal, complete output, elapsed 185,928.513459 ms.
+The receipt is `passed`, `complete:true`, `artifactsRemoved:true`, with no
+`evidenceErrors`. Successful private installations were removed; receipts,
+stdout/stderr and original producer tarballs remain. The receipt's `dirty:true`
+is the pre-existing protected, untracked `review-artifacts/` directory; tracked
+sources and build inputs were clean, as enforced by normal pack/reuse.
+
+The enclosing producer also passed its ordinary eleven profile checks, README
+Local/HTTPS and expected missing-generated-asset refusal. These are separate
+checks, not additional UNNEST cases or a full packed campaign.
+
+SHA-256 tarball digests:
+
+| Package | Digest |
+|---|---|
+| client-wire | `d519367b6ba51f21953d396564ff7b9e08ad8030ac0df336a98719f84b83a84d` |
+| sdk | `844ee1e2a1a1b4be8499630f9d75d144ecb61f94b9252c184361c7f5b7100e9b` |
+| run-host-core | `b37ae34317c7e46d78626631f8f7d2d200e5385e8a198c14cabc255049c01bd5` |
+| local-node | `20ee9320ab4dd940a88be1edad376bf4d9110d603e041dc0b3b713f6c7a5cc0a` |
+| node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
+The final evidence-record commit changes only this report. Its source, fixture,
+adapter and machine-contract trees remain identical to the tested producer SHA.
+The execution evidence retains its actual SHA rather than being relabeled as
+execution at the documentation commit. Draft CI and review remain outstanding;
+no manual CI run or merge was performed.
