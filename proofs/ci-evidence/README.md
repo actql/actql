@@ -50,6 +50,45 @@ Expanding registration or admission requires a reviewed implementation and actua
 acceptance; callers need no per-run G approval for this already registered local
 profile. It is not yet connected to hosted pipeline action acquisition.
 
+The separate registered `pipeline-fixed-js` profile extends the same local
+entry point to L-M0 / fixed / JS: four mutants, each with an independent pristine
+observation and a new-owner post-restoration observation (12 original executions).
+Use the command above with `--profile pipeline-fixed-js`; no mode, part, target
+or minimum override is accepted. It uses the existing pipeline mutation engine,
+independent anchors/oracle and workspace owners. The ordinary runner retains
+JS/Wasm/Native, exploration, complete-part admission and all final audits.
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/relation-pipeline/mutations.test.mjs \
+  proofs/relation-pipeline/mutation-parts.test.mjs \
+  proofs/relation-pipeline/fixed-js-replay.test.mjs \
+  proofs/ci-evidence/local-isolated-acceptance.test.mjs
+```
+
+The fixed profile preserves each actual mutation, healthy and restored receipt,
+input, source snapshot, compiled fixture and log. Its final consumer requires
+anchored detection, normal semantics, byte-exact restoration and a new owner in
+the same mutable source/build root. Normal and isolated observations are compared
+without discarding values, NULL, schema, ordering or work. Captured normal process
+status/output remains available when admission fails; partial execution or a
+timeout cannot replace the complete report. See the
+[implementation, actual diagnostics and remaining acceptance](../../docs/reviews/2026-10-08-pipeline-fixed-js-isolation.md).
+Recorded physical acceptance at the linked fixed SHA covers 12 actual normal and
+12 actual image observations, all four anchored mutations, pristine/new-owner
+restoration, normal/image scientific agreement and final refusal of 13 altered
+copies. Reconsume its immutable originals without repeating compilation:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 90 -- \
+  proofs/ci-evidence/pipeline-fixed-js-replay.test.mjs
+```
+
+The separate schema is rejected by full-part admission and grants neither Actions
+authority nor reuse permission. A new family still needs its own finite source,
+phase, oracle and owner connection evidence; these pipeline observations cannot
+be promoted to a different family, target or full campaign.
+
 The [contract](CONTRACT.md) describes the eventual closed reuse boundary.
 `cli.mjs catalog`, `plan`, `seal`, and `check` are the public data interface.
 The initial plan returns `execute` for every registered action and explicitly

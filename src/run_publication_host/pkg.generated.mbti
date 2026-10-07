@@ -474,6 +474,12 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
+
+pub fn client_submitted_intent_transition(String, String) -> Bool
+
+pub fn client_submitted_intent_wire(ClientSubmittedIntent) -> String
+
 pub fn client_table_input_mapping(ClientTableInput) -> @effect_application.TableStorageMapping
 
 pub fn client_table_input_matches_source(ClientTableInput, ClientEffectLocalResultArtifact, ClientEffectLocalIdentity) -> Bool
@@ -830,6 +836,8 @@ pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequest
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 
+pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
+
 pub fn prepare_client_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientTaskDispatchIssue]
 
 pub fn prepare_client_task_input_binding(PreparedClientProgram, Int) -> Result[@remote_site_protocol.RemoteInputBinding, ClientTaskDispatchIssue]
@@ -853,6 +861,8 @@ pub fn prepare_result_publication_export(@execution_relation.CompletedOutput, @e
 pub fn prepare_source_free_client_request_identity(PreparedClientProgram, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_source_free_client_values_dispatch(ClientValuesRunBinding, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesDispatchIssue]
+
+pub fn prepare_submission_epoch(String, String, Double, Double) -> Result[@logical_request_scope.SubmissionEpoch, @logical_request_scope.SubmissionIdentityIssue]
 
 pub fn prepared_client_acquired_infer_step(PreparedClientProgram) -> Int?
 
@@ -961,6 +971,14 @@ pub fn start_captured_client_result_transformation(ClientResultTransformation, @
 pub fn[T] start_captured_managed_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], @execution_relation.ManagedPublicationBridge[T], @execution_relation.CompletedOutput, PublicationOutputExportLimits, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]
 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
+
+pub fn submission_epoch_cid(@logical_request_scope.SubmissionEpoch) -> String
+
+pub fn submission_epoch_validity(@logical_request_scope.SubmissionEpoch, Double) -> Result[@logical_request_scope.SubmissionEpochValidity, @logical_request_scope.SubmissionIdentityIssue]
+
+pub fn submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> String
+
+pub fn submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> Result[String, @logical_request_scope.SubmissionIdentityIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -1842,6 +1860,15 @@ pub(all) enum ClientStageOwnerIssue {
   Binding(@lowering_relation.BindingIssue)
 }
 
+type ClientSubmittedIntent derive(Eq, @debug.Debug)
+
+pub(all) enum ClientSubmittedIntentIssue {
+  InvalidLimits
+  Limit
+  InvalidEnvelope
+  Encoding
+} derive(Eq, @debug.Debug)
+
 type ClientTableInput
 
 pub(all) enum ClientTableInputIssue {
@@ -2263,5 +2290,10 @@ type PublicationResultRetention
 type RecoveredClientTablePreview
 
 // Type aliases
+pub using @logical_request_scope {type SubmissionEpoch}
+
+pub using @logical_request_scope {type SubmissionEpochValidity}
+
+pub using @logical_request_scope {type SubmissionIdentityIssue}
 
 // Traits

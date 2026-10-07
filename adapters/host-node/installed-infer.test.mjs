@@ -11,7 +11,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import test from 'node:test';
 import {inspect} from 'node:util';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -97,6 +97,16 @@ function assertNoAcceptedRun(root, physicalStarts) {
   } finally { journal.close(); }
 }
 
+function assertPreparationRefusal(error, kind, code) {
+  assert.equal(error.code, kind === 'not_accepted'
+    ? 'SubmissionNotAccepted' : 'SubmissionPreparationFailed');
+  const outcome = getSubmissionOutcome(error);
+  assert.equal(outcome.kind, kind);
+  assert.equal(outcome.problem.code, code);
+  assert.equal(Object.hasOwn(outcome, 'admission'), false);
+  return true;
+}
+
 async function installedHost(t, options = {}) {
   const {initializeRoot, ...hostOptions} = options;
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-infer-'));
@@ -147,11 +157,11 @@ async function installedHost(t, options = {}) {
 test('ordinary public INFER refuses a missing installed ModelTask before Run admission',
   async t => {
     const {client, root, physicalStarts} = await installedHost(t);
-    await assert.rejects(client.start(oneRowInfer(), {requestId: 'infer-missing'}),
+    await assert.rejects(client.start(oneRowInfer(),
+      {submissionRef: client.newSubmission({nonce: 'infer-missing'})}),
       error => {
         t.diagnostic(`Public preparation refusal: ${error.code}`);
-        assert.equal(error.code, 'ClientProgramRejected');
-        return true;
+        return assertPreparationRefusal(error, 'not_accepted', 'ClientProgramRejected');
       });
     assert.equal(physicalStarts(), 0);
     const journal = new DatabaseSync(join(root, 'state', 'requests',
@@ -171,8 +181,9 @@ test('installed ModelTask reaches normal public preparation but cannot bypass mi
         authorization: diagnosticAuthorization((name, detail) => {
           if (name === 'infer_preparation_rejected') observations.push(detail);
         })});
-    await assert.rejects(client.start(oneRowInfer(), {requestId: 'infer-installed'}),
-      {code: 'ClientProgramUnsupported'});
+    await assert.rejects(client.start(oneRowInfer(),
+      {submissionRef: client.newSubmission({nonce: 'infer-installed'})}),
+      error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
     assert.equal(observations.length, 1);
     assert.equal(observations[0].boundary, 'model_execution');
     assert.equal(observations[0].code,
@@ -208,7 +219,8 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
             if (name === 'infer_preparation_rejected') observations.push(detail);
           })});
       await assert.rejects(client.start(oneRowInfer(),
-        {requestId: `infer-${variant}`}), {code: 'ClientProgramUnsupported'});
+        {submissionRef: client.newSubmission({nonce: `infer-${variant}`})}),
+        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
       assert.equal(observations.length, 1);
       const observed = observations[0];
       if (variant === 'valid') {
@@ -372,6 +384,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         const source = `
           import assert from 'node:assert/strict';
           import {readFileSync} from 'node:fs';
+          import {writeFileSync} from 'node:fs';
           import {createServer} from 'node:https';
           import {dirname, join} from 'node:path';
           import {userInfo} from 'node:os';
@@ -404,9 +417,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           const client = await connect({mode: 'remote',
             endpoint: 'https://127.0.0.1:' + server.address().port + '/',
             token: 'fixture-owner', durability: 'durable'});
+          const submissionRef = client.newSubmission({nonce: 'public-infer'});
+          writeFileSync(join(dirname(directory), 'original-submission.json'),
+            JSON.stringify(submissionRef));
           const run = await client.start(oneRowInfer(boundary.includes('object-projection'),
             boundary.includes('keep-projection')),
-            {requestId: 'public-infer'});
+            {submissionRef});
           await run.wait();
           throw new Error('CaptureStopNotReached');
         `;
@@ -418,8 +434,14 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       },
     });
     try {
-      run = await client.start(oneRowInfer(objectProjection, keepProjection),
-        {requestId: 'public-infer'});
+      const submissionRef = restarting
+        ? JSON.parse(await readFile(join(root, 'original-submission.json'), 'utf8'))
+        : client.newSubmission({nonce: 'public-infer'});
+      run = await client.start(oneRowInfer(objectProjection, keepProjection), {submissionRef});
+      const original = await client.lookupSubmission(submissionRef);
+      assert.equal(original.kind, 'ready');
+      assert.deepEqual(original.submissionRef, submissionRef);
+      assert.deepEqual(original.admission.ref, run.ref);
       started();
       let terminal = await run.wait();
       if (boundary === 'restart-before-capture') {
@@ -574,7 +596,8 @@ for (const [variant, boundary, typedCause] of [
         }),
       });
       await assert.rejects(client.start(oneRowInfer(),
-        {requestId: `dependencies-${variant}`}), {code: 'ClientProgramUnsupported'});
+        {submissionRef: client.newSubmission({nonce: `dependencies-${variant}`})}),
+        error => assertPreparationRefusal(error, 'preparation_failed', 'ClientProgramUnsupported'));
       assert.equal(observations.length, 1);
       assert.equal(observations[0].boundary, boundary);
       assert.equal(observations[0].typedCause, typedCause);
@@ -633,7 +656,8 @@ for (const reason of ['timeout', 'abort']) {
       const {client, root, physicalStarts, closeHost} = await installedHost(t, {
         modelInstallation: installation, authorization, registerModelProviders,
       });
-      const run = await client.start(oneRowInfer(), {requestId: `model-gate-${reason}`});
+      const run = await client.start(oneRowInfer(),
+        {submissionRef: client.newSubmission({nonce: `model-gate-${reason}`})});
       await started;
       if (reason === 'abort') await run.cancel();
       for (let poll = 0; poll < 1000 &&
@@ -710,7 +734,8 @@ test('one installed Host releases Model input leases across distinct completed R
     });
     for (let index = 0; index < 8; index++) {
       const start = usage.length;
-      const run = await client.start(oneRowInfer(), {requestId: `retention-${index}`});
+      const run = await client.start(oneRowInfer(),
+        {submissionRef: client.newSubmission({nonce: `retention-${index}`})});
       assert.equal((await run.wait()).status, 'succeeded');
       assert.deepEqual(await run.result('answer').all(), [
         {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},

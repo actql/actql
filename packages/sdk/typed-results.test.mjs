@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';
@@ -9,7 +10,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'typed-results', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 const time = '2026-10-07T00:00:00.000Z';
-const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
+const profile = {submissionEpoch, version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'scope', capabilities: [], limits: {
     maxReadWireBytes: 65536, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
@@ -31,7 +32,8 @@ async function fixture(t, mode, overrides = {}) {
   const operate = async (operation, body, signal) => {
     calls.push({operation, body});
     if (operation === 'connect') return {...profile, mode, owner: mode};
-    if (operation === 'attach' || operation === 'submit') {
+    if (operation === 'submit-intent') return readySubmission(body, {ref, durability: 'durable', revision: 1});
+    if (operation === 'attach') {
       return {ref, durability: 'durable', revision: 1};
     }
     if (operation === 'wait') {await overrides.wait?.(); return state;}
@@ -73,7 +75,7 @@ for (const mode of ['local', 'remote']) {
     assert.deepEqual(await Array.fromAsync(reader), ['row-1', 'row-2']);
     assert.equal(reader.state(), 'complete'); assert.equal(reader.rowsYielded(), 2);
     assert.equal(f.calls.filter(x => x.operation === 'read').length, 3);
-    assert.equal(f.calls.some(x => ['cancel', 'submit'].includes(x.operation)), false);
+    assert.equal(f.calls.some(x => ['cancel', 'submit-intent'].includes(x.operation)), false);
   });
 
   test(`${mode}: an empty Result validates no rows`, async t => {
@@ -249,7 +251,7 @@ test('Result and query shortcut capture validators, inherited limits and live si
   options.maxRows = 200;
   await waiting.promise; release.resolve();
   await assert.rejects(collection, {code: 'ResultRetainedLimit', rowsYielded: 0});
-  assert.equal(f.calls.filter(x => x.operation === 'submit').length, 1);
+  assert.equal(f.calls.filter(x => x.operation === 'submit-intent').length, 1);
   assert.equal(f.calls.filter(x => x.operation === 'read').length, 1);
 
   const captured = schema(row => ({value: row.n})), controller = new AbortController();

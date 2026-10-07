@@ -94,7 +94,7 @@ export function gitTree(root, revision) {
       for (const [object, data] of parsed) bytes.set(object, data);
     }
   }
-  return {entries, prefetch, read(path) {
+  return {revision, entries, prefetch, read(path) {
     const entry = entries.get(path);
     assert(entry?.kind === 'blob', `Missing source input: ${path}`);
     if (!bytes.has(entry.object)) prefetch([path]);
@@ -236,6 +236,9 @@ export function actionInputs({tree, revision, action, runtime}) {
     paths.forEach(add);
   }
   sharedFiles.forEach(add);
+  // The shared image consumer eagerly imports the pipeline oracle/receipt
+  // modules. Bind this conservative module cohort, including new membership.
+  listing('proofs/relation-pipeline', true);
   function bridgeInputs() {
     listing('proofs/events-bridge', true);
     for (const file of ['Composition.lean', 'CompositionClaims.lean', 'Events.lean', 'Claims.lean',

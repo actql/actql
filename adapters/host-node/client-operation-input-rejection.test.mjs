@@ -46,11 +46,16 @@ for (const entrance of ['local', 'https']) {
       const host = await connectOpeningHost(fixture, entrance, scratch.path);
       try {
         let error;
-        try {await host.client.start(input, {requestId: `invalid-${name}`, parameters});}
+        try {await host.client.start(input, {submissionRef:
+          host.client.newSubmission({nonce: `invalid-${name}`}), parameters});}
         catch (value) {error = value;}
         await host.settled();
         assert.equal(error instanceof sdk.ClientError, true);
-        assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:operation-input-public]');
+        assert.equal(error.code, 'SubmissionNotAccepted', '[check-mutation:operation-input-public]');
+        const outcome = sdk.getSubmissionOutcome(error);
+        assert.equal(outcome.kind, 'not_accepted');
+        assert.equal(outcome.problem.code, 'ClientProgramRejected', '[check-mutation:operation-input-public]');
+        assert.deepEqual(await host.client.lookupSubmission(outcome.submissionRef), outcome);
         assert.notEqual(error.code, 'SubmissionUnknown');
         assert.deepEqual(fixture.counts, {admissions: 0, readers: 0, computes: 0, definitions: 0},
           '[check-mutation:operation-input-no-execution]');

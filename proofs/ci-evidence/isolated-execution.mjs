@@ -8,13 +8,13 @@ import {join} from 'node:path';
 import {performance} from 'node:perf_hooks';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {copyRegular, stageDistribution, stageMutationSource, stagePipelinePristineSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
+import {copyRegular, stageDistribution, stageMutationSource, stagePipelinePristineSource, stagePipelineFixedJsSource, loaderPaths, isolatedEnvironment, localIsolatedEnvironment,
   isolatedRunArguments, localIsolatedRunArguments, scratchDockerfile, localScratchDockerfile, checkImageDefinition, checkLocalImageDefinition, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {observeImageRoot, platformInputs, imageRuntime, checkIsolatedInputs, checkIsolatedResult, snapshotFromGit, checkMutationCheckout} from './isolated-runtime.mjs';
 import {isolatedExperimentDigest} from './isolated-contract.mjs';
 import {validatePristineReport} from '../relation-pipeline/pristine-replay.mjs';
-import {program} from '../relation-pipeline/engine.mjs';
-import {registry} from '../relation-pipeline/registry.mjs';
+import {validateRequestedProgram} from '../relation-pipeline/execution-original.mjs';
+import {validateFixedJsReport} from '../relation-pipeline/fixed-js-replay.mjs';
 
 const jsonBytes = value => Buffer.from(`${encode(value)}\n`);
 const command = (program, args, options = {}) => {
@@ -58,10 +58,10 @@ export function prepareLocalIsolatedMutation({root, tree, owner, directory, prof
 }
 
 function prepare({root, tree, directory, owner, local = false, profile = 'session'}) {
-  assert(['session', 'pipeline-pristine'].includes(profile) && (profile === 'session' || local));
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile) && (profile === 'session' || local));
   const start = performance.now(), context = mkdtempSync(join(directory, 'isolated-build-'));
   const imageRoot = join(context, 'root'); mkdirSync(imageRoot);
-  const stage = profile === 'session' ? stageMutationSource : stagePipelinePristineSource;
+  const stage = profile === 'session' ? stageMutationSource : profile === 'pipeline-pristine' ? stagePipelinePristineSource : stagePipelineFixedJsSource;
   const source = stage({tree, destination: imageRoot});
   const pin = JSON.parse(tree.read('toolchain.json'));
   const moonHome = process.env.MOON_HOME ?? join(root, '.toolchains', `moonbit-${pin.version}`);
@@ -92,7 +92,8 @@ function prepare({root, tree, directory, owner, local = false, profile = 'sessio
   }
   for (const library of [...libraries].sort()) copyRegular({source: realpathSync(library), target: join(imageRoot, library.slice(1)), budget});
   const probe = join(imageRoot, 'runtime/actql-write-probe'); writeFileSync(probe, '', {flag: 'wx', mode: 0o666}); chmodSync(probe, 0o666);
-  const manifest = {version: profile === 'session' ? 'actql-isolated-mutation-inputs/0.1' : 'actql-isolated-pipeline-pristine-inputs/0.1', ...(local ? {localDiagnostic: true} : {}),
+  const manifest = {version: profile === 'session' ? 'actql-isolated-mutation-inputs/0.1' : `actql-isolated-${profile}-inputs/0.1`, ...(local ? {localDiagnostic: true} : {}),
+    ...(profile === 'pipeline-fixed-js' ? {testedRevision: tree.revision} : {}),
     environment: local ? localIsolatedEnvironment : isolatedEnvironment,
     dockerfile: local ? localScratchDockerfile(profile) : scratchDockerfile(), root: observeImageRoot(imageRoot), platformInputs: platformInputs(), loaderObservations,
     sourceSnapshotDigest: snapshotFromGit(tree, profile).digest, toolchainDigest: hash(tree.read('toolchain.json')),
@@ -141,16 +142,17 @@ function execute({root, tree, prepared, execution, profile = 'session'}) {
     costs.buildMilliseconds = Math.round(performance.now() - start);
     start = performance.now();
     const args = execution.arguments({imageId, cidFile, owner: prepared.owner, profile});
-    const result = spawnSync(execution.engine, args, {encoding: 'utf8', timeout: 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024});
+    const result = spawnSync(execution.engine, args, {encoding: 'utf8', timeout: profile === 'pipeline-fixed-js' ? 15 * 60 * 1000 : 10 * 60 * 1000, maxBuffer: 64 * 1024 * 1024});
     costs.executionMilliseconds = Math.round(performance.now() - start);
     if (result.error || result.status !== 0) process.stderr.write((result.stderr ?? '').slice(-4000));
     assert(!result.error && result.status === 0, 'Original isolated mutation action failed');
     start = performance.now();
-    const prefix = profile === 'session' ? 'ACTQL_ISOLATED_MUTATIONS ' : 'ACTQL_ISOLATED_PIPELINE_PRISTINE ', lines = result.stdout.split('\n');
+    const prefix = profile === 'session' ? 'ACTQL_ISOLATED_MUTATIONS ' : profile === 'pipeline-pristine' ? 'ACTQL_ISOLATED_PIPELINE_PRISTINE ' : 'ACTQL_ISOLATED_PIPELINE_FIXED_JS ', lines = result.stdout.split('\n');
     const records = lines.filter(line => line.startsWith(prefix)); assert.equal(records.length, 1, 'Missing/duplicate actual isolation observation');
     const payload = JSON.parse(records[0].slice(prefix.length));
     if (profile === 'session') checkIsolatedResult({payload, manifest: prepared.manifest, before});
-    else checkPipelinePristineResult({payload, manifest: prepared.manifest, before});
+    else if (profile === 'pipeline-pristine') checkPipelinePristineResult({payload, manifest: prepared.manifest, before});
+    else checkPipelineFixedJsResult({payload, manifest: prepared.manifest, before, tree});
     assert.equal(checkMutationCheckout({root, tree, profile}).digest, before.digest, 'Host source changed during isolation');
     const output = `${lines.filter(line => !line.startsWith(prefix)).join('\n')}${result.stderr ?? ''}`;
     costs.inspectionMilliseconds = Math.round(performance.now() - start);
@@ -196,11 +198,18 @@ export function checkPipelinePristineResult({payload, manifest, before}) {
 
 export function validatePipelinePristineOriginal(report, source, files) {
   validatePristineReport(report, source, files);
-  for (const {receipt} of report.receipts) for (const entry of receipt.cases) {
-    const expected = program(entry.testCase, registry);
-    assert.deepEqual(entry.program, expected, 'Requested pipeline Program differs from independent minimum');
-    assert.equal(entry.observation.source, expected.source, 'Executed Source differs from requested Program');
-    assert.equal(entry.observation.steps, expected.steps, 'Executed steps differ from requested Program');
-  }
+  for (const {receipt} of report.receipts) validateRequestedProgram(receipt);
   return true;
+}
+
+export function checkPipelineFixedJsResult({payload, manifest, before, tree}) {
+  assert.equal(manifest.version, 'actql-isolated-pipeline-fixed-js-inputs/0.1');
+  assert.equal(payload.version, 'actql-isolated-pipeline-fixed-js-observation/0.1');
+  for (const field of ['root', 'platformInputs', 'environment'])
+    assert.equal(encode(payload[field]), encode(manifest[field]), 'Changed physical pipeline input');
+  assert.equal(payload.readOnlyConfirmed, true); assert.equal(payload.shellStartupConfirmed, true);
+  assert.equal(payload.sourcePreserved, true); assert.equal(payload.reuseAuthorized, false);
+  assert.equal(manifest.testedRevision, tree.revision);
+  return validateFixedJsReport({report: payload.report, source: before, files: payload.files,
+    revision: tree.revision, readSource: path => tree.read(path)});
 }
