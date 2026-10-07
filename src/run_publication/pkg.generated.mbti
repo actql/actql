@@ -462,6 +462,8 @@ pub fn prepare_publication_setup_step(Bool, Bool, Bool, Bool, Bool, Bool, Bool) 
 
 pub fn prepare_publication_unknown_retry_step(Bool, Bool, Bool, Bool) -> PublicationUnknownRetryAction
 
+pub fn prepare_recorded_run_publication(RunPublicationAdmission, PublicationContract, ResultDefinition) -> Result[RecordedRunPublication, RunProgramBindingIssue]
+
 pub fn prepare_result_definition(String, String) -> Result[ResultDefinition, ResultDefinitionIssue]
 
 pub fn prepare_result_delivery_serializer(String, String, Array[String], Int, Int, Int) -> Result[ResultDeliverySerializer, DeliverySerializationIssue]
@@ -531,6 +533,14 @@ pub fn record_result_access_read_admission(ResultAccessProgress, Bool) -> Result
 pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn recorded_run_publication_current(RecordedRunPublication, String) -> Bool
+
+pub fn recorded_run_publication_has_original_evidence(RecordedRunPublication, String, String) -> Bool
+
+pub fn recorded_run_publication_result_cid(RecordedRunPublication) -> String
+
+pub fn recorded_run_publication_run_cid(RecordedRunPublication) -> String
 
 pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
@@ -1297,6 +1307,12 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationUnknownRetryFinished
   PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
+
+pub struct RecordedRunPublication {
+  admission : RunPublicationAdmission
+  definition : PublicationContract
+  result : ResultDefinition
+}
 
 type ResultAccessProgress
 
