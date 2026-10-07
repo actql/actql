@@ -661,29 +661,37 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
     beforeSchemaClosure, barrierCid, currentIdentity).run.run_definition_cid,
     pin('53df3a5cf53905e1f34890c6a078ad1a59efb035b6d44c602006f44be2290e8b'));
+  // Freeze the closure before saved Relation schema declarations changed the
+  // Check Environment body. Historical Runs must not inherit current inputs.
+  const beforeSavedSchemaDependencies = {
+    unit: pin('0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca'),
+    proof: pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'),
+    resultPlan: pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'),
+  };
   assert.equal(currentDependencies.unit,
-    pin('0561273ab8c70a496f1013d6984da39ce2da7138d1bd912bbf5c3042b61a78ca'));
+    pin('8005b84110e571bd881c8f153f104b6a35e476a7ef6302dc53224d086492b471'));
   assert.equal(currentDependencies.proof,
-    pin('1678c0611223e04e8cfcdda054ae370b2d40033706eedc16cae080511f770650'));
+    pin('0a5ee06cede8dbd3fbefeb008249b49b39d07c694a50c433cd201cb9be9adad2'));
   assert.equal(currentDependencies.resultPlan,
-    pin('6c75c3eb2ca8dd0e06247cbec633bf787bd3f90882fde43268abcac88f30fce8'));
+    pin('d6b68f1a47ee1c233db5d072fe8210d89bf942b97236a37dae7acd491882994e'));
   // Preserve the schema-closure predecessor before qualified-star text routing.
   assert.equal(vector(pin('1b837dfa56c76782890525a6a4d39239a5675d719223c7de0c70231f89efd7d7'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('38827de4f4b56e91af5bdaa6bf3597602ebe53f2ed6947553bc329b08a7e260e'));
   // Freeze the qualified-star predecessor before adding REPLACE grammar.
   assert.equal(vector(pin('efa41daa81570153a600aa1459bf498135d4ac67b1df4555651d6ff879229062'),
     pin('6c90f76196a13202ccc6dde7883ea8dcb17708e9a8f00b13f1b4f95267fa2e85'),
-    currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('7b2ee1d01a0ffe34498c4fc5b5e9d37a4835f139f81125c21728282d7c90b8a2'));
-  // The preceding grammar is evaluated under the same current dependency
-  // closure, independently of older fixtures' different closure.
   assert.equal(vector(pin('1995b1527e69dfc30daff86098b01d0fcef393d703c58e4fbf4f6fa980bf890c'),
-    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('e8ccbde9474f668615917422ae4c63081144a1a82ab4ae0f14d2d647aa872f56'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(pin('a395e9d881fd75019ff99db18016a4cf72f19f14f52856b8f313462e0489c09a'),
+    cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('31dc7d61b6fe40c4662a836eecc194ef96aa50548b8327a49b4d95dd0d32f896'));
+  assert.equal(current.run.run_definition_cid,
+    pin('35c252c2f80d29f142d35879ca8fb1f828e218266faf062494db1f21f4ace648'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
