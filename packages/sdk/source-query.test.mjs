@@ -286,7 +286,7 @@ test('an ignored rejected query produces one ordinary unhandled rejection', () =
   const code = `import {sourceQuery} from ${JSON.stringify(module)};
     let observed = 0;
     process.on('unhandledRejection', () => {observed++;});
-    sourceQuery(() => Promise.reject(new Error('lost')), Error, () => {}, 'sql', 'SELECT 1', undefined, {}, {
+    sourceQuery(() => Promise.reject(new Error('lost')), Error, () => {}, () => {}, 'sql', 'SELECT 1', undefined, {}, {
       newSubmission: ({nonce}) => ({nonce}), retainInput: () => {}});
     setTimeout(() => {if(observed !== 1) process.exitCode = 1;}, 30);`;
   const child = spawnSync(process.execPath, ['--input-type=module', '-e', code],
@@ -327,7 +327,7 @@ for (const [method, kind] of [['all', 'schema'], ['all', 'options'],
         const original = Object.assign(new Error(code), {code});
         let reject;
         const admission = new Promise((_resolve, no) => {reject = no;});
-        const query = sourceQuery(() => admission, Error, () => {}, 'sql', 'SELECT 1', undefined, {}, {
+        const query = sourceQuery(() => admission, Error, () => {}, () => {}, 'sql', 'SELECT 1', undefined, {}, {
       newSubmission: ({nonce}) => ({nonce}), retainInput: () => {}});
         const argument = ${JSON.stringify(kind)} === 'schema'
           ? {'~standard': {version: 2, vendor: 'test', validate() {}}}

@@ -1997,6 +1997,13 @@ async function connectSelected(selected, port) {
     const outcome = submissionOutcomes.get(execution);
     if (outcome) submissionOutcomes.set(result, outcome);
   };
+  const retainQueryFailure = (execution, error, cause) => {
+    retainQueryResult(execution, error);
+    // Only an existing SDK-owned observation supplies explanatory facts.
+    // Error codes, copied causes and validated failed states supply none.
+    const failure = runObservationFailures.get(cause);
+    if (failure) runObservationFailures.set(error, failure);
+  };
   const querySubmissionOwner = Object.freeze({newSubmission,
     retainInput: (original, pending) => {
       const input = submissionInputs.get(original);
@@ -2018,9 +2025,9 @@ async function connectSelected(selected, port) {
     },
     startSource,
     sql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, 'sql', text, parameters, options, querySubmissionOwner),
+      retainQueryResult, retainQueryFailure, 'sql', text, parameters, options, querySubmissionOwner),
     aql: (text, parameters, options) => sourceQuery(startSource, ClientError,
-      retainQueryResult, 'aql-text', text, parameters, options, querySubmissionOwner),
+      retainQueryResult, retainQueryFailure, 'aql-text', text, parameters, options, querySubmissionOwner),
     // Check authored source without starting anything. The outcome is the
     // Host's actql-check-outcome/0.1 value: a report bound to its scope and
     // context, a failure, or unavailable. None of them is a thrown error.

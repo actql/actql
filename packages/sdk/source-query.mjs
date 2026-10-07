@@ -5,7 +5,7 @@ import {captureReadOptions, captureResultRead} from './result-schema.mjs';
 const queryOptionNames = new Set(['requestId', 'signal', 'result',
   'parameterDeclarations', 'submissionRef']);
 
-function executionError(ClientError, code, execution, requestId, state, cause) {
+function executionError(ClientError, retainFailure, code, execution, requestId, state, cause) {
   const error = new ClientError(code, {requestId,
     executionRef: execution.ref});
   // Live handles, observations and underlying failures are explicit inspection
@@ -15,6 +15,7 @@ function executionError(ClientError, code, execution, requestId, state, cause) {
     ...(state === undefined ? {} : {observation: {value: state}}),
     ...(cause === undefined ? {} : {cause: {value: cause}}),
   });
+  retainFailure(execution, error, cause);
   return error;
 }
 
@@ -33,7 +34,7 @@ function collectAfterQuery(query, retainInput, capture, read) {
   return collected;
 }
 
-export function sourceQuery(startSource, ClientError, retainResult,
+export function sourceQuery(startSource, ClientError, retainResult, retainFailure,
   format, text, parameters, options = {}, submissionOwner) {
   let requestId, admission, signal, selectedResult;
   try {
@@ -77,9 +78,8 @@ export function sourceQuery(startSource, ClientError, retainResult,
     let state;
     try { state = await execution.wait({until: 'terminal', signal}); }
     catch (cause) {
-      const error = executionError(ClientError, 'QueryObservationUnknown', execution,
+      const error = executionError(ClientError, retainFailure, 'QueryObservationUnknown', execution,
         requestId, undefined, cause);
-      retainResult(execution, error);
       throw error;
     }
     if (state.status !== 'succeeded') {
@@ -91,23 +91,20 @@ export function sourceQuery(startSource, ClientError, retainResult,
         ? 'ExecutionBlocked' : 'ExecutionPending';
       // wait may return a current nonterminal observation. It is neither
       // success nor permission to poll, resume, or submit another request.
-      const error = executionError(ClientError, code, execution, requestId, state);
-      retainResult(execution, error);
+      const error = executionError(ClientError, retainFailure, code, execution, requestId, state);
       throw error;
     }
     const names = Object.keys(state.result_availability);
     const name = selectedResult ?? (names.length === 1 ? names[0] : undefined);
     if (name === undefined || !Object.hasOwn(state.result_availability, name)) {
-      const error = executionError(ClientError, name === undefined
+      const error = executionError(ClientError, retainFailure, name === undefined
         ? 'ResultSelectionRequired' : 'UnknownResultName', execution,
       requestId, state);
-      retainResult(execution, error);
       throw error;
     }
     if (state.result_availability[name].state !== 'available') {
-      const error = executionError(ClientError, 'ResultUnavailable', execution,
+      const error = executionError(ClientError, retainFailure, 'ResultUnavailable', execution,
         requestId, state);
-      retainResult(execution, error);
       throw error;
     }
     const result = execution.result(name);

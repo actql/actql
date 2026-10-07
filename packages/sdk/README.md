@@ -1400,6 +1400,14 @@ borrowed messages, nested causes and provider details are discarded. Unreadable
 error metadata retains only generic `ClientTransportUnknown`, without its cause.
 A fresh error owns each call's original target even if the transport reuses an
 exception.
+The same explanation and formatter accept the original `QueryObservationUnknown`
+error from `client.sql` or `client.aql`. That wrapper inherits only the existing
+SDK-owned observation explanation. `getSubmissionInput(error)` also retrieves
+the immutable submitted input for an admitted short-query failure, including
+valid unsuccessful or blocked Run states. Such states retain their validated
+observation and have no failed-observation explanation. Copies retain neither
+association. Formatting, repeated awaits and query collection after rejection
+do not submit, observe or read again.
 No dispatch, acceptance, Run outcome or current access is certified by this
 classification. No automatic lookup or additional operation is performed by
 presentation.
