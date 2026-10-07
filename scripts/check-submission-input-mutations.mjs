@@ -13,6 +13,10 @@ const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
 const operationInputAcceptance = 'adapters/host-node/client-operation-input-rejection.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'submission-copy') return ['changes branch', 'throws'].map(fault => ({
+    name: `SDK submitted outcome rejects a clone that ${fault}`,
+    assertions: [{id: 'request-held-admission', operator: 'strictEqual'}],
+  }));
   if (phase.startsWith('operation-input-')) {
     const inputs = phase === 'operation-input-range' ? ['reversed bound range']
       : ['empty bound vector query', 'short bound vector query', 'long bound vector query'];
@@ -202,9 +206,9 @@ const mutations = [
     "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
   ['request observation skips copied-response revalidation',
     "      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
-  ['request observation permits a copied held reply to change its branch',
-    "admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey",
-    "!validSubmitReply(admitted, selected.wire, requestId)", 'request-held-admission', 'request-held-admission'],
+  ['submission observation permits a copied durable reply to change its branch',
+    "  const copy = structuredClone(value);\n  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {\n    throw new TypeError('ChangedHostResponse');\n  }",
+    "  const copy = structuredClone(value);", 'submission-copy', 'request-held-admission'],
   ['request observation loses the submitted held preparation state',
     "observation: 'request_held', preparationState: answer.state,",
     "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
@@ -249,19 +253,21 @@ const mutations = [
       "    const report = reportExplanation(outcome.report, 'complete');",
     'check-locale-snapshot', 'check-locale-snapshot'],
   ['unknown submit loses its original input',
-    '  if (input) submissionInputs.set(result, input);', '', 'after-commit'],
+    '  if (input) submissionInputs.set(result, input);\n  if (input) submissionExplanations.set(result,',
+    '  if (input) submissionExplanations.set(result,', 'after-commit'],
   ['original supplied parameters are replaced by null',
-    'const snapshot = freezeInput({...body, connection: selected.wire,',
-    'const snapshot = freezeInput({...body, parameters: null, connection: selected.wire,',
+    'const snapshot = freezeInput({...body, requestId, connection: selected.wire,',
+    'const snapshot = freezeInput({...body, parameters: null, requestId, connection: selected.wire,',
     'after-commit'],
   ['accepted handle loses its original input',
-    '    submissionInputs.set(result, snapshot);', '', 'acceptance'],
+    '        submissionInputs.set(run, snapshot);', '', 'acceptance'],
   ['unknown acceptance is presented as a held request',
     "submissionLookupExplanation('acceptance_unknown', input)",
     "submissionLookupExplanation('request_held', input)",
     'after-commit', 'submission-explanation'],
   ['submission explanation loses the original lookup identity',
-    'requestId: input.requestId,', 'requestId: "wrong-request",',
+    'submissionRef: input.submissionRef}),',
+    'submissionRef: {...input.submissionRef, nonce: "wrong-request"}}),',
     'after-commit', 'submission-explanation'],
   ['submission explanation exposes a private transport cause',
     "submissionLookupExplanation('acceptance_unknown', input));",
@@ -388,7 +394,8 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase.startsWith('operation-input-') ? operationInputAcceptance
+  const file = phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
+    : phase.startsWith('operation-input-') ? operationInputAcceptance
     : phase === 'request-cancel-preparation' ? preparationAcceptance
     : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
     : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
