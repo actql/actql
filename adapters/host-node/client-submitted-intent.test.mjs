@@ -320,3 +320,41 @@ for (const loss of ['marker', 'table', 'counter']) {
     assert.throws(() => f.restart(), {code: 'UnknownClientRequestJournalFormat'});
   });
 }
+
+for (const afterCommit of [false, true]) {
+  test(`retirement COMMIT reply loss ${afterCommit ? 'after' : 'before'} commit preserves atomic custody`, async t => {
+    const f = await fixture(t);
+    const input = intent();
+    f.journal.recordSubmittedIntent(f.ref, input, fields, moon);
+    f.complete(input, 'preparation_failed');
+    f.now(start + 1000);
+    const exec = DatabaseSync.prototype.exec;
+    let lost = false;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && !lost &&
+          this.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count === 1) {
+        lost = true;
+        if (afterCommit) exec.call(this, sql);
+        throw new Error('FixtureRetirementCommitReplyLost');
+      }
+      return exec.call(this, sql);
+    });
+    try {
+      assert.throws(() => f.journal.retireSubmittedIntent(f.ref,
+        {...fields, expectedRevision: 1}, moon), {code: 'ClientRequestJournalCommitOutcomeUnknown'});
+      assert.equal(lost, true);
+    } finally {t.mock.restoreAll();}
+    f.restart();
+    assert.equal(f.lookup() === undefined, afterCommit);
+    const db = new DatabaseSync(join(f.path, 'client-requests.sqlite3'), {readOnly: true});
+    try {
+      assert.equal(db.prepare('SELECT issued_count FROM client_submitted_intent_custody').get().issued_count, 1);
+      assert.equal(db.prepare('SELECT retired_count FROM client_submitted_intent_retirement').get().retired_count, afterCommit ? 1 : 0);
+      assert.equal(db.prepare('SELECT COUNT(*) AS n FROM client_submitted_intents').get().n, afterCommit ? 0 : 1);
+    } finally {db.close();}
+    // The trusted retention policy may explicitly retry; this never submits
+    // a Program or settles any prior execution outcome.
+    assert.deepEqual(f.journal.retireSubmittedIntent(f.ref,
+      {...fields, expectedRevision: 1}, moon), {retired: !afterCommit});
+  });
+}
