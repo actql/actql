@@ -6,8 +6,10 @@ export function prepareLocalRetainedOutput(
   output, createLease, checked, signal, faultInjection,
 ) {
   if (!createLease) throw new TypeError('LocalOutputStoreRequired');
-  const {key, limits, install, begin, advance, finish, refresh} = output;
-  if (typeof advance !== 'function') throw new TypeError('LocalOutputAdvanceRequired');
+  const {key, limits, install, begin, prepare, advance, finish, refresh} = output;
+  if (typeof prepare !== 'function' || typeof advance !== 'function') {
+    throw new TypeError('LocalOutputAdvanceRequired');
+  }
   let store, body;
   checked(install(() => !store || store.status().reservedBytes === 0));
   const cleanupHandle = Object.freeze({
@@ -23,6 +25,18 @@ export function prepareLocalRetainedOutput(
     async write() {
       signal?.throwIfAborted();
       checked(begin());
+      for (;;) {
+        signal?.throwIfAborted();
+        const poll = checked(prepare(64));
+        if (!Array.isArray(poll) || poll.length !== 2 || typeof poll[0] !== 'boolean' ||
+            !Number.isSafeInteger(poll[1]) || poll[1] < 0 || poll[1] > 64 ||
+            (!poll[0] && poll[1] === 0)) {
+          throw new Error('InvalidLocalOutputPreparation');
+        }
+        signal?.throwIfAborted();
+        if (poll[0]) break;
+        await yieldToHost();
+      }
       store = await createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);
       signal?.throwIfAborted();
       const writer = store.reserve(limits.wire.max_bytes);
