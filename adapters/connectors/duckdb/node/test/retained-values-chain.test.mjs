@@ -342,7 +342,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         if (route.observeResultPreparation &&
             property === 'strategyHostResultTransformationAdvance') {
           return value => {
-            const complete = target[property](value, 1);
+            const result = target[property](value, 1);
+            const complete = checked(result);
             assert.equal(typeof complete, 'boolean');
             resultPreparationSteps++;
             // Read the real common cursor only to place cancellation. This
@@ -359,7 +360,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                 setTimeout(() => cancellation.abort(), 0);
               }
             }
-            return complete;
+            return result;
           };
         }
         if (route.observeResultPreparation &&
@@ -729,10 +730,12 @@ for (const mode of ['success', 'cancel-during-result-order']) {
     document.id = 'retained-result-order-progress';
     document.stages[0].steps[0].values.schema.s = {type: 'string', nullable: false};
     document.stages[0].steps[2].select = ['id', 's'];
+    // Keep the producer's full checked contract across task input edges.
+    // Ordering still selects the real publication transformation owner.
     for (const stage of document.stages) {
-      stage.results.out.fields = ['s'];
+      stage.results.out.fields = ['id', 's'];
       stage.results.out.order_by = [{s: 'asc'}];
-      if (stage.inputs.r) stage.steps[0].select = ['s'];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 's'];
     }
     await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
       if (mode === 'success') {
@@ -742,12 +745,14 @@ for (const mode of ['success', 'cancel-during-result-order']) {
         assert.equal(observations().resultOrderReached, true);
         assert.equal(observations().completedDispatches, 3);
         await assertPublishedRows(publication, plan, owner.execution,
-          [{s: `${prefix}a`}, {s: `${prefix}b`}]);
+          [{id: 2, s: `${prefix}a`}, {id: 1, s: `${prefix}b`}]);
       } else {
         let execution;
         await assert.rejects(run(), error => {
           assert.equal(error.code, 'CapturedRunPublicationFailed');
-          assert.equal(error.cause, observations().abortReason);
+          assert.equal(error.cause.code, 'DurableResultPayloadFailed');
+          assert.equal(error.cause.primaryFailure, observations().abortReason);
+          assert.equal(error.cause.cause, observations().abortReason);
           execution = error.execution;
           return true;
         });
@@ -755,7 +760,8 @@ for (const mode of ['success', 'cancel-during-result-order']) {
         assert.equal(observations().resultOrderReached, true);
         assert.equal(observations().completedDispatches, 3);
         assert.equal(observations().resultPreparationCancels, 1);
-        assert.deepEqual(execution.completed, [0, 1, 2]);
+        assert.deepEqual(execution.completed.map(task => task.task), [0, 1, 2]);
+        assert.ok(execution.completed.every(task => task.realization === 'local'));
         await assert.rejects(publication.lookupCommittedIndex({
           namespaceId: plan.request.namespaceId,
           authorityScopeCid: plan.request.authorityScopeCid,
