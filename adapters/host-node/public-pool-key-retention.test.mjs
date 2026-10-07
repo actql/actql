@@ -186,7 +186,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     const source = JSON.stringify(program(fixtureId, direct, outputScan, identityScan, memberScan,
       objectNameScan, fieldNameScan, inputNameScan, jsonNameScan));
     const options = {format: 'json', requestId: fixtureId};
-    const execution = await client.aql(source, options).catch(error => {
+    const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
@@ -196,7 +196,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
     const finishedAdvances = advances;
-    const repeat = await client.aql(source, options);
+    const repeat = await client.startSource(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
     assert.deepEqual(await repeat.result('published').all(), expectedRows);
     assert.equal(advances, finishedAdvances);
@@ -204,7 +204,7 @@ async function runPublicPoolBarrier(t, {direct = false, outputScan = false,
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
+    const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', direct, outputScan, identityScan, memberScan,
       objectNameScan, fieldNameScan, inputNameScan, jsonNameScan)),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,

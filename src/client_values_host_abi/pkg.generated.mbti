@@ -59,6 +59,8 @@ pub fn client_values_host_begin_result_material_holds(String, String) -> @run_pu
 
 pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.DurableResultRowFrames) -> Unit
 
+pub fn client_values_host_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String
+
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
@@ -180,6 +182,10 @@ pub fn client_values_host_plan_wire(@run_publication_host.ClientValuesCompilatio
 pub fn client_values_host_prepare(String, String, @program_check.CheckEnvironment, String?) -> Result[@run_publication_host.PreparedClientProgram, ClientValuesHostPreparationIssue]
 
 pub fn client_values_host_prepare_cancellation(@run_publication.PublicationContract, String, Bool, Bool, Bool) -> Result[String, @run_publication_host.ClientRunStartIssue]
+
+pub fn client_values_host_prepare_cancellation_identity(String, String, String, @run_publication.PublicationContract, Int) -> Result[@run_publication_host.ClientCancellationIdentity, @run_publication_host.ClientCancellationIdentityIssue]
+
+pub fn client_values_host_prepare_cancellation_operation(@run_publication_host.ClientCancellationIdentity, @run_publication_host.ClientCancellationIdentity?, @run_publication.PublicationContract, Int, Bool, Bool, Bool) -> Result[String, String]
 
 pub fn client_values_host_prepare_delivery_grant_usage_claim(@run_publication.PublicationContract, String?, @run_publication.PublicationContract, Int, Int, Int) -> @run_publication.DeliveryGrantUsageClaim raise ClientValuesHostDeliveryIssue
 

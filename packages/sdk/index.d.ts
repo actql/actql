@@ -1,9 +1,11 @@
 /// <reference lib="esnext.disposable" />
+import type {StandardSchemaV1} from './standard-schema.js';
+export type {StandardSchemaV1} from './standard-schema.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
 import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
   WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
-  WireConnection,
+  WireConnection, WireSubmissionRef, WireSubmissionOutcome, WireSubmissionLookup,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
@@ -14,6 +16,9 @@ export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
 export type CancellationReference = WireCancellationRef;
 export type CancellationLookup = WireCancellationLookup;
+export type SubmissionReference = WireSubmissionRef;
+export type SubmissionOutcome = WireSubmissionOutcome;
+export type SubmissionLookup = WireSubmissionLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
 type CheckReportScope = Extract<CheckOutcome, {outcome: 'completed'}>['report']['scope'];
@@ -116,16 +121,21 @@ export declare function createCheckSupplementationSession(client: Pick<Client, '
   options: Readonly<{maxAttempts: number}>): CheckSupplementationSession;
 export type SubmissionInput = Readonly<{
   requestId: string;
+  submissionRef?: WireSubmissionRef;
   kind: 'program' | 'aql';
   input: unknown;
   parameters: unknown;
   connection: Readonly<WireConnection>;
   lookupContext: Readonly<{endpoint: string; scopeRef: string}>;
 }>;
-/** Original prepared JSON input, not evidence of sending, acceptance or permission to resend. */
+/** Detached original of the pending Promise, execution or exact SDK error.
+ * Available before first send; not Host persistence, acceptance or resend authority. */
 export declare function getSubmissionInput(result: unknown): SubmissionInput | undefined;
-type RequestObservationTarget = Readonly<{operation: 'lookupRequest'; requestId: string;
-  lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+/** Exact, schema-admitted Owner response only; error codes alone provide no facts. */
+export declare function getSubmissionOutcome(result: unknown): SubmissionOutcome | undefined;
+type RequestObservationTarget = Readonly<{lookupContext: Readonly<{endpoint: string; scopeRef: string}>}> & (
+  Readonly<{operation: 'lookupRequest'; requestId: string}> |
+  Readonly<{operation: 'lookupSubmission'; submissionRef: SubmissionReference}>);
 export type HeldRequestExplanation = Readonly<{
   observation: 'request_held';
   preparationState: 'waiting_checkpoint' | 'resuming' | 'ended';
@@ -138,8 +148,7 @@ export type HeldRequestExplanation = Readonly<{
 export type SubmissionExplanation = Readonly<{summary: string}> & (
   Readonly<{
     observation: 'acceptance_unknown';
-    next: Readonly<{operation: 'lookupRequest'; requestId: string;
-      lookupContext: Readonly<{endpoint: string; scopeRef: string}>}>;
+    next: RequestObservationTarget;
   }> | HeldRequestExplanation | Readonly<{
     observation: 'run_reference_received';
     next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
@@ -280,6 +289,8 @@ export declare function explainCheckReason(reason: Readonly<{code: string; facts
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
   token: string | (() => string | Promise<string>);
+  /** An expected service Workspace, checked by the authenticated Host on every request. */
+  workspaceId?: string;
   durability?: Durability;
   consentRefs?: readonly string[];
 }>;
@@ -314,7 +325,8 @@ export type EffectUncertaintyExplanation = Readonly<{
   physicalStop: 'confirmed' | 'unknown';
   /** Absent when this response has no control observation; not a composite revision. */
   controlRevision?: number;
-  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  /** Candidate only: the existing Host rechecks current authority and original custody. */
+  next: Readonly<{operation: 'reconcile'; ref: Readonly<RunReference>}>;
 }>;
 /** Presentation for the exact validated SDK status/wait/reconcile response.
  * Does not authorize retry, rollback, release or any reconciliation operation.
@@ -346,10 +358,22 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  /** Present only after a Run was admitted; never fabricated for RequestHeld. */
+  readonly execution?: Execution;
+  readonly executionRef?: RunReference;
+  /** Exact owner observation on a short query failure; omitted from JSON. */
+  readonly observation?: RunState;
   /** Original immutable cancellation target on uncertainty or refusal. */
   readonly cancelRef?: Readonly<CancellationReference>;
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
+  /** Local schema validation failure; the Run itself is unchanged. */
+  readonly validationKind?: 'issues' | 'exception' | 'invalid_result';
+  /** Zero-based index of the raw row that failed validation. */
+  readonly rowIndex?: number;
+  readonly resultRef?: ResultReference;
+  /** Explicit schema diagnostics, omitted from default JSON serialization. */
+  readonly issues?: readonly StandardSchemaV1.Issue[];
   readonly cleanupError?: unknown;
   /** Client cleanup has not confirmed release; retry await client.close(). */
   readonly cleanupPending?: boolean;
@@ -365,6 +389,16 @@ export declare class RequestHeld extends ClientError {
   readonly requestId: string;
   readonly held: HeldRequest;
 }
+
+export type DynamicRow = Record<string, unknown>;
+/** Recovery locator using the existing Run and authored Result name. */
+export type ResultReference = Readonly<{run: RunReference; resultName: string}>;
+export type QueryParameters = Record<string, unknown> | null;
+export type QueryOptions = SubmissionIdentityOptions & Readonly<{
+  signal?: AbortSignal;
+  result?: string;
+  parameterDeclarations?: Record<string, unknown>;
+}>;
 
 export type ReadOptions = {
   signal?: AbortSignal;
@@ -395,15 +429,34 @@ export interface ResultDescriptionOptions {
   maxDepth?: number;
 }
 export interface Result {
+  readonly ref: ResultReference;
+  readonly execution: Execution;
   describe(options?: ResultDescriptionOptions): Promise<ResultDescription>;
-  rows(options?: ReadOptions): Reader<unknown>;
-  batches(options?: ReadOptions): Reader<unknown[]>;
-  all(options?: ReadOptions): Promise<unknown[]>;
-  one(options?: ReadOptions): Promise<unknown>;
+  /** Serial validation; output types come from the schema, not a cast. */
+  rows<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Reader<StandardSchemaV1.InferOutput<Schema>>;
+  rows(options?: ReadOptions): Reader<DynamicRow>;
+  batches(options?: ReadOptions): Reader<DynamicRow[]>;
+  /** Raw rows are charged before validation; transformed output size is not bounded. */
+  all<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Promise<StandardSchemaV1.InferOutput<Schema>[]>;
+  all(options?: ReadOptions): Promise<DynamicRow[]>;
+  one(options?: ReadOptions): Promise<DynamicRow>;
   scalar(options?: ReadOptions): Promise<unknown>;
   /** Detached, recursively frozen snapshot of this lookup's admitted response. */
   deliveryAttempt(attemptId: string,
     options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
+}
+
+/** One eager submission. Re-awaiting shares its Result; collection opens a fresh read. */
+export interface ResultPromise extends Promise<Result> {
+  readonly requestId: string;
+  /** Raw rows are charged before validation; transformed output size is not bounded. */
+  all<Schema extends StandardSchemaV1>(schema: Schema,
+    options?: ReadOptions): Promise<StandardSchemaV1.InferOutput<Schema>[]>;
+  all(options?: ReadOptions): Promise<DynamicRow[]>;
+  one(options?: ReadOptions): Promise<DynamicRow>;
+  scalar(options?: ReadOptions): Promise<unknown>;
 }
 
 export interface Execution {
@@ -421,16 +474,30 @@ export interface Execution {
   result(name: string): Result;
 }
 
+type SubmissionIdentityOptions = (
+  /** Omit for deliberate new work; retain getSubmissionInput(promise) before awaiting. */
+  Readonly<{submissionRef?: undefined; requestId?: never}> |
+  /** requestId only asserts this original nonce; it never allocates an identity. */
+  Readonly<{submissionRef: WireSubmissionRef; requestId?: string}>
+);
+export type SubmissionOptions = SubmissionIdentityOptions & Readonly<{
+  parameters?: unknown;
+  signal?: AbortSignal;
+}>;
+
 export interface Client {
+  /** Allocate and retain before sending; reconnect never replaces an original ref. */
+  newSubmission(options?: {nonce?: string}): WireSubmissionRef;
+  lookupSubmission(ref: WireSubmissionRef, options?: {signal?: AbortSignal}): Promise<WireSubmissionLookup>;
   readonly profile: ConfirmedProfile;
   readonly requestedDurability: Durability | null;
-  aql(text: string, options: {
+  sql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
+  aql(text: string, parameters?: QueryParameters, options?: QueryOptions): ResultPromise;
+  /** Low-level source admission without an automatic wait or Result read. */
+  startSource(text: string, options: SubmissionOptions & {
     format: ClientSourceFormat;
     /** The existing Program params map, admitted by the Host checker. */
     parameterDeclarations?: Record<string, unknown>;
-    parameters?: unknown;
-    requestId?: string;
-    signal?: AbortSignal;
   }): Promise<Execution>;
   /**
    * Check authored source without starting anything. Completed, failed and
@@ -443,11 +510,7 @@ export interface Client {
     parameters?: Record<string, unknown> | null;
     signal?: AbortSignal;
   }): Promise<CheckOutcome>;
-  start(program: Record<string, unknown>, options?: {
-    parameters?: unknown;
-    requestId?: string;
-    signal?: AbortSignal;
-  }): Promise<Execution>;
+  start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
     options?: {signal?: AbortSignal}): Promise<RequestLookup>;
@@ -494,6 +557,14 @@ export interface Client {
 }
 
 export declare function connect(options: ConnectionOptions): Promise<Client>;
+/** A credential-bearing actql:// connection string, or one with a separate token provider. */
+export type ConnectionStringOptions = Readonly<{
+  token?: string | (() => string | Promise<string>);
+  durability?: Durability;
+  consentRefs?: readonly string[];
+}>;
+export declare function connect(connectionString: string,
+  options?: ConnectionStringOptions): Promise<Client>;
 
 /** The caller-owned declaration contract/rules, not complete Program verification. */
 export type CheckParameterAdmission = NonNullable<Extract<NonNullable<
@@ -516,6 +587,8 @@ export declare function formatRequestCancellation(result: unknown, options?: Ope
 export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions): string | undefined;
+/** Passive text/HTML/agent JSON for an original SDK Run-observation error. */
+export declare function formatRunObservationFailure(error: unknown, options?: OperationFormatOptions): string | undefined;
 
 /** Safe explanation of an original SDK-rejected Run observation; no write permission. */
 export type RunObservationFailureExplanation = Readonly<{
@@ -524,6 +597,7 @@ export type RunObservationFailureExplanation = Readonly<{
   hint: string;
   next: Readonly<{operation: 'status'; ref: RunReference}>;
 }> & (Readonly<{kind: 'uninterpretable'; problem: 'unknown_state'}> |
+  Readonly<{kind: 'unavailable'; problem: 'observation_unavailable'}> |
   Readonly<{kind: 'protocol_failure'; problem: 'contract_mismatch' | 'malformed_response'}>);
 export declare function explainRunObservationFailure(error: unknown,
   options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined;

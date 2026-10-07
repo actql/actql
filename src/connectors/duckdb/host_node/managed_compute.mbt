@@ -637,10 +637,7 @@ pub fn managed_strategy_refresh_retention(run : ManagedComputeNodeRun) -> Unit {
 pub fn managed_strategy_cleanup_refresh(
   run : ManagedComputeNodeRun,
 ) -> Result[Bool, @resources.LedgerIssue] {
-  @strategy.refresh_task_execution_cleanup(
-    @duckdb_driver.captured_managed_duckdb_run(run.task),
-    @duckdb_driver.captured_managed_duckdb_execution(run.task),
-  )
+  @duckdb_driver.refresh_captured_managed_duckdb_cleanup(run.task)
 }
 
 ///|

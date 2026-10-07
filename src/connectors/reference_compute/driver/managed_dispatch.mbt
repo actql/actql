@@ -334,7 +334,7 @@ pub fn[T] start_numeric_managed_dispatch(
           bridges.push(Ref(Some(bridge)))
           reads.push(None)
         }
-        let operations : @connector.ManagedExecutionOperations[
+        let operations : @connector.ExecutionLifecycleOperations[
           @strategy.RunIssue,
         ] = {
           cancel: fn() {

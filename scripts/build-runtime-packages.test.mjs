@@ -208,6 +208,12 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// Workspace assertion checks remain in main's existing distribution gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/in-process-client.test.mjs ',
+  'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs ',
+);
+
 // Original-attempt recovery shares that runtime and distribution job.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-read-progress.test.mjs ',
@@ -288,9 +294,15 @@ distribution[3] = distribution[3].replace(
   'packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs '
 ).replace('adapters/host-node/client-cancel-response-loss.test.mjs ',
   'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs ');
+// Workspace packed acceptance follows the original Node package boundary.
+distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
+  0, 'node scripts/test-packed-workspace-connection.mjs');
 expectedGates['check:local-node-assets'].splice(3, 0,
   'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs');
 expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs');
+
+// The epoch-bound submission chain uses the same prepared distribution gate.
+distribution[3] += ' adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/submission-epoch-public.test.mjs packages/sdk/submission-identity.test.mjs';
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));

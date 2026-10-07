@@ -1,5 +1,9 @@
+import './typed-results.test.mjs';
+import './source-query.test.mjs';
 import './delivery-lookup-failure.test.mjs';
 import './check-reason-catalog.test.mjs';
+import './connection-string.test.mjs';
+import './connection-string-client.test.mjs';
 import './client-close.test.mjs';
 import './operation-formats.test.mjs';
 import './run-observation-protocol.test.mjs';
@@ -23,7 +27,8 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {checkReasonSchemaCid, checkOutcomeSchemaCid} from '@actql/client-wire';
-import {connect, ClientError, getCheckInput, getSubmissionInput, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
+import {connect, ClientError, getCheckInput, getSubmissionInput, getSubmissionOutcome, explainSubmission, explainRunObservationFailure, resolveCheckLocation, explainCheckReason, explainCheckOutcome, getCheckPresentationInfo} from './index.mjs';
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 
 test('check presentation revisions are immutable and separate from schema identity', () => {
   for (const [options, locale] of [[undefined, 'en'], [{locale: 'en'}, 'en'],
@@ -227,7 +232,7 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 const profile = Object.freeze({version: 'actql-client-host/0.1',
   mode: 'remote', owner: 'remote', durability: 'durable',
-  scopeRef: 'scope-a', capabilities: ['aql-document', 'result-jsonl'],
+  scopeRef: 'scope-a', capabilities: ['aql-document', 'result-jsonl'], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10,
@@ -411,11 +416,11 @@ test('control responses are bounded and uncertain submit keeps its ID',
     reply = oversizedControl(cancelled);
     const client = await connect(options);
     await assert.rejects(client.start({version: 'actql/0.1'},
-      {requestId: 'saved-control-id'}), error =>
+      {submissionRef: originalSubmission('saved-control-id')}), error =>
       error.code === 'SubmissionUnknown' &&
       error.requestId === 'saved-control-id');
     assert.equal(cancelled.length, 2);
-    assert.deepEqual(requests, ['connect', 'connect', 'submit']);
+    assert.deepEqual(requests, ['connect', 'connect', 'submit-intent']);
   });
 
 test('bounded control reads cover attach, status and error responses',
@@ -442,7 +447,7 @@ test('bounded control reads cover attach, status and error responses',
     operationReply = new Response(oversizedControl(cancelled).body,
       {status: 503});
     await assert.rejects(client.start({version: 'actql/0.1'},
-      {requestId: 'saved-error-id'}), error =>
+      {submissionRef: originalSubmission('saved-error-id')}), error =>
       error.code === 'SubmissionUnknown' &&
       error.requestId === 'saved-error-id');
     assert.equal(cancelled.length, 3);
@@ -454,9 +459,8 @@ test('document submit, attach and reads use one reference without replay', async
     const operation = url.pathname.split('/').at(-1);
     requests.push({operation, body: JSON.parse(init.body), headers: init.headers});
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit' || operation === 'attach') {
-      return Response.json(admission);
-    }
+    if (operation === 'submit-intent') return Response.json(readySubmission(JSON.parse(init.body), admission));
+    if (operation === 'attach') return Response.json(admission);
     if (operation === 'status') return Response.json(state);
     if (operation === 'read') {
       return new Response('{"n":1}\n{"n":2}\n\x1e',
@@ -467,8 +471,8 @@ test('document submit, attach and reads use one reference without replay', async
   t.after(() => mock.restoreAll());
   const client = await connect(options);
   assert.equal(client.profile.durability, 'durable');
-  const execution = await client.aql('{"version":"actql/0.1"}',
-    {format: 'json', requestId: 'request-a'});
+  const execution = await client.startSource('{"version":"actql/0.1"}',
+    {format: 'json', submissionRef: originalSubmission('request-a')});
   assert.deepEqual(execution.ref, ref);
   assert.deepEqual(await execution.status(), state);
   const result = execution.result('answer');
@@ -480,13 +484,14 @@ test('document submit, attach and reads use one reference without replay', async
   const restored = await client.attach(ref);
   assert.deepEqual(await restored.status(), state);
   const reads = requests.filter(value => value.operation === 'read');
-  assert.equal(requests.filter(value => value.operation === 'submit').length, 1);
+  assert.equal(requests.filter(value => value.operation === 'submit-intent').length, 1);
   assert.equal(reads.length, 2);
   assert.notEqual(reads[0].body.attemptId, reads[1].body.attemptId);
   assert.equal(reads[0].headers.authorization, 'Bearer scoped-token');
-  assert.deepEqual(requests.find(value => value.operation === 'submit').body,
+  assert.deepEqual(requests.find(value => value.operation === 'submit-intent').body,
     {connection: {mode: 'remote', owner: 'remote', consentRefs: [],
-      runners: []}, requestId: 'request-a', kind: 'aql',
+      runners: []}, submissionRef: originalSubmission('request-a'),
+    intentCid: 'sha256:a864f0d32df74b3483b14834268c1d961c44696307ddc5538fb4e5458ffa81b0', kind: 'aql',
     input: {text: '{"version":"actql/0.1"}', format: 'json'},
     parameters: null});
 });
@@ -497,41 +502,52 @@ test('query declarations travel with source without entering the SDK',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : admission);
+      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect(options);
-    await client.aql('SELECT id FROM records WHERE id = @p', {
+    await client.startSource('SELECT id FROM records WHERE id = @p', {
       format: 'sql', parameterDeclarations: {p: {type: 'number'}},
-      parameters: {p: 1}, requestId: 'saved-query-id',
+      parameters: {p: 1}, submissionRef: originalSubmission('saved-query-id'),
     });
     assert.deepEqual(requests[1].body, {
       connection: {mode: 'remote', owner: 'remote', consentRefs: [],
-        runners: []}, requestId: 'saved-query-id', kind: 'aql',
+        runners: []}, submissionRef: originalSubmission('saved-query-id'),
+      intentCid: 'sha256:39a8b8f7c3f9718e05109363c87ffb67d79a9b96a206fdd178a1a8a85e7b8252', kind: 'aql',
       input: {text: 'SELECT id FROM records WHERE id = @p', format: 'sql',
         parameterDeclarations: {p: {type: 'number'}}},
       parameters: {p: 1},
     });
-    await assert.rejects(client.aql('{}', {format: 'json',
+    await assert.rejects(client.startSource('{}', {format: 'json',
       parameterDeclarations: {p: {type: 'number'}}}),
     {code: 'InvalidAqlDocument'});
     assert.equal(requests.length, 2);
   });
 
-test('confirmed query input refusal stays typed after HTTP submit', async t => {
+test('a durable query input rejection stays bound to its original HTTP submission', async t => {
   const operations = [];
-  mock.method(globalThis, 'fetch', async url => {
+  mock.method(globalThis, 'fetch', async (url, init) => {
     const operation = url.pathname.split('/').at(-1);
     operations.push(operation);
+    const body = JSON.parse(init.body);
     return operation === 'connect' ? Response.json(profile) :
-      Response.json({code: 'ClientProgramInvalidInput'}, {status: 400});
+      Response.json({kind: 'not_accepted', submissionRef: body.submissionRef,
+        intentCid: body.intentCid, problem: {code: 'ClientProgramInvalidInput',
+          classification: 'invalid_input'}});
   });
   t.after(() => mock.restoreAll());
   const client = await connect(options);
-  await assert.rejects(client.aql('SELECT @missing FROM records', {
-    format: 'sql', requestId: 'saved-invalid-query',
-  }), {code: 'ClientProgramInvalidInput'});
-  assert.deepEqual(operations, ['connect', 'submit']);
+  await assert.rejects(client.startSource('SELECT @missing FROM records', {
+    format: 'sql', submissionRef: originalSubmission('saved-invalid-query'),
+  }), error => {
+    assert.equal(error.code, 'SubmissionNotAccepted');
+    assert.deepEqual(getSubmissionOutcome(error).problem,
+      {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+    assert.deepEqual(getSubmissionInput(error).submissionRef,
+      originalSubmission('saved-invalid-query'));
+    return true;
+  });
+  assert.deepEqual(operations, ['connect', 'submit-intent']);
 });
 
 test('status and wait reject malformed Host state replies', async t => {
@@ -584,27 +600,28 @@ test('unknown submit carries one fixed request ID and lookup never submits', asy
     const operation = url.pathname.split('/').at(-1);
     requests.push({operation, body: JSON.parse(init.body)});
     if (operation === 'connect') return Response.json(profile);
-    if (operation === 'submit') throw new Error('ACK lost');
-    if (operation === 'lookup-request') {
-      return Response.json({kind: 'unknown', reason: 'query_failed'});
+    if (operation === 'submit-intent') throw new Error('ACK lost');
+    if (operation === 'lookup-submission') {
+      return Response.json({kind: 'unresolvable', submissionRef: JSON.parse(init.body).submissionRef,
+        problem: {code: 'submission_history_unresolvable'}});
     }
     throw new Error(`unexpected ${operation}`);
   });
   t.after(() => mock.restoreAll());
   const client = await connect(options);
-  let requestId;
+  let submissionRef;
   await assert.rejects(client.start({version: 'actql/0.1'}), error => {
     assert.equal(error.code, 'SubmissionUnknown');
     assert.ok(error.requestId);
     assert.equal(error.lookupContext.scopeRef, 'scope-a');
-    requestId = error.requestId;
+    submissionRef = getSubmissionInput(error).submissionRef;
     return true;
   });
-  assert.equal(requests[1].body.requestId, requestId);
-  assert.deepEqual(await client.lookupRequest(requestId),
-    {kind: 'unknown', reason: 'query_failed'});
+  assert.deepEqual(requests[1].body.submissionRef, submissionRef);
+  assert.deepEqual(await client.lookupSubmission(submissionRef),
+    {kind: 'unresolvable', submissionRef, problem: {code: 'submission_history_unresolvable'}});
   assert.deepEqual(requests.map(value => value.operation),
-    ['connect', 'submit', 'lookup-request']);
+    ['connect', 'submit-intent', 'lookup-submission']);
 });
 
 test('read limits reject complete collection without cancelling the Run', async t => {
@@ -773,7 +790,7 @@ test('one query and Result path serves each connected ownership profile',
       requests.push({operation, body});
       if (operation === 'connect') return Response.json({...profile,
         mode: body.connection.mode, owner: body.connection.owner});
-      if (operation === 'submit') return Response.json(admission);
+      if (operation === 'submit-intent') return Response.json(readySubmission(body, admission));
       if (operation === 'read') return new Response('{"id":1}\n\x1e');
       throw new Error(`unexpected ${operation}`);
     });
@@ -792,7 +809,7 @@ test('one query and Result path serves each connected ownership profile',
     ];
     const query = async connection => {
       const client = await connect(connection);
-      const execution = await client.aql('{"version":"actql/0.1"}',
+      const execution = await client.startSource('{"version":"actql/0.1"}',
         {format: 'json'});
       const values = await execution.result('answer').all();
       client.close();
@@ -801,7 +818,7 @@ test('one query and Result path serves each connected ownership profile',
     for (const connection of connected) {
       assert.deepEqual(await query(connection), [{id: 1}]);
     }
-    assert.equal(requests.filter(item => item.operation === 'submit').length,
+    assert.equal(requests.filter(item => item.operation === 'submit-intent').length,
       connected.length);
     assert.equal(requests.filter(item => item.operation === 'read').length,
       connected.length);
@@ -941,7 +958,7 @@ test('malformed acceptance is unknown and preserves the original ID', async t =>
   const client = await connect(options);
   assert.equal(client.requestedDurability, null);
   await assert.rejects(client.start({version: 'actql/0.1'},
-    {requestId: 'saved-id'}), error =>
+    {submissionRef: originalSubmission('saved-id')}), error =>
     error.code === 'SubmissionUnknown' && error.requestId === 'saved-id');
 });
 
@@ -967,7 +984,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     mock.method(globalThis, 'fetch', async (url, init) => {
       const operation = url.pathname.split('/').at(-1);
       requests.push({operation, body: JSON.parse(init.body)});
-      return Response.json(operation === 'connect' ? profile : admission);
+      return Response.json(operation === 'connect' ? profile : readySubmission(JSON.parse(init.body), admission));
     });
     t.after(() => mock.restoreAll());
     const client = await connect({...options,
@@ -975,7 +992,7 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     const program = {version: 'actql/0.1', marker: 'original'};
     const parameters = {value: 'original'};
     const submitted = client.start(program, {
-      requestId: 'saved-id', parameters,
+      submissionRef: originalSubmission('saved-id'), parameters,
     });
     program.marker = 'changed';
     parameters.value = 'changed';
@@ -984,7 +1001,8 @@ test('submit fixes Program and parameters before asynchronous token lookup',
     assert.deepEqual(requests[1].body, {
       connection: {mode: 'remote', owner: 'remote',
         consentRefs: [], runners: []},
-      requestId: 'saved-id', kind: 'program',
+      submissionRef: originalSubmission('saved-id'),
+      intentCid: 'sha256:7f1eb8be5dc842465208f4b5cf5833d4d4662c6c0380bd0aee726b43b07ec957', kind: 'program',
       input: {version: 'actql/0.1', marker: 'original'},
       parameters: {value: 'original'},
     });
@@ -1000,23 +1018,28 @@ test('submit fixes Program and parameters before asynchronous token lookup',
 
 test('overlapping unknown submits keep their own exact text and declarations', async t => {
   const waiting = new Map();
+  let allSent;
+  const sent = new Promise(resolve => {allSent = resolve;});
   mock.method(globalThis, 'fetch', async (url, init) => {
     if (url.pathname.endsWith('/connect')) return Response.json(profile);
     const body = JSON.parse(init.body);
-    return new Promise(resolve => waiting.set(body.requestId, resolve));
+    return new Promise(resolve => {
+      waiting.set(body.submissionRef.nonce, resolve);
+      if (waiting.size === 2) allSent();
+    });
   });
   t.after(() => mock.restoreAll());
   const client = await connect(options);
   const text = 'SELECT "e\u0301"\r\nFROM @x';
   const declarations = {p: {type: 'String'}};
   const parameters = {p: 'original'};
-  const first = client.aql(text, {format: 'sql', requestId: 'first',
+  const first = client.startSource(text, {format: 'sql', submissionRef: originalSubmission('first'),
     parameterDeclarations: declarations, parameters}).catch(error => error);
   const second = client.start({version: 'actql/0.1', marker: 'second'},
-    {requestId: 'second', parameters: {p: 'second'}}).catch(error => error);
+    {submissionRef: originalSubmission('second'), parameters: {p: 'second'}}).catch(error => error);
   declarations.p.type = 'Int';
   parameters.p = 'edited';
-  await new Promise(resolve => setImmediate(resolve));
+  await sent;
   waiting.get('second')(Response.json({bad: true}));
   const secondError = await second;
   waiting.get('first')(Response.json({bad: true}));
@@ -1034,10 +1057,10 @@ test('overlapping unknown submits keep their own exact text and declarations', a
   assert.deepEqual(firstExplanation, {
     observation: 'acceptance_unknown',
     summary: 'Submission acceptance is unknown. Work may already have started.',
-    next: {operation: 'lookupRequest', requestId: 'first',
+    next: {operation: 'lookupSubmission', submissionRef: originalSubmission('first'),
       lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope-a'}},
   });
-  assert.equal(explainSubmission(secondError).next.requestId, 'second');
+  assert.deepEqual(explainSubmission(secondError).next.submissionRef, originalSubmission('second'));
   firstError.code = 'Accepted';
   firstError.requestId = 'second';
   firstError.message = 'Execution succeeded';
@@ -1051,7 +1074,7 @@ test('overlapping unknown submits keep their own exact text and declarations', a
   assert.equal(getSubmissionInput(JSON.parse(JSON.stringify(firstError))), undefined);
 });
 
-test('local credential and payload failures do not acquire submission input', async t => {
+test('local credential failure retains an unsent original without marking the foreign error as an Owner fact', async t => {
   const foreign = new Error('CredentialUnavailable');
   const operations = [];
   mock.method(globalThis, 'fetch', async url => {
@@ -1065,7 +1088,13 @@ test('local credential and payload failures do not acquire submission input', as
     throw foreign;
   }});
   for (const marker of ['first', 'second']) {
-    await assert.rejects(client.start({marker}), error => error === foreign);
+    await assert.rejects(client.start({marker}), error => {
+      assert.equal(error.code, 'SubmissionNotSent');
+      assert.deepEqual(getSubmissionInput(error).input, {marker});
+      assert.equal(getSubmissionOutcome(error), undefined);
+      assert.equal(explainSubmission(error), undefined);
+      return true;
+    });
     assert.equal(getSubmissionInput(foreign), undefined);
     assert.equal(explainSubmission(foreign), undefined);
   }

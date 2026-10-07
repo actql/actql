@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as sdk from './index.mjs';
@@ -5,7 +6,7 @@ import * as sdk from './index.mjs';
 const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'format-scope', capabilities: [], limits: {
+  durability: 'durable', scopeRef: 'format-scope', capabilities: [], submissionEpoch, limits: {
     maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 3, maxBatchRetainedValueBytes: 1024}};
 async function observations(t, {requestId = 'original-request', effects = ['save', 'notify']} = {}) {
@@ -15,7 +16,7 @@ async function observations(t, {requestId = 'original-request', effects = ['save
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref: body.ref, durability: 'durable', revision: 1};
-      if (operation === 'submit') throw new Error('private-provider-message');
+      if (operation === 'submit-intent') throw new Error('private-provider-message');
       if (operation === 'cancel') return {kind: 'accepted', ref: body.ref,
         cancelRef: {...body.ref, cancelId: body.cancelId, expectedRevision: body.expectedRevision}, revision: 7};
       if (operation === 'status') return {version: 'actql-run-state/0.1', run_id: 'run-a',
@@ -33,7 +34,7 @@ async function observations(t, {requestId = 'original-request', effects = ['save
   });
   t.after(() => client.close());
   let submission, read;
-  try { await client.start({params: {}, stages: []}, {requestId}); } catch (error) {submission = error;}
+  try { await client.start({params: {}, stages: []}, {submissionRef: originalSubmission(requestId)}); } catch (error) {submission = error;}
   const run = await client.attach(ref);
   const cancellation = await run.cancel({cancelId: 'format-cancel', expectedRevision: 6}), effect = await run.status();
   try { await Array.fromAsync(run.result('answer').rows()); } catch (error) {read = error;}
@@ -78,15 +79,24 @@ test('operation formats retain typed facts, original lookup references and unkno
 });
 
 test('operation format escaping retains control and markup bytes as data', async t => {
-  const requestId = '<img src=x onerror="run()">\u202e\u2066\u061c\u0085\u001b[2J\n';
-  const {cases} = await observations(t, {requestId});
-  const [, failure] = cases[0];
-  for (const format of ['text', 'html', 'json']) {
-    const output = sdk.formatSubmission(failure, {format});
-    assert.ok(output);
-    assert.doesNotMatch(output, /[\u202e\u2066\u061c\u0085\u001b]/u, '[check-mutation:operation-format-escaping]');
-    assert.doesNotMatch(output, /<img|onerror="run/u);
-    if (format === 'json') assert.equal(JSON.parse(output).explanation.next.requestId, requestId);
+  const requestId = '<img src=x onerror="run()">\u202e\u2066\u061c';
+  // Submission nonces reject controls. Preserve the same escaping counterexample
+  // in admitted Effect data, while keeping submission markup and bidi coverage.
+  const effect = requestId + '\u0085\u001b[2J\n';
+  const {cases} = await observations(t, {requestId, effects: [effect]});
+  for (const [index, render] of [[0, sdk.formatSubmission], [3, sdk.formatEffectUncertainty]]) {
+    const [, failure] = cases[index];
+    for (const format of ['text', 'html', 'json']) {
+      const output = render(failure, {format});
+      assert.ok(output);
+      assert.doesNotMatch(output, /[\u202e\u2066\u061c\u0085\u001b]/u, '[check-mutation:operation-format-escaping]');
+      assert.doesNotMatch(output, /<img|onerror="run/u);
+      if (format === 'json') {
+        const explanation = JSON.parse(output).explanation;
+        if (index === 0) assert.equal(explanation.next.submissionRef.nonce, requestId);
+        else assert.deepEqual(explanation.effects, [effect]);
+      }
+    }
   }
 });
 

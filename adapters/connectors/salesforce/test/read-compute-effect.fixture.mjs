@@ -128,7 +128,7 @@ export function readComputeEffectProgram(mappingRef, {onItemFailure} = {}) {
 // Salesforce side and never as passing.
 export async function submitReadComputeEffect(client, program, requestId) {
   try {
-    return await client.aql(program, {format: 'json', requestId});
+    return await client.startSource(program, {format: 'json', requestId});
   } catch (error) {
     if (error?.code === 'ClientProgramUnsupported') {
       throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +

@@ -213,7 +213,7 @@ const terminal = ['succeeded', 'failed', 'needs_reconciliation', 'cancelled'];
 // Submit and wait until the Run is held for approval or has ended.
 async function submitted(setup, host, requestId, rows) {
   const client = await host.as('owner-token');
-  const execution = await client.aql(setup.program(rows), {format: 'json',
+  const execution = await client.startSource(setup.program(rows), {format: 'json',
     requestId});
   const state = await waitFor(async () => {
     const current = await execution.status();

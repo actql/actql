@@ -1,4 +1,4 @@
-// Test-only replay of three published local originals under their actual Git
+// Test-only replay of published local originals under their actual Git
 // policy. Never imported by a production collector, reader or reuse selector.
 import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
@@ -8,7 +8,8 @@ import {pathToFileURL} from 'node:url';
 import {gitTree} from './inputs.mjs';
 
 const revisions = ['b34f6e5445b731584729a1f8c09ec8c2404ccde6',
-  'fc2962f43431e5c4c86cb47970251aa4c7c7f98c', '8bbe08fca045be6c00a64eb5a68889295082c67c'];
+  'fc2962f43431e5c4c86cb47970251aa4c7c7f98c', '8bbe08fca045be6c00a64eb5a68889295082c67c',
+  '9a083b1d32621b73a89e223c0c6cb1a0be3d3d29'];
 const modules = ['inputs', 'package-configurations', 'isolation', 'isolated-runtime',
   'runtime', 'isolated-contract', 'mutation-inventory', 'mutation-observation']
   .map(name => `proofs/ci-evidence/${name}.mjs`).concat('proofs/bounded-session/action-inputs.mjs');
