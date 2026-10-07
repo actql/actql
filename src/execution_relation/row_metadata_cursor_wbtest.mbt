@@ -79,12 +79,34 @@ test "large Relation metadata is not materialized before bounded resume" {
 }
 
 ///|
+/// Enter the metadata phase this fixture tests, without spending its logical
+/// budget or reading input values. Completion names have their own stop tests.
+fn finish_metadata_fixture_completion_port(
+  execution : BoundedBindingRowsExecution,
+) -> Unit raise {
+  let remaining = execution.state.control.remaining
+  for _ in 0..<4096 {
+    if execution.state.port_preparation is None {
+      assert_eq(execution.state.control.remaining, remaining)
+      assert_eq(execution.state.input_values.nodes, 0)
+      return
+    }
+    assert_true(
+      advance_bounded_binding_rows(execution, 1).unwrap()
+      is BoundedBindingRowsContinue(progress=0L, ..),
+    )
+  }
+  fail("completion preparation exceeded this fixture's finite name envelope")
+}
+
+///|
 test "expression metadata preparation stops during each owned phase" {
   for target in [0, 1, 2, 3] {
     let execution = indexed_snapshot_fixture(
       "x".repeat(256),
       derive_name=if target == 2 { "x".repeat(256) + "next" } else { "next" },
     )
+    finish_metadata_fixture_completion_port(execution)
     let mut reached = false
     for _ in 0..<100 {
       if !reached {
@@ -136,6 +158,7 @@ test "indexed projection prepares sources in bounded fragments and stops before 
   let execution = indexed_snapshot_fixture(name, projection=true)
   assert_true(execution.state.input_names.is_empty())
   assert_true(execution.state.output_names.is_empty())
+  finish_metadata_fixture_completion_port(execution)
   let mut reached = false
   for _ in 0..<100 {
     if !reached {
