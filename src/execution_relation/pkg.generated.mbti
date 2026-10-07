@@ -89,6 +89,8 @@ pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, I
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
+pub fn advance_completed_table_input_relation_export(CompletedTableInputRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
+
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
 
 pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_execution.Observation[FixedInputGuardMeasureLimits, FixedInputGuardIssue], @bounded_execution.Issue]
@@ -193,6 +195,8 @@ pub fn[T] bind_managed_identity_issuer(ManagedIdentityAttemptPermit, ManagedReta
 
 pub fn bind_managed_result_occurrence(@lowering_relation.BoundPrepared, String, @relation_results.ResultPort) -> Result[ManagedResultOccurrence, ManagedResultOccurrenceIssue]
 
+pub fn bind_managed_table_input_occurrence(@lowering_relation.BoundPrepared, @relation_results.CheckedTableInputs, String) -> Result[ManagedTableInputOccurrence, ManagedTableInputOccurrenceIssue]
+
 pub fn boolean_pair(@lowering_relation.ManyOperator, Value, Value) -> Result[Value, ScalarIssue]
 
 pub fn bounded_append_cleanup_pending(BoundedAppendExecution) -> Bool
@@ -252,6 +256,8 @@ pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) 
 pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Bool
 
 pub fn cancel_completed_result_relation_export(CompletedResultRelationExportPreparation) -> Bool
+
+pub fn cancel_completed_table_input_relation_export(CompletedTableInputRelationExportPreparation) -> Bool
 
 pub fn cancel_expression_execution(ExpressionExecution) -> Bool
 
@@ -447,6 +453,12 @@ pub fn completed_result_export_preparation_matches_receipt(CompletedResultRelati
 
 pub fn completed_row_count(CompletedOutput) -> Int
 
+pub fn completed_table_input_export_preparation_matches_owner(CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence, CompletedOutput) -> Bool
+
+pub fn completed_table_input_export_preparation_matches_receipt(CompletedTableInputRelationExportPreparation, CompletedRelationExportReceipt) -> Bool
+
+pub fn completed_table_input_export_preparation_work(CompletedTableInputRelationExportPreparation) -> Int
+
 pub fn completion_preparation_owner(CompletionPreparation) -> @lowering_relation.BoundPrepared
 
 pub fn completion_preparation_selected_step(CompletionPreparation) -> Int?
@@ -536,6 +548,8 @@ pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(Comple
 pub fn finish_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Result[CompletedRelationExportReceipt, CompletedExportIssue]
 
 pub fn finish_completed_result_relation_export_preparation(CompletedResultRelationExportPreparation) -> Result[CompletedOutputExport, CompletedExportIssue]
+
+pub fn finish_completed_table_input_relation_export_preparation(CompletedTableInputRelationExportPreparation) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn finish_fixed_join_stream(FixedJoinStream) -> Result[FixedJoinValidation, RowIssue]
 
@@ -791,6 +805,8 @@ pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_sche
 
 pub fn[T] managed_publication_bridge_matches_result_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedResultRelationExportPreparation, ManagedResultOccurrence) -> Bool
 
+pub fn[T] managed_publication_bridge_matches_table_input_export(ManagedPublicationBridge[T], ManagedCompletedOutput[T], CompletedTableInputRelationExportPreparation, ManagedTableInputOccurrence) -> Bool
+
 pub fn[T] managed_relation_input_binding(ManagedProducerRead[T]) -> ManagedInputBinding
 
 pub fn managed_result_occurrence_name(ManagedResultOccurrence) -> String
@@ -808,6 +824,14 @@ pub fn[T] managed_retained_output_payload(ManagedRetainedOutput[T]) -> T?
 pub fn[T] managed_retained_output_storage_bytes(ManagedRetainedOutput[T]) -> Int64?
 
 pub fn managed_row_measurement_capacity_bytes(Int) -> Int64?
+
+pub fn managed_table_input_occurrence_declarations(ManagedTableInputOccurrence) -> @relation_results.CheckedTableInputs
+
+pub fn managed_table_input_occurrence_definition(ManagedTableInputOccurrence) -> @relation_results.TableInputDefinition
+
+pub fn managed_table_input_occurrence_owner(ManagedTableInputOccurrence) -> @lowering_relation.BoundPrepared
+
+pub fn managed_table_input_occurrence_same(ManagedTableInputOccurrence, ManagedTableInputOccurrence) -> Bool
 
 pub fn[T] managed_view_plan_column(ManagedViewPlan[T], Int) -> Int?
 
@@ -1184,6 +1208,8 @@ pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput,
 pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
+
+pub fn start_completed_table_input_relation_export(CompletedOutput, ManagedTableInputOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedTableInputRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
 
@@ -1676,6 +1702,8 @@ pub(all) struct CompletedResultViewLimits {
 
 type CompletedSequence
 
+type CompletedTableInputRelationExportPreparation
+
 type CompletionPreparation
 
 pub struct EvalIssue {
@@ -2074,6 +2102,13 @@ pub(all) enum ManagedSelectionMeasureIssue {
   InvalidSelection
   UnsupportedColumns
 }
+
+type ManagedTableInputOccurrence
+
+pub(all) enum ManagedTableInputOccurrenceIssue {
+  ForeignOwner
+  MissingInput
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ManagedVerifiedOutputIssue {
   Closed
