@@ -124,9 +124,10 @@ function declarations(source) {
     // Count every textual identifier, including literals/comments. This can
     // over-include declarations but cannot hide a reference in interpolation.
     const names=new Set([name]);
-    if(/^(?:priv\s+)?enum\b/.test(text)) {
-      for(const m of text.matchAll(/^\s+([A-Z][A-Za-z0-9_]*)\b/gm))names.add(m[1]);
-    }
+    // Constructor spellings such as Complete/Stopped are shared by unrelated
+    // imported enums. Retain a fixture enum by its named type, not by confusing
+    // those spellings with a reference to this type. Actual compilation must
+    // still resolve every selected constructor under the retained signatures.
     return {begin:s.begin,end:last.end,text,name,names,identifiers:new Set(text.match(/[A-Za-z_]\w*/g)??[])};
   });
 }
@@ -191,7 +192,7 @@ export function retirementCompilation(read, source, overlay) {
   const imports=helperImports(overlay[pkg],referencedText);
   Object.assign(overlay,projected);overlay[pkg]=imports.text;
   for(const path of paths)inputs[path].sourceDigest=source.sources[path];
-  return {scope: 'one selected Native Host fixture; conservative identifier closure, retained declarations verbatim',
+  return {scope: 'one selected Native Host fixture; named-declaration closure, compiler resolves constructor bindings',
     inputs,imports:{kept:imports.kept,omitted:imports.omitted},
     omittedTests: Object.values(inputs).reduce((n, input) => n + input.omittedTests.length, 0),
     repositoryTestsRemoved: false, reuseAuthorized: false};

@@ -151,9 +151,11 @@ through the existing bounded local guard. It selects one Native test containing
 two existing Host cases; it does not run the full Core or packed acceptance.
 In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks
 unselected top-level whitebox tests and helper declarations outside a conservative
-identifier closure rooted at the selected fixture. Identifiers inside comments,
-literals and interpolation also extend that closure; no invoked helper is omitted
-by excluding textual references. Referenced enum variants retain their declaration.
+named-declaration closure rooted at the selected fixture. Identifiers inside
+comments, literals and interpolation also extend that closure. Fixture enums are
+retained by their named type; common constructor spellings such as `Complete`
+are not treated as references to unrelated fixture types. Actual compilation
+must resolve selected constructor bindings under the retained signatures.
 Retained helper declarations and their assertions remain unchanged. Imports are
 limited to aliases referenced by the same retained text. Unknown declarations,
 attributes, interpolated raw lines, ambiguous names and malformed input reject
