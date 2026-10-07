@@ -34,6 +34,7 @@ pub struct EffectHeader {
   effect_id : String
   kind : String
   source_result : String?
+  source_table_input : String?
   contract_ref : String
   failure_policy : String
   body : @wire.Cursor
@@ -57,6 +58,12 @@ pub fn effect_header_kind(value : EffectHeader) -> String {
 ///|
 pub fn effect_header_source_result(value : EffectHeader) -> String? {
   value.source_result
+}
+
+///|
+/// Private Table input names never resolve through the ordinary Result map.
+pub fn effect_header_source_table_input(value : EffectHeader) -> String? {
+  value.source_table_input
 }
 
 ///|
@@ -173,6 +180,7 @@ fn header_from(
   stage : Stage,
   required : Bool,
   source : @wire.Cursor,
+  allow_table_input? : Bool = false,
 ) -> String? raise EffectHeaderStop {
   match @wire.lookup(body, "from") {
     None =>
@@ -182,6 +190,18 @@ fn header_from(
         None
       }
     Some(from) => {
+      if allow_table_input &&
+        @wire.open_object(from) is Ok(reference) &&
+        @wire.lookup(reference, "table_input") is Some(_) {
+        // Store alone can structurally name this private port. Semantic Table
+        // capability, capture and execution are not granted by this header.
+        let reference = header_object(from, ["table_input"])
+        let input = header_text(header_required(reference, "table_input", from))
+        if !stage.table_input_index.contains(input) {
+          header_fail(from, InvalidSourceResult)
+        }
+        return None
+      }
       let reference = header_object(from, ["result"])
       let result = header_text(header_required(reference, "result", from))
       if !stage.result_index.contains(result) {
@@ -435,7 +455,8 @@ fn header_member(
       value
     }
     "update" | "delete" => header_selector(body, stage, source)
-    "upsert" | "store" | "command" => header_from(body, stage, true, source)
+    "store" => header_from(body, stage, true, source, allow_table_input=true)
+    "upsert" | "command" => header_from(body, stage, true, source)
     _ => abort("closed effect kind")
   }
   if selected == "update" || selected == "upsert" {
@@ -462,6 +483,12 @@ fn header_member(
     effect_id,
     kind: selected,
     source_result: from,
+    source_table_input: if selected == "store" && from is None {
+      let reference = @wire.open_object(@wire.lookup(body, "from").unwrap()).unwrap()
+      Some(header_text(header_required(reference, "table_input", source)))
+    } else {
+      None
+    },
     contract_ref,
     failure_policy,
     body: source,

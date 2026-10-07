@@ -46,6 +46,7 @@ priv enum Continuation {
   Forward(@lower.Expression)
   Unary(@lower.Expression, @lower.UnaryOperator)
   Property(@lower.Expression, String, Int)
+  Array(ArrayExpressionState)
   Object(ObjectExpressionState)
   Cast(@lower.Expression, @lower.Expression)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
@@ -91,6 +92,9 @@ priv enum Evaluation {
   Membership(MembershipState)
   Score(VectorScoreState)
   Concat(VectorConcatState)
+  FinishArray(ArrayExpressionState)
+  MeasureArray(ArrayExpressionState, Value, LogicalMeasureCursor)
+  ArrayText(ArrayExpressionState, RawTextAdmission)
   FinishObject(ObjectExpressionState)
   MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
   MeasureResult(Value, LogicalMeasureCursor)
@@ -114,6 +118,16 @@ priv struct BinaryComparisonState {
   charge : BoundedTextCharge
   mut phase : Int
   mut offset : Int
+}
+
+///|
+priv struct ArrayExpressionState {
+  expression : @lower.Expression
+  children : Array[@lower.Expression]
+  builder : @admitted.ArrayBuilder
+  roots : Array[ExpressionRootLease?]
+  root : ExpressionRootLease?
+  mut index : Int
 }
 
 ///|
@@ -261,6 +275,7 @@ priv struct ExpressionFrame {
   workspace : RowWorkspace
   scope : ExpressionRoots?
   stack : Array[Continuation]
+  arrays : Array[@admitted.ArrayBuilder]
   objects : Array[@admitted.ObjectBuilder]
   mut object_context : Int
   mut membership_context : Int
@@ -316,6 +331,7 @@ fn expression_frame_with_input(
     workspace,
     scope,
     stack: [],
+    arrays: [],
     objects: [],
     object_context: 0,
     membership_context: 0,
@@ -336,6 +352,10 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   if frame.scope is Some(scope) {
     cleanup_expression_roots(scope)
   }
+  for builder in frame.arrays {
+    @admitted.cancel_array_value(builder) |> ignore
+  }
+  frame.arrays.clear()
   for builder in frame.objects {
     @admitted.cancel_object_value(builder) |> ignore
   }
@@ -347,9 +367,11 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   match frame.state {
     TextFunction(state) => state.builder = None
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
-    MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
+    MeasureArray(_, _, cursor) | MeasureObject(_, _, cursor) =>
+      clear_logical_measure(cursor)
     MeasureResult(_, cursor) => clear_logical_measure(cursor)
-    ObjectText(_, cursor) => close_raw_text_admission(cursor)
+    ArrayText(_, cursor) | ObjectText(_, cursor) =>
+      close_raw_text_admission(cursor)
     _ => ()
   }
   release_slots(frame.workspace, frame.measurement_slots)
@@ -455,6 +477,7 @@ fn advance_expression_frame_impl(
       frame.state is PropertyName(_) ||
       frame.state is FieldName(_) ||
       frame.state is ObjectName(_) ||
+      frame.state is ArrayText(_, _) ||
       frame.state is ObjectText(_, _)) {
       if budget.remaining == 0 {
         return Err({ kind: ControlLimit, expression: frame.active, })
@@ -481,6 +504,8 @@ fn advance_expression_frame_impl(
         let leaf = match body {
           Field(_, _) | Literal(_) | TypedNull => true
           Unary(_, _)
+          | Array(_)
+          | EmptyArray
           | Object(_)
           | Property(_, _, _)
           | Cast(_)
@@ -539,6 +564,22 @@ fn advance_expression_frame_impl(
             frame.object_context += 1
             frame.stack.push(Property(expr, name, index))
             frame.state = Enter(child)
+          }
+          Array(_) | EmptyArray => {
+            let children = match body {
+              Array(children) => children
+              _ => []
+            }
+            let state = match start_expression_array(frame, expr, children) {
+              Ok(state) => state
+              Err(issue) => return Err(issue)
+            }
+            if children.get(0) is Some(child) {
+              frame.stack.push(Array(state))
+              frame.state = Enter(child)
+            } else {
+              frame.state = FinishArray(state)
+            }
           }
           Object(fields) => {
             let root = if scope is Some(scope) {
@@ -830,6 +871,13 @@ fn advance_expression_frame_impl(
             frame.current_root = None
             release_slots(workspace, 1)
             frame.state = Return(selected)
+          }
+          Array(state) => {
+            frame.active = state.expression
+            match append_expression_array_item(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
           }
           Object(state) => {
             let expr = state.expression
@@ -1315,6 +1363,19 @@ fn advance_expression_frame_impl(
           }
         }
       }
+      ArrayText(state, admission) => {
+        frame.active = state.expression
+        match advance_raw_text_admission(admission, budget) {
+          Err(_) =>
+            return Err({ kind: ControlLimit, expression: state.expression, })
+          Ok(None) => ()
+          Ok(Some(value)) =>
+            match append_admitted_expression_array_item(frame, state, value) {
+              Ok(_) => ()
+              Err(issue) => return Err(issue)
+            }
+        }
+      }
       ObjectText(state, admission) => {
         frame.active = state.expression
         match advance_raw_text_admission(admission, budget) {
@@ -1543,6 +1604,45 @@ fn advance_expression_frame_impl(
             concat.vectors.length() * 3 + 1 + concat.expected_dimension,
           )
           frame.state = Return(Captured(checked.value))
+        }
+      }
+      FinishArray(state) => {
+        frame.active = state.expression
+        match finish_expression_array(frame, state) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
+      MeasureArray(state, value, cursor) => {
+        frame.active = state.expression
+        match
+          advance_reserved_logical_measure(
+            cursor,
+            workspace,
+            frame.measurement_slots,
+          ) {
+          Err(Workspace) =>
+            return Err({ kind: WorkspaceLimit, expression: state.expression, })
+          Err(Logical(issue)) =>
+            return Err({
+              kind: LogicalValue(issue),
+              expression: state.expression,
+            })
+          Ok((measured, reserved)) => {
+            frame.measurement_slots = reserved
+            if measured is Some(measured) {
+              guard state.root is Some(root) &&
+                root.root.bytes == measured.wire_bytes.to_int64() else {
+                return Err({
+                  kind: LogicalValue(InvalidRootLifetime),
+                  expression: state.expression,
+                })
+              }
+              root.root.measurement = Some(measured)
+              frame.current_root = Some(root)
+              frame.state = Return(value)
+            }
+          }
         }
       }
       FinishObject(state) => {

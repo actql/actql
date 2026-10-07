@@ -35,6 +35,8 @@ pub fn effect_header_kind(EffectHeader) -> String
 
 pub fn effect_header_source_result(EffectHeader) -> String?
 
+pub fn effect_header_source_table_input(EffectHeader) -> String?
+
 pub fn effect_header_stage(EffectHeader) -> Int
 
 pub fn effect_headers_owner(EffectHeaders) -> Program
@@ -81,6 +83,10 @@ pub fn stage_body(Stage) -> @decode_core.Cursor
 
 pub fn stage_count(Program) -> Int
 
+pub fn stage_table_input_at(Stage, Int) -> String?
+
+pub fn stage_table_input_count(Stage) -> Int
+
 pub fn stages(Program) -> Array[Stage]
 
 pub fn validate_reuse(Program, Limits) -> Result[Unit, SyntaxError]
@@ -93,6 +99,7 @@ pub struct EffectHeader {
   effect_id : String
   kind : String
   source_result : String?
+  source_table_input : String?
   contract_ref : String
   failure_policy : String
   body : @decode_core.Cursor

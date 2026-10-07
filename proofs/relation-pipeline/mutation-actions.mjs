@@ -20,7 +20,8 @@ const snapshotFiles = ['scripts/owned-scratch.mjs', 'scripts/native-cxx-link-dri
   '.github/workflows/ci.yml', 'docs/spec/language.md', 'docs/spec/execution.md'];
 const checkerFiles = ['proofs/ci-evidence/check.mjs', 'proofs/ci-evidence/Reuse.lean',
   'proofs/ci-evidence/Claims.lean', 'proofs/ci-evidence/inputs.mjs',
-  'proofs/ci-evidence/package-configurations.mjs'];
+  'proofs/ci-evidence/package-configurations.mjs', 'proofs/ci-evidence/receipts.mjs',
+  'proofs/ci-evidence/transport.mjs', 'scripts/ci-artifact-reader.mjs', 'scripts/ci-main-base.mjs'];
 const residual = Object.freeze([
   'pipeline-runtime: inherited environment, OS/loader/libraries and external compiler tools are not closed',
   'pipeline-workspace: mutable build state and execution-time filesystem inputs need an isolated contract',
@@ -175,6 +176,8 @@ export function checkMutationActions({root, directory, source, decision, audited
   const sourceInputs = mutationSourceInputs({tree, source, root});
   const records = mutationActionRecords({reports: readMutationActionReports(directory, decision),
     source, decision, sourceInputs, auditedReceipts});
-  const certificate = checkPlan(records.actions.map(entry => entry.required), records.actions.map(entry => entry.application), {lean});
-  return {...records, sourceInputs, certificate, admissionMilliseconds: Math.round(performance.now() - started)};
+  let leanOutput;
+  const certificate = checkPlan(records.actions.map(entry => entry.required), records.actions.map(entry => entry.application),
+    {lean, onOutput: output => { leanOutput = output; }});
+  return {...records, sourceInputs, certificate, leanOutput, admissionMilliseconds: Math.round(performance.now() - started)};
 }

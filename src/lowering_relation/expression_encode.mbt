@@ -119,6 +119,21 @@ fn emit_frames(
             @contract.emit_checked(expr.contract, output)
             @encode.end_object(output)
           }
+          Array(children) => {
+            pending.push(Op("array"))
+            @encode.begin_array(output)
+            pending.push(Expressions(children, 0))
+          }
+          EmptyArray => {
+            pending.push(Op("empty_array"))
+            @encode.begin_object(output)
+            @encode.key(output, "items")
+            guard expr.contract.shape is @contract.Array(items, ..) else {
+              raise @encode.InvalidStructure
+            }
+            @contract.emit_checked(items, output)
+            @encode.end_object(output)
+          }
           Object(fields) => {
             pending.push(Op("object"))
             @encode.begin_object(output)
