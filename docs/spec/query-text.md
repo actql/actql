@@ -267,6 +267,13 @@ an analytic `OVER` clause resolve against the input snapshot, not the final
 ORDER BY scope. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+In a grouped SELECT, a grouping expression may occur inside a larger scalar
+expression. Its input references must resolve to the same pre-group value slots
+and property members as the grouping key. The evaluated key is reused; retaining
+`payload.score + 1` does not restore `payload` or permit `payload.score` alone.
+SELECT siblings still use the input scope, including when an output alias shadows
+an input receiver. Nullable keys keep their common value contract and NULLs.
+
 Pipe range variables bind immutable input value slots. `SET` replaces the
 current unqualified columns; every assignment sees the same pre-SET row.
 `DROP` removes current names, and `RENAME` changes current names. These three
