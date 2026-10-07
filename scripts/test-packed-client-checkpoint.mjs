@@ -54,7 +54,9 @@ assert.deepEqual((await readdir(join(root, 'node_modules', '@actql'))).sort(),
 // The light SDK carries no runtime, DuckDB or Store code.
 const sdkFiles = (await readdir(join(root, 'node_modules/@actql/sdk'))).sort();
 assert.deepEqual(sdkFiles.filter(name => /\.(m?js|json)$/u.test(name)),
-  ['checkpoints.mjs', 'host-port.mjs', 'index.mjs', 'package.json']);
+  ['check-presentation.mjs', 'check-reason-catalog.generated.js', 'checkpoints.mjs',
+    'host-port.mjs', 'index.mjs', 'json-value-wire.generated.mjs',
+    'operation-formats.mjs', 'operation-presentation.mjs', 'package.json']);
 
 async function heldValueAcceptance() {
   for (const name of ['adapters/host-node/held-submission-value-public.test.mjs',
