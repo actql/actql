@@ -214,3 +214,71 @@ test "GROUP HAVING implicit aliases reject ambiguity and ungrouped receivers" {
     )
   }
 }
+
+///|
+test "GROUP HAVING implicit aliases compare implicit object receivers in their own clause scope" {
+  let declarations = @parameters.read_declarations(
+    Some(
+      @wire.admit(
+        @source.parse_json(
+          (
+            #|{"wrapper":{"type":"object","nullable":false,"fields":{"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}}}}
+          ),
+          construction_limits().source.source,
+        ).unwrap(),
+        construction_limits().source.tree,
+      ).unwrap(),
+    ),
+    {
+      max_parameters: 10,
+      max_nodes: 1000,
+      max_depth: 100,
+      max_text_bytes: 10000,
+    },
+  ).unwrap()
+  let values = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"wrapper":{"payload":{"score":20}}}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  for
+    (condition, property_count) in [
+      ("payload.score + 1 > 12", 3),
+      ("objects.payload.score + 1 > 12", 2),
+    ] {
+    let actual = compile(
+      @query.parse_query(
+        "SELECT payload.score + 1 AS bucket, (@wrapper).payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING " +
+        condition +
+        " ORDER BY bucket",
+        syntax_limits(),
+      ).unwrap(),
+      {
+        ..group_property_context(),
+        parameter_declarations: Some(declarations),
+      },
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(
+        actual,
+        check_environment(),
+        Some(values),
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ =>
+        fail(
+          "the implicit payload alias has a different receiver from the input key",
+        )
+    }
+    let body = semantic(actual)
+    assert_eq(body.split("\"property\":").length() - 1, property_count)
+    assert_eq(body.split("\"$param\":").length() - 1, 1)
+  }
+}

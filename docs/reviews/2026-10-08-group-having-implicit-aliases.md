@@ -102,7 +102,7 @@ needed before claiming complete adopted field-name behavior.
 
 ## Public cases and attribution
 
-Fourteen normal and six exact-code refusal cases are registered in the ordinary
+Sixteen normal and six exact-code refusal cases are registered in the ordinary
 group-property corpus. `--group-having-implicit-aliases-only` selects those same
 cases. Independent JSON controls, nullable receivers/fields and duplicate counts,
 path/member and quoted aliases, hidden COUNT input, CTE/JOIN with ceiling 10,
@@ -132,3 +132,27 @@ The resolution starts from main, preserves every grouped ORDER case, flag and
 common implementation/diagnostic change, then adds this unit's independent
 alias cases and selection flag. No existing expected Program, row, type, bound
 or refusal is replaced to resolve the conflict.
+
+
+## Main-integrated focused evidence
+
+Normal merge `1dbd67fc6806406f0af3bbd66237cdcc04c15201` passes guard
+`run-ofFx61`: implicit GROUP/HAVING aliases 6/6 (`focused-test-gHjrmP`),
+HAVING projection slots 6/6 (`focused-test-f5wuNj`), hidden HAVING aggregates
+5/5 (`focused-test-AJDJ1W`), grouped HAVING subexpressions 8/8
+(`focused-test-eVn1y9`), newly integrated grouped ORDER subexpressions 8/8
+(`focused-test-dMvBod`), grouped implicit naming 6/6 (`focused-test-avLbr6`),
+and GROUP property keys 9/9 (`focused-test-59IkOQ`). Readonly manifest
+freshness retains the same grammar/barrier CIDs. These are 48 focused tests,
+not full Core or public execution evidence.
+
+One additional receiver-provenance test then passes 1/1 in `run-SNeGnx` /
+`focused-test-3gMi49`; no compiler implementation changes intervene. It projects
+`(@wrapper).payload` without AS, while the input also has `payload`. HAVING
+`payload.score + 1 > 12` reads the implicit output receiver; qualified
+`objects.payload.score + 1 > 12` reads the original evaluated grouping key.
+The independent public expectations deliberately differ: three groups versus
+only bucket 21. The parameter is evaluated once, and common checking retains
+its nullable closed-object contract. The same two cases are in the ordinary
+public corpus. The final case file now has seven tests; this records the
+separate executed selections rather than claiming a repeated combined run.
