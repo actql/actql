@@ -463,6 +463,17 @@ The range `element` also denotes the original object value without adding a
 public column to star. Field access uses ordinary common `property` expressions;
 the common checker determines nullable receivers and field contracts.
 
+The same expansion accepts declared parameter property paths, for example
+`FROM UNNEST(@payload.nested.items) element`. Parentheses and backtick property
+names retain their ordinary expression meaning. The Frontend follows the
+already admitted closed-object contracts to the declared ARRAY element; it
+does not sample parameter values, fold a nullable receiver to a different type,
+or infer fields for a computed ARRAY expression. Ordinary common property and
+UNNEST checking still validates the path, values and declared bounds. A NULL
+object anywhere on this path produces a NULL ARRAY and therefore zero rows,
+with the same element-field contracts and column order as nonempty input.
+Contract-path inspection uses the existing expression work limit.
+
 NULL or empty arrays produce zero rows with the same declared schema. NULL
 elements produce rows whose projected properties are NULL. Duplicates remain
 rows; a declared OFFSET can be used for ordering. Pipe SET/DROP/RENAME change

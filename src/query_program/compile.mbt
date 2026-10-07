@@ -1744,7 +1744,7 @@ fn compile_steps(
           raise Abort(DuplicateOutput)
         }
         let element_contract = unnest_parameter_element(
-          expression, parameter_declarations,
+          expression, parameter_declarations, max_work,
         )
         if selected_projections(query).any(projection => {
             if projection.star is None {

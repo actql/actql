@@ -304,12 +304,12 @@ fn check_source_findings(
           | UnsupportedEffect
         ) => findings.push(Limit("implementation_limit"))
         // Resolved against visible relations only: a disclosable fact.
-        QueryLowering(
-          AmbiguousRelation
-          | UnknownColumn
-          | AmbiguousColumn
-          | DuplicateOutput
-        ) => findings.push(Violation("query_invalid"))
+        // Direct column selection retains a typed resolution failure but no
+        // authored origin. Explain that failure without manufacturing a span.
+        QueryLowering(UnknownColumn) =>
+          findings.push(ExpressionViolation("unknown_reference", None))
+        QueryLowering(AmbiguousRelation | AmbiguousColumn | DuplicateOutput) =>
+          findings.push(Violation("query_invalid"))
         // Expression lowering wraps the same construction owner and its
         // budgets. The wrapper cannot turn its own limit into bad input.
         QueryLowering(

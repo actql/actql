@@ -87,7 +87,7 @@ fn json_file(
 ) -> Json raise ClientStop {
   let text = text_file(root, name, maximum)
   match
-    @source.parse_json(text, {
+    @source.parse_json_bytes_preserving(@utf8.encode(text), {
       max_input_bytes: maximum.to_int(),
       max_nodes: 8192,
       max_depth: 32,
@@ -151,36 +151,6 @@ fn admitted_run(wire : String, connection : Json) -> Bool {
 }
 
 ///|
-// The closed submit_preparation_error contract is tested against its
-// registered schema. Unknown HTTP errors do not prove non-admission.
-fn preparation_refusal(bytes : Bytes) -> String? {
-  let text = @utf8.decode(bytes) catch { _ => return None }
-  if @source.parse_json(text, {
-      max_input_bytes: 4096,
-      max_nodes: 16,
-      max_depth: 4,
-    })
-    is Err(_) {
-    return None
-  }
-  let value = @json.parse(text) catch { _ => return None }
-  guard value is Object(fields) && fields.length() == 1 else { return None }
-  match json_text(fields, "code") {
-    Some(code) =>
-      match code {
-        "ClientProgramInvalidInput"
-        | "ClientParametersInvalid"
-        | "ClientParametersTooLarge"
-        | "ClientProgramUnsupported"
-        | "ClientProgramNeedsInputs"
-        | "ClientProgramRejected" => Some(code)
-        _ => None
-      }
-    None => None
-  }
-}
-
-///|
 fn valid_reference(value : Json) -> Bool {
   wire_run_ref_shape(value)
 }
@@ -209,20 +179,6 @@ fn attached_reference_matches(
   json_text(returned, "authorityScopeCid") &&
   json_text(requested, "runDefinitionCid") ==
   json_text(returned, "runDefinitionCid")
-}
-
-///|
-fn held_reply(text : String, request_id : String) -> Bool {
-  if @source.parse_json(text, {
-      max_input_bytes: 8192,
-      max_nodes: 64,
-      max_depth: 4,
-    })
-    is Err(_) {
-    return false
-  }
-  let value = @json.parse(text) catch { _ => return false }
-  wire_held(value, request_id)
 }
 
 ///|
@@ -420,6 +376,93 @@ fn valid_attempt_lookup(
 }
 
 ///|
+fn encode_request_json(value : Json, maximum : Int) -> String raise ClientStop {
+  let writer = @encode.writer(maximum, 8192, 32) catch {
+    _ => stop("request exceeds configured bounds")
+  }
+  try {
+    @encode.emit_json(value, writer)
+    @encode.finish(writer)
+  } catch {
+    _ => stop("request exceeds configured bounds")
+  }
+}
+
+///|
+fn valid_submission_ref(value : Json) -> Bool {
+  guard wire_submission_ref_shape(value) &&
+    value is Object(reference) &&
+    reference.get("epoch") is Some(epoch_value) &&
+    wire_submission_epoch_shape(epoch_value) &&
+    epoch_value is Object(epoch) &&
+    json_text(epoch, "authorityScopeCid") is Some(authority) &&
+    json_text(epoch, "epochNonce") is Some(epoch_nonce) &&
+    epoch.get("notBefore") is Some(Number(not_before, ..)) &&
+    epoch.get("expiresAt") is Some(Number(expires_at, ..)) &&
+    json_text(reference, "nonce") is Some(nonce) else {
+    return false
+  }
+  let admitted = match
+    @request_scope.prepare_submission_epoch(
+      authority, epoch_nonce, not_before, expires_at,
+    ) {
+    Ok(admitted) => admitted
+    Err(_) => return false
+  }
+  @request_scope.submission_request_id(admitted, nonce) is Ok(_)
+}
+
+///|
+fn valid_submission_reply(
+  value : Json,
+  request_wire : Bytes,
+  selected : Json,
+  lookup : Bool,
+) -> Bool {
+  if lookup {
+    if !wire_submission_lookup_shape(value) {
+      return false
+    }
+  } else if !wire_submission_outcome_shape(value) {
+    return false
+  }
+  let text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(text) catch { _ => return false }
+  guard request is Object(request_fields) &&
+    value is Object(fields) &&
+    request_fields.get("submissionRef") is Some(expected) &&
+    valid_submission_ref(expected) &&
+    fields.get("submissionRef") == Some(expected) else {
+    return false
+  }
+  if !lookup && fields.get("intentCid") != request_fields.get("intentCid") {
+    return false
+  }
+  match json_text(fields, "kind") {
+    Some("ready") => {
+      guard fields.get("admission") is Some(admission) &&
+        wire_admission(admission, selected) &&
+        admission is Object(admitted) &&
+        admitted.get("ref") is Some(Object(run)) &&
+        expected is Object(reference) &&
+        reference.get("epoch") is Some(Object(epoch)) else {
+        return false
+      }
+      run.get("authorityScopeCid") == epoch.get("authorityScopeCid")
+    }
+    Some("held") => {
+      guard fields.get("held") is Some(held) &&
+        expected is Object(reference) &&
+        json_text(reference, "nonce") is Some(nonce) else {
+        return false
+      }
+      wire_held(held, nonce) && wire_connection_shape(selected)
+    }
+    _ => true
+  }
+}
+
+///|
 fn request_body(
   operation : String,
   child : @argparse.Matches,
@@ -429,7 +472,7 @@ fn request_body(
 ) -> Bytes raise ClientStop {
   let fields : Map[String, Json] = Map([("connection", connection)])
   match operation {
-    "connect" => ()
+    "connect" | "new-submission" => ()
     "aql" => {
       let format = required(child, "format")
       if format != "json" &&
@@ -440,7 +483,11 @@ fn request_body(
         format != "sql" {
         stop("unsupported AQL source format")
       }
-      fields["requestId"] = Json::string(required(child, "request-id"))
+      fields["submissionRef"] = json_file(
+        root,
+        required(child, "submission-ref-file"),
+        8192L,
+      )
       fields["kind"] = Json::string("aql")
       let source : Map[String, Json] = Map([
         (
@@ -468,7 +515,11 @@ fn request_body(
       }
     }
     "start" => {
-      fields["requestId"] = Json::string(required(child, "request-id"))
+      fields["submissionRef"] = json_file(
+        root,
+        required(child, "submission-ref-file"),
+        8192L,
+      )
       fields["kind"] = Json::string("program")
       fields["input"] = json_file(
         root,
@@ -480,6 +531,12 @@ fn request_body(
         None => Json::null()
       }
     }
+    "lookup-submission" =>
+      fields["submissionRef"] = json_file(
+        root,
+        required(child, "submission-ref-file"),
+        8192L,
+      )
     "lookup-request" =>
       fields["requestId"] = Json::string(required(child, "request-id"))
     "attach" | "status" | "reconcile" =>
@@ -523,6 +580,36 @@ fn request_body(
     }
     _ => stop("unsupported Client operation")
   }
+  if operation == "aql" ||
+    operation == "start" ||
+    operation == "lookup-submission" {
+    guard fields.get("submissionRef") is Some(original) &&
+      valid_submission_ref(original) else {
+      stop("InvalidSubmissionRef")
+    }
+    if optional(child, "request-id") is Some(nonce) &&
+      original is Object(reference) &&
+      json_text(reference, "nonce") != Some(nonce) {
+      stop("InvalidSubmissionRef")
+    }
+    if operation != "lookup-submission" {
+      let intent : Map[String, Json] = Map([])
+      for key in ["kind", "input", "parameters"] {
+        intent[key] = fields[key]
+      }
+      let original_wire = encode_request_json(Json::object(intent), maximum)
+      let admitted = match
+        @run_host.prepare_client_submitted_intent(
+          original_wire, maximum, 8192, 32,
+        ) {
+        Ok(value) => value
+        Err(_) => stop("InvalidClientSubmittedIntent")
+      }
+      fields["intentCid"] = Json::string(
+        @run_host.client_submitted_intent_cid(admitted),
+      )
+    }
+  }
   let writer = @encode.writer(maximum, 8192, 32) catch {
     _ => stop("request exceeds configured bounds")
   }
@@ -565,17 +652,25 @@ fn command() -> @argparse.Command {
     ],
     subcommands=[
       @argparse.Command("connect"),
+      @argparse.Command("new-submission", options=[
+        @argparse.OptionArg("request-id", required=true),
+      ]),
       @argparse.Command("aql", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
         @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("request-id", required=true),
+        @argparse.OptionArg("request-id"),
+        @argparse.OptionArg("submission-ref-file", required=true),
       ]),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("request-id", required=true),
+        @argparse.OptionArg("request-id"),
+        @argparse.OptionArg("submission-ref-file", required=true),
+      ]),
+      @argparse.Command("lookup-submission", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
       ]),
       @argparse.Command("lookup-request", options=[
         @argparse.OptionArg("request-id", required=true),
@@ -673,7 +768,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     Err(_) => stop("native HTTPS client unavailable")
   }
   let route = if operation == "aql" || operation == "start" {
-    "submit"
+    "submit-intent"
   } else {
     operation
   }
@@ -702,7 +797,26 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     Ok(value) => stop("ClientHostHTTP" + value.status.to_string())
     Err(_) => stop("ClientTransportUnknown")
   }
-  ignore(confirmed)
+  if operation == "new-submission" {
+    let profile = @json.parse(confirmed) catch {
+      _ => stop("InvalidHostProfile")
+    }
+    guard profile is Object(fields) &&
+      fields.get("submissionEpoch") is Some(epoch) else {
+      stop("SubmissionEpochUnavailable")
+    }
+    let reference = Json::object(
+      Map([
+        ("epoch", epoch),
+        ("nonce", Json::string(required(child, "request-id"))),
+      ]),
+    )
+    if !valid_submission_ref(reference) {
+      stop("InvalidSubmissionRef")
+    }
+    ignore(client.close())
+    return encode_request_json(reference, response_max)
+  }
   let response = client.request(
     @http.Post,
     endpoint + "actql/client/0.1/" + route,
@@ -712,21 +826,22 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   ignore(client.close())
   let result = match response {
     Ok(value) => value
-    Err(_) if route == "submit" =>
-      stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+    Err(_) if route == "submit-intent" =>
+      stop(
+        "SubmissionUnknown submission-ref-file=" +
+        required(child, "submission-ref-file"),
+      )
     Err(_) if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
     Err(_) if route == "cancel" => stop(cancellation_unknown(body))
     Err(_) => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
-    if route == "submit" {
-      if result.status >= 400 && result.status < 500 {
-        if preparation_refusal(result.body) is Some(code) {
-          stop(code)
-        }
-      }
-      stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+    if route == "submit-intent" {
+      stop(
+        "SubmissionUnknown submission-ref-file=" +
+        required(child, "submission-ref-file"),
+      )
     }
     if route == "read" {
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
@@ -738,8 +853,11 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   let text = @utf8.decode(result.body) catch {
     _ =>
-      if route == "submit" {
-        stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+      if route == "submit-intent" {
+        stop(
+          "SubmissionUnknown submission-ref-file=" +
+          required(child, "submission-ref-file"),
+        )
       } else if route == "read" {
         stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
       } else if route == "cancel" {
@@ -748,10 +866,71 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("invalid UTF-8 Host response")
       }
   }
-  if route == "submit" &&
-    !held_reply(text, required(child, "request-id")) &&
-    !admitted_run(text, connection) {
-    stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+  if route == "submit-intent" || route == "lookup-submission" {
+    if @source.parse_json_bytes_preserving(result.body, {
+        max_input_bytes: response_max,
+        max_nodes: 8192,
+        max_depth: 32,
+      })
+      is Err(_) {
+      stop(
+        (if route == "submit-intent" {
+          "SubmissionUnknown"
+        } else {
+          "InvalidHostSubmissionLookup"
+        }) +
+        " submission-ref-file=" +
+        required(child, "submission-ref-file"),
+      )
+    }
+    let outcome = @json.parse(text) catch {
+      _ =>
+        stop(
+          (if route == "submit-intent" {
+            "SubmissionUnknown"
+          } else {
+            "InvalidHostSubmissionLookup"
+          }) +
+          " submission-ref-file=" +
+          required(child, "submission-ref-file"),
+        )
+    }
+    if !valid_submission_reply(
+        outcome,
+        body,
+        connection,
+        route == "lookup-submission",
+      ) {
+      stop(
+        (if route == "submit-intent" {
+          "SubmissionUnknown"
+        } else {
+          "InvalidHostSubmissionLookup"
+        }) +
+        " submission-ref-file=" +
+        required(child, "submission-ref-file"),
+      )
+    }
+    if route == "submit-intent" && outcome is Object(fields) {
+      match json_text(fields, "kind") {
+        Some("ready") =>
+          return encode_request_json(fields["admission"], response_max)
+        Some("held") => return encode_request_json(fields["held"], response_max)
+        Some("not_accepted") | Some("preparation_failed") => {
+          guard fields.get("problem") is Some(Object(problem)) &&
+            json_text(problem, "code") is Some(code) else {
+            stop("InvalidHostSubmissionOutcome")
+          }
+          stop(code)
+        }
+        _ =>
+          stop(
+            "SubmissionPreparing submission-ref-file=" +
+            required(child, "submission-ref-file"),
+          )
+      }
+    }
+    return text
   }
   if route == "attach" && !admitted_run(text, connection) {
     stop("InvalidHostAdmission")

@@ -627,8 +627,10 @@ operation's count or form, without asserting a particular overload or exposing
 argument values. Authored origins supply original half-open UTF-8 ranges for
 references, calls and numbers; generated or missing origins omit the location.
 The projection reads existing typed failures without resolving names again or
-searching the submitted string. Unaliased column failures currently lacking a
-typed expression diagnostic remain generic `query_invalid` and omit a range.
+searching the submitted string. The existing lowerer's direct `UnknownColumn`
+failure supplies the same `unknown_reference` fact for a bare column selection.
+It retains no authored origin, so this projection omits its range. This closes
+the reason connection, while its owned source-position connection remains open.
 Unresolved protected Source names cannot acquire an expression reason or span.
 Wrapped expression construction/admission budgets remain incomplete analysis;
 they never become expression violations. The lowerer's `UnsupportedFunction`
@@ -1673,3 +1675,11 @@ escaping preserves references as data. No lookup, retry, cancellation, read or
 Compute occurs during formatting. Existing operation translation identity and
 wire contracts are unchanged. This connects the bounded failure-display path,
 not the full observation cursor/composite contract or cumulative diagnostics.
+
+Short source queries connect their fresh failure wrapper to the already owned
+Run-observation explanation and submitted-input snapshot. The connection uses
+private object identity, not cause traversal, error codes or message parsing.
+`QueryObservationUnknown` therefore supports the same passive explanation and
+formatter directly. Valid failed, cancelled, blocked or pending observations
+retain the original input without acquiring a failed-observation explanation.
+Copies cannot recover either association; no retry or additional I/O is added.

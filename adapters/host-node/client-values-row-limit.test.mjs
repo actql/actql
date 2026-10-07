@@ -51,10 +51,11 @@ for (const entrance of ['local', 'https']) {
       assert.deepEqual(initial.description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
       const restoredOutput = join(directory, 'restored.json');
       await invoke(directory, {directory, entrance,
-        output: restoredOutput, ref: initial.ref}, 'restored');
+        output: restoredOutput, ref: initial.ref, submissionRef: initial.submissionRef}, 'restored');
       const restored = JSON.parse(await readFile(restoredOutput, 'utf8'));
       assert.deepEqual(restored.ref, initial.ref);
-      assert.deepEqual(restored.request.ref, initial.ref);
+      assert.deepEqual(restored.request.admission.ref, initial.ref);
+      assert.deepEqual(restored.request.submissionRef, initial.submissionRef);
       assert.equal(restored.status.status, 'succeeded');
       assert.equal(restored.computes, 0);
       assert.deepEqual(restored.rows, expected);

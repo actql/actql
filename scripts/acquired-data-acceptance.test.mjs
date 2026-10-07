@@ -7,7 +7,8 @@ import {exercisePublicQueryInput} from './fixtures/public-query-input.mjs';
 // Test the acceptance app's detection of bad output, not the Frontend or Host.
 // Actual execution remains the installed Local/HTTP harness's obligation.
 async function exerciseReader(item, {rows, columns, sessions = 1,
-  readAcquires = false, refusalIo = false} = {}) {
+  readAcquires = false, refusalIo = false, refusalCode = 'ClientProgramInvalidInput',
+  lookupKind} = {}) {
   const counters = {acceptedRuns: 0, sourceIo: 0, sourceReadSessions: 0};
   const requests = new Map();
   const result = Object.values(item.results ?? {})[0];
@@ -22,14 +23,20 @@ async function exerciseReader(item, {rows, columns, sessions = 1,
     }),
   };
   const client = {
-    aql: async (_text, {requestId}) => {
+    newSubmission: ({nonce}) => ({epoch: 'harness-epoch', nonce}),
+    startSource: async (_text, {submissionRef, requestId}) => {
+      assert.equal(requestId, undefined, 'never use an epoch-less submission');
+      const key = JSON.stringify(submissionRef);
       if (!item.results) {
         if (refusalIo) counters.sourceIo++;
+        const outcome = {kind: 'not_accepted', submissionRef,
+          problem: {code: refusalCode, classification: 'invalid_input'}};
+        requests.set(key, outcome);
         throw Object.assign(new Error('typed input rejection'),
-          {code: 'ClientProgramInvalidInput'});
+          {code: 'SubmissionNotAccepted', outcome});
       }
-      if (!requests.has(requestId)) {
-        requests.set(requestId, execution);
+      if (!requests.has(key)) {
+        requests.set(key, {kind: 'ready', submissionRef, admission: {ref: execution.ref}});
         counters.acceptedRuns++;
         counters.sourceIo++;
         counters.sourceReadSessions += sessions;
@@ -37,8 +44,10 @@ async function exerciseReader(item, {rows, columns, sessions = 1,
       return execution;
     },
     attach: async () => execution,
-    lookupRequest: async id => requests.has(id)
-      ? {ref: execution.ref} : {kind: 'not_found'},
+    lookupSubmission: async ref => {
+      const outcome = requests.get(JSON.stringify(ref));
+      return lookupKind === undefined ? outcome : {...outcome, kind: lookupKind};
+    },
     close() {},
   };
   await exercisePublicQueryInput(async () => client, {mode: 'local'}, {
@@ -87,4 +96,13 @@ test('a late DATA rejection must still have zero provider I/O and Run admission'
   await exerciseReader(acquiredDataRefusals[0]);
   await assert.rejects(exerciseReader(acquiredDataRefusals[0], {refusalIo: true}),
     /rejected source must not accept a Run or perform source I\/O/u);
+});
+
+test('public source acceptance checks epoch-bound ready and typed refusal outcomes', async () => {
+  await assert.rejects(exerciseReader(acquiredDataSuccesses[0], {lookupKind: 'unresolvable'}),
+    {code: 'ERR_ASSERTION'});
+  await assert.rejects(exerciseReader(acquiredDataRefusals[0], {refusalCode: 'UnexpectedFailure'}),
+    /UnexpectedFailure/u);
+  await assert.rejects(exerciseReader(acquiredDataRefusals[0], {lookupKind: 'unresolvable'}),
+    {code: 'ERR_ASSERTION'});
 });

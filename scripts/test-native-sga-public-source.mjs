@@ -77,7 +77,21 @@ const common = ['--endpoint', endpoint,
   '--cert', join(installation, 'remote.crt'),
   '--key', join(installation, 'remote.key')];
 const log = [];
-const run = (...args) => new Promise((resolve, reject) => {
+const submissions = new Map();
+const run = async (...args) => {
+  if (['aql', 'start', 'lookup-submission'].includes(args[0])) {
+    const nonce = args[args.indexOf('--request-id') + 1];
+    if (!submissions.has(nonce)) {
+      assert.notEqual(args[0], 'lookup-submission', 'lookup requires saved original');
+      const filename = `submission-${nonce}.json`;
+      await writeFile(join(installation, filename),
+        JSON.stringify(client.newSubmission({nonce})), {mode: 0o600});
+      submissions.set(nonce, filename);
+    }
+    args.push('--submission-ref-file', submissions.get(nonce));
+    if (args[0] === 'lookup-submission') args.splice(args.indexOf('--request-id'), 2);
+  }
+  return new Promise((resolve, reject) => {
   execFile(executable, [...common, ...args], {cwd: installation,
     timeout: 60000, maxBuffer: 1024 * 1024}, (error, stdout, stderr) => {
     log.push({args, code: error?.code ?? 0, stdout, stderr});
@@ -85,6 +99,7 @@ const run = (...args) => new Promise((resolve, reject) => {
     else resolve(stdout);
   });
 });
+};
 try {
   const profile = JSON.parse(await run('connect'));
   assert.equal(profile.mode, 'remote');
@@ -121,7 +136,7 @@ try {
     }
     assert.deepEqual(JSON.parse(await run('aql', '--program-file', sourceFile,
       '--format', format, '--request-id', requestId)).ref, accepted.ref);
-    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id', requestId)).ref, accepted.ref);
+    assert.deepEqual(JSON.parse(await run('lookup-submission', '--request-id', requestId)).admission.ref, accepted.ref);
     assert.deepEqual(observe(), beforeRead, 'read/describe/identical resubmit must not start execution again');
     console.log(`native ${name} ${format === 'json' ? 'machine Program' : 'authored source'} and Named Results passed`);
   }
@@ -138,7 +153,9 @@ try {
       assert.ok(inputCodes.has(code), `confirmed typed preparation refusal: ${code}`);
       return true;
     });
-    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id', requestId)), {kind: 'not_found'});
+    const refused = JSON.parse(await run('lookup-submission', '--request-id', requestId));
+    assert.equal(refused.kind, 'not_accepted');
+    assert.equal(Object.hasOwn(refused, 'admission'), false);
     assert.deepEqual(observe(), before, 'refused source must not admit a Run, dispatch or perform provider I/O');
     console.log(`native ${name} typed pre-admission refusal passed`);
   }

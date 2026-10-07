@@ -23,9 +23,10 @@ export const isolatedSourceFiles = Object.freeze(['proofs/ci-evidence/isolated-m
   'proofs/relation-pipeline/inventory.mjs']);
 const child = isolatedSourceFiles[0];
 export const pipelineChild = 'proofs/ci-evidence/isolated-pipeline-pristine.mjs';
+export const pipelineFixedJsChild = 'proofs/ci-evidence/isolated-pipeline-fixed-js.mjs';
 export function isolatedChild(profile = 'session') {
-  assert(['session', 'pipeline-pristine'].includes(profile), 'Unregistered isolated execution profile');
-  return profile === 'session' ? child : pipelineChild;
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile), 'Unregistered isolated execution profile');
+  return profile === 'session' ? child : profile === 'pipeline-pristine' ? pipelineChild : pipelineFixedJsChild;
 }
 // OrbStack's amd64 execution exposes this actual libuv setting. Bind it only
 // in the local diagnostic; never erase it or expand the Actions environment.
@@ -60,11 +61,13 @@ export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 
 
 // This first pipeline profile retains its entire current snapshot. It does not
 // borrow Session's smaller dependency closure or claim narrowed reuse inputs.
-export function pipelinePristineSourcePaths(tree) {
+export function pipelinePristineSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-pristine'); }
+export function pipelineFixedJsSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-fixed-js'); }
+function pipelineSourcePaths(tree, profile) {
   const generated = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
   const paths = [...new Set([...tree.entries.keys()].filter(path =>
     pipelineDirectories.some(directory => path.startsWith(`${directory}/`)) && path !== generated)
-    .concat(pipelineFiles, isolatedSourceFiles, pipelineChild))].sort();
+    .concat(pipelineFiles, isolatedSourceFiles, isolatedChild(profile)))].sort();
   assert(paths.includes('proofs/relation-pipeline/pristine-replay.mjs'), 'Missing registered pristine executor');
   for (const directory of pipelineDirectories)
     assert(paths.some(path => path.startsWith(`${directory}/`)), 'Missing pipeline snapshot root');
@@ -77,6 +80,9 @@ export function pipelinePristineSourcePaths(tree) {
 
 export function stagePipelinePristineSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
   return stageSource({tree, destination, maxBytes, paths: pipelinePristineSourcePaths(tree)});
+}
+export function stagePipelineFixedJsSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
+  return stageSource({tree, destination, maxBytes, paths: pipelineFixedJsSourcePaths(tree)});
 }
 
 function stageSource({tree, destination, maxBytes, paths}) {

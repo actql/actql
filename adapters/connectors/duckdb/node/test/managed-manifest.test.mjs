@@ -10,6 +10,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {DuckDBInstance} from '@duckdb/node-api';
 import {exportPhysicalValue} from '../physical-values.mjs';
 import {checked} from '../runtime-result.mjs';
+import {finishManagedOutputReceipt} from '../managed-output-finish.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import {consumePhysicalManifestFiles} from '../../../../store-local/managed-manifest.mjs';
 
@@ -33,6 +34,34 @@ const openManaged = ({fixture, runtime}) => checked(runtime.managedOutputOpen(
 const managedColumns = row => JSON.stringify([
   [exportPhysicalValue(row.id, {id: 'DOUBLE'})], [row.label],
 ]);
+
+test('managed physical receipt cancellation after a yielded poll cannot retain content', async () => {
+  const modules = await managedFixture(), {runtime} = modules;
+  const admitted = openManaged(modules);
+  for (let id = 0; id < 20; id++) {
+    checked(runtime.managedOutputAccept(admitted, 1,
+      managedColumns({id, label: null})));
+  }
+  const controller = new AbortController();
+  let polls = 0;
+  try {
+    await assert.rejects(finishManagedOutputReceipt(quantum => {
+      const poll = checked(runtime.managedOutputAdvanceFinish(admitted, quantum));
+      polls++;
+      assert.deepEqual(poll, {_0: false, _1: 64});
+      assert.equal(runtime.managedOutputAvailable(admitted), false);
+      assert.throws(() => checked(runtime.managedOutputAccept(admitted, 0, '[]')));
+      setImmediate(() => controller.abort());
+      return poll;
+    }, controller.signal), {name: 'AbortError'});
+    assert.equal(polls, 1);
+  } finally {
+    runtime.managedOutputCancel(admitted);
+  }
+  assert.throws(() => checked(runtime.managedOutputAdvanceFinish(admitted, 64)));
+  assert.throws(() => checked(runtime.managedOutputRetain(admitted, 0n, () => true)));
+  assert.equal(runtime.managedOutputAvailable(admitted), false);
+});
 
 test('native Parquet bytes retain order and duplicates through physical Store and manifest consumption', async () => {
   const modules = await managedFixture(), {runtime} = modules;
@@ -77,7 +106,8 @@ test('native Parquet bytes retain order and duplicates through physical Store an
       assert.equal(report.rowCount, 3);
       assert.equal(report.integrityReadBytes, bytes.length);
       if (consumer === 0) {
-        checked(runtime.managedOutputFinish(admitted));
+        await finishManagedOutputReceipt(quantum => checked(
+          runtime.managedOutputAdvanceFinish(admitted, quantum)));
         checked(runtime.managedOutputRetain(admitted, BigInt(body.bytes), () => body.available()));
       }
       assert.equal(runtime.managedOutputAvailable(admitted), true);
