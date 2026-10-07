@@ -186,6 +186,18 @@ pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffect
 
 pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
 
+pub fn captured_effect_table_input_at(CapturedEffectInputs, Int) -> CapturedEffectTableInput?
+
+pub fn captured_effect_table_input_borrow(CapturedEffectTableInput) -> CapturedTableInputBorrow
+
+pub fn captured_effect_table_input_member(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_occurrence(CapturedEffectTableInput) -> @execution_relation.ManagedTableInputOccurrence
+
+pub fn captured_effect_table_input_stage(CapturedEffectTableInput) -> Int
+
+pub fn captured_effect_table_input_task(CapturedEffectTableInput) -> Int
+
 pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
 
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
@@ -343,6 +355,8 @@ pub fn checked_effect_source_occurrence(CheckedEffectSourcePort) -> @execution_r
 pub fn checked_effect_source_stage(CheckedEffectSourcePort) -> Int
 
 pub fn checked_effect_source_task(CheckedEffectSourcePort) -> Int
+
+pub fn checked_effect_table_input_at(CheckedEffectComputationDAG, Int) -> CheckedEffectTableInputPort?
 
 pub fn checked_task_identity(CheckedTaskReference) -> CheckedTaskIdentity
 
@@ -921,6 +935,8 @@ pub(all) enum CapturedEffectRiskIssue {
 
 type CapturedEffectRunDAG
 
+type CapturedEffectTableInput
+
 pub struct CapturedExecutionRootStatistics {
   rows : Int
   canonical_wire_bytes : Int
@@ -945,6 +961,8 @@ type CheckedEffectComputationDAG
 type CheckedEffectRunDAG
 
 type CheckedEffectSourcePort
+
+type CheckedEffectTableInputPort
 
 pub(all) struct CheckedTaskIdentity {
   task : Int

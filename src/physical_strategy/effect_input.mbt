@@ -14,8 +14,10 @@ struct CapturedEffectInput {
 struct CapturedEffectInputs {
   run : CapturedEffectRunDAG
   entries : Array[CapturedEffectInput?]
+  table_entries : Array[CapturedEffectTableInput?]
   local_results : Array[CapturedEffectLocalResult]
   pins : CapturedAnyResultOutputSet
+  table_pins : CapturedTableInputOutputSet
   mut live : Bool
 }
 
@@ -84,6 +86,34 @@ pub fn pin_captured_effect_sources(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let table_requests : Array[(Int, @execution.ManagedTableInputOccurrence)] = []
+  for source in run.checked.computation.table_sources {
+    if source is Some(source) {
+      table_requests.push((source.task, source.occurrence))
+    }
+  }
+  let table_pins = match
+    pin_captured_table_input_output_set(run.captured, table_requests, max_pins) {
+    Ok(value) => value
+    Err(issue) => {
+      release_captured_any_result_output_set(pins) |> ignore
+      return Err(issue)
+    }
+  }
+  let table_entries : Array[CapturedEffectTableInput?] = []
+  let mut table_index = 0
+  for source in run.checked.computation.table_sources {
+    match source {
+      Some(source) => {
+        let borrow = captured_table_input_output_set_borrow_at(
+          table_pins, table_index,
+        ).unwrap()
+        table_entries.push(Some({ source, borrow, }))
+        table_index += 1
+      }
+      None => table_entries.push(None)
+    }
+  }
   let entries : Array[CapturedEffectInput?] = []
   let mut pin_index = 0
   for source in sources {
@@ -108,7 +138,15 @@ pub fn pin_captured_effect_sources(
       ).unwrap(),
     })
   }
-  Ok({ run, entries, local_results, pins, live: true, })
+  Ok({
+    run,
+    entries,
+    table_entries,
+    local_results,
+    pins,
+    table_pins,
+    live: true,
+  })
 }
 
 ///|
@@ -158,6 +196,12 @@ pub fn checked_effect_preview_source_indexes(
       return Err(ForeignCandidate)
     }
     let source = run.computation.sources.get(index).bind(value => value)
+    // The current Preview wire has only an ordinary Result source. Never
+    // represent a private input by the source-free branch while that distinct
+    // semantic Artifact/Preview binding is still being connected.
+    if run.computation.table_sources.get(index).bind(value => value) is Some(_) {
+      return Err(ForeignCandidate)
+    }
     let expected = @publication.effect_preview_member_source_result(
       identity, preview_index,
     )
@@ -658,6 +702,10 @@ pub fn close_captured_effect_source_port(
   if !value.live {
     return false
   }
+  if captured_effect_table_input_at(value, member_index) is Some(input) {
+    close_captured_task_output(value.run.captured, input.source.task)
+    return true
+  }
   guard value.entries.get(member_index).bind(entry => entry) is Some(input) &&
     captured_any_result_borrow_available(input.borrow) else {
     return false
@@ -724,6 +772,7 @@ pub fn release_captured_effect_inputs(value : CapturedEffectInputs) -> Bool {
   }
   value.live = false
   release_captured_any_result_output_set(value.pins) |> ignore
+  release_captured_table_input_output_set(value.table_pins) |> ignore
   true
 }
 

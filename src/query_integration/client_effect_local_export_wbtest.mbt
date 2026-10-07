@@ -1,6 +1,8 @@
 ///|
 fn local_effect_export_fixture(
   graph? : Bool = false,
+  table? : Bool = false,
+  empty? : Bool = false,
 ) -> (
   String,
   @program_check.CheckEnvironment,
@@ -9,6 +11,25 @@ fn local_effect_export_fixture(
   let document =
     #|{"version":"actql/0.1","id":"local-effect-export","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":1}]},"as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]},"other":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}},"copy":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"other"}}}}}],"results":{"published":{"from":{"stage":"source","result":"out"}}}}
   let schema = "{\"additional_properties\":false,\"fields\":{\"Id\":{\"nullable\":false,\"type\":\"string\"},\"Name\":{\"nullable\":true,\"type\":\"number\"}},\"nullable\":false,\"type\":\"object\"}"
+  let document = if table {
+    document
+    .replace(
+      old="\"results\":{\"out\":",
+      new="\"table_inputs\":{\"out\":{\"from\":\"selected\",\"fields\":[\"value\"]}},\"results\":{\"out\":",
+    )
+    .replace(old="\"create\":{", new="\"store\":{")
+    .replace(
+      old="\"from\":{\"result\":\"out\"}",
+      new="\"from\":{\"table_input\":\"out\"}",
+    )
+  } else {
+    document
+  }
+  let document = if empty {
+    document.replace(old="\"rows\":[{\"value\":1}]", new="\"rows\":[]")
+  } else {
+    document
+  }
   let schema_cid = "sha256:" + @sha.hex(@utf8.encode(schema))
   let before = "{\"connector_manifest_cid\":\"sha256:b1b75d3b468de053f98c678ec9eedfb2f1fe7b6fcb76562b0f392121378ec7c1\",\"conversions\":[],"
   let after = "\"mapping_ref\":\"mapping:crm.account.v1\",\"minimum_approval\":\"none\",\"permission_rules\":[{\"effect_kind\":\"create\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]}],\"primary_identity\":\"Id\",\"required_fields\":[],\"required_permissions\":[],\"resource_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"row_mapping\":{\"Name\":{\"field\":\"value\",\"null_behavior\":\"reject\"}},\"schema\":\"actql.mapping_contract/0.1\",\"target_ref\":\"connector://crm/account\",\"target_schema\":" +
@@ -16,6 +37,19 @@ fn local_effect_export_fixture(
     ",\"target_schema_identity\":\"" +
     schema_cid +
     "\",\"version\":\"salesforce-v1\",\"writable_fields\":[\"Name\"]}"
+  let after = if table {
+    after
+    .replace(
+      old="\"permission_rules\":[",
+      new="\"permission_rules\":[{\"effect_kind\":\"store\",\"permissions\":[\"scope:create\"],\"selector_class\":\"none\",\"write_fields\":[\"Name\"]},",
+    )
+    .replace(
+      old="\"minimum_approval\":\"none\"",
+      new="\"minimum_approval\":\"required\"",
+    )
+  } else {
+    after
+  }
   let mapping_cid = "sha256:" + @sha.hex(@utf8.encode(before + after))
   let mapping = before +
     "\"mapping_contract_cid\":\"" +
@@ -164,16 +198,14 @@ fn local_effect_export_receipt(
 }
 
 ///|
-test "shared local Artifact issuer rejects foreign Result export ownership" {
-  let (document, environment, limits) = local_effect_export_fixture()
-  let prepared = @publication_host.prepare_client_effect_computation(
-    document,
-    Json,
-    environment,
-    None,
-    [],
-    limits,
-  ).unwrap()
+fn local_effect_open_run(
+  prepared : @publication_host.PreparedClientEffectComputation,
+) -> (
+  @publication.RunPublicationAdmission,
+  @publication.PublicationContract,
+  @publication.RunEvidenceValue,
+  @strategy.CapturedEffectRunDAG,
+) {
   let identity = @publication_host.prepared_client_effect_identity(prepared)
   let definition_cid = @publication_host.prepared_client_effect_computation_definition_cid(
     prepared,
@@ -262,7 +294,18 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
       execution_bytes: 268435456L,
     },
   ).unwrap()
-  let run = @strategy.captured_effect_run_dag(effect_run)
+  (admission, run_definition, template, effect_run)
+}
+
+///|
+fn local_effect_execute_managed_values(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  run : @strategy.CapturedDAG,
+) -> (
+  @local_driver.LocalManagedDispatchOperations[Int],
+  @execution.ManagedCompletedOutput[Int],
+  Ref[Bool],
+) raise {
   let registry = search_registry()
   let dispatch = dispatch_test_limits()
   let generated = @publication_host.prepare_client_effect_task_sequence(
@@ -329,6 +372,27 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
     [],
     1,
     available,
+  )
+  (operations, completed, available)
+}
+
+///|
+test "shared local Artifact issuer rejects foreign Result export ownership" {
+  let (document, environment, limits) = local_effect_export_fixture()
+  let prepared = @publication_host.prepare_client_effect_computation(
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  let (admission, run_definition, template, effect_run) = local_effect_open_run(
+    prepared,
+  )
+  let run = @strategy.captured_effect_run_dag(effect_run)
+  let (operations, completed, available) = local_effect_execute_managed_values(
+    prepared, run,
   )
   assert_true(
     @strategy.pin_captured_effect_sources(effect_run, 2, max_dependency_work=0)
