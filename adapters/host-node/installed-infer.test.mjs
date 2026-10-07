@@ -661,10 +661,15 @@ for (const reason of ['timeout', 'abort']) {
       assert.equal(physical().physical_close_confirmed, 0);
       assert.equal(decisionCalls, 1);
       assert.equal(modelCalls, 0);
+      assert.ok(observations.filter(value => value.name === 'model_input_custody_changed')
+        .at(-1).detail.retainedInputs >= 1, 'input outlives the pending callback');
       settle({decision: 'unavailable'});
       await new Promise(setImmediate);
       await closeHost();
       assert.equal(physical().physical_close_confirmed, 1);
+      await new Promise(setImmediate);
+      assert.equal(observations.filter(value => value.name === 'model_input_custody_changed')
+        .at(-1).detail.retainedInputs, 0);
       assert.equal(physicalStarts(), 1);
       assert.equal(decisionCalls, 1, 'cleanup retries the original gate, not authorization');
       assert.equal(modelCalls, 0);
@@ -672,3 +677,52 @@ for (const reason of ['timeout', 'abort']) {
         .map(value => value.detail.code), ['ExecutionAuthorizationDecisionFailed']);
     });
 }
+
+test('one installed Host releases Model input leases across distinct completed Runs',
+  {timeout: 60000}, async t => {
+    const {installation, taskCid} = await installedDependencyConfiguration('valid');
+    const usage = [];
+    let calls = 0;
+    const authorization = {...diagnosticAuthorization((name, detail) => {
+      if (name === 'model_input_custody_changed') usage.push(detail);
+    }), accountConfiguration: canonicalJson({version: 'actql-execution-account-config/0.1',
+      account_id: 'model-retention', entries: [{entry_id: 'allow', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {all: true}, exclusions: []}]})};
+    const registerModelProviders = moon => [{providerId: 'models/fixture',
+      bindingOriginals: providerBindingOriginals('models/fixture', {selector: 'fixture-risk-model'}),
+      invoke() { assert.fail('unprepared Model call'); },
+      validatePrompt: (actual, selector, wire) => actual === taskCid &&
+        selector === 'fixture-risk-model' && JSON.parse(wire).format === 'fixture-risk/0.1',
+      quantityCapacity: {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+        perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}},
+      observeEgress: () => ({_0: 'public', _1: 'fixture-region', _2: false, _3: false}),
+      physicalPreflight: request => moon.clientProgramModelRequestPreflight(
+        () => ({_0: true, _1: checked(moon.clientProgramModelPhysicalRequestPlan(
+          request, 1000n, 33n, 0n, 500n, () => {
+            calls++;
+            return moon.clientProgramModelResponse(request, '{"reason":null,"risk":"high"}',
+              'fixture-risk-model', `retention-${calls}`, 1n, 2n, new Date().toISOString());
+          }))}), () => true),
+    }];
+    const {client, physicalStarts, closeHost} = await installedHost(t, {
+      modelInstallation: installation, authorization, registerModelProviders,
+    });
+    for (let index = 0; index < 8; index++) {
+      const start = usage.length;
+      const run = await client.start(oneRowInfer(), {requestId: `retention-${index}`});
+      assert.equal((await run.wait()).status, 'succeeded');
+      assert.deepEqual(await run.result('answer').all(), [
+        {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+      ]);
+      for (let poll = 0; poll < 1000 &&
+        (usage.length === start || usage.at(-1).retainedInputs !== 0 || usage.at(-1).retainedInventoryScopes !== 0); poll++) {
+        await new Promise(resolve => setTimeout(resolve, 2));
+      }
+      assert.ok(usage.slice(start).some(value => value.retainedInputBytes > 0));
+      assert.deepEqual(usage.at(-1), {retainedInputScopes: 0, retainedInputs: 0, retainedInputBytes: 0, retainedInventoryScopes: 0});
+      assert.equal(calls, index + 1);
+    }
+    await closeHost();
+    assert.equal(physicalStarts(), 8);
+  });

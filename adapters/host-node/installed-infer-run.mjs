@@ -23,29 +23,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     existingModel ??= modelController.discover(runId).find(record => record.inventory.taskIndex === taskIndex);
     if (replay && existingModel === undefined) throw new Error('InstalledInferOriginalInventoryMissing');
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
-    const restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
-      sendMask: modelController.state(existingModel.inventory).slots.map(slot => slot.state === 'Unsent'),
-      savedScope: modelController.savedScope(plan, preparedProgram, selected, token)};
-    const sources = restoredInput === undefined
-      ? acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence]
-      : JSON.parse(token.snapshot.callScopeSnapshotWire).sources.map(source =>
-        control.admitRunEvidence('source_evidence', source.source_evidence_wire,
-          {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
-    const operation = openNodeInferOperation({moon, preparedProgram,
-      step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
-      acquiredInput: restoredInput === undefined ? acquiredInfer?.input : undefined,
-      restoredInput, durableCalls: true, computeSuffix: selected.computeSuffix,
-      observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
-      provider: selected.provider, quantityCapacity: selected.quantityCapacity,
-      physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission});
-    const captureOwner = openNodeInferCaptureCustody({moon, control, operation,
-      plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,
-      sourceEvidence: sources,
-      publicationFor: ({issuance, modelEvidence}) => inferTaskPublicationPlan({
-        moon, control, preparedProgram, admitted: plan, operation, issuance,
-        modelEvidence, namespaceId, sourceEvidence: sources,
-        authorityScopeCid, storeAuthorityCid, now})});
-    let continuation;
+    let restoredInput, sources;
+    try {
+      restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
+        sendMask: modelController.state(existingModel.inventory).slots.map(slot => slot.state === 'Unsent'),
+        savedScope: modelController.savedScope(plan, preparedProgram, selected, token)};
+      sources = restoredInput === undefined
+        ? acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence]
+        : JSON.parse(token.snapshot.callScopeSnapshotWire).sources.map(source =>
+          control.admitRunEvidence('source_evidence', source.source_evidence_wire,
+            {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
+    } catch (error) { modelController.release(token); throw error; }
+    let operation, captureOwner, continuation;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
     const cleanupPending = () => !captureReleased ||
@@ -56,8 +45,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         const recover = captureCloseAttempted;
         captureCloseAttempted = true;
         try {
-          const result = await (recover ? captureOwner.custody.cleanup() : captureOwner.custody.close());
-          captureReleased = result !== false && captureOwner.custody.cleanupPending() === false;
+          const child = captureOwner?.custody ?? operation;
+          const result = child === undefined ? true : await (recover ? child.cleanup() : child.close());
+          captureReleased = result !== false && (child === undefined || child.cleanupPending() === false);
         } catch (error) { failure = error; }
       }
       if (continuation !== undefined && !continuationReleased) {
@@ -68,11 +58,28 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           continuationReleased = result !== false && continuation.cleanupPending() === false;
         } catch (error) { failure ??= error; }
       }
+      if (captureReleased && continuation === undefined) modelController.release(token);
       if (failure !== undefined) throw failure;
       return !cleanupPending();
     };
     const custody = Object.freeze({cleanupPending, cleanup, close: cleanup});
-    retainExecution(custody);
+    try { retainExecution(custody); }
+    catch (error) { modelController.release(token); throw error; }
+    operation = openNodeInferOperation({moon, preparedProgram,
+      step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
+      acquiredInput: restoredInput === undefined ? acquiredInfer?.input : undefined,
+      restoredInput, durableCalls: true, computeSuffix: selected.computeSuffix,
+      observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
+      provider: selected.provider, quantityCapacity: selected.quantityCapacity,
+      physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
+      retainOperation(value) { operation = value; }});
+    captureOwner = openNodeInferCaptureCustody({moon, control, operation,
+      plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,
+      sourceEvidence: sources,
+      publicationFor: ({issuance, modelEvidence}) => inferTaskPublicationPlan({
+        moon, control, preparedProgram, admitted: plan, operation, issuance,
+        modelEvidence, namespaceId, sourceEvidence: sources,
+        authorityScopeCid, storeAuthorityCid, now})});
     beginPhysicalWork();
     operation.bindRun(control, plan);
     const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
@@ -90,7 +97,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           if (continuation === undefined) {
             continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
               plan, selected, principalId, declaredResults, submission, signal,
-              existing: existingModel, claim: modelClaim});
+              existing: existingModel, inputToken: token, claim: modelClaim});
             captureOwner.configureModelJournal({observe: continuation.observe, entry: continuation.entry});
             // Saved/unknown records first re-enter the same normal owner without
             // any fresh permission. A still-unsent slot yields Waiting again.

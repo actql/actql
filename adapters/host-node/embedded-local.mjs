@@ -409,7 +409,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   Object.freeze(check);
     if (modelInstallation !== undefined && authorization !== undefined) {
       modelController = await installNodeModelContinuation({moon, control,
-        store, storeAuthorityCid, authorityScopeCid, now,
+        store, storeAuthorityCid, authorityScopeCid, now, observe: diagnostic,
         getCheckpoints: () => checkpoints});
     }
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -1023,59 +1023,62 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               if (inferSelections.has(facts.prepared) ||
                   moon.clientProgramEffectPrepareQueryAcquisition(
                 facts.prepared, 0, 0)?.$tag === 1) {
-                let retainedModel = modelResume;
-                if (retainedModel === undefined && targetResume !== undefined &&
-                    inferSelections.has(facts.prepared) && modelController !== undefined) {
-                  activeResume.assertCurrent();
-                  const taskIndex = moon.clientProgramInferPlanBoundary(
-                    inferSelections.get(facts.prepared).graph)._0;
-                  const records = modelController.discover(
-                    control.runDefinitionRunId(facts.runDefinition))
-                    .filter(record => record.inventory.taskIndex === taskIndex);
-                  if (records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
-                  if (records.length === 1) {
-                    const record = records[0];
-                    const token = await modelController.prime(record);
-                    modelController.state(record.inventory);
+                let ownedModelToken;
+                try {
+                  let retainedModel = modelResume;
+                  if (retainedModel === undefined && targetResume !== undefined &&
+                      inferSelections.has(facts.prepared) && modelController !== undefined) {
                     activeResume.assertCurrent();
-                    retainedModel = {record, token, view: targetResume.view};
+                    const taskIndex = moon.clientProgramInferPlanBoundary(
+                      inferSelections.get(facts.prepared).graph)._0;
+                    const records = modelController.discover(
+                      control.runDefinitionRunId(facts.runDefinition))
+                      .filter(record => record.inventory.taskIndex === taskIndex);
+                    if (records.length > 1) throw new Error('ModelResumeScopeAmbiguous');
+                    if (records.length === 1) {
+                      const record = records[0];
+                      const token = ownedModelToken = await modelController.prime(record);
+                      modelController.state(record.inventory);
+                      activeResume.assertCurrent();
+                      retainedModel = {record, token, view: targetResume.view};
+                    }
                   }
-                }
-                const sourceContinuation = acquiredEffectContinuation({
-                  checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
-                    ? undefined : sourceCheckpoints,
-                  moon, acquired: facts.preparedExecution,
-                  submission: effectSubmissions.get(facts.prepared),
-                  declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
-                  unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
-                  principalId, signal, resume: sourceResume,
-                  ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
-                    restore: {view: retainedModel.view,
-                      continuation: retainedModel.token.snapshot.sourceContinuation},
-                  }),
-                  currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
-                    ?.cancellationRequested === false});
-                if (retainedModel !== undefined &&
-                    moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
-                    retainedModel.token.snapshot.sourceContinuation === undefined) {
-                  throw new Error('ModelSourceClosureCustodyUnavailable');
-                }
-                return openAcquiredEffectComputation({moon,
-                  owner: facts.owner, acquired: facts.preparedExecution,
-                  sourceProfile, registry, values, fragment, ordered,
-                  sourceAccess: sourceProfile?.sourceAccess, signal, now,
-                  retainComputationOwner, infer: inferSelections.get(facts.prepared),
-                  computeConfigurations: {local: localSnapshotConfiguration},
-                  withComputePauseHandler: (configurations, handlePause) => ({
-                    ...configurations,
-                    local: withLocalExecutionPauseHandler(configurations.local, handlePause),
-                  }),
-                  store, principalId, faultInjection: authorization?.faultInjection,
-                  observe: authorization?.observe, sourceContinuation,
-                  modelController, submission: effectSubmissions.get(facts.prepared),
-                  existingModel: retainedModel?.record,
-                  modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
-                  parentResume, modelJournalPort: nextJournal});
+                  const sourceContinuation = acquiredEffectContinuation({
+                    checkpoints: sourceProfile?.realizationKey !== 'duckdb-acquired'
+                      ? undefined : sourceCheckpoints,
+                    moon, acquired: facts.preparedExecution,
+                    submission: effectSubmissions.get(facts.prepared),
+                    declaredResults: moon.clientProgramEffectCompilationResultNames(facts.compilation),
+                    unitId: moon.clientProgramEffectCompilationUnitId(facts.compilation),
+                    principalId, signal, resume: sourceResume,
+                    ...(retainedModel?.token.snapshot.sourceContinuation === undefined ? {} : {
+                      restore: {view: retainedModel.view,
+                        continuation: retainedModel.token.snapshot.sourceContinuation},
+                    }),
+                    currentRun: () => journal.lookupRunDefinition(facts.ref, moon, control)
+                      ?.cancellationRequested === false});
+                  if (retainedModel !== undefined &&
+                      moon.clientProgramEffectAcquisitionCount(facts.prepared) > 0 &&
+                      retainedModel.token.snapshot.sourceContinuation === undefined) {
+                    throw new Error('ModelSourceClosureCustodyUnavailable');
+                  }
+                  return await openAcquiredEffectComputation({moon,
+                    owner: facts.owner, acquired: facts.preparedExecution,
+                    sourceProfile, registry, values, fragment, ordered,
+                    sourceAccess: sourceProfile?.sourceAccess, signal, now,
+                    retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                    computeConfigurations: {local: localSnapshotConfiguration},
+                    withComputePauseHandler: (configurations, handlePause) => ({
+                      ...configurations,
+                      local: withLocalExecutionPauseHandler(configurations.local, handlePause),
+                    }),
+                    store, principalId, faultInjection: authorization?.faultInjection,
+                    observe: authorization?.observe, sourceContinuation,
+                    modelController, submission: effectSubmissions.get(facts.prepared),
+                    existingModel: retainedModel?.record,
+                    modelClaim: modelResume?.parentResume === undefined ? modelResume?.claim : undefined,
+                    parentResume, modelJournalPort: nextJournal});
+                } finally { modelController?.release(ownedModelToken); }
               }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
                 facts.owner, registry, values, 1n, 0n, 0n, 0n);
@@ -1960,6 +1963,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     for (;;) {
       const page = checkpoints.journal.discoverModelCallSets({after, limit: 100});
       for (const record of page) {
+        let token, transferred = false;
         try {
           const originalOwner = modelController.verifier.admitOriginalRun({
             originalRunWire: record.originals.originalRunWire});
@@ -1972,12 +1976,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
               !checkpoints.journal.hasUnresolvedModelCalls(originalOwner.runId)) {
             // Terminal scopes with no unknown attempts may already have had
             // their private input retired. Discovery is not a new read grant.
+            modelController.retire(record);
             continue;
           }
           // Discovery is routing only. Authenticate original Store custody,
           // re-admit the entire inventory, then repair saved response markers
           // before inspecting cancellation or current send permission.
-          const token = await modelController.prime(record);
+          token = await modelController.prime(record);
           let calls = checkpoints.journal.readModelCalls(record.inventory);
           for (const slot of calls.slots) for (const entry of slot.attempts) {
             await modelController.observe(entry);
@@ -2203,14 +2208,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           }).finally(() => {
             if (renewal !== undefined) clearInterval(renewal);
             modelResumeFlights.delete(ref.runDefinitionCid);
+            modelController.release(token);
           });
+          transferred = true;
           modelResumeFlights.set(ref.runDefinitionCid, flight);
           busy = true;
         } catch (error) {
           busy = true;
           diagnostic('model_recovery_failed', {scopeCid: record.scopeCid,
             code: error?.code ?? error?.message});
-        }
+        } finally { if (!transferred) modelController.release(token); }
       }
       if (page.length < 100) break;
       after = page.at(-1).scopeCid;

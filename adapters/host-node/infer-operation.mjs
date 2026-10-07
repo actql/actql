@@ -14,7 +14,10 @@ const activeOperations = new WeakMap();
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
-  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput}) {
+  signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation}) {
+  if (retainOperation !== undefined && typeof retainOperation !== 'function') {
+    throw new TypeError('InvalidInferOperationCustody');
+  }
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -83,46 +86,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
         graph, registry, values, savedCapture, fragment, ordered));
-  if (durableCalls) checked(moon.clientProgramRequireInferCallEntry(active));
-  if (restoredInput !== undefined) checked(moon.clientProgramRestrictInferSendSlots(active,
-    restoredInput.sendMask));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
-  if (quantityCapacity !== undefined) {
-    const {limits, perAttempt} = quantityCapacity;
-    const bound = moon.clientProgramBindInferQuantityCapacity(active,
-      limits.tokens, limits.costUnits, limits.durationMs,
-      perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs);
-    if (bound?.$tag !== 1) {
-      // This is still the bounded, pre-dispatch Input phase. Confirm stop and
-      // cleanup before propagating the original typed refusal; never run.
-      requestStop();
-      const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-      if (moon.clientProgramInferExecutionPollKind(stopped) !== 'stopped' ||
-          checked(moon.clientProgramCleanupInferExecution(active)) !== true) {
-        throw pending();
-      }
-      checked(bound);
-    }
-  }
-  for (const bind of [
-    ...(computeSuffix === undefined ? [] :
-      [() => moon.clientProgramBindInferComputeSuffix(active, computeSuffix)]),
-    ...(physicalPreflight === undefined ? [] :
-      [() => moon.clientProgramBindInferPhysicalPreflight(active, physicalPreflight)]),
-    ...(egressAdmission === undefined ? [] :
-      [() => moon.clientProgramBindInferEgress(active, egressAdmission)]),
-  ]) {
-    const bound = bind();
-    if (bound?.$tag !== 1) {
-      requestStop();
-      const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-      if (moon.clientProgramInferExecutionPollKind(stopped) !== 'stopped' ||
-          checked(moon.clientProgramCleanupInferExecution(active)) !== true) {
-        throw pending();
-      }
-      checked(bound);
-    }
-  }
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -218,6 +182,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function close() {
+    if (reclaimed) return Promise.resolve();
     if (closeFlight === undefined) {
       closing = true;
       closeFlight = (async () => {
@@ -330,6 +295,38 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         signal: resultSignal, quantum}),
   });
   activeOperations.set(operation, active);
+  try {
+    // Input construction already owns Core resources. Transfer that exact
+    // owner before any fallible binding, without granting permission to run.
+    retainOperation?.(operation);
+    if (durableCalls) checked(moon.clientProgramRequireInferCallEntry(active));
+    if (restoredInput !== undefined) checked(moon.clientProgramRestrictInferSendSlots(active,
+      restoredInput.sendMask));
+    if (quantityCapacity !== undefined) {
+      const {limits, perAttempt} = quantityCapacity;
+      checked(moon.clientProgramBindInferQuantityCapacity(active,
+        limits.tokens, limits.costUnits, limits.durationMs,
+        perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs));
+    }
+    if (computeSuffix !== undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
+    if (physicalPreflight !== undefined) checked(moon.clientProgramBindInferPhysicalPreflight(active, physicalPreflight));
+    if (egressAdmission !== undefined) checked(moon.clientProgramBindInferEgress(active, egressAdmission));
+  } catch (error) {
+    // Preserve the admission failure even when stop/cleanup cannot finish.
+    // The receiving parent retries this owner, never construction or dispatch.
+    closing = true;
+    try {
+      requestStop();
+      const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+      if (moon.clientProgramInferExecutionPollKind(stopped) === 'stopped' &&
+          retainOperation === undefined) cleanup();
+    } catch { /* The original failure and pending owner remain authoritative. */ }
+    if (!reclaimed && error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) && !Object.hasOwn(error, 'cleanupOwner')) {
+      Object.defineProperty(error, 'cleanupOwner', {value: operation});
+    }
+    throw error;
+  }
   return operation;
 }
 
@@ -355,8 +352,8 @@ export function openNodeComposedInferProvider({moon, selected, sources,
           computeSuffix: selected.computeSuffix, provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,
           physicalPreflight: selected.physicalPreflight,
-          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput});
-        retainOperation(operation);
+          egressAdmission: selected.egressAdmission, signal, durableCalls, restoredInput,
+          retainOperation(value) { operation = value; retainOperation(value); }});
         operation.bindRun(control, plan);
         if (!durableCalls) operation.bindDispatch(control, {...plan, account: selected.account,
           principalId, at: now(), observeAccount: selected.observeAccount,
