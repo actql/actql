@@ -20,5 +20,11 @@ export function rejectParentSubstitutions(report,source,read) {
     bad(r=>r.providerCallbackCode.logs.symbols.digest='0'.repeat(64));
     bad(r=>r.providerCallbackCode.constructors=[]);
   }
-  return `${report.providerCallbackCode.status==='established' ? 22 : 19} Native parent receipt substitutions rejected; no extra scientific execution`;
+  bad(r=>delete r.parentReferenceCode);bad(r=>r.parentReferenceCode.status='forged');
+  if(report.parentReferenceCode.status==='established') {
+    bad(r=>r.parentReferenceCode.objectDigest='0'.repeat(64));
+    bad(r=>r.parentReferenceCode.logs.linked.digest='0'.repeat(64));
+  }
+  const referenceNegatives=report.parentReferenceCode.status==='established'?4:2;
+  return `${referenceNegatives + (report.providerCallbackCode.status==='established' ? 22 : 19)} Native parent receipt substitutions rejected; no extra scientific execution`;
 }
