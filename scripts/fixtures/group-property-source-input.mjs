@@ -226,7 +226,81 @@ export const sqlGroupedSubexpressionRefusals = [
   text('sql-subexpression-missing-range',
     'SELECT COUNT(*) + old.payload.score AS n FROM objects AS current GROUP BY current.payload.score'),
 ];
+
+// HAVING uses its own SELECT-alias scope while reusing complete evaluated keys.
+// The independent filter is authored over the ordinary post-group columns.
+const havingGroupedColumns = [{name: 'bucket', contract: {...number, nullable: true}},
+  {name: 'n', contract: number}];
+const havingGroupedRows = [{bucket: 21, n: 2}];
+const havingGroupedJson = {version: 'actql/0.1', id: 'fixture.having_grouped_expression', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {add: [
+      {property: {name: 'score', value: {field: 'payload'}}}, {literal: 1}]}}},
+    {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+    {filter: {gt: [{add: [{field: 'n'}, {field: 'key'}]}, {literal: 12}]}},
+    {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},
+    {select: [{bucket: 'key'}, 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+// The common checked object descriptor explicitly states closedness. The
+// author declaration shorthand is not the complete Result.describe contract.
+const havingAliasColumns = [havingGroupedColumns[0],
+  {name: 'payload', contract: {...payload, additional_properties: false}}, havingGroupedColumns[1]];
+const havingAliasRows = [{bucket: null, payload: {score: 20}, n: 2},
+  {bucket: 11, payload: {score: 20}, n: 1}, {bucket: 21, payload: {score: 20}, n: 2}];
+export const havingGroupedSubexpressionSuccesses = [
+  {name: 'group-property-having-subexpression-independent-json', format: 'json',
+    text: JSON.stringify(havingGroupedJson), expected: havingGroupedRows,
+    columns: havingGroupedColumns, sourceReadCount: 0},
+  text('having-subexpression-count-key',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING n + (objects.payload.score + 1) > 12 ORDER BY bucket',
+    {expected: havingGroupedRows, columns: havingGroupedColumns}),
+  text('having-subexpression-hidden-count-key',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING COUNT(*) + (`objects`.`payload`.`score` + 1) > 12 ORDER BY bucket',
+    {expected: havingGroupedRows, columns: havingGroupedColumns}),
+  text('having-subexpression-computed-alias',
+    'SELECT payload.score + 1 AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING payload + 1 > 12 ORDER BY payload',
+    {expected: [{payload: 21, n: 2}], columns: [{name: 'payload', contract: {...number, nullable: true}}, havingGroupedColumns[1]]}),
+  text('having-subexpression-alias-property',
+    'SELECT payload.score + 1 AS bucket, @b AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING payload.score + 1 > 12 ORDER BY bucket',
+    {expected: havingAliasRows, columns: havingAliasColumns}),
+  text('having-subexpression-qualified-input-property',
+    'SELECT payload.score + 1 AS bucket, @b AS payload, COUNT(*) AS n FROM objects GROUP BY objects.payload.score + 1 HAVING objects.payload.score + 1 > 12 ORDER BY bucket',
+    {expected: [havingAliasRows[2]], columns: havingAliasColumns}),
+  text('having-subexpression-join',
+    'SELECT l.payload.score + 1 AS bucket, COUNT(*) AS n FROM objects AS l JOIN objects AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 GROUP BY l.payload.score + 1 HAVING n + (l.payload.score + 1) > 12 ORDER BY bucket',
+    {expected: havingGroupedRows, columns: havingGroupedColumns}),
+  text('having-subexpression-empty',
+    'SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects WHERE FALSE GROUP BY payload.score + 1 HAVING n + (payload.score + 1) > 12 ORDER BY bucket',
+    {expected: [], columns: havingGroupedColumns}),
+  {name: 'group-property-having-subexpression-negative-alias', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x HAVING x + 1 > 0 ORDER BY x',
+    expected: [], columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+  {name: 'group-property-having-subexpression-positive-input', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'SELECT -x AS x, COUNT(*) AS n FROM samples GROUP BY samples.x HAVING samples.x + 1 > 0 ORDER BY x',
+    expected: [{x: -2, n: 1}, {x: -1, n: 1}],
+    columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+  {name: 'group-property-having-subexpression-private-looking-input', format: 'aql-text',
+    text: 'DATA samples = SELECT 100 AS aql_having_aggregate_0; '
+      + 'SELECT COUNT(*) AS n FROM samples GROUP BY aql_having_aggregate_0 + 1 HAVING COUNT(*) + 1 > 10',
+    expected: [], columns: [{name: 'n', contract: number}], sourceReadCount: 0},
+];
+export const havingGroupedSubexpressionRefusals = [
+  text('having-subexpression-key-does-not-revive-receiver',
+    'SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING payload.score > 10'),
+  text('having-subexpression-ungrouped-receiver',
+    'SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING other.score + 1 > 10'),
+  text('having-subexpression-different-key',
+    'SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING payload.score + 2 > 10'),
+  text('having-subexpression-missing-range',
+    'SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10'),
+];
+
 export const groupPropertySuccesses = [
+  ...havingGroupedSubexpressionSuccesses,
   ...sqlGroupedSubexpressionSuccesses,
   ...pipeAggregateExpressionSuccesses,
   ...pipeAggregateOrderSuccesses,
@@ -346,4 +420,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals, sqlGroupedSubexpressionRefusals);
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals, pipeAggregateExpressionRefusals, sqlGroupedSubexpressionRefusals, havingGroupedSubexpressionRefusals);

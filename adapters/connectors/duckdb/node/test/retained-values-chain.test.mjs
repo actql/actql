@@ -345,6 +345,43 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       first + expectedSteps.length), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
+        if (route.observeSnapshotPreparation &&
+            property === 'strategyHostOutputSnapshotAdvance') {
+          return value => {
+            const result = target[property](value, 1);
+            const complete = checked(result);
+            const admission = value.phase.$tag === 1 ? value.phase._0 : undefined;
+            const canonical = admission?.phase.$tag === 2
+              ? admission.phase._0 : undefined;
+            if (canonical?.text?.offset >= 64) {
+              route.snapshotTextReached = true;
+              if (mode === 'cancel-during-result-snapshot' && !scheduled) {
+                assert.equal(complete, false);
+                assert.equal(completedDispatches, 3);
+                assert.notEqual(value.parent.receipt, undefined);
+                assert.notEqual(value.parent.retained, undefined);
+                scheduled = true;
+                setTimeout(() => cancellation.abort(), 0);
+              }
+            }
+            return result;
+          };
+        }
+        if (route.observeSnapshotPreparation &&
+            property === 'strategyHostOutputSnapshotCancel') {
+          return value => {
+            const parent = value.parent;
+            const admission = value.phase.$tag === 1 ? value.phase._0 : undefined;
+            target[property](value);
+            route.snapshotCancels = (route.snapshotCancels ?? 0) + 1;
+            assert.equal(value.parent, undefined);
+            assert.equal(admission.live, 0);
+            assert.equal(admission.fields.length, 0);
+            // The child has no release authority over the parent Result pin.
+            assert.notEqual(parent.receipt, undefined);
+            assert.notEqual(parent.retained, undefined);
+          };
+        }
         if (route.observeResultPreparation &&
             property === 'strategyHostResultTransformationAdvance') {
           return value => {
@@ -796,6 +833,51 @@ for (const mode of ['success', 'cancel-during-result-order']) {
       }
       assert.equal(observations().dispatches, 3);
     }, mode, undefined, undefined, false, {observeResultPreparation: true});
+  });
+}
+
+for (const mode of ['success', 'cancel-during-result-snapshot']) {
+  test(`retained Result snapshot admission yields inside long Text: ${mode}`, async () => {
+    const text = `${'é'.repeat(257)}e\u0301\r\n😀`;
+    const first = {id: 1, note: text};
+    const second = {id: 2, note: null};
+    const document = JSON.parse(program([first, second], 'true'));
+    document.id = 'retained-result-snapshot-progress';
+    document.stages[0].steps[0].values.schema.note = {type: 'string', nullable: true};
+    document.stages[0].steps[2].select = ['id', 'note'];
+    for (const stage of document.stages) {
+      stage.results.out.fields = ['id', 'note'];
+      stage.results.out.order_by = [{id: 'desc'}];
+      if (stage.inputs.r) stage.steps[0].select = ['id', 'note'];
+    }
+    const route = {observeResultPreparation: true, observeSnapshotPreparation: true};
+    await retainedRun(JSON.stringify(document), async ({run, plan, publication, observations}) => {
+      if (mode === 'success') {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(route.snapshotTextReached, true);
+        await assertPublishedRows(publication, plan, owner.execution, [second, first]);
+      } else {
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          assert.equal(error.cause.code, 'DurableResultPayloadFailed');
+          assert.equal(error.cause.primaryFailure, observations().abortReason);
+          assert.equal(error.cause.cause, observations().abortReason);
+          assert.deepEqual(error.execution.completed.map(task => task.task), [0, 1, 2]);
+          return true;
+        });
+        assert.equal(route.snapshotTextReached, true);
+        assert.equal(route.snapshotCancels, 1);
+        assert.equal(observations().scheduled, true);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+      assert.equal(observations().dispatches, 3);
+      assert.equal(observations().completedDispatches, 3);
+    }, mode, undefined, undefined, false, route);
   });
 }
 

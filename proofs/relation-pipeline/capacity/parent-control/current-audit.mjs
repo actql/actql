@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {hash} from '../../inventory.mjs';
 import {boundCurrentOverlay,currentFixture} from './current-overlay.mjs';
 import {checkParentCensus} from './bounds.mjs';
-import {inspectCurrentChain} from './current-inspect.mjs';
+import {inspectCurrentChain,inspectPreparationChainCustody} from './current-inspect.mjs';
 import {auditParentReferenceCode} from './parent-reference-code.mjs';
 import {auditScalarCode} from './provider-callback-code.mjs';
 import {fileURLToPath} from 'node:url';
@@ -43,6 +43,7 @@ export function auditCurrentChain(report,current,read) {
   const storageFacts=log.split('\n').filter(l=>l.startsWith(prefix)).map(l=>JSON.parse(l.slice(prefix.length)));
   assert.deepEqual(report.preparationStorageFacts,storageFacts,'Preparation facts differ from actual archived log');
   const preparationStorage=inspectPreparationStorage(storageFacts);
+  const preparationCustody=inspectPreparationChainCustody(records,storageFacts);
   const providerFacts=log.split('\n').filter(l=>l.startsWith('ACTQL_PIPELINE_FAULT:')).map(l=>JSON.parse(l.slice(21)));
   const provider=inspectProviderConstruction(providerFacts.filter(f=>f.kind==='provider construction observation'),read,'native');
   assert.equal(Object.keys(report.artifacts).length>0,true,'Missing actual executed binary');
@@ -69,7 +70,7 @@ export function auditCurrentChain(report,current,read) {
   assert.deepEqual(report.runtime.archive,pin.archives[report.runtime.platform]);
   assert.deepEqual(report.runtime.sources,{...nativeProfile.sources,...nativeProfile.platformBinaries[report.runtime.platform]});
   assert.equal(report.runtime.profileDigest,hash(JSON.stringify(nativeProfile)));
-  return {chain:inspectCurrentChain(records),providerConstruction,preparationStorage,providerCallbackExtents,parentPrimitiveReferences,
+  return {chain:inspectCurrentChain(records),providerConstruction,preparationStorage,preparationCustody,providerCallbackExtents,parentPrimitiveReferences,
     scientificExecution:'one fixed-source Native fixture; no new execution is inferred from this audit',
     completePhysicalUpper:false};
 }

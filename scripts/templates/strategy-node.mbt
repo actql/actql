@@ -2851,11 +2851,18 @@ pub fn strategy_host_result_transformation_begin(
   let started = match selection {
     Some(selection) =>
       @publication_host.start_captured_client_result_transformation(
-        selection, run, result, limits, converted_output?,
+        selection,
+        run,
+        result,
+        limits,
+        converted_output?,
       )
     None =>
       @publication_host.start_captured_result_publication_export(
-        run, result, limits, converted_output?,
+        run,
+        result,
+        limits,
+        converted_output?,
       )
   }
   match started {
@@ -3132,6 +3139,45 @@ pub fn strategy_host_output_export_admit_captured_result_snapshot(
   strategy_publication_output_result(
     value.core.admit_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
   )
+}
+
+///|
+/// Prepare the same snapshot owner without blocking an environment poll.
+#export_name("strategyHostOutputSnapshotBegin")
+pub fn strategy_host_output_snapshot_begin(
+  value : StrategyHostOutputExport,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @publication_host.PublicationOutputSnapshotPreparation raise NodeHostFailure {
+  strategy_publication_output_result(
+    value.core.start_captured_snapshot(max_wire_bytes, max_nodes, max_depth),
+  )
+}
+
+///|
+#export_name("strategyHostOutputSnapshotAdvance")
+pub fn strategy_host_output_snapshot_advance(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.advance(quantum)).0
+}
+
+///|
+#export_name("strategyHostOutputSnapshotFinish")
+pub fn strategy_host_output_snapshot_finish(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> @publication.CapturedResultSnapshot raise NodeHostFailure {
+  strategy_publication_output_result(value.finish())
+}
+
+///|
+#export_name("strategyHostOutputSnapshotCancel")
+pub fn strategy_host_output_snapshot_cancel(
+  value : @publication_host.PublicationOutputSnapshotPreparation,
+) -> Unit {
+  value.cancel()
 }
 
 ///|

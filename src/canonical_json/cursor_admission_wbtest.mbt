@@ -32,6 +32,62 @@ fn complete_cursor(
 }
 
 ///|
+test "canonical data Text yields while preserving raw Unicode and byte limits" {
+  let text = String::make(257, 'é') + "😀e\u0301\r\n"
+  let wire = "\"" + String::make(257, 'é') + "😀e\\u0301\\r\\n\""
+  let decoded = canonical_cursor(wire)
+  // 514 + 4 + 1 + 2 + 2 bytes, and 257 + 2 + 2 + 2 UTF-16 units.
+  for bytes in [523, 522] {
+    let admission = start_cursor_admission(
+      decoded,
+      1,
+      0,
+      263,
+      bytes,
+      data_keys=true,
+    ).unwrap()
+    let mut polls = 0
+    let mut terminal = false
+    for _ in 0..<100 {
+      polls += 1
+      match advance_cursor_admission(admission) {
+        CursorAdmissionContinue => ()
+        CursorAdmissionComplete(value, nodes, raw_bytes) => {
+          assert_eq(bytes, 523)
+          guard value is String(actual) else { fail("text") }
+          assert_eq(actual, text)
+          assert_eq((nodes, raw_bytes), (1, 523))
+          terminal = true
+          break
+        }
+        CursorAdmissionFailed(InputLimit) => {
+          assert_eq(bytes, 522)
+          terminal = true
+          break
+        }
+        _ => fail("unexpected canonical Text result")
+      }
+    }
+    assert_true(terminal && polls >= 5)
+    assert_true(admission.text is None && admission.pending.is_empty())
+  }
+  let admission = start_cursor_admission(
+    decoded,
+    1,
+    0,
+    263,
+    523,
+    data_keys=true,
+  ).unwrap()
+  assert_true(advance_cursor_admission(admission) is CursorAdmissionContinue)
+  assert_true(advance_cursor_admission(admission) is CursorAdmissionContinue)
+  assert_true(admission.text is Some(_))
+  cancel_cursor_admission(admission)
+  assert_true(admission.text is None && admission.root is None)
+  assert_true(advance_cursor_admission(admission) is CursorAdmissionTerminal)
+}
+
+///|
 test "indexed canonical admission shares normalization and immutable identity" {
   let source = @source.parse_json_bytes_preserving(
     @utf8.encode(

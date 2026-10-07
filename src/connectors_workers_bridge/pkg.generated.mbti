@@ -335,6 +335,14 @@ pub fn strategy_host_output_export_schema_fields(StrategyHostOutputExport) -> In
 
 pub fn strategy_host_output_export_schema_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
+pub fn strategy_host_output_snapshot_advance(@run_publication_host.PublicationOutputSnapshotPreparation, Int) -> Bool raise NodeHostFailure
+
+pub fn strategy_host_output_snapshot_begin(StrategyHostOutputExport, Int, Int, Int) -> @run_publication_host.PublicationOutputSnapshotPreparation raise NodeHostFailure
+
+pub fn strategy_host_output_snapshot_cancel(@run_publication_host.PublicationOutputSnapshotPreparation) -> Unit
+
+pub fn strategy_host_output_snapshot_finish(@run_publication_host.PublicationOutputSnapshotPreparation) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
+
 pub fn strategy_host_program_definition_cid(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> String
 
 pub fn strategy_host_publication_inventory(@connectors_workers.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> @run_publication.CheckedPublicationInventory raise NodeHostFailure
