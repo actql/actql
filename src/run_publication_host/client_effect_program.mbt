@@ -41,6 +41,7 @@ fn client_effect_program_view(
   {
     graph: @strategy.checked_effect_computation_graph(value.graph),
     source: value.source,
+    local_values_max_rows: client_standard_values_sequence_limits().max_rows,
     check_environment_cid: value.check_environment_cid,
   }
 }

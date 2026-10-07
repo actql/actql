@@ -1,6 +1,7 @@
 // Physical durable storage for an owner-issued Client request and Run ref.
 // MoonBit supplies and re-admits the identity and decides intent conflicts.
 import {DatabaseSync} from 'node:sqlite';
+import {createHash} from 'node:crypto';
 import {closeSync, existsSync, fsyncSync, lstatSync,
   mkdirSync, openSync, readFileSync, readdirSync,
   realpathSync, writeFileSync} from 'node:fs';
@@ -9,6 +10,7 @@ import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
 import {canonicalJson} from './local-account-config.mjs';
+import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -210,10 +212,32 @@ function validateSourceInventory(wire) {
 function admissionEvidenceShape(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
   if (Object.keys(value).some(key => !['authorization', 'prepared',
-    'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire'].includes(key)) ||
+    'sourceInventory', 'resultPolicyOriginal', 'modelOriginalRunWire',
+    'valuesHostPolicyOriginal'].includes(key)) ||
       !Object.hasOwn(value, 'prepared') || !Object.hasOwn(value, 'authorization') ||
       typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
   if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  if (value.valuesHostPolicyOriginal !== undefined) {
+    const original = value.valuesHostPolicyOriginal;
+    if (original === null || typeof original !== 'object' || Array.isArray(original) ||
+        Object.keys(original).sort().join(',') !== 'cid,wire' ||
+        !cid(original.cid) || typeof original.wire !== 'string') return false;
+    let body, prepared, authorization;
+    try {
+      body = JSON.parse(original.wire);
+      prepared = JSON.parse(value.prepared);
+      authorization = JSON.parse(value.authorization);
+    } catch { return false; }
+    if (body === null || typeof body !== 'object' || Array.isArray(body) ||
+        Object.keys(body).sort().join(',') !== 'max_rows,name,version' ||
+        body.version !== 'actql-installed-local-policy/0.1' ||
+        body.name !== 'source-free-values' ||
+        !Number.isSafeInteger(body.max_rows) || body.max_rows < 1 || body.max_rows > 10000 ||
+        canonicalJson(body) !== original.wire ||
+        `sha256:${createHash('sha256').update(original.wire).digest('hex')}` !== original.cid ||
+        prepared?.host_policy_cid !== original.cid ||
+        authorization?.host_policy_cid !== original.cid) return false;
+  }
   if (value.resultPolicyOriginal !== undefined &&
       (value.resultPolicyOriginal === null ||
        typeof value.resultPolicyOriginal !== 'object' ||
@@ -294,13 +318,20 @@ function retainedRunFacts(row, publicationControl, maxWireBytes) {
     fail('ClientRequestJournalCorrupt');
   }
   const runAdmissionEvidence = retainedEvidence(row);
+  const runDefinition = retainedRunDefinition(row, publicationControl,
+    maxWireBytes);
+  if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
+      JSON.parse(row.run_definition_wire).authorization_context_cid !==
+        valuesExecutionContextCid(row.authority_scope_cid,
+          runAdmissionEvidence.valuesHostPolicyOriginal)) {
+    fail('ClientRequestJournalCorrupt');
+  }
   if (runAdmissionEvidence?.modelOriginalRunWire !== undefined &&
       JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== row.run_definition_wire) {
     fail('ClientRequestJournalCorrupt');
   }
   return Object.freeze({
-    runDefinition: retainedRunDefinition(row, publicationControl,
-      maxWireBytes),
+    runDefinition,
     resultNames: retainedResultNames(row),
     runAdmissionEvidence,
     cancellationRequested: row.cancellation_requested === 1,
@@ -531,6 +562,13 @@ export function openClientRequestJournal(directory, {
     }
     const admissionEvidence = evidenceJson(runAdmissionEvidence,
       maxRunDefinitionWireBytes);
+    if (runAdmissionEvidence?.valuesHostPolicyOriginal !== undefined &&
+        (typeof runDefinitionWire !== 'string' ||
+         JSON.parse(runDefinitionWire).authorization_context_cid !==
+           valuesExecutionContextCid(fields.authorityScopeCid,
+             runAdmissionEvidence.valuesHostPolicyOriginal))) {
+      fail('InvalidClientRunAdmissionEvidence');
+    }
     if (runAdmissionEvidence?.modelOriginalRunWire !== undefined &&
         JSON.parse(runAdmissionEvidence.modelOriginalRunWire).runDefinitionWire !== runDefinitionWire) {
       fail('InvalidClientRunAdmissionEvidence');
