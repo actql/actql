@@ -1865,6 +1865,27 @@
           "fixture": "ordinary Local sort resumes within quantum and feeds two Computes"
         },
         {
+          "role": "ordered_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "ordered metadata preserves independent rows and charges across resume quanta"
+        },
+        {
+          "role": "ordered_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long order metadata stops inside name charges and key lookups without refund"
+        },
+        {
+          "role": "ordered_metadata_term_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long sort term has independently derived work and temporary workspace boundaries"
+        },
+        {
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": [
@@ -1973,6 +1994,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "property-match-sort-wide-comparison"
+        },
+        {
+          "role": "ordered_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered metadata preserves ties NULL and post-progress custody"
         },
         {
           "role": "ordinary_sort_in_flight_host_timer",
@@ -2195,6 +2223,20 @@
           "fixture": "ordinary Local take resumes within quantum and feeds two Computes"
         },
         {
+          "role": "ordered_metadata_quantum",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "ordered metadata preserves independent rows and charges across resume quanta"
+        },
+        {
+          "role": "ordered_metadata_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/row_order_metadata_wbtest.mbt",
+          "fixture": "long order metadata stops inside name charges and key lookups without refund"
+        },
+        {
           "role": "values_split_take_lifetime",
           "suite": "moon:query_integration",
           "targets": [
@@ -2303,6 +2345,13 @@
           ],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "property-match-take"
+        },
+        {
+          "role": "ordered_metadata_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained ordered metadata preserves ties NULL and post-progress custody"
         },
         {
           "role": "ordinary_take_in_flight_host_timer",

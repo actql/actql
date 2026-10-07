@@ -56,6 +56,7 @@ fn bounded_binding_rows_source(
 ///|
 fn bounded_binding_rows_receiver(
   source_owner : @lower.BoundPrepared,
+  metadata_operation? : String? = None,
   source_step? : Int = 0,
   following_step? : Bool = false,
   filter? : Bool = false,
@@ -88,7 +89,9 @@ fn bounded_binding_rows_receiver(
   let checked = @pipeline.check_with_evidence(
     input_cursor(
       "[" +
-      (if dedupe {
+      (if metadata_operation is Some(operation) {
+        operation
+      } else if dedupe {
         "{\"dedupe_rows\":{\"by\":[\"id\"],\"order_by\":[{\"tag\":\"desc\"}]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if distinct_keyed {
         "{\"distinct\":[\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
