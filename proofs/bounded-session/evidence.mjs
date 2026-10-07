@@ -179,17 +179,29 @@ export function validate(nodes, report, current, expectedTarget) {
 
 const nestObligations = JSON.parse(readFileSync(new URL('nest-obligations.json', import.meta.url)));
 const nestResidual = nestObligations.residual;
-export function checkNestObligations(root) {
-  const obligations = JSON.parse(readFileSync(join(root, 'proofs/bounded-session/nest-obligations.json')));
+const nestInheritedArtifacts = Object.freeze([
+  'proofs/bounded-session/Claims.lean', 'proofs/bounded-session/Session.lean',
+  'proofs/bounded-session/check.mjs', 'proofs/bounded-session/lean-toolchain',
+  'src/bounded_execution/session_contract_wbtest.mbt',
+  'src/connectors/local/bounded_session_contract_wbtest.mbt',
+]);
+export function checkNestObligations(root, {read = path => readFileSync(join(root, path))} = {}) {
+  const obligations = JSON.parse(read('proofs/bounded-session/nest-obligations.json'));
   if (JSON.stringify(obligations.scope) !== JSON.stringify(nestScope) || obligations.testRetirements.length) throw new Error('Unreviewed Nest obligation scope');
-  for (const [path, digest] of Object.entries(obligations.unchangedCommon)) {
-    if (hash(readFileSync(join(root, path))) !== digest) throw new Error(`Common proof/protocol artifact changed: ${path}`);
+  // Nest derives Session/adapter guarantees, not serial-chain guarantees.
+  // A historical unchanged-file comparison is not an extra current premise.
+  if (JSON.stringify(Object.keys(obligations.unchangedCommon).sort()) !==
+      JSON.stringify([...nestInheritedArtifacts].sort())) {
+    throw new Error('Missing or unrelated inherited Nest common artifact');
   }
-  for (const path of obligations.retainedSuites) readFileSync(join(root, path));
-  const provider = readFileSync(join(root, nestScope.provider), 'utf8');
-  const kernel = readFileSync(join(root, obligations.connection.kernelSource), 'utf8');
-  const fixture = readFileSync(join(root, nestConnectionFixture), 'utf8');
-  const registration = readFileSync(join(root, obligations.route.registration), 'utf8');
+  for (const [path, digest] of Object.entries(obligations.unchangedCommon)) {
+    if (hash(read(path)) !== digest) throw new Error(`Common proof/protocol artifact changed: ${path}`);
+  }
+  for (const path of obligations.retainedSuites) read(path);
+  const provider = read(nestScope.provider).toString('utf8');
+  const kernel = read(obligations.connection.kernelSource).toString('utf8');
+  const fixture = read(nestConnectionFixture).toString('utf8');
+  const registration = read(obligations.route.registration).toString('utf8');
   for (const marker of ['guard inputs is [parent, child]', 'bounded_session_execution(', '@execution.start_bounded_nest(', '@execution.advance_bounded_nest(', '@execution.cleanup_bounded_nest(active)', '@bounded.request_cancel(control)']) {
     if (!provider.includes(marker)) throw new Error(`Missing Nest provider connection: ${marker}`);
   }
