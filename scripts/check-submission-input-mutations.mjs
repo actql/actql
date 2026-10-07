@@ -143,7 +143,13 @@ const mutations = [
     "if (!validRequestCancellation(answer, requestId) ||\n            answer.kind !== original.kind || answer.revision !== original.revision ||\n            ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(field =>\n              answer.ref?.[field] !== original.ref?.[field]))",
     'if (false)', 'request-cancel-admission', 'request-cancel-admission'],
   ['request cancellation response is frozen without detaching',
-    '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = structuredClone(answer);',
+    '      try { answer = captureResponse(answer); }\n' +
+      '      catch { throw uninterpretableRequestCancellation(context); }\n' +
+      '      if (!validRequestCancellation(answer, requestId)) {\n' +
+      '        throw uninterpretableRequestCancellation(context);\n      }\n' +
+      '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = structuredClone(answer);',
+    '      if (!validRequestCancellation(answer, requestId)) {\n' +
+      '        throw uninterpretableRequestCancellation(context);\n      }\n' +
     '      const original = {kind: answer.kind, revision: answer.revision,\n        ref: answer.ref === undefined ? undefined : {...answer.ref}};\n      try {\n        answer = answer;',
     'request-cancel-snapshot', 'request-cancel-detached'],
   ['request cancellation copied observations acquire custody',
