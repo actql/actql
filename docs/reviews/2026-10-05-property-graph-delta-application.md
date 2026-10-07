@@ -21,8 +21,8 @@ Graph contract, base snapshot, complete before records and target snapshot;
 passing Check does not turn received JSON into reference or execution authority.
 
 The maintained minimal executable Program is constructed from
-[`property-graph-presence.program.json`](../../scripts/fixtures/property-graph-presence.program.json)
-by [`deltaApplicationScenario`](../../scripts/fixtures/property-graph-delta-application.mjs).
+[`property-graph-presence.program.json`](../../scripts/fixtures/graph-presence.program.json)
+by [`deltaApplicationScenario`](../../scripts/fixtures/graph-delta-application.mjs).
 It uses synthetic Values, two node definitions, composite numeric/text keys,
 parallel edges and an independently authored snapshot oracle. For an existing
 authorized public Client, the call shape is:
