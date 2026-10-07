@@ -105,6 +105,33 @@ const freezeInput = value => {
   return value;
 };
 
+// Observe each enumerable response field once, before admission or branching.
+// This is a data capture, not request JSON serialization: no toJSON/coercion,
+// borrowed array methods, or repeated reads of shared nested response objects.
+const captureResponse = (value, captured = new Map()) => {
+  if (['function', 'symbol', 'bigint'].includes(typeof value)) {
+    throw new TypeError('InvalidHostResponseData');
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (captured.has(value)) return captured.get(value);
+  const copy = Array.isArray(value) ? new Array(value.length) : {};
+  captured.set(value, copy);
+  for (const key of Object.keys(value)) Object.defineProperty(copy, key, {
+    value: captureResponse(value[key], captured),
+    enumerable: true, writable: true, configurable: true,
+  });
+  return copy;
+};
+
+// Keep the detachment check against stable admitted data. A faulty copy must
+// not replace a well-shaped identity, control fact, or observation outcome.
+const detachResponse = value => {
+  const observedKey = structuralKey(value);
+  const copy = structuredClone(value);
+  if (structuralKey(copy) !== observedKey) throw new TypeError('ChangedHostResponse');
+  return copy;
+};
+
 export function getCheckInput(outcome, documentId, revision) {
   const input = checkInputs.get(outcome)?.get(documentId);
   return input && (revision === undefined || input.revision === revision)
@@ -1128,8 +1155,10 @@ async function connectSelected(selected, port) {
       let state;
       try { state = await controlValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
-      const problem = rejectedRunProblem(state);
+      let problem;
       try {
+        state = captureResponse(state);
+        problem = rejectedRunProblem(state);
         if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);
         // Each observation owns its value even if a Local port reuses a reply.
         const observedKey = structuralKey(state);
@@ -1419,8 +1448,9 @@ async function connectSelected(selected, port) {
             resultName: name,
           };
           try {
+            answer = captureResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
-            answer = structuredClone(answer);
+            answer = detachResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
             return retainDeliveryExplanation(freezeInput(answer), {
               operation: 'deliveryAttempt', ref, resultName: name, attemptId,
@@ -1476,8 +1506,9 @@ async function connectSelected(selected, port) {
         }
         let received;
         try {
-          if (!validCancellation(response, cancelRef)) fail('InvalidHostCancellation');
-          received = structuredClone(response);
+          received = captureResponse(response);
+          if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
+          received = detachResponse(received);
           if (!validCancellation(received, cancelRef)) fail('InvalidHostCancellation');
         } catch {
           throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
@@ -1507,8 +1538,9 @@ async function connectSelected(selected, port) {
             ...(safe.status === undefined ? {} : {status: safe.status})});
         }
         try {
-          if (!validCancellationLookup(response, cancelRef)) fail('InvalidHostCancellationLookup');
-          const owned = structuredClone(response);
+          const captured = captureResponse(response);
+          if (!validCancellationLookup(captured, cancelRef)) fail('InvalidHostCancellationLookup');
+          const owned = detachResponse(captured);
           if (!validCancellationLookup(owned, cancelRef)) fail('InvalidHostCancellationLookup');
           return freezeInput(owned);
         } catch { throw new ClientError('InvalidHostCancellationLookup', {cancelRef}); }
@@ -1542,10 +1574,12 @@ async function connectSelected(selected, port) {
     catch (cause) {
       throw submissionUnknown(context, cause);
     }
+    try { admitted = captureResponse(admitted); }
+    catch (cause) { throw submissionUnknown(context, cause); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
       try {
-        admitted = structuredClone(admitted);
+        admitted = detachResponse(admitted);
         if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId)) fail('InvalidHostAdmission');
       } catch (cause) { throw submissionUnknown(context, cause); }
       const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
@@ -1682,12 +1716,14 @@ async function connectSelected(selected, port) {
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      if (!validRequestLookup(answer, requestId)) {
+      try {
+        answer = captureResponse(answer);
+        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
+        answer = detachResponse(answer);
+        if (!validRequestLookup(answer, requestId)) fail('InvalidHostRequestLookup');
+      } catch {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      try { answer = structuredClone(answer); }
-      catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
-      if (!validRequestLookup(answer, requestId)) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       return retainRequestLookupExplanation(freezeInput(answer), context);
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
@@ -1718,6 +1754,8 @@ async function connectSelected(selected, port) {
           'outcome_unknown', 'exchange_failed');
       }
       try { answer = await controlValue(response); }
+      catch { throw uninterpretableRequestCancellation(context); }
+      try { answer = captureResponse(answer); }
       catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);

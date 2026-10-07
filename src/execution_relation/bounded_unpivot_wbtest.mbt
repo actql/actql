@@ -6,6 +6,7 @@ fn bounded_unpivot_fixture(
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
+  name_bytes? : Int = 10000,
   selected_ceiling? : Int64? = None,
 ) -> (@bounded.Control, BoundedUnpivotExecution, CompletedOutput) raise {
   let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false},\"jan\":{\"type\":\"number\",\"nullable\":true},\"feb\":{\"type\":\"number\",\"nullable\":true}" +
@@ -94,10 +95,15 @@ fn bounded_unpivot_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, source)
 }
+
+///|
+/// Three unpivot_0 scans, three transitions, amount/id/jan/metric,
+/// four name pushes and one finish. Logical resource limits are unchanged.
+let unpivot_completion_poll_steps : Int = 3 * 9 + 3 + 6 + 2 + 3 + 6 + 4 + 1
 
 ///|
 test "bounded unpivot enforces the checked expansion ceiling per step" {
@@ -145,7 +151,7 @@ test "bounded unpivot stops inside an unused nested input value" {
     max_entries=1000,
   )
   let mut measuring = false
-  for _ in 0..<50 {
+  for _ in 0..<(50 + unpivot_completion_poll_steps) {
     if !measuring {
       match advance_bounded_unpivot(execution, 1).unwrap() {
         BoundedUnpivotContinue(..) =>
@@ -281,7 +287,7 @@ test "bounded unpivot admits exact empty metadata and rejects one short" {
   // (6), two kept ordinals (2), and four output columns (4) coexist.
   let (_, exact, _) = bounded_unpivot_fixture("[]", max_rows=0, max_entries=18)
   let mut completed = false
-  for _ in 0..<60 {
+  for _ in 0..<(60 + unpivot_completion_poll_steps) {
     if !completed {
       match advance_bounded_unpivot(exact, 1).unwrap() {
         BoundedUnpivotContinue(..) => ()
@@ -301,7 +307,7 @@ test "bounded unpivot admits exact empty metadata and rejects one short" {
     max_entries=17,
   )
   let mut failed = false
-  for _ in 0..<60 {
+  for _ in 0..<(60 + unpivot_completion_poll_steps) {
     if !failed {
       match advance_bounded_unpivot(one_short, 1).unwrap() {
         BoundedUnpivotContinue(..) => ()
@@ -320,7 +326,7 @@ test "bounded unpivot admits exact empty control work and rejects one short" {
   // and output names 17 bytes: 11 + 12 + 7 + 17 = 47.
   let (_, exact, _) = bounded_unpivot_fixture("[]", max_rows=0, max_work=47)
   let mut completed = false
-  for _ in 0..<60 {
+  for _ in 0..<(60 + unpivot_completion_poll_steps) {
     if !completed {
       match advance_bounded_unpivot(exact, 1).unwrap() {
         BoundedUnpivotContinue(..) => ()
@@ -333,7 +339,7 @@ test "bounded unpivot admits exact empty control work and rejects one short" {
   assert_true(cleanup_bounded_unpivot(exact).unwrap())
   let (_, one_short, _) = bounded_unpivot_fixture("[]", max_rows=0, max_work=46)
   let mut failed = false
-  for _ in 0..<60 {
+  for _ in 0..<(60 + unpivot_completion_poll_steps) {
     if !failed {
       match advance_bounded_unpivot(one_short, 1).unwrap() {
         BoundedUnpivotContinue(..) => ()

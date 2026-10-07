@@ -12,6 +12,7 @@ fn bounded_global_count_fixture(
   output_values? : ValueLimits = run_limits().output_values,
   max_work? : Int = 100,
   max_entries? : Int = 100,
+  name_bytes? : Int = 10000,
 ) -> (@bounded.Control, BoundedGlobalCountExecution, CompletedOutput) raise {
   let schema = if count_if {
     "{\"flag\":{\"type\":\"boolean\",\"nullable\":true}}"
@@ -141,7 +142,7 @@ fn bounded_global_count_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, source)
 }
@@ -222,7 +223,10 @@ test "bounded keyed count sorts and groups at quantum one" {
     }
   }
   guard complete is Some(output) else { fail("keyed count did not progress") }
-  assert_eq(previous_work, 70L)
+  // Resumed preparation adds two target scans, one equality scan, three
+  // phase transitions, ten schema characters, three names and one finish.
+  let completion_steps = 3L * 7L + 3L + (2L + 1L + 7L) + 3L + 1L
+  assert_eq(previous_work, 70L + completion_steps)
   assert_true(polls > 20)
   assert_eq(completed_row_count(output), 2)
   assert_true(completed_cell(output, 0, 0) is Some(Null))
