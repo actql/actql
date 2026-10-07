@@ -14,6 +14,9 @@ registers; cleanup-index must reach the first stack argument without replacement
 Only the reviewed conditional skip of an `incref` call is admitted. Frame escape,
 unknown control flow, an external jump into the custody region or changed call
 count/type rejects correspondence.
+Frame checks include partial-register writes and copies into memory, as well
+as frame-derived addresses using a non-frame base with a frame index. Before
+construction, only the reviewed frame setup (mov rbp,rsp) is exempted.
 
 The actual linked Int64, Bool and Int constructors must retain the reviewed
 allocation/return sequences: one constant malloc request, SCALAR header, a

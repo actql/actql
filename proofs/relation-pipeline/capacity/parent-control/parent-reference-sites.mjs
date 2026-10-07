@@ -7,6 +7,12 @@ const roles=['used','cancelled','terminal','reclaimed','cleanupIndex'];
 const helperRoles=[referenceHelpers[0],referenceHelpers[1],referenceHelpers[1],referenceHelpers[1],referenceHelpers[2]];
 const initializers=['movabs rdi,0x0','mov edi,0x0','mov edi,0x0','mov edi,0x0','mov edi,0xffffffff'];
 const parentName=name=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
+// Partial register writes also change the full x64 frame address. Include
+// frame aliases and frame registers used as an index in an escaped address.
+const frameRegisters='(?:rbp|ebp|bp|bpl|rsp|esp|sp|spl)';
+const frameDestination=new RegExp('^(?:mov|movabs|lea) '+frameRegisters+',');
+const frameSource=new RegExp('^(?:mov|movabs) .+,'+frameRegisters+'$');
+const frameLea=new RegExp('^lea .*\\[[^\\]]*\\b'+frameRegisters+'\\b');
 
 function functions(text) {
   const functions=new Map(); let current;
@@ -73,8 +79,9 @@ function callerSites(fn,symbols) {
   const probes=ins.flatMap((i,k)=>target(i,symbols)===observer?[k]:[]);
   assert.equal(probes.length,1,'Missing or repeated actual Ref observer call');const end=probes[0],begin=indices[0]-1;
   assert(end>indices.at(-1),'Observer precedes primitive Ref construction');
-  for(const i of ins.slice(0,begin)) assert(!/^lea .*\[(?:rbp|rsp)/.test(i.op) &&
-    !/^mov (?!rbp,rsp$).*?,(?:rbp|rsp)$/.test(i.op),'Ref caller frame escaped before construction');
+  for(const i of ins.slice(0,begin)) assert(!frameLea.test(i.op) &&
+    !((frameSource.test(i.op) || frameDestination.test(i.op)) &&
+      i.op!=='mov rbp,rsp'),'Ref caller frame escaped before construction');
   const slotWrites=sites.map(s=>({...s,start:-BigInt(s.slot.slice(5,-1))}));
   const widths={BYTE:1n,WORD:2n,DWORD:4n,QWORD:8n};
   for(let k=begin;k<end;k++) {
@@ -83,8 +90,8 @@ function callerSites(fn,symbols) {
     // address, and never reassigns the five custody slots. ABI-conforming
     // calls cannot replace private caller-frame slots without such an escape.
     assert(/^(mov |movabs |lea |call |cmp |je |nop$)/.test(op),'Unsupported Ref custody instruction');
-    assert(!/^(?:mov|movabs|lea) (?:rbp|rsp),/.test(op) && !/^lea .*\[(?:rbp|rsp)/.test(op) &&
-      !/^(?:mov|movabs) [a-z0-9]+,(?:rbp|rsp)$/.test(op),'Ref caller frame escapes or changes');
+    assert(!frameDestination.test(op) && !frameLea.test(op) &&
+      !frameSource.test(op),'Ref caller frame escapes or changes');
     const write=op.match(/^mov (BYTE|WORD|DWORD|QWORD) PTR \[rbp-(0x[0-9a-f]+)\],/);
     if(/^mov [A-Z]+ PTR \[rbp/.test(op)) assert(write,'Unknown Ref frame write');
     if(write) {

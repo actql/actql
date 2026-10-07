@@ -90,3 +90,18 @@ test('missing or unsupported correspondence cannot become an established extent'
   assert.deepEqual(auditParentReferenceCode({runtime:{platform:'darwin-arm64'},parentReferenceCode:proof},startup(),'/unused',noRead),
     {status:'unresolved',completePhysicalLifetimeUpper:false});
 });
+
+test('frame subregister writes and indirect frame escapes reject before observation',()=>{
+  for(const op of ['mov ebp,eax','mov esp,eax','mov bp,ax','mov spl,al',
+    'mov QWORD PTR [rax],rbp','mov DWORD PTR [rax],esp','lea rax,[rbx+rbp*2]']) {
+    const changed=[...ops];changed.splice(25,0,op);
+    assert.throws(()=>check(assembly(parent,0x100,changed,true),
+      assembly(parent,0x1000,changed)+referenceHelpers.map(helper).join('')),/frame/);
+  }
+  for(const op of ['mov eax,ebp','mov eax,esp','mov ebp,eax','mov spl,al',
+    'mov QWORD PTR [rax],rbp','lea rax,[rbx+rbp*2]']) {
+    const changed=[op,...ops];
+    assert.throws(()=>check(assembly(parent,0x100,changed,true),
+      assembly(parent,0x1000,changed)+referenceHelpers.map(helper).join('')),/frame/);
+  }
+});
