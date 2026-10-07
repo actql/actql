@@ -139,7 +139,7 @@ const groups = [
   {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 5},
   {name: 'original-cancellation', file: 'client-cancellation-public.test.mjs', count: 4},
   {name: 'effect-cancellation', file: 'client-effect-cancellation-public.test.mjs', count: 2},
-  {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 2},
+  {name: 'submission-custody', file: 'client-submission-custody-public.test.mjs', count: 4},
   {name: 'submission-input-refusal', file: 'submission-epoch-public.test.mjs',
     pattern: 'durable known-input category|retired pre-Run history|explicit unresolved-history restart', count: 7},
   {name: 'effect-reconciliation', file: 'client-effect-uncertainty.test.mjs', count: 3},
@@ -168,8 +168,8 @@ for (const group of selectedGroups) {
   assert.equal(checked.counts.passed, group.count);
   passed += checked.counts.passed;
 }
-assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly ? 2 : submissionRefusalOnly ? 7
-  : effectReconciliationOnly ? 3 : 35);
+assert.equal(passed, cancellationOnly ? 6 : submissionCustodyOnly ? 4 : submissionRefusalOnly ? 7
+  : effectReconciliationOnly ? 3 : 37);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
@@ -180,7 +180,7 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
     ? 'submission-custody' : submissionRefusalOnly ? 'submission-input-refusal'
     : effectReconciliationOnly ? 'effect-reconciliation' : 'read-cancellation-submission-and-effect',
   cases: cancellationOnly ? {originalCancellationRecovery: 4, unknownEffectCancellationRecovery: 2}
-    : submissionCustodyOnly ? {submissionCustodyLoss: 2}
+    : submissionCustodyOnly ? {submissionCustodyLoss: 2, explicitSubmissionRestartProcessRecovery: 2}
     : submissionRefusalOnly ? {durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
       explicitSubmissionRestart: 3}
     : effectReconciliationOnly ? {originalEffectReconciliation: 3}
@@ -188,7 +188,7 @@ await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: st
       installedCapacity: 2, installedPrefixRecovery: 2, invalidCapacity: 1, originalCancellationRecovery: 4,
       unknownEffectCancellationRecovery: 2,
       submissionCustodyLoss: 2, durableSubmissionInputRefusal: 2, retiredSubmissionLookup: 2,
-      explicitSubmissionRestart: 3,
+      explicitSubmissionRestart: 3, explicitSubmissionRestartProcessRecovery: 2,
       originalEffectReconciliation: 3},
   passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
