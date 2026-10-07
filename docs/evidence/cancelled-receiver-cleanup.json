@@ -58,7 +58,6 @@
     "initialStatusHttp500Cause": "Unresolved: the captured Worker event collection is empty. Later exact replay HTTP 200 is not cause resolution."
   },
   "notVerified": [
-    "Final Native physical test execution",
     "Maintenance command execution with the original Run",
     "Formal adoption from reviewed merged main into all five Cloud packages and Native",
     "Cloud durable acceptance of the original Run's final cleanup observation",
@@ -178,5 +177,44 @@
     "originalPreparationFailurePreserved": true,
     "artifactEdited": false,
     "nativeCoverageClaimed": false
+  },
+  "currentPortableOwnerTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target js src/run_publication_host/client_retained_receiver_cleanup_wbtest.mbt",
+    "passed": 6,
+    "receipt": "focused-test-pXKgy6",
+    "scope": "Includes admission from original recorded graph/materials through the new recorded receiver API."
+  },
+  "currentExistingCleanupOwnerTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target js src/run_publication_host/client_retained_input_cleanup_wbtest.mbt",
+    "passed": 12,
+    "receipt": "focused-test-7IcsDx"
+  },
+  "currentNativePhysicalTests": {
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "command": "moon test --target native --strip --jobs 1 src/platform_native/remote_resident_host/cancelled_receiver_cleanup_native_wbtest.mbt",
+    "passed": 4,
+    "preparationLimitSeconds": 180,
+    "executionLimitSeconds": 60,
+    "preparationElapsedMs": 81058,
+    "executionElapsedMs": 2989,
+    "receipt": "native-preconsumer-cleanup-serial-be848U",
+    "scope": "Actual SQLite journal and filesystem receiver cleanup. Protocol fixture completion is not a public Native Source/Compute execution or OS-stop proof."
+  },
+  "currentNativeCommandArtifact": {
+    "version": "actql-native-build-candidate/0.1",
+    "source": "877b51bd468e47acddc8fd6e31e6ba8c06c39b72",
+    "sourceClean": true,
+    "probeOverlay": false,
+    "profile": "native-debug-strip",
+    "buildCommand": "moon build --target native --strip --jobs 1 src/cmd/native_remote_resident_site",
+    "receipt": "preconsumer-cleanup-runtime-serial-rZSiiP",
+    "sha256": "5137bcd03a9f17d301d60c112f154df3ffd3b6b103cbe98d4bc4c5a2430eb3ed",
+    "bytes": 21073104,
+    "formalAdoption": false,
+    "originalRunRecoveryExecuted": false,
+    "preparationLimitSeconds": 180,
+    "preparationElapsedMs": 53628
   }
 }

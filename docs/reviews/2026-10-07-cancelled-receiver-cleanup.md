@@ -46,7 +46,17 @@ Cloud's durable acceptance or the original Run's formal cancellation terminal.
 ## Remaining acceptance
 
 See [the evidence record](../evidence/cancelled-receiver-cleanup.json) for exact
-executed and unexecuted scopes. The final Native test build exceeded its bounded
+executed and unexecuted scopes. At clean runtime/test source
+`877b51bd468e47acddc8fd6e31e6ba8c06c39b72`, ordinary portable Owner tests pass
+6/6, including original recorded-graph admission, and existing cleanup tests
+pass 12/12. With build parallelism limited to one, the final four Native
+SQLite/filesystem tests pass within the unchanged 180-second preparation and
+60-second execution bounds. The normal stripped Native command also builds
+within its 180-second bound. Its source and binary digest are recorded, but
+it is a branch candidate and has not executed the original failed Run.
+
+The following preparation failures remain historical evidence; they are not
+reported as current assertions or current Native test failures. The final Native test build exceeded its bounded
 preparation deadline; the previous executable was not reused. Caller compilation
 and portable Owner tests passed before main integration. At the integrated
 source, Native caller checking and interface generation pass, but the portable
