@@ -12,7 +12,7 @@ import {inspect} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
-import {connectEmbeddedLocal} from './embedded-local.mjs';
+import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 
 const baseWire = (await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8')).trimEnd();
@@ -107,6 +107,170 @@ async function terminal(run, observations, t) {
     await delay(20, undefined, {signal});
   }
 }
+
+test('Table public lost commit reply reconciles the original Run without another write', async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
+  const launcher = join(f.root, 'lost-commit-reply');
+  // The configured optional Python executable runs the product worker. Only
+  // the real Catalog's post-commit hook is faulted; no receipt is fabricated.
+  await writeFile(launcher, `#!${python}
+import os, sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from process_worker import serve
+root = Path(__file__).parent
+def factory(*args):
+    # Match the product worker: optional heavy libraries load after handshake.
+    from catalog import TableCatalog
+    class LostReplyCatalog(TableCatalog):
+        def write_claimed(self, *args, **kwargs):
+            with (root / "writes.log").open("a") as stream:
+                stream.write("write\\n")
+            return super().write_claimed(*args, **kwargs)
+        def after_publication(self):
+            marker = root / "lost-reply"
+            if not marker.exists():
+                marker.write_text("committed")
+                os._exit(9)
+    return LostReplyCatalog(*args)
+with os.fdopen(3, "r+b", buffering=0) as channel:
+    serve(channel, factory)
+`, {mode: 0o700});
+  const effectProfilePath = join(f.root, 'table-effect.json');
+  const profile = {version: 'actql-installed-table-effect/0.1',
+    connectorId: 'table', connection, python: launcher, catalog: f.catalog,
+    accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'],
+      footprint: {kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}],
+    limits: {reservation: {bytes: 1048576, files: 16}}};
+  await writeFile(effectProfilePath, JSON.stringify(profile));
+  const keys = generateKeyPairSync('ed25519'), observations = [];
+  const authorization = {accountConfiguration: account(),
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    reviewReaders: [userInfo().username],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'host'), effectProfilePath, authorization}};
+  let client = await connectEmbeddedLocal(options);
+  try {
+    const input = JSON.stringify(program(expectedRows, 'table-lost-reply'));
+    let run = await client.aql(input, {format: 'json', requestId: 'table-lost-reply'});
+    await waiting(run, observations, t);
+    assert.equal(commits(f.catalog).length, 0, 'No write before approval');
+    const checkpoint = (await client.checkpoints()).items[0];
+    await client.resolveCheckpoints([{checkpoint, decision: 'approved'}], {signer: {
+      keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: run.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, keys.privateKey)}});
+    assert.equal((await terminal(run, observations, t)).status, 'needs_reconciliation');
+    const original = commits(f.catalog);
+    if (original.length !== 1) {
+      const read = name => readFile(join(f.root, name), 'utf8')
+        .catch(error => ({unavailable: error.code}));
+      t.diagnostic(inspect({phase: 'fault-not-reached', state: await run.status(),
+        commits: original, writes: await read('writes.log'),
+        fault: await read('lost-reply'), observations}, {depth: 10}));
+    }
+    assert.equal(original.length, 1, 'Catalog actually committed before reply loss');
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\n');
+    t.diagnostic(JSON.stringify({phase: 'committed-reply-lost', ref: run.ref,
+      originalCommit: original[0]}));
+    const ref = run.ref;
+    await client.close();
+    // Advance the Table head through a different approved public operation
+    // before resolving the original uncertainty. Head equality cannot prove
+    // the first operation's outcome; its own durable commit record must.
+    const replacementPath = join(f.root, 'replacement-effect.json');
+    await writeFile(replacementPath, JSON.stringify({...profile,
+      targets: profile.targets.map(target => ({...target, action: 'replace',
+        expectedTable: {table_uuid: original[0].receipt.table_uuid,
+          generation_cid: original[0].receipt.generation_cid}}))}));
+    const replacement = await connectEmbeddedLocal({...options,
+      installation: {...options.installation,
+        directory: join(f.root, 'replacement-host'), effectProfilePath: replacementPath}});
+    try {
+      const replaced = await replacement.aql(JSON.stringify(program([{id: 9, tag: null}],
+        'table-later-replacement')), {format: 'json', requestId: 'table-later-replacement'});
+      await waiting(replaced, observations, t);
+      const laterCheckpoint = (await replacement.checkpoints()).items[0];
+      await replacement.resolveCheckpoints([{checkpoint: laterCheckpoint, decision: 'approved'}], {signer: {
+        keyId: 'reviewer', reviewerId: 'reviewer', authorityScopeCid: replaced.ref.authorityScopeCid,
+        sign: bytes => sign(null, bytes, keys.privateKey)}});
+      assert.equal((await terminal(replaced, observations, t)).status, 'succeeded');
+      assert.deepEqual(await replaced.result('answer').all(), [{id: 9, tag: null}]);
+    } finally { await replacement.close(); }
+    const afterReplacement = commits(f.catalog);
+    assert.equal(afterReplacement.length, 2);
+    assert.deepEqual(afterReplacement.find(item => item.operation.request_cid ===
+      original[0].operation.request_cid), original[0]);
+    const head = await f.bridge.resolveGeneration({catalog_identity_cid: f.catalog.catalogCid,
+      namespace: ['test'], table_name: 'rows', table_uuid: original[0].receipt.table_uuid,
+      schema_cid: original[0].receipt.schema_cid});
+    assert.equal(head.ok, true);
+    assert.notEqual(head.result.receipt.generation_cid, original[0].receipt.generation_cid);
+    client = await connectEmbeddedLocal(options);
+    run = await client.attach(ref);
+    assert.equal((await run.status()).status, 'needs_reconciliation');
+    let reconciled;
+    try { reconciled = await Promise.all([run.reconcile(), run.reconcile()]); }
+    catch (error) {
+      t.diagnostic(inspect({phase: 'public-reconcile', error, observations}, {depth: 10}));
+      throw error;
+    }
+    assert.deepEqual(reconciled.map(state => state.status), ['succeeded', 'succeeded']);
+    assert.deepEqual(commits(f.catalog), afterReplacement);
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n',
+      'Unknown commit is never resent');
+    assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
+    await client.close();
+    client = await connectEmbeddedLocal(options);
+    run = await client.attach(ref);
+    assert.equal((await run.reconcile()).status, 'succeeded');
+    assert.deepEqual(multiset(await run.result('answer').all()), multiset(expectedRows));
+    assert.deepEqual(commits(f.catalog), afterReplacement);
+    assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n');
+  } finally { await client.close(); }
+});
+
+test('Table installed HTTP Host retires capture custody before completing close', async t => {
+  const f = await tablePhysicalFixture(t), declared = declaration();
+  const effectProfilePath = join(f.root, 'table-effect-close.json');
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-table-effect/0.1', connectorId: 'table', connection,
+    python: process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url)),
+    catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'],
+      footprint: {kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}], limits: {}}));
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const host = await openInstalledRemoteHttpHost({directory: join(f.root, 'http-host'),
+    authenticate: () => principalId, effectProfilePath, authorization: {
+      accountConfiguration: account(), reviewReaders: [principalId],
+      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+      hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+    }}).catch(error => {
+      t.diagnostic(inspect(error, {depth: 8}));
+      throw error;
+    });
+  const first = await host.close();
+  assert.equal(first.storeCleanupPending, false);
+  assert.equal(first.authorizationCleanupPending, false);
+  assert.deepEqual(first.pendingRetention, []);
+  assert.deepEqual(await host.close(), first, 'Repeated close completes without reopening or re-retiring');
+  assert.equal(commits(f.catalog).length, 0, 'Closing an installed writer sends no operation');
+});
 
 for (const rows of [expectedRows, []]) {
 test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create'} resume approval and survive Host close`, async t => {
