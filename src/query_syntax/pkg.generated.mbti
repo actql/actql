@@ -306,7 +306,7 @@ pub(all) struct GraphQuery {
 
 pub(all) enum GroupingScope {
   SqlSelect
-  PipeAggregate
+  PipeAggregate(Array[NamePart?])
 } derive(Eq)
 
 pub(all) struct InferClause {
