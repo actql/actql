@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 // Independent command inventory: runtime preparation keeps its build, type,
@@ -60,8 +61,8 @@ const packages = {
     stale: 'StaleRemoteTransferPackage'},
   'local-node': {builder: 'build-local-node-assets', args: [],
     sources: ['connectors_builtin_node', 'connectors/duckdb/host_node',
-      'connectors/salesforce/host_node', 'retained_host_bridge',
-      'process_host_bridge', 'checkpoint_runtime_node'],
+      'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node',
+      'connectors/github/host_node', 'connectors/salesforce/host_node'],
     destination: 'packages/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
     stale: 'StaleLocalNodeAsset'},
 };
@@ -71,14 +72,41 @@ function put(directory, path, contents) {
   writeFileSync(join(directory, path), contents);
 }
 
-function run(t, requested, {fail, wrapper, version, temporaryParent = tmpdir()} = {}) {
+function run(t, requested, {fail, wrapper, version, additionalProvider = false, temporaryParent = tmpdir()} = {}) {
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
+    'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }
+  put(directory, 'adapters/host-common/http-exchange.mjs',
+    readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
+  for (const entry of readHostBundles(root)) {
+    for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
+      `src/${entry.providerBundle}/moon.pkg`, entry.source.module,
+      ...(entry.effect === undefined ? [] : [entry.effect.module]), ...entry.assets]) {
+      put(directory, path, readFileSync(join(root, path)));
+    }
+  }
+  if (additionalProvider) {
+    put(directory, 'src/connectors/third/host-bundle.json', JSON.stringify({installation: {
+      registration: 'third', revision: 'third/0.1', responseHeaders: [],
+      providerBundle: 'connectors/third/host_node',
+      source: {profileVersion: 'actql-installed-third-source/0.1',
+        module: 'adapters/connectors/third/host/source.mjs',
+        exports: {check: 'check', identityParts: 'identity', load: 'load'}}}}));
+    put(directory, 'src/connectors/third/host_node/moon.pkg',
+      'supported_targets = "js"\npkgtype(kind: "foreign_library")\n');
+    put(directory, 'adapters/connectors/third/host/source.mjs',
+      'export function check() {}\nexport function identity() {}\nexport function load() {}\n');
+    put(directory, '_build/js/release/build/connectors/third/host_node/host_node.js',
+      'export const third = "independent-provider-fixture";\n');
+  }
+  put(directory, 'adapters/connectors-builtin/installations.generated.mjs',
+    generateInstallations(readHostBundles(directory),
+      join(directory, 'adapters/connectors-builtin/installations.generated.mjs'), directory));
   put(directory, 'scripts/owned-contract-version-legacy.json',
     JSON.stringify({version: 1, baseline: '0.1', entries: []}));
   // Use the real package builders and installed esbuild; only the MoonBit
@@ -179,6 +207,12 @@ distribution[3] = distribution[3].replace(
   'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-read-progress.test.mjs ',
 );
 
+// Workspace assertion checks remain in main's existing distribution gate.
+distribution[3] = distribution[3].replace(
+  'adapters/host-node/in-process-client.test.mjs ',
+  'adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs ',
+);
+
 // Original-attempt recovery shares that runtime and distribution job.
 distribution[3] = distribution[3].replace(
   'adapters/host-node/client-read-progress.test.mjs ',
@@ -247,6 +281,24 @@ distribution[3] = distribution[3].replace(
 );
 distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs'),
   0, 'node scripts/test-packed-local-without-duckdb.mjs');
+
+// Preserve already-adopted Graph and cancellation registrations. The old
+// inventory was independently reproduced as stale on the unchanged base.
+distribution[3] = distribution[3].replace(
+  'scripts/packed-client-packages.test.mjs ',
+  'scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs ',
+).replace('packages/client-wire/index.test.mjs ',
+  'packages/client-wire/index.test.mjs packages/client-wire/cancel-identity.test.mjs '
+).replace('packages/sdk/index.test.mjs ',
+  'packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs '
+).replace('adapters/host-node/client-cancel-response-loss.test.mjs ',
+  'adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs ');
+// Workspace packed acceptance follows the original Node package boundary.
+distribution.splice(distribution.indexOf('node scripts/test-node-client-package.mjs') + 1,
+  0, 'node scripts/test-packed-workspace-connection.mjs');
+expectedGates['check:local-node-assets'].splice(3, 0,
+  'node --test scripts/local-node-package-inputs.test.mjs scripts/local-node-table-assets.test.mjs');
+expectedGates['check:local-node-assets'].push('node scripts/test-packed-installed-connectors.mjs');
 
 test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
   const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
@@ -325,6 +377,17 @@ for (const name of Object.keys(packages)) {
       (name === 'local-node' ? ' && node ../../scripts/build-local-node-adapters.mjs' : ''));
   });
 }
+
+test('a new Host manifest drives both the actual build command and copied runtime', t => {
+  const {result, calls, directory} = run(t, ['local-node'], {additionalProvider: true});
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(calls[0].args, ['build', '--target', 'js', '--release',
+    ...packages['local-node'].sources.map(source => `src/${source}`),
+    'src/connectors/third/host_node']);
+  assert.match(readFileSync(join(directory,
+    'packages/local-node/_build/js/release/build/connectors/third/host_node/host_node.js'),
+  'utf8'), /independent-provider-fixture/);
+});
 
 test('the existing cold pack runner executes this regression and still packs all four packages', () => {
   const source = readFileSync(join(root, 'scripts/test-runtime-package-build.mjs'), 'utf8');

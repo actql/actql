@@ -5,11 +5,9 @@ import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {occurrences, violations} from './check-owned-contract-versions.mjs';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const local = ['connectors_builtin_node', 'connectors/duckdb/host_node',
-  'connectors/salesforce/host_node',
-  'retained_host_bridge', 'process_host_bridge', 'checkpoint_runtime_node'];
 const packages = {
   'run-host-core': {sources: ['client_values_host_abi'],
     script: 'build-run-host-core-package', args: ['--runtime-only'],
@@ -20,8 +18,11 @@ const packages = {
   'transfer-core': {sources: ['remote_transfer_abi'],
     script: 'build-remote-transfer-package',
     files: ['packages/transfer-core/dist/remote_transfer_abi.js']},
-  'local-node': {sources: local, script: 'build-local-node-assets',
-    files: local.map(path => `packages/local-node/_build/js/release/build/${path}/${path.split('/').at(-1)}.js`)},
+  get 'local-node'() {
+    const local = localNodePackageInputs(root);
+    return {sources: local.runtimePackages, script: 'build-local-node-assets',
+      files: local.runtimeFiles.map(path => `packages/local-node/_build/js/release/build/${path}`)};
+  },
 };
 const requested = process.argv.slice(2);
 for (const name of requested) {
