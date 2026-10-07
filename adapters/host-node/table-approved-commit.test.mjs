@@ -8,6 +8,7 @@ import {generateKeyPairSync, sign} from 'node:crypto';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
+import {authorTableOperationPreview} from './table-operation-preview.mjs';
 import {ensureCheckpointRuntime, accountConfiguration, accountEntry} from './authorization-fixture.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {signedAnswer} from '../../packages/sdk/checkpoints.mjs';
@@ -45,6 +46,29 @@ for (const empty of [false, true]) {
       minimumApproval: 'required', onTablePreview: async f => {
         ensureCheckpointRuntime();
         const {moon, sourceControl: control, effect, tableLimits: limits} = f;
+        // Production authoring consumes the actual checked descriptors and
+        // captured owners. The independently authored fixture remains the
+        // oracle for operation material, not the installed Preview producer.
+        const authored = authorTableOperationPreview({moon, control,
+          prepared: f.prepared, inputs: f.inputs, checkedHost: f.checkedHost,
+          requestScope: f.scope,
+          context: {runDefinition: f.definition, runInvocation: f.invocation,
+            compiledPlan: f.evidence[3], storeAuthorityCid: f.store.storeAuthorityCid},
+          members: f.sources.members.map((source,index) => ({
+            stageIndex: 0, effectId: index === 0 ? 'first' : 'second',
+            payload: source.payload, target: {targetRef: target, mappingRef,
+              mappingCid: f.fixture.mappingCid, action: 'create', catalogCid: cid('3'),
+              namespace: ['analytics'], tableName: `rows_${index}`, expectedTable: null,
+              capabilityCid: cid('d'), permissions: ['write'],
+              footprint: f.template.effects[index].write_footprint}})),
+          limits: {maxMembers: 2, maxFields: 100, planWork: 1000, material: limits,
+            preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 16},
+            key: {maxBytes: 128, maxNodes: 8, maxDepth: 3}}});
+        assert.deepEqual(authored.operations, f.operations);
+        f = {...f, captured: authored.capturedInputs,
+          identity: authored.identities[0], tableInput: authored.tableInputs[0],
+          tablePreview: authored.tablePreviews[0],
+          template: JSON.parse(authored.wire), authored: {_0: authored.wire, _1: authored.keys}};
         const publicationPreview = control.admitEffectComputationPreview(f.authored._0,
           control.admit('run_definition', moon.strategyPublicationContractJson(f.definition),
             f.options.contractLimits),

@@ -5899,6 +5899,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
               captured, 0);
             await onTablePreview?.({moon, control, sourceControl: issuerControl,
               effect, prepared, inputs, artifact, identity, sources, store,
+              checkedHost: owned,
               captured, tableInput, tablePreview, template, authored, bindPreview,
               operations, scope, storage, directory, options, definition,
               invocation, fixture, tableLimits, execution, evidence, observation, outputLimits,
