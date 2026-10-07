@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "public-read-121-run-registration",
+  "kind": "change",
+  "revision": "1d2a3e6f769963b4321ad4018bb3bf1dde4e9479",
+  "parents": [
+    "6123d45fc5ab2d41951273f0271cb19b2e54c541"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "6123d45fc5ab2d41951273f0271cb19b2e54c541",
+          "digest": "bdcb916256057c166f6472283666981d1fbd84362b606ba3a42797c4b49e8a4a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dfa2b21aca0e82af0ad132377ed8cc05eaac23c347d5f8aa3a7177c59f1e49b8",
+      "afterMode": "100644",
+      "reason": "Register independently authored 121-row successful Run interruption, original attempt lookup, explicit new read, installed finite row capacity and original-profile custody tests in the existing distribution acceptance. Reuse the exact packed Client installation and existing opening-loss and durable-receipt regressions without adding a job or changing prior evidence."
+    }
+  ]
+}
