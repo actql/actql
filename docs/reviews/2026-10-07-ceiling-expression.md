@@ -170,3 +170,29 @@ its fixed SHA and rerun this same public selection from normal distributions.
 The failed invocation is not a substitute for those obligations or CI success.
 The submitted follow-up documentation commit does not change package build
 inputs; no public success is attributed to that later HEAD.
+
+## Subsequent main integration
+
+Main advanced while the fixed distribution was being exercised. Adopted the
+additional main `0d65b7bb0e06f788b993fa2fb66ae99713b6a97e` by normal merge,
+without conflicts or rewriting existing declarations/pins. This includes the
+merged delimiter-chunk unit #718, row-metadata preparation and new common Table
+contracts. These changes are not represented by the earlier aa25a4206 package
+manifest; no old package/Run identity is reinterpreted as the integrated HEAD.
+
+On the integrated source, the same focused JS selection passed 6/6
+(`_build/focused-evidence/focused-test-tCJdyf`) and Node selection passed 6/6
+(`_build/focused-evidence/focused-test-du9yEp`). JS ran at unpublished merge
+`7f5701ecdf57868bc9f27a25c39f183dc24f739f`; its title was corrected to Conventional
+Commits before publication, yielding `2565f2aa0aa190fcc75b0b48b7e6a081a3957d40`.
+Both Git trees are exactly `5061504534679620024e8b7a5f55bbb74ea7ed54`; the Node
+check ran at the latter SHA. No source was edited during either gate. The final
+report commit changes only this documentation. The integrated HEAD has not been
+repacked or publicly accepted; the existing floor execution gap remains open.
+
+Automatic CI for the pre-integration submitted
+`1cdacab7a66a3fd2ab49be70891135ca79a87d7f` completed with
+[run 37556896889](https://github.com/actql/actql/actions/runs/37556896889).
+`select-targets` failed with no steps, final `check` failed and all 26 other jobs
+were skipped. This is not product-job success or evidence that the new code
+caused the startup failure. No manual rerun was requested.
