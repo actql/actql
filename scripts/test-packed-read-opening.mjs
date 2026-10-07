@@ -99,7 +99,7 @@ for (const path of support) {
         "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
         "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
     }
-    text = text.replace(/from (['"])([^'"]+)\1/gu, (original, quote, specifier) => {
+    text = text.replace(/from\s+(['"])([^'"]+)\1/gu, (original, quote, specifier) => {
       if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
