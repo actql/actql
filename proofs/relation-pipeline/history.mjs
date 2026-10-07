@@ -90,6 +90,8 @@ const compositionFoundation = ['foundation.mjs', 'foundation.test.mjs',
   'mutation-actions.mjs', 'mutation-actions.test.mjs',
   'mutation-action-archive.mjs', 'mutation-action-archive.test.mjs', 'mutation-action-final.mjs',
   'pristine-replay.mjs', 'pristine-replay.test.mjs',
+  'execution-original.mjs', 'fixed-js-scope.mjs', 'fixed-js-replay.mjs',
+  'fixed-js-replay.test.mjs', 'fixtures/fixed-js-original.mjs',
   'fixtures/mutation-action-sample.mjs',
   'capacity/finish.mjs', 'executor-close.test.mjs'].map(path => `proofs/relation-pipeline/${path}`);
 export function currentFoundation(root) {

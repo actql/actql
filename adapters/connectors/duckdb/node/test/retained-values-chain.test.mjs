@@ -264,6 +264,8 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
   let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
+  let receiptProgress;
+  const receiptTrace = [];
   const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
@@ -348,6 +350,26 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                 }
                 return stopped;
               };
+              if (name === 'advance_finalization' && mode === 'cancel-during-receipt') {
+                return quantum => {
+                  const result = operation.advance_finalization(Math.min(quantum, 1));
+                  if (dispatch === observedDispatch && result.$tag === 1 &&
+                      receiptTrace.length < 32) {
+                    receiptTrace.push({progress: result._0.progress,
+                      complete: result._0.complete, material: operation.material() != null});
+                  }
+                  if (dispatch === observedDispatch && result.$tag === 1 &&
+                      !scheduled && !result._0.complete &&
+                      result._0.progress === 4n && operation.material() == null) {
+                    // Two output rows, then row/column receipt-copy roots.
+                    // The old atomic issuer cannot reach this observation.
+                    receiptProgress = result._0.progress;
+                    scheduled = true;
+                    setTimeout(() => cancellation.abort(), 0);
+                  }
+                  return result;
+                };
+              }
               if (name !== 'advance') return Reflect.get(operation, name, receiver);
               return quantum => {
                 const result = operation.advance(Math.min(quantum, 1));
@@ -457,7 +479,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       });
     });
     await use({setup, plan, retained, publication, leases, captured,
-      observations: () => ({dispatches, producerWork, sawStop, scheduled,
+      observations: () => ({dispatches, producerWork, sawStop, scheduled, receiptProgress, receiptTrace,
         appendsFailed, finalizationsFailed}),
       permitCleanup() { permitCleanup = true; },
       async run() {
@@ -568,15 +590,21 @@ for (const {name, family, mode, cancelDispatch} of [
     family: 'events', mode: 'cancel-after-progress', cancelDispatch: 3},
   {name: 'installed retained Vectors cancels after the Relation Bridge',
     family: 'vectors', mode: 'cancel-after-progress', cancelDispatch: 5},
+  {name: 'installed retained Events cancels during Relation receipt preparation',
+    family: 'events', mode: 'cancel-during-receipt', cancelDispatch: 5},
   {name: 'installed retained Events rejects a later filter arithmetic failure',
     family: 'events', mode: 'arithmetic'},
 ]) {
   test(name, async () => retainedRun(familyProgram(family,
-    mode === 'arithmetic' ? '1 / (id - id) > 0' : 'id >= 1'),
+    mode === 'arithmetic' ? '1 / (id - id) > 0'
+      : mode === 'cancel-during-receipt' ? 'id >= 2' : 'id >= 1'),
   async ({run, plan, publication, observations, permitCleanup}) => {
     let execution;
-    await assert.rejects(run(), error => {
-      assert.equal(error.code, 'CapturedRunPublicationFailed');
+    await assert.rejects(async () => {
+      await run();
+      assert.fail(`Unexpected publication: ${inspect(observations().receiptTrace)}`);
+    }, error => {
+      assert.equal(error.code, 'CapturedRunPublicationFailed', error.message);
       execution = error.execution;
       return true;
     });
@@ -594,6 +622,9 @@ for (const {name, family, mode, cancelDispatch} of [
       assert.equal(observations().scheduled, true);
       assert.equal(observations().sawStop, true);
       assert.equal(execution.failure.name, 'AbortError');
+      if (mode === 'cancel-during-receipt') {
+        assert.equal(observations().receiptProgress, 4n);
+      }
     } else if (mode === 'arithmetic') {
       assert.equal(observations().dispatches, 5);
       assert.equal(fixture.strategyFixtureManagedFilterArithmetic(

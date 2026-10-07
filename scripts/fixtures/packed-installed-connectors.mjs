@@ -22,7 +22,7 @@ for (const entry of installedConnectors) {
   assert.ok(url.href.startsWith(pathToFileURL(root).href));
   const runtime = await import(url.href);
   assert.ok(Object.keys(runtime).length > 0, entry.name);
-  assert.ok((await entry.source.load()).load instanceof Function);
+  if (entry.source) assert.ok((await entry.source.load()).load instanceof Function);
   if (entry.effect) assert.ok((await entry.effect.load()).load instanceof Function);
   providers.push(entry.name);
 }

@@ -66,7 +66,7 @@ for (const entrance of ['local', 'https']) {
             observeSubmission: (stage, error) => console.log('READ_121_SUBMISSION', entrance, stage,
               error === undefined ? '' : inspect(error, {depth: 8}))});
         const host = await connectOpeningHost(fixture, entrance, directory);
-        let release, ref, attemptId, observed, originalPolicy, completeAttempt, failure, explanation;
+        let release, ref, submissionRef, attemptId, observed, originalPolicy, completeAttempt, failure, explanation;
         const yielded = new Promise(resolve => {release = resolve;});
         if (consumer === 'all') release();
         fixture.beforeRow(async index => {
@@ -76,10 +76,11 @@ for (const entrance of ['local', 'https']) {
           throw new Error('InjectedPhysicalRowInterruption');
         });
         try {
-          const run = await host.client.start(program, {requestId: 'read-121-run'});
+          submissionRef = host.client.newSubmission({nonce: 'read-121-run'});
+          const run = await host.client.start(program, {submissionRef});
           ref = run.ref;
           assert.equal((await run.status()).status, 'succeeded');
-          assert.deepEqual((await host.client.lookupRequest('read-121-run')).ref, ref);
+          assert.deepEqual((await host.client.lookupSubmission(submissionRef)).admission.ref, ref);
           const result = run.result('answer');
           const description = await result.describe();
           assert.deepEqual(description.columns, [{name: 'id', contract: {type: 'number', nullable: false}}]);
@@ -157,7 +158,7 @@ for (const entrance of ['local', 'https']) {
         try {
           const log = execFileSync(process.execPath, [fileURLToPath(new URL('./client-read-opening-restart.fixture.mjs', import.meta.url)),
             JSON.stringify({directory, entrance, ref, attemptId, output,
-              requestId: 'read-121-run', newRead: true})], {timeout: 15000, stdio: 'pipe', encoding: 'utf8'});
+              submissionRef, newRead: true})], {timeout: 15000, stdio: 'pipe', encoding: 'utf8'});
           await writeFile(join(directory, 'restart.log'), log);
         } catch (error) {
           const log = `${error.stdout ?? ''}\n${error.stderr ?? ''}`;
@@ -167,7 +168,8 @@ for (const entrance of ['local', 'https']) {
         const restored = JSON.parse(await readFile(output, 'utf8'));
         assert.deepEqual(restored.ref, ref);
         assert.equal(restored.status, 'succeeded');
-        assert.deepEqual(restored.request.ref, ref);
+        assert.deepEqual(restored.request.admission.ref, ref);
+        assert.deepEqual(restored.request.submissionRef, submissionRef);
         assert.deepEqual(restored.first, observed);
         assert.deepEqual(restored.second, observed);
         assert.deepEqual(restored.valuesHostPolicyOriginal, originalPolicy);

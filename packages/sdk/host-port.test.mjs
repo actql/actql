@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {connectInProcess} from './host-port.mjs';
 import {ClientError} from './index.mjs';
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const ref = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
   runDefinitionCid: cid('b')};
 const profile = {version: 'actql-client-host/0.1',
   mode: 'local', owner: 'local', durability: 'volatile',
-  scopeRef: 'local-scope', capabilities: ['aql-document'],
+  scopeRef: 'local-scope', capabilities: ['aql-document'], submissionEpoch,
   limits: {maxReadWireBytes: 256, maxRowWireBytes: 128,
     maxRowRetainedValueBytes: 512, maxRetainedValueBytes: 1024,
     maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 1024}};
@@ -24,9 +25,8 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     const port = {async perform(operation, request, signal) {
       calls.push({operation, request});
       if (operation === 'connect') return profile;
-      if (operation === 'submit' || operation === 'attach') {
-        return admission;
-      }
+      if (operation === 'submit-intent') return readySubmission(request, admission);
+      if (operation === 'attach') return admission;
       if (operation === 'read') {
         assert.equal(request.format, 'typed');
         return {kind: 'rows', frames: (async function* () {
@@ -41,7 +41,7 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       port);
     const execution = await client.startSource('{"version":"actql/0.1"}',
-      {format: 'json', requestId: 'local-request'});
+      {format: 'json', submissionRef: originalSubmission('local-request')});
     const result = execution.result('answer');
     assert.deepEqual(await result.all(), [
       {id: 1, label: null}, {id: 2, label: 'two'},
@@ -59,12 +59,13 @@ test('one Client facade reads typed Local frames without HTTP or JSONL',
       error.attemptId === partial.attemptId);
     assert.deepEqual(prefix, [{id: 1, label: null}]);
     assert.equal(partial.state(), 'prefix');
-    assert.equal(calls.filter(call => call.operation === 'submit').length, 1);
+    assert.equal(calls.filter(call => call.operation === 'submit-intent').length, 1);
     assert.equal(calls.filter(call => call.operation === 'read').length, 4);
     assert.equal(calls.filter(call => call.operation === 'cancel').length, 0);
     assert.deepEqual(calls[1].request, {connection: {
       mode: 'local', owner: 'local', consentRefs: [], runners: [],
-    }, requestId: 'local-request', kind: 'aql',
+    }, submissionRef: originalSubmission('local-request'),
+    intentCid: 'sha256:a864f0d32df74b3483b14834268c1d961c44696307ddc5538fb4e5458ffa81b0', kind: 'aql',
     input: {text: '{"version":"actql/0.1"}', format: 'json'},
     parameters: null});
     assert.equal(network.mock.callCount(), 0);
@@ -78,13 +79,13 @@ test('in-process submit uncertainty retains the request ID', async () => {
       throw new Error('AcceptanceResponseLost');
     }});
   await assert.rejects(client.start({version: 'actql/0.1'},
-    {requestId: 'saved-local-id'}), error =>
+    {submissionRef: originalSubmission('saved-local-id')}), error =>
     error.code === 'SubmissionUnknown' &&
     error.requestId === 'saved-local-id');
   client.close();
 });
 
-test('in-process Host rejection does not masquerade as uncertain submit',
+test('an unrecorded in-process Host error cannot establish submission nonacceptance',
   async () => {
     const client = await connectInProcess({mode: 'local', owner: 'local'},
       {async perform(operation) {
@@ -92,8 +93,8 @@ test('in-process Host rejection does not masquerade as uncertain submit',
         throw new ClientError('ClientRequestIntentConflict');
       }});
     await assert.rejects(client.start({version: 'actql/0.1'},
-      {requestId: 'conflicting-local-id'}),
-    {code: 'ClientRequestIntentConflict'});
+      {submissionRef: originalSubmission('conflicting-local-id')}),
+    {code: 'SubmissionUnknown'});
     client.close();
   });
 

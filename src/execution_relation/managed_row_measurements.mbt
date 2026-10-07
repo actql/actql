@@ -128,6 +128,7 @@ pub fn enable_managed_row_measurements(
 ) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open ||
     stream.reading ||
+    stream.finish_started ||
     stream.rows != 0 ||
     stream.row_measurements is Some(_) {
     return Err(Closed)

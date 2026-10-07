@@ -98,7 +98,7 @@ export function installNodeClientEffectRun({moon,
       return wire === undefined ? undefined : Object.freeze(JSON.parse(wire));
     },
     async accept({prepared, authorityScopeCid, requestId, namespaceId,
-      principalId, connection, lookupExpiresAt}) {
+      principalId, connection, lookupExpiresAt, submission}) {
       // Authentication/current acceptance authority precedes even lookup, so
       // a caller cannot infer the presence of another caller's request.
       const policy = await authorizeRequest(Object.freeze({prepared,
@@ -109,7 +109,7 @@ export function installNodeClientEffectRun({moon,
       if (identity === undefined) throw denied();
       const compiled = () => compile(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
-        namespaceId, lookupExpiresAt,
+        namespaceId, lookupExpiresAt, submission,
         issueDefinition() {
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.

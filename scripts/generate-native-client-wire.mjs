@@ -44,6 +44,7 @@ export function nativeClientWire(schemas, rules, requestRules) {
       if (schema.maxLength !== undefined) lines.push(`if text.length() > ${schema.maxLength} { return false }`);
       if (schema.pattern === '^[^\\u0000-\\u001f\\u007f]+$') lines.push('if text.is_empty() { return false }', 'for character in text { if character.to_int() < 32 || character.to_int() == 127 { return false } }');
       else if (schema.pattern === '^sha256:[0-9a-f]{64}$') lines.push('if text.length() != 71 || !text.has_prefix("sha256:") { return false }', 'for character in text[7:] { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
+      else if (schema.pattern === '^[0-9a-f]{64}$') lines.push('if text.length() != 64 { return false }', 'for character in text { if !((character >= \'0\' && character <= \'9\') || (character >= \'a\' && character <= \'f\')) { return false } }');
       else if (schema.pattern !== undefined) throw new Error(`UnsupportedNativeWirePattern:${schema.pattern}`);
     } else if (schema.type === 'integer') {
       lines.push('guard value is Number(number, ..) else { return false }', 'if number != number.floor() || number < -9007199254740991.0 || number > 9007199254740991.0 { return false }');
@@ -65,7 +66,8 @@ export function nativeClientWire(schemas, rules, requestRules) {
     functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['connection','profile','admission','run_ref',
+  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup',
+    'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');

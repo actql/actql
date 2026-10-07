@@ -1675,3 +1675,11 @@ escaping preserves references as data. No lookup, retry, cancellation, read or
 Compute occurs during formatting. Existing operation translation identity and
 wire contracts are unchanged. This connects the bounded failure-display path,
 not the full observation cursor/composite contract or cumulative diagnostics.
+
+Short source queries connect their fresh failure wrapper to the already owned
+Run-observation explanation and submitted-input snapshot. The connection uses
+private object identity, not cause traversal, error codes or message parsing.
+`QueryObservationUnknown` therefore supports the same passive explanation and
+formatter directly. Valid failed, cancelled, blocked or pending observations
+retain the original input without acquiring a failed-observation explanation.
+Copies cannot recover either association; no retry or additional I/O is added.
