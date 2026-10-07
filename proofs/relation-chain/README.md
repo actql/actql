@@ -192,13 +192,15 @@ and used work 1, one Compute entry and a stopped but still owed child. No theore
 claims that total reported work is bounded by productive `max_work`.
 
 `StopClaims.lean` independently fixes the application types. The existing
-checker executes all 14 Session, 22 prompt-chain and 14 stop-inclusive laws and
+checker executes all 14 Session, 22 prompt-chain and 18 stop-inclusive laws and
 audits their axioms. Weakening terminal-work accounting, productive budget,
 request/stop separation or stopping no-Compute conclusions fails real Lean
 admission. Natural counters model accepted representable reports; overflow and
 sticky invalid-report behavior remain implementation obligations. Zero-work
-Waiting/Settling pause transitions, arbitrary family behavior, early scratch
-retirement, stop liveness and physical capacity are outside this extension.
+The original six-case delayed-stop connection does not establish Waiting/Settling
+pause correspondence. Its new sibling claim below supplies that finite scope.
+Arbitrary family behavior, early scratch retirement, stop liveness and physical
+capacity remain outside this extension.
 
 The same existing runner now executes the six delayed-work fixture cases for
 each selected target and records their exact command, source, artifact and
@@ -248,3 +250,34 @@ uploading both evidence directories. The runner records proof/test durations;
 mutation cost and total job time remain separate from the operation-addition
 burden. `formal-model + tested-refinement` is not verified implementation
 refinement or physical Store/Host acceptance.
+
+## Stop-only pauses reuse the common accounting and responsibility laws
+
+The current chain forwards `Waiting` and `Settling` while the child retains
+stop/Store custody. A zero-work pause is admissible; zero-work `Continue` remains
+invalid. Neither pause kind establishes physical stop or permits child cleanup.
+The stop model adds an explicitly tagged pause transition with the same bounded,
+representable delta premise. It preserves the productive state, request and owed
+child while charging accepted pause work exactly once. Zero work is an identity
+transition. All original 14 stop-law propositions and the 22 prompt-chain laws
+remain checked; four additional typed laws cover the pause boundary and the
+independent `[1,0,1,0,0]` witness.
+
+`relation_chain_stop_pause_wbtest.mbt` uses the real chain/provider owners with a
+finite diagnostic child. Its two cases enter stop-only polling via an explicit
+cancel or budget exhaustion, then observe `Waiting(0)`, `Settling(7,1)`,
+`Settling(7,0)` and terminal `Stopped(0)`/`Failed(InputLimit,0)`. At each pause it
+checks the exact tag/slot, cumulative work, no successor/Compute, no early child
+cleanup and the same holding marker. Terminal still retains that marker through
+cleanup false/error/true; repeated successful cleanup must not invoke it again.
+The marker is callback custody evidence, not physical memory measurement.
+
+The new `registered-child/stop-pause` derived claim reuses the existing model
+root and has its own target-specific execution record and independent coverage.
+The old six-case stop record cannot substitute for it. Missing pause premises,
+one executed trigger, widened slots, missing coverage or a physical-stop claim
+from a pause are rejected. The regular chain runner executes this connection for
+each selected target; local JS acceptance does not claim Wasm/Native execution.
+No semantic operation matrix, product owner, test retirement or CI reuse policy
+is introduced. Model/Store authority, arbitrary provider refinement, machine
+faults, physical capacity and eventual stopping remain separate obligations.

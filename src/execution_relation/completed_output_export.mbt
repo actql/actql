@@ -35,8 +35,10 @@ struct CompletedResultRelationExportPreparation {
   logical_wire : RowWireLimits
   schema_limits : RelationSchemaIdentityLimits
   max_batch_bytes : Int
+  mut metadata : CompletedOutputExportPreparation?
   mut stream : CompletedOutputExport?
   mut closed : Bool
+  mut advancing : Bool
 }
 
 ///|
@@ -187,8 +189,10 @@ pub fn start_completed_result_relation_export(
     logical_wire,
     schema_limits,
     max_batch_bytes,
+    metadata: None,
     stream: None,
     closed: false,
+    advancing: false,
   })
 }
 
@@ -201,6 +205,10 @@ pub fn cancel_completed_result_relation_export(
   } else {
     value.closed = true
     cancel_completed_result_rows(value.rows) |> ignore
+    if value.metadata is Some(metadata) {
+      cancel_completed_output_export_preparation(metadata) |> ignore
+    }
+    value.metadata = None
     if value.stream is Some(stream) {
       cancel_completed_output_export(stream)
     }
@@ -213,52 +221,101 @@ pub fn advance_completed_result_relation_export(
   value : CompletedResultRelationExportPreparation,
   quantum : Int,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
-  if value.closed || quantum <= 0 {
+  if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
   }
-  if !completed_output_available(value.rows.source) {
+  value.advancing = true
+  let result = (fn() -> Result[(Bool, Int), CompletedExportIssue] {
+    if !completed_output_available(value.rows.source) || value.closed {
+      return Err(ResultView(Unavailable))
+    }
+    if value.stream is Some(_) {
+      return Ok((true, 0))
+    }
+    let mut steps = 0
+    while steps < quantum {
+      if value.metadata is Some(metadata) {
+        let (done, used) = match
+          advance_completed_output_export_preparation(metadata, quantum - steps) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+        steps += used
+        if done {
+          value.stream = Some(
+            match finish_completed_output_export_preparation(metadata) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            },
+          )
+          value.metadata = None
+          return Ok((true, steps))
+        }
+      } else if value.rows.done {
+        steps += 1
+        let rows = match finish_completed_result_rows(value.rows) {
+          Ok(value) => value
+          Err(issue) => return Err(ResultView(issue))
+        }
+        guard completed_export_preparation_workspace_slots(
+            value.payload_wire.max_columns,
+          )
+          is Some(slots) else {
+          return Err(Wire(InvalidLimits))
+        }
+        value.metadata = Some(
+          match
+            start_completed_export_rows_metadata(
+              value.rows.source,
+              rows,
+              value.max_rows,
+              value.values,
+              value.payload_wire,
+              Some(value.logical_wire),
+              Some(value.schema_limits),
+              value.max_batch_bytes,
+              slots,
+            ) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          },
+        )
+      } else {
+        let (_, used) = match
+          advance_completed_result_rows(value.rows, quantum - steps) {
+          Ok(value) => value
+          Err(issue) => return Err(ResultView(issue))
+        }
+        steps += used
+      }
+    }
+    Ok((false, steps))
+  })()
+  value.advancing = false
+  if result is Err(_) {
     cancel_completed_result_relation_export(value) |> ignore
-    return Err(ResultView(Unavailable))
   }
-  if value.stream is Some(_) {
-    return Ok((true, 0))
-  }
-  let (done, work) = match advance_completed_result_rows(value.rows, quantum) {
-    Ok(result) => result
-    Err(issue) => return Err(ResultView(issue))
-  }
-  if done {
-    let rows = match finish_completed_result_rows(value.rows) {
-      Ok(result) => result
-      Err(issue) => return Err(ResultView(issue))
-    }
-    let stream = match
-      prepare_completed_export_rows(
-        value.rows.source,
-        rows,
-        value.max_rows,
-        value.values,
-        value.payload_wire,
-        Some(value.logical_wire),
-        Some(value.schema_limits),
-        value.max_batch_bytes,
-      ) {
-      Ok(result) => result
-      Err(issue) => return Err(issue)
-    }
-    value.stream = Some(stream)
-  }
-  Ok((value.stream is Some(_), work))
+  result
 }
 
 ///|
 pub fn finish_completed_result_relation_export_preparation(
   value : CompletedResultRelationExportPreparation,
 ) -> Result[CompletedOutputExport, CompletedExportIssue] {
-  if value.closed {
+  if value.closed || value.advancing {
     return Err(Closed)
   }
   guard value.stream is Some(stream) else { return Err(NotFinished) }
+  value.advancing = true
+  let available = completed_output_available(value.rows.source)
+  value.advancing = false
+  if value.closed {
+    return Err(Closed)
+  }
+  if !available {
+    cancel_completed_result_relation_export(value) |> ignore
+    return Err(ResultView(Unavailable))
+  }
   value.closed = true
   Ok(stream)
 }

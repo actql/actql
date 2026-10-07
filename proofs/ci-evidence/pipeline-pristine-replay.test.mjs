@@ -11,7 +11,8 @@ import {validatePristineReport, pristineScientificObservation} from '../relation
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {join} from 'node:path';
 import {payload} from '../relation-pipeline/fixture.mjs';
-import {validatePipelinePristineOriginal, checkPipelinePristineResult} from './isolated-execution.mjs';
+import {validatePipelinePristineOriginal, checkPipelinePristineResult} from './isolated-pipeline-results.mjs';
+import {checkIsolatedExecutionResult} from './isolated-execution.mjs';
 import {verifyPristineTamperRefusals} from './local-isolated-acceptance.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -86,6 +87,14 @@ test('the actual immutable pipeline image original passes source, runtime, entry
   assert.equal(imageOriginal.answer.payload.sourcePreserved, true);
   const paths = new Set(imageOriginal.answer.payload.root.entries.map(entry => entry.path));
   for (const path of isolatedCoreBuildMetadata) assert(!paths.has(`runtime/moonbit/${path}`));
+});
+test('the executor awaits its registered pristine scientific consumer and propagates rejection', async () => {
+  const inputs = {profile: 'pipeline-pristine', payload: imageOriginal.answer.payload,
+    manifest: imageOriginal.prepared.manifest, before: imageSource};
+  assert(await checkIsolatedExecutionResult(inputs));
+  const payload = structuredClone(inputs.payload); payload.sourcePreserved = false;
+  await assert.rejects(checkIsolatedExecutionResult({...inputs, payload}));
+  await assert.rejects(checkIsolatedExecutionResult({...inputs, profile: 'session'}));
 });
 
 test('the two real fresh phases agree without discarding schema, work, identity, NULL, rows or order', () => {
