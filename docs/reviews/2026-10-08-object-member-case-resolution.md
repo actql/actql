@@ -261,3 +261,58 @@ guard `run-PkxVOw` now executes the computed receiver, GROUP property and
 member-binding files: 24/24 pass, including all three mixed-case/quoted
 independent Program controls. This is focused JS evidence, not clean-source
 packed evidence for the follow-up.
+
+## Refused-probe reservations and authored input types
+
+Follow-up working diff over
+`e1032c62d87ccc437c6d63638b20f94c8e4b2ee7`:
+
+- Common type probes return consumed work on success, but no consumed work on a
+  semantic refusal. The previous member pass continued attempting probes after
+  such refusals. It also did not charge successful expression syntax admission.
+  The pass now stops at its first semantic probe refusal and retains the complete
+  remaining allowance. This is a conservative reservation, not measured usage.
+  Ordinary final checking retains responsibility for the semantic diagnosis.
+- The first member replacement reserves the exact retained Source node count
+  for the final origin-preserving copy. Refusal does not consume that held copy
+  allowance. Only that reservation is returned for the final copy; no additional
+  type probe is allowed. Actual budget refusals remain Frontend WorkLimit.
+- A missing producer schema is unknown, not proof of a semantically invalid
+  receiver. Field-dependent probes are skipped in that case; subsequent
+  independent known bindings can still proceed. No field/presence/key evidence
+  is invented.
+- Published Source View types still use the existing generation-bound Context
+  attachment. Literal local Relation declarations use `local_relation_input.read`
+  and its bounded usage, the ordinary common authored-input reader. The Catalog
+  checked-contract reader is not appropriate for author object declarations:
+  they legitimately omit checked-only `additional_properties`. Using it lost
+  receiver types and left `SCORE` unchanged. The independent SQL/Pipe Program
+  control retains the original declaration and expects declared `score`.
+  Neither schema source authorizes read I/O or proves row/key conditions.
+
+Focused evidence, not clean-distribution or full-CI evidence:
+
+- `run-fiu07P` did not compile the initial whitebox fixture; this is not a
+  pre-fix product failure. `run-fyQ8fe` discovered four tests but all failed on
+  the fixture's foreign source path before exercising the product. The path was
+  corrected to the builder document's `<generated>` path.
+- `run-7Jt3HO`: 13/14. All six budget/unknown-schema whitebox tests and seven
+  existing member tests passed; the new independent Program text had a missing
+  closing brace. That authoring error was corrected without deriving the
+  expected Program from product output.
+- `run-I3F870`: 37/37 JS across budget, member, computed receiver, GROUP property
+  and implicit property files.
+- `run-JJIdfj`: the Node corpus test exposed its stale `[9,5,1]` case count after
+  two previously added member-case regressions. Public rows/contracts and the
+  refusal/execution-failure cases were unchanged. The normal-profile assertion
+  now enumerates the eleven authored case names rather than only their count.
+- `run-2d8Sxk`: member tests 8/8, including the exact MissingField refusal from
+  the inappropriate Catalog reader, plus Node corpus tests 4/4.
+
+The new refusal-budget invariant is established by the bounded whitebox
+selection and source inspection; no historical clean-HEAD or public Run budget
+failure is claimed. Selected external acceptance must be repeated on the next
+normally packed clean revision before attributing execution to these changes.
+Additional Graph/INFER/NEAREST schema transitions and the complete Frontend
+objective remain open. No compatibility path, evaluator, common runtime owner
+change, full Core, all-target campaign, or manual CI rerun is introduced.

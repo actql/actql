@@ -6,7 +6,48 @@ priv struct MemberResolution {
   document : @origin.Document
   limits : Limits
   mut work : Int
+  mut output_work : Int
+  mut probe_refused : Bool
   replacements : Map[Int, String]
+}
+
+///|
+// A refused common probe reports no usage. Its complete remaining allowance
+// is therefore retained as a reservation, and no further probe is attempted.
+// Final ordinary checking still owns the semantic refusal and its diagnosis.
+fn MemberResolution::defer_refusal(self : MemberResolution) -> Unit {
+  self.probe_refused = true
+  self.work = 0
+}
+
+///|
+fn MemberResolution::replace_member(
+  self : MemberResolution,
+  at : @wire.Cursor,
+  actual : String,
+) -> Unit raise Abort {
+  if self.replacements.is_empty() {
+    // Text replacement cannot change the node count. Hold this exact copy
+    // allowance before lending the remaining budget to another type probe.
+    let nodes = @builder.usage(self.source).nodes
+    self.spend(at, nodes)
+    self.output_work = nodes
+  }
+  self.replacements[@wire.tree_index(@builder.cursor(self.source), at).unwrap()] = actual
+}
+
+///|
+fn MemberResolution::finish(
+  self : MemberResolution,
+) -> @builder.Source raise Abort {
+  if self.replacements.is_empty() {
+    return self.source
+  }
+  // Return only the already-held allowance. This is not a budget increase
+  // or a continuation of checking after the refused probe.
+  self.work += self.output_work
+  self.output_work = 0
+  self.copy(@builder.cursor(self.source))
 }
 
 ///|
@@ -170,6 +211,9 @@ fn MemberResolution::expression(
   // each receiver before any field name is selected.
   let work = [(root, false)]
   while work.pop() is Some((cursor, visited)) {
+    if self.probe_refused {
+      return
+    }
     self.spend(cursor, 1)
     if !visited {
       if member_is_literal(self.source, cursor) {
@@ -203,16 +247,33 @@ fn MemberResolution::expression(
       continue
     }
     let normalized = self.copy(receiver)
-    let admitted = member_success(
+    let admitted = match
       @expression_syntax.admit(@builder.cursor(normalized), {
-        max_nodes: self.limits.source.tree.max_nodes,
+        max_nodes: self.limits.source.tree.max_nodes.min(self.work),
         max_depth: self.limits.source.tree.max_depth,
         max_text_bytes: self.limits.source.tree.max_total_string_bytes,
-        max_tokens: self.limits.source.tree.max_nodes,
+        max_tokens: self.limits.source.tree.max_nodes.min(self.work),
         tree: self.limits.source.tree,
-      }),
-    )
-    guard admitted is Some(admitted) else { continue }
+      }) {
+      Ok(admitted) => admitted
+      Err({ kind: BudgetExceeded, .. }) =>
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @builder.origin(self.source, receiver),
+          }),
+        )
+      Err(_) => {
+        self.defer_refusal()
+        return
+      }
+    }
+    self.spend(receiver, @expression_syntax.usage(admitted).nodes)
+    if rows is None && @expression_syntax.relation_reference_count(admitted) > 0 {
+      // Missing producer facts are not proof of an invalid receiver. Leave
+      // these members to ordinary checking, and retain independent bindings.
+      continue
+    }
     let typed = match
       @typing.check(admitted, member_environment(rows, declarations), {
         max_nodes: self.limits.source.tree.max_nodes,
@@ -233,7 +294,10 @@ fn MemberResolution::expression(
         )
       // Unknown or invalid receivers retain ordinary checking's rejection.
       // No row sampling, guessed field type or input-scope fallback is used.
-      Err(_) => continue
+      Err(_) => {
+        self.defer_refusal()
+        return
+      }
     }
     guard @typing.result_type(typed).shape is @contract.Object(fields) else {
       continue
@@ -250,36 +314,8 @@ fn MemberResolution::expression(
       }
     }
     if resolved is Some(actual) && actual != authored {
-      self.replacements[@wire.tree_index(@builder.cursor(self.source), at).unwrap()] = actual
+      self.replace_member(at, actual)
     }
-  }
-}
-
-///|
-fn MemberResolution::schema(
-  self : MemberResolution,
-  cursor : @wire.Cursor,
-) -> @schema.Schema? raise Abort {
-  match
-    @environment.read_relation_schema_fields(
-      cursor,
-      self.limits.source.tree.max_total_string_bytes,
-      self.limits.source.tree.max_nodes,
-      self.limits.source.tree.max_depth,
-      self.work,
-    ) {
-    Ok((rows, used)) => {
-      self.spend(cursor, used)
-      Some(rows)
-    }
-    Err({ kind: WorkLimit, .. }) =>
-      raise Abort(
-        Expression({
-          issue: @expression.WorkLimit,
-          origin: @builder.origin(self.source, cursor),
-        }),
-      )
-    Err(_) => None
   }
 }
 
@@ -292,6 +328,9 @@ fn MemberResolution::operation_schema(
   names : Map[String, @schema.Schema?],
   declarations : @parameters.Declarations?,
 ) -> @schema.Schema? raise Abort {
+  if self.probe_refused {
+    return None
+  }
   if tag == "values" {
     return match
       @values.check(body, declarations, {
@@ -312,7 +351,10 @@ fn MemberResolution::operation_schema(
             origin: @builder.origin(self.source, body),
           }),
         )
-      Err(_) => None
+      Err(_) => {
+        self.defer_refusal()
+        None
+      }
     }
   }
   guard rows is Some(rows) else { return None }
@@ -344,7 +386,7 @@ fn MemberResolution::operation_schema(
               origin: @builder.origin(self.source, body),
             }),
           )
-        Err(_) => ()
+        Err(_) => self.defer_refusal()
       }
     } else {
       match @join_shape.check_cross(cursor, rows, right, declarations, limits) {
@@ -359,7 +401,7 @@ fn MemberResolution::operation_schema(
               origin: @builder.origin(self.source, body),
             }),
           )
-        Err(_) => ()
+        Err(_) => self.defer_refusal()
       }
     }
     return None
@@ -389,7 +431,7 @@ fn MemberResolution::operation_schema(
             origin: @builder.origin(self.source, body),
           }),
         )
-      Err(_) => ()
+      Err(_) => self.defer_refusal()
     }
     return None
   }
@@ -427,7 +469,47 @@ fn MemberResolution::operation_schema(
           origin: @builder.origin(self.source, body),
         }),
       )
-    Err(_) => None
+    Err(_) => {
+      self.defer_refusal()
+      None
+    }
+  }
+}
+
+///|
+// Local Relation declarations use the ordinary authored-input owner. Published
+// Source View types instead come from the generation-bound Context attachment.
+// These types never authorize acquisition or prove input rows/key uniqueness.
+fn MemberResolution::input_schema(
+  self : MemberResolution,
+  cursor : @wire.Cursor,
+) -> @schema.Schema? raise Abort {
+  if self.probe_refused || member_text(cursor, "carrier") != Some("relation") {
+    return None
+  }
+  match
+    @local_input.read(cursor, {
+      max_nodes: self.limits.source.tree.max_nodes.min(self.work),
+      max_depth: self.limits.source.tree.max_depth,
+      max_text_bytes: self.limits.source.tree.max_total_string_bytes,
+    }) {
+    Ok(checked) => {
+      self.spend(cursor, @local_input.usage(checked).nodes)
+      @carrier.relation_rows(@local_input.carrier(checked)).bind(
+        @carrier.complete_schema,
+      )
+    }
+    Err(BudgetExceeded) | Err(Contract(ContractIssue(BudgetExceeded, ..))) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: @builder.origin(self.source, cursor),
+        }),
+      )
+    Err(_) => {
+      self.defer_refusal()
+      None
+    }
   }
 }
 
@@ -477,6 +559,8 @@ fn resolve_query_members(
     document,
     limits,
     work: limits.max_expression_work,
+    output_work: 0,
+    probe_refused: false,
     replacements: Map([]),
   }
   let root = @builder.cursor(source)
@@ -492,14 +576,15 @@ fn resolve_query_members(
     if originals.contains(input.name) {
       continue
     }
-    let schema = match input.source {
-      Captured(cursor) => member_lookup(cursor, "schema")
-      GeneratedValues(_) => None
+    originals[input.name] = match input.source {
+      Captured(cursor) => resolution.input_schema(cursor)
       _ => None
     }
-    originals[input.name] = schema.bind(cursor => resolution.schema(cursor))
   }
   for stage in stages {
+    if resolution.probe_refused {
+      break
+    }
     resolution.spend(stage, 1)
     let names : Map[String, @schema.Schema?] = Map([])
     let inputs = member_lookup(stage, "inputs").unwrap()
@@ -523,6 +608,9 @@ fn resolve_query_members(
       None
     }
     for step in @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap() {
+      if resolution.probe_refused {
+        break
+      }
       resolution.spend(step, 1)
       if member_text(step, "from") is Some(name) {
         current = names.get(name).bind(value => value)
@@ -549,6 +637,9 @@ fn resolve_query_members(
         names[name] = current
       }
     }
+    if resolution.probe_refused {
+      break
+    }
     let stage_id = member_text(stage, "id").unwrap()
     let stage_results = member_lookup(stage, "results").unwrap()
     for index in 0..<@wire.object_length(stage_results).unwrap() {
@@ -559,11 +650,7 @@ fn resolve_query_members(
       results[(stage_id, name)] = resolution.result_schema(body, rows)
     }
   }
-  if resolution.replacements.is_empty() {
-    source
-  } else {
-    resolution.copy(root)
-  }
+  resolution.finish()
 }
 
 ///|

@@ -18,7 +18,7 @@ import {
   "actql/actql/relation_join_shape" @join_shape,
   "actql/actql/relation_append" @append_shape,
   "actql/actql/expression_syntax" @expression_syntax,
-  "actql/actql/check_environment" @environment,
+  "actql/actql/local_relation_input" @local_input,
 }
 
 import {
@@ -26,6 +26,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/program_check" @check,
   "actql/actql/numeric_reduction" @numeric,
+  "actql/actql/check_environment" @environment,
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/debug",
   "actql/actql/lowering_relation" @lower,

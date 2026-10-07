@@ -53,6 +53,51 @@ test "member case probe independent exact machine control" {
 }
 
 ///|
+test "member case binding retains authored local Relation schema types" {
+  let declaration = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}}}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = implicit_property_context()
+  let context = {
+    ..context,
+    inputs: [{ ..context.inputs[0], source: Captured(declaration), }],
+  }
+  let fields = @wire.lookup(@wire.open_object(declaration).unwrap(), "schema").unwrap()
+  // The checked Catalog reader refuses this legitimate authored contract;
+  // using it here was the lost-type cause, not a missing input row or value.
+  assert_true(
+    @environment.read_relation_schema_fields(fields, 10000, 100, 20, 10000)
+    is Err({ kind: InvalidType(Decode({ kind: MissingField, .. })), .. }),
+  )
+  // Authored local contracts omit checked-only additional_properties. This
+  // independent Program retains the input declaration and exact member spelling.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{"objects":{"carrier":"relation","schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}}}},"steps":[{"from":"objects","derive":{"aql_query_expr_0":{"property":{"value":{"field":"payload"},"name":"score"}}}},{"select":[{"value":"aql_query_expr_0"},"id"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["value","id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  for
+    text in [
+      "SELECT payload.SCORE AS value, id FROM objects", "FROM objects |> SELECT `objects`.`payload`.`ScOrE` AS value, id",
+    ] {
+    let actual = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+  }
+}
+
+///|
 test "member case probe unquoted source preserves declared field name" {
   let expected = member_case_control()
   member_case_require_checked(expected, "independent machine control")
