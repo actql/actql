@@ -86,9 +86,16 @@ marker. Admission requires that marker in both the actual nonzero test log and
 the content-addressed archived executable; changing JSON labels alone is
 insufficient. Before admission it saves an immutable raw execution record.
 After source restoration it independently validates all seven observed phases,
-provider construction, model receipt and binary digests, then rejects fourteen
+provider construction, model receipt and binary digests, then rejects seventeen
 receipt substitutions. The existing capacity final audit consumes the same
 current-format report. There is no runtime fallback accepting historical layouts.
+
+The same fixture additionally checks populated/cleared preparation backing and
+the same columns Array transferred into a completed ProducerRead. See
+[Preparation Array custody and conditional storage](PREPARATION.md) for the
+separate storage component, two additional conditional propositions and the
+remaining referent/lifetime exclusions. It does not enlarge the retained-core
+component into a complete parent reservation.
 
 No Actions provenance or reuse authority is issued by this local diagnostic.
 The full hosted capacity campaign, all targets, shared-driver/Ledger retirement,
