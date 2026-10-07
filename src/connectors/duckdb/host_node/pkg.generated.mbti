@@ -263,7 +263,15 @@ pub fn managed_output_storage_order(ManagedNodeOutput) -> Array[Int] raise NodeH
 
 pub fn managed_output_verify_compute(ManagedNodeOutput) -> Unit raise NodeHostFailure
 
+pub fn managed_query_selection_begin(@adapter.ManagedFixedQuery[Int], Array[Int], Int, Int) -> ManagedNodeSelection raise NodeHostFailure
+
 pub fn managed_selected_output_open(@execution_relation.ManagedOutputValues, @execution_relation.ManagedViewSelection[Int], @adapter.TransportColumnLimits, () -> Bool) -> ManagedNodeOutput raise NodeHostFailure
+
+pub fn managed_selection_advance(ManagedNodeSelection, Int) -> (Bool, Int) raise NodeHostFailure
+
+pub fn managed_selection_cancel(ManagedNodeSelection) -> Bool
+
+pub fn managed_selection_take(ManagedNodeSelection) -> @execution_relation.ManagedViewSelection[Int] raise NodeHostFailure
 
 pub fn managed_strategy_charge(ManagedComputeNodeRun, Int64) -> Unit raise NodeHostFailure
 
@@ -344,6 +352,8 @@ pub fn managed_strategy_scratch_capacity(@driver.ManagedStrategyComputeHostConfi
 pub fn managed_strategy_selected_output_begin(ManagedComputeNodeRun, @execution_relation.ManagedViewSelection[Int]) -> ManagedNodeOutput raise NodeHostFailure
 
 pub fn managed_strategy_selection(ManagedComputeNodeRun, Array[Int]) -> @execution_relation.ManagedViewSelection[Int] raise NodeHostFailure
+
+pub fn managed_strategy_selection_begin(ManagedComputeNodeRun, Array[Int]) -> ManagedNodeSelection raise NodeHostFailure
 
 pub fn managed_strategy_settle(ManagedComputeNodeRun, Bool) -> Unit raise NodeHostFailure
 
@@ -536,6 +546,8 @@ type ManagedComputeNodeRun
 type ManagedNodeComputed
 
 type ManagedNodeOutput
+
+type ManagedNodeSelection
 
 type NativeFileInputPlan
 

@@ -66,17 +66,21 @@ graph_constraint = "WHERE", expression
 property_pair = identifier, ":", expression ;
 graph_quantifier = "{", integer, "}"
                  | "{", [ integer ], ",", integer, "}" ;
-source        = path, [ source_alias ]
+source        = table_source | unnest_source ;
+table_source  = path, [ source_alias ]
               | "(", relational_body, ")",
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
+unnest_source = "UNNEST", "(", expression, ")", source_alias,
+                [ "WITH", "OFFSET", [ source_alias ] ] ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
                 | "RIGHT", [ "OUTER" ]
                 | "FULL", [ "OUTER" ] ],
-                "JOIN", source, ( "ON", expression
+                "JOIN", table_source, ( "ON", expression
                 | "USING", "(", identifier, { ",", identifier }, ")" ),
                 [ join_bound ]
-              | "CROSS", "JOIN", source, [ join_bound ] ;
+              | "CROSS", "JOIN", table_source, [ join_bound ]
+              | "CROSS", "JOIN", unnest_source ;
 join_bound    = "MAX_OUTPUT_ROWS", integer ;
 where_clause  = "WHERE", expression ;
 group_clause  = "GROUP", "BY", expression, { ",", expression } ;

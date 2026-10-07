@@ -1,0 +1,60 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.scalar_boundary",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "as": "seed",
+          "values": {
+            "schema": {
+              "unit": {
+                "type": "boolean",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "unit": true
+              }
+            ]
+          }
+        },
+        {
+          "from": "seed",
+          "derive": {
+            "value": {
+              "lower": {
+                "literal": "É"
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "value"
+          ],
+          "as": "selected"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "selected",
+          "fields": [
+            "value"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

@@ -57,6 +57,7 @@ const support = [
   'adapters/host-node/client-read-opening.fixture.mjs',
   'adapters/host-node/client-read-opening-restart.fixture.mjs',
   'adapters/host-node/client-read-run-capacity.test.mjs',
+  'adapters/host-node/client-read-run-capacity.fixture.mjs',
   'adapters/host-node/fixtures/read-121.program.json',
   'adapters/host-node/fixtures/read-121.expected.json',
   'adapters/host-node/client-values-row-limit.test.mjs',

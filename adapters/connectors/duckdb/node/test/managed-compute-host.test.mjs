@@ -715,8 +715,40 @@ test('managed selected Compute verifies actual DuckDB transport and exact physic
                 for (const invalid of invalidSelections) {
                   assert.throws(() => checked(fixture.managedFilterSelection(filterQuery, invalid)));
                 }
+                // Conditional selection is prepared by the same common cursor
+                // as the product strategy, before any retained receipt exists.
+                const cancelled = checked(moon.managedQuerySelectionBegin(
+                  filterQuery, occurrences, 100, 1000));
+                const abort = new AbortController();
+                let polls = 0;
+                try {
+                  await assert.rejects(finishManagedOutputReceipt(() => {
+                    const poll = checked(moon.managedSelectionAdvance(cancelled, 1));
+                    polls++;
+                    assert.equal(poll._0, false);
+                    setImmediate(() => abort.abort(new Error('selection cancellation')));
+                    return poll;
+                  }, abort.signal), /selection cancellation/);
+                  assert.equal(polls, 1);
+                  assert.throws(() => checked(moon.managedSelectionTake(cancelled)));
+                } finally {
+                  assert.equal(moon.managedSelectionCancel(cancelled), true);
+                  assert.equal(moon.managedSelectionCancel(cancelled), false);
+                }
+                assert.equal(fixture.managedFixedQueryMatches(filterQuery, filterInput), true);
+                const preparation = checked(moon.managedQuerySelectionBegin(
+                  filterQuery, occurrences, 100, 1000));
+                let selection;
+                try {
+                  await finishManagedOutputReceipt(() => checked(
+                    moon.managedSelectionAdvance(preparation, 1)));
+                  selection = checked(moon.managedSelectionTake(preparation));
+                  assert.throws(() => checked(moon.managedSelectionTake(preparation)));
+                } finally {
+                  assert.equal(moon.managedSelectionCancel(preparation), false);
+                }
                 filterOutput = checked(moon.managedSelectedOutputOpen(moon.managedInputOutputValues(filterPort),
-                  fixture.managedFilterSelection(filterQuery, occurrences),
+                  selection,
                   fixture.managedFileTransportLimits(),
                   () => settled && fixture.managedFixedQueryMatches(filterQuery, filterInput)));
               }

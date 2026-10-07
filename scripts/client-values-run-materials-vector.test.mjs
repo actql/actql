@@ -742,16 +742,27 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('082b73d16ed8513f88c55ce75cd1d1a78043ec08c57c02a757a3eba5e0e4dd54'));
-  // Preserve the exact main grammar closure before parameter-path support.
+  // Retain the independently authored correlated-expansion parent.
+  assert.equal(vector(pin('669a907108617a89e253dcf5d5f5ef88fe14ec46fe84df18bb6e4d22638347f5'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('4ca80c7d99dd7834c8fc281ce2aff63833e52711eb52702c2cc628c361a01af4'));
+  // Keep current main's complete parent before combining correlation syntax.
   assert.equal(vector(pin('383eb60f32169402f128cb1e0187b8445ebb33931e75ab035e20d1e434b52ad4'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('8eb2bb63ec3c66f0457ad25820daa0e49bce63c368536b640b2e38b6d79e7bc3'));
-  // Preserve the declared parameter-path grammar before checked ARRAY scope.
+  // Keep both complete adopted grammar parents as independent preimages.
+  assert.equal(vector(pin('39ed3dd3cca9b11c128c369308bdbd340ee69a5b82c43bc5408b9b66b8e6f0ac'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('d48070d700e2e74ce504796caefec6fc0255d8b998f8f570e02723580949f5b3'));
   assert.equal(vector(pin('38b2c821bd3b65aeeac218ef8300f9bc25a8dba90956fdfda1313651fdebef15'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('9bd9abd436fd9564578f921adcb16ba105274cdaaad118717d08b13d30183a2d'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the adopted checked-ARRAY parent independently of this integration.
+  assert.equal(vector(pin('865d1183ed31a4fe8b1be4e685563b932b6bc65580ed7968f8883ddc82003722'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('561ebef800dd3c16dbd971fe4c709ebf78678133926ec110d6a60714ae04e9ba'));
+  assert.equal(current.run.run_definition_cid,
+    pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
