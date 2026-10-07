@@ -10,6 +10,11 @@ export function checkCensus(root, read = path => readFileSync(join(root, path), 
     assert(body, `Missing actual state ${item.struct}`);
     const fields = [...body.matchAll(/^  (?:mut )?(\w+)\s*:/gm)].map(m => m[1]);
     assert.deepEqual(fields, item.fields, `Unreviewed state/container field ${item.struct}`);
+    for (const [name, type] of Object.entries(item.fieldTypes ?? {})) {
+      assert(item.fields.includes(name), `Unknown typed census field ${item.struct}.${name}`);
+      const actual = body.match(new RegExp(`^  (?:mut )?${name}\\s*:\\s*([^\\n]+)$`, 'm'))?.[1];
+      assert.equal(actual?.trim(), type, `Unreviewed retained representation ${item.struct}.${name}`);
+    }
   }
   return census;
 }

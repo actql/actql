@@ -78,11 +78,17 @@ export type CheckRequirementFrontier = Readonly<{
   reasonSchemaCid: string;
   scope: CompletedCheckReport['scope'];
   requirements: readonly Readonly<{
-    code: CompletedCheckReport['requirements'][number]['code'];
+    code: 'parameter_value_required';
     facts: ParameterRequirementFacts;
   }>[];
   coverage: CompletedCheckReport['coverage'];
 }>;
+/** Known public context selections from the original completed check; no write permission. */
+export type CheckContextRequirement = Readonly<{
+  code: 'host_capacity_policy_required';
+  facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {supplier: 'checking_context_owner'}>;
+}>;
+export declare function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined;
 /** Copied, partial and uninterpretable reports have no comparable frontier. */
 export declare function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined;
 /** Structural set equality within the same bound scope/context; never verification. */

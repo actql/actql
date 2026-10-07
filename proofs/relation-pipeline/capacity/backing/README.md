@@ -53,13 +53,13 @@ slots are rejected at the existing audit entrypoint.
 The builtin linked Map source is also pinned to the verified core archive.
 `MapBacking.lean` proves no growth for an arbitrary finite admitted trace with
 at most six distinct keys, including clear and updates. The concrete pipeline
-instance is narrower: at most three schema columns. Four actual state Maps use
-the default eight-slot constructor. Input/projection ordinal maps contain exactly
-the independently expected width; binding ordinals and the unused DISTINCT
-snapshot contain zero entries. All four tables still have capacity eight on
-empty input and after cleanup. Their total current table-slot structure is 32;
-allocating a replacement snapshot before dropping its old reference can add
-eight slots. That 40-slot arithmetic model is not an observed allocator peak.
+instance is narrower: at most three short-name schema columns. Three actual
+ordinal Maps use the default eight-slot constructor: input/projection contain
+exactly the independent width and binding contains zero entries. The current
+24-slot structure remains allocated on empty input and after cleanup.
+Snapshot is now an empty `Array[(String, Value)]`; row sources are also an empty
+Array in this pilot. Neither is passed to a Map-typed FFI reader. Active stepped
+metadata, nonempty snapshots/caches or cursor handles are refused by the pilot.
 
 The scalar overlay reads actual Map capacity, length and same-type owner alias
 relationships. Capacity is the real Map's table-capacity field, with its equality
@@ -83,8 +83,8 @@ no object pointer, allocates nothing and never adjusts reference counts. The
 reader checks descriptor shape and offsets; it does not cast an invented Map
 struct or treat the public capacity counter as a backing identity.
 
-Native child-state overlays now pass the actual input, binding, projection and
-snapshot Maps to that reader with all four FFI arguments explicitly borrowed.
+Native child-state overlays now pass the actual input, binding and projection
+Maps to that reader with all three FFI arguments explicitly borrowed.
 They emit decimal owner/table identity tokens and requested extents at the
 existing observation points. Admission checks distinct simultaneous identities,
 independent key/slot counts and input-derived extent bounds. Tokens are not
@@ -109,8 +109,8 @@ including its header. Thus the conditional current Map leaf extent is
 `120 + 48 * keys`; the admitted three-key bound is 264 bytes.
 
 `NativeMapExtent.lean` proves the arithmetic upper bound and conditional
-four-map totals `480 + 96 * width`, or `600 + 96 * width` with an additional
-empty snapshot table and wrapper. These are source/ABI-dependent requested
+three-map total `360 + 96 * width`. Snapshot Array storage is accounted for
+separately; the obsolete snapshot-Map replacement theorem is removed. These are source/ABI-dependent requested
 extents. The core probe confirms finite instances, distinct actual table
 identities, retained identity after clear, and two explicitly held replacement
 objects. Its deliberate holder is test behavior, not an observer holder.
@@ -124,13 +124,15 @@ capacity-claim gate remains closed, including the parent 256-byte allowance.
 
 ## Selected native Array storage and same-point identity union
 
-The two name Arrays and the completed sort-index Array are observed through
+The two name Arrays, completed sort-index Array, empty tuple snapshot and
+empty row-source Array are observed through
 monomorphic borrowed native calls on the actual child fields. Their owner is
 `Array { buf, len }`: pointer at offset zero, Int at eight, pointer-aligned
 payload 16, header eight, hence 24 bytes. The pinned runtime requests a buffer
 header of eight plus `4 * slots` for Int and `8 * slots` for references. Names'
-String referents are not included. No Value/optional/inline-enum representation
-is inferred from these two element layouts.
+String referents are not included. Tuple and BindingRowSource referents are
+not included: independent zero-entry/zero-capacity checks limit those two
+arrays to empty storage. No nonempty tuple/enum byte claim follows.
 
 These formulas come from declared fields and pinned runtime allocation code.
 The core fixture checks actual descriptors, shared static empty buffers,
@@ -151,7 +153,7 @@ are instrumentation allocations, outside these selected production leaves.
 `NativeArrayExtent.lean` proves the slot-to-storage implication and an arbitrary
 finite identity union bounded by the sum of supplied per-allocation ceilings.
 The same identity contributes once. The correspondence gate supplies the
-selected two name-Array and optional completed-index facts; this is not yet the
+selected five Array facts (including the optional completed index); this is not yet the
 complete allocation or holder census. In-progress merge buffers, Value row
 buffers, all control objects, assignment overlap between checkpoints, final
 reservation custody and the 256-byte allowance remain unfinished. JS/Wasm
@@ -184,3 +186,19 @@ not inside the source template directory. Generated files in the template
 directory are rejected before execution or audit. Complete target and
 pipeline campaigns belong to exact-SHA CI; no new handwritten operator
 combinations, algorithm, reservation formula or runtime owner are introduced.
+
+## Metadata cursor responsibility
+
+The typed source census binds the current state fields, tuple snapshot and
+RowNameCharge/RowMetadataLookup representations. This is source structure, not
+an allocator census. Both cursor records borrow their schema/name and retain
+the existing RowWorkspace. Their one-slot reserve/release is logical work
+space accounting, not an ABI conversion for the record or its referents.
+
+`row_metadata_custody_wbtest.mbt` cancels the real bounded owner with both cursor
+handles retained and injects one delayed child cleanup. The false result leaves
+the same handles open, scratch held and cleanup pending; retry closes them and
+the child exactly once. Existing metadata-phase cancellation tests remain.
+This lifecycle fixture does not promote the DISTINCT pilot into a general
+metadata capacity bound. #677's chain preparation and callback-capture census
+are a separate unfinished boundary.
