@@ -398,3 +398,31 @@ explicitly not accepted. Existing strict normalization fixtures are unchanged
 and their recorded 10/10 success remains distinct from the required new
 actual-history run. All temporary next-slot waits/lock refusals occurred
 before verification; no other-owner lock was touched.
+
+## Accepted post-integration retained history
+
+At clean correction SHA `9454130e3274c250c696ad096f3fe7664735a6df`, the actual retained-history
+composer and exact-source/nonzero final consumer **passed** (`run-nYt5l8`):
+**87 protected files, 235 declarations, 193 integrations**. The existing
+900-second guard completed and released both locks. Every source, ordered
+parent, maximal base, blob/mode, declaration introduction, original input and
+late-input obligation passed the unchanged real Git validation.
+
+The exact accepted local original is
+`evidence/2026-10-08-pipeline-fixed-js-foundation-9454130e3.json.gz` (raw 1556948 bytes, SHA-256
+`2e7de83a448b7ea11e1bddd858a2eca389696959823b7d0928915ab74bbcc170`). It embeds the raw generated manifest
+(SHA-256 `a236e75256299f9350b20dc7dc82120c8cc579cb5912c6da468f5c1fcd192546`), original
+guard/output, transparent Git timing preload and exact-source consumer.
+Transparent timing records 6,641 original Git calls and 176,829 ms inside
+those calls; this is an observation, not a calibrated performance comparison
+or proof of net CI savings.
+
+The residual #871 unit is complete locally. Submission after this result
+adds only the evidence archive and this report; declarations, supplements,
+validator, runtime sources, consumer and independent expectations do not
+change. Previous failed history originals remain failures. Earlier physical
+acceptance remains bound to `b7a692658`; current bounded output/Host product
+changes are not claimed compiled by this history check. Actions originals,
+later-main qualification, ordinary-PR reuse, related-input fresh execution
+and inclusive net CI savings remain deferred and unproved. No Actions run,
+merge, service write or other-owner cleanup was performed.
