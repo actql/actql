@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {inspectScalarCode, scalarSites, providerSymbolText} from './provider-callback-code.mjs';
+import {inspectProviderConstructionPoint} from './provider-construction.mjs';
 // Independent tiny ARM64 object/link pair. Addresses deliberately differ;
 // allocation offsets and callback identity must survive linking and ASLR.
 const object = `0000000000000100 <factory>:
@@ -76,4 +78,59 @@ test('unrelated C translation-unit symbols do not become provider identity colli
   assert(!selected.includes('unrelated'));
   assert(selected.includes('_moonbit_malloc'));
   assert(selected.includes('__M0connectors5local_callback'));
+});
+
+const read = path => readFileSync(new URL(`../../../../${path}`, import.meta.url));
+const constructionFacts = () => [{...facts()[0], kind:'provider construction observation',
+  providers:11, records:11, arraySlots:11, callbacks:24, defaultArrays:1,
+  indexedBytes:1504, unclassifiedCaptures:0}];
+const constructionCode = f => inspectScalarCode(f,symbols,object,linked);
+const point = (f=constructionFacts(),code=constructionCode(f)) =>
+  inspectProviderConstructionPoint(f,code,read,'native');
+
+test('independent code evidence closes only the same finite constructor point',()=>{
+  const result=point();
+  assert.equal(result.maxObservedIndexedBytes,1504);
+  assert.equal(result.maxPointRequestedBytes,1520);
+  assert.equal(result.points[0].scalarRequestedBytes,16);
+  assert.deepEqual(result.points[0].scalarAllocationIdentities,['1234']);
+  assert.equal(result.pointRequestedBytesEstablished,true);
+  assert.equal(result.scalarPayloadBytesObserved,false);
+  assert.equal(result.recipe.bytes,2344);
+  assert.equal(result.recipe.completeConstructorByteCorrespondence,false);
+  assert.equal(result.completeConstructorLifetimeUpper,false);
+  assert.equal(result.completeParentUpper,false);
+  assert.equal(result.completePipelineUpper,false);
+});
+test('equal byte totals and callback counts cannot join different observations',()=>{
+  for(const change of [f=>f[0].scalarCodes[0].identity='5678',
+    f=>f[0].scalarCodes[0].codeDelta='-8159',f=>f[0].callbacks--]) {
+    const f=constructionFacts(),code=constructionCode(f);change(f);
+    assert.throws(()=>point(f,code),/Different constructor observation input/);
+  }
+  const f=constructionFacts();f.push({...f[0],scalarCodes:[{identity:'5678',codeDelta:'-8160'}]});
+  const code=constructionCode(f);code.observations.reverse();
+  assert.throws(()=>point(f,code),/Different constructor observation input/);
+});
+test('incomplete extents or altered sums cannot be supplied as the audited point',()=>{
+  for(const change of [c=>c.observations.pop(),c=>c.observations[0].callbacks=[],
+    c=>c.observations[0].callbacks[0].identity='5678',c=>c.observations[0].indexedRequestedBytes++,
+    c=>c.observations[0].callbacks[0].requestedBytes++,c=>c.observations[0].scalarRequestedBytes++,
+    c=>c.observations[0].pointRequestedBytes++,c=>c.maxPointRequestedBytes++]) {
+    const f=constructionFacts(),code=constructionCode(f);change(code);
+    assert.throws(()=>point(f,code));
+  }
+});
+test('indexed and scalar components must fit the envelope together',()=>{
+  const f=constructionFacts();f[0].indexedBytes=2330;
+  assert.throws(()=>point(f),/Point constructor bytes exceed conditional envelope/);
+});
+test('count-only or stronger-scope claims cannot close compiled point correspondence',()=>{
+  for(const change of [c=>c.scalarAllocationRequestsEstablished=false,
+    c=>c.scalarPayloadBytesMeasured=true,c=>c.completeConstructorLifetimeUpper=true,
+    c=>c.completeParentUpper=true,c=>c.completePipelineUpper=true]) {
+    const f=constructionFacts(),code=constructionCode(f);change(code);
+    assert.throws(()=>point(f,code));
+  }
+  assert.throws(()=>inspectProviderConstructionPoint(constructionFacts(),constructionCode(constructionFacts()),read,'js'),/native only/);
 });
