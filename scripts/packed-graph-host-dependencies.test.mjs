@@ -85,3 +85,23 @@ test('fixed-hop node predicate source controls are copied and included in normal
   assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].node_where.gt[1].literal, 10);
   assert.equal(controls[1].stages[0].steps[4].traverse.hops[1].node_where.eq[1].literal, 2);
 });
+
+test('any-direction Graph controls are staged and exercised in normal and focused acceptance', async () => {
+  const {graphAnyDirectionSuccesses: successes, graphAnyDirectionRefusals: refusals}
+    = await import('./fixtures/graph-any-direction-source-input.mjs');
+  assert.equal(successes.length, 12);
+  assert.equal(refusals.length, 7);
+  assert.equal(new Set([...successes, ...refusals].map(item => item.name)).size, 19);
+  const scripts = fileURLToPath(new URL('./', import.meta.url));
+  const driver = await readFile(resolve(scripts, 'test-packed-public-query.mjs'), 'utf8');
+  assert.ok(driver.includes("['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs']"));
+  assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_GRAPH_ANY_DIRECTION_ONLY = '1'"));
+  const consumer = await readFile(resolve(scripts, 'fixtures/packed-public-query.mjs'), 'utf8');
+  assert.ok(consumer.includes('scopeInputs.successes.push(...graphAnyDirectionSuccesses)'));
+  assert.ok(consumer.includes('scopeInputs.refusals.push(...graphAnyDirectionRefusals)'));
+  assert.ok(consumer.includes('const scopeOnly = graphAnyDirectionOnly ||'));
+  const controls = successes.filter(item => item.format === 'json').map(item => JSON.parse(item.text));
+  assert.equal(controls[0].stages[0].steps[4].traverse.hops[0].direction, 'both');
+  assert.equal(controls[1].stages[0].steps[4].traverse.direction, 'both');
+  assert.equal(controls[1].stages[0].steps[4].traverse.path_mode, 'trail');
+});
