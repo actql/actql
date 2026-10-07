@@ -42,89 +42,37 @@ fn validate_durable_result_bindings(
   bindings : Array[PublicationContract],
   index_entry : PublicationContract,
 ) -> Result[Unit, PublicationCommitIssue] {
-  if bindings.length() != definitions.length() || bindings.is_empty() {
-    return Err(CommitInventoryMismatch)
-  }
-  let identities : Array[String] = []
-  let definition_cids : Array[String] = []
-  for binding in bindings {
-    if binding.name != "durable_result_binding" {
-      return Err(CommitWrongContract("durable_result_binding"))
-    }
-    if identities.contains(binding.identity) {
-      return Err(CommitInventoryMismatch)
-    }
-    identities.push(binding.identity)
-    guard contract_string(binding, "result_definition_cid")
-      is Some(definition_cid) else {
-      return Err(CommitReferenceMismatch("binding.result_definition_cid"))
-    }
-    if definition_cids.contains(definition_cid) {
-      return Err(CommitInventoryMismatch)
-    }
-    definition_cids.push(definition_cid)
-    if !definitions.any(definition => definition.identity == definition_cid) {
-      return Err(CommitInventoryMismatch)
-    }
-    let matching_artifacts = artifacts.filter(artifact => {
-      contract_string(artifact, "result_definition_cid") == Some(definition_cid)
-    })
-    if matching_artifacts.length() != 1 {
-      return Err(CommitInventoryMismatch)
-    }
-    let artifact = matching_artifacts[0]
-    guard contract_string(artifact, "ordering_evidence_cid")
-      is Some(ordering_cid) &&
-      orderings.any(ordering => ordering.identity == ordering_cid) else {
-      return Err(CommitReferenceMismatch("binding.ordering_evidence_cid"))
-    }
-    guard contract_string(artifact, "effective_retention_policy_cid")
-      is Some(retention_cid) &&
-      retentions.any(retention => retention.identity == retention_cid) else {
-      return Err(
-        CommitReferenceMismatch("binding.effective_retention_policy_cid"),
-      )
-    }
-    guard contract_string(artifact, "logical_result_cid")
-      is Some(logical_result_cid) &&
-      contract_string(artifact, "result_schema_cid") is Some(result_schema_cid) else {
-      return Err(CommitReferenceMismatch("artifact.identity"))
-    }
-    for
-      (field, expected) in [
-        ("run_definition_cid", run_definition.identity),
-        ("invocation_cid", invocation.identity),
-        ("logical_result_cid", logical_result_cid),
-        ("result_schema_cid", result_schema_cid),
-        ("ordering_evidence_cid", ordering_cid),
-        ("effective_retention_policy_cid", retention_cid),
-      ] {
-      if contract_string(binding, field) != Some(expected) {
-        return Err(CommitReferenceMismatch("binding." + field))
+  let check = start_durable_binding_preparation(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      artifacts,
+      orderings,
+      retentions,
+      bindings,
+      index_entry,
+    },
+    None,
+  )
+  while true {
+    match check.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => {
+        check.cancel()
+        return Ok(())
       }
+      Ok((false, _)) => ()
     }
-    if contract_count(binding, "row_count") !=
-      contract_count(artifact, "actual_row_count") {
-      return Err(CommitReferenceMismatch("binding.row_count"))
-    }
+  } nobreak {
+    Err(CommitEncoding)
   }
-  identities.sort_by(@canonical.compare_utf16)
-  guard @json.object_field(index_entry.value, "durable_result_binding_cids")
-    is Some(index_bindings) &&
-    evidence_string_array(index_bindings) is Some(index_identities) else {
-    return Err(CommitReferenceMismatch("index.durable_result_binding_cids"))
-  }
-  index_identities.sort_by(@canonical.compare_utf16)
-  if index_identities != identities {
-    return Err(CommitInventoryMismatch)
-  }
-  Ok(())
 }
 
 ///|
 /// Validate a publication commit together with every Result dependency that
-/// the 12-field Artifact references. The older root-chain validator remains a
-/// bounded structural primitive; product commit paths must use this complete
+/// the 12-field Artifact references. Root-chain validation establishes only
+/// structural bindings; product commit paths must use this complete
 /// variant so evidence CIDs cannot be dangling placeholders.
 pub fn validate_effect_free_publication_commit_with_result_evidence(
   run_definition : PublicationContract,
@@ -392,30 +340,20 @@ fn publication_inventory_matches(
   request : PublicationContract,
   definitions : Array[PublicationContract],
 ) -> Bool {
-  guard @json.object_field(request.value, "inventory")
-    is Some(@json.Array(frozen)) else {
-    return false
-  }
-  let values = @json.array_values(frozen)
-  if values.length() != definitions.length() {
-    return false
-  }
-  for value in values {
-    guard validate_named_cid_object(
-        value, "result_name", "result_definition_cid",
-      )
-      is Some(item) else {
-      return false
+  let check = start_publication_inventory_preparation(
+    request,
+    definitions,
+    None,
+  )
+  while true {
+    match check.advance(256) {
+      Err(_) => return false
+      Ok((true, _)) => return check.finish().unwrap()
+      Ok((false, _)) => ()
     }
-    let matches = definitions.filter(fn(definition) {
-      contract_string(definition, "result_name") == Some(item.name) &&
-      definition.identity == item.cid
-    })
-    if matches.length() != 1 {
-      return false
-    }
+  } nobreak {
+    false
   }
-  true
 }
 
 ///|
@@ -897,46 +835,30 @@ fn validate_publication_commit_references(
   attempt : PublicationContract,
   index_entry : PublicationContract,
 ) -> Result[Unit, PublicationCommitIssue] {
-  if request.name != "publication_request" {
-    return Err(CommitWrongContract("publication_request"))
-  }
-  if attempt.name != "publication_attempt" {
-    return Err(CommitWrongContract("publication_attempt"))
-  }
-  if index_entry.name != "public_index_entry" {
-    return Err(CommitWrongContract("public_index_entry"))
-  }
-  if evidence_string(request.value, "run_definition_cid") !=
-    Some(run_definition.identity) {
-    return Err(CommitReferenceMismatch("request.run_definition_cid"))
-  }
-  if !publication_inventory_matches(request, definitions) {
-    return Err(CommitInventoryMismatch)
-  }
-  if evidence_string(attempt.value, "publication_request_cid") !=
-    Some(request.identity) ||
-    evidence_string(attempt.value, "run_definition_cid") !=
-    Some(run_definition.identity) {
-    return Err(CommitReferenceMismatch("publication_attempt"))
-  }
-  for
-    (field, expected) in [
-      ("namespace_id", evidence_string(request.value, "namespace_id")),
-      (
-        "authority_scope_cid",
-        evidence_string(request.value, "authority_scope_cid"),
-      ),
-      ("run_definition_cid", Some(run_definition.identity)),
-      ("invocation_cid", Some(invocation.identity)),
-      ("result_manifest_cid", Some(manifest.identity)),
-      ("run_receipt_cid", Some(receipt.identity)),
-      ("captured_run_cid", Some(captured_run.identity)),
-      ("publication_request_cid", Some(request.identity)),
-      ("publication_attempt_cid", Some(attempt.identity)),
-    ] {
-    if expected is None || evidence_string(index_entry.value, field) != expected {
-      return Err(CommitReferenceMismatch("index." + field))
+  let check = start_publication_reference_preparation(
+    {
+      run_definition,
+      invocation,
+      definitions,
+      manifest,
+      receipt,
+      captured_run,
+      request,
+      attempt,
+      index_entry,
+    },
+    None,
+  )
+  while true {
+    match check.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => {
+        check.cancel()
+        return Ok(())
+      }
+      Ok((false, _)) => ()
     }
+  } nobreak {
+    Err(CommitEncoding)
   }
-  Ok(())
 }
