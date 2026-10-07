@@ -6729,3 +6729,28 @@ Managed publication buffers, actual snapshot-reload cancellation acceptance,
 availability/Carrier walks, other scratch and Native physical-byte correspondence
 remain. Incremental reference retirement does not establish a wall-clock or GC
 latency bound. The full retained Local goal remains open.
+
+### Incremental publication admission and public cleanup (2026-10-08)
+
+Private managed-admission buffers now retire in bounded slices while pending
+capacity remains charged. Focused admission/caller fixtures preserve finished
+receipts and validate cancellation, reference cleanup and retry. These close the
+private admission retirement boundary, not the still-synchronous receipt creation
+or availability walks. The installed DuckDB cleanup hook now has a separate
+real-DuckDB/Store regression: physical release preserves pending admission
+capacity, retries reach release within an independently derived bound, and
+native attempts do not increase. The retained source survives downstream
+retirement; its own final cleanup clears all reservations. The hook and adjacent
+lifecycle selection passed 10/10 on dirty source at
+`61298497c40a2943753edfd04b75186b5afb8887` (`run-eMobrM`). This uses public
+preparation and the existing checked task fixture, not full public Named Result
+acceptance. Native physical-byte correspondence is not established.
+
+The standard Host with real retained/publication Stores passed a focused 13-case
+selection at `c87106aa97d5587691acd93a12b1ead806110f8d`, including normal mixed
+Carrier Stages, three Named Results, two consumers, post-progress cancellation,
+typed exact/one-short limits, Store faults and retry without more Compute.
+This follows an actual close-order failure and independently corrected stale
+work-boundary evidence. No public contract check was weakened. This is checkout
+Host acceptance, not pristine packed/HTTPS or CI acceptance. See the
+[publication reclamation record](2026-10-07-local-publication-reclamation.md).

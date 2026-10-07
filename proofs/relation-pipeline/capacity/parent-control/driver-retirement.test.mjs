@@ -89,6 +89,7 @@ for (const [name,path,from,to] of [
   ['retirement skips active callback check',driverPath,'      scratch_uses.val != 0 ||','      false ||'],
   ['retirement skips physical provider custody',driverPath,'      provider_execution.val is Some(_) ||','      false ||'],
   ['retirement skips pending input revocation',driverPath,'(!live.val && input_stop.phase != Stopped)','false'],
+  ['retirement drops pending admission owner',driverPath,'if !@execution.managed_output_values_scratch_released(values) {','if false {'],
   ['scratch witness skips pending input revocation',driverPath,'(live.val || input_stop.phase == Stopped) &&','true &&'],
   ['input revocation bulk closes',inputStopPath,'while steps < 64','while steps < 64000'],
   ['input revocation allows reentrancy',inputStopPath,'if cursor.advancing {','if false {'],

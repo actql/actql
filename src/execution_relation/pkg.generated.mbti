@@ -99,6 +99,8 @@ pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_
 
 pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[InferRowsPreparationPoll, InferPreparationIssue]
 
+pub fn advance_managed_output_values_reclamation(ManagedOutputValues, Int) -> Bool
+
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
 pub fn advance_prepare_producer_read(ProducerReadPreparation) -> Result[ProducerRead?, ProducerReadIssue]
