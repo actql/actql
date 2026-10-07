@@ -1776,6 +1776,64 @@ pub fn strategy_effect_free_run_evidence_chain_valid(
 }
 
 ///|
+#export_name("strategyBeginEffectFreeChainCheck")
+pub fn strategy_begin_effect_free_chain_check(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.ComputationEvidenceCheck {
+  @publication.start_effect_free_run_evidence_check(
+    run_definition, invocation, definitions, artifacts, manifest, receipt, captured_run,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckAdvance")
+pub fn strategy_effect_free_chain_check_advance(
+  preparation : @publication.ComputationEvidenceCheck,
+  quantum : Int,
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
+  match preparation.advance(quantum) {
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
+  }
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckFinish")
+pub fn strategy_effect_free_chain_check_finish(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> Bool {
+  preparation.finish() is Ok(_)
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckCancel")
+pub fn strategy_effect_free_chain_check_cancel(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyEffectFreeChainCheckFixturePhase")
+pub fn strategy_effect_free_chain_check_fixture_phase(
+  preparation : @publication.ComputationEvidenceCheck,
+) -> String {
+  @publication.computation_evidence_check_fixture_phase(preparation)
+}
+
+///|
 #export_name("strategyEffectfulComputationEvidenceChainValid")
 pub fn strategy_effectful_computation_evidence_chain_valid(
   run_definition : @publication.PublicationContract,
@@ -1901,6 +1959,72 @@ pub fn strategy_effect_free_publication_commit_valid(
     max_wire_bytes, max_nodes, max_depth,
   )
   is Ok(_)
+}
+
+///|
+#export_name("strategyBeginEffectFreeCommitCheck")
+pub fn strategy_begin_effect_free_commit_check(
+  run_definition : @publication.PublicationContract,
+  invocation : @publication.PublicationContract,
+  definitions : Array[@publication.PublicationContract],
+  artifacts : Array[@publication.PublicationContract],
+  derivations : Array[@publication.PublicationContract],
+  orderings : Array[@publication.PublicationContract],
+  retentions : Array[@publication.PublicationContract],
+  durable_bindings : Array[@publication.PublicationContract],
+  manifest : @publication.PublicationContract,
+  receipt : @publication.PublicationContract,
+  captured_run : @publication.PublicationContract,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index_entry : @publication.PublicationContract,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_workspace : Int,
+) -> @publication.PublicationCommitPreparation {
+  @publication.start_effect_free_publication_commit_check(
+    run_definition, invocation, definitions, artifacts, derivations, orderings, retentions,
+    durable_bindings, manifest, receipt, captured_run, request, attempt, index_entry,
+    max_wire_bytes, max_nodes, max_depth, max_workspace,
+  )
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckAdvance")
+pub fn strategy_effect_free_commit_check_advance(
+  preparation : @publication.PublicationCommitPreparation,
+  quantum : Int,
+) -> Int {
+  // Stable JS boundary: -1 is refusal, 0 is pending, and 1 is complete.
+  match preparation.advance(quantum) {
+    Ok((done, _)) => if done { 1 } else { 0 }
+    Err(_) => -1
+  }
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckFinish")
+pub fn strategy_effect_free_commit_check_finish(
+  preparation : @publication.PublicationCommitPreparation,
+) -> Bool {
+  preparation.finish() is Ok(_)
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckCancel")
+pub fn strategy_effect_free_commit_check_cancel(
+  preparation : @publication.PublicationCommitPreparation,
+) -> Unit {
+  preparation.cancel()
+}
+
+///|
+#export_name("strategyEffectFreeCommitCheckFixturePhase")
+pub fn strategy_effect_free_commit_check_fixture_phase(
+  preparation : @publication.PublicationCommitPreparation,
+) -> String {
+  @publication.publication_commit_preparation_fixture_phase(preparation)
 }
 
 ///|

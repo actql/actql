@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-import { bindings, checkBindings, coverage, fixture, identityFixture, snapshot, validate } from './evidence.mjs';
+import {readFileSync} from 'node:fs';
+import { modelExecution, modelObservationUnits, bindings, checkBindings, coverage, fixture, identityFixture, snapshot, validate } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 function evidence(target = 'js') {
   const source = snapshot(root), artifact = { 'test.js': 'digest' };
-  const runs = { lean: { passed: true, exit: 0, sourceDigest: source.digest,
+  const runs = { lean: { passed: true, exit: 0, target: 'model', count: 14, sourceDigest: source.digest,
     command: [process.execPath, 'proofs/relation-capacity/check.mjs'] } };
   for (const [kind, path] of [['capacity', fixture], ['identity', identityFixture], ['ledger', 'src/physical_resources/ledger_wbtest.mbt']]) {
     runs[`${kind}-${target}`] = { passed: true, exit: 0, sourceDigest: source.digest, target,
@@ -48,4 +49,44 @@ for (const [name, change] of [
 ]) test(`reject ${name}`, () => {
   const e = evidence(); change(e);
   assert.throws(() => validate(e.requested, e.report, e.current, 'js'));
+});
+
+for (const [label, change] of [
+  ['zero laws', r => { r.count = 0; }],
+  ['missing count', r => { delete r.count; }],
+  ['null count', r => { r.count = null; }],
+  ['partial laws', r => { r.count = 13; }],
+  ['extra laws', r => { r.count = 15; }],
+  ['string count', r => { r.count = '14'; }],
+  ['runtime target', r => { r.target = 'js'; }],
+  ['missing target', r => { delete r.target; }],
+]) test(`capacity refuses ${label} without discharging physical sizing premises`, () => {
+  const e = evidence(); change(e.report.runs.lean);
+  assert.throws(() => validate(e.requested, e.report, e.current, 'js'), /model target or theorem count/);
+});
+test('capacity observes its own 14 conditional laws, not a Session/chain summary', () => {
+  const summary = 'Checked 14 capacity theorems, expected types and axiom dependencies; child/parent bounds are premises';
+  assert.equal(modelObservationUnits(`audit lines\n${summary}\n`, 0), 14);
+  for (const [output, exit] of [
+    ['', 0], [summary.replace('14', '13'), 0], [summary.replace('14', '15'), 0],
+    ['Checked 14 theorems, expected claim types and axiom dependencies', 0],
+    [summary, 1], [summary, null], [`quoted: ${summary}`, 0],
+    [`${summary}\n${summary}`, 0], [`sorryAx\n${summary}`, 0],
+  ]) assert.throws(() => modelObservationUnits(output, exit), /typed model observation/);
+  assert.equal(modelExecution.count, 14);
+});
+
+for (const [label, from, to] of [
+  ['completed output dropped on pending cleanup', 'Ok(false) => return Ok(false)', 'Ok(false) => { state.completed = []; return Ok(false) }'],
+  ['metadata dropped on cleanup error', 'Err(issue) => return Err(issue)', 'Err(issue) => { state.input_preparation = None; return Err(issue) }'],
+  ['cursor not cancelled before clear', 'cancel_relation_chain_inputs(cursor)', 'if false { cancel_relation_chain_inputs(cursor) }'],
+]) test(`current inventory refuses ${label}, even with all constructor symbols present`, () => {
+  const path = 'src/connectors/local/selected_relation_provider.mbt';
+  const source = readFileSync(root + path, 'utf8');
+  assert(source.includes(from));
+  // Replace all matching returns/calls: the exact cleanup body must still fail.
+  const changed = source.replaceAll(from, to);
+  assert.throws(() => checkBindings(root, bindings(), {
+    read: p => p === path ? changed : readFileSync(root + p),
+  }), /capacity\/cleanup custody connection/);
 });
