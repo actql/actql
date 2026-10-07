@@ -78,6 +78,55 @@ class CatalogTests(unittest.TestCase):
             self.assertEqual(reopened.read_generation(receipt, mapping()), [{"id": 1}])
             reopened.engine.dispose()
 
+    def test_new_read_resolves_one_generation_and_preserves_presence_after_replace(self):
+        rows = [{"id": 1, "p": "e\u0301\r\n"}, {"id": 2, "p": None}, {"id": 3}, {"id": 3}]
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-") as root:
+            writer = self.open(root)
+            writer.create_namespace("test")
+            receipt = self.write(writer, request("create", "rows", "a"), rows)
+            selector = {"catalog_identity_cid": writer.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            writer.engine.dispose()
+            reader = self.open(root)
+            frozen = reader.resolve_generation(selector)
+            self.assertEqual(frozen, {"receipt": receipt, "mapping": mapping()})
+            reader.engine.dispose()
+            writer = self.open(root)
+            replacement = self.write(writer, request("replace", "rows", "b", expected(receipt)), [{"id": 9}])
+            writer.engine.dispose()
+            reopened = self.open(root)
+            self.assertEqual(reopened.read_generation(frozen["receipt"], frozen["mapping"]), rows)
+            self.assertEqual(reopened.resolve_generation(selector)["receipt"], replacement)
+            for field, value, reason in (
+                    ("table_uuid", "00000000-0000-0000-0000-000000000000", "TableReadPublicationBinding"),
+                    ("schema_cid", "sha256:" + "9" * 64, "TableReadPublicationBinding"),
+                    ("catalog_identity_cid", "sha256:" + "9" * 64, "ForeignReadCatalog"),
+                    ("table_name", "missing", "TableReadNotFound")):
+                with self.subTest(field=field), self.assertRaisesRegex(CatalogRefusal, reason):
+                    reopened.resolve_generation({**selector, field: value})
+            reopened.engine.dispose()
+
+    def test_empty_generation_and_missing_original_publication_record_are_not_inferred(self):
+        with tempfile.TemporaryDirectory(prefix="actql-table-reader-empty-") as root:
+            catalog = self.open(root)
+            catalog.create_namespace("test")
+            receipt = self.write(catalog, request("create", "rows", "c"), [])
+            selector = {"catalog_identity_cid": catalog.catalog_cid, "namespace": ["test"],
+                        "table_name": "rows", "table_uuid": receipt["table_uuid"],
+                        "schema_cid": mapping()["schema_cid"]}
+            frozen = catalog.resolve_generation(selector)
+            self.assertEqual(frozen["mapping"], mapping())
+            self.assertEqual(catalog.read_generation(frozen["receipt"], frozen["mapping"]), [])
+            # A head is not a substitute for the original atomic publication
+            # record. Model record corruption without modifying physical files.
+            with closing(catalog.connection()) as db:
+                db.execute("DELETE FROM actql_table_commits WHERE request_cid=?", (receipt["request_cid"],))
+                db.commit()
+            with self.assertRaisesRegex(CatalogRefusal, "TableReadPublicationRecord"):
+                catalog.resolve_generation(selector)
+            catalog.engine.dispose()
+
     def test_record_failure_rolls_back_catalog_head_not_only_receipt(self):
         with tempfile.TemporaryDirectory(prefix="actql-table-atomic-") as root:
             catalog = self.open(root)

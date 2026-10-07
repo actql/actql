@@ -83,6 +83,24 @@ Unsupported declarations and physical-name collisions are refused before
 staging. The schema identity preserves logical constraints that are not part of
 the physical boolean/double/string discriminator.
 
+A new Table Source must use that complete logical schema, not infer one from
+the physical mapping or sample rows. Publication must retain the common owner's
+canonical field-contract map under its schema CID in the durable Table metadata.
+On a later read, the common owner must re-admit that map and check its identity,
+column names, value contracts and presence against the selected generation.
+Missing logical metadata is a refusal, not permission to synthesize unconstrained
+primitive types from Iceberg fields. The Source declaration and the runtime input
+must agree even for an empty generation.
+
+Row acquisition uses the existing exact checked-input owner for both required
+and conditional columns. An omitted conditional cell enters presence-aware row
+admission; explicit NULL still goes through the column's nullable value contract.
+Required omissions, undeclared fields and type violations refuse the acquisition.
+The existing cumulative capture bounds include presence containers, and failed
+input admission cannot hand off earlier rows as a completed partial Source.
+This does not relax required fields of ordinary object value contracts or make
+conditional columns available to ordinary expressions without a schema guarantee.
+
 The common Host binds a Table request to the exact checked `store` member,
 captured local Result Artifact, issued Effect identity and logical request
 scope. It checks the request's Artifact, logical Relation, schema, mapping and
@@ -226,6 +244,18 @@ not change an acquired reader. Run/Result release releases only temporary input
 and read ownership, never the Table or its live files. Original commit records
 remain available after later commits and Run release within the configured
 durable storage installation.
+
+The optional local I/O bridge resolves a read selector containing the installed
+Catalog, namespace/name, Table UUID and schema CID. It reads the Catalog head
+and original publication record in one database snapshot, validates the
+immutable metadata and saved storage mapping, and returns that generation's
+receipt and mapping. Subsequent reads use this frozen generation, not a later
+head. Unknown tables, mismatched UUID/schema and missing publication records
+are refusals, not empty tables or reconstructed records. This read resolution
+is not reconciliation of an uncertain Effect: the original-operation lookup
+remains separate. The installed Source caller must check current read authority
+before and after I/O and admit decoded rows through the common presence-aware
+Relation owner; this physical primitive alone is not public Source acceptance.
 
 ## Implementation boundary
 

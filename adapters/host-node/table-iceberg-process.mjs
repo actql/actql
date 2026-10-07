@@ -119,6 +119,22 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       preflight('read', payload);
       return invoke('read', payload, signal);
     },
+    async resolveGeneration(selector, signal) {
+      const payload = snapshot({selector});
+      if (!keys(payload.selector, ['catalog_identity_cid', 'namespace', 'table_name', 'table_uuid', 'schema_cid']) ||
+          payload.selector.catalog_identity_cid !== config.catalogCid || !cid(payload.selector.schema_cid) ||
+          !Array.isArray(payload.selector.namespace) || payload.selector.namespace.length < 1 ||
+          payload.selector.namespace.length > 32 || payload.selector.namespace.some(part =>
+            typeof part !== 'string' || part.length < 1 || part.length > 256 || /[.\0\r\n]/u.test(part)) ||
+          typeof payload.selector.table_name !== 'string' || payload.selector.table_name.length < 1 ||
+          payload.selector.table_name.length > 256 || /[\0\r\n]/u.test(payload.selector.table_name) ||
+          typeof payload.selector.table_uuid !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u.test(payload.selector.table_uuid)) {
+        fail('InvalidTableReadSelector');
+      }
+      preflight('resolve_generation', payload);
+      return invoke('resolve_generation', payload, signal);
+    },
     status(prepared) {
       const owned = own(prepared);
       return Object.freeze({attempted: owned.attempted, stopped: owned.stopped});
