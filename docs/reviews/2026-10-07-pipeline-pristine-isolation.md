@@ -74,3 +74,36 @@ cleanup; this experiment does not claim net CI savings.
 The full pipeline remains fresh, including mutated detection, post-restore,
 exploration and other-target obligations. This standalone pristine observation
 cannot replace a full part's required archive or the global scientific audit.
+
+## Local acceptance checkpoint (not completed image acceptance)
+
+At `346f9274cccb5d617d48c99ad1efc4576cad29e2`, normal pinned Linux JS
+execution passed all four independent fixed minima, with four original compiled
+fixture/receipt/input/log observations and preserved source. Preserve its raw
+record at `evidence/2026-10-07-pipeline-pristine-normal-346f9274c.json.gz`.
+Its raw SHA-256 is
+`8623af4522c4e1d1394eb5511194404c2b668b9bce5d9919c36a2ad9b151e012`.
+The 431,290 ms normal interval is one local observation, not a performance
+comparison or CI saving. The combined normal/image CLI reached its 1,200-second
+bound before final image acceptance. The container and image were authenticated
+by the retained CID/digest/local-owner custody and closed; originals were not
+rewritten. That timeout is not a passing mutation or a successful image run.
+
+The first earlier attempt was explicitly interrupted during source preparation
+on a host output mount. Normal builds now use a private Linux tmpfs, with only
+original evidence returned to the output mount. The local host tree now uses the
+existing bounded/object-checked Git batch reader before input inspection, rather
+than thousands of individual Git invocations. Input inspection and the overall
+local interval are recorded separately. No source obligation is dropped.
+
+At `085209eb0` plus the uncommitted replay fixture, the changed consumer/local
+boundary selection passed 33/33 tests. This includes real four-case original
+replay, exact historical Session-original checker replay, and a re-sealed false
+requested Program that retains the real semantic/log observations: the stronger
+consumer refuses it. Source revision, raw bytes and prior diagnostic results
+remain distinct from subsequent clean-HEAD execution.
+
+Run the unchanged four-case local image command again after the batched-reader
+fix. Keep image acceptance, full mutation/restoration/other-target acceptance,
+Actions qualification, limited activation and inclusive net savings unclaimed
+until their actual evidence exists.
