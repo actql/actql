@@ -110,3 +110,63 @@ test('reused submission replies preserve each owned source observation', async t
     {start: {line: 1, character: 6}, end: {line: 1, character: 6}});
   assert.equal(Object.isFrozen(shared), false);
 });
+
+for (const phase of ['not_accepted', 'preparation_failed']) {
+  test(`missing submission requirements bind pre-await declarations without changing ${phase}`, async t => {
+    const source = 'SELECT @x AS n';
+    const declarations = {x: {type: 'number'}};
+    const declarationRevision = 'rev:' + '6'.repeat(64);
+    const requirement = {code: 'parameter_value_required', facts: {
+      parameter: 'x', expected_type: 'number', admission: {
+        kind: 'parameter_declaration',
+        contract_schema_cid: 'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551',
+        contract: {nullable: false, type: 'number'},
+        constraints: [{kind: 'numeric', path: [], integer: false}], supplier: 'caller'}},
+      location: {kind: 'structured', document_id: 'parameter_declarations',
+        revision: declarationRevision, pointer: '/x'}};
+    const report = {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
+      outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
+        context_ref: 'ctx:missing-original', scope: {kind: 'bound_input'}, verdict: 'undetermined',
+        // Independently counted ASCII JSON and source byte lengths.
+        inputs: [{document_id: 'source', kind: 'text', revision, byte_length: 14},
+          {document_id: 'parameter_declarations', kind: 'structured',
+            revision: declarationRevision, byte_length: 23}],
+        reasons: [], requirements: [requirement],
+        coverage: {limits: [{code: 'bound_values_missing'}], unresolved: []}}};
+    let entered, release;
+    const dispatched = new Promise(resolve => {entered = resolve;});
+    const response = new Promise(resolve => {release = resolve;});
+    const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {perform(operation, body) {
+      if (operation === 'connect') return profile;
+      if (operation === 'close') return;
+      assert.equal(operation, 'submit-intent');
+      entered(body);
+      return response;
+    }});
+    t.after(() => client.close());
+    const pending = client.startSource(source, {format: 'sql', parameterDeclarations: declarations,
+      submissionRef: originalSubmission(`missing-${phase}`)});
+    const request = await dispatched;
+    declarations.x.type = 'string';
+    release({kind: phase, submissionRef: request.submissionRef, intentCid: request.intentCid,
+      problem: {code: 'ClientProgramNeedsInputs', classification: 'requirements'}, checkObservation: report});
+    let error;
+    try {await pending;} catch (cause) {error = cause;}
+    assert.equal(sdk.getSubmissionOutcome(error)?.kind, phase, '[check-mutation:submission-missing-phase]');
+    const checked = sdk.getSubmissionCheckObservation(error);
+    assert.equal(checked?.report.verdict, 'undetermined', '[check-mutation:submission-missing-verdict]');
+    assert.deepEqual(checked.report.requirements, [requirement], '[check-mutation:submission-missing-requirement]');
+    const owned = sdk.getCheckInput(checked, 'parameter_declarations');
+    assert.deepEqual(owned.value, {x: {type: 'number'}}, '[check-mutation:submission-missing-custody]');
+    const resolved = sdk.resolveCheckLocation(checked, requirement.location);
+    assert.equal(resolved.input, owned);
+    assert.equal(resolved.pointer, '/x');
+    assert.equal(resolved.input.value.x.type, 'number');
+    assert.equal(sdk.resolveCheckLocation(checked, {...requirement.location, revision}), undefined);
+    assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameter_declarations'), undefined);
+    assert.deepEqual(sdk.getCheckParameterAdmission(checked, 'x'), requirement.facts.admission);
+    assert.equal(sdk.getCheckRequirementFrontier(checked).requirements.length, 1);
+    assert.equal(sdk.equalCheckRequirementFrontiers(checked, structuredClone(checked)), undefined);
+    assert.equal(declarations.x.type, 'string');
+  });
+}

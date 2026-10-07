@@ -968,7 +968,10 @@ for (const [entrance, open] of Object.entries(entrances)) {
         revision: declaration.revision, pointer: '/minimum'}}],
     '[check-mutation:submission-missing-requirement]');
     assert.deepEqual(checked.report.coverage, {limits: [{code: 'bound_values_missing'}], unresolved: []});
-    assert.equal(sdk.resolveCheckLocation(checked, checked.report.requirements[0].location).value.type, 'number');
+    const resolved = sdk.resolveCheckLocation(checked, checked.report.requirements[0].location);
+    assert.equal(resolved.input, declaration);
+    assert.equal(resolved.pointer, '/minimum');
+    assert.equal(resolved.input.value.minimum.type, 'number');
     assert.equal(sdk.getCheckInput(structuredClone(checked), 'parameter_declarations'), undefined);
     const original = sdk.getSubmissionInput(error);
     assert.equal(original.input.text, query);

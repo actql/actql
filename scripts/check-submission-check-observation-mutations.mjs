@@ -17,9 +17,17 @@ const mutations = [
   {name: 'original submission loses its transient checked observation', path: sdk, file: tests,
     from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
     to: 'void checkObservation;',
-    targets: phases.map(phase => target(
+    targets: [...phases.map(phase => target(
       `submission check binds original UTF-8 syntax bytes without changing ${phase}`,
-      'submission-check-observation', 'deepStrictEqual'))},
+      'submission-check-observation', 'deepStrictEqual')), ...phases.map(phase => target(
+        `missing submission requirements bind pre-await declarations without changing ${phase}`,
+        'submission-missing-verdict'))]},
+  {name: 'missing submission observation loses typed value requirements', path: sdk, file: tests,
+    from: 'submissionCheckObservations.set(error, freezeInput(checkObservation));',
+    to: "if (checkObservation.report?.verdict === 'undetermined') checkObservation.report.requirements = []; submissionCheckObservations.set(error, freezeInput(checkObservation));",
+    targets: phases.map(phase => target(
+      `missing submission requirements bind pre-await declarations without changing ${phase}`,
+      'submission-missing-requirement', 'deepStrictEqual'))},
   {name: 'submission check accepts input metadata without original byte binding', path: sdk, file: tests,
     from: '!bindCheckObservation(checkObservation, {input: body.input, parameters: body.parameters})',
     to: 'false',
