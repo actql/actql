@@ -119,6 +119,7 @@ fn export_relation_all(
 ///|
 fn snapshot_export_fixture(
   source : CompletedOutput,
+  max_batch_bytes? : Int = 64,
 ) -> (CompletedOutputExport, CompletedRelationExportReceipt) {
   let stream = prepare_completed_relation_export(
     source,
@@ -127,7 +128,7 @@ fn snapshot_export_fixture(
     row_wire_limits(),
     { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
     publication_schema_limits(),
-    64,
+    max_batch_bytes,
   ).unwrap()
   while next_completed_output_export(stream).unwrap() is Some(_) {
     ()

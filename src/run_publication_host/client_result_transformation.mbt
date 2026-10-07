@@ -176,6 +176,7 @@ pub fn ClientResultTransformationPreparation::finish(
     replay_values: self.limits.values,
     replay_wire: self.limits.payload_wire,
     max_batch_bytes: self.limits.max_batch_bytes,
+    max_snapshot_workspace: self.limits.max_result_workspace_entries,
     definition: Some(self.definition),
     declared_fields: Some(
       @results.fields(

@@ -6933,3 +6933,35 @@ integrated, while #907 and #911 remain dependencies.
 Snapshot re-encoding and subsequent canonical admission/field validation are
 still synchronous. This binding fix is not evidence that either traversal has
 become interruptible, and does not close the whole retained Local goal.
+
+### Resumed snapshot admission follow-up (2026-10-08)
+
+The JS retained publication path now awaits the exact export's snapshot
+preparation through both row emission and canonical admission. Existing
+key/Text emitters, the JSON grammar, raw UTF-8 measurement, indexed canonical
+admission and deferred sorting are polled; receipt and parent pin ownership
+remain with the existing export until transfer or cleanup. Wire, logical CID,
+authored fields and ordering semantics are unchanged.
+
+The [snapshot admission record](2026-10-08-local-bounded-snapshot-admission.md)
+distinguishes precommit 624/624 affected-package evidence from clean-source
+14/14 common callers, 19/19 Node controls/Store and 3/3 actual Host cases at
+`4df42cbe1d6ae72e21e0a364503d8a0bfa96aeaf`. Real Store acceptance requires
+the producer and both consumer names, independently expected Unicode/NULL
+rows and exact order. Cancellation is delivered after positive canonical
+Text progress, before publication, and existing cleanup returns reservations
+without redispatching Compute. This depends on #913, #911 and #907.
+
+Those prerequisites are now merged. PR #921 normally adopts main
+`4256490e50dec0eb261c35c156210a62539aabc6` without conflicts and targets
+main. The clean integrated source
+`c91c4425737430ad0c43a4c62aa827bd4f6efc56` passes common JS 14/14 and the
+two real-Store snapshot success/cancellation cases 2/2 with matching rebuilt
+runtimes. Earlier checks retain their own source provenance in the record;
+integration does not relabel them as fresh hosted or packed evidence.
+
+Field-name normalization/key hashing, generic long numeric lexemes,
+contiguous-string/allocation latency, physical chunk admission, aggregate
+Captured Run serialization and explicit blocking Native/direct consumers
+remain separate boundaries. This is not all-target/packed or whole-Local
+completion; previous synchronous descriptions above remain historical records.

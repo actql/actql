@@ -2274,6 +2274,7 @@ pub fn PublicationOutputExport::result_schema_cid(Self) -> Result[String, Public
 pub fn PublicationOutputExport::result_schema_wire(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::row_count(Self) -> Result[Int, PublicationOutputExportIssue]
 pub fn PublicationOutputExport::schema_usage(Self) -> Result[(Int, Int, Int), PublicationOutputExportIssue]
+pub fn PublicationOutputExport::start_captured_snapshot(Self, Int, Int, Int) -> Result[PublicationOutputSnapshotPreparation, PublicationOutputExportIssue]
 
 pub(all) enum PublicationOutputExportIssue {
   InvalidState
@@ -2303,6 +2304,11 @@ type PublicationOutputReplay
 pub fn PublicationOutputReplay::cancel(Self) -> Unit
 pub fn PublicationOutputReplay::finish(Self) -> Result[String, PublicationOutputExportIssue]
 pub fn PublicationOutputReplay::next(Self) -> Result[String?, PublicationOutputExportIssue]
+
+type PublicationOutputSnapshotPreparation
+pub fn PublicationOutputSnapshotPreparation::advance(Self, Int) -> Result[(Bool, Int), PublicationOutputExportIssue]
+pub fn PublicationOutputSnapshotPreparation::cancel(Self) -> Unit
+pub fn PublicationOutputSnapshotPreparation::finish(Self) -> Result[@run_publication.CapturedResultSnapshot, PublicationOutputExportIssue]
 
 type PublicationResultRetention
 
