@@ -227,6 +227,18 @@ and read ownership, never the Table or its live files. Original commit records
 remain available after later commits and Run release within the configured
 durable storage installation.
 
+The optional local I/O bridge resolves a read selector containing the installed
+Catalog, namespace/name, Table UUID and schema CID. It reads the Catalog head
+and original publication record in one database snapshot, validates the
+immutable metadata and saved storage mapping, and returns that generation's
+receipt and mapping. Subsequent reads use this frozen generation, not a later
+head. Unknown tables, mismatched UUID/schema and missing publication records
+are refusals, not empty tables or reconstructed records. This read resolution
+is not reconciliation of an uncertain Effect: the original-operation lookup
+remains separate. The installed Source caller must check current read authority
+before and after I/O and admit decoded rows through the common presence-aware
+Relation owner; this physical primitive alone is not public Source acceptance.
+
 ## Implementation boundary
 
 The narrow machine contract and bounded common admission below specify the
