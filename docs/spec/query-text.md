@@ -492,8 +492,36 @@ does not change its field order. Anonymous/duplicate STRUCT fields, positional
 STRUCT equality and author-selected STRUCT order remain a common-contract gap,
 not a guarantee supplied by this expansion.
 Unresolved, non-ARRAY and inadmissible element contracts remain explicitly
-unsupported for star. This source-free connection does not add correlated
-UNNEST or extend the common ARRAY constructor capability profile.
+unsupported for star. ARRAY typing comes from the common expression checker;
+this connection does not extend the common ARRAY constructor capability profile.
+
+`CROSS JOIN UNNEST(array_expression) AS element [WITH OFFSET AS position]`
+expands each current row through the existing common `unnest` operation. SQL
+FROM clauses and Pipe JOIN operators use the same sequential expansion. The
+array expression resolves against preceding input columns and range snapshots,
+not subsequent SELECT aliases. Parent columns and their evaluated slots remain
+available, including the original ARRAY column. NULL and empty arrays produce
+no child rows; NULL elements and duplicates remain child rows. OFFSET is zero
+based and does not by itself promise output order. Use an explicit ORDER BY
+when ordering matters. Type, key transfer and expansion bounds remain the
+common checker's responsibility; a parent key alone is not a unique child key.
+
+The original parent range survives Pipe SET/DROP/RENAME and correlation. A
+SELECT or AS replaces that scope using the existing rules above. Successive
+closed object value-table ranges retain their own receivers; adding another
+expansion does not rebind an earlier object's fields or value. Qualified parent
+stars remain supported independently of an unknown child contract. An unknown
+ARRAY expression's element/whole-result star still requires a common schema
+connection and is explicitly unsupported, rather than inferred from rows.
+
+The first correlated profile supports explicit CROSS JOIN UNNEST after any
+preceding ordinary JOINs and successive CROSS expansions. Ordinary Relation
+JOINs after expansion, INNER/LEFT correlation, implicit comma expansion and
+correlated expansion following a Pipe set expression remain unsupported. These
+are coverage gaps, not GoogleSQL language restrictions. The Frontend rejects
+them rather than moving operations or changing multiplicity. CROSS expansion
+does not accept MAX_OUTPUT_ROWS; it inherits the declared ARRAY bound and common
+Host capacity policy without raising either limit.
 
 ## Named intermediate Results
 
