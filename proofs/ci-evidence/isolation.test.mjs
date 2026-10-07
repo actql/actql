@@ -7,6 +7,7 @@ import {mutationSourcePaths, stageMutationSource, pipelinePristineSourcePaths, s
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
 import {snapshotFiles} from '../relation-pipeline/inventory.mjs';
+import {pipelineFixedJsSourcePaths, stagePipelineFixedJsSource, pipelineFixedJsChild, localIsolatedRunArguments} from './isolation.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -208,6 +209,23 @@ function pipelineSources() {
   }
   return {tree, bodies};
 }
+
+test('the fixed JS campaign stages its full source cohort with a distinct immutable local entrypoint', t => {
+  const {tree, bodies} = pipelineSources(), destination = temporary(t);
+  bodies.set(pipelineFixedJsChild, 'fixed campaign child');
+  tree.entries.set(pipelineFixedJsChild, {kind:'blob',mode:'100644'});
+  const paths = pipelineFixedJsSourcePaths(tree);
+  assert(paths.includes(pipelineFixedJsChild)); assert(!paths.includes(pipelineChild));
+  assert(paths.includes('src/query_integration/extra.mbt'));
+  assert(!paths.includes('src/query_integration/relation_pipeline_batch_wbtest.mbt'));
+  assert(!paths.includes('_build/dirty.js'));
+  stagePipelineFixedJsSource({tree,destination});
+  assert.equal(readFileSync(join(destination,'source',pipelineFixedJsChild),'utf8'),'fixed campaign child');
+  const args = localIsolatedRunArguments({imageId:`sha256:${'a'.repeat(64)}`,cidFile:'/owned/container.id',
+    owner:`local-${'a'.repeat(32)}`,profile:'pipeline-fixed-js'});
+  assert.equal(args.at(-1),`/source/${pipelineFixedJsChild}`);
+  assert(!args.includes('--mount') && args.includes('--network=none'));
+});
 
 test('pipeline staging keeps the wide snapshot, supporting runner inputs, exact modes and no generated fixture', t => {
   const {tree, bodies} = pipelineSources(), destination = temporary(t);

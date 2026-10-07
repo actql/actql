@@ -8,7 +8,7 @@ import {release, cpus} from 'node:os';
 import {inventoryDistribution} from './runtime.mjs';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {hash} from './inputs.mjs';
-import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata, pipelinePristineSourcePaths} from './isolation.mjs';
+import {isolatedEnvironment, localIsolatedEnvironment, mutationSourcePaths, scratchDockerfile, localScratchDockerfile, isolatedCoreBuildMetadata, pipelinePristineSourcePaths, pipelineFixedJsSourcePaths} from './isolation.mjs';
 import {mutationIds} from './mutation-inventory.mjs';
 import {isolatedRunArguments, mutationSnapshotExtras, checkImageDefinition} from './isolation.mjs';
 import {isolatedContract, matchesIsolatedContract, isolatedExperimentDigest} from './isolated-contract.mjs';
@@ -49,11 +49,12 @@ export function observeImageRoot(root) {
 }
 
 export function imageRuntime(manifest, {local = false, profile = 'session'} = {}) {
-  assert(['session', 'pipeline-pristine'].includes(profile) && (profile === 'session' || local), 'Unregistered isolated authority/profile');
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile) && (profile === 'session' || local), 'Unregistered isolated authority/profile');
   assert(local ? manifest.localDiagnostic === true : manifest.localDiagnostic === undefined, 'Wrong local/Actions input authority');
-  assert.equal(manifest.version, profile === 'session' ? 'actql-isolated-mutation-inputs/0.1' : 'actql-isolated-pipeline-pristine-inputs/0.1');
+  assert.equal(manifest.version, profile === 'session' ? 'actql-isolated-mutation-inputs/0.1' : `actql-isolated-${profile}-inputs/0.1`);
+  if (profile === 'pipeline-fixed-js') assert(typeof manifest.testedRevision === 'string' && /^[a-f0-9]{40}$/u.test(manifest.testedRevision), 'Missing fixed-campaign candidate identity');
   const runtimeEntries = manifest.root.entries.filter(entry => !entry.path.startsWith('source/') && entry.path !== 'source');
-  return {profile: profile === 'pipeline-pristine' ? 'local-isolated-pipeline-pristine-linux' : local ? 'local-isolated-session-mutations-linux' : isolatedProfile, platform: 'linux', architecture: 'x64',
+  return {profile: profile !== 'session' ? `local-isolated-${profile}-linux` : local ? 'local-isolated-session-mutations-linux' : isolatedProfile, platform: 'linux', architecture: 'x64',
     environment: local ? localIsolatedEnvironment : isolatedEnvironment, platformInputs: manifest.platformInputs,
     rootDigest: hash(encode({entries: runtimeEntries, links: manifest.root.links.filter(link => !link.path.startsWith('source/')),
       unresolved: manifest.root.unresolved.filter(reason => !reason.startsWith('source: '))})),
@@ -114,7 +115,8 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
     const path = `${match[1]}/${match[2]}`;
     assert(manifest.root.links.some(link => link.path === path && byPath.has(link.destination)), 'Unresolved image link');
   }
-  const expected = profile === 'session' ? mutationSourcePaths(tree) : pipelinePristineSourcePaths(tree);
+  if (profile === 'pipeline-fixed-js') assert.equal(manifest.testedRevision, tree.revision, 'Wrong fixed-campaign revision');
+  const expected = profile === 'session' ? mutationSourcePaths(tree) : profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree);
   const sourceDirectories = new Set(['source']);
   for (const path of expected) {
     const parts = path.split('/');
@@ -142,9 +144,9 @@ export function checkIsolatedInputs({runtime, manifest, tree, local = false, pro
 }
 
 export function snapshotFromGit(tree, profile = 'session') {
-  assert(['session', 'pipeline-pristine'].includes(profile));
-  if (profile === 'pipeline-pristine') {
-    const paths = pipelinePristineSourcePaths(tree).filter(path => !path.startsWith('proofs/ci-evidence/'));
+  assert(['session', 'pipeline-pristine', 'pipeline-fixed-js'].includes(profile));
+  if (profile !== 'session') {
+    const paths = (profile === 'pipeline-pristine' ? pipelinePristineSourcePaths(tree) : pipelineFixedJsSourcePaths(tree)).filter(path => !path.startsWith('proofs/ci-evidence/'));
     const sources = Object.fromEntries(paths.sort().map(path => [path, hash(tree.read(path))]));
     return {digest: hash(JSON.stringify(sources)), sources};
   }

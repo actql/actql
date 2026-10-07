@@ -60,3 +60,59 @@ permission is changed. Qualified main comparison and pure net savings stay
 unverified until the required authenticated Actions originals exist. The local
 campaign is evidence of its exact finite scope, not a replacement for those
 obligations or completion of the overall incremental-verification goal.
+
+## Implemented local connection and first diagnostics
+
+The ordinary campaign is now importable, using its original executor and
+workspace lifecycle. Its default full scope still selects JS/Wasm/Native and
+its existing full-part validator. The separate finite scope is
+`pipeline-l-m0-fixed-js-campaign`: four fixed minima, each with one mutated,
+one pristine and one new-owner post-restoration JS execution (12 originals).
+No CLI selector can broaden this local scope. Missing/invalid scope is refused
+before compiler/workspace initialization.
+
+Both pristine and fixed consumers use the same raw-original helper. It checks
+source snapshots, requested Programs, compiled-boundary markers/fixtures, inputs,
+raw logs, target, role and artifacts. Fixed admission additionally reconstructs
+actual mutation bytes from the original source, checks every independent anchor
+against the observed defect, and checks normal semantics on both healthy phases.
+A re-sealed healthy observation with `killed: true` is refused independently of
+its valid receipt/log/build-boundary digests. Thirteen altered copies are
+consumer-refusal experiments, not thirteen physical mutations.
+
+The existing handoff recipe was stale: its original call moved from
+`selected_relation_provider.mbt` to the Producer branch in
+`relation_chain_input_preparation.mbt`. The old needle was absent even in the
+#849 physical pristine source. This is a recipe execution gap, not a confirmed
+product defect. The recipe now alters that exact `cursor.port` binding by +1,
+with the same receiver/expected/used-port fault observation. The separate
+small-input classification probe remains unchanged. Independent fixed inputs,
+anchors, names and mismatch predicates are unchanged; no old-needle fallback is
+kept. The existing DISTINCT handoff variant shares this corrected recipe and
+retains its independent predicate/fixture. Actual detection still requires
+execution; uniqueness alone does not prove it.
+
+The first diagnostic passed 70/74 and exposed the missing mutation site before
+execution. After updating the real site, the fixed consumer selection passed
+10/10. The expanded working-change selection then passed 126/126 (guard
+`run-SeQ79Y`, focused record `focused-test-eKRp3V`): real campaign orchestration,
+unchanged full-part refusal, controlled fixed originals, previously captured
+physical pristine originals, local owner/isolation and shared input-key checks.
+These are local diagnostics, not current-source compiled image acceptance.
+
+The shared Session input key now also binds the conservative pipeline module
+cohort and its directory membership, because the shared consumer eagerly imports
+pipeline oracle/receipt modules. It cannot retain a key after an imported module
+changes or disappears. This is an input-closure correction, not a claim that
+pipeline changes are semantically relevant to every Session theorem. Narrowing
+that policy requires separating the actual import/execution boundary first.
+
+The new `pipeline-fixed-js` local profile is distinct from Session and pristine
+admission. It retains the complete source cohort and tested revision in its
+manifest, the existing read-only/networkless/credential-free scratch executor,
+and owner-authenticated cleanup. Preparation is bounded at 900 seconds, its
+separate normal campaign at 600 seconds, actual image execution at 900 seconds,
+and the enclosing local guard at 1,800 seconds. Session and pristine limits stay
+unchanged. Both campaigns' original evidence is saved before optional comparison
+or refusal diagnostics. This unit still needs clean-SHA physical acceptance and
+actual retained-history validation; all broader obligations remain unclaimed.
