@@ -1183,8 +1183,10 @@ no access. Copies, serialized or forged errors have no explanation custody.
 Failure to obtain an observation, including credential, transport or closed-Client
 refusal, retains `unavailable/observation_unavailable` separately from received
 malformed facts. The error preserves only public Client code/status metadata;
-borrowed messages, nested causes and provider details are discarded. A fresh
-error owns each call's original target even if the transport reuses an exception.
+borrowed messages, nested causes and provider details are discarded. Unreadable
+error metadata retains only generic `ClientTransportUnknown`, without its cause.
+A fresh error owns each call's original target even if the transport reuses an
+exception.
 No dispatch, acceptance, Run outcome or current access is certified by this
 classification. No automatic lookup or additional operation is performed by
 presentation.

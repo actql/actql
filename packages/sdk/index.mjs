@@ -49,7 +49,9 @@ const rejectedRunObservation = (ref, operation, problem, code = 'InvalidHostRunS
 };
 
 const unavailableRunObservation = (failure, ref, operation) => {
-  const error = requestCancellationCause(failure);
+  let error;
+  try { error = requestCancellationCause(failure); }
+  catch { error = new ClientError('ClientTransportUnknown'); }
   runObservationFailures.set(error, freezeInput({kind: 'unavailable',
     problem: 'observation_unavailable', operation,
     next: {operation: 'status', ref: {...ref}},

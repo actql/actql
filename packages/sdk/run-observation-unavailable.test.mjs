@@ -104,3 +104,19 @@ test('typed Run observation failures separate unavailable from protocol rejectio
     fileURLToPath(new URL('./run-observation-protocol.typecheck.mts', import.meta.url))],
   {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000});
 });
+
+for (const field of ['code', 'status']) {
+  test(`unreadable ${field} metadata cannot replace an unavailable Run observation`, async t => {
+    const borrowed = new sdk.ClientError('ClientHostFailure');
+    let reads = 0;
+    Object.defineProperty(borrowed, field, {get() {reads++; throw new Error('private-failure-metadata');}});
+    const f = await fixture(t, () => {throw borrowed;});
+    const error = await capture(f.run.status());
+    assert.deepEqual(sdk.explainRunObservationFailure(error), expected('status'),
+      '[check-mutation:run-unavailable-metadata]');
+    assert.equal(error.code, 'ClientTransportUnknown');
+    assert.equal(Object.hasOwn(error, 'cause'), false);
+    assert.equal(reads, 1);
+    assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), /private-failure-metadata/);
+  });
+}
