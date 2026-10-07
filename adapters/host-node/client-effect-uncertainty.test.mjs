@@ -141,3 +141,59 @@ for (const entrance of ['local', 'https']) {
     }
   });
 }
+
+test('https: stale Effect reconciliation advice does not grant current authority', async t => {
+  const setup = await readComputeEffectInstallation(t, {
+    org: {loseReplyAfterApply: [2]}});
+  const submittedHost = await setup.openHost();
+  const submitted = await submitReadComputeEffect(
+    await submittedHost.as('owner-token'), setup.program(), 'effect-current-authority');
+  await waitFor(async () => (await submitted.status()).status === 'waiting_checkpoint');
+  await submittedHost.close();
+  const approvingHost = await setup.openHost();
+  await approveHeldSet(approvingHost, submitted);
+  await approvingHost.close();
+
+  const observingHost = await setup.openHost();
+  let credential = 'owner-token';
+  const client = await observingHost.as(() => credential);
+  try {
+    const execution = await client.attach(submitted.ref);
+    const state = await waitFor(async () => {
+      const current = await execution.status();
+      return current.status === 'needs_reconciliation' &&
+        current.control?.physical_stop === 'confirmed' ? current : undefined;
+    });
+    const explanation = sdk.explainEffectUncertainty(state);
+    assert.deepEqual(explanation,
+      expectedExplanation(execution.ref, state.control.revision));
+    assert.equal(setup.writes().length, 2);
+    assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
+    const counts = {writes: setup.writes().length,
+      queries: setup.queries(), targetReads: setup.targetReads()};
+    const absentRef = {...execution.ref, runDefinitionCid: `sha256:${'0'.repeat(64)}`};
+    assert.notEqual(absentRef.runDefinitionCid, execution.ref.runDefinitionCid);
+
+    // The public SDK's credential callback changes the actual authenticated
+    // actor at the real Host. The original candidate grants no access.
+    for (const [token, code] of [['reviewer-token', 'ClientConnectionDenied'],
+      ['unrecognized-token', 'ClientAuthenticationDenied']]) {
+      credential = token;
+      await assert.rejects(execution.reconcile(), {code});
+      // Denied actors cannot distinguish the retained Run from an absent one.
+      await assert.rejects(client.attach(execution.ref), {code});
+      await assert.rejects(client.attach(absentRef), {code});
+      assert.deepEqual(sdk.explainEffectUncertainty(state), explanation);
+      assert.deepEqual({writes: setup.writes().length,
+        queries: setup.queries(), targetReads: setup.targetReads()}, counts);
+    }
+    credential = 'owner-token';
+    const current = await execution.reconcile();
+    assert.deepEqual(sdk.explainEffectUncertainty(current),
+      expectedExplanation(execution.ref, current.control.revision));
+    assert.equal(current.status, 'needs_reconciliation');
+    assert.deepEqual(sdk.explainEffectUncertainty(state), explanation);
+    assert.deepEqual({writes: setup.writes().length,
+      queries: setup.queries(), targetReads: setup.targetReads()}, counts);
+  } finally { await observingHost.close(); }
+});
