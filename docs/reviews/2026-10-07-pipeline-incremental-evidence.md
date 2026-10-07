@@ -76,3 +76,28 @@ ancestry lookup, preserving ordered parent facts and rejecting incomplete graph
 output. It retains every tree/blob/mode, maximal-base, source, introduction and
 dependency check. This removes repeated Git process startup; it is not evidence
 reuse, narrower history validation, or a claim about hosted net CI savings.
+
+## Local acceptance and residuals
+
+[The immutable local summaries and logs](evidence/2026-10-07-pipeline-action-local-acceptance.json)
+retain each executed revision separately. At `d243563e6ed8458dfe56b71516fbe5e7403dc533`,
+the new action/real Lean regressions passed 22/22 and producer/final-consumer
+workflow regressions passed 4/4. At `452c636fd260453c69d2b049d9d9a5e5c6af17bc`,
+the final source/parent/ancestry selection passed 7/7, and the real full repository
+foundation check completed in approximately 183 seconds. The earlier 71/71
+connection result and dirty-tree checker/parent-graph diagnostics are identified
+as earlier evidence, not relabelled as final-source campaigns.
+
+Local Lean used the existing pin with explicit `-j 1` on macOS arm64, retaining
+the production 30-second checker timeout. Default-worker imports/checks had
+timed out on this loaded host. The shared checker/model/theorems remain unchanged.
+The before/after history diagnostics include a censored 600-second reference;
+they are not a controlled hosted savings measurement.
+
+The owned-version scan still rejects the pre-existing main negative fixture at
+`src/platform_native/remote_standard_host/retained_task_input_wbtest.mbt:782`,
+introduced at `ff4f507701`, which contains a literal non-0.1 owned contract token.
+This PR does not alter that other owner's Native boundary or relax the scanner.
+The negative wire must stay rejected when that fixture is corrected by its owner.
+Current pipeline campaigns, Linux consumer installation, authenticated originals,
+comparison, skip activation and transfer-inclusive net savings remain unverified.

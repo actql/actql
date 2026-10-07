@@ -1,0 +1,189 @@
+{
+  "version": "actql-pipeline-action-local-acceptance/0.1",
+  "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc",
+  "adoptedMain": "a6db4a8076da5f96940a7f7f2172009008de05c1",
+  "authority": "local-only",
+  "actionsRun": null,
+  "reuseAuthorized": false,
+  "runtime": {
+    "node": "22.23.2",
+    "leanPin": "leanprover/lean4:v4.30.0-rc1",
+    "leanBinarySha256": "2974847fff2e2621502841f4c2dbac4035b4847d6060a4f2087cbc0d04005e37",
+    "leanWrapper": "exec /Users/t14i/.elan/toolchains/leanprover--lean4---v4.30.0-rc1/bin/lean -j 1 \"$@\"",
+    "checkerTimeoutMs": 30000,
+    "diagnosticWorkerCount": 1,
+    "host": "local macOS arm64; not the Actions Linux runtime"
+  },
+  "evidence": [
+    {
+      "name": "initial-connection-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-initial-connection-summary.gz",
+      "sha256": "3d6f84553b1c0b34fefcf8cabe05912aeb4e35235cca7ee805452bb7c5dbeda1",
+      "uncompressedSha256": "2076abb1e880271013430b8fa1d57dfe326ef1a0dc81a34f813132968924707d",
+      "sourceRevision": "9f0803cc4d54fae0c1bf53c79c12470e02009dd4"
+    },
+    {
+      "name": "initial-connection-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-initial-connection-stdout.gz",
+      "sha256": "9bacf6e283a36031f56ef690db5fe678097cb5014f125679172d4d8cd60288c6",
+      "uncompressedSha256": "4079431f446dbb7900cc4ad579f1911a3d4183552378cba2b9493351fce21ecf",
+      "sourceRevision": "9f0803cc4d54fae0c1bf53c79c12470e02009dd4"
+    },
+    {
+      "name": "working-inputs-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-working-inputs-summary.gz",
+      "sha256": "dab72a3c44207dda887cba65b8c9492f90dde970279c8a26edad602d39980c29",
+      "uncompressedSha256": "e92ed35a6253542a8ef8a7253aeddef8ea41bf1e37a07ff3d423ffce4b39e244",
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533"
+    },
+    {
+      "name": "working-inputs-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-working-inputs-stdout.gz",
+      "sha256": "fca8acd2529ee05655f08eccbb3e96976452cc16adb38b0415856c46c7eb32ae",
+      "uncompressedSha256": "ff680056319d0e2d0be830d7e60621829d5d4668aaf785c038b13f3ed3ae5ba2",
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533"
+    },
+    {
+      "name": "consumer-workflow-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-consumer-workflow-summary.gz",
+      "sha256": "b8311230d7bef1999df2896bef3348ce3b0dee0beae5bfc750a8e1a3f8e29354",
+      "uncompressedSha256": "fdab106b22abc6b5cd2211955fafc9b48ded25cc5f10ea0251fc2ad000d3013d",
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533"
+    },
+    {
+      "name": "consumer-workflow-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-consumer-workflow-stdout.gz",
+      "sha256": "4b842d9b4bea778368c626968115014ae6a93715a2f1c54148bfbe06e6703b9a",
+      "uncompressedSha256": "42f54607bec0c29685e481028528f6c3d90b394b03f82657ad7968dacca38645",
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533"
+    },
+    {
+      "name": "final-source-ancestry-summary",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-final-source-ancestry-summary.gz",
+      "sha256": "405b932aa248a9b865a07a6f8be6babce7b9264399eb2d218ef3bca9411031ea",
+      "uncompressedSha256": "bba7480f5cd91d17fcbf68830d30919e1a6fce6961638fe23dca236391a736d1",
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc"
+    },
+    {
+      "name": "final-source-ancestry-stdout",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-final-source-ancestry-stdout.gz",
+      "sha256": "7fc38bdbdd931cbbb0c5869f01af8a5407b96dbce0f3e558c490379c05d58a44",
+      "uncompressedSha256": "a64886cdab8e959386ee193f4cd0492a34126c1b222a3c58f29b7d9357d8adc3",
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc"
+    },
+    {
+      "name": "actual-foundation",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-foundation.json.gz",
+      "sha256": "bf9a97f1b9bf13694cd4b5142bd60f5425c9e8a481c67176e49072f20d99ad77",
+      "uncompressedSha256": "e5bc50b5ed384df4fb3156c9722edd7100082c192daab473053b9979d408f9dc",
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc"
+    },
+    {
+      "name": "history-summary.json",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-history-summary.json.gz",
+      "sha256": "5a2c5793d002474a14aecbdf749bfce27cd886ed04e45dd612d7f60a46bfea25",
+      "uncompressedSha256": "31f645c8e52b0fb103e1479571823f4b58249fdbfd7f601b8c2f07979ea881aa",
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc"
+    },
+    {
+      "name": "history-output.log",
+      "path": "docs/reviews/evidence/2026-10-07-pipeline-action-history-output.log.gz",
+      "sha256": "f08363f34467ae3fb06d9cfb7e1dfb53cfa1ebba48c1ee9324b78727133520c3",
+      "uncompressedSha256": "41614452d3964ff35b1b096fb28e1014ee48f390a1700978f16c5ffb07d142bf",
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc"
+    }
+  ],
+  "historyRepair": {
+    "source": "b4850d69afc65a04a8a634f358b234b1c182d612",
+    "declaration": "proofs/relation-pipeline/foundation-declarations/resolve-compound-parent-package-b4850d69.json",
+    "scope": "package resolution against both actual maximal bases; unchanged source trees and validator"
+  },
+  "checks": [
+    {
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533",
+      "name": "new action and real pinned checker",
+      "passed": 22
+    },
+    {
+      "sourceRevision": "d243563e6ed8458dfe56b71516fbe5e7403dc533",
+      "name": "workflow producer and final consumer contracts",
+      "passed": 4
+    },
+    {
+      "sourceRevision": "9f0803cc4d54fae0c1bf53c79c12470e02009dd4",
+      "name": "initial connection and retained part/audit/fixture regressions",
+      "passed": 71
+    },
+    {
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc",
+      "name": "fixed-source ancestry and input identity",
+      "passed": 7
+    },
+    {
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc",
+      "name": "actual Git foundation",
+      "status": "passed",
+      "command": "node proofs/relation-pipeline/history.mjs --write",
+      "startedAt": "2026-10-07T11:35:16.833Z",
+      "endedAt": "2026-10-07T11:38:19.699Z",
+      "foundationSha256": "e5bc50b5ed384df4fb3156c9722edd7100082c192daab473053b9979d408f9dc"
+    },
+    {
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc",
+      "name": "owned contract version scan",
+      "status": "failed",
+      "command": "node scripts/check-owned-contract-versions.mjs",
+      "reason": "existing-main negative fixture src/platform_native/remote_standard_host/retained_task_input_wbtest.mbt:782 contains a literal non-0.1 owned token",
+      "introducedAt": "ff4f507701"
+    },
+    {
+      "sourceRevision": "452c636fd260453c69d2b049d9d9a5e5c6af17bc",
+      "name": "whitespace",
+      "status": "passed",
+      "command": "git diff --check",
+      "scope": "separate read-only command after the failed scan"
+    }
+  ],
+  "diagnostics": [
+    {
+      "name": "parent-graph source/dependency fixtures",
+      "passed": 71,
+      "dirty": true,
+      "guard": "run-UkXeZf",
+      "sourceRevision": "ade74f73de5b5b007cce5d09df25fa50d5e78656"
+    },
+    {
+      "name": "repaired history with repeated Git I/O",
+      "result": "600-second guard timeout; not accepted",
+      "guard": "run-3S2wsT"
+    },
+    {
+      "name": "pre-commit shared checker and 36-action plan",
+      "passed": 24,
+      "dirty": true,
+      "guard": "run-5qifau"
+    },
+    {
+      "name": "default-worker Lean checks",
+      "result": "timeout; even a tiny import was affected; not mutation detection"
+    },
+    {
+      "name": "larger retained fixture selection",
+      "result": "360-second guard timeout; not accepted",
+      "guard": "run-WZenc0"
+    }
+  ],
+  "unchangedOriginal": {
+    "path": "docs/reviews/evidence/2026-10-06-pipeline-main-37198759659-L-M0-fixed.json.gz",
+    "sourceRevision": "7c4bcb61b8d7e7c37b4be8eb986e1811842d345b",
+    "uncompressedSha256": "5ce6b98807105317e43a3496e08045ff403afad2081d9e8dfeca61ea146d9e22",
+    "scope": "projection of one retained historical part only; not current full-run authentication"
+  },
+  "unverified": [
+    "current full pipeline campaign and scientific consumer on new originals",
+    "Linux installation and hosted execution of the added consumer step",
+    "closed runtime/workspace inputs",
+    "authenticated origin transport and compatible main shadow comparison",
+    "pipeline skip activation, related-input fresh execution and transfer/authentication-inclusive net savings"
+  ]
+}
