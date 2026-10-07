@@ -46,7 +46,8 @@ priv struct PublicationCommitInputs {
 
 ///|
 priv enum PublicationCommitPhase {
-  ResultEvidence
+  BeginResultEvidence
+  ResultEvidence(ResultEvidencePreparation)
   Bindings
   Computation(ComputationEvidenceCheck)
   References
@@ -110,7 +111,7 @@ pub fn start_effect_free_publication_commit_check(
       index_entry,
     }),
     max_workspace,
-    phase: ResultEvidence,
+    phase: BeginResultEvidence,
     live: 12,
     peak: 12,
     closed: false,
@@ -127,17 +128,25 @@ fn PublicationCommitPreparation::step(
     return Err(CommitEncoding)
   }
   match preparation.phase {
-    ResultEvidence =>
-      match
-        validate_result_evidence_set(
-          chain.definitions,
-          chain.artifacts,
-          inputs.derivations,
-          inputs.orderings,
-          inputs.retentions,
-        ) {
-        Err(issue) => return Err(CommitResultEvidence(issue))
-        Ok(_) => preparation.phase = Bindings
+    BeginResultEvidence => {
+      let child = start_result_evidence_preparation(
+        chain.definitions,
+        chain.artifacts,
+        inputs.derivations,
+        inputs.orderings,
+        inputs.retentions,
+        Some(preparation.max_workspace - preparation.live),
+      )
+      preparation.phase = ResultEvidence(child)
+      match preparation.advance_result_evidence(child) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
+    }
+    ResultEvidence(child) =>
+      match preparation.advance_result_evidence(child) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
     Bindings =>
       match
@@ -198,6 +207,28 @@ fn PublicationCommitPreparation::step(
 }
 
 ///|
+fn PublicationCommitPreparation::advance_result_evidence(
+  preparation : PublicationCommitPreparation,
+  child : ResultEvidencePreparation,
+) -> Result[Unit, PublicationCommitIssue] {
+  match child.advance(1) {
+    Err(issue) => return Err(issue)
+    Ok((done, _)) => {
+      // A successful budgeted child never exceeds the Int workspace bound.
+      preparation.peak = Int::max(
+        preparation.peak,
+        preparation.live + child.peak.to_int(),
+      )
+      if done {
+        child.cancel()
+        preparation.phase = Bindings
+      }
+    }
+  }
+  Ok(())
+}
+
+///|
 pub fn PublicationCommitPreparation::advance(
   preparation : PublicationCommitPreparation,
   quantum : Int,
@@ -236,8 +267,10 @@ pub fn PublicationCommitPreparation::cancel(
   if preparation.closed {
     return
   }
-  if preparation.phase is Computation(child) {
-    child.cancel()
+  match preparation.phase {
+    ResultEvidence(child) => child.cancel()
+    Computation(child) => child.cancel()
+    _ => ()
   }
   preparation.inputs = None
   preparation.phase = Done
@@ -270,7 +303,7 @@ pub fn publication_commit_preparation_fixture_phase(
     return "closed"
   }
   match preparation.phase {
-    ResultEvidence => "result-evidence"
+    BeginResultEvidence | ResultEvidence(_) => "result-evidence"
     Bindings => "bindings"
     Computation(child) => computation_evidence_check_fixture_phase(child)
     References => "references"
