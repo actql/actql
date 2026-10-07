@@ -21,6 +21,21 @@ test "native census binds real chain captures and retains producer metadata thro
   }
   let preparation = state.input_preparation.unwrap()
   let metadata = preparation.read.unwrap()
+  // Reach a populated columns buffer while the real metadata cursor still
+  // belongs to the pending chain. This is a phase selection, not a relaxed
+  // product budget or an arbitrary fixture-derived upper bound.
+  for _ in 0..<100 {
+    if current_columns_count(metadata) > 0 {
+      break
+    }
+    assert_true(advance_managed_provider(active, 1).unwrap() is Continue(..))
+  }
+  assert_eq(current_columns_count(metadata), 1)
+  assert_true(state.pending)
+  assert_true(physical_equal(preparation.read.unwrap(), metadata))
+  println(
+    current_preparation_storage_probe(preparation, metadata, None, 0, 1, 1),
+  )
   let completed = state.completed
   let output = completed[0].unwrap()
   let cleanup_calls = Ref(0)
@@ -82,4 +97,72 @@ test "native census binds real chain captures and retains producer metadata thro
   assert_true(@execution.completed_output_available(source))
   assert_true(@execution.producer_read_available(read))
   assert_true(@execution.completed_output_available(output))
+  println(
+    current_preparation_storage_probe(preparation, metadata, None, 1, 1, 1),
+  )
+  assert_eq(current_columns_count(metadata), 0)
+
+  // Reuse the same independently completed occurrence with the existing
+  // preparation API. Completion transfers columns into a ProducerRead without
+  // copying them. The probe keeps explicit references and makes no GC claim.
+  let transferred_preparation = start_relation_chain_inputs(
+    sequence,
+    1,
+    [managed_provider_relation_input(read)],
+    completed,
+    1000,
+    10000,
+  ).unwrap()
+  let mut transferred_metadata : @execution.ProducerReadPreparation? = None
+  for _ in 0..<100 {
+    if !transferred_preparation.selected.is_empty() {
+      break
+    }
+    assert_true(
+      advance_relation_chain_inputs(transferred_preparation).unwrap() is None,
+    )
+    if transferred_preparation.read is Some(cursor) {
+      transferred_metadata = Some(cursor)
+    }
+  }
+  assert_eq(transferred_preparation.selected.length(), 1)
+  let final_read = match transferred_preparation.selected[0] {
+    RelationInput(value) => value
+    _ => fail("expected the exact transferred producer input")
+  }
+  let final_metadata = transferred_metadata.unwrap()
+  assert_eq(current_columns_count(final_metadata), 1)
+  assert_true(
+    @execution.producer_read_cell(final_read, 0, 0)
+    is Some(@execution.Number(2)),
+  )
+  println(
+    current_preparation_storage_probe(
+      transferred_preparation,
+      final_metadata,
+      Some(final_read),
+      2,
+      1,
+      1,
+    ),
+  )
+  cancel_relation_chain_inputs(transferred_preparation)
+  @execution.cancel_prepare_producer_read(final_metadata)
+  assert_true(transferred_preparation.selected.is_empty())
+  assert_eq(current_columns_count(final_metadata), 1)
+  assert_true(@execution.producer_read_available(final_read))
+  assert_true(
+    @execution.producer_read_cell(final_read, 0, 0)
+    is Some(@execution.Number(2)),
+  )
+  println(
+    current_preparation_storage_probe(
+      transferred_preparation,
+      final_metadata,
+      Some(final_read),
+      3,
+      1,
+      1,
+    ),
+  )
 }

@@ -68,3 +68,20 @@ extern "C" fn provider_construction_probe(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
 ) -> String = "actql_proof_provider_construction"
+
+///|
+#borrow(read)
+extern "C" fn current_columns_count(
+  read : @execution.ProducerReadPreparation,
+) -> Int = "actql_proof_current_columns_count"
+
+///|
+#borrow(preparation, read, transferred)
+extern "C" fn current_preparation_storage_probe(
+  preparation : RelationChainInputPreparation,
+  read : @execution.ProducerReadPreparation,
+  transferred : @execution.ProducerRead?,
+  phase : Int,
+  ports : Int,
+  fields : Int,
+) -> String = "actql_proof_current_preparation_storage"
