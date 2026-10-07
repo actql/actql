@@ -11,13 +11,44 @@ fn append_grouped_expression(
   ranges : Array[(@query.NamePart, Array[(String, String)])],
   max_work : Int,
 ) -> @builder.Node raise Abort {
+  append_grouped_expression_resolved(
+    construction,
+    expression,
+    grouped_keys,
+    (left, right) => same_group_reference(left, right, resolve_input),
+    path => pipe_slot(path, visible, ranges),
+    visible.map(entry => entry.0),
+    max_work,
+  )
+}
+
+///|
+// The caller supplies clause-aware reference meanings and value resolution.
+// Bind only proven key subtrees; ordinary evaluation remains in the common
+// expression bridge, including nullable object prefix projection.
+fn append_grouped_expression_resolved(
+  construction : Construction,
+  expression : @query.Expression,
+  grouped_keys : Array[(@query.Expression, String)],
+  references : (Array[@query.NamePart], Array[@query.NamePart]) -> Bool,
+  resolve : (Array[@query.NamePart]) -> String?,
+  reserved_names : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
   if grouped_keys.is_empty() {
-    return append_pipe_expression(
-      construction, expression, visible, ranges, max_work,
-    )
+    return match
+      @expression.append_with_properties(
+        expression,
+        resolve,
+        construction.builder,
+        max_work,
+      ) {
+      Ok(node) => node
+      Err(error) => raise Abort(Expression(error))
+    }
   }
   let bindings : Array[(Int, @query.NamePart)] = []
-  let bound_visible = visible.copy()
+  let bound_visible : Array[(String, String)] = []
   let authored_paths = join_reference_paths(expression)
   let mut binding_work = 0
   for node in 0..<@query.expression_node_count(expression) {
@@ -42,13 +73,13 @@ fn append_grouped_expression(
           }),
         )
       }
-      if same_expression(key, child, references=(left, right) => {
-          same_group_reference(left, right, resolve_input)
-        }) {
+      if same_expression(key, child, references~) {
         let mut serial = bindings.length()
-        let mut reference = "aql_pipe_group_bound_" +
-          serial.to_string()
-        while bound_visible.any(entry => {
+        let mut reference = "aql_pipe_group_bound_" + serial.to_string()
+        while reserved_names.any(name => {
+                ascii_upper(name) == ascii_upper(reference)
+              }) ||
+              bound_visible.any(entry => {
                 ascii_upper(entry.0) == ascii_upper(reference)
               }) ||
               authored_paths.any(path => {
@@ -63,10 +94,24 @@ fn append_grouped_expression(
       }
     }
   }
-  let expression = @query.expression_with_field_bindings(
-    expression, bindings,
-  ).unwrap()
-  append_pipe_expression(
-    construction, expression, bound_visible, ranges, max_work,
-  )
+  let expression = @query.expression_with_field_bindings(expression, bindings).unwrap()
+  match
+    @expression.append_with_properties(
+      expression,
+      path => {
+        if path.length() == 1 {
+          for (name, slot) in bound_visible {
+            if same_name(path[0], { value: name, quoted: false, }) {
+              return Some(slot)
+            }
+          }
+        }
+        resolve(path)
+      },
+      construction.builder,
+      max_work,
+    ) {
+    Ok(node) => node
+    Err(error) => raise Abort(Expression(error))
+  }
 }

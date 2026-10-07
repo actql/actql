@@ -445,7 +445,21 @@ fn same_group_reference(
   right : Array[@query.NamePart],
   resolve : (Array[@query.NamePart]) -> String?,
 ) -> Bool {
-  let prefix = fn(path : Array[@query.NamePart]) -> (String, Int)? {
+  same_group_reference_in_scopes(left, right, resolve, resolve)
+}
+
+///|
+// Compare receivers in their own clause scopes before matching property members.
+fn same_group_reference_in_scopes(
+  left : Array[@query.NamePart],
+  right : Array[@query.NamePart],
+  resolve_left : (Array[@query.NamePart]) -> String?,
+  resolve_right : (Array[@query.NamePart]) -> String?,
+) -> Bool {
+  let prefix = fn(
+    path : Array[@query.NamePart],
+    resolve : (Array[@query.NamePart]) -> String?,
+  ) -> (String, Int)? {
     let mut length = path.length()
     while length > 0 {
       if resolve(path[:length].to_owned()) is Some(slot) {
@@ -455,7 +469,7 @@ fn same_group_reference(
     }
     None
   }
-  match (prefix(left), prefix(right)) {
+  match (prefix(left, resolve_left), prefix(right, resolve_right)) {
     (Some((a, a_length)), Some((b, b_length))) => {
       if a != b || left.length() - a_length != right.length() - b_length {
         return false
@@ -3004,9 +3018,19 @@ fn compile_steps(
               slot,
               if sql_group_expression_input_scope is Some(original_scope) {
                 append_grouped_expression(
-                  construction, expression, grouped_keys,
-                  path => pipe_slot(path, original_scope.visible, original_scope.ranges),
-                  input_scope.visible, input_scope.ranges, max_work,
+                  construction,
+                  expression,
+                  grouped_keys,
+                  path => {
+                    pipe_slot(
+                      path,
+                      original_scope.visible,
+                      original_scope.ranges,
+                    )
+                  },
+                  input_scope.visible,
+                  input_scope.ranges,
+                  max_work,
                 )
               } else {
                 append_pipe_expression(
@@ -3026,33 +3050,84 @@ fn compile_steps(
           derive_step.push(("derive", construction.object(derives)))
           step_entries.push(derive_step)
         }
-        let value = match
-          @expression.append_with_properties(
-            predicate,
-            path => {
-              if path.length() == 1 {
-                for (name, slot) in having_aggregate_slots {
-                  if name == path[0].value {
-                    return Some(slot)
-                  }
+        let resolve_having = fn(path : Array[@query.NamePart]) -> String? {
+          if path.length() == 1 {
+            for (name, slot) in having_aggregate_slots {
+              if name == path[0].value {
+                return Some(slot)
+              }
+            }
+          }
+          having_column(
+            path,
+            query,
+            input,
+            active_fields,
+            projections,
+            grouped_keys,
+            having_values,
+            scope~,
+          )
+        }
+        let value = if sql_group_expression_input_scope is Some(original_scope) {
+          let resolve_input = fn(path : Array[@query.NamePart]) -> String? {
+            pipe_slot(path, original_scope.visible, original_scope.ranges)
+          }
+          // HAVING resolves bare SELECT aliases before inputs. A computed or
+          // aggregate alias cannot prove that its value is the original input
+          // receiver. Qualified inputs still resolve in their own range.
+          let resolve_having_input = fn(
+            path : Array[@query.NamePart],
+          ) -> String? {
+            if path.length() == 1 {
+              let matches = projections.filter(projection => {
+                projection.name is Some(name) && same_name(name, path[0])
+              })
+              if !matches.is_empty() {
+                guard matches.length() == 1 &&
+                  matches[0].aggregate is None &&
+                  matches[0].analytic is None &&
+                  matches[0].expression is Some(expression) else {
+                  return None
+                }
+                let mut root = @query.expression_root(expression)
+                while @query.expression_node(expression, root).unwrap().kind
+                      is Parenthesized(child) {
+                  root = child
+                }
+                return match
+                  @query.expression_node(expression, root).unwrap().kind {
+                  Reference(source) => resolve_input(source)
+                  _ => None
                 }
               }
-              having_column(
-                path,
-                query,
-                input,
-                active_fields,
-                projections,
-                grouped_keys,
-                having_values,
-                scope~,
+            }
+            resolve_input(path)
+          }
+          append_grouped_expression_resolved(
+            construction,
+            predicate,
+            grouped_keys,
+            (left, right) => {
+              same_group_reference_in_scopes(
+                left, right, resolve_input, resolve_having_input,
               )
             },
-            construction.builder,
+            resolve_having,
+            physical,
             max_work,
-          ) {
-          Ok(value) => value
-          Err(error) => raise Abort(Expression(error))
+          )
+        } else {
+          match
+            @expression.append_with_properties(
+              predicate,
+              resolve_having,
+              construction.builder,
+              max_work,
+            ) {
+            Ok(value) => value
+            Err(error) => raise Abort(Expression(error))
+          }
         }
         entries.push(("filter", value))
       }
