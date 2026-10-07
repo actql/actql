@@ -9,7 +9,7 @@ const classification = code => ({
   ClientProgramInvalidInput: 'invalid_input', ClientParametersInvalid: 'invalid_input',
   ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',
   ClientParametersTooLarge: 'implementation_limit', ClientProgramAnalysisLimit: 'implementation_limit',
-  ClientProgramRejected: 'operation_failed',
+  ClientProgramImplementationLimit: 'implementation_limit', ClientProgramRejected: 'operation_failed',
 })[code] ?? 'operation_failed';
 const immutable = value => {
   if (value && typeof value === 'object') {
@@ -43,7 +43,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     submissionRef: retained.submissionRef, intentCid: retained.intentCid});
   const discloseOutcome = async (value, outcome, fields, retained) => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind) ||
-        !['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit'].includes(outcome.problem.code)) return outcome;
+        !['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit', 'ClientProgramImplementationLimit'].includes(outcome.problem.code)) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
@@ -57,7 +57,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       disclosable = validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
         ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
-          limit => limit.code === 'analysis_budget_exhausted'));
+          limit => limit.code === (outcome.problem.code === 'ClientProgramAnalysisLimit'
+            ? 'analysis_budget_exhausted' : 'implementation_limit')));
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.

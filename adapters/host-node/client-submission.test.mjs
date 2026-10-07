@@ -274,3 +274,38 @@ test('retained Source analysis budget rechecks original intent and current discl
   assert.ok(observed.every(text => text === 'SELECT original AS n'));
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
+
+
+for (const partial of [false, true]) {
+  test(`retained Source implementation limit rechecks ${partial ? 'partial' : 'completed'} original disclosure`, async t => {
+    const verified = JSON.parse(await readFile(new URL(
+      '../../packages/client-wire/fixtures/check-outcome-pins.verified.json', import.meta.url), 'utf8'));
+    const failed = JSON.parse(await readFile(new URL(
+      '../../packages/client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+    let limit = 'implementation_limit';
+    const observed = [];
+    const f = await fixture(t, {prepare() {
+      throw Object.assign(new Error('typed implementation fixture'), {code: 'ClientProgramImplementationLimit'});
+    }, async check(value) {
+      observed.push(value.input.text);
+      const report = structuredClone(verified.report);
+      report.verdict = 'undetermined';
+      report.coverage.limits = [{code: limit}];
+      const outcome = partial ? {...failed, partial_report: report} : {...verified, report};
+      assert.equal(validCheckOutcome(outcome), true);
+      return outcome;
+    }});
+    const first = await f.service.submitIntent(f.body('SELECT original AS n'));
+    assert.deepEqual(first.problem, {code: 'ClientProgramImplementationLimit', classification: 'implementation_limit'});
+    f.restart();
+    limit = 'analysis_budget_exhausted';
+    const hidden = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+    assert.equal(hidden.kind, first.kind);
+    assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+      '[check-mutation:submission-implementation-disclosure]');
+    limit = 'implementation_limit';
+    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+    assert.ok(observed.every(text => text === 'SELECT original AS n'));
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  });
+}
