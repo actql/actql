@@ -30,7 +30,9 @@ No edits to dot's selector/workflow sections are planned in this first unit.
 The source adapter must retain actual Git bytes, modes and recursive membership
 for the current workspace/snapshot boundary, including fixture/oracle, registry,
 generator, shrinker, partition and final-checker inputs. The existing wide source
-snapshot and raw receipts remain mandatory, unchanged originals. Unknown runtime
+snapshot and raw receipts remain mandatory, unchanged originals. The consumer also
+checks working bytes and executable modes, including the shared checker files
+outside that snapshot, against the selected Git identity. Unknown runtime
 and inherited environment dependencies keep this family fresh; a source-only key
 is not a complete hermetic action identity or a reuse authorization.
 

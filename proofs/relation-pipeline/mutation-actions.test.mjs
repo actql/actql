@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {dirname, join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {gunzipSync} from 'node:zlib';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -22,10 +24,27 @@ test('the source adapter binds the actual committed wide pipeline inventory', ()
   const result = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'});
   assert.equal(result.status, 0);
   const source = actualSnapshot(root);
-  const inputs = mutationSourceInputs({tree: gitTree(root, result.stdout.trim()), source});
+  const inputs = mutationSourceInputs({tree: gitTree(root, result.stdout.trim()), source, root});
   assert(inputs.files.length >= Object.keys(source.sources).length);
   assert(inputs.files.some(entry => entry.path === 'proofs/ci-evidence/Reuse.lean'));
   assert(inputs.unresolved.length > 0);
+});
+
+test('the consumer refuses working checker bytes and input modes that differ from its Git identity', t => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-pipeline-action-inputs-'));
+  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const tree = inputTree(), source = snapshot(tree);
+  for (const [path, bytes] of tree.contents) {
+    const actual = join(directory, path); mkdirSync(dirname(actual), {recursive: true});
+    writeFileSync(actual, bytes); chmodSync(actual, 0o644);
+  }
+  assert(mutationSourceInputs({tree, source, root: directory}).key);
+  const checker = join(directory, 'proofs/ci-evidence/check.mjs');
+  writeFileSync(checker, 'different executed checker');
+  assert.throws(() => mutationSourceInputs({tree, source, root: directory}), /Working pipeline input bytes differ/);
+  writeFileSync(checker, tree.read('proofs/ci-evidence/check.mjs'));
+  chmodSync(checker, 0o755);
+  assert.throws(() => mutationSourceInputs({tree, source, root: directory}), /Working pipeline input mode differs/);
 });
 
 test('the existing final consumer installs the audited Lean pin before executing action admission', () => {

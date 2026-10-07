@@ -1,7 +1,7 @@
 // Fresh pipeline obligations use the existing incremental evidence checker.
 // Source correspondence is not a closed runtime or an Actions trust witness.
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {lstatSync, readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {gitTree, hash} from '../ci-evidence/inputs.mjs';
@@ -49,7 +49,7 @@ export function mutationActions(decision) {
 // Keep the current wide workspace inventory, independently enumerated from Git.
 // Compare it to the existing source snapshot instead of trusting report paths.
 // Adding a new snapshot dependency must update this adapter, not silently narrow it.
-export function mutationSourceInputs({tree, source}) {
+export function mutationSourceInputs({tree, source, root}) {
   const members = directories.map(path => ({path: `${path}/**`, members: [...tree.entries.keys()]
     .filter(file => file.startsWith(`${path}/`) && file !== fixturePath).sort()}));
   const paths = [...new Set([...members.flatMap(entry => entry.members), ...snapshotFiles])].sort();
@@ -64,6 +64,12 @@ export function mutationSourceInputs({tree, source}) {
   const files = selected.map(path => {
     const bytes = tree.read(path), entry = tree.entries.get(path), sha256 = hash(bytes);
     if (Object.hasOwn(source.sources, path)) assert.equal(sha256, source.sources[path], `Pipeline source bytes differ: ${path}`);
+    if (root) {
+      const actual = join(root, path), stat = lstatSync(actual);
+      assert(stat.isFile(), `Nonregular working pipeline input: ${path}`);
+      assert.equal(stat.mode & 0o111 ? '100755' : '100644', entry.mode, `Working pipeline input mode differs: ${path}`);
+      assert.equal(hash(readFileSync(actual)), sha256, `Working pipeline input bytes differ: ${path}`);
+    }
     return {path, mode: entry.mode, bytes: bytes.length, sha256};
   });
   const inputs = {files, directories: members, unresolved: [...residual]};
@@ -166,7 +172,7 @@ export function mutationActionRecords({reports, source, decision, sourceInputs, 
 export function checkMutationActions({root, directory, source, decision, auditedReceipts}, {lean = 'lean'} = {}) {
   const started = performance.now();
   const tree = gitTree(root, decision.revision);
-  const sourceInputs = mutationSourceInputs({tree, source});
+  const sourceInputs = mutationSourceInputs({tree, source, root});
   const records = mutationActionRecords({reports: readMutationActionReports(directory, decision),
     source, decision, sourceInputs, auditedReceipts});
   const certificate = checkPlan(records.actions.map(entry => entry.required), records.actions.map(entry => entry.application), {lean});
