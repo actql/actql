@@ -1,7 +1,7 @@
 // Rebuild-time typed composition. Concrete imports are generated exclusively
 // from connector-owned declarations, never interpreted by a runtime planner.
 import {readFileSync, existsSync, mkdirSync, writeFileSync} from 'node:fs';
-import {join, resolve} from 'node:path';
+import {join, relative, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {connectorManifestSelection} from './connector-manifest-selection.mjs';
@@ -10,9 +10,9 @@ const keys = (value, expected) => value && typeof value === 'object' && !Array.i
   && Object.keys(value).sort().join() === [...expected].sort().join();
 const identifier = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/.test(value);
 const typeName = value => typeof value === 'string' && /^[A-Z][A-Za-z0-9]*$/.test(value);
-const packageName = value => typeof value === 'string' && /^actql\/actql\/[a-z][a-z0-9_]*(?:\/[a-z][a-z0-9_]*)*$/.test(value);
+const builtinPackageName = value => typeof value === 'string' && /^actql\/actql\/[a-z][a-z0-9_]*(?:\/[a-z][a-z0-9_]*)*$/.test(value);
 
-export function generateComputeAssembly(entries) {
+export function generateComputeAssembly(entries, {buildInputs} = {}) {
   const names = new Set();
   const dependencies = new Map([
     ['actql/actql/connector_sdk', 'connector'],
@@ -27,6 +27,19 @@ export function generateComputeAssembly(entries) {
   const resultType = value => value === 'Unit' ? 'Unit'
     : Array.isArray(value) ? `(${value.map(typed).join(', ')})` : typed(value);
   for (const {name, manifest: m} of entries) {
+    const resolved = buildInputs?.computeEntries.find(entry =>
+      entry.name === name && entry.manifest === m);
+    if (buildInputs !== undefined && resolved === undefined) {
+      throw new Error('UnresolvedComputeBuildEntry');
+    }
+    const packagePrefix = resolved?.packagePrefix ?? `actql/actql/connectors/${name}`;
+    const namespace = buildInputs?.entries.find(entry => entry.name === name)?.namespace;
+    const packageName = value => {
+      if (buildInputs === undefined) return builtinPackageName(value);
+      if (typeof value !== 'string') return false;
+      buildInputs.resolvePackage(value, namespace);
+      return true;
+    };
     const managed = Object.hasOwn(m, 'managed_dispatch') ||
       Object.hasOwn(m, 'managed_dispatch_result');
     const managedStart = Object.hasOwn(m, 'managed_start') ||
@@ -54,7 +67,7 @@ export function generateComputeAssembly(entries) {
           !typeName(m.managed_start_error.type))) ||
         (managedDuration && (!managed || !identifier(m.managed_duration))) ||
         (managedCapacity && (!managed || !identifier(m.managed_capacity))) ||
-        !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||
+        !packageName(m.package) || !(m.package === packagePrefix || m.package.startsWith(`${packagePrefix}/`)) ||
         !typeName(m.module) || !typeName(m.configuration) || !identifier(m.configure) ||
         !identifier(m.registration) || !identifier(m.contribution) || !identifier(m.dispatch)) {
       throw new Error('Invalid Compute bundle declaration');
@@ -248,27 +261,39 @@ function estimateAssembly(entries, alias) {
 }
 
 export function checkComputeAssembly(root, write = false, options = {}) {
-  const entries = connectorManifestSelection(root, {names: options.names})
+  const buildInputs = options.buildInputs;
+  if (buildInputs !== undefined && (options.names !== undefined ||
+      resolve(root) !== buildInputs.host.root)) {
+    throw new Error('InvalidResolvedComputeBuildSelection');
+  }
+  const entries = buildInputs?.computeEntries ?? connectorManifestSelection(root, {names: options.names})
     .filter(entry => entry.compute !== undefined)
     .map(entry => ({name: entry.name, manifest: JSON.parse(readFileSync(entry.compute, 'utf8'))}));
-  const generated = generateComputeAssembly(entries);
+  const generated = generateComputeAssembly(entries, {buildInputs});
   // Use the pinned formatter as a pure stdin/stdout transformation. Check mode
   // never edits the source tree or invokes contribution factories.
   const formatter = process.env.MOON_HOME ? join(process.env.MOON_HOME, 'bin/moonfmt') : 'moonfmt';
   generated.source = execFileSync(formatter, ['-'], {input: generated.source, encoding: 'utf8'});
   generated.manifest = execFileSync(formatter, ['-', '-file-type', 'pkg'], {input: generated.manifest, encoding: 'utf8'});
-  for (const {manifest} of entries) {
+  for (const {name, manifest} of entries) {
     const results = manifest.dispatch_result === 'Unit' ? []
       : Array.isArray(manifest.dispatch_result) ? manifest.dispatch_result : [manifest.dispatch_result];
     for (const pkg of [manifest.package, manifest.dispatch_error.package, manifest.estimate_error.package, ...results.map(value => value.package)]) {
-      if (!existsSync(join(root, 'src', pkg.slice('actql/actql/'.length), 'moon.pkg'))) {
+      if (buildInputs !== undefined) {
+        buildInputs.resolvePackage(pkg, buildInputs.entries.find(entry => entry.name === name).namespace);
+      } else if (!existsSync(join(root, 'src', pkg.slice('actql/actql/'.length), 'moon.pkg'))) {
         throw new Error(`Missing declared Compute dependency: ${pkg}`);
       }
     }
   }
   const output = options.directory ?? 'connectors_builtin';
   if (!identifier(output)) throw new Error('Invalid Compute composition output');
-  const directory = join(root, 'src', output);
+  const directory = join(buildInputs?.host.sourceRoot ?? join(root, 'src'), output);
+  if (buildInputs !== undefined) {
+    for (const file of ['moon.pkg', 'compute.generated.mbt']) {
+      buildInputs.outputPath(relative(buildInputs.host.root, join(directory, file)));
+    }
+  }
   if (write) mkdirSync(directory, {recursive: true});
   for (const [file, source] of [['moon.pkg', generated.manifest], ['compute.generated.mbt', generated.source]]) {
     const path = join(directory, file);
