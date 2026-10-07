@@ -1,0 +1,18 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-public-read-121-late-main-receipts",
+  "target": {
+    "id": "public-read-121-main-integration",
+    "digest": "0cfb0d6694c17de8199b5a05c9c529e707f704ab92de785155825608cb410f47"
+  },
+  "inputs": [
+    "retained-main-source-01410e718368",
+    "retained-main-source-12ef63649386",
+    "retained-main-source-71e2e92fe85f",
+    "retained-main-source-7486d9d02cc0",
+    "retained-main-source-80d8e117d106",
+    "retained-main-source-caa8de35916a",
+    "retained-main-source-f45e7b9ade6e"
+  ],
+  "reason": "Retain the original public read integration declaration and its introduction unchanged. Add the seven independently Git-bound ancestor source receipts that were absent at its original introduction and arrived through current main. Preserve original source bytes, parent/base bindings, existing inputs and validation rules."
+}
