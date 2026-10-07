@@ -6780,3 +6780,11 @@ The blocking receipt convenience API, row-file materializing receipt path,
 nested-value admission and trusted availability callbacks remain separate
 boundaries. This does not establish a whole-callback latency or physical-byte
 bound, packed/HTTPS acceptance, all-target CI or whole-Local completion.
+
+## Physical receipt completion follow-up
+
+The DuckDB physical Values/Compute receipt finalizers now connect their existing
+owners to bounded common receipt polling before retained content is sealed.
+See [scope and evidence](2026-10-08-duckdb-bounded-physical-receipts.md).
+This is separate from row-file Local export completion, managed View verification
+and physical chunk admission; those are not counted as closed by this change.

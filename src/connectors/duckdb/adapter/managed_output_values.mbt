@@ -5,6 +5,7 @@ struct ManagedPhysicalOutput {
   physical : PhysicalResult
   values : @execution.ManagedOutputValues
   mut open : Bool
+  mut finishing : Bool
 }
 
 ///|
@@ -27,7 +28,7 @@ pub fn prepare_managed_physical_output(
     limits,
     max_metadata_work,
   )
-  .map(physical => { physical, values, open: true, })
+  .map(physical => { physical, values, open: true, finishing: false, })
   .map_err(issue => Physical(issue))
 }
 
@@ -48,7 +49,7 @@ pub fn prepare_managed_physical_output_named(
     limits,
     max_metadata_work,
   )
-  .map(physical => { physical, values, open: true, })
+  .map(physical => { physical, values, open: true, finishing: false, })
   .map_err(issue => Physical(issue))
 }
 
@@ -115,7 +116,7 @@ pub fn append_managed_physical_output(
   rows : Int,
   columns : Array[@decode.Cursor],
 ) -> Result[Unit, ManagedPhysicalOutputIssue] {
-  if !output.open {
+  if !output.open || output.finishing {
     return Err(Closed)
   }
   let batch = match admit_physical_chunk(output.physical, rows, columns) {
@@ -146,7 +147,7 @@ pub fn append_managed_physical_output(
 pub fn finish_managed_physical_output(
   output : ManagedPhysicalOutput,
 ) -> Result[@execution.ManagedOutputValueReceipt, ManagedPhysicalOutputIssue] {
-  if !output.open {
+  if !output.open || output.finishing {
     return Err(Closed)
   }
   output.open = false
@@ -154,4 +155,30 @@ pub fn finish_managed_physical_output(
   @execution.finish_managed_output_values(output.values).map_err(issue => {
     Values(issue)
   })
+}
+
+///|
+/// Seal receiving before the first receipt poll. The common admission owner
+/// retains partial copies; this adapter never reconstructs or authorizes them.
+pub fn advance_managed_physical_output_finish(
+  output : ManagedPhysicalOutput,
+  quantum : Int,
+) -> Result[@execution.ManagedOutputFinishAdvance, ManagedPhysicalOutputIssue] {
+  if !output.open || quantum <= 0 {
+    return Err(Closed)
+  }
+  output.finishing = true
+  output.physical.terminal = true
+  match @execution.advance_managed_output_values_finish(output.values, quantum) {
+    Ok(poll) => {
+      if poll.receipt is Some(_) {
+        output.open = false
+      }
+      Ok(poll)
+    }
+    Err(issue) => {
+      cancel_managed_physical_output(output) |> ignore
+      Err(Values(issue))
+    }
+  }
 }

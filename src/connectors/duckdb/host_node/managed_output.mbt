@@ -16,6 +16,7 @@ struct ManagedNodeOutput {
     Int64,
   )?
   mut open : Bool
+  mut finishing : Bool
   valid : Ref[Bool]
 }
 
@@ -372,6 +373,7 @@ pub fn managed_view_output_open(
     index_allocation: None,
     strategy_allocation: None,
     open: true,
+    finishing: false,
     valid: Ref(true),
   }
 }
@@ -421,6 +423,7 @@ pub fn managed_selected_output_open(
     index_allocation: None,
     strategy_allocation: None,
     open: true,
+    finishing: false,
     valid: Ref(true),
   }
 }
@@ -555,6 +558,7 @@ fn managed_node_output(
     index_allocation: None,
     strategy_allocation: None,
     open: true,
+    finishing: false,
     valid: Ref(true),
   }
 }
@@ -619,7 +623,7 @@ pub fn managed_output_accept(
   rows : Int,
   data : String,
 ) -> Unit raise NodeHostFailure {
-  if !value.open {
+  if !value.open || value.finishing {
     raise InvalidCommand
   }
   errdefer managed_output_cancel(value)
@@ -672,7 +676,7 @@ pub fn managed_output_storage_order(
 pub fn managed_output_finish(
   value : ManagedNodeOutput,
 ) -> Unit raise NodeHostFailure {
-  if !value.open {
+  if !value.open || value.finishing {
     raise InvalidCommand
   }
   value.open = false
@@ -700,6 +704,48 @@ pub fn managed_output_finish(
       }
     },
   )
+}
+
+///|
+/// Poll provisional physical content without issuing a retained completion.
+/// View verification retains its separate aggregate/selection admission owner.
+#export_name("managedOutputAdvanceFinish")
+pub fn managed_output_advance_finish(
+  value : ManagedNodeOutput,
+  quantum : Int,
+) -> (Bool, Int) raise NodeHostFailure {
+  if !value.open || quantum <= 0 || value.receiver is View(_) {
+    raise InvalidCommand
+  }
+  value.finishing = true
+  errdefer managed_output_cancel(value)
+  let poll = match value.receiver {
+    Values(receiver) =>
+      match @duckdb.advance_managed_physical_output_finish(receiver, quantum) {
+        Ok(poll) => poll
+        Err(issue) => raise ManagedValues(issue)
+      }
+    Compute(run, receiver) => {
+      if run.closed {
+        raise InvalidCommand
+      }
+      match
+        @duckdb_compute.advance_managed_duckdb_compute_output_finish(
+          receiver, quantum,
+        ) {
+        Ok(poll) => poll
+        Err(issue) => raise Compute(issue)
+      }
+    }
+    View(_) => raise InvalidCommand
+  }
+  if poll.receipt is Some(receipt) {
+    value.receipt = Some(receipt)
+    value.open = false
+    (true, poll.steps)
+  } else {
+    (false, poll.steps)
+  }
 }
 
 ///|
