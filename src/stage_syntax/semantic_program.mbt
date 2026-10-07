@@ -105,6 +105,12 @@ pub fn emit_effect_header_semantics(
     Some(name) => @encode.string_value(out, name)
     None => @encode.null_value(out)
   }
+  // Leave existing Result-backed preimages unchanged. Keep canonical key order
+  // when the distinct private source is present; it is identity-bearing.
+  if header.source_table_input is Some(name) {
+    @encode.key(out, "source_table_input")
+    @encode.string_value(out, name)
+  }
   @encode.end_object(out)
 }
 
@@ -155,6 +161,7 @@ pub fn emit_source_free_unit_program(
   if @wire.lookup(view, "after") is Some(_) ||
     @wire.lookup(view, "from") is Some(_) ||
     @wire.lookup(view, "effects") is Some(_) ||
+    @wire.lookup(view, "table_inputs") is Some(_) ||
     !stage.imports.is_empty() {
     return false
   }
