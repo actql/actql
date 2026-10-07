@@ -223,7 +223,7 @@ for (const empty of [false,true]) {
             assert.equal(ledgerCloses, 2);
             await failure.cleanupHandle.retry();
             assert.equal(ledgerCloses, 2);
-          } finally { closeMock.restore(); }
+          } finally { closeMock.mock.restore(); }
         } finally {
           await recoveredStage?.dispose();
           await stage?.dispose();
