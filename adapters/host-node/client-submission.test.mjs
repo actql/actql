@@ -7,7 +7,7 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {validSubmissionLookup} from '../../packages/client-wire/index.mjs';
+import {validSubmissionLookup, validCheckOutcome} from '../../packages/client-wire/index.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
@@ -108,6 +108,24 @@ test('retained Source input problems recheck original intent and current disclos
   assert.deepEqual(restored, first, '[check-mutation:submission-disclosure]');
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   assert.ok(checks >= 4);
+});
+
+test('submission disclosure retains an admitted partial invalid report across original lookup', async t => {
+  const failed = JSON.parse(await readFile(new URL(
+    '../../packages/client-wire/fixtures/check-reporting-failure.json', import.meta.url), 'utf8'));
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('typed input fixture'), {code: 'ClientProgramInvalidInput'});
+  }, async check(value) {
+    const completed = await checkValues(value);
+    const partial = {...failed, partial_report: completed.report};
+    assert.equal(validCheckOutcome(partial), true);
+    return partial;
+  }});
+  const first = await f.service.submitIntent(f.body('SELECT missing AS n'));
+  assert.deepEqual(first.problem, {code: 'ClientProgramInvalidInput', classification: 'invalid_input'});
+  f.restart();
+  assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
 
 test('submission disclosure refuses authorization lost during its awaited check', async t => {

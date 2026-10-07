@@ -52,8 +52,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     try {
       const report = await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, input: intent.input, parameters: intent.parameters});
-      disclosable = validCheckOutcome(report) && report.outcome === 'completed' &&
-        report.report.scope.kind === 'bound_input' && report.report.verdict === 'invalid';
+      const observed = report?.report ?? report?.partial_report;
+      disclosable = validCheckOutcome(report) &&
+        observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid';
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.
