@@ -14,14 +14,18 @@ const rows = [{customer_id: 'c1', order_count: 1, total_amount: 120},
 assert.deepEqual((await readFile('answer.jsonl', 'utf8')).trimEnd()
   .split('\n').map(line => JSON.parse(line)), rows);
 const ref = JSON.parse(await readFile('run.json', 'utf8'));
+const submissionRef = JSON.parse(await readFile('submission.json', 'utf8'));
 const local = await connect({mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory: resolve('actql-state')}});
 try {
-  assert.deepEqual((await local.lookupRequest('customer-open-orders')).ref, ref);
+  const original = await local.lookupSubmission(submissionRef);
+  assert.equal(original.kind, 'ready');
+  assert.deepEqual(original.submissionRef, submissionRef);
+  assert.deepEqual(original.admission.ref, ref);
   const attached = await local.attach(ref);
   assert.equal((await attached.wait()).status, 'succeeded');
   assert.deepEqual(await attached.result('main').all(), rows);
-} finally { local.close(); }
+} finally { await local.close(); }
 
 const host = await openInstalledRemoteHttpHost({directory: resolve('readme-http-state'),
   authenticate: header => header === 'Bearer readme-fixture' ? userInfo().username : undefined});

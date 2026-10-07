@@ -8,6 +8,10 @@ test('README has one executable Program, Client, expected output and command set
   const value = readmeQuickstart(markdown);
   assert.match(value.program, /id: customer.open_orders/u);
   assert.match(value.client, /from '@actql\/node'/u);
+  assert.match(value.client, /client\.newSubmission\(\{nonce: 'customer-open-orders'\}\)/u);
+  assert.match(value.client, /format: 'yaml', submissionRef/u);
+  assert.match(value.client, /writeFile\('submission\.json'/u);
+  assert.doesNotMatch(value.client, /requestId:/u);
   assert.equal(value.install, 'npm init -y >/dev/null\n' +
     'npm install --ignore-scripts --no-save "$ACTQL_PACKED_CLIENT_PACKAGES"/*.tgz');
   assert.deepEqual(value.expected.trimEnd().split('\n').map(JSON.parse),
