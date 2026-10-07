@@ -4142,6 +4142,12 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("intent-cid", required=true),
         @argparse.OptionArg("publication-custody-root", required=true),
       ]),
+      @argparse.Command("recover-retained-input", options=[
+        @argparse.OptionArg("producer-attempt", required=true),
+        @argparse.OptionArg("expect-producer-dispatch", required=true),
+        @argparse.OptionArg("consumer-attempt", required=true),
+        @argparse.OptionArg("expect-consumer-dispatch", required=true),
+      ]),
       @argparse.Command("recover-release", options=[
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("expect-dispatch", required=true),
@@ -4163,6 +4169,8 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) => run_holder(matches, child)
     Some(("recover-output", child)) => recover_output_command(matches, child)
+    Some(("recover-retained-input", child)) =>
+      recover_retained_input_command(matches, child)
     Some(("recover-release", child)) => recover_release_command(matches, child)
     Some(("output-reports", _)) => {
       let environment = open_control_environment(matches)

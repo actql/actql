@@ -74,6 +74,8 @@ pub fn reclaim_resident_output_intents(@remote_journal.Journal, @publication_sto
 
 pub fn reclaim_resident_payload(@publication_store.Store, @publication_payload.PublicationPayloadRequest) -> Result[Bool, ResidentOutputIssue]
 
+pub fn reclaim_stopped_resident_retained_input(@remote_journal.Journal, @execution_site.ExecutionSite, @remote_resident_site.ResidentSiteDelegation, String, String, @remote_transfer_journal.Journal, @filesystem.Root, @remote_standard_host.NativeRemoteStandardTransferBindingLimits, () -> Bool) -> Result[Unit, ResidentStoppedRetainedCleanupIssue]
+
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
 
 pub fn resident_output_checkpoints() -> Array[String]
@@ -347,6 +349,14 @@ pub(all) enum ResidentSourceIssue {
   Fragment(@run_publication_host.ClientTaskFragmentIssue)
   Inventory(@run_publication.PublicationInventoryIssue)
   Standard(@remote_standard_host.NativeRemoteStandardHostIssue)
+}
+
+pub(all) enum ResidentStoppedRetainedCleanupIssue {
+  NotCurrent
+  Host(ResidentHostIssue)
+  Binding(@run_publication_host.ClientRetainedTaskInputIssue)
+  Transfer(@remote_transfer_client.NativeRemoteTransferClientIssue)
+  Journal(@remote_transfer_journal.NativeRemoteTransferJournalIssue)
 }
 
 // Type aliases
