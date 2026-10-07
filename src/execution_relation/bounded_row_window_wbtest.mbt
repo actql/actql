@@ -7,6 +7,7 @@ fn bounded_row_window_fixture(
   max_rows? : Int = 10,
   max_work? : Int = 10000,
   max_entries? : Int = 100,
+  name_bytes? : Int = 10000,
 ) -> (@bounded.Control, BoundedRowWindowExecution, CompletedOutput) raise {
   let schema = "{\"at\":{\"type\":\"number\",\"nullable\":false},\"id\":{\"type\":\"number\",\"nullable\":false}" +
     (if unused_payload {
@@ -87,7 +88,7 @@ fn bounded_row_window_fixture(
     max_work,
     100,
     max_entries,
-    10000,
+    name_bytes,
   ).unwrap()
   (control, execution, source)
 }
@@ -100,6 +101,14 @@ fn row_window_unused_payload_rows(count : Int) -> String {
 }
 
 ///|
+/// Three scans of window_0, three transitions, literal schema spellings,
+/// one push per output name and one finish. This is a poll bound, not an
+/// increase to the logical work or workspace admitted by the kernel.
+fn row_window_completion_poll_steps(unused_payload : Bool) -> Int {
+  3 * 8 + 3 + 2 + 2 + 10 + 12 + 4 + 1 + (if unused_payload { 7 + 1 } else { 0 })
+}
+
+///|
 test "bounded row window stops inside an unused nested input value" {
   let (control, execution, source) = bounded_row_window_fixture(
     row_window_unused_payload_rows(256),
@@ -109,7 +118,7 @@ test "bounded row window stops inside an unused nested input value" {
     max_entries=1000,
   )
   let mut measuring = false
-  for _ in 0..<50 {
+  for _ in 0..<(50 + row_window_completion_poll_steps(true)) {
     if !measuring {
       match advance_bounded_row_window(execution, 1).unwrap() {
         BoundedRowWindowContinue(..) =>
@@ -347,7 +356,7 @@ test "bounded row window admits exact control work and rejects one short" {
 test "bounded row window preserves empty output and exact large boundaries" {
   let (_, empty, _) = bounded_row_window_fixture("[]", max_rows=0)
   let mut empty_done = false
-  for _ in 0..<20 {
+  for _ in 0..<(20 + row_window_completion_poll_steps(false)) {
     if !empty_done {
       match advance_bounded_row_window(empty, 1).unwrap() {
         BoundedRowWindowContinue(..) => ()
@@ -367,7 +376,7 @@ test "bounded row window preserves empty output and exact large boundaries" {
     max_rows=1,
   )
   let mut large_done = false
-  for _ in 0..<50 {
+  for _ in 0..<(50 + row_window_completion_poll_steps(false)) {
     if !large_done {
       match advance_bounded_row_window(large, 1).unwrap() {
         BoundedRowWindowContinue(..) => ()

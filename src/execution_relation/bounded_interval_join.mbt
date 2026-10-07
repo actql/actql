@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedIntervalPhase {
+  PrepareCompletionPort
   ReadLeftClocks
   ReadRightClocks
   BeginPair
@@ -40,7 +41,8 @@ priv struct BoundedIntervalState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut left_starts : Array[Int64]
   mut left_ends : Array[Int64]
   mut right_starts : Array[Int64]
@@ -110,6 +112,10 @@ fn bounded_interval_failure(
 
 ///|
 fn cleanup_bounded_interval_state(state : BoundedIntervalState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   state.comparison = None
   if state.output_recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
@@ -214,6 +220,43 @@ fn bounded_interval_step(
       return bounded_interval_failure(InvalidExecution, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return bounded_interval_failure(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return bounded_interval_failure(
+              Completion(issue),
+              progress,
+              used + 1,
+            )
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return bounded_interval_failure(
+                  Completion(issue),
+                  progress,
+                  used + 1,
+                )
+            }
+            state.port_preparation = None
+            state.phase = ReadLeftClocks
+          }
+        }
+        used += 1
+      }
       ReadLeftClocks => {
         if state.left_row == left_count {
           state.left_row = 0
@@ -549,6 +592,9 @@ fn bounded_interval_step(
         progress += 1
       }
       FinishOutput => {
+        guard state.port is Some(port) else {
+          return bounded_interval_failure(InvalidExecution, progress, used)
+        }
         guard state.output is Some(output) else {
           return bounded_interval_failure(InvalidExecution, progress, used)
         }
@@ -561,7 +607,7 @@ fn bounded_interval_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) =>
             bounded_interval_failure(Completion(issue), progress, used)
@@ -747,14 +793,16 @@ pub fn start_bounded_interval_join(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[left, right],
+      Some([
+        trusted_output_relation_input(left),
+        trusted_output_relation_input(right),
+      ]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -786,12 +834,13 @@ pub fn start_bounded_interval_join(
     rows,
     live,
     accepted,
-    port,
+    port: None,
+    port_preparation: Some(port_preparation),
     left_starts: [],
     left_ends: [],
     right_starts: [],
     right_ends: [],
-    phase: ReadLeftClocks,
+    phase: PrepareCompletionPort,
     left_row: 0,
     right_row: 0,
     key_index: 0,

@@ -224,17 +224,21 @@ export function stringPinReplacements() {
 }
 export function valuesUnitIdentity(program, old = false) {
   const stage = program.stages[0];
-  const expressions = JSON.parse(readFileSync(new URL('../../spec/contracts/actql-expressions.json', import.meta.url)));
+  // Freeze the complete pre-String closure, including the expression body.
+  // Later installed contracts must not alter these historical identities.
+  const predecessor = old ? JSON.parse(readFileSync(new URL(
+    './pre-string-values-contracts.json', import.meta.url), 'utf8')) : undefined;
+  const expressionCid = old
+    ? predecessor.contract_cids['spec/contracts/actql-expressions.json#']
+    : independentCid(JSON.parse(readFileSync(new URL(
+      '../../spec/contracts/actql-expressions.json', import.meta.url), 'utf8')));
   const {id, meta, after, ...localBody} = stage;
   localBody.effects ??= {};
   const body = {version: 'actql-stage-semantics/0.1',
-    expression_contract_cid: independentCid(expressions), parameters: {}, bindings: {},
+    expression_contract_cid: expressionCid, parameters: {}, bindings: {},
     parameter_references: [], binding_references: [], local_body: localBody};
-  let contracts = valuesContractCids(old);
-  if (old) {
-    const reverse = new Map([...stringPinReplacements()].map(([a,b]) => [b,a]));
-    contracts = contracts.map(c => reverse.get(c) ?? c).sort();
-  }
+  const contracts = old ? Object.values(predecessor.contract_cids).sort()
+    : valuesContractCids();
   return independentCid({version: 'actql-local-unit-dependencies/0.1',
     unit_namespace: {program_id: program.id, node_id: stage.id},
     local_body_cid: independentCid(body), used_parameter_declarations_cid: independentCid({}),

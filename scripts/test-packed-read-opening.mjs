@@ -50,6 +50,11 @@ const support = [
   'adapters/host-node/client-read-opening.test.mjs',
   'adapters/host-node/client-read-opening.fixture.mjs',
   'adapters/host-node/client-read-opening-restart.fixture.mjs',
+  'adapters/host-node/client-read-run-capacity.test.mjs',
+  'adapters/host-node/fixtures/read-121.program.json',
+  'adapters/host-node/fixtures/read-121.expected.json',
+  'adapters/host-node/client-values-row-limit.test.mjs',
+  'adapters/host-node/client-values-row-limit.fixture.mjs',
   'scripts/owned-scratch.mjs',
   'packages/sdk/fixtures/values.json',
   'packages/sdk/fixtures/values.environment.json',
@@ -58,9 +63,16 @@ for (const path of support) {
   const output = join(root, path);
   await mkdir(join(output, '..'), {recursive: true});
   let text = await readFile(join(repository, path), 'utf8');
-  if (path.includes('client-read-opening')) {
+  if (path.startsWith('adapters/host-node/') && path.endsWith('.mjs')) {
+    if (path === 'adapters/host-node/client-values-row-limit.test.mjs' ||
+        path === 'adapters/host-node/client-values-row-limit.fixture.mjs') {
+      text = text.replace(
+        "import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';",
+        "import {connect as connectEmbeddedLocal} from '@actql/local-node';\n" +
+        "import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';");
+    }
     text = text.replace(/from (['"])([^'"]+)\1/gu, (original, quote, specifier) => {
-      if (specifier.startsWith('node:')) return original;
+      if (specifier.startsWith('node:') || specifier.startsWith('@actql/')) return original;
       const target = relative(repository, resolve(repository, path, '..', specifier));
       if (support.includes(target)) return original;
       if (target === 'packages/sdk/index.mjs') return `from ${quote}@actql/sdk${quote}`;
@@ -76,18 +88,35 @@ for (const path of support) {
   }
   await writeFile(output, text);
 }
-const args = nodeTestArguments(['adapters/host-node/client-read-opening.test.mjs']);
-const result = spawnSync(process.execPath, args, {cwd: root, env: environment, encoding: 'utf8', timeout: 120000});
-const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
-await writeFile(join(root, 'acceptance.log'), output);
-console.log(output);
-const checked = assertTestExecution('node', process.execPath, args, result);
-assert.equal(checked.counts.tests, 8);
-assert.equal(checked.counts.passed, 8);
+const groups = [
+  {name: 'opening-and-receipt', file: 'client-read-opening.test.mjs', count: 8},
+  {name: 'interrupted-121-run', file: 'client-read-run-capacity.test.mjs', count: 4},
+  {name: 'installed-capacity', file: 'client-values-row-limit.test.mjs', count: 3},
+];
+const logs = [];
+let passed = 0;
+// Reuse one installation and the existing per-invocation bound. Preserve each
+// completed group even if a later group fails; do not extend a test's timeout.
+for (const group of groups) {
+  const args = nodeTestArguments(['--test-concurrency', '1', `adapters/host-node/${group.file}`]);
+  const result = spawnSync(process.execPath, args, {cwd: root, env: environment, encoding: 'utf8', timeout: 120000});
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
+  logs.push(output);
+  await writeFile(join(root, `${group.name}.log`), output);
+  await writeFile(join(root, 'acceptance.log'), logs.join('\n'));
+  console.log(output);
+  const checked = assertTestExecution('node', process.execPath, args, result);
+  assert.equal(checked.counts.tests, group.count);
+  assert.equal(checked.counts.passed, group.count);
+  passed += checked.counts.passed;
+}
+assert.equal(passed, 15);
 const after = checkoutState(repository);
 if (!after.clean || after.revision !== state.revision) throw new Error('Checkout changed during acceptance');
 await writeFile(join(root, 'acceptance.json'), `${JSON.stringify({sourceHead: state.revision,
   packageNames: names, productOverlay: false, expectedRows: [{id: 1}, {id: 2}],
-  cases: {openingLoss: 4, receiptDurability: 4}, passed: true}, null, 2)}\n`);
+  expected121Rows: JSON.parse(await readFile(join(root, 'adapters/host-node/fixtures/read-121.expected.json'), 'utf8')),
+  cases: {openingLoss: 4, receiptDurability: 4, actual121RunRecovery: 4,
+    installedCapacity: 2, invalidCapacity: 1}, passed: true}, null, 2)}\n`);
 console.log(`Packed original Delivery lookup passed for ${state.revision}: ${root}`);
 scratch.passed();
