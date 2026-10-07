@@ -196,7 +196,7 @@ try {
       results: {rows: {from: 'selected', fields: ['id']}},
       effects,
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
-    const execution = await client.aql(JSON.stringify(program), {
+    const execution = await client.startSource(JSON.stringify(program), {
       format: 'json', requestId: 'target-cancel-effect-1'});
     await waitFor(async () => {
       const status = await execution.status();

@@ -379,6 +379,14 @@ fn same_expression(
           pending.push((ax[i], ay[i]))
         }
       }
+      (ArrayConstructor(ax, tx), ArrayConstructor(ay, ty)) => {
+        if tx != ty || ax.length() != ay.length() {
+          return false
+        }
+        for i in 0..<ax.length() {
+          pending.push((ax[i], ay[i]))
+        }
+      }
       (Unary(x, child_a), Unary(y, child_b)) => {
         if x != y {
           return false
@@ -6260,7 +6268,7 @@ fn join_reference_paths(
         pending.push(right)
         pending.push(left)
       }
-      Call(_, args) | Predicate(_, args) => {
+      Call(_, args) | Predicate(_, args) | ArrayConstructor(args, _) => {
         let mut next = args.length() - 1
         while next >= 0 {
           pending.push(args[next])

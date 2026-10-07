@@ -177,7 +177,7 @@ if (process.argv[2] === 'run') {
   for (const requestId of ['local-measure-first',
     'local-measure-following']) {
     const before = performance.now();
-    const execution = await client.aql(document, {format: 'json', requestId});
+    const execution = await client.startSource(document, {format: 'json', requestId});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('answer').all(),
       [{id: 1}, {id: 2}]);

@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, chmodSync, lstatSync, symlinkSync, rmSync, existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, dirname} from 'node:path';
-import {mutationSourcePaths, stageMutationSource, copyRegular, stageDistribution, loaderPaths,
+import {mutationSourcePaths, stageMutationSource, pipelinePristineSourcePaths, stagePipelinePristineSource, pipelineChild, copyRegular, stageDistribution, loaderPaths,
   isolatedRunArguments, scratchDockerfile, mutationSnapshotExtras, isolatedEnvironment, isolatedSourceFiles, checkImageDefinition} from './isolation.mjs';
 import {snapshot} from '../bounded-session/evidence.mjs';
+import {snapshotFiles} from '../relation-pipeline/inventory.mjs';
 
 const temporary = t => {
   const path = mkdtempSync(join(tmpdir(), 'actql-isolated-input-test-'));
@@ -193,4 +194,46 @@ test('the actual image definition rejects changed environment, hooks, volumes, i
     const changed = structuredClone(image); alter(changed);
     assert.throws(() => checkImageDefinition({image: changed, imageId, owner}));
   }
+});
+
+function pipelineSources() {
+  const {tree, bodies} = sources();
+  for (const path of [...snapshotFiles, 'src/query_integration/extra.mbt', 'vendor/native/input.h',
+    'proofs/relation-chain/input.mjs', 'proofs/relation-capacity/input.mjs',
+    'proofs/relation-pipeline/pristine-replay.mjs', 'scripts/owned-scratch.mjs',
+    'scripts/native-cxx-link-driver.sh', 'scripts/ar', 'docs/spec/execution.md',
+    'package.json', 'package-lock.json', 'moon.mod', pipelineChild,
+    'src/query_integration/relation_pipeline_batch_wbtest.mbt', '_build/dirty.js']) {
+    bodies.set(path, path); tree.entries.set(path, {kind: 'blob', mode: '100644'});
+  }
+  return {tree, bodies};
+}
+
+test('pipeline staging keeps the wide snapshot, supporting runner inputs, exact modes and no generated fixture', t => {
+  const {tree, bodies} = pipelineSources(), destination = temporary(t);
+  tree.entries.get('scripts/ar').mode = '100755';
+  const paths = pipelinePristineSourcePaths(tree);
+  assert(paths.includes('src/unused_kernel/fixture.mbt'));
+  assert(paths.includes(pipelineChild));
+  assert(!paths.includes('_build/dirty.js'));
+  assert(!paths.includes('src/query_integration/relation_pipeline_batch_wbtest.mbt'));
+  assert(!paths.includes('unrelated/private.txt'));
+  const staged = stagePipelinePristineSource({tree, destination});
+  assert.equal(staged.files.length, paths.length);
+  for (const path of paths) assert.equal(readFileSync(join(destination, 'source', path), 'utf8'), bodies.get(path));
+  assert.equal(lstatSync(join(destination, 'source/scripts/ar')).mode & 0o777, 0o755);
+  assert.throws(() => stagePipelinePristineSource({tree, destination}), /EEXIST/u);
+});
+
+test('pipeline staging refuses incomplete roots, linked sources, unsafe paths and bounded overflow', t => {
+  for (const change of [
+    tree => tree.entries.delete('proofs/relation-pipeline/pristine-replay.mjs'),
+    tree => tree.entries.delete('vendor/native/input.h'),
+    tree => tree.entries.get('src/unused_kernel/fixture.mbt').mode = '120000',
+    tree => tree.entries.set('src/../outside', {kind: 'blob', mode: '100644'}),
+  ]) {
+    const {tree} = pipelineSources(); change(tree); assert.throws(() => pipelinePristineSourcePaths(tree));
+  }
+  const {tree} = pipelineSources();
+  assert.throws(() => stagePipelinePristineSource({tree, destination: temporary(t), maxBytes: 1}), /bounded size/u);
 });

@@ -394,6 +394,62 @@ not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
 
+## ARRAY constructors
+
+For `[NOT] IN UNNEST`, an unannotated literal ARRAY of scalar literals and
+immediate scalar parameter references uses the existing `in`/`not_in` literal
+list contract. Both `[item, ...]` and `ARRAY[item, ...]` are supported, including
+parentheses and signed numeric literals. Order, duplicates, NULL atoms and
+parameter references are preserved; the Frontend does not evaluate general
+expressions to build the list. A matching value takes precedence over a NULL
+item. An empty list yields FALSE for IN and TRUE for NOT IN, including a
+typed nullable left operand, under the common empty-set rule. These rules follow
+the selected [GoogleSQL IN operator](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/operators#in_operator).
+
+Array parameters retain their existing membership contract. General element
+expressions and annotated ARRAY constructors retain ordinary common admission;
+they are not rewritten into literal lists or stripped of their annotations.
+Those forms remain unsupported by the current membership expression profile,
+not invalid GoogleSQL. An ordinary SELECT ARRAY remains an `array` expression.
+
+`[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
+order and duplicates through the ordinary finite `array` expression. Elements
+use the common checker for compatible types, NULL context, parameters and
+constructor capability checks; the Frontend does not stringify values or
+infer a second type system. The parser's existing work, node and depth limits
+also cover array children. An empty list needs unique type context.
+
+The explicit annotation subset is `ARRAY<BOOL>`, `ARRAY<BOOLEAN>`,
+`ARRAY<STRING>`, `ARRAY<FLOAT64>`, `ARRAY<TIMESTAMP>` and `ARRAY<JSON>`.
+Annotations use the existing typed `empty_array.items` evidence. A nonempty
+annotated array uses an ordinary constant-true lazy `if` with that empty-array
+peer, so the common checker checks the declared item type and evaluates the
+actual elements once. It does not add an element CAST. NULL elements retain
+their nullable contract even when the annotation provides a nonnullable peer.
+
+After ordinary checking, source preparation rejects resolved ARRAY types whose
+immediate item type is ARRAY. This includes constructors, references to typed
+columns or parameters, and Relation outputs such as ARRAY_AGG; inspecting
+literal syntax alone is insufficient. Recursive type inspection is bounded by
+the source profile's work limit. An intervening closed object is permitted,
+but does not hide a directly nested ARRAY elsewhere within that object. JSON
+payload arrays are JSON values, not SQL ARRAY types. Recursive arrays in
+JSON/YAML Program input retain their common contract. Source-profile rejection
+occurs before durable Run admission and provider I/O. Expression refusals retain
+the common expression's original location; producer-schema refusals identify
+the existing Unit, input/step and field without inventing an expression origin.
+
+The selected [GoogleSQL array reference](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#array_type)
+also supports `ARRAY<JSON>` and defaults otherwise untyped empty literals to
+`ARRAY<INT64>`. Those are coverage gaps here: the common constructor capability
+contract currently rejects JSON item types, and the selected finite Number
+profile does not establish exact INT64 semantics. Additional type annotations
+remain explicitly unsupported; an unresolved `[]` is not silently assigned
+Number or JSON. The source and independently authored Program rejection of
+JSON arrays are dependency evidence, not execution acceptance. ActQL's
+nullable-array Result serialization remains its existing delivery profile;
+it is not a claim about BigQuery's Result serialization.
+
 ## Declared UNNEST value tables
 
 Direct `FROM UNNEST(@items) AS element [WITH OFFSET AS position]` accepts
@@ -867,6 +923,16 @@ A quantified pattern's terminal-node condition remains unsupported: the common
 homogeneous `node_where` filters every reached hop, so applying a terminal-only
 condition there would incorrectly prune intermediate nodes. Fixed-hop
 conditions do not add a new evaluator or implicit node-property projection.
+
+Finite edge quantifiers accept `{n}`, `{m,n}`, and `{,n}`. The fixed form
+sets both traversal bounds to `n`; an omitted lower bound is zero. A finite
+upper bound must be positive, and an explicit lower bound must be non-negative
+and no greater than the upper bound. Bounds must be safe integers and remain
+subject to common admission and resource ceilings without clamping. These
+spellings follow the selected [GoogleSQL quantified-path syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/graph-patterns#quantified_path_pattern)
+(consulted 2026-10-07), within the existing homogeneous edge profile. They do
+not add subpath/group-variable support or remove unsupported terminal
+conditions. Open upper bounds and named quantified edges remain unsupported.
 
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.

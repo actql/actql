@@ -535,7 +535,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       ]) {
         const {document,rightSnapshot,expectedSnapshot,expectedRows,expected,fields} =
           subtractionScenario(presenceFixture,kind,projection);
-        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -558,7 +558,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       for (const kind of ['shared-payload-conflict','shared-null-numeric-rejected','endpoint-conflict-before-induced-closure']) {
         const {document} = subtractionScenario(presenceFixture,kind);
-        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'failed',JSON.stringify(state));
         assert.equal(state.control.physical_stop,'confirmed');
@@ -570,7 +570,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[6].subtract_graphs = invalid;
         const requestId = `subtraction-invalid-${mode}-${cid(invalid)}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -581,7 +581,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const projection of ['node_rows','edge_rows']) for (const numeric of [false,true]) for (const empty of [false,true]) {
         const {document,graphSnapshots,relationSnapshots:expectedStores,fields,expected} =
           unionGraphScenario(presenceFixture,projection,{numeric,empty});
-        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         // Preserve the independently specified canonical Graph row order on
@@ -605,7 +605,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.deepEqual(await readdir(`${directory}/carrier-snapshots`),[]);
       }
       const conflict = unionEndpointConflictScenario(presenceFixture);
-      const rejected = await client.aql(canonicalText(conflict.document),{
+      const rejected = await client.startSource(canonicalText(conflict.document),{
         format:'json',requestId:`${conflict.document.id}-${mode}`,
       });
       const failure = await rejected.wait();
@@ -618,7 +618,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       document.stages[0].steps[6].union_graphs.extra = true;
       const before = physicalSteps.length;
       const requestId = `union-extra-field-${mode}`;
-      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
         error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
       assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
       assert.deepEqual(physicalSteps.slice(before),[]);
@@ -628,7 +628,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const projection of ['node_rows','edge_rows']) for (const unchanged of [false,true]) {
         const {document,delta,target,retained,expected,fields} =
           deltaDiffScenario(presenceFixture,projection,{unchanged});
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -659,7 +659,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       document.stages[0].steps[6].graph_diff.extra = true;
       const requestId = `delta-diff-extra-field-${mode}`;
       const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
         error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
       assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
       assert.deepEqual(physicalSteps.slice(before),[]);
@@ -682,7 +682,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           assert.deepEqual(retained,[]);
           assert.deepEqual(expected,[]);
         }
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -717,7 +717,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       document.stages[0].steps[8].group.aggregates.m.expr = 'if(false, p, bucket)';
       const requestId = `delta-conditional-group-${mode}`;
       const before = physicalSteps.length;
-      await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+      await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
         error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
       assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
       assert.deepEqual(physicalSteps.slice(before),[]);
@@ -726,7 +726,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'delta-application') {
       for (const projection of ['node_rows','edge_rows']) {
         const {document,target,retained,expected,fields} = deltaApplicationScenario(projection);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -758,7 +758,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       }
       for (const failure of ['malformed','wrong-base','wrong-target']) {
         const {document} = deltaApplicationScenario('node_rows',failure);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'failed',JSON.stringify(state));
@@ -772,7 +772,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const [empty,subset,external] of [[false,false],[true,false],[false,true],
         [false,false,true],[true,false,true],[false,true,true]]) {
         const {document,retained,expected,full,snapshot,columns,graphTasks,relationTasks} = relationSubgraphScenario(empty,subset,external);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -796,7 +796,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'presence-group') {
       for (const empty of [false,true]) {
         const {document,before,expected} = presenceGroupScenario(empty);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -827,7 +827,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[5].group = group;
         const requestId = `conditional-group-${mode}-${empty}-${cid(group)}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -839,7 +839,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       for (const empty of [false,true]) {
         const {document,before,expected} = whole
           ? presenceWholeDistinctScenario(empty) : presenceKeyedDistinctScenario(empty);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -861,7 +861,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[5].distinct = distinct;
         const requestId = `conditional-distinct-${mode}-${String(distinct)}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -872,7 +872,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[6] = operation;
         const requestId = `whole-conditional-ref-${mode}-${Object.keys(operation)[0]}-${Object.values(operation)[0]}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -887,7 +887,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       ]) {
         const {document,retained,derived,expected,snapshot} = selector === 'fixture'
           ? minimalSelectorDeriveScenario() : selectorDeriveScenario(selector,projection,empty);
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -913,7 +913,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[6].derive.z = 'if(false, q, 0)';
         const requestId=`conditional-derive-${mode}-${empty}`;
         const before=physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),
+        await assert.rejects(client.startSource(canonicalText(document),
           {format:'json',requestId}),
         error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
@@ -924,7 +924,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'presence-filter' || profile === 'presence-selection') {
       for (const empty of [false,true]) {
         const {document,snapshots:expectedSnapshots,expected} = presenceFilterScenario(empty, profile === 'presence-selection');
-        const run = await client.aql(canonicalText(document),
+        const run = await client.startSource(canonicalText(document),
           {format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
@@ -960,7 +960,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           from:'g', [entry.operation]:true, as:'matched',
         };
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(rejected),
+        await assert.rejects(client.startSource(canonicalText(rejected),
           {format:'json',requestId}), error =>
           error instanceof ClientError && error.code === 'ClientProgramUnsupported');
         assert.deepEqual(await client.lookupRequest(requestId), {kind:'not_found'});
@@ -969,7 +969,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         assert.equal(snapshots.size, 0);
       }
       t.diagnostic(`${unsupported.length} inventory-classified unsupported consumers refused with and without external input; no Run or physical work`);
-      const run = await client.aql(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
+      const run = await client.startSource(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
       const state = await run.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
       const result = run.result('answer');
@@ -985,7 +985,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         {from:'g',match_nodes:{definition:'N',label:'Node',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
         {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'paths'});
       trail.stages[0].results.out = {from:'paths',fields:['start_id','end_id','hop_count','node_ids','edge_ids']};
-      const paths = await client.aql(canonicalText(trail), {format:'json',requestId:`property-trail-${mode}`});
+      const paths = await client.startSource(canonicalText(trail), {format:'json',requestId:`property-trail-${mode}`});
       const pathsState = await paths.wait();
       assert.equal(pathsState.status,'succeeded',JSON.stringify(pathsState));
       const rows = await paths.result('answer').all();
@@ -1008,7 +1008,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           : {filter:selector === 'dead-filter' ? 'if(false, p > 0, true)' : 'p IS NOT NULL',as:'projected'};
         rejected.stages[0].results.out.fields = selector === 'select' ? ['p'] : ['id'];
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(rejected),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(rejected),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code === 'ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -1017,7 +1017,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         const document = structuredClone(presenceFixture);
         document.id = `property-${projection}`;
         document.stages[0].steps[4] = {from:'g',[projection]:true,as:'rows'};
-        const projected = await client.aql(canonicalText(document),
+        const projected = await client.startSource(canonicalText(document),
           {format:'json',requestId:`property-${projection}-${mode}`});
         const projectedState = await projected.wait();
         assert.equal(projectedState.status,'succeeded',JSON.stringify(projectedState));
@@ -1049,7 +1049,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'graph-definitions') {
       for (const projection of ['node_rows','edge_rows']) for (const [empty,alternate] of [[false,false],[true,false],[false,true]]) {
         const {document,retained,expected,snapshot,key} = definitionScenario(projection,empty,alternate);
-        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${alternate}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -1069,7 +1069,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
         document.stages[0].steps[4].node_rows = body;
         const requestId = `invalid-definition-${JSON.stringify(body)}-${mode}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code==='ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
@@ -1080,12 +1080,12 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           label.properties.columns[0].to = collision;
         const requestId = `selected-collision-${collision}-${mode}`;
         const before = physicalSteps.length;
-        await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+        await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
           error=>error instanceof ClientError && error.code==='ClientProgramRejected');
         assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
         assert.deepEqual(physicalSteps.slice(before),[]);
       }
-      const minimal = await client.aql(canonicalText(definitionFixture),
+      const minimal = await client.startSource(canonicalText(definitionFixture),
         {format:'json',requestId:`minimal-definition-${mode}`});
       const minimalState = await minimal.wait();
       assert.equal(minimalState.status,'succeeded',JSON.stringify(minimalState));
@@ -1097,7 +1097,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
     if (profile === 'graph-labels') {
       for (const projection of ['node_rows','edge_rows']) for (const empty of [false,true]) {
         const {document,retained,snapshot,expected} = labelScenario(projection,empty);
-        const run = await client.aql(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
+        const run = await client.startSource(canonicalText(document),{format:'json',requestId:`${document.id}-${mode}`});
         const state = await run.wait();
         assert.equal(state.status,'succeeded',JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(),graphIdentityRowWire(expected));
@@ -1121,7 +1121,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
           document.stages[0].steps[4][projection] = body;
           const requestId = `invalid-label-${projection}-${JSON.stringify(body)}-${mode}`;
           const before = physicalSteps.length;
-          await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
             error=>error instanceof ClientError && error.code==='ClientProgramRejected');
           assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
           assert.deepEqual(physicalSteps.slice(before),[]);
@@ -1136,13 +1136,13 @@ for (const {mode,profile,name} of graphPublicHostCases) {
             : {filter:`${field} IS NOT NULL`,as:'guaranteed'};
           const requestId = `conditional-label-${projection}-${empty}-${reference}-${mode}`;
           const before = physicalSteps.length;
-          await assert.rejects(client.aql(canonicalText(document),{format:'json',requestId}),
+          await assert.rejects(client.startSource(canonicalText(document),{format:'json',requestId}),
             error=>error instanceof ClientError && error.code==='ClientProgramRejected');
           assert.deepEqual(await client.lookupRequest(requestId),{kind:'not_found'});
           assert.deepEqual(physicalSteps.slice(before),[]);
         }
       }
-      const labelMinimal = await client.aql(canonicalText(labelFixture),
+      const labelMinimal = await client.startSource(canonicalText(labelFixture),
         {format:'json',requestId:`minimal-label-${mode}`});
       const labelMinimalState = await labelMinimal.wait();
       assert.equal(labelMinimalState.status,'succeeded',JSON.stringify(labelMinimalState));
@@ -1169,7 +1169,7 @@ for (const {mode,profile,name} of graphPublicHostCases) {
       document.stages[0].results.out = {from:'projected',fields:['start_id','node_id','depth']};
       let traversed;
       try {
-        traversed = await client.aql(canonicalText(document),
+        traversed = await client.startSource(canonicalText(document),
           {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
       } catch (cause) {
         throw new Error(`Traversal submission failed: ${scenario.name}; ${String(cause.cause?.cause ?? cause.code)}`,{cause});

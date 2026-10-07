@@ -151,7 +151,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
       installation: {directory, retainedRelationOutput: true, authorization}});
     const source = JSON.stringify(fixture(fixtureId));
     const options = {format: 'json', requestId: fixtureId};
-    const execution = await client.aql(source, options).catch(error => {
+    const execution = await client.startSource(source, options).catch(error => {
       assert.fail(inspect(error, {depth: 8}));
     });
     const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
@@ -161,7 +161,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     assert.equal(completions, 1);
     assert.ok(representations?.some(item => item.representation === 'retained-file'));
     const finishedAdvances = advances;
-    const repeat = await client.aql(source, options);
+    const repeat = await client.startSource(source, options);
     assert.deepEqual(repeat.ref, execution.ref);
     assert.deepEqual(await repeat.result('published').all(), expected);
     assert.equal(advances, finishedAdvances);
@@ -169,7 +169,7 @@ async function runPublicRankingBarrier(t, {unused = false, nameScan = false} = {
     assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
     cancelling = true;
-    const cancel = await client.aql(JSON.stringify(fixture(fixtureId + '-cancel')),
+    const cancel = await client.startSource(JSON.stringify(fixture(fixtureId + '-cancel')),
       {format: 'json', requestId: fixtureId + '-cancel'});
     await Promise.race([barrier.promise,
       cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {

@@ -160,7 +160,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   const fixtureId = `public-events-record-${kind}`;
   const source = JSON.stringify(program(fixtureId, kind));
   const options = {format: 'json', requestId: fixtureId};
-  const execution = await client.aql(source, options).catch(cause => {
+  const execution = await client.startSource(source, options).catch(cause => {
     assert.fail(inspect(cause, {depth: 8}));
   });
   const state = await execution.wait({signal: AbortSignal.timeout(30_000)});
@@ -191,7 +191,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
       await assert.rejects(execution.result(name).all());
     }
     const failedAdvances = advances;
-    const repeated = await client.aql(source, options);
+    const repeated = await client.startSource(source, options);
     assert.deepEqual(repeated.ref, execution.ref);
     assert.equal((await repeated.wait()).status, 'failed');
     assert.equal(advances, failedAdvances);
@@ -208,7 +208,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   assert.equal(completions, 1);
   assert.ok(representations?.some(item => item.representation === 'retained-file'));
   const completedAdvances = advances;
-  const repeated = await client.aql(source, options);
+  const repeated = await client.startSource(source, options);
   assert.deepEqual(repeated.ref, execution.ref);
   assert.deepEqual(await repeated.result('published').all(), cases[kind].expected ?? [cases[kind].row]);
   assert.equal(advances, completedAdvances);
@@ -216,7 +216,7 @@ async function runEventsRecordBoundary(t, kind, {cancelBridge = false} = {}) {
   assert.deepEqual(await readdir(join(directory, 'carrier-snapshots')), []);
 
   cancelling = true;
-  const cancel = await client.aql(JSON.stringify(program(fixtureId + '-cancel', kind)),
+  const cancel = await client.startSource(JSON.stringify(program(fixtureId + '-cancel', kind)),
     {format: 'json', requestId: fixtureId + '-cancel'});
   await Promise.race([barrier.promise,
     cancel.wait({signal: AbortSignal.timeout(10_000)}).then(state => {

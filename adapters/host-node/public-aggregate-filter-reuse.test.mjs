@@ -82,14 +82,14 @@ for (const mode of ['local', 'https']) {
         const options = {format: 'sql', requestId: item.name,
           ...(item.parameterDeclarations ? {parameterDeclarations: item.parameterDeclarations,
             parameters: item.parameters} : {})};
-        const run = await client.aql(item.text, options);
+        const run = await client.startSource(item.text, options);
         const state = await run.wait({signal: AbortSignal.timeout(15_000)});
         assert.equal(state.status, 'succeeded', item.name + ': ' + JSON.stringify(state));
         assert.deepEqual(await run.result('answer').all(), item.expected, item.name);
         assert.deepEqual((await run.result('answer').describe()).columns,
           Object.keys(item.expected[0]).map(name => ({name, contract: number})), item.name);
         const before = dispatches();
-        assert.deepEqual((await client.aql(item.text, options)).ref, run.ref);
+        assert.deepEqual((await client.startSource(item.text, options)).ref, run.ref);
         assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(), item.expected, item.name);
         assert.equal(dispatches(), before, item.name + ': resend/attach must not execute again');
       }
@@ -97,10 +97,10 @@ for (const mode of ['local', 'https']) {
   test(`${mode}: different aggregate filters retain validation and demanded errors`,
     {timeout: 45_000}, async t => {
       const {client, dispatches} = await fixture(t, mode);
-      await assert.rejects(client.aql('SELECT COUNT(*) AS n, COUNT(* WHERE 1) + 0 AS invalid',
+      await assert.rejects(client.startSource('SELECT COUNT(*) AS n, COUNT(* WHERE 1) + 0 AS invalid',
         {format: 'sql', requestId: 'invalid-filter'}), {code: 'ClientProgramRejected'});
       assert.equal(dispatches(), 0, 'invalid filter must fail before dispatch');
-      const run = await client.aql('SELECT SUM(1 / 0 WHERE FALSE) AS skipped, SUM(1 / 0 WHERE TRUE) + 0 AS demanded',
+      const run = await client.startSource('SELECT SUM(1 / 0 WHERE FALSE) AS skipped, SUM(1 / 0 WHERE TRUE) + 0 AS demanded',
         {format: 'sql', requestId: 'demanded-error'});
       const state = await run.wait({signal: AbortSignal.timeout(15_000)});
       assert.equal(state.status, 'failed', JSON.stringify(state));

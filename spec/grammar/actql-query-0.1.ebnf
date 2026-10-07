@@ -64,7 +64,8 @@ graph_filler  = [ identifier ], [ ":", identifier ],
 graph_constraint = "WHERE", expression
                 | "{", property_pair, { ",", property_pair }, "}" ;
 property_pair = identifier, ":", expression ;
-graph_quantifier = "{", integer, ",", integer, "}" ;
+graph_quantifier = "{", integer, "}"
+                 | "{", [ integer ], ",", integer, "}" ;
 source        = path, [ source_alias ]
               | "(", relational_body, ")",
                 source_alias ;
@@ -156,6 +157,12 @@ assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
+array_constructor = [ "ARRAY", [ "<", array_item_type, ">" ] ],
+                    "[", [ expression, { ",", expression } ], "]" ;
+array_item_type = "BOOL" | "BOOLEAN" | "STRING" | "FLOAT64"
+                | "TIMESTAMP" | "JSON" ;
+(* ARRAY annotations and compatible item types use the common checker.
+   JSON constructors/default INT64 remain common-contract coverage gaps. *)
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
 numeric_token = ? existing query numeric token; exact admission is separate ? ;

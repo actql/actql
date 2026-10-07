@@ -168,7 +168,7 @@ for (const entrance of ['local', 'https']) {
         const program = JSON.parse(document), parameters = {};
         const options = {requestId: 'saved-request', parameters};
         const operation = kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(document, {...options, format: 'json'});
+          : f.client.startSource(document, {...options, format: 'json'});
         program.stages[0].steps[0].values.rows[0].id = 9999;
         parameters.changed = 'private-edit';
         let result;
@@ -282,7 +282,7 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {requestId: `${kind}-${index}`, parameters: {n}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
         error => {
           assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:bound-count-category]');
           return true;
@@ -317,7 +317,7 @@ for (const entrance of ['local', 'https']) {
         for (const kind of ['program', 'aql-json']) {
           const options = {requestId: `${field}-${kind}-${index}`, parameters: {n}};
           await assert.rejects(kind === 'program' ? f.client.start(program, options)
-            : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+            : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
           error => {
             assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:temporal-input-category]');
             return true;
@@ -329,11 +329,11 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {requestId: `${field}-${kind}-missing`, parameters: {}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}),
         {code: 'ClientProgramNeedsInputs'});
         await assert.rejects(kind === 'program'
           ? f.client.start(program, {...options, parameters: {n: null}})
-          : f.client.aql(JSON.stringify(program), {...options, parameters: {n: null}, format: 'json'}),
+          : f.client.startSource(JSON.stringify(program), {...options, parameters: {n: null}, format: 'json'}),
         {code: 'ClientProgramRejected'});
       }
       assert.deepEqual(f.counts(), {submits: 0, issues: 0});
@@ -358,7 +358,7 @@ for (const entrance of ['local', 'https']) {
       for (const kind of ['program', 'aql-json']) {
         const options = {requestId: `signed-${kind}-${index}`, parameters: {n}};
         const result = await (kind === 'program' ? f.client.start(program, options)
-          : f.client.aql(JSON.stringify(program), {...options, format: 'json'}));
+          : f.client.startSource(JSON.stringify(program), {...options, format: 'json'}));
         assert.equal(typeof result.ref.runDefinitionCid, 'string');
         assert.equal(sdk.explainSubmission(result).observation, 'run_reference_received');
       }
@@ -398,10 +398,10 @@ const numericInputCases = value => {
       {requestId: 'numeric-start-values'})],
     ['start default', 'submit', client => client.start(nestedParameterProgram(defaultDeclaration),
       {requestId: 'numeric-start-default', parameters: {}})],
-    ['aql parameters', 'submit', client => client.aql('SELECT @x AS n',
+    ['aql parameters', 'submit', client => client.startSource('SELECT @x AS n',
       {format: 'sql', requestId: 'numeric-aql-parameters',
         parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
-    ['aql default', 'submit', client => client.aql('SELECT @x AS n',
+    ['aql default', 'submit', client => client.startSource('SELECT @x AS n',
       {format: 'sql', requestId: 'numeric-aql-default',
         parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
     ['check parameters', 'check', client => client.check('SELECT @x AS n',
@@ -466,7 +466,7 @@ for (const entrance of ['local', 'https']) {
   });
 
   test(`${entrance}: SDK snapshots serialize caller values once before the first await`, async t => {
-    for (const operation of ['start', 'aql', 'check']) {
+    for (const operation of ['start', 'startSource', 'check']) {
       const f = await fixture(t, entrance);
       let conversions = 0, serializations = 0;
       const boxed = Object.assign(new Number(1), {valueOf: () => { conversions++; return 3.5; }});

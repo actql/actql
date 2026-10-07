@@ -1,4 +1,4 @@
-import {explainRunObservationFailure} from '@actql/sdk';
+import {explainRunObservationFailure, formatRunObservationFailure} from '@actql/sdk';
 import {runStateProtocol} from '@actql/client-wire';
 const view = explainRunObservationFailure(new Error());
 if (view) {
@@ -6,6 +6,10 @@ if (view) {
   const read: 'status' = view.next.operation;
   if (view.kind === 'uninterpretable') {
     const problem: 'unknown_state' = view.problem;
+    void problem;
+  }
+  if (view.kind === 'unavailable') {
+    const problem: 'observation_unavailable' = view.problem;
     void problem;
   }
   // @ts-expect-error Rejected observations do not establish a status.
@@ -17,3 +21,8 @@ if (view) {
 const state: 'preparing' | 'running' | 'waiting_checkpoint' | 'resuming' |
   'needs_reconciliation' | 'succeeded' | 'failed' | 'cancelled' = runStateProtocol.statuses[0];
 void state;
+
+const formatted: string | undefined = formatRunObservationFailure(new Error(), {format: 'json', locale: 'ja', maxBytes: 65536});
+// @ts-expect-error Observation display cannot authorize retries or execution.
+formatRunObservationFailure(new Error(), {format: 'json', retry: true});
+void formatted;

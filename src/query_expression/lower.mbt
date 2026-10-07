@@ -389,6 +389,48 @@ fn append_resolved(
           parameter = parameters[child]
           nodes[child]
         }
+        ArrayConstructor(items, target) => {
+          let value = lowering.arguments(
+            "array",
+            items.map(item => nodes[item]),
+          )
+          match target {
+            None => value
+            Some(target) => {
+              let type_name = match target {
+                Boolean => "boolean"
+                String => "string"
+                Number => "number"
+                Timestamp => "timestamp"
+                Json => "json"
+              }
+              let empty = lowering.form(
+                "empty_array",
+                lowering.object([
+                  (
+                    "items",
+                    lowering.object([
+                      ("type", lowering.add(String(type_name))),
+                      ("nullable", lowering.add(Bool(false))),
+                    ]),
+                  ),
+                ]),
+              )
+              if items.is_empty() {
+                empty
+              } else {
+                // The common checker unifies the declared item contract with
+                // the actual elements. The common lazy IF evaluates the array
+                // once; this is type evidence, never an element CAST.
+                lowering.arguments("if", [
+                  lowering.form("literal", lowering.add(Bool(true))),
+                  value,
+                  empty,
+                ])
+              }
+            }
+          }
+        }
         Unary(op, child) =>
           match op {
             "NOT" => lowering.form("not", nodes[child])
@@ -466,15 +508,49 @@ fn append_resolved(
           }
         Predicate(op, args) =>
           if op == "IN UNNEST" || op == "NOT IN UNNEST" {
-            // The existing membership operator consumes the array expression
-            // itself. It is not a scalar item wrapped in a literal list.
+            // A literal ARRAY spelling has the same scalar atoms as the
+            // existing IN list. Preserve order, duplicates and immediate
+            // parameter holes; never evaluate an expression to create an atom.
+            // General/annotated arrays retain ordinary common admission.
+            let mut right = args[1]
+            while @query.expression_node(ast, right)
+                  is Some({ kind: Parenthesized(child), .. }) {
+              if work >= max_work {
+                raise Abort(WorkLimit)
+              }
+              work += 1
+              right = child
+            }
+            let mut values = nodes[args[1]]
+            if @query.expression_node(ast, right)
+              is Some({ kind: ArrayConstructor(items, None), .. }) {
+              let raw : Array[@builder.Node] = []
+              let mut atoms = true
+              for item in items {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                match literals[item] {
+                  Some(value) => raw.push(value)
+                  None if parameters[item] => raw.push(nodes[item])
+                  None => {
+                    atoms = false
+                    break
+                  }
+                }
+              }
+              if atoms {
+                values = lowering.form("literal", lowering.add(Array(raw)))
+              }
+            }
             lowering.arguments(
               if op == "IN UNNEST" {
                 "in"
               } else {
                 "not_in"
               },
-              args.map(i => nodes[i]),
+              [nodes[args[0]], values],
             )
           } else if op == "IN" || op == "NOT IN" {
             let items : Array[@builder.Node] = []

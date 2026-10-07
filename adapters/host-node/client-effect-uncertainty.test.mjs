@@ -17,7 +17,7 @@ const expectedExplanation = (ref, revision) => ({
   effects: ['save'],
   physicalStop: 'confirmed',
   controlRevision: revision,
-  next: {operation: 'status', ref},
+  next: {operation: 'reconcile', ref},
 });
 
 const localObservation = path => new Promise((resolve, reject) => {
@@ -48,6 +48,7 @@ for (const entrance of ['local', 'https']) {
       const step = await setup.embedded(requestId, setup.program());
       assert.deepEqual(await step('submit'), {held: true});
       assert.deepEqual(await step('answer'), {answered: ['committed']});
+      assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
       observe = () => localObservation(join(setup.root,
         `embedded-${requestId}.json`));
     } else {
@@ -68,9 +69,12 @@ for (const entrance of ['local', 'https']) {
             return value.status === 'needs_reconciliation' && value.control?.physical_stop === 'confirmed' ? value : undefined;
           });
           let reconcileError;
-          try { await attached.reconcile(); }
+          let reconciled;
+          try { reconciled = await attached.reconcile(); }
           catch (error) { reconcileError = error.code; }
-          return {ref: attached.ref, state, reconcileError,
+          return {ref: attached.ref, state, reconcileError, reconciled,
+            diagnostics: host.diagnostics.map(({name, detail}) => ({name, code: detail?.code})),
+            reconciledExplanation: sdk.explainEffectUncertainty?.(reconciled),
             explanation: sdk.explainEffectUncertainty?.(state),
             japaneseExplanation: sdk.explainEffectUncertainty?.(state, {locale: 'ja'}),
             copiedExplanation: sdk.explainEffectUncertainty?.({...state}),
@@ -79,6 +83,9 @@ for (const entrance of ['local', 'https']) {
       };
     }
     const first = await observe();
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: first.ref, state: first.state,
+      reconciled: first.reconciled, reconcileError: first.reconcileError,
+      diagnostics: first.diagnostics}));
     // Establish the actual Owner/provider facts before testing presentation.
     assert.equal(first.state.status, 'needs_reconciliation');
     assert.deepEqual(first.state.next_action, {kind: 'reconcile', effects: ['save']});
@@ -86,9 +93,6 @@ for (const entrance of ['local', 'https']) {
     assert.equal(first.state.result_available, false);
     assert.equal(setup.writes().length, 2);
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
-    // This standard Host has not connected a public reconciliation handler.
-    // That missing operation is distinct from knowing an Effect outcome.
-    assert.equal(first.reconcileError, 'ClientOperationUnavailable');
     assert.deepEqual(first.explanation,
       expectedExplanation(first.ref, first.state.control.revision),
       '[check-mutation:effect-explanation]');
@@ -102,6 +106,9 @@ for (const entrance of ['local', 'https']) {
       '[check-mutation:operation-effect-public-format]');
     const queries = setup.queries(), reads = setup.targetReads();
     const again = await observe();
+    if (process.env.ACTQL_EFFECT_RECONCILIATION_TRACE === '1') t.diagnostic(JSON.stringify({ref: again.ref, state: again.state,
+      reconciled: again.reconciled, reconcileError: again.reconcileError,
+      diagnostics: again.diagnostics}));
     assert.deepEqual(again.japaneseExplanation, {...expectedExplanation(again.ref, again.state.control.revision),
       summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。'},
     '[check-mutation:operation-effect-public-restart]');
@@ -114,5 +121,79 @@ for (const entrance of ['local', 'https']) {
     assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
     assert.equal(setup.queries(), queries);
     assert.equal(setup.targetReads(), reads);
+    // The original Effect continuation is observation-only. Inconclusive
+    // provider evidence must preserve uncertainty, not fail or resend a write.
+    // Keep the Local path assertion after the independent no-resend facts,
+    // so an Owner failure does not conceal those observations in this case.
+    for (const observation of [first, again]) {
+      assert.equal(observation.reconcileError, undefined,
+        '[check-mutation:effect-reconciliation-path]');
+      assert.equal(observation.reconciled.status, 'needs_reconciliation',
+        '[check-mutation:effect-reconciliation-state]');
+      assert.equal(observation.reconciled.run_id, first.state.run_id);
+      assert.deepEqual(observation.reconciled.next_action,
+        {kind: 'reconcile', effects: ['save']});
+      assert.equal(observation.reconciled.control.physical_stop, 'confirmed');
+      assert.equal(observation.reconciled.result_available, false);
+      assert.deepEqual(observation.reconciledExplanation,
+        expectedExplanation(first.ref, observation.reconciled.control.revision),
+        '[check-mutation:effect-reconciliation-explanation]');
+    }
   });
 }
+
+test('https: stale Effect reconciliation advice does not grant current authority', async t => {
+  const setup = await readComputeEffectInstallation(t, {
+    org: {loseReplyAfterApply: [2]}});
+  const submittedHost = await setup.openHost();
+  const submitted = await submitReadComputeEffect(
+    await submittedHost.as('owner-token'), setup.program(), 'effect-current-authority');
+  await waitFor(async () => (await submitted.status()).status === 'waiting_checkpoint');
+  await submittedHost.close();
+  const approvingHost = await setup.openHost();
+  await approveHeldSet(approvingHost, submitted);
+  await approvingHost.close();
+
+  const observingHost = await setup.openHost();
+  let credential = 'owner-token';
+  const client = await observingHost.as(() => credential);
+  try {
+    const execution = await client.attach(submitted.ref);
+    const state = await waitFor(async () => {
+      const current = await execution.status();
+      return current.status === 'needs_reconciliation' &&
+        current.control?.physical_stop === 'confirmed' ? current : undefined;
+    });
+    const explanation = sdk.explainEffectUncertainty(state);
+    assert.deepEqual(explanation,
+      expectedExplanation(execution.ref, state.control.revision));
+    assert.equal(setup.writes().length, 2);
+    assert.deepEqual(setup.org.records(), expectedOrgAfterSuccess);
+    const counts = {writes: setup.writes().length,
+      queries: setup.queries(), targetReads: setup.targetReads()};
+    const absentRef = {...execution.ref, runDefinitionCid: `sha256:${'0'.repeat(64)}`};
+    assert.notEqual(absentRef.runDefinitionCid, execution.ref.runDefinitionCid);
+
+    // The public SDK's credential callback changes the actual authenticated
+    // actor at the real Host. The original candidate grants no access.
+    for (const [token, code] of [['reviewer-token', 'ClientConnectionDenied'],
+      ['unrecognized-token', 'ClientAuthenticationDenied']]) {
+      credential = token;
+      await assert.rejects(execution.reconcile(), {code});
+      // Denied actors cannot distinguish the retained Run from an absent one.
+      await assert.rejects(client.attach(execution.ref), {code});
+      await assert.rejects(client.attach(absentRef), {code});
+      assert.deepEqual(sdk.explainEffectUncertainty(state), explanation);
+      assert.deepEqual({writes: setup.writes().length,
+        queries: setup.queries(), targetReads: setup.targetReads()}, counts);
+    }
+    credential = 'owner-token';
+    const current = await execution.reconcile();
+    assert.deepEqual(sdk.explainEffectUncertainty(current),
+      expectedExplanation(execution.ref, current.control.revision));
+    assert.equal(current.status, 'needs_reconciliation');
+    assert.deepEqual(sdk.explainEffectUncertainty(state), explanation);
+    assert.deepEqual({writes: setup.writes().length,
+      queries: setup.queries(), targetReads: setup.targetReads()}, counts);
+  } finally { await observingHost.close(); }
+});

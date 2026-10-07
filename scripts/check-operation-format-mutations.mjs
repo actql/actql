@@ -9,6 +9,25 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'Run observation display drops the original lookup target', path,
+    file: 'adapters/host-node/client-run-observation-unavailable.test.mjs',
+    from: '  const presentation = getOperationPresentationInfo({locale});',
+    to: "  if (domain === 'observation') delete snapshot.next;\n  const presentation = getOperationPresentationInfo({locale});",
+    targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: unavailable Run observations preserve publication and original lookup`, 'run-format-public', 'deepStrictEqual'))},
+  {name: 'Run observation display copies gain custody', path: 'packages/sdk/index.mjs',
+    file: 'packages/sdk/run-observation-formats.test.mjs',
+    from: "formatOperationExplanation(explainRunObservationFailure(error), 'observation', options)",
+    to: "formatOperationExplanation(explainRunObservationFailure(error) ?? error, 'observation', options)",
+    targets: ['status', 'wait', 'reconcile'].map(operation => target(
+      `${operation}: Run failure formats preserve original classification and lookup without I/O`, 'run-format-custody'))},
+  {name: 'Run observation display rewrites failure classification', path,
+    file: 'packages/sdk/run-observation-formats.test.mjs',
+    from: "const classification = domain === 'observation' ? facts.kind : facts.observation;",
+    to: "const classification = domain === 'observation' ? 'success' : facts.observation;",
+    targets: ['status', 'wait', 'reconcile'].map(operation => target(
+      `${operation}: Run failure formats preserve original classification and lookup without I/O`, 'run-format-kind'))},
+
   {name: 'original lookup facts dropped for display', path, file: unit,
     from: '  const presentation = getOperationPresentationInfo({locale});',
     to: '  delete snapshot.next;\n  const presentation = getOperationPresentationInfo({locale});',

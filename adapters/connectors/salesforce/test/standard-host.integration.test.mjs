@@ -225,7 +225,7 @@ test('public Client reads a published Salesforce source to a Named Result',
       'Test_Record__c')).status, 'ready');
     // Check used only the published Catalog.
     assert.equal(setup.org.seen.length, published);
-    const execution = await client.aql(program, {format: 'json',
+    const execution = await client.startSource(program, {format: 'json',
       requestId: 'salesforce-read-1'});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -265,7 +265,7 @@ test('non-first Salesforce source view retains two public consumer Results',
       steps: [{select: ['Name'], as: 'out'}],
       results: {r: {from: 'out', fields: ['Name']}}});
     document.results.audit = {from: {stage: 'audit', result: 'r'}};
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId: 'salesforce-retained-multi-view'});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -285,7 +285,7 @@ test('non-first Salesforce source view retains two public consumer Results',
       {task: 2, representation: 'retained-file'},
     ]);
     const reads = setup.queries().length;
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId: 'salesforce-retained-multi-view'});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, reads);
@@ -356,7 +356,7 @@ test('two Salesforce views retain a joined public Result', async t => {
     observe: (name, detail) => diagnostics.push({name, detail}),
   })});
   const document = twoViewJoinProgram();
-  const execution = await client.aql(JSON.stringify(document),
+  const execution = await client.startSource(JSON.stringify(document),
     {format: 'json', requestId: 'salesforce-two-view-join'}).catch(error => {
       assert.fail(`${error.stack}\n${error.cause?.stack ?? ''}\n${JSON.stringify(diagnostics)}`);
     });
@@ -392,7 +392,7 @@ test('two Salesforce views retain a joined public Result', async t => {
     assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
   }
   assert.equal(setup.queries().length, 2);
-  const resent = await client.aql(JSON.stringify(document),
+  const resent = await client.startSource(JSON.stringify(document),
     {format: 'json', requestId: 'salesforce-two-view-join'});
   assert.deepEqual(resent.ref, execution.ref);
   assert.equal(setup.queries().length, 2);
@@ -425,7 +425,7 @@ test('two installed Salesforce sources retain exact Join input ports',
     document.id = 'salesforce-two-installations-join';
     document.stages[1].inputs.remote.connector = 'crm-other';
     const requestId = 'salesforce-two-installations-join';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('joined').all(), [
@@ -443,7 +443,7 @@ test('two installed Salesforce sources retain exact Join input ports',
     assert.equal(setup.queries().length, 2);
     assert.deepEqual(observations.filter(item => item.name ===
       'acquisition_completed').map(item => item.detail.task), [0, 1]);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
@@ -469,7 +469,7 @@ test('one Salesforce view can fill two distinct acquisition slots',
     const document = twoViewJoinProgram();
     document.id = 'salesforce-repeat-view-join';
     document.stages[1].inputs.remote.resource = 'Test_Record__c';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId: 'salesforce-repeat-view-join'});
     assert.equal((await execution.wait()).status, 'succeeded');
     assert.deepEqual(await execution.result('joined').all(), [
@@ -490,7 +490,7 @@ test('one Salesforce view can fill two distinct acquisition slots',
     assert.deepEqual(observations.filter(item => item.name ===
       'acquisition_completed').map(item => item.detail.task), [0, 1]);
     assert.equal(setup.queries().length, 2);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId: 'salesforce-repeat-view-join'});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
@@ -540,7 +540,7 @@ test('two-view capture stays owned when cancellation precedes the second read',
     })});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-two-view-cancel';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     await firstCaptured;
     assert.equal(setup.queries().length, 1);
@@ -557,7 +557,7 @@ test('two-view capture stays owned when cancellation precedes the second read',
       'acquisition_cleanup_completed').length, 1);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal((await resent.wait()).status, 'cancelled');
@@ -589,7 +589,7 @@ test('second Salesforce view failure releases the first retained capture',
       })});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-second-view-fails';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -610,7 +610,7 @@ test('second Salesforce view failure releases the first retained capture',
     }
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
@@ -642,7 +642,7 @@ test('two-view failure after both captures publishes nothing or reacquires',
     const {client, close} = await setup.open({authorization});
     const document = twoViewJoinProgram();
     const requestId = 'salesforce-two-view-failure';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -661,7 +661,7 @@ test('two-view failure after both captures publishes nothing or reacquires',
     }
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
@@ -698,7 +698,7 @@ test('two-view cleanup retry retains both capture owners without rereading',
         },
       })});
     const document = twoViewJoinProgram();
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId: 'salesforce-two-view-cleanup-retry'});
     await firstCleanup;
     const reads = setup.queries().length;
@@ -735,7 +735,7 @@ test('retained Salesforce acquisition failure publishes nothing or rereads',
     await setup.publish();
     const {client, close} = await setup.open();
     const requestId = 'salesforce-retained-source-failure';
-    const execution = await client.aql(program, {format: 'json', requestId});
+    const execution = await client.startSource(program, {format: 'json', requestId});
     const state = await execution.wait();
     assert.equal(state.status, 'failed');
     assert.equal(state.result_available, false);
@@ -743,7 +743,7 @@ test('retained Salesforce acquisition failure publishes nothing or rereads',
     assert.equal(setup.queries().length, 1);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(program, {format: 'json', requestId});
+    const resent = await client.startSource(program, {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 1);
     await close();
@@ -773,7 +773,7 @@ test('retained Salesforce capture survives cancellation until cleanup',
     });
     const {client, close} = await setup.open({authorization});
     const requestId = 'salesforce-retained-cancel-after-capture';
-    const execution = await client.aql(program, {format: 'json', requestId});
+    const execution = await client.startSource(program, {format: 'json', requestId});
     await captured;
     assert.equal(setup.queries().length, 1);
     await client.cancelRequest(requestId);
@@ -902,7 +902,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
     assert.equal(setup.org.seen.length, beforeStart,
       'generation restoration performs no provider request');
     const ownerClient = await first.as('owner-token');
-    const read = await ownerClient.aql(program, {format: 'json',
+    const read = await ownerClient.startSource(program, {format: 'json',
       requestId: 'coinstalled-salesforce-read'});
     assert.equal((await read.wait()).status, 'succeeded');
     assert.deepEqual((await read.result('records').all()).map(row =>
@@ -925,7 +925,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       id: 'External_Key__c', set: {Name: {field: 'Name'}},
     }}};
     const queriesBefore = setup.queries().length;
-    const admitted = await ownerClient.aql(JSON.stringify(formerlyRefused), {
+    const admitted = await ownerClient.startSource(JSON.stringify(formerlyRefused), {
       format: 'json', requestId: 'unsupported-acquire-and-effect'});
     assert.equal((await ownerClient.lookupRequest(
       'unsupported-acquire-and-effect')).kind, 'found');
@@ -940,7 +940,7 @@ test('public HTTP Client resumes an installed Salesforce Effect after restart',
       mapping: mapping.mappingRef, from: {result: 'rows'}, id: 'id',
       set: {Name: {field: 'id'}}}}},
     [{id: 'a00000000000001'}, {id: 'a00000000000002'}]);
-    const execution = await ownerClient.aql(JSON.stringify(effectDocument), {
+    const execution = await ownerClient.startSource(JSON.stringify(effectDocument), {
       format: 'json', requestId: 'installed-effect-http'});
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
@@ -1085,13 +1085,13 @@ test('a Program outside the published declaration fails Check without I/O',
     const undeclared = program.replace('"External_Key__c", "Name"]',
       '"External_Key__c", "Missing__c"]')
       .replaceAll('External_Key__c', 'Missing__c');
-    await assert.rejects(client.aql(undeclared, {format: 'json',
+    await assert.rejects(client.startSource(undeclared, {format: 'json',
       requestId: 'undeclared-1'}), {code: 'ClientProgramRejected'});
     // An acquisition the local planner cannot generate is refused as
     // unsupported, before any Run.
     const unsupported = program.replace("Name <> 'record-2'",
       "External_Key__c IN ('key-1', 'key-3')");
-    await assert.rejects(client.aql(unsupported, {format: 'json',
+    await assert.rejects(client.startSource(unsupported, {format: 'json',
       requestId: 'unsupported-1'}), {code: 'ClientProgramUnsupported'});
     assert.deepEqual(await client.lookupRequest('unsupported-1'),
       {kind: 'not_found'});
@@ -1113,7 +1113,7 @@ test('a lost read permission acquires nothing and discloses nothing',
     await assert.rejects(client.inspectResource(setup.connection,
       'Test_Record__c'), {code: 'ResourceDiscoveryDenied'});
     // The read is refused at submit: no Run, no provider request.
-    await assert.rejects(client.aql(program, {format: 'json',
+    await assert.rejects(client.startSource(program, {format: 'json',
       requestId: 'revoked-1'}), error =>
       /^ACTQL_E_ACCOUNT_/u.test(error.code));
     assert.deepEqual(await client.lookupRequest('revoked-1'),
@@ -1177,7 +1177,7 @@ async function installedAdapter(setup, source, runtime = commonMoon) {
 }
 
 async function assertEndedRun(setup, client, requestId) {
-  const execution = await client.aql(program, {format: 'json', requestId});
+  const execution = await client.startSource(program, {format: 'json', requestId});
   assert.equal((await execution.wait()).status, 'failed');
   const requests = setup.org.seen.length;
   assert.equal((await client.lookupRequest(requestId)).kind, 'found');
@@ -1333,7 +1333,7 @@ test('long text in several columns and many rows reaches the Named Result',
     const setup = await installation(t, {storedRecords: stored});
     await setup.publish();
     const {client, close} = await setup.open();
-    const execution = await client.aql(program, {format: 'json',
+    const execution = await client.startSource(program, {format: 'json',
       requestId: 'long-rows'});
     assert.equal((await execution.wait()).status, 'succeeded');
     const rows = await execution.result('records').all();
@@ -1349,7 +1349,7 @@ test('an acquisition over its capture bound publishes nothing and ends once',
     const setup = await installation(t, {storedRecords: records(100, 10000)});
     await setup.publish();
     const {client, close} = await setup.open();
-    const execution = await client.aql(program, {format: 'json',
+    const execution = await client.startSource(program, {format: 'json',
       requestId: 'over-capture'});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
@@ -1360,7 +1360,7 @@ test('an acquisition over its capture bound publishes nothing and ends once',
 
 // A held read: submitting it returns the held request.
 async function heldRead(client, requestId) {
-  try { await client.aql(program, {format: 'json', requestId}); }
+  try { await client.startSource(program, {format: 'json', requestId}); }
   catch (error) {
     assert.equal(error instanceof RequestHeld, true, String(error?.code));
     return error.held;
@@ -1551,7 +1551,7 @@ test('retained Salesforce rows feed the formal Events Bridge', async t => {
     observe(name, detail) { observations.push({name, detail}); },
   })});
   const document = retainedSalesforceEventsDocument();
-  const execution = await client.aql(JSON.stringify(document),
+  const execution = await client.startSource(JSON.stringify(document),
     {format: 'json', requestId: 'salesforce-retained-events'});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('published').all(), [
@@ -1570,7 +1570,7 @@ test('retained Salesforce rows feed the formal Events Bridge', async t => {
     {Name: 'first'}, {Name: 'second'},
   ]);
   assert.equal(setup.queries().length, 1);
-  const resent = await client.aql(JSON.stringify(document),
+  const resent = await client.startSource(JSON.stringify(document),
     {format: 'json', requestId: 'salesforce-retained-events'});
   assert.deepEqual(resent.ref, execution.ref);
   assert.equal(setup.queries().length, 1);
@@ -1608,7 +1608,7 @@ test('retained Salesforce Events failure publishes no partial Result',
     document.id = 'salesforce-retained-events-duplicate';
     document.stages[1].steps[1].to_events.id = 'Name';
     const requestId = 'salesforce-retained-events-duplicate';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -1617,7 +1617,7 @@ test('retained Salesforce Events failure publishes no partial Result',
     assert.equal(setup.queries().length, 1);
     assert.deepEqual(await readdir(join(setup.root, 'state',
       'carrier-snapshots')), []);
-    const resent = await client.aql(JSON.stringify(document),
+    const resent = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 1);
@@ -1639,7 +1639,7 @@ test('retained Salesforce Events later filter failure keeps no Result',
     document.id = 'salesforce-retained-events-later-failure';
     document.stages[1].steps[4].filter = 'clock / (clock - clock) > 0';
     const requestId = 'salesforce-retained-events-later-failure';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     const state = await execution.wait();
     assert.equal(state.status, 'failed', JSON.stringify(state));
@@ -1676,7 +1676,7 @@ test('retained Salesforce Events input stays owned through cancellation',
     const document = retainedSalesforceEventsDocument();
     document.id = 'salesforce-retained-events-cancel';
     const requestId = 'salesforce-retained-events-cancel';
-    const execution = await client.aql(JSON.stringify(document),
+    const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', requestId});
     await captured;
     assert.equal(setup.queries().length, 1);
@@ -1696,7 +1696,7 @@ test('Salesforce dates and UTC datetimes reach the Named Result as the same valu
     const setup = await installation(t, {temporalFields: true});
     await setup.publish();
     const {client, close} = await setup.open();
-    const execution = await client.aql(temporalProgram, {format: 'json',
+    const execution = await client.startSource(temporalProgram, {format: 'json',
       requestId: 'temporal-read'});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1726,7 +1726,7 @@ test('a datetime outside its declared type fails the acquisition, typed',
       storedRecords: stored});
     await setup.publish();
     const {client, close} = await setup.open();
-    const execution = await client.aql(temporalProgram, {format: 'json',
+    const execution = await client.startSource(temporalProgram, {format: 'json',
       requestId: 'temporal-violation'});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
@@ -1808,10 +1808,10 @@ test('Salesforce Numbers reach the Named Result as their exact declared decimals
     // A Number above precision 15 is not declared, so a Program reading it
     // fails Check before any provider I/O.
     const before = setup.org.seen.length;
-    await assert.rejects(client.aql(numberProgram.replaceAll('Amount__c',
+    await assert.rejects(client.startSource(numberProgram.replaceAll('Amount__c',
       'Wide_Amount__c'), {format: 'json', requestId: 'wide-number'}));
     assert.equal(setup.org.seen.length, before);
-    const execution = await client.aql(numberProgram, {format: 'json',
+    const execution = await client.startSource(numberProgram, {format: 'json',
       requestId: 'number-read'});
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify(state));
@@ -1837,7 +1837,7 @@ test('a Number beyond its declared scale fails the acquisition, typed',
       storedRecords: stored});
     await setup.publish();
     const {client, close} = await setup.open();
-    const execution = await client.aql(numberProgram, {format: 'json',
+    const execution = await client.startSource(numberProgram, {format: 'json',
       requestId: 'number-violation'});
     assert.equal((await execution.wait()).status, 'failed');
     await assert.rejects(execution.result('records').all());
@@ -1952,7 +1952,7 @@ test('the neutral Salesforce capture spans the complete locator chain', async t 
   const setup = await installation(t, {queryPageSize: 2});
   await setup.publish();
   const {client, close} = await setup.open();
-  const execution = await client.aql(program, {format: 'json', requestId: 'paged-read'});
+  const execution = await client.startSource(program, {format: 'json', requestId: 'paged-read'});
   assert.equal((await execution.wait()).status, 'succeeded');
   assert.deepEqual(await execution.result('records').all(), [
     {External_Key__c: 'key-1', Name: 'record-1'},
@@ -1990,7 +1990,7 @@ test('a refused later page cancels the already-admitted rows without replay', as
     }});
   await setup.publish();
   const {client, close} = await setup.open();
-  const execution = await client.aql(program, {format: 'json', requestId: 'bad-later-page'});
+  const execution = await client.startSource(program, {format: 'json', requestId: 'bad-later-page'});
   assert.equal((await execution.wait()).status, 'failed');
   await assert.rejects(execution.result('records').all());
   const reads = setup.org.seen.length;

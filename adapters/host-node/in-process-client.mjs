@@ -5,8 +5,8 @@ import {performClientSubmit} from './client-submit.mjs';
 import {projectClientCheckUnavailable} from './client-check.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
-import {validCheckpointPage, validCheckpointReview, validClientAdmission,
-  validClientBody, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
+import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, validClientAdmission,
+  validClientBody, validClientConnection, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
   validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
@@ -57,7 +57,7 @@ function publicResultRows(response) {
 }
 
 export function createNodeInProcessClientHost({
-  authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
+  authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, maxRowBytes, observe,
@@ -75,6 +75,15 @@ export function createNodeInProcessClientHost({
       if (!validClientBody(operation, validationBody)) {
         fail('InvalidClientRequest');
       }
+      // Authentication and Workspace resolution may await. Own the selected
+      // target before either boundary so caller mutation cannot remove or
+      // replace the assertion while its verification is in flight.
+      const suppliedConnection = body.connection;
+      const connection = Object.freeze({...suppliedConnection,
+        consentRefs: Object.freeze([...suppliedConnection.consentRefs]),
+        runners: Object.freeze([...suppliedConnection.runners])});
+      if (!validClientConnection(connection)) fail('InvalidClientRequest');
+      body = {...body, connection};
       if (operation === 'check') {
         // Own the JSON request before awaiting caller-installed authentication.
         try { body = snapshotCheckRequest(body); }
@@ -93,8 +102,17 @@ export function createNodeInProcessClientHost({
       if (typeof principalId !== 'string' || !principalId) {
         fail('ClientAuthenticationDenied');
       }
-      const connection = body.connection;
       const ref = body.ref;
+      if (connection.workspaceId !== undefined) {
+        let workspaceId;
+        try {
+          workspaceId = typeof workspaceForPrincipal === 'function'
+            ? await workspaceForPrincipal(principalId) : undefined;
+        } catch { fail('ClientConnectionDenied'); }
+        if (!clientWorkspaceMatches(connection, workspaceId)) {
+          fail('ClientConnectionDenied');
+        }
+      }
       let authorized;
       try {
         authorized = await authorizeConnection(Object.freeze({
