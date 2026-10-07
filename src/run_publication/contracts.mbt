@@ -989,6 +989,34 @@ fn validate_contract(
 }
 
 ///|
+fn validate_protocol_envelope(
+  spec : ContractSpec,
+  value : @json.CanonicalValue,
+  complete : Bool,
+) -> Result[Unit, PublicationContractIssue] {
+  let fields = match object_fields(value) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  guard field_value(fields, "version") is Some(version) else {
+    return Err(MissingField("version"))
+  }
+  if !validate_rule(version, Exact(spec.version)) {
+    return Err(InvalidField("version"))
+  }
+  match field_value(fields, spec.identity) {
+    Some(_) if !complete => return Err(IdentityAlreadyPresent)
+    None if complete => return Err(IdentityMissing)
+    Some(identity) =>
+      if !validate_rule(identity, Cid) {
+        return Err(InvalidField(spec.identity))
+      }
+    None => ()
+  }
+  Ok(())
+}
+
+///|
 fn validate_bounded_contract(
   spec : ContractSpec,
   value : @json.CanonicalValue,
@@ -998,24 +1026,9 @@ fn validate_bounded_contract(
   max_depth : Int,
 ) -> Result[Unit, PublicationContractIssue] {
   if generated_protocol_schema_root(spec.name, complete) is Some(_) {
-    let fields = match object_fields(value) {
-      Ok(value) => value
+    match validate_protocol_envelope(spec, value, complete) {
+      Ok(_) => ()
       Err(issue) => return Err(issue)
-    }
-    guard field_value(fields, "version") is Some(version) else {
-      return Err(MissingField("version"))
-    }
-    if !validate_rule(version, Exact(spec.version)) {
-      return Err(InvalidField("version"))
-    }
-    match field_value(fields, spec.identity) {
-      Some(_) if !complete => return Err(IdentityAlreadyPresent)
-      None if complete => return Err(IdentityMissing)
-      Some(identity) =>
-        if !validate_rule(identity, Cid) {
-          return Err(InvalidField(spec.identity))
-        }
-      None => ()
     }
     if validate_generated_protocol_shape(
         spec.name,
@@ -1074,6 +1087,24 @@ pub fn seal_publication_contract(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[PublicationContract, PublicationContractIssue] {
+  if name == "captured_run" {
+    let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+    let preparation = match start_publication_seal_preparation(
+      name, body_wire, max_wire_bytes, max_nodes, max_depth, workspace,
+    ) {
+      Ok(preparation) => preparation
+      Err(issue) => return Err(issue)
+    }
+    // The aggregate capture owner will poll this same child. Explicit callers
+    // still drain it here; public issuance is not yet interruption-safe.
+    while true {
+      match preparation.advance(256) {
+        Err(issue) => return Err(issue)
+        Ok((true, _)) => return preparation.finish()
+        Ok((false, _)) => ()
+      }
+    } nobreak { return Err(Encoding) }
+  }
   let spec = match contract_spec(name) {
     Some(value) => value
     None => return Err(UnknownContract)
