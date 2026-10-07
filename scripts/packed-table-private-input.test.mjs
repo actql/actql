@@ -33,7 +33,7 @@ const fixtures = [
 ];
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('packed private Table input preserves sparse cells through Local and HTTPS approval and restart', async () => {
+test('packed Table commits preserve original operations and sparse inputs through public clients', async () => {
   const state = checkoutState(repository);
   assert.equal(state.clean, true, 'Packed acceptance requires committed build inputs');
   assert.ok(process.env.ACTQL_TABLE_PYTHON, 'Explicit optional Table Python installation required');
@@ -83,14 +83,14 @@ test('packed private Table input preserves sparse cells through Local and HTTPS 
   }
   environment.ACTQL_TEST_TABLE_PACKED_APPLICATION = application;
   const args = nodeTestArguments(['--test-concurrency=1',
-    '--test-name-pattern=Table sparse private input commits through',
     'adapters/host-node/table-public-commit.test.mjs']);
   const result = spawnSync(process.execPath, args, {cwd: application, env: environment,
-    encoding: 'utf8', timeout: 180000, maxBuffer: 64 * 1024 * 1024});
+    encoding: 'utf8', timeout: 360000, maxBuffer: 64 * 1024 * 1024});
   process.stdout.write(result.stdout ?? '');
   process.stderr.write(result.stderr ?? '');
   const checked = assertTestExecution('node', process.execPath, args, result);
-  assert.equal(checked.counts.passed, 2, 'Both actual Local and HTTPS cases must execute');
+  assert.equal(checked.counts.passed, 9,
+    'All real create/replace, reply-loss, concurrent replace, and sparse Local/HTTPS cases must execute');
   assert.deepEqual(checkoutState(repository), state, 'Source changed during packed acceptance');
   const local = join(application, 'node_modules/@actql/local-node');
   const artifacts = await Promise.all([
