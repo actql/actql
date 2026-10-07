@@ -11,7 +11,9 @@ import {packClientPackages, packedClientPackage, packedNpmCache} from './packed-
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const approvalOnly = process.argv.includes('--approval-only');
 const recoveryOnly = process.argv.includes('--recovery-only');
-assert.ok(!(approvalOnly && recoveryOnly), 'Select one packed INFER filter');
+const cancellationOnly = process.argv.includes('--cancellation-only');
+assert.ok([approvalOnly, recoveryOnly, cancellationOnly].filter(Boolean).length <= 1,
+  'Select one packed INFER filter');
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
   encoding: 'utf8'});
 if (revision.status !== 0) throw new Error('PackedInferRevisionUnavailable');
@@ -46,7 +48,7 @@ async ({root, directory, run, recordTarball}) => {
   for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
     'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
   for (const transport of ['local', 'http']) {
-    const modes = recoveryOnly ? [] : approvalOnly
+    const modes = recoveryOnly || cancellationOnly ? [] : approvalOnly
       ? ['approval-wait', 'approval-approve', 'approval-replay',
         'approval-stop-wait', 'approval-stop-cancel', 'approval-stop-replay']
       : ['success', 'cancel', 'failure', 'capture', 'replay',
@@ -58,7 +60,7 @@ async ({root, directory, run, recordTarball}) => {
     }
 
   }
-  if (!recoveryOnly) {
+  if (!recoveryOnly && !cancellationOnly) {
     const calls = (await readFile(join(root, 'provider-calls.jsonl'), 'utf8'))
       .trim().split('\n').map(line => JSON.parse(line));
     const expectedCalls = ['local', 'http'].flatMap(transport =>
@@ -99,7 +101,8 @@ async ({root, directory, run, recordTarball}) => {
         providerFixture: pathToFileURL(join(root, 'model-provider-binding-fixture.mjs')).href,
         environment: join(root, 'base-environment.json')}}));
     const args = nodeTestArguments(['--test-name-pattern',
-      approvalOnly ? '^public Model (local|https): cancellation retains a sent unknown across restart$'
+      cancellationOnly ? '^public Model (local|https): (?:cancellation of a waiting Run fences all sends across restart|lost fence acknowledgement retains original pending cancellation across restart|original cancellation survives (?:before|after) final COMMIT reply loss|cancellation retains a sent unknown across restart|cancellation after one saved response retains it and prevents later sends)$'
+        : approvalOnly ? '^public Model (local|https): cancellation retains a sent unknown across restart$'
         : '^public Model(?: (?:local|https))?:',
       'adapters/host-node/model-resume-public.test.mjs']);
     // The external consumer owns its own copied reporter, not a source link.
@@ -109,11 +112,11 @@ async ({root, directory, run, recordTarball}) => {
       env: {...runtimeEnv, ACTQL_MODEL_ACCEPTANCE_INPUTS: inputs}, timeout: 360000});
     const checked = assertTestExecution('node', process.execPath, args,
       {status: 0, stdout});
-    assert.equal(checked.counts.passed, approvalOnly ? 2 : 38,
+    assert.equal(checked.counts.passed, cancellationOnly ? 12 : approvalOnly ? 2 : 44,
       'Both selected transports and every requested recovery case must execute');
     console.log(stdout.trimEnd());
   }
-  if (!recoveryOnly) {
+  if (!recoveryOnly && !cancellationOnly) {
     // Reuse the existing independent approval fixture and the exact producer.
     // The child owns a separate external installation and verifies the same
     // clean revision and tarball digests; it never rebuilds or reads a runtime

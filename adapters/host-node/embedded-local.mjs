@@ -548,7 +548,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         !effectResumeFlights.has(ref.runDefinitionCid) &&
         !modelResumeFlights.has(ref.runDefinitionCid)});
   };
-  const cancel = async ({ref, principalId: actual, connection}) => {
+  // Request-level cancellation already owns its own pre-Run receipt. Its
+  // transfer to a defined Run remains separate from a Client cancel operation.
+  const cancelRequestRun = async ({ref, principalId: actual, connection}) => {
     if (!hostConnection({principalId: actual, connection, ref})) {
       throw clientOperationError('ClientRunCancellationDenied');
     }
@@ -576,6 +578,35 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return accepted;
   };
+  const cancel = async ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    const publicationCommitted = await store.confirmCommittedIndex(ref) !== undefined;
+    // Recheck current connection authority after the publication observation.
+    // The journal then compares the original revision under its write lock.
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    const recorded = journal.recordCancellationOperation(ref, {
+      cancelId, expectedRevision, currentAuthorization: true, publicationCommitted,
+      modelCancellationOwner: checkpoints?.journal,
+    }, moon, control);
+    const accepted = recorded.cancellation;
+    if (recorded.recorded && accepted.kind !== 'already_terminal') {
+      dispatchOwner.cancel(ref);
+      await cancelEffectContinuation(ref);
+      void checkpoints?.sweep();
+    }
+    return accepted;
+  };
+  const lookupCancellation = ({ref, cancelId, expectedRevision, principalId: actual, connection}) => {
+    if (!hostConnection({principalId: actual, connection, ref})) {
+      throw clientOperationError('ClientCancellationDenied');
+    }
+    return journal.lookupCancellationOperation({...ref, cancelId, expectedRevision},
+      {currentAuthorization: true}, moon, control);
+  };
   // Cancel a request by its ID. For a request this Host held, the
   // cancellation is first made durable on its prepare attempt, so a resume
   // (on this or a later start) cannot start it and hands it to the Run.
@@ -592,7 +623,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const existing = journal.lookupDefinition({namespaceId, authorityScopeCid,
       requestId}, moon, control);
     if (existing !== undefined) {
-      const run = await cancel({ref: existing.ref, principalId: actual,
+      const run = await cancelRequestRun({ref: existing.ref, principalId: actual,
         connection});
       void checkpoints?.sweep();
       return {requestId, ref: run.ref, revision: run.revision,
@@ -2257,7 +2288,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         checkpointConnection(value),
     negotiate, prepareSubmit, submit, check, attach,
     lookupRequest: lookupHeld,
-    stateService, resultService, observeRun, wait, cancel, cancelRequest,
+    stateService, resultService, observeRun, wait, cancel, lookupCancellation, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.
     ...(sourceProfile?.discovery ?? {}),
