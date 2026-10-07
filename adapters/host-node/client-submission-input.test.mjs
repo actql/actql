@@ -466,7 +466,7 @@ for (const entrance of ['local', 'https']) {
   });
 
   test(`${entrance}: SDK snapshots serialize caller values once before the first await`, async t => {
-    for (const operation of ['start', 'aql', 'check']) {
+    for (const operation of ['start', 'startSource', 'check']) {
       const f = await fixture(t, entrance);
       let conversions = 0, serializations = 0;
       const boxed = Object.assign(new Number(1), {valueOf: () => { conversions++; return 3.5; }});

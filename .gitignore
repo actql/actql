@@ -6,6 +6,7 @@ __pycache__/
 _build/
 packages/local-node/adapters/
 packages/local-node/spec/
+packages/local-node/src/connectors/
 .artifacts/
 target/
 .toolchains/

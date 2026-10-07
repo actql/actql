@@ -179,6 +179,55 @@ executor.close();
 `));
 });
 
+test('an explicit JS owner needs no Native tools and refuses Native before execution', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+for (const name of ['cc', 'c++']) unlinkSync(join(root, '.fake-moon/bin', name));
+const executor = createExecutor(undefined, {targets: ['js']});
+assert.throws(() => executor.execute([makeCase()], registry, 'native'), /outside owner scope/);
+assert.equal(calls().length, 0);
+assert.equal(executions.length, 0);
+assert.equal(executor.execute([makeCase()], registry, 'js')[0].rows[0][0], 1);
+assert.equal(calls().length, 1);
+assert.equal(executions.length, 1);
+executor.close();
+assert.throws(() => createExecutor(), /Missing execution tool cc/);
+`, {PATH: ''}));
+});
+
+test('the default owner still binds Native tools and catches their replacement', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+const executor = createExecutor();
+writeFileSync(join(root, '.fake-moon/bin/cc'), '// swapped Native compiler\n');
+assert.throws(() => executor.execute([makeCase()], registry, 'native'), /Execution toolchain changed/);
+assert.equal(calls().length, 0);
+assert.equal(executions.length, 0);
+executor.close();
+`));
+});
+
+test('target scope is copied and invalid/empty/duplicate target declarations are refused', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+for (const targets of [[], ['js', 'js'], ['unknown'], null])
+  assert.throws(() => createExecutor(undefined, {targets}), /Invalid execution target scope/);
+const targets = ['js'];
+const executor = createExecutor(undefined, {targets});
+targets.push('native');
+assert.throws(() => executor.execute([makeCase()], registry, 'native'), /outside owner scope/);
+assert.equal(calls().length, 0);
+executor.close();
+`));
+});
+
+test('closing the unstarted default owner remains terminal without discovering Native tools', t => {
+  successful(runDriver(minimalRepository(t), String.raw`
+unlinkSync(join(root, '.fake-moon/bin/cc'));
+closeExecutor(); closeExecutor();
+assert.throws(() => execute([makeCase()], registry, 'js'), /Execution workspace is closed/);
+assert.equal(calls().length, 0);
+assert.equal(executions.length, 0);
+`));
+});
+
 test('an unrelated temporary fixture is neither executed nor overwritten', t => {
   const root = minimalRepository(t);
   successful(runDriver(root, String.raw`

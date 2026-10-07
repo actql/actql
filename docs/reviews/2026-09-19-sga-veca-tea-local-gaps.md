@@ -6698,9 +6698,59 @@ guards 34/34 with regenerated consuming runtimes. The first two-root build timed
 out; separate bounded root diagnostics then completed. No old receipt is relabeled
 as latest-SHA execution.
 
-The old materializing lane still cancels imports synchronously; its cleanup
-connection is the next boundary. Managed publication buffers, an actual cancelled
+At the recorded SHA, the current materializing retained-input path still cancels
+imports synchronously; its cleanup connection is the next boundary. This is not
+a backward-compatibility lane. Managed publication buffers, an actual cancelled
 snapshot-reload acceptance case, availability/Carrier walks, other scratch and
 Native physical allocation correspondence remain. This is not a whole-callback
 wall-clock bound or all-Local completion. See the
 [private import reclamation record](2026-10-07-local-import-buffer-reclamation.md).
+
+### Incremental materializing input cleanup (2026-10-07)
+
+The current retained-input path now uses the existing incremental import
+reclamation owner. Its close revokes use and requests provider stop; later cleanup
+polls retain the same provider and input roots until stop and successful cleanup
+are confirmed. The common scratch witness reads the finished cursor and cannot
+release reservations while retirement is pending. Node and Native dispatch call
+that installed cleanup hook; Node preserves the Store observer even when physical
+release succeeds but its acknowledgement fails.
+
+The focused JS selection passed 11/11 on dirty preparation source; Node adapter
+and physical Store cleanup tests passed 30/30 after fixing fixture task bindings
+and the post-release acknowledgement case. Work boundaries are independently
+derived as 82/81 across quanta 1, 7 and 256, not copied from successful telemetry.
+These results precede the normal adoption of main
+`e5d2be0276f5c79f874ab7b5aa173eb9a5f87902`. Integrated public Host acceptance
+is not yet established. See the
+[materializing cleanup record](2026-10-07-local-materializing-cleanup.md).
+
+Managed publication buffers, actual snapshot-reload cancellation acceptance,
+availability/Carrier walks, other scratch and Native physical-byte correspondence
+remain. Incremental reference retirement does not establish a wall-clock or GC
+latency bound. The full retained Local goal remains open.
+
+### Incremental publication admission and public cleanup (2026-10-08)
+
+Private managed-admission buffers now retire in bounded slices while pending
+capacity remains charged. Focused admission/caller fixtures preserve finished
+receipts and validate cancellation, reference cleanup and retry. These close the
+private admission retirement boundary, not the still-synchronous receipt creation
+or availability walks. The installed DuckDB cleanup hook now has a separate
+real-DuckDB/Store regression: physical release preserves pending admission
+capacity, retries reach release within an independently derived bound, and
+native attempts do not increase. The retained source survives downstream
+retirement; its own final cleanup clears all reservations. The hook and adjacent
+lifecycle selection passed 10/10 on dirty source at
+`61298497c40a2943753edfd04b75186b5afb8887` (`run-eMobrM`). This uses public
+preparation and the existing checked task fixture, not full public Named Result
+acceptance. Native physical-byte correspondence is not established.
+
+The standard Host with real retained/publication Stores passed a focused 13-case
+selection at `c87106aa97d5587691acd93a12b1ead806110f8d`, including normal mixed
+Carrier Stages, three Named Results, two consumers, post-progress cancellation,
+typed exact/one-short limits, Store faults and retry without more Compute.
+This follows an actual close-order failure and independently corrected stale
+work-boundary evidence. No public contract check was weakened. This is checkout
+Host acceptance, not pristine packed/HTTPS or CI acceptance. See the
+[publication reclamation record](2026-10-07-local-publication-reclamation.md).

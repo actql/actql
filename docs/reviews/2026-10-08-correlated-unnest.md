@@ -3,6 +3,9 @@
 Base: main `4ceb8b6f97674b9b9d0edbc2dbae4541187d5d22`. Independent branch:
 `feat/frontend-correlated-unnest`. This unit does not depend on the pending
 literal membership or Graph quantifier PRs and adds no execution owner.
+Current integration adopts main
+`36c6125428ef318237547b8047c73c6ff34c2241` by normal merge, retaining its adopted
+literal-membership, finite Graph grammar, input refusals and bounded cleanup.
 
 ## Fixed counterexample and reference
 
@@ -59,12 +62,20 @@ the same fixtures. No test patches the generated Program.
 ## Identity and evidence
 
 Existing generators update grammar, complete normative import metadata and
-canonical vectors. Grammar CID:
+canonical vectors. The pre-integration grammar CID was:
 `sha256:669a907108617a89e253dcf5d5f5ef88fe14ec46fe84df18bb6e4d22638347f5`.
 The complete hand-assembled Values Run preimage independently yields
 `sha256:4ca80c7d99dd7834c8fc281ce2aff63833e52711eb52702c2cc628c361a01af4`.
 Its predecessor grammar/Run pair is retained; no saved Run is relabeled. Values
 Unit, cardinality proof, Result Plan and common operation meanings are unchanged.
+The combined grammar CID is
+`sha256:39ed3dd3cca9b11c128c369308bdbd340ee69a5b82c43bc5408b9b66b8e6f0ac`;
+the same complete independent preimage yields Run CID
+`sha256:d48070d700e2e74ce504796caefec6fc0255d8b998f8f570e02723580949f5b3`.
+Both parent grammar/Run pairs remain independent vectors. No product issuer is
+used to obtain the expectation. Normal packed registration includes each
+correlated case once; the duplicate registration detected during integration
+is removed and its count is checked.
 
 Focused JS regressions, including existing UNNEST callers, passed 13/13:
 `run-1iH1Vc`, `focused-test-dRTqHI`. Earlier additional assertions exposed two
@@ -78,6 +89,17 @@ passed 16/16 (`run-wLlAIM`, `focused-test-j9YRL0`). The affected Values Run
 material boundary passed JS 1/1 (`run-RNPlV6`, `focused-test-h9NElK`).
 Read-only manifest, metadata and canonical-vector checks pass (375 vectors);
 formatting is checked only for the changed MoonBit files.
+After the normal main merge, the same focused UNNEST family plus the complete
+predicate/LIMIT Program regression passed JS 14/14 (`run-gQPPk5`,
+`focused-test-i6QZoA`). The selected Node fixture/vector/manifest and affected
+literal-membership/Graph staging checks passed 26/26 (`run-OjEEFY`,
+`focused-test-Vu8cFC`). A first integration selection (`run-w5GO8o`, 24/26)
+detected two test-integration mistakes, a missing formatted fixture and a
+selector-prefix assertion; restoring the test bodies and retaining main's
+selector composition repaired them. The capacity refusal is not counted as
+fixed by those preparation checks.
+The integrated Values Run-material identity boundary passed JS 1/1
+(`run-wah2BM`, `focused-test-VIS8X9`).
 
 ## Fixed-source public execution and common capacity boundary
 

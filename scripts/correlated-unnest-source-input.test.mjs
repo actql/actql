@@ -32,6 +32,8 @@ test('correlated expansion is registered in normal and focused packed execution'
   const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...correlatedUnnestSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...correlatedUnnestRefusals)'));
+  assert.equal(corpus.split('scopeInputs.successes.push(...correlatedUnnestSuccesses)').length - 1, 1);
+  assert.equal(corpus.split('scopeInputs.refusals.push(...correlatedUnnestRefusals)').length - 1, 1);
   assert.ok(corpus.includes('correlatedUnnestOnly ? {successes: correlatedUnnestSuccesses'));
   assert.ok(driver.includes("['scripts/fixtures/correlated-unnest-source-input.mjs', 'correlated-unnest-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_CORRELATED_UNNEST_ONLY = '1'"));

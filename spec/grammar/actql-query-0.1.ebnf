@@ -64,7 +64,8 @@ graph_filler  = [ identifier ], [ ":", identifier ],
 graph_constraint = "WHERE", expression
                 | "{", property_pair, { ",", property_pair }, "}" ;
 property_pair = identifier, ":", expression ;
-graph_quantifier = "{", integer, ",", integer, "}" ;
+graph_quantifier = "{", integer, "}"
+                 | "{", [ integer ], ",", integer, "}" ;
 source        = table_source | unnest_source ;
 table_source  = path, [ source_alias ]
               | "(", relational_body, ")",
