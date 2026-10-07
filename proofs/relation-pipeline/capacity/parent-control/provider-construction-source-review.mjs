@@ -57,6 +57,10 @@ export function checkConstructionSourceReview(profile, read) {
   const managed = read(managedPath).toString();
   const generated = read(generatedPath).toString();
   assert.equal(hash(selected), review.selectedDigest, 'Unreviewed provider constructor selected_relation_provider');
+  assert.equal(hash(replaceOnce(selected,
+    '  if @lower.kernel_json_pick(kernel) is Some(_) {\n    return true\n  }\n')),
+    '4f02d43052c899c9105574f72dd17cda04caa3695390d93ef73e972bf4cb8227',
+    'Borrowed JSON path changed more than the reviewed support guard');
   assert.equal(hash(managed), review.managedDigest, `Changed provider representation premise ${managedPath}`);
   for (const [name, digest] of Object.entries(review.wrapperDigests)) {
     assert.equal(hash(reviewedFunction(managed, name)), digest, `Changed construction wrapper ${name}`);
