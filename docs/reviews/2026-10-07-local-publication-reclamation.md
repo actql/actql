@@ -85,9 +85,58 @@ the recorded owned group no longer existed (`ESRCH`). Only the matching
 token/inode-checked lock was removed; the incomplete receipt remains unchanged.
 No subsequent build or test was started.
 
-Remaining: execute the Local caller/callback regression selection, recheck the
-final closed-row change, validate DuckDB cleanup through its consuming runtime,
-and prepare the affected runtime before public real-Store acceptance. Wasm/Native
-execution, physical-byte correspondence, full Core/proof/packed/HTTPS/performance
-and clean submitted-HEAD CI are not established. No new PR readiness or shipping
-claim follows from this preparation record.
+## Integrated focused validation
+
+The parent normally adopted main
+`ae1f273bc1174e50598d86ab932daa0bc28c5f4d` as
+`317d7e146e57cf638ed42b4a5b59294629708bdf`. This child then normally merged the
+parent as `ffe0b243c8c1f730bea4d6909b3f69063d4a6740`, without conflicts.
+
+The earlier timeout truncated generated JavaScript. Syntax inspection rejected
+that incomplete artifact; it was not used as execution evidence. The following
+focused selections used one compiler job and a 300-second invocation budget,
+not a full Core or packed campaign:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 300 -- \
+  --target js --jobs 1 \
+  src/execution_relation/managed_output_reclamation_wbtest.mbt \
+  src/execution_relation/managed_output_values_wbtest.mbt
+node scripts/local-checks.mjs test moon --timeout-seconds 300 -- \
+  --target js --jobs 1 \
+  src/query_integration/local_publication_reclamation_wbtest.mbt \
+  src/query_integration/managed_scratch_release_wbtest.mbt \
+  src/query_integration/managed_import_reclamation_wbtest.mbt
+```
+
+- Clean `ffe0b243c8c1f730bea4d6909b3f69063d4a6740`: admission JS 8/8,
+  `run-D9aR2X` / `focused-test-FOQgDS`, including the final closed-row change.
+- The first caller attempt ran 10 cases, with 9 passed and 1 failed:
+  `run-4C7Q7j` / `focused-test-I1KAG9`. The new Local cancellation case passed.
+  The older import fixture incorrectly required a 100-row producer's admission
+  to retire in a single cleanup pass. Its expectation now requires pending
+  capacity to remain charged and independently bounds subsequent passes from
+  100 three-container rows plus seven metadata entries, at 64 entries per pass.
+  No successful-result expectation, work limit or failure code was weakened.
+- Dirty source at the same integration SHA, with the caller fixture correction
+  and canonical formatting: caller JS 10/10, `run-KTXAR2` /
+  `focused-test-GWO30D`. This executes Local finalization cancellation, incomplete
+  import reclamation and DuckDB completion/callback/receipt cleanup cases.
+- Source-premise and negative mutations: Node 32/32, `run-bQlynw` /
+  `focused-test-W4NL70`, on that same dirty source. These are not a full Native
+  proof campaign or physical-lifetime theorem.
+
+Project-wide `moon fmt --check` found existing main formatting differences in
+`src/platform_native/executor_slot/executor_slot_native.mbt` and
+`src/query_syntax/query_test.mbt`. Neither file is changed by this unit; the
+command failed and is not reported as a pass. Changed-file formatting is checked
+separately with the pinned formatter. A materializing fixture's canonical-only
+formatting is returned to the parent PR rather than mixed into this child.
+
+Remaining: validate the new DuckDB driver cleanup hook through its consuming
+runtime and prepare the affected runtime before public real-Store acceptance.
+The executed DuckDB cases exercise its completion owner, not the installed
+Host driver hook. Wasm/Native execution, physical-byte correspondence, full
+Core/proof/packed/HTTPS/performance and submitted-HEAD CI are not established.
+This unit can be published as Draft; these checks do not establish shipping
+readiness or completion of the whole retained Local goal.
