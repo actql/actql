@@ -52,14 +52,25 @@ integration coverage. Unchanged Lean model/consumer bytes were not re-proved.
 
 ## Retained history and remaining acceptance
 
-The real read-only `node proofs/relation-pipeline/history.mjs` was prepared in a
-240-second shared-heavy guard. `run-q0Ktkd` refused before execution because B's
-live five-package producer held the shared slot. It ran no history inspection;
-no timeout/test failure or passing full history is claimed. The other owner's
-resources were untouched. Own four changed protected sources have real
-source/parent/blob/mode declarations; full retained-history acceptance remains
-pending that read-only command. The earlier UNNEST integration repair is adopted
-from current main, but its presence is not substituted for a current full check.
+The first 240-second shared-heavy attempt (`run-q0Ktkd`) refused before
+execution because B's live five-package producer held the slot. That original
+refusal remains in the first archive; it is not a history test failure.
+
+After that slot became free, the same existing read-only command passed at
+published clean source `a34fd425eceb94095a796c641729a2274345b8ae` under
+`run-h2zQvH` (82.3 seconds, exit 0, complete streams). It checked 239 declarations,
+195 integrations and 89 protected files, including the actual Nest
+source/parent/blob/mode declaration. The deterministic manifest is 1,468,877
+bytes, SHA-256 `2666087972d6145da8d8ba3eea2d1a3ac520842ab7758c6c3e77f9cc9061ce85`.
+No tracked/ignored history manifest was generated and no history was rewritten.
+The later publication changes only this review and its immutable text archive.
+
+[Actual retained-history originals](evidence/2026-10-08-nest-inherited-history-a34fd425e.json.gz)
+preserve the unmodified guard summary, complete stdout and outer command log.
+Raw JSON: 3,148,709 bytes, SHA-256
+`ecd944a41814e5cca3774d284350fbc3748f17ebe1e39cfc4b3a4263fee099b1`.
+Gzip: 351,064 bytes, SHA-256
+`c74e9cf672f0ada0f173b4c61eee7fac07038c6b9995c0dbaa74c31baf24cc68`.
 
 No hosted CI was run, and local logs are not Actions originals. Cross-main
 qualification, ordinary-PR reuse and authentication/transfer-inclusive net CI
