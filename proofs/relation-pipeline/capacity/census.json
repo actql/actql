@@ -138,6 +138,7 @@
         "metadata_lookup": "RowMetadataLookup?",
         "name_charge": "RowNameCharge?",
         "term_column": "Int?",
+        "json_path": "@lower.PreparedJsonPick?",
         "metadata_source": "@schema.FieldName?",
         "metadata_generated_field": "Int",
         "metadata_generated_seen": "Int"
