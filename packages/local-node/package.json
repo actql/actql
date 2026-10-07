@@ -24,5 +24,5 @@
     "./effect-site": "./adapters/host-node/installed-effect-site.mjs",
     "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
   },
-  "files": ["index.mjs", "index.d.ts", "http-host.mjs", "http-host.d.ts", "host-policy.d.ts", "_build/js/release/build", "adapters", "spec", "README.md"]
+  "files": ["index.mjs", "index.d.ts", "http-host.mjs", "http-host.d.ts", "host-policy.d.ts", "_build/js/release/build", "adapters", "spec", "src/connectors", "README.md"]
 }

@@ -1,6 +1,6 @@
 // Bounded SDK input and operation explanations reuse the named-assertion guard.
 // Import, timeout and unselected-test failures never establish detection.
-import {spawnSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {mutationAcceptance} from './check-disclosure-mutations.mjs';
 
@@ -11,7 +11,20 @@ const checkAcceptance = 'adapters/host-node/client-check.test.mjs';
 const sdkAcceptance = 'packages/sdk/index.test.mjs';
 const requestAcceptance = 'packages/sdk/request-observation.test.mjs';
 const preparationAcceptance = 'adapters/host-node/remote-checkpoint-host.test.mjs';
+const operationInputAcceptance = 'adapters/host-node/client-operation-input-rejection.test.mjs';
 const expected = (phase, assertion = 'submission-input') => {
+  if (phase === 'submission-copy') return ['changes branch', 'throws'].map(fault => ({
+    name: `SDK submitted outcome rejects a clone that ${fault}`,
+    assertions: [{id: 'request-held-admission', operator: 'strictEqual'}],
+  }));
+  if (phase.startsWith('operation-input-')) {
+    const inputs = phase === 'operation-input-range' ? ['reversed bound range']
+      : ['empty bound vector query', 'short bound vector query', 'long bound vector query'];
+    return ['local', 'https'].flatMap(entrance => inputs.map(input => ({
+      name: `${entrance}: ${input} is rejected before admission or Compute`,
+      assertions: [{id: assertion, operator: 'strictEqual'}],
+    })));
+  }
   if (phase === 'request-record-loss') return ['local', 'https'].map(entrance => ({
     name: `${entrance}: missing submission record preserves uncertainty despite an already published Run`,
     assertions: [{id: assertion, operator: assertion === 'request-record-loss-kind' ? 'strictEqual' : 'deepStrictEqual'}],
@@ -135,6 +148,12 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['known reversed operation range loses input classification',
+    '        | Ranges(ReversedRange(_))\n', '',
+    'operation-input-range', 'operation-input-public'],
+  ['known vector query shape violation loses input classification',
+    '        | Queries(InvalidQuery(_) | DimensionMismatch(_, _, _))', '',
+    'operation-input-query', 'operation-input-public'],
   ['request record loss is presented as durable nonacceptance',
     "    answer.kind === 'not_found' ? 'lookup_unresolved'",
     "    answer.kind === 'not_found' ? 'not_accepted'",
@@ -187,9 +206,9 @@ const mutations = [
     "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
   ['request observation skips copied-response revalidation',
     "      if (!validRequestLookup(answer, requestId) || structuralKey(answer) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');", '', 'request-admission', 'request-lookup-admission'],
-  ['request observation permits a copied held reply to change its branch',
-    "admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey",
-    "!validSubmitReply(admitted, selected.wire, requestId)", 'request-held-admission', 'request-held-admission'],
+  ['submission observation permits a copied durable reply to change its branch',
+    "  const copy = structuredClone(value);\n  if (structuralKey(copy) !== observedKey || structuralKey(value) !== observedKey) {\n    throw new TypeError('ChangedHostResponse');\n  }",
+    "  const copy = structuredClone(value);", 'submission-copy', 'request-held-admission'],
   ['request observation loses the submitted held preparation state',
     "observation: 'request_held', preparationState: answer.state,",
     "observation: 'request_held', preparationState: undefined,", 'request-held-state', 'request-held-state'],
@@ -234,19 +253,21 @@ const mutations = [
       "    const report = reportExplanation(outcome.report, 'complete');",
     'check-locale-snapshot', 'check-locale-snapshot'],
   ['unknown submit loses its original input',
-    '  if (input) submissionInputs.set(result, input);', '', 'after-commit'],
+    '  if (input) submissionInputs.set(result, input);\n  if (input) submissionExplanations.set(result,',
+    '  if (input) submissionExplanations.set(result,', 'after-commit'],
   ['original supplied parameters are replaced by null',
-    'const snapshot = freezeInput({...body, connection: selected.wire,',
-    'const snapshot = freezeInput({...body, parameters: null, connection: selected.wire,',
+    'const snapshot = freezeInput({...body, requestId, connection: selected.wire,',
+    'const snapshot = freezeInput({...body, parameters: null, requestId, connection: selected.wire,',
     'after-commit'],
   ['accepted handle loses its original input',
-    '    submissionInputs.set(result, snapshot);', '', 'acceptance'],
+    '        submissionInputs.set(run, snapshot);', '', 'acceptance'],
   ['unknown acceptance is presented as a held request',
     "submissionLookupExplanation('acceptance_unknown', input)",
     "submissionLookupExplanation('request_held', input)",
     'after-commit', 'submission-explanation'],
   ['submission explanation loses the original lookup identity',
-    'requestId: input.requestId,', 'requestId: "wrong-request",',
+    'submissionRef: input.submissionRef}),',
+    'submissionRef: {...input.submissionRef, nonce: "wrong-request"}}),',
     'after-commit', 'submission-explanation'],
   ['submission explanation exposes a private transport cause',
     "submissionLookupExplanation('acceptance_unknown', input));",
@@ -373,7 +394,9 @@ const mutations = [
 ];
 const accepted = (phase, assertion) => {
   const tests = expected(phase, assertion);
-  const file = phase === 'request-cancel-preparation' ? preparationAcceptance
+  const file = phase === 'submission-copy' ? 'packages/sdk/submission-identity.test.mjs'
+    : phase.startsWith('operation-input-') ? operationInputAcceptance
+    : phase === 'request-cancel-preparation' ? preparationAcceptance
     : phase === 'request-record-loss' ? 'adapters/host-node/client-request-record-loss.test.mjs'
     : ['request-cancel-public', 'request-cancel-stop', 'request-cancel-loss'].includes(phase) ? cancellationAcceptance
     : phase === 'request-ended-public' ? preparationAcceptance
@@ -394,7 +417,9 @@ if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {
 }
 const selected = mutations.filter(([name]) => args.length === 0 || name.includes(args[1]));
 if (!selected.length) throw new Error('No SDK mutations selected');
-const mutationPath = phase => ['check-expression-type', 'check-operation-parameter', 'check-frame-explanation'].includes(phase)
+const mutationPath = phase => phase.startsWith('operation-input-')
+  ? 'src/program_check/diagnostic_category.mbt'
+  : ['check-expression-type', 'check-operation-parameter', 'check-frame-explanation'].includes(phase)
   ? 'packages/sdk/check-reason-catalog.generated.js' : phase === 'check-schema-pin'
   ? 'packages/client-wire/client-host.generated.js'
   : phase === 'check-locale-fallback' ? 'packages/sdk/check-presentation.mjs' : path;
@@ -408,6 +433,11 @@ const captureFaults = {
   'cancellation-custody': ['try { response = captureResponse(response); }'],
   'check-custody': ['try { outcome = captureResponse(outcome); }'],
 };
+// A parent local gate already owns the worktree lock. Keep this bounded
+// compiler child in its process group rather than acquiring a nested gate.
+const buildOperationInputRuntime = () => execFileSync('moon',
+  ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'],
+  {stdio: 'inherit', timeout: 120000});
 const results = [];
 try {
   for (const [name, from, to, phase, assertion] of selected) {
@@ -422,12 +452,19 @@ try {
       altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
         .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
+    if (phase === 'operation-input-range') {
+      const capacity = '                | InvalidSeriesCount(ReversedRange)\n';
+      if (altered.split(capacity).length !== 2) throw new Error(`Capacity fault anchor not unique: ${name}`);
+      altered = altered.replace(capacity, '');
+    }
     writeFileSync(file, altered);
+    if (phase.startsWith('operation-input-')) buildOperationInputRuntime();
     results.push({name, phase, rejected: !accepted(phase, assertion)});
     writeFileSync(file, original);
   }
 } finally {
   for (const [file, original] of originals) writeFileSync(file, original);
+  if (originals.has('src/program_check/diagnostic_category.mbt')) buildOperationInputRuntime();
 }
 const restorations = new Map(selected.map(([, , , phase, assertion]) =>
   [phase + ':' + (assertion ?? 'submission-input'), {phase, assertion}]));

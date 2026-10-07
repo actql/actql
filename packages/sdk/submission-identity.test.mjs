@@ -173,3 +173,30 @@ test('closed Client is known unsent and retains its original submission instead 
   });
   assert.equal(submissions, 0);
 });
+
+for (const fault of ['changes branch', 'throws']) {
+  test(`SDK submitted outcome rejects a clone that ${fault}`, async () => {
+    const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+      async perform(operation, body) {
+        if (operation === 'connect') return profile;
+        return {kind: 'not_accepted', submissionRef: body.submissionRef,
+          intentCid: body.intentCid, problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+      },
+    });
+    const submissionRef = client.newSubmission({nonce: 'copied-durable-outcome'});
+    const originalClone = globalThis.structuredClone;
+    globalThis.structuredClone = value => {
+      if (value?.kind === 'not_accepted') {
+        if (fault === 'throws') throw new Error('uncloneable outcome');
+        return {kind: 'preparing', submissionRef: value.submissionRef, intentCid: value.intentCid};
+      }
+      return originalClone(value);
+    };
+    try {
+      let failure;
+      try { await client.start({}, {submissionRef}); } catch (error) { failure = error; }
+      assert.equal(failure?.code, 'SubmissionUnknown', '[check-mutation:request-held-admission]');
+      assert.deepEqual(getSubmissionInput(failure).submissionRef, submissionRef);
+    } finally { globalThis.structuredClone = originalClone; client.close(); }
+  });
+}

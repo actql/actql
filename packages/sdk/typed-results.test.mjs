@@ -1,4 +1,4 @@
-import {submissionEpoch, readySubmission} from './submission-fixture.mjs';
+import {submissionEpoch, originalSubmission, readySubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test, {mock} from 'node:test';
 import {spawnSync} from 'node:child_process';

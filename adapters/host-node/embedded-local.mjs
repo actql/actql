@@ -333,7 +333,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       createLocalRetainedStore({parentDirectory:snapshotDirectory,
         capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}),
     authorization?.faultInjection);
-    journal = openClientRequestJournal(journalDirectory);
+    journal = openClientRequestJournal(journalDirectory, {
+      // Private fault hooks exercise the real installed admission clock;
+      // Programs and public transport requests cannot select these values.
+      submissionEpochTtlMs: authorization?.faultInjection?.submissionEpochTtlMs,
+      submissionEpochNow: authorization?.faultInjection?.submissionEpochNow,
+    });
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');

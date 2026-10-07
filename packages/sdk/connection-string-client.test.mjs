@@ -18,7 +18,7 @@ function stubFetch(t, implementation) {
 
 const secret = 'DSN_CANARY_SECRET:+/@?#%';
 const dsn = `actql://token:${encodeURIComponent(secret)}@example.test/workspace-A`;
-const profile = () => ({version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
+const profile = () => ({submissionEpoch, version: 'actql-client-host/0.1', mode: 'remote', owner: 'remote',
   durability: 'durable', scopeRef: 'unchanged-scope', workspaceId: 'workspace-A', capabilities: [],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,

@@ -3,7 +3,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir, userInfo} from 'node:os';
@@ -12,7 +14,7 @@ import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome} from
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 
-async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow'} = {}) {
+async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow', epochClock} = {}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
   const directory = join(root, 'host');
   const principalId = userInfo().username;
@@ -28,6 +30,9 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
     reviewReaders: [principalId], hostKey: {keyId: 'host',
       privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
     observe(name) {if (name === 'computed') computes++;},
+    ...(epochClock === undefined ? {} : {faultInjection: Object.assign(async () => {}, {
+      submissionEpochTtlMs: 1000, submissionEpochNow: epochClock,
+    })}),
   };
   const certificates = entrance === 'https' ? await fixtureCertificates(root) : undefined;
   const originalTrust = getCACertificates('default');
@@ -63,6 +68,7 @@ async function installedFixture(t, entrance, {loseSubmissionReply = false, outco
   };
   await open();
   return {get client() {return client;}, get computes() {return computes;},
+    get root() {return root;}, get certificates() {return certificates;},
     get endpoint() {return server && `https://127.0.0.1:${server.address().port}/`;}, close, open};
 }
 
@@ -157,3 +163,73 @@ test('installed HTTPS Host refuses epoch-less legacy execution without a Run', a
   assert.deepEqual(await f.client.lookupRequest('legacy-unbound'), {kind: 'not_found'});
   assert.equal(f.computes, 0);
 });
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: exact epoch expiry and restart fence new work while retaining original acceptance`, async t => {
+    let clock = Date.now();
+    const f = await installedFixture(t, entrance, {epochClock: () => clock});
+    const saved = f.client.newSubmission({nonce: 'accepted-before-expiry'});
+    const unaccepted = f.client.newSubmission({nonce: 'never-accepted'});
+    clock = saved.epoch.expiresAt - 1;
+    const pending = f.client.sql('SELECT 1 AS n', undefined, {submissionRef: saved});
+    assert.deepEqual(getSubmissionInput(pending).submissionRef, saved);
+    const result = await pending;
+    assert.deepEqual(await result.all(), [{n: 1}]);
+    const original = await f.client.lookupSubmission(saved);
+    assert.equal(original.kind, 'ready');
+    assert.equal(f.computes, 1);
+    clock = saved.epoch.expiresAt;
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: unaccepted}));
+    assert.equal((await f.client.lookupSubmission(unaccepted)).kind, 'unresolvable');
+    assert.deepEqual(await f.client.lookupSubmission(saved), original);
+    assert.equal(f.computes, 1);
+    await f.close();
+    clock = saved.epoch.notBefore; // The persisted high-water clock cannot go backwards.
+    await f.open();
+    await assert.rejects(f.client.startSource('SELECT 1 AS n', {format: 'sql', submissionRef: unaccepted}));
+    assert.equal((await f.client.lookupSubmission(unaccepted)).kind, 'unresolvable');
+    assert.deepEqual(await f.client.lookupSubmission(saved), original);
+    const replay = await f.client.sql('SELECT 1 AS n', undefined, {submissionRef: saved});
+    assert.deepEqual(replay.execution.ref, original.admission.ref);
+    assert.deepEqual(await replay.all(), [{n: 1}]);
+    assert.equal(f.computes, 1, 'expiry/restart observation and replay never create a second Compute');
+  });
+}
+
+// Execute only when the matching-target native gate supplies its real binary.
+// Ordinary Node gates still exercise both public SDK entrances above.
+if (process.env.ACTQL_NATIVE_SUBMISSION_CLIENT) {
+  test('Native HTTPS: original submission survives a lost reply and Host restart', async t => {
+    const f = await installedFixture(t, 'https', {loseSubmissionReply: true});
+    const original = f.client.newSubmission({nonce: 'native-original'});
+    await writeFile(join(f.root, 'connection.json'), JSON.stringify({mode: 'remote', owner: 'remote',
+      consentRefs: [], runners: [], durability: 'durable'}));
+    await writeFile(join(f.root, 'token.txt'), 'fixture-principal', {mode: 0o600});
+    await writeFile(join(f.root, 'original.json'), JSON.stringify(original));
+    await writeFile(join(f.root, 'query.sql'), 'SELECT 1 AS n');
+    for (const [name, bytes] of [['ca.pem', f.certificates.ca], ['cert.pem', f.certificates.cert], ['key.pem', f.certificates.key]]) {
+      await writeFile(join(f.root, name), bytes, {mode: 0o600});
+    }
+    const run = (...args) => promisify(execFile)(process.env.ACTQL_NATIVE_SUBMISSION_CLIENT,
+      ['--endpoint', f.endpoint, '--connection-root', f.root, '--connection-file', 'connection.json',
+        '--token-root', f.root, '--token-file', 'token.txt', '--http-library',
+        process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4',
+        '--ca', join(f.root, 'ca.pem'), '--cert', join(f.root, 'cert.pem'), '--key', join(f.root, 'key.pem'), ...args],
+      {cwd: f.root, env: {...process.env, PATH: ''}, timeout: 20000});
+    await assert.rejects(run('aql', '--program-file', 'query.sql', '--format', 'sql',
+      '--submission-ref-file', 'original.json'), error => /SubmissionUnknown submission-ref-file=original.json/u.test(error.stderr));
+    const lookedUp = JSON.parse((await run('lookup-submission', '--submission-ref-file', 'original.json')).stdout);
+    assert.equal(lookedUp.kind, 'ready');
+    assert.deepEqual(lookedUp.submissionRef, original);
+    const execution = await f.client.attach(lookedUp.admission.ref);
+    assert.equal((await execution.wait({until: 'terminal'})).status, 'succeeded');
+    assert.deepEqual(await execution.result('answer').all(), [{n: 1}]);
+    await f.close(); await f.open();
+    const restored = JSON.parse((await run('lookup-submission', '--submission-ref-file', 'original.json')).stdout);
+    assert.deepEqual(restored, lookedUp);
+    const replay = JSON.parse((await run('aql', '--program-file', 'query.sql', '--format', 'sql',
+      '--submission-ref-file', 'original.json')).stdout);
+    assert.deepEqual(replay.ref, lookedUp.admission.ref);
+    assert.equal(f.computes, 1, 'Native lookup/replay never allocates another Run or Compute');
+  });
+}

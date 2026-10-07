@@ -130,7 +130,7 @@ export async function openReadOpeningFixture(directory, loss,
   };
   const submission = installNodeClientSubmission({journal, moon,
     authorizedScope: () => allowed ? scope : undefined,
-    prepareSubmit: services.prepareSubmit, submit: services.submit,
+    prepareSubmit: request => services.prepareSubmit(request), submit: services.submit,
     lookupRequest: services.lookupRequest});
   services.submitIntent = submission.submitIntent;
   services.lookupSubmission = submission.lookupSubmission;
