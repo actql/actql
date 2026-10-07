@@ -132,6 +132,10 @@ test('pipeline preparation includes its separate bounded normal replay without c
   assert.equal(pipeline.normalReplayMilliseconds, 480000);
   assert(pipeline.preparationMilliseconds > pipeline.normalReplayMilliseconds);
   assert(pipeline.timeoutSeconds * 1000 >= pipeline.preparationMilliseconds + 600000);
+  const fixed = localAcceptanceLimits('pipeline-fixed-js');
+  assert.equal(fixed.normalReplayMilliseconds, 900000);
+  assert.equal(fixed.preparationMilliseconds, 1200000);
+  assert.equal(fixed.timeoutSeconds, 2400);
   assert.throws(() => localAcceptanceLimits('archive-selected-profile'));
 });
 
