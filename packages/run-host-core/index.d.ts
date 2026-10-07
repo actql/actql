@@ -958,3 +958,22 @@ export function issueRunControlObservation(revision: number,
     stopped: boolean}>): Readonly<{
     revision: number; cancellation_requested: boolean;
     physical_stop: 'unknown' | 'confirmed'}>;
+
+
+declare const submissionEpochBrand: unique symbol;
+export interface SubmissionEpoch {readonly [submissionEpochBrand]: true;}
+declare const submittedIntentBrand: unique symbol;
+export interface SubmittedIntent {readonly [submittedIntentBrand]: true;}
+/** Identity only: the physical Host must authenticate and retain validation custody. */
+export function prepareSubmissionEpoch(scope: Readonly<{authorityScopeCid: string;
+  epochNonce: string; notBefore: number; expiresAt: number}>): SubmissionEpoch;
+export function submissionEpochFacts(epoch: SubmissionEpoch): Readonly<{wire: string; cid: string}>;
+export function submissionEpochValidity(epoch: SubmissionEpoch, now: number):
+  'admissible' | 'not_yet_valid' | 'expired';
+/** Same original epoch and nonce retain the original request identity on replay. */
+export function submissionRequestId(epoch: SubmissionEpoch, nonce: string): string;
+/** Original submitted content only; this does not issue a Run or grant permission. */
+export function prepareSubmittedIntent(wire: string, limits: Readonly<{
+  maxWireBytes: number; maxNodes: number; maxDepth: number}>): SubmittedIntent;
+export function submittedIntentFacts(intent: SubmittedIntent): Readonly<{wire: string; cid: string}>;
+export function submittedIntentTransition(before: string, after: string): boolean;
