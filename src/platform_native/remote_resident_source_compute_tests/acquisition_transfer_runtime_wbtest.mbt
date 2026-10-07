@@ -23,6 +23,7 @@ fn acquisition_runtime_transfer_consumer(
   consumer_task? : Int = 1,
   chain_context? : RetainedNativeChainContext? = None,
   cancel_consumer_before_start? : Bool = false,
+  cancel_consumer_after_borrow? : Bool = false,
   consumer_output_unavailable? : Bool = false,
   cancel_receiver? : Bool = false,
   deny_after_admission? : Bool = false,
@@ -576,6 +577,7 @@ fn acquisition_runtime_transfer_consumer(
       destination_journal,
       bytes,
       current_query,
+      cancel_after_borrow=cancel_consumer_after_borrow,
       cancel_before_start=cancel_consumer_before_start ||
         (
           chain_context is Some(context) &&

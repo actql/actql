@@ -28,10 +28,12 @@ async function withServer(handler, run) {
   }
 }
 
-test('submit has one outcome contract over HTTP and in-process', async () => {
+test('epoch-bound submit has one outcome contract over HTTP and in-process', async () => {
   const profile = {version: 'actql-client-host/0.1', mode: 'local',
     owner: 'local', durability: 'durable', scopeRef: 'local-scope',
-    capabilities: [], limits: {maxReadWireBytes: 4096,
+    capabilities: [], submissionEpoch: {version: 'actql-submission-epoch/0.1',
+      authorityScopeCid: ref.authorityScopeCid, epochNonce: 'd'.repeat(64),
+      notBefore: 0, expiresAt: 4102444800000, authenticator: 'e'.repeat(64)}, limits: {maxReadWireBytes: 4096,
       maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
       maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10,
       maxBatchRetainedValueBytes: 2048}};
@@ -49,18 +51,16 @@ test('submit has one outcome contract over HTTP and in-process', async () => {
           authorizeConnection: () => true,
           negotiate: () => profile,
           maxRowBytes: 1024,
-          prepareSubmit: () => {
-            if (scenario === 'prepare-refused') {
-              throw Object.assign(new Error('Invalid program'),
-                {code: 'ClientProgramRejected'});
-            }
-            return Object.freeze({prepared: true});
-          },
-          submit: ({requestId}) => {
+          // These controlled wire outcomes test the facade/transport contract;
+          // real durable custody and preflight are tested by the bridge fixture.
+          submitIntent: ({submissionRef, intentCid}) => {
+            const requestId = submissionRef.nonce;
             sentId = requestId;
-            if (scenario === 'refused') {
-              throw Object.assign(new Error('Denied'),
-                {code: 'ClientRunStartDenied'});
+            if (scenario === 'prepare-refused' || scenario === 'refused') {
+              return {kind: scenario === 'prepare-refused' ? 'not_accepted' : 'preparation_failed',
+                submissionRef, intentCid, problem: {code: scenario === 'prepare-refused'
+                  ? 'ClientProgramRejected' : 'ClientRunStartDenied',
+                classification: scenario === 'prepare-refused' ? 'operation_failed' : 'authorization'}};
             }
             accepts++;
             const admission = {ref, durability: 'durable', revision: 1};
@@ -73,27 +73,32 @@ test('submit has one outcome contract over HTTP and in-process', async () => {
               throw Object.assign(new Error('Late failure'),
                 {code: 'ClientAdmissionJournalUnavailable'});
             }
-            if (scenario === 'invalid-reply') return {revision: 1};
+            if (scenario === 'invalid-reply') return {kind: 'ready', submissionRef, intentCid, admission: {revision: 1}};
             if (scenario === 'held' || scenario === 'foreign-held') {
-              return {kind: 'held', requestId: scenario === 'held' ? requestId :
+              return {kind: 'held', submissionRef, intentCid, held: {kind: 'held', requestId: scenario === 'held' ? requestId :
                 'another-request', prepareAttemptId: 'prepare-a',
               state: 'waiting_checkpoint', durability: 'durable',
               lookupExpiresAt: '2026-10-03T00:00:00.000Z',
               checkpoint: {checkpointId: 'prepare-a-preflight',
                 checkpointCid: `sha256:${'c'.repeat(64)}`, kind: 'run_scope',
-                expiresAt: '2026-10-02T00:00:00.000Z'}};
+                expiresAt: '2026-10-02T00:00:00.000Z'}}};
             }
-            return admission;
+            return {kind: 'ready', submissionRef, intentCid, admission};
           },
         };
         const exercise = async (client, endpoint) => {
           try {
             const execution = await client.start({version: 'actql/0.1'},
-              explicitId ? {requestId: 'saved-id'} : {});
+              explicitId ? {submissionRef: client.newSubmission({nonce: 'saved-id'})} : {});
             assert.deepEqual(execution.ref, ref);
             outcomes.push('accepted');
           } catch (error) {
             outcomes.push(error.code);
+            if (scenario === 'prepare-refused' || scenario === 'refused') {
+              assert.equal(error.outcome.kind, scenario === 'prepare-refused' ? 'not_accepted' : 'preparation_failed');
+              assert.equal(error.outcome.problem.code, scenario === 'prepare-refused'
+                ? 'ClientProgramRejected' : 'ClientRunStartDenied');
+            }
             if (['SubmissionUnknown', 'RequestHeld'].includes(error.code)) {
               assert.equal(error.requestId, sentId);
               assert.ok(typeof sentId === 'string' && sentId.length > 0);
@@ -117,8 +122,8 @@ test('submit has one outcome contract over HTTP and in-process', async () => {
       }
       const expected = scenario === 'accepted' ? 'accepted' :
         scenario === 'held' ? 'RequestHeld' :
-        scenario === 'refused' ? 'ClientRunStartDenied' :
-        scenario === 'prepare-refused' ? 'ClientProgramRejected' :
+        scenario === 'refused' ? 'SubmissionPreparationFailed' :
+        scenario === 'prepare-refused' ? 'SubmissionNotAccepted' :
         'SubmissionUnknown';
       assert.deepEqual(outcomes, [expected, expected], scenario);
     }
