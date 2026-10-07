@@ -278,83 +278,31 @@ fn relation_chain_step_inputs(
   max_entries : Int,
   max_value_bytes : Int,
 ) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
-  let owner = @execution.generated_sequence_owner(sequence)
-  guard @execution.generated_sequence_step_index_at(sequence, 0)
-    is Some(first_step) &&
-    @execution.generated_sequence_step_index_at(sequence, position)
-    is Some(step) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
-    return Err(@connector.Execution(@execution.InputSet))
+  let cursor = match
+    start_relation_chain_inputs(
+      sequence, position, inputs, completed, max_entries, max_value_bytes,
+    ) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(issue)
   }
-  let selected : Array[ManagedProviderInput] = []
-  for port in 0..<@lower.node_input_count(node) {
-    let target = @lower.node_input_target(node, port)
-    let external = match target {
-      Some(@pipeline.Input(_)) => true
-      Some(@pipeline.Step(producer)) => producer < first_step
-      None => false
-    }
-    if external {
-      let mut matched : ManagedProviderInput? = None
-      for input in inputs {
-        let exact = match input {
-          RelationInput(read) =>
-            @execution.producer_read_matches_operation_input(
-              read, owner, step, port,
-            )
-          SuppliedRelationInput(read) =>
-            @execution.supplied_relation_read_matches_operation_input(
-              read, owner, step, port,
-            )
-          CarrierInput(_) => false
-        }
-        if exact {
-          if matched is Some(_) {
-            return Err(@connector.Execution(@execution.InputSet))
-          }
-          matched = Some(input)
-        }
+  drain_relation_chain_inputs(cursor)
+}
+
+///|
+fn drain_relation_chain_inputs(
+  cursor : RelationChainInputPreparation,
+) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
+  while true {
+    match advance_relation_chain_inputs(cursor) {
+      Ok(Some(inputs)) => return Ok(inputs)
+      Ok(None) => ()
+      Err(issue) => {
+        cancel_relation_chain_inputs(cursor)
+        return Err(issue)
       }
-      guard matched is Some(input) else {
-        return Err(@connector.Execution(@execution.InputSet))
-      }
-      selected.push(input)
-      continue
-    }
-    match target {
-      Some(@pipeline.Step(producer_step)) => {
-        let mut producer_position = -1
-        for earlier in 0..<position {
-          if @execution.generated_sequence_step_index_at(sequence, earlier) ==
-            Some(producer_step) {
-            producer_position = earlier
-            break
-          }
-        }
-        guard producer_position >= 0 &&
-          completed.get(producer_position) is Some(Some(output)) else {
-          return Err(@connector.Execution(@execution.InputSet))
-        }
-        let bound = match
-          @execution.bind_completed_operation_input(
-            owner, step, port, owner, output,
-          ) {
-          Ok(value) => value
-          Err(_) => return Err(@connector.Execution(@execution.InputSet))
-        }
-        let read = match
-          @execution.prepare_producer_read(
-            owner, bound, max_entries, max_value_bytes,
-          ) {
-          Ok(value) => value
-          Err(_) => return Err(@connector.Execution(@execution.InputSet))
-        }
-        selected.push(RelationInput(read))
-      }
-      _ => return Err(@connector.Execution(@execution.InputSet))
     }
   }
-  Ok(selected)
+  Err(@connector.InvalidLimits)
 }
 
 ///|
@@ -428,12 +376,17 @@ fn bounded_relation_chain_capacity(
   }
   let live_children = retained_children + scratch
   let handles = count.to_int64() * 256L
-  if live_children > 9223372036854775807L - handles {
+  // One input-selection cursor and one common read cursor may coexist.
+  // Their mapping arrays are the same receiving views retained by the child;
+  // reserve two additional fixed metadata-handle envelopes before execution.
+  let preparation = if count > 1 { 512L } else { 0L }
+  if handles > 9223372036854775807L - preparation ||
+    live_children > 9223372036854775807L - handles - preparation {
     return None
   }
   @execution.execution_capacity(
     base.retained_bytes,
-    Int64::max(base.execution_bytes, live_children + handles),
+    Int64::max(base.execution_bytes, live_children + handles + preparation),
   )
 }
 
@@ -462,6 +415,7 @@ priv struct RelationChainExecutionState {
   mut position : Int
   mut pending : Bool
   mut reclaiming : Bool
+  mut input_preparation : RelationChainInputPreparation?
 }
 
 ///|
@@ -515,6 +469,7 @@ fn bounded_relation_chain_execution_state(
     position: 0,
     pending: false,
     reclaiming: false,
+    input_preparation: None,
   }
   let first_inputs = match
     relation_chain_step_inputs(
@@ -552,7 +507,9 @@ fn bounded_relation_chain_execution_state(
   let reclaimed = Ref(false)
   let cleanup_index = Ref(-1)
   let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)
-  let start_next = fn() -> Result[Unit, @connector.FixedComputeIssue] {
+  let start_next = fn(
+    next_inputs : Array[ManagedProviderInput],
+  ) -> Result[Unit, @connector.FixedComputeIssue] {
     guard state.position > 0 &&
       state.position < count &&
       @execution.generated_sequence_step_index_at(sequence, state.position)
@@ -560,18 +517,6 @@ fn bounded_relation_chain_execution_state(
       @execution.select_generated_sequence_step(sequence, step)
       is Some(selected) else {
       return Err(@connector.Execution(@execution.InputSet))
-    }
-    let next_inputs = match
-      relation_chain_step_inputs(
-        sequence,
-        state.position,
-        inputs,
-        state.completed,
-        execution.rows.operation_entries,
-        max_value_bytes,
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
     }
     let remaining = execution.max_work.to_int64() - used.val
     if remaining < 1L {
@@ -594,6 +539,7 @@ fn bounded_relation_chain_execution_state(
     state.children.push(next)
     state.current = Some(next)
     state.pending = false
+    state.input_preparation = None
     Ok(())
   }
   Ok(
@@ -626,12 +572,45 @@ fn bounded_relation_chain_execution_state(
             )
           }
           used.val += 1L
-          match start_next() {
-            Ok(_) => return Ok(managed_provider_continue(0L, 1L))
+          let next_inputs = if state.input_preparation is Some(cursor) {
+            advance_relation_chain_inputs(cursor)
+          } else {
+            match
+              start_relation_chain_inputs(
+                sequence,
+                state.position,
+                inputs,
+                state.completed,
+                execution.rows.operation_entries,
+                max_value_bytes,
+              ) {
+              Err(issue) => Err(issue)
+              Ok(cursor) =>
+                if relation_chain_inputs_are_small(cursor) {
+                  match drain_relation_chain_inputs(cursor) {
+                    Ok(selected) => Ok(Some(selected))
+                    Err(issue) => Err(issue)
+                  }
+                } else {
+                  state.input_preparation = Some(cursor)
+                  Ok(None)
+                }
+            }
+          }
+          match next_inputs {
+            Ok(None) => return Ok(managed_provider_continue(0L, 1L))
             Err(issue) => {
               terminal.val = true
               return Ok(managed_provider_failed(issue, 0L, 1L))
             }
+            Ok(Some(selected)) =>
+              match start_next(selected) {
+                Ok(_) => return Ok(managed_provider_continue(0L, 1L))
+                Err(issue) => {
+                  terminal.val = true
+                  return Ok(managed_provider_failed(issue, 0L, 1L))
+                }
+              }
           }
         }
         guard state.current is Some(active) else {
@@ -764,12 +743,39 @@ fn bounded_relation_chain_execution_state(
               Ok(managed_provider_waiting(progress, work))
             } else if used.val < execution.max_work.to_int64() {
               used.val += 1L
-              match start_next() {
-                Ok(_) => Ok(managed_provider_continue(progress, 1L))
+              let cursor = match
+                start_relation_chain_inputs(
+                  sequence,
+                  state.position,
+                  inputs,
+                  state.completed,
+                  execution.rows.operation_entries,
+                  max_value_bytes,
+                ) {
+                Ok(cursor) => cursor
                 Err(issue) => {
                   terminal.val = true
-                  Ok(managed_provider_failed(issue, progress, 1L))
+                  return Ok(managed_provider_failed(issue, progress, 1L))
                 }
+              }
+              if relation_chain_inputs_are_small(cursor) {
+                let selected = match drain_relation_chain_inputs(cursor) {
+                  Ok(selected) => selected
+                  Err(issue) => {
+                    terminal.val = true
+                    return Ok(managed_provider_failed(issue, progress, 1L))
+                  }
+                }
+                match start_next(selected) {
+                  Ok(_) => Ok(managed_provider_continue(progress, 1L))
+                  Err(issue) => {
+                    terminal.val = true
+                    Ok(managed_provider_failed(issue, progress, 1L))
+                  }
+                }
+              } else {
+                state.input_preparation = Some(cursor)
+                Ok(managed_provider_continue(progress, 1L))
               }
             } else {
               terminal.val = true
@@ -834,6 +840,10 @@ fn bounded_relation_chain_execution_state(
           }
         }
         state.current = None
+        if state.input_preparation is Some(cursor) {
+          cancel_relation_chain_inputs(cursor)
+        }
+        state.input_preparation = None
         state.completed = []
         state.children = []
         reclaimed.val = true

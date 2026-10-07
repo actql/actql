@@ -107,6 +107,21 @@ function wideSnapshotProgram(id) {
   return value;
 }
 
+function orderedMetadataProgram(id) {
+  const value=fieldProgram(id);
+  value.stages[0].steps[0].values.rows=[
+    {id:2,[member]:null},{id:3,[member]:7},{id:1,[member]:7}];
+  // The ordinary Program supplies the key proof required for ordered take.
+  value.stages[0].steps.push({assert_rows:{unique_by:['id']},as:'keyed'});
+  value.stages[0].results.rows.from='keyed';
+  value.stages[1].steps=[
+    {sort:[{field:member,dir:'desc',nulls:'last'},{id:'asc'}],as:'ordered'},
+    {take:{count:3},as:'taken'},
+    {derive:{value:{field:member}},as:'derived'},
+    {select:['id','value'],as:'out'}];
+  return value;
+}
+
 async function verifyRetainedNames(t,label,makeProgram,rows=expected,
   valueContract={type:'number',nullable:true},producerTask=1){
     const directory=await mkdtemp(join(tmpdir(),'actql-property-name-'));
@@ -186,3 +201,6 @@ test('public retained string aggregation preserves delimiters data and post-prog
 test('public retained wide indexed snapshots preserve rows and post-progress custody',
   {timeout:90_000},t=>verifyRetainedNames(t,'wide-snapshot',wideSnapshotProgram,
     [{id:1,value:1},{id:2,value:2}],{type:'number',nullable:false},0));
+test('public retained ordered metadata preserves ties NULL and post-progress custody',
+  {timeout:90_000},t=>verifyRetainedNames(t,'ordered-metadata',orderedMetadataProgram,
+    [{id:1,value:7},{id:3,value:7},{id:2,value:null}]));

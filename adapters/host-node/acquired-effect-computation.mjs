@@ -55,6 +55,31 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   let pending = true;
   let settled = false;
   let closed = false;
+  let inferCloseAttempted = false, inferReleased = false;
+  let modelCloseAttempted = false, modelReleased = false;
+  const inferCleanupPending = () => inferCapture !== undefined && !inferReleased ||
+    modelContinuation !== undefined && !modelReleased;
+  const cleanupInfer = async () => {
+    let failure;
+    if (inferCapture !== undefined && !inferReleased) {
+      const recover = inferCloseAttempted;
+      inferCloseAttempted = true;
+      try {
+        const result = await (recover ? inferCapture.custody.cleanup() : inferCapture.custody.close());
+        inferReleased = result !== false && inferCapture.custody.cleanupPending() === false;
+      } catch (error) { failure = error; }
+    }
+    if (modelContinuation !== undefined && !modelReleased) {
+      const recover = modelCloseAttempted;
+      modelCloseAttempted = true;
+      try {
+        const result = await (recover ? modelContinuation.cleanup() : modelContinuation.close());
+        modelReleased = result !== false && modelContinuation.cleanupPending() === false;
+      } catch (error) { failure ??= error; }
+    }
+    if (failure !== undefined) throw failure;
+    return !inferCleanupPending();
+  };
   const custody = Object.freeze({
     async close() {
       closed = true;
@@ -63,20 +88,17 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       let failure;
       try { await (execution ?? recovery)?.close(); }
       catch (error) { failure = error; }
-      try { if (settled) await inferCapture?.custody.close(); }
+      try { if (settled) await cleanupInfer(); }
       catch (error) { failure ??= error; }
-      if (settled) modelContinuation?.close();
       if (failure !== undefined) observeUsage('effect_computation_cleanup_pending');
       if (failure !== undefined) throw failure;
     },
     async cleanup() {
       if (!pending) return true;
       if (!closed || !settled || unresolved) return false;
-      if (inferCapture !== undefined) {
-        if (!await inferCapture.custody.cleanup()) {
-          observeUsage('effect_computation_cleanup_pending');
-          return false;
-        }
+      if (!await cleanupInfer()) {
+        observeUsage('effect_computation_cleanup_pending');
+        return false;
       }
       const physical = execution ?? recovery;
       if (physical !== undefined) {
@@ -297,11 +319,8 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         // Stop/cleanup the retained Model owner before Local settles its
         // reservation. This handle never calls operation.run or a provider.
         const cleanupHandle = Object.freeze({
-          status: () => ({pending: inferCapture.custody.cleanupPending()}),
-          async retry() {
-            await inferCapture.custody.close();
-            return inferCapture.custody.cleanup();
-          },
+          status: () => ({pending: inferCleanupPending()}),
+          retry: cleanupInfer,
         });
         return {action: 'waiting_checkpoint', checkpoint: decision.checkpoint,
           cleanupPending: true, cleanupHandle};

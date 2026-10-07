@@ -71,6 +71,13 @@ export function checkConstructionSourceReview(profile, read) {
   const variant = review.generatedVariants.find(item => item.digest === hash(generated));
   assert(variant, `Changed provider representation premise ${generatedPath}`);
   let priorGenerated = generated;
+  if (variant.constructorRename) {
+    // Only the already integrated Graph constructor spelling changed. This
+    // comparison preserves the historical blob; it creates no runtime alias.
+    priorGenerated = replaceOnce(priorGenerated,
+      '      | @lower.GraphConstructionStep(_)\n',
+      '      | @lower.PropertyGraphConstructionStep(_)\n');
+  }
   for (const name of ['GraphSubgraphStep', 'GraphDeltaStep', ...variant.additionalExclusions]) {
     priorGenerated = replaceOnce(priorGenerated, `      | @lower.${name}(_)\n`);
   }
