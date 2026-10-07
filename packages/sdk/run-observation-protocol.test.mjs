@@ -301,7 +301,15 @@ for (const path of paths) {
     if (path.name === 'lookupRequest') assert.equal(sdk.explainRequestLookup(error).next.requestId, 'saved');
     if (path.name === 'cancel') assert.equal(sdk.explainCancellation(error).observation, 'outcome_unknown');
     if (path.name === 'held submit') assert.equal(sdk.getSubmissionInput(error).requestId, 'saved');
-    assert.equal(sdk.explainDeliveryAttempt(error), undefined);
+    if (path.name === 'deliveryAttempt') {
+      assert.deepEqual(sdk.explainDeliveryAttempt(error), {
+        observation: 'lookup_uninterpretable',
+        summary: 'This SDK could not interpret the DeliveryAttempt lookup response. Read opening and delivery remain unresolved.',
+        hint: 'Keep this original read reference. This observation does not confirm application receipt or persistence, and grants no permission to reopen or rerun Compute.',
+        next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId: 'read-a',
+          lookupContext: {endpoint: 'actql:embedded', scopeRef: 'observation-principal'}},
+      }, '[check-mutation:response-capture-delivery-failure]');
+    } else assert.equal(sdk.explainDeliveryAttempt(error), undefined);
     assert.equal(f.operations.length, 3);
   });
 }

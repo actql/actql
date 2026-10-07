@@ -24,6 +24,8 @@ const summaries = Object.freeze({
   'cancellation.outcome_unknown': 'Run取消しの結果を確認できません。要求は記録されている可能性があります。',
   'effect.effect_outcome_unknown': '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。',
   'delivery.lookup_unresolved': 'この照会ではDeliveryAttemptが見つかりませんでした。読み取りが開始されたかは未確定です。',
+  'delivery.lookup_unavailable': 'DeliveryAttemptの照会を完了できませんでした。読み取り開始・配信は未確定です。',
+  'delivery.lookup_uninterpretable': 'このSDKではDeliveryAttemptの照会応答を解釈できません。読み取り開始・配信は未確定です。',
   'delivery.attempt_recorded': 'HostはこのDeliveryAttemptを記録しています。配信結果はまだ取得できません。',
   'delivery.delivery_streaming': 'HostはこのDeliveryが配信中と報告しています。完了は確認できていません。',
   'delivery.host_delivery_succeeded': 'HostはこのDeliveryを確認し、解放receiptを発行しました。',
@@ -35,7 +37,7 @@ const readHint = 'この読み取り参照を保持してください。先頭�
 
 export function getOperationPresentationInfo(options) {
   const {locale} = getCheckPresentationInfo(options);
-  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.5`});
+  return Object.freeze({locale, translationRevision: `2026-10-07.operations.${locale}.6`});
 }
 
 export function localizeOperation(explanation, domain, options) {
