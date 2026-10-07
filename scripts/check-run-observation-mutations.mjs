@@ -12,7 +12,73 @@ const unitTargets = id => ['status', 'wait', 'reconcile'].map(operation => targe
   `${operation}: rejected Run observations distinguish unknown state from malformed known facts`, id, 'deepStrictEqual'));
 const publicTargets = ['in-process', 'https'].map(entrance => target(
   `${entrance}: uninterpretable Run observations retain only the original authorized lookup`, 'run-protocol-public-rejection'));
+const validationCopyFaults = [
+  [['status', 'wait', 'reconcile'], 'response-capture-run', 'strictEqual',
+    'return retainEffectUncertainty(observation, ref);', 'return retainEffectUncertainty(state, ref);'],
+  [['lookupRequest'], 'response-capture-lookup', 'deepStrictEqual',
+    'return retainRequestLookupExplanation(freezeInput(observation), context);',
+    'return retainRequestLookupExplanation(freezeInput(answer), context);'],
+  [['held submit'], 'response-capture-held', 'deepStrictEqual',
+    '      admitted = observation;\n      const held', '      const held'],
+  [['cancel'], 'response-capture-cancel', 'deepStrictEqual',
+    'return retainCancellationExplanation(response, context, response.kind, response.revision);',
+    'return retainCancellationExplanation(received, context, received.kind, received.revision);'],
+  [['deliveryAttempt'], 'response-capture-delivery', 'deepStrictEqual',
+    'return retainDeliveryExplanation(freezeInput(observation), {',
+    'return retainDeliveryExplanation(freezeInput(answer), {'],
+  [['check'], 'response-capture-check', 'deepStrictEqual',
+    '        outcome = observation;', ''],
+  [['cancelRequest'], 'response-capture-request-cancel', 'deepStrictEqual',
+    'return retainRequestCancellationExplanation(freezeInput(observation), context, observation.kind);',
+    'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);'],
+];
+const originalSnapshotFaults = [
+  [['status', 'wait', 'reconcile'], "        if (structuralKey(observation) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }"],
+  [['lookupRequest'], "      if (structuralKey(observation) !== observedKey) throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');"],
+  [['held submit'], "        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');"],
+  [['cancel'], "        if (structuralKey(response) !== observedKey) {\n          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n            context, 'outcome_unknown');\n        }"],
+  [['deliveryAttempt'], "            if (structuralKey(observation) !== observedKey) fail('InvalidHostAttemptLookup');"],
+  [['check'], '        if (structuralKey(observation) !== observedKey) reject();'],
+  [['cancelRequest'], "        if (structuralKey(observation) !== observedKey) throw new ClientError('InvalidHostRequestCancellation');"],
+];
 const mutations = [
+  ...originalSnapshotFaults.map(([operations, from]) => ({
+    name: `verification conversion changes the captured ${operations.join('/')} snapshot`,
+    path, file: unit, from, to: '', targets: operations.map(operation => target(
+      `${operation}: verification conversion cannot mutate the admitted snapshot`, 'response-capture-original')),
+  })),
+  {name: 'response capture reobserves borrowed getters during admission', path,
+    file: 'packages/sdk/response-capture.test.mjs',
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['status', 'wait', 'reconcile', 'lookup-request', 'submit', 'cancel', 'delivery-attempt']
+      .map(operation => target(`${operation}: capture observes response getters once before admission`,
+        'response-capture-once'))},
+  {name: 'borrowed cancellation reference getters replace the first captured facts', path, file: publicTests,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => target(
+      `in-process: cancellation captures the first getter-backed ${field} association`,
+      'cancel-reference-capture'))},
+  ...validationCopyFaults.map(([operations, id, operator, from, to]) => ({
+    name: `validation copy replaces the captured ${operations.join('/')} observation`, path, file: unit, from, to,
+    targets: operations.map(operation => target(
+      `${operation}: validation-copy getters cannot rebind admitted facts`, id, operator)),
+  })),
+  {name: 'borrowed response getters replace the first captured facts', path, file: unit,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return value;',
+    targets: ['status', 'wait', 'reconcile', 'lookupRequest', 'held submit', 'cancel', 'deliveryAttempt'].map(operation => target(
+      `${operation}: response fields are captured once before admission`,
+      {status: 'response-capture-run', wait: 'response-capture-run', reconcile: 'response-capture-run',
+        lookupRequest: 'response-capture-lookup', 'held submit': 'response-capture-held',
+        cancel: 'response-capture-cancel', deliveryAttempt: 'response-capture-delivery'}[operation],
+      ['status', 'wait', 'reconcile'].includes(operation) ? 'strictEqual' : 'deepStrictEqual'))},
+  {name: 'first response capture uses a redirected clone', path, file: unit,
+    from: 'const captureResponse = (value, captured = new Map()) => {',
+    to: 'const captureResponse = (value, captured = new Map()) => { return globalThis.structuredClone(value);',
+    targets: ['lookupRequest', 'held submit', 'cancel', 'deliveryAttempt', 'check'].map(operation => target(
+      `${operation}: a well-shaped clone cannot replace captured facts`, 'response-capture-copy'))},
   {name: 'unknown state classified as a known failure', path, file: unit,
     from: "kind: problem === 'unknown_state' ? 'uninterpretable' : 'protocol_failure',",
     to: "kind: 'protocol_failure',", targets: unitTargets('run-protocol-kind')},

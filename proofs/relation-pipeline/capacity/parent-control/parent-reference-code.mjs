@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {hash} from '../../inventory.mjs';
 import {inspectParentReferenceCode,referenceHelpers} from './parent-reference-sites.mjs';
+import {nativeFunctionEntries,disassembleNativeRanges} from './native-code-disassembly.mjs';
 
 const nm='/usr/bin/nm',objdump='/usr/bin/objdump';
 const parentName=name=>/connectors5local[0-9]+bounded__relation__chain__execution__state$/.test(name);
@@ -12,12 +13,8 @@ function run(tool,args) {
   const r=spawnSync(tool,args,{encoding:'utf8',timeout:30000,maxBuffer:32*1024*1024});
   assert(!r.error && r.status===0,r.stderr||String(r.error));return r.stdout;
 }
-function entries(text) {
-  return text.split('\n').map(l=>l.match(/^([0-9a-f]+)\s+[tT]\s+(\S+)$/))
-    .filter(m=>m && !m[2].startsWith('.') && !m[2].includes('$bb'));
-}
 function generated(object,exe) {
-  const exeEntries=entries(run(nm,['-n',exe])),objectEntries=entries(run(nm,['-n',object]));
+  const exeEntries=nativeFunctionEntries(run(nm,['-n',exe])),objectEntries=nativeFunctionEntries(run(nm,['-n',object]));
   const parent=exeEntries.filter(m=>parentName(m[2]));assert.equal(parent.length,1,'Missing unique actual parent');
   const tools=['moonbit_malloc','moonbit_incref','actql_proof_current_chain_start'];
   const selected=[parent[0][2],...referenceHelpers,...tools];
@@ -26,13 +23,7 @@ function generated(object,exe) {
     return `${matches[0][1]} T ${name}`;
   }).join('\n')+'\n';
   function dump(file,all,names,relocation) {
-    return names.map(name=>{
-      const found=all.filter(m=>m[2]===name);assert.equal(found.length,1,'Missing unique Ref function range');
-      const start=BigInt('0x'+found[0][1]),next=all.find(m=>BigInt('0x'+m[1])>start);assert(next,'Missing Ref function range end');
-      const raw=run(objdump,['-d','-Mintel','--section=.text','--no-show-raw-insn',...(relocation?['-r']:[]),
-        `--start-address=0x${found[0][1]}`,`--stop-address=0x${next[1]}`,file]);
-      assert(raw.includes('Disassembly of section'),'Missing Ref disassembly');return raw.slice(raw.indexOf('Disassembly of section'));
-    }).join('\n');
+    return disassembleNativeRanges(run,objdump,file,all,names,relocation);
   }
   return {symbols,object:dump(object,objectEntries,[parent[0][2]],true),
     linked:dump(exe,exeEntries,[parent[0][2],...referenceHelpers],false)};
