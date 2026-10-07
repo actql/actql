@@ -6,6 +6,7 @@ struct CapturedDAG {
   offer_owner : StrategyOfferOwner
   original_sources : Array[@query.CapturedInputSource?]
   sources : Array[@query.CapturedInputSource?]
+  imported_root_statistics : CapturedExecutionRootStatistics?
   ledger : @resources.Ledger
   outputs : Array[CommittedTaskOutput?]
   done : Array[Bool]
@@ -398,12 +399,14 @@ fn open_checked_dag(
   captures : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
   supplied : Array[@execution.CapturedRows],
+  completed? : Array[(Int, @execution.CompletedOutput)] = [],
+  root_wire_bytes? : Int? = None,
 ) -> Result[CapturedDAG, RunIssue] {
   let count = graph.owners.length()
   if count == 0 {
     return Err(UnsupportedGraph)
   }
-  if captures.length() != graph.captured_prefix {
+  if captures.length() + completed.length() != graph.captured_prefix {
     return Err(ForeignCapture)
   }
   let sources : Array[@query.CapturedInputSource?] = Array::make(count, None)
@@ -419,6 +422,38 @@ fn open_checked_dag(
       return Err(ForeignCapture)
     }
     sources[task] = Some(captured)
+  }
+  let outputs : Array[CommittedTaskOutput?] = Array::make(count, None)
+  for (task, output) in completed {
+    if task < 0 ||
+      task >= graph.captured_prefix ||
+      sources[task] is Some(_) ||
+      outputs[task] is Some(_) ||
+      !@execution.completed_output_available(output) {
+      return Err(ForeignCapture)
+    }
+    guard graph.targets[task] is Some(target) &&
+      @execution.completed_output_matches_port(
+        output,
+        graph.owners[task],
+        target,
+      ) else {
+      return Err(ForeignCapture)
+    }
+    outputs[task] = Some(Materialized(output))
+  }
+  let imported_root_statistics = match root_wire_bytes {
+    None => None
+    Some(canonical_wire_bytes) => {
+      guard canonical_wire_bytes >= 0 &&
+        outputs[0] is Some(Materialized(output)) else {
+        return Err(ForeignCapture)
+      }
+      Some({
+        rows: @execution.completed_row_count(output),
+        canonical_wire_bytes,
+      })
+    }
   }
   let first_task = graph.captured_prefix
   let input_counts = Array::makei(count, task => graph.input_counts[task])
@@ -688,6 +723,7 @@ fn open_checked_dag(
     graph,
     offer_owner: { graph, },
     original_sources: sources.copy(),
+    imported_root_statistics,
     sources: Array::makei(count, task => {
       sources[task].map(captured => {
         let lifetime = lifetimes[task]
@@ -697,7 +733,7 @@ fn open_checked_dag(
       })
     }),
     ledger,
-    outputs: Array::make(count, None),
+    outputs,
     done: Array::make(count, false),
     lifetimes,
     effect_dependency_outputs: Array::make(count, false),
@@ -900,6 +936,37 @@ pub fn captured_root_statistics(
 }
 
 ///|
+/// Statistics of the independently admitted execution root. An imported
+/// completed output is not a Source capture or acquisition observation.
+pub struct CapturedExecutionRootStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
+}
+
+///|
+pub fn captured_execution_root_statistics(
+  run : CapturedDAG,
+) -> CapturedExecutionRootStatistics? {
+  if run.stopped {
+    return None
+  }
+  match run.imported_root_statistics {
+    Some(statistics) => {
+      guard materialized_task_output(run, 0) is Some(output) &&
+        @execution.completed_output_available(output) else {
+        return None
+      }
+      Some(statistics)
+    }
+    None =>
+      captured_root_statistics(run).map(statistics => {
+        rows: statistics.rows,
+        canonical_wire_bytes: statistics.canonical_wire_bytes,
+      })
+  }
+}
+
+///|
 pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
   run.graph
 }
@@ -908,9 +975,7 @@ pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
 /// Exact final port of an admitted Compute task, including before execution.
 /// Captured acquisition is accessed through its source, not this port accessor.
 pub fn captured_task_target(run : CapturedDAG, task : Int) -> @pipeline.Target? {
-  if task < 0 ||
-    task >= run.graph.owners.length() ||
-    task < run.graph.captured_prefix {
+  if task < 0 || task >= run.graph.owners.length() {
     return None
   }
   run.graph.targets[task]
@@ -988,11 +1053,8 @@ pub fn captured_task_input(
   guard selected is Some(edge) else { return Err(NotReady) }
   let receiver = run.graph.owners[task]
   let receiver_input = edge.source_input.unwrap_or(edge.input)
-  let bound = if edge.producer < run.graph.captured_prefix {
-    guard run.sources[edge.producer] is Some(source) else {
-      fail_captured_task(run, task, Capture(Unavailable))
-      return Err(Capture(Unavailable))
-    }
+  let bound = if edge.producer < run.graph.captured_prefix &&
+    run.sources[edge.producer] is Some(source) {
     match @query.bind_captured_source(source, receiver, receiver_input) {
       Ok(bound) => bound
       Err(issue) => {

@@ -1365,7 +1365,13 @@ persistence or execution path changes are introduced by presentation.
 
 `status`, `wait` and `reconcile` use the existing registered Run state validator
 before and after detaching the received value. A valid observation retains its
-original facts even if a Local transport reuses an object. A rejected state still
+original facts even if a Local transport reuses an object. The existing structural
+comparison also requires the detached value to retain all admitted facts;
+another well-shaped Run, control revision, Effect name or availability is not
+the same observation. Comparison preserves exact strings and ignores object
+member order, without creating a public hash or a consistency certificate.
+Effect presentation projects that already admitted copy and cannot replace it
+with another copy. A rejected state still
 throws `InvalidHostRunState` for a rejected decoded state, or the existing
 `InvalidHostResponse` for decoding/wire-bound failure;
 `explainRunObservationFailure(error)` distinguishes

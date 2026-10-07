@@ -175,6 +175,8 @@ pub(all) struct JoinPart {
 pub(all) struct CtePart {
   name : NamePart
   query : Query
+  // Internal Pipe continuation, not an authored CTE export.
+  carry_ranges : Bool
 }
 
 ///|
@@ -762,10 +764,12 @@ fn QueryParser::query_source(
 fn QueryParser::bind_query(
   self : QueryParser,
   inner : Query,
+  carry_ranges? : Bool = false,
 ) -> Query raise QueryAbort {
   self.node()
   let generated = self.fresh_producer("aql_query_source_")
-  let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
+  let ctes = inner.ctes +
+    [{ name: generated, query: { ..inner, ctes: [], }, carry_ranges, }]
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
@@ -1638,7 +1642,11 @@ fn QueryParser::query(
         name
       }
       scope.push((name, producer))
-      ctes.push({ name: producer, query: { ..body, ctes: [], }, })
+      ctes.push({
+        name: producer,
+        query: { ..body, ctes: [], },
+        carry_ranges: false,
+      })
       if self.peek().value != Symbol(44) {
         break
       }
@@ -1896,6 +1904,13 @@ fn QueryParser::pipe_tail(
         let bound = self.bind_query({ ..producer, operations: body_operations, })
         return self.pipe_tail(
           { ..bound, source_alias: current_range, },
+          cte_body~,
+        )
+      } else if pipe_join_range_input(producer) {
+        // Continue the same logical row with its immutable ranges. An
+        // authored CTE/subquery still exports only its projected columns.
+        return self.pipe_tail(
+          self.bind_query(producer, carry_ranges=true),
           cte_body~,
         )
       }

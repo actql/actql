@@ -61,6 +61,8 @@ pub fn native_resident_import_scratch_bytes(NativeComputeImportLimits, Int, Int,
 
 pub fn native_resident_task_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Int?) -> Int64?
 
+pub fn native_standard_strategy_original_task(NativeStandardStrategyRun, Int) -> Int?
+
 pub fn native_standard_strategy_run_complete(NativeStandardStrategyRun) -> Bool
 
 pub fn native_standard_strategy_run_resident_observation(NativeStandardStrategyRun) -> NativeStandardResidentObservation

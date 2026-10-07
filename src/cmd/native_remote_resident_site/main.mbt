@@ -960,10 +960,15 @@ fn reclaim_orphaned_outputs(
 /// The slot stays held until both Store closure and journal work finish.
 priv struct StoppedReleaseRecovery {
   slot : @slot.NativeExecutorSlot
+  environment : ControlEnvironment
   bundles : @bundle.NativeRuntimeBundleStore
   journal : @journal.Journal
   request_identity : String
   mut bundle_closed : Bool
+  mut transfer_journal : @transfer_journal.Journal?
+  mut physical_cleanup : (() -> Bool)?
+  mut physical_cleanup_done : Bool
+  mut retained_input : Bool
 }
 
 ///|
@@ -1018,7 +1023,18 @@ fn open_release_recovery(
       stop("release recovery saved bundle unavailable")
     }
   }
-  { slot, bundles, journal, request_identity: identity, bundle_closed: false, }
+  {
+    slot,
+    environment,
+    bundles,
+    journal,
+    request_identity: identity,
+    bundle_closed: false,
+    transfer_journal: None,
+    physical_cleanup: None,
+    physical_cleanup_done: false,
+    retained_input: false,
+  }
 }
 
 ///|
@@ -1118,10 +1134,43 @@ fn recover_stopped_release(
     Ok(values) if values.is_empty() => ()
     _ => return false
   }
+  if !settle_stopped_holder_custody(matches, owner, request) {
+    return false
+  }
   if !owner.bundle_closed {
     let holds = ["dispatch:" + identity]
     if claimant is Some(value) {
-      holds.push("runtime-process:resident-holder:" + value)
+      let attempt = match @remote.dispatch_request_attempt_identity(request) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      match
+        @resident_host.resident_holder_process_hold_identity(
+          owner.journal,
+          run_admission(matches),
+          attempt,
+          value,
+        ) {
+        Ok(hold) => holds.push(hold)
+        Err(_) => return false
+      }
+    } else if owner.retained_input {
+      // A consumer's pre-start component role is fixed by its exact dispatch,
+      // so no missing claimant is guessed to identify that original holding.
+      let attempt = match @remote.dispatch_request_attempt_identity(request) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      match
+        @resident_host.resident_holder_process_hold_identity(
+          owner.journal,
+          run_admission(matches),
+          attempt,
+          "",
+        ) {
+        Ok(hold) if hold == "consumer:" + identity => holds.push(hold)
+        _ => return false
+      }
     }
     for hold in holds {
       match owner.bundles.release(hold) {
@@ -1130,7 +1179,10 @@ fn recover_stopped_release(
       }
     }
   }
-  if claimant is None && !owner.bundle_closed {
+  if claimant is None && !owner.retained_input && !owner.bundle_closed {
+    // A source process role cannot be inferred without a start claimant.
+    // A retained consumer instead has its exact admitted dispatch role above;
+    // unrelated ancestor holdings remain independently owned during its cleanup.
     match owner.bundles.list() {
       Ok(values) if values.all(value => value.state[2] == "0") => ()
       _ => return false
@@ -1141,7 +1193,8 @@ fn recover_stopped_release(
   }
   // The exclusive slot proves process-local operations/readers/holdings
   // are gone. The caller confirmed Store-owned orphan cleanup; exact
-  // persistent runtime holdings have now also been discharged.
+  // persistent output files, original input readers/receivers and exact
+  // component holdings have now also been discharged.
   let custody = @remote.create_remote_runtime_custody()
   if cancelled {
     if !@remote.remote_runtime_custody_record_failure(
@@ -1967,10 +2020,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         let request = @remote.remote_retained_input_intent_request(intent)
         let identity = @remote.dispatch_request_identity(request)
         match (holder, @remote.remote_poll_retained_input_plan_json(intent)) {
-          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+          (Some(current), Ok(body)) if holder_can_receive(
               current.request,
-            ) ==
-            identity =>
+              request,
+            ) =>
             if current.channel.send("retained-plan " + body) {
               report("retained-plan-relayed", [("request_cid", identity)])
             } else {
@@ -2002,10 +2055,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           @remote.remote_poll_retained_transfer_plan(input),
         )
         match (holder, body) {
-          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+          (Some(current), Ok(body)) if holder_can_receive(
               current.request,
-            ) ==
-            identity =>
+              selected,
+            ) =>
             report("retained-transfer-relayed", [
               ("request_cid", identity),
               (
@@ -2039,10 +2092,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           @remote.remote_retained_input_current_query_identity(query),
         )
         match (holder, body) {
-          (Some(current), Ok(body)) if @remote.dispatch_request_identity(
+          (Some(current), Ok(body)) if holder_can_receive(
               current.request,
-            ) ==
-            identity =>
+              request,
+            ) =>
             report("retained-current-relayed", [
               ("request_cid", identity),
               (
@@ -2399,7 +2452,6 @@ fn serve_holder_output(
   claimant : String,
   executor_entry : ((String) -> Bool)?,
 ) -> Unit {
-  let runtime = executed.runtime
   let request = executed.request
   let control = resources.control
   let transfer = resources.transfer
@@ -2412,26 +2464,10 @@ fn serve_holder_output(
   let site_generation = resources.site_generation
   let identity = @remote.dispatch_request_identity(request)
   store.observe_allocation(holder_checkpoint(resources))
-  // Exact payloads this holder kept in the Store; it reclaims them.
-  let payloads : Array[@payload.PublicationPayloadRequest] = []
-  // Failed outputs that still own physical cleanup (a payload reader or
-  // writer, a Store recovery, a Transfer source); retried until done.
-  let failed_cleanups : Array[@resident_host.ResidentOutputIssue] = []
-  let unsaved_reports : Array[@remote.RemoteOutputReportCustody] = []
-  // One checked incoming edge in this profile. The same Owner survives
-  // failed chunks/reports; a duplicate plan never creates a second handoff.
-  let retained_handoff : Ref[(String, @resident_host.ResidentRetainedTransfer)?] = Ref(
-    None,
-  )
-  let consumer : Ref[@resident_host.ResidentRetainedConsumer?] = Ref(None)
-  let consumer_executed : Ref[@resident_host.ResidentExecuted?] = Ref(None)
-  // A Runtime owns its component holding exclusively. Before Runtime
-  // construction succeeds, acquisition/cleanup remains with this holder.
-  let consumer_process_hold : Ref[@bundle.NativeActiveRuntimeBinding?] = Ref(
-    None,
-  )
-  let mut consumer_released = false
-  let mut producer_release_requested = false
+  let tasks : Map[String, HolderTaskCustody] = Map([])
+  let order : Array[String] = [identity]
+  let original = new_holder_task_custody(request, Some(executed), None, None)
+  tasks.set(identity, original)
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -2466,101 +2502,52 @@ fn serve_holder_output(
         ])
         if line.has_prefix("release ") {
           let target = line.unsafe_substring(start=8, end=line.length())
-          if consumer.val is Some(owner) &&
-            target ==
-            @remote.dispatch_request_identity(
-              @resident_host.resident_retained_consumer_request(owner),
-            ) {
-            if consumer_released {
-              continue
-            }
-            let remaining = unsaved_reports.filter(custody => {
-              environment.journal.retain_output_report(custody) is Err(_)
-            })
-            unsaved_reports.clear()
-            unsaved_reports.append(remaining)
-            if !unsaved_reports.is_empty() {
-              report("consumer-release-pending", [("reason", "report-save")])
-              continue
-            }
-            if consumer_executed.val is Some(completed) {
-              settle_holder_cleanup(
-                completed.runtime,
-                completed.request,
-                environment.journal,
-                store,
-                failed_cleanups,
-                payloads,
-                resources.release_failures,
-                holder_checkpoint(resources),
-                close_store=false,
-              )
-              failed_cleanups.clear()
-              payloads.clear()
-            }
-            while !owner.close() {
-              report("consumer-release-pending", [("reason", "borrow-cleanup")])
-              @slot.native_wait_milliseconds(250)
-            }
-            close_untransferred_consumer_binding(
-              execution, consumer_process_hold,
-            )
-            if retained_handoff.val is Some((_, handoff)) {
-              while handoff.reclaim() is Err(_) {
-                report("consumer-release-pending", [
-                  ("reason", "receiver-cleanup"),
+          guard tasks.get(target) is Some(selected) else {
+            report("holder-input-invalid", [])
+            continue
+          }
+          selected.release_requested = true
+          // Exact child cleanup precedes its producer. An earlier release
+          // request is remembered while a later task still owns that input.
+          for index = order.length() - 1; index >= 0; index = index - 1 {
+            let task = tasks.get(order[index]).unwrap()
+            if task.release_requested && !task.released {
+              if !release_holder_task(
+                  task, tasks, environment, execution, resources,
+                ) {
+                report("producer-release-pending", [
+                  ("request_cid", order[index]),
+                  ("reason", "consumer-custody"),
                 ])
-                @slot.native_wait_milliseconds(250)
               }
             }
-            if consumer_executed.val is None &&
-              !confirm_unstarted_consumer_cleanup(
-                environment.journal,
-                @resident_host.resident_retained_consumer_request(owner),
-              ) {
-              report("consumer-release-pending", [("reason", "formal-cleanup")])
-              continue
-            }
-            consumer_released = true
-            ignore(
-              @client.acknowledge_status(
-                environment.journal,
-                control,
-                observation_url,
-                @resident_host.resident_retained_consumer_request(owner),
-              ),
-            )
-            if producer_release_requested {
-              serving = false
-            }
-          } else if target == identity {
-            producer_release_requested = true
-            // Do not destroy an input still needed by the chosen consumer. A
-            // durable producer cancellation prevents any later consumer start.
-            if retained_handoff.val is None ||
-              consumer_released ||
-              (
-                consumer.val is None &&
-                environment.journal.cancellation_requested(request) is Ok(true)
-              ) {
-              serving = false
-            } else {
-              report("producer-release-pending", [
-                ("reason", "consumer-custody"),
-              ])
-            }
-          } else {
-            report("holder-input-invalid", [])
+          }
+          if original.released {
+            serving = false
           }
         } else if line.has_prefix("consumer ") {
           let envelope = line.unsafe_substring(start=9, end=line.length())
           match
-            (
-              @remote.admit_remote_poll_dispatch_json(envelope),
-              retained_handoff.val,
-              configuration,
-            ) {
-            (Ok(dispatch), Some((_, handoff)), Some(configuration)) => {
+            (@remote.admit_remote_poll_dispatch_json(envelope), configuration) {
+            (Ok(dispatch), Some(configuration)) => {
+              let producer_identity = match
+                @resident_host.resident_retained_consumer_producer_identity(
+                  admission,
+                  dispatch,
+                  current_time(),
+                ) {
+                Ok(value) => value
+                Err(_) => {
+                  report("consumer-refused", [("reason", "retained-input")])
+                  continue
+                }
+              }
+              guard tasks.get(producer_identity) is Some(producer) &&
+                !producer.released &&
+                producer.handoff is Some((_, handoff)) else {
+                report("consumer-unavailable", [("reason", "holder-custody")])
+                continue
+              }
               let owner = match
                 @resident_host.prepare_resident_retained_consumer(
                   handoff,
@@ -2581,7 +2568,17 @@ fn serve_holder_output(
                   continue
                 }
               }
-              consumer.val = Some(owner)
+              let candidate = new_holder_task_custody(
+                @resident_host.resident_retained_consumer_request(owner),
+                None,
+                Some(owner),
+                Some(producer_identity),
+              )
+              guard remember_holder_successor(tasks, order, producer, candidate)
+                is Some(task) else {
+                report("consumer-refused", [("reason", "retained-input")])
+                continue
+              }
               match
                 owner.accept(
                   environment.journal,
@@ -2615,7 +2612,7 @@ fn serve_holder_output(
                       continue
                     }
                   }
-                  consumer_process_hold.val = Some(active)
+                  task.process_hold.val = Some(active)
                   match
                     owner.execute(
                       environment.journal,
@@ -2633,8 +2630,8 @@ fn serve_holder_output(
                       },
                     ) {
                     Ok(completed) => {
-                      consumer_process_hold.val = None
-                      consumer_executed.val = Some(completed)
+                      task.process_hold.val = None
+                      task.executed = Some(completed)
                       report("consumer-executed", [
                         (
                           "request_cid",
@@ -2642,13 +2639,19 @@ fn serve_holder_output(
                         ),
                         ("revision", completed.completion.revision.to_string()),
                       ])
+                      if completed.result_definition_cid is None {
+                        holder_checkpoint(resources)(
+                          "completed-retained-intermediate",
+                        )
+                      }
                     }
                     Err(failure) => {
                       if failure.pending_runtime is Some(_) {
-                        consumer_process_hold.val = None
+                        task.process_hold.val = None
                       } else {
                         close_untransferred_consumer_binding(
-                          execution, consumer_process_hold,
+                          execution,
+                          task.process_hold,
                         )
                       }
                       report("consumer-failed", [("reason", "owned-execution")])
@@ -2686,7 +2689,12 @@ fn serve_holder_output(
               let selected = @remote.remote_retained_input_intent_request(
                 intent,
               )
-              if @remote.dispatch_request_identity(selected) != identity {
+              let producer_identity = @remote.dispatch_request_identity(
+                selected,
+              )
+              guard tasks.get(producer_identity) is Some(producer) &&
+                !producer.released &&
+                producer.executed is Some(producer_executed) else {
                 report("retained-plan-failed", [("reason", "foreign-dispatch")])
                 continue
               }
@@ -2719,26 +2727,35 @@ fn serve_holder_output(
               )
               match
                 @resident_host.plan_resident_retained_input_transfer(
-                  runtime,
+                  producer_executed.runtime,
                   @resident_host.resident_retained_producer(context),
                   intent,
                   current,
                   environment.site,
                 ) {
-                Ok(plan) =>
+                Ok(plan) => {
+                  if producer.release_requested &&
+                    !(producer.handoff is Some((saved, _)) &&
+                    saved == @remote.remote_retained_input_plan_identity(plan)) {
+                    report("retained-plan-failed", [
+                      ("reason", "foreign-handoff"),
+                    ])
+                    continue
+                  }
                   match
                     @client.acknowledge_retained_input_plan(
                       control, observation_url, plan,
                     ) {
                     Ok(_) =>
                       report("retained-input-planned", [
-                        ("request_cid", identity),
+                        ("request_cid", producer_identity),
                       ])
                     Err(issue) =>
                       report("retained-plan-unreported", [
                         ("reason", client_code(issue)),
                       ])
                   }
+                }
                 Err(issue) =>
                   report("retained-plan-failed", [
                     ("reason", retained_transfer_code(issue)),
@@ -2757,14 +2774,20 @@ fn serve_holder_output(
             (
               @remote.admit_remote_poll_retained_input_current_json(envelope),
               resources.retained_delegation,
-              retained_handoff.val,
             ) {
-            (Ok(query), Some(_), Some((saved, owner))) => {
-              if @remote.dispatch_request_identity(
-                  @remote.remote_retained_input_current_request(query),
-                ) !=
-                identity ||
-                @remote.remote_retained_input_plan_identity(
+            (Ok(query), Some(_)) => {
+              let producer_identity = @remote.dispatch_request_identity(
+                @remote.remote_retained_input_current_request(query),
+              )
+              guard tasks.get(producer_identity) is Some(producer) &&
+                !producer.released &&
+                producer.handoff is Some((saved, owner)) else {
+                report("retained-current-pending", [
+                  ("reason", "receiver-owner-unavailable"),
+                ])
+                continue
+              }
+              if @remote.remote_retained_input_plan_identity(
                   @remote.remote_retained_input_current_plan(query),
                 ) !=
                 saved {
@@ -2783,7 +2806,7 @@ fn serve_holder_output(
                     ) {
                     Ok(_) =>
                       report("retained-current-reported", [
-                        ("request_cid", identity),
+                        ("request_cid", producer_identity),
                       ])
                     Err(issue) =>
                       report("retained-current-unreported", [
@@ -2796,7 +2819,7 @@ fn serve_holder_output(
                   ])
               }
             }
-            (Ok(_), _, _) =>
+            (Ok(_), _) =>
               report("retained-current-pending", [
                 ("reason", "receiver-owner-unavailable"),
               ])
@@ -2817,13 +2840,19 @@ fn serve_holder_output(
                 intent,
               )
               let plan_cid = @remote.remote_retained_input_plan_identity(plan)
-              if @remote.dispatch_request_identity(selected) != identity {
+              let producer_identity = @remote.dispatch_request_identity(
+                selected,
+              )
+              guard tasks.get(producer_identity) is Some(producer) &&
+                !producer.released &&
+                (!producer.release_requested || producer.handoff is Some(_)) &&
+                producer.executed is Some(producer_executed) else {
                 report("retained-transfer-failed", [
                   ("reason", "foreign-dispatch"),
                 ])
                 continue
               }
-              let handoff = match retained_handoff.val {
+              let handoff = match producer.handoff {
                 Some((saved, owner)) if saved == plan_cid => owner
                 Some(_) => {
                   report("retained-transfer-failed", [
@@ -2863,7 +2892,7 @@ fn serve_holder_output(
                   )
                   let owner = match
                     @resident_host.prepare_resident_retained_plan_transfer(
-                      runtime,
+                      producer_executed.runtime,
                       @resident_host.resident_retained_producer(context),
                       intent,
                       plan,
@@ -2883,7 +2912,7 @@ fn serve_holder_output(
                       continue
                     }
                   }
-                  retained_handoff.val = Some((plan_cid, owner))
+                  producer.handoff = Some((plan_cid, owner))
                   owner
                 }
               }
@@ -2922,7 +2951,7 @@ fn serve_holder_output(
                       ) {
                       Ok(_) =>
                         report("retained-transfer-reported", [
-                          ("request_cid", identity),
+                          ("request_cid", producer_identity),
                         ])
                       Err(issue) =>
                         report("retained-transfer-unreported", [
@@ -2948,14 +2977,15 @@ fn serve_holder_output(
           let envelope = line.unsafe_substring(start=5, end=line.length())
           match @remote.admit_remote_poll_output_plan_json(envelope) {
             Ok(output) => {
-              let output_owner = match consumer_executed.val {
-                Some(completed) if @remote.dispatch_request_identity(
-                    completed.request,
-                  ) ==
-                  @remote.dispatch_request_identity(
-                    @remote.remote_poll_output_request(output),
-                  ) => completed
-                _ => executed
+              let output_identity = @remote.dispatch_request_identity(
+                @remote.remote_poll_output_request(output),
+              )
+              guard tasks.get(output_identity) is Some(output_task) &&
+                !output_task.released &&
+                !output_task.release_requested &&
+                output_task.executed is Some(output_owner) else {
+                report("output-plan-failed", [("reason", "foreign-dispatch")])
+                continue
               }
               match
                 @resident_host.plan_resident_output(
@@ -2992,28 +3022,28 @@ fn serve_holder_output(
             Err(_) => report("holder-input-invalid", [])
           }
         } else if line.has_prefix("output ") {
-          // Cleanup kept by earlier failed outputs is retried first, so a
-          // repeated output never piles up open readers or sources.
-          let still_pending = failed_cleanups.filter(issue => {
-            !@resident_host.retry_resident_output_cleanup(issue)
-          })
-          failed_cleanups.clear()
-          failed_cleanups.append(still_pending)
           let envelope = line.unsafe_substring(start=7, end=line.length())
           match @remote.admit_remote_poll_output_json(envelope) {
             Ok(output) => {
-              let output_owner = match consumer_executed.val {
-                Some(completed) if @remote.dispatch_request_identity(
-                    completed.request,
-                  ) ==
-                  @remote.dispatch_request_identity(
-                    @remote.remote_poll_output_request(output),
-                  ) => completed
-                _ => executed
+              let output_identity = @remote.dispatch_request_identity(
+                @remote.remote_poll_output_request(output),
+              )
+              guard tasks.get(output_identity) is Some(output_task) &&
+                !output_task.released &&
+                !output_task.release_requested &&
+                output_task.executed is Some(output_owner) else {
+                report("output-plan-failed", [("reason", "foreign-dispatch")])
+                continue
               }
               let identity = @remote.dispatch_request_identity(
                 output_owner.request,
               )
+              // Retry only this exact output's outstanding physical cleanup.
+              let still_pending = output_task.failed_cleanups.filter(issue => {
+                !@resident_host.retry_resident_output_cleanup(issue)
+              })
+              output_task.failed_cleanups.clear()
+              output_task.failed_cleanups.append(still_pending)
               match
                 @resident_host.deliver_resident_output(
                   output_owner,
@@ -3038,13 +3068,13 @@ fn serve_holder_output(
                       let payload_identity = @payload.publication_payload_request_identity(
                         payload,
                       )
-                      if !payloads
+                      if !output_task.payloads
                         .iter()
                         .any(kept => {
                           @payload.publication_payload_request_identity(kept) ==
                           payload_identity
                         }) {
-                        payloads.push(payload)
+                        output_task.payloads.push(payload)
                       }
                     }
                     None => ()
@@ -3070,10 +3100,10 @@ fn serve_holder_output(
                       let key = @remote.remote_output_report_custody_key(
                         custody,
                       )
-                      if !unsaved_reports.any(value => {
+                      if !output_task.unsaved_reports.any(value => {
                           @remote.remote_output_report_custody_key(value) == key
                         }) {
-                        unsaved_reports.push(custody)
+                        output_task.unsaved_reports.push(custody)
                       }
                       report("output-report-save-pending", [
                         ("request_cid", identity),
@@ -3082,7 +3112,7 @@ fn serve_holder_output(
                     Err(issue) => {
                       report("output-failed", [("reason", output_code(issue))])
                       if !@resident_host.retry_resident_output_cleanup(issue) {
-                        failed_cleanups.push(issue)
+                        output_task.failed_cleanups.push(issue)
                       }
                     }
                   }
@@ -3097,57 +3127,42 @@ fn serve_holder_output(
       }
     }
   }
-  // Saving is the only retried operation: neither delivery nor Compute.
-  while !unsaved_reports.is_empty() {
-    let remaining = unsaved_reports.filter(value => {
-      environment.journal.retain_output_report(value) is Err(_)
-    })
-    unsaved_reports.clear()
-    unsaved_reports.append(remaining)
-    if !unsaved_reports.is_empty() {
+  // Persist all exact reports before the handoff interruption point. A later
+  // reconstruction may replay them, but must never redeliver or recompute.
+  for identity in order {
+    let task = tasks.get(identity).unwrap()
+    while !retain_holder_task_reports(task, environment.journal) {
       @slot.native_wait_milliseconds(250)
     }
   }
-  holder_checkpoint(resources)("report-handoff")
-  if consumer_executed.val is Some(completed) && !consumer_released {
-    settle_holder_cleanup(
-      completed.runtime,
-      completed.request,
-      environment.journal,
-      store,
-      failed_cleanups,
-      payloads,
-      resources.release_failures,
-      holder_checkpoint(resources),
-      close_store=false,
-    )
-    failed_cleanups.clear()
-    payloads.clear()
+  if !original.released {
+    holder_checkpoint(resources)("report-handoff")
   }
-  if consumer.val is Some(owner) {
-    while !owner.close() {
-      report("consumer-release-pending", [("reason", "borrow-cleanup")])
+  // Control loss stops the whole retained chain. Reverse creation order is
+  // dependency order because common admission allows only a completed parent
+  // to acquire its one checked successor. Every retry keeps the same Owners.
+  for index = order.length() - 1; index >= 0; index = index - 1 {
+    let task = tasks.get(order[index]).unwrap()
+    while !release_holder_task(
+            task,
+            tasks,
+            environment,
+            execution,
+            resources,
+            control_ended=true,
+          ) {
+      report("consumer-release-pending", [
+        ("request_cid", order[index]),
+        ("reason", "owned-cleanup"),
+      ])
       @slot.native_wait_milliseconds(250)
     }
   }
-  close_untransferred_consumer_binding(execution, consumer_process_hold)
-  if retained_handoff.val is Some((_, handoff)) {
-    while handoff.reclaim() is Err(_) {
-      report("retained-transfer-cleanup-pending", [("request_cid", identity)])
-      @slot.native_wait_milliseconds(250)
-    }
+  while store.close() is Err(_) {
+    report("cleanup-pending", [("step", "store"), ("request_cid", identity)])
+    @slot.native_wait_milliseconds(250)
   }
-  settle_holder_cleanup(
-    runtime,
-    request,
-    environment.journal,
-    store,
-    failed_cleanups,
-    payloads,
-    resources.release_failures,
-    holder_checkpoint(resources),
-  )
-  if consumer_released {
+  if order.length() > 1 {
     let state = @site.site_status(environment.site)
     report("retained-holder-settled", [
       ("active_operations", state[2].to_string()),
@@ -3389,12 +3404,22 @@ fn run_holder(
     attempt,
     start_timestamp(matches),
   )
+  let selected_process_hold = match saved_claimant {
+    Ok(Some(value)) =>
+      @resident_host.resident_holder_process_hold_identity(
+        inspection,
+        run_admission(matches),
+        attempt,
+        value,
+      )
+    Ok(None) => Ok("runtime-process:resident-holder:" + claimant)
+    Err(issue) => Err(issue)
+  }
   if !inspection.close() {
     stop("holder saved journal close pending")
   }
-  let original_claimant = match saved_claimant {
-    Ok(Some(value)) => value
-    Ok(None) => claimant
+  let process_hold_identity = match selected_process_hold {
+    Ok(value) => value
     Err(issue) => {
       report("holder-restoration-refused", [("reason", host_code(issue))])
       stop("holder saved completion unavailable")
@@ -3405,7 +3430,7 @@ fn run_holder(
     // The actual exclusive slot confirms the old process has stopped. The
     // journal selects its exact holding; retain is idempotent and Runtime
     // returns this holding only after its physical cleanup completes.
-    "runtime-process:resident-holder:" + original_claimant,
+     process_hold_identity,
   )
   // The installed runtime must be the one the Site delegates.
   let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
@@ -3560,7 +3585,9 @@ fn run_holder(
     _ => false
   }
   let result = if saved_completion {
-    restore_holder_attempt(matches, environment, execution, slot, attempt)
+    restore_holder_attempt(
+      matches, environment, execution, resources, slot, attempt,
+    )
   } else {
     @resident_host.execute_resident_attempt(
       environment.journal,
@@ -3683,6 +3710,7 @@ fn restore_holder_attempt(
   matches : @argparse.Matches,
   environment : SiteEnvironment,
   execution : @resident_host.ResidentExecution,
+  resources : HolderOutputResources,
   slot : @slot.NativeExecutorSlot,
   attempt : String,
 ) -> Result[
@@ -3698,6 +3726,13 @@ fn restore_holder_attempt(
       attempt,
       () => start_timestamp(matches),
       () => slot.verify_current_hold() == Ok(()),
+      retained_cleanup=Some(
+        (
+          resources.transfer_journal,
+          resources.retained_root,
+          resources.retained_max_bytes,
+        ),
+      ),
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
