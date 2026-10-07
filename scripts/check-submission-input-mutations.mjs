@@ -15,6 +15,7 @@ const expected = (phase, assertion = 'submission-input') => {
   if (phase.startsWith('request-')) {
     const names = {
       'request-snapshot': ['request lookup snapshots detach a reused held checkpoint'],
+      'request-error-custody': ['request lookup failures detach a reused credential exception for each call'],
       'request-admission': ['request lookup rejects clone changes a field', 'request lookup rejects reply cannot be cloned'],
       'request-held-admission': ['submission uncertainty retains original lookup when held clone changes its admitted branch', 'submission uncertainty retains original lookup when held reply cannot be cloned'],
       'request-held-state': ['held submit explanations retain the admitted preparation state'],
@@ -111,6 +112,9 @@ const expected = (phase, assertion = 'submission-input') => {
   }));
 };
 const mutations = [
+  ['request observation failures reuse the borrowed exception',
+    '  const retained = new ClientError(code,\n    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});',
+    '  const retained = error;', 'request-error-custody', 'request-failure-custody'],
   ['request observation loses detached checkpoint custody',
     "      try { answer = structuredClone(answer); }", "      try {}", 'request-snapshot', 'request-lookup-detached'],
   ['request observation skips copied-response revalidation',

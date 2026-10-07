@@ -171,3 +171,30 @@ test('request lookup retains its original target after a primitive credential fa
   assert.doesNotMatch(sdk.formatRequestLookup(failure, {format: 'json'}), /private-credential-cause/u);
   assert.equal(calls, 1);
 });
+
+test('request lookup failures detach a reused credential exception for each call', async t => {
+  let credentials = 0, calls = 0;
+  const shared = new sdk.ClientError('HostUnavailable', {status: 503, cause: 'private-credential-cause'});
+  mock.method(globalThis, 'fetch', async () => {calls++; return Response.json({...profile, mode: 'remote', owner: 'remote'});});
+  t.after(() => mock.restoreAll());
+  const client = await sdk.connect({mode: 'remote', endpoint: 'https://example.test/',
+    token() {if (credentials++ === 0) return 'fixture-token'; throw shared;}});
+  t.after(() => client.close());
+  let first, second;
+  try {await client.lookupRequest('saved');} catch (error) {first = error;}
+  try {await client.lookupRequest('later');} catch (error) {second = error;}
+  assert.equal(first === shared, false, '[check-mutation:request-failure-custody]');
+  assert.notEqual(first, second);
+  assert.equal(first.code, 'HostUnavailable');
+  assert.equal(first.status, 503);
+  assert.equal(first.cause, undefined);
+  assert.deepEqual(sdk.explainRequestLookup(first).next, {operation: 'lookupRequest', requestId: 'saved',
+    lookupContext: {endpoint: 'https://example.test/', scopeRef: 'scope'}});
+  assert.equal(sdk.explainRequestLookup(second).next.requestId, 'later');
+  assert.equal(sdk.explainRequestLookup(first).observation, 'lookup_unavailable');
+  assert.equal(sdk.explainRequestLookup(shared), undefined);
+  shared.code = 'Succeeded';
+  assert.equal(first.code, 'HostUnavailable');
+  assert.doesNotMatch(sdk.formatRequestLookup(first, {format: 'json'}), /private-credential-cause/u);
+  assert.equal(calls, 1);
+});

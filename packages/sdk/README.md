@@ -1141,3 +1141,8 @@ lookup target; transport failures retain lookup uncertainty. Copies receive no
 explanation custody or submitted-input association. Presentation performs no I/O,
 retains the approved English/Japanese localization, and preserves identical facts
 in text, HTML and JSON. There is no new Host storage or timed retention guarantee.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.

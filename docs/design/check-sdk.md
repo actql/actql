@@ -1549,3 +1549,8 @@ and explanations remain in memory while their application references are held;
 weak associations add no fixed retention period, Host persistence or retrieval
 API. Subsequent lookups recheck current authorization. English/Japanese and
 text/HTML/JSON presentation preserve the same facts and perform no I/O.
+
+Lookup failures use fresh SDK errors for each call. Reused credential or
+transport exceptions cannot replace an earlier call's lookup target. Only the
+existing SDK error code and a bounded HTTP status are copied; borrowed exception
+causes and fields receive no explanation custody or outcome authority.

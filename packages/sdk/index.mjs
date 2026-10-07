@@ -345,10 +345,13 @@ const retainRequestLookupExplanation = (answer, context) => {
   return answer;
 };
 const retainRequestLookupFailure = (error, context, observation) => {
-  if (error === null || !['object', 'function'].includes(typeof error)) {
-    error = new ClientError('ClientTransportUnknown');
-  }
-  requestLookupExplanations.set(error, freezeInput({observation,
+  // Borrowed exceptions may be reused by credentials or a Local port. Each
+  // call owns its error; code/status are metadata, never outcome evidence.
+  const code = error instanceof ClientError ? error.code : 'ClientTransportUnknown';
+  const status = error instanceof ClientError ? error.status : undefined;
+  const retained = new ClientError(code,
+    Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+  requestLookupExplanations.set(retained, freezeInput({observation,
     summary: observation === 'lookup_uninterpretable'
       ? 'This SDK could not interpret the request lookup response. Acceptance and execution remain unresolved.'
       : 'The request lookup could not be completed. Acceptance and execution remain unresolved.',
@@ -356,7 +359,7 @@ const retainRequestLookupFailure = (error, context, observation) => {
     next: {operation: 'lookupRequest', requestId: context.requestId,
       lookupContext: context.lookupContext},
   }));
-  return error;
+  return retained;
 };
 
 const structuredNodeExists = (value, pointer) => {
