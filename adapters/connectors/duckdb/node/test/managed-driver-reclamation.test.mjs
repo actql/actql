@@ -10,6 +10,7 @@ import * as moon from '../../../../../_build/js/release/build/connectors/duckdb/
 import * as fixture from '../../../../../_build/js/release/build/connectors/duckdb/conformance/conformance.js';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 import {checked} from '../runtime-result.mjs';
+import {finishManagedOutputReceipt} from '../managed-output-finish.mjs';
 import {authorizeLocalDatabase} from '../session.mjs';
 import {runNativeHostQuery} from '../host.mjs';
 import {runFixedCompute, matchesFixedCompute, releaseFixedCompute} from '../fixed-compute.mjs';
@@ -135,7 +136,16 @@ test('installed DuckDB cleanup retires large admission without another native at
     };
     result = await runFixedCompute(port, limits, {maxRows: 100, maxCells: 1000}, consume);
     assert.deepEqual(observed, expectedIds);
-    checked(moon.managedOutputFinish(output));
+    let finishPolls = 0, finishSteps = 0;
+    await finishManagedOutputReceipt(quantum => {
+      const poll = checked(moon.managedOutputAdvanceFinish(output, quantum));
+      finishPolls++;
+      finishSteps += poll._1;
+      if (!poll._0) assert.equal(moon.managedOutputAvailable(output), false);
+      return poll;
+    });
+    assert.ok(finishPolls > 1, 'selected Compute receipt must span Host yields');
+    assert.ok(finishSteps > 64);
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
     checked(moon.computeHostPhysicalSettle(run, true));

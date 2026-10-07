@@ -11,6 +11,7 @@ import { computePhysicalCapacity } from './physical-capacity.mjs';
 import {boundedTransport} from './transport-bounds.mjs';
 import {createImportBatch} from './import-batch.mjs';
 import { checked } from './runtime-result.mjs';
+import {finishManagedOutputReceipt} from './managed-output-finish.mjs';
 import { retainedConfiguration } from './retained-configuration.mjs';
 import { createLocalRetainedStore } from '../../../store-local/files.mjs';
 import {createProcessStoreLease} from '../../../store-local/process-client.mjs';
@@ -830,7 +831,8 @@ async function runHostCompute(
     signal?.throwIfAborted();
     begin(fields); // Empty results still require metadata and an identity.
     if (managed) {
-      checked(moon.managedOutputFinish(managedOutput));
+      await finishManagedOutputReceipt(quantum => checked(
+        moon.managedOutputAdvanceFinish(managedOutput, quantum)), signal);
       body = await writer.sealPhysical();
       signal?.throwIfAborted();
       checked(moon.managedOutputRetain(
