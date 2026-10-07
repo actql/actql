@@ -1,11 +1,13 @@
 # Optional local Iceberg Table I/O
 
-This is an optional internal Table boundary, not an installed public Table
-Effect or Source. Do not invoke `write_claimed` from user input. The internal
-approved-commit connection binds a checked/captured whole Relation and sealed
-Preview, resumes the existing approval journal, rechecks the current target and
-durably claims the existing Effect Ledger. No Python component issues approval
-or schedules work. The public installer and Source remain separate integration.
+This is the optional physical I/O implementation of the Local Connector's
+Table Source and Effect. The existing generated Connector installation table
+selects its declared roles from `src/connectors/local/host-bundle.json`; there
+is no built-in Table fallback. Do not invoke `write_claimed` from user input.
+The approved-commit connection binds a checked/captured whole Relation and
+sealed Preview, resumes the existing approval journal, rechecks the current
+target and durably claims the existing Effect Ledger. Python performs physical
+I/O; it does not issue approval, select a Connector or schedule work.
 
 ## Dependencies and scope
 
@@ -66,7 +68,7 @@ remain charged until durable deletion records cover every owned file; failed
 deletion or lost custody-save responses remain retryable after restart. Original
 allocation, charged bytes, fence and deletion records are retained as audit facts.
 
-## Focused diagnostics and remaining integration
+## Installed boundary and focused diagnostics
 
 The internal `adapters/connectors/local/host/iceberg-process.mjs` bridge launches the
 pinned optional interpreter through the existing managed-process owner. The
@@ -74,7 +76,29 @@ worker uses the existing bounded private execution frames and opens no Catalog
 during its handshake. One write consumes one opaque preparation, including an
 empty Relation. The caller must admit the operation/materials, check current
 authority and approval, and win the existing durable Ledger send claim first.
-This bridge does not supply those decisions or register a public installer.
+This bridge does not supply those decisions. The declared
+`adapters/connectors/local/host/installed-local-table.mjs` installer supplies
+the Source/Effect bindings to the existing generic Host loader, rather than
+registering another runtime or execution owner.
+
+The first installed operations are whole-Relation create, same-schema replace,
+and immutable-generation read. Other Carrier writers, append/update/upsert,
+external Catalogs and compute pushdown are not provided by this installation.
+The shared opaque storage-mapping reference can carry Relation, Graph, Vectors
+or Events kinds; that content reference is not an operation Capability. The
+current Relation input admission and Local physical mapping validator reject
+unsupported inputs rather than flattening them or filling absent values.
+Future Connectors must declare and validate their actual operation/kind support
+through the existing installation and Capability owners. Read, write and
+compute authorization remain independent.
+
+Approval binds the selected registration/revision, runtime bundle,
+installation, connection, target and physical mapping. The Local installation
+also binds a finite content inventory derived from the actual adapter import
+graph and declared assets. Changed installed files or a substituted saved
+binding cannot authorize a new write or automatic candidate substitution.
+The explicitly installed Python environment is trusted Host deployment
+material; this inventory is not an attestation of external Python libraries.
 
 The physical await ends only after observed process exit, not a stop request or
 channel closure. Its failure cannot justify a resend. A subsequent process may
@@ -96,8 +120,12 @@ They are optional Table Host diagnostics, not mandatory SDK/Core dependencies.
 The common Table projection admits a sealed original-operation receipt, not
 just HTTP 200 or `accepted: true`. It checks operation, Effect, Catalog, schema,
 mapping, replacement UUID/generation and the captured Relation's immutable row
-count, including zero. The resulting private Effect outcome retains the full
-receipt. Missing, malformed, foreign or unconfirmed responses leave the existing
+count, including zero. The selected Local validator admits the physical receipt
+and projects a shared logical receipt retaining its physical receipt CID.
+Iceberg snapshot IDs and metadata locations are not mandatory fields of the
+logical contract. The existing Ledger retains the original physical response
+bytes; the private Effect outcome retains the logical receipt.
+Missing, malformed, foreign or unconfirmed responses leave the existing
 dispatch uncertain; they do not certify noncommit or authorize resend/cleanup.
 
 `table-commit-outcome.mjs` reads only the response owned by the exact Ledger
@@ -106,8 +134,8 @@ receipt before the existing terminal Ledger CAS. Source availability is needed
 for apply, but immutable evidence can still be settled after source release.
 This function performs no commit, approval, target authorization or retries.
 Host-capture tests use explicit response fixtures; separate optional physical
-tests admit actual Catalog receipts. Together these are boundary evidence, not
-a completed Program-to-approved-Catalog execution or public Table reader.
+tests admit actual Catalog receipts. Those tests alone do not establish public
+Program-to-approved-Catalog execution or Table reading.
 
 `reconcileOriginalTableCommit` connects an exact checked Table Preview to the
 Catalog's immutable original-operation lookup and the existing Ledger. The Host
@@ -143,11 +171,15 @@ replace, actual child termination before cleanup, failed cleanup/restart, lost
 removal observation, pre-creation failure and symlink refusal. This is **not**
 public Client acceptance.
 
-Remaining before public installation: the common bulk Effect adapter and current
-authority boundary, bounded streaming of captured input, Host process-stop
-integration for staged-file cleanup/retry, immutable
-Table acquisition into a new Run, and packed Local/HTTPS approval/restart/release
-acceptance. Do not mark the full Table task complete from these physical tests.
+`adapters/host-node/table-public-commit.test.mjs` exercises the installed public
+Local/HTTPS path, separately from the physical diagnostics above.
+`scripts/packed-table-private-input.test.mjs` packs a clean committed HEAD and
+runs those authored fixtures against installed packages, without a product
+source overlay. It checks approval, create/replace, original-operation reply
+loss, concurrent replacement, restart, sparse input and fresh-Run reading.
+Report only the actual executed revision and cases; availability of these
+tests does not itself establish acceptance. Fully streaming larger inputs,
+additional Carrier writers and old-generation GC remain separate work.
 
 ## Approved captured commit connection
 
