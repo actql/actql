@@ -778,7 +778,7 @@ An HTTP `Response` object returned through Local is also an invalid
 representation with an unknown cancellation outcome. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. Local failures before the send boundary and typed Host refusals
+association. For the cancellation write, local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
 The presentation association lasts only while its SDK result is retained.

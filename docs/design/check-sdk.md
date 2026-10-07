@@ -995,7 +995,7 @@ Transport loss, malformed replies and differently bound replies retain an
 an unknown cancellation outcome; its existing SDK error is preserved. Changing
 an error code/message or a returned response after the call does not change
 its bound explanation. Handwritten, parsed or copied objects have no SDK
-association. Local failures before the send boundary and typed Host refusals
+association. For the cancellation write, local failures before the send boundary and typed Host refusals
 retain their existing errors without a fabricated cancellation observation.
 The accessor performs no I/O or automatic retry and retains no provider cause.
 
