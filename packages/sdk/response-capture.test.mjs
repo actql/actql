@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, heldSubmission} from './submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -7,7 +8,7 @@ const cid = value => `sha256:${value.repeat(64)}`;
 const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('b')};
 const cancelRef = {...ref, cancelId: 'original-cancel', expectedRevision: 6};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
-  durability: 'durable', scopeRef: 'scope', capabilities: [],
+  durability: 'durable', scopeRef: 'scope', capabilities: [], submissionEpoch,
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
     maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 4096,
     maxRows: 10, maxBatchRows: 2, maxBatchRetainedValueBytes: 2048}};
@@ -39,8 +40,8 @@ const cases = [
     replacement: {...ref, runDefinitionCid: cid('d')}, error: 'InvalidHostRequestLookup',
     invoke: (_run, client) => client.lookupRequest('saved'), explain: sdk.explainRequestLookup,
     failure: sdk.explainRequestLookup},
-  {operation: 'submit', reply: held, field: 'prepareAttemptId', replacement: 'replacement-attempt',
-    error: 'SubmissionUnknown', invoke: (_run, client) => client.start({params: {}, stages: []}, {requestId: 'saved'})
+  {operation: 'submit-intent', reply: held, field: 'prepareAttemptId', replacement: 'replacement-attempt',
+    error: 'SubmissionUnknown', invoke: (_run, client) => client.start({params: {}, stages: []}, {submissionRef: originalSubmission('saved')})
       .catch(error => { if (error.code === 'RequestHeld') return error; throw error; }),
     explain: sdk.explainSubmission, failure: sdk.explainSubmission},
   {operation: 'cancel', reply: () => ({kind: 'accepted', ref: {...ref}, cancelRef: {...cancelRef}, revision: 7}),
@@ -53,11 +54,11 @@ const cases = [
 async function fixture(t, reply) {
   const calls = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation) {
+    perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return {ref, durability: 'durable', revision: 1};
-      return reply;
+      return operation === 'submit-intent' ? heldSubmission(body, reply) : reply;
     },
   });
   t.after(() => client.close());
@@ -67,7 +68,7 @@ async function fixture(t, reply) {
 async function attachmentFixture(t, reply) {
   const calls = [];
   const client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
-    perform(operation) {
+    perform(operation, body) {
       calls.push(operation);
       if (operation === 'connect') return profile;
       if (operation === 'attach') return reply;
@@ -208,12 +209,12 @@ for (const item of cases) {
     const f = await fixture(t, reply), answer = await item.invoke(f.run, f.client);
     assert.equal(reads, 1, '[check-mutation:response-capture-once]');
     if (['cancel', 'delivery-attempt'].includes(item.operation)) assert.equal(secondReads, 1);
-    assert.deepEqual(item.operation === 'submit' ? answer.held : answer, item.reply());
+    assert.deepEqual(item.operation === 'submit-intent' ? answer.held : answer, item.reply());
     const view = item.explain(answer);
     assert.ok(view);
     assert.equal(item.explain({...answer}), undefined);
     assert.equal(item.explain(structuredClone(answer)), undefined);
-    if (item.operation === 'submit') {
+    if (item.operation === 'submit-intent') {
       assert.equal(view.prepareAttemptId, 'original-attempt');
       assert.equal(sdk.getSubmissionInput(answer).requestId, 'saved');
     } else if (item.operation === 'lookup-request') assert.deepEqual(view.next, {operation: 'status', ref});
@@ -249,14 +250,14 @@ for (const item of cases) {
   });
 }
 
-for (const item of cases.filter(value => ['lookup-request', 'submit', 'cancel', 'delivery-attempt'].includes(value.operation))) {
+for (const item of cases.filter(value => ['lookup-request', 'submit-intent', 'cancel', 'delivery-attempt'].includes(value.operation))) {
   test(`${item.operation}: detachment cannot substitute another valid observation`, async t => {
     const reply = item.reply(), f = await fixture(t, reply), clone = globalThis.structuredClone;
     t.after(() => { globalThis.structuredClone = clone; });
     globalThis.structuredClone = value => {
       const copy = clone(value);
       if (value.kind === reply.kind && !Object.hasOwn(value, 'connection')) {
-        copy[item.field] = clone(item.replacement);
+        (copy.held ?? copy)[item.field] = clone(item.replacement);
         if (item.operation === 'delivery-attempt') copy.hostReleaseReceipt = clone(delivered.hostReleaseReceipt);
       }
       return copy;
@@ -270,7 +271,7 @@ test('held submit captures its branch before the first kind read', async t => {
   Object.defineProperty(reply, 'kind', {enumerable: true,
     get() { return ++reads === 1 ? 'held' : 'found'; }});
   const f = await fixture(t, reply);
-  const answer = await cases.find(value => value.operation === 'submit').invoke(f.run, f.client);
+  const answer = await cases.find(value => value.operation === 'submit-intent').invoke(f.run, f.client);
   assert.equal(answer.code, 'RequestHeld');
   assert.equal(reads, 1);
 });

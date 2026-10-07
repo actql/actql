@@ -639,8 +639,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
       accountConfiguration: configuration.accountConfiguration,
       context: configuration.context, ...decisionOptions, decide,
       answeringAuthorities: decide === undefined ? undefined : answering,
-      deferral: readDeferralFor({prepareAttemptId, request, requestCid,
-        captured, occurrence, answering, port, earlier})});
+      // Epoch-bound submission does not yet expose the complete pre-Run
+      // response/cancel/recovery contract. Use the existing gate's unsupported
+      // decision before it seals evidence or creates a Checkpoint.
+      deferral: captured.submission === undefined
+        ? readDeferralFor({prepareAttemptId, request, requestCid,
+          captured, occurrence, answering, port, earlier}) : undefined});
     try {
       return await deferring.authorize('acquisition',
         occurrence.readTuple, {subjectCid: intentCid, signal});
@@ -1757,8 +1761,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
         accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
         decide,
         answeringAuthorities: decide === undefined ? undefined : answering,
-        deferral: deferralFor({prepareAttemptId, request, requestCid,
-          captured, answering})});
+        // Run-scoped Model and Effect approvals remain owned by their existing
+        // continuation paths. Unsupported pre-Run waits must not be admitted.
+        deferral: captured.submission === undefined
+          ? deferralFor({prepareAttemptId, request, requestCid,
+            captured, answering}) : undefined});
       let sealed;
       let decision;
       try { decision = await deferring.authorize('preparation', tuple, {

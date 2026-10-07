@@ -6,6 +6,7 @@ import { mutationNamesByPart } from '../proof-parts.mjs';
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 const [mode, root, { required, fail, part }] = [process.argv[2], process.argv[3], JSON.parse(process.argv[4])];
 const directory = join(root, '.artifacts/relation-pipeline');
 mkdirSync(directory, { recursive: true });
@@ -86,4 +87,5 @@ process.on('exit', () => {
   writeFileSync(join(root, 'state.json'), JSON.stringify({ source: source(), mutable: (() => { try { return source(join(root, 'mutable')); } catch { return null; } })(), calls, reports, lifecycle }));
 });
 process.argv[2] = mode;
+process.argv[1] = fileURLToPath(new URL('../mutations.mjs', import.meta.url));
 await import('../mutations.mjs');

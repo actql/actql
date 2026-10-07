@@ -9,7 +9,8 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validClientBody, validClientConnection, validClientProfile, validDeliveryAttemptLookup, validCancellation, validCancellationLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest} from
+  validRunState, validResultDescription, validCheckOutcome, snapshotCheckRequest,
+  snapshotClientRequest, validSubmissionOutcome, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -57,7 +58,7 @@ function publicResultRows(response) {
 }
 
 export function createNodeInProcessClientHost({
-  authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit,
+  authenticate, authorizeConnection, workspaceForPrincipal, negotiate, prepareSubmit, submit, submitIntent, lookupSubmission,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
   cancel, lookupCancellation, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
   resources, inspectResource, peekResource, check, maxRowBytes, observe,
@@ -91,6 +92,11 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'check' && !validClientBody(operation, body)) {
         fail('InvalidClientRequest');
+      }
+      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        try {body = snapshotClientRequest(body);}
+        catch {fail('InvalidClientRequest');}
+        if (!validClientBody(operation, body)) fail('InvalidClientRequest');
       }
       let principalId;
       try { principalId = await authenticate(); }
@@ -132,7 +138,7 @@ export function createNodeInProcessClientHost({
         return handler(Object.freeze({principalId, connection,
           ...Object.fromEntries(Object.entries(body).filter(([key]) =>
             key !== 'connection')),
-          ...(signal === undefined || operation === 'submit'
+          ...(signal === undefined || operation === 'submit' || operation === 'submit-intent'
             ? {} : {signal}),
           ...(preparedProgram === undefined ? {} : {preparedProgram}),
         }));
@@ -149,6 +155,14 @@ export function createNodeInProcessClientHost({
           prepare: prepareSubmit === undefined ? undefined :
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, prepared)});
+      }
+      if (operation === 'submit-intent' || operation === 'lookup-submission') {
+        const answer = await invoke(operation === 'submit-intent' ? submitIntent : lookupSubmission);
+        const valid = operation === 'submit-intent'
+          ? validSubmissionOutcome(answer, connection, body.submissionRef, body.intentCid)
+          : validSubmissionLookup(answer, connection, body.submissionRef);
+        if (!valid) fail('InvalidClientHostSubmissionOutcome');
+        return answer;
       }
       if (operation === 'attach') {
         const admitted = await invoke(attach);

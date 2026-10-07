@@ -1,9 +1,10 @@
 // Rebuild-time typed composition. Concrete imports are generated exclusively
 // from connector-owned declarations, never interpreted by a runtime planner.
-import {readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync} from 'node:fs';
+import {readFileSync, existsSync, mkdirSync, writeFileSync} from 'node:fs';
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {connectorManifestSelection} from './connector-manifest-selection.mjs';
 
 const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).sort().join() === [...expected].sort().join();
@@ -107,7 +108,8 @@ export function generateComputeAssembly(entries) {
       'pub fn[E] assemble_compute_contributions(\n' +
       '  registry : @connector.CapabilityRegistry,\n  max_entries : Int,\n' + parameters +
       ') -> Result[@connector.CapabilityImplementations[@host.ComputeContribution[Unit, E]], @connector.CapabilityInstallationIssue] {\n' +
-      '  if max_entries < 0 { return Err(InvalidLimits) }\n  let mut count = 0\n' + count +
+      '  if max_entries < 0 { return Err(InvalidLimits) }\n' +
+      `  let ${entries.length ? 'mut ' : ''}count = 0\n` + count +
       '  if count > max_entries { return Err(EntryLimit) }\n' +
       '  let entries : Array[(@connector.CapabilityRegistration, @host.ComputeContribution[Unit, E])] = []\n' + collect +
       '  @connector.install_capability_implementations(registry, entries, max_entries, registry_order=true)\n}\n' + configurationAssembly(entries, alias, typed, resultType),
@@ -246,18 +248,9 @@ function estimateAssembly(entries, alias) {
 }
 
 export function checkComputeAssembly(root, write = false, options = {}) {
-  const selected = options.names;
-  if (selected !== undefined && (!Array.isArray(selected) || selected.length === 0 ||
-      new Set(selected).size !== selected.length || !selected.every(identifier))) {
-    throw new Error('Invalid explicit Compute composition');
-  }
-  const entries = [];
-  for (const name of readdirSync(join(root, 'src/connectors')).sort()) {
-    if (selected && !selected.includes(name)) continue;
-    const path = join(root, 'src/connectors', name, 'compute-bundle.json');
-    if (existsSync(path)) entries.push({name, manifest: JSON.parse(readFileSync(path, 'utf8'))});
-  }
-  if (selected && entries.length !== selected.length) throw new Error('Missing selected Compute manifest');
+  const entries = connectorManifestSelection(root, {names: options.names})
+    .filter(entry => entry.compute !== undefined)
+    .map(entry => ({name: entry.name, manifest: JSON.parse(readFileSync(entry.compute, 'utf8'))}));
   const generated = generateComputeAssembly(entries);
   // Use the pinned formatter as a pure stdin/stdout transformation. Check mode
   // never edits the source tree or invokes contribution factories.

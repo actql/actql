@@ -9,7 +9,7 @@ import {connect} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 
-const {directory, entrance, output, ref} = JSON.parse(process.argv[2]);
+const {directory, entrance, output, ref, submissionRef: originalSubmission} = JSON.parse(process.argv[2]);
 const keys = generateKeyPairSync('ed25519');
 let computes = 0;
 const authorization = {
@@ -41,11 +41,12 @@ try {
   }
   console.log('INSTALLED_READ_121_PHASE', 'connected');
   const program = JSON.parse(await readFile(new URL('./fixtures/read-121.program.json', import.meta.url), 'utf8'));
-  const run = ref === undefined ? await client.start(program, {requestId: 'installed-read-121'}) : await client.attach(ref);
+  const submissionRef = originalSubmission ?? client.newSubmission({nonce: 'installed-read-121'});
+  const run = ref === undefined ? await client.start(program, {submissionRef}) : await client.attach(ref);
   console.log('INSTALLED_READ_121_PHASE', 'submitted');
   const status = await run.wait({signal: AbortSignal.timeout(15000)});
   console.log('INSTALLED_READ_121_PHASE', 'terminal', status.status);
-  const request = await client.lookupRequest('installed-read-121');
+  const request = await client.lookupSubmission(submissionRef);
   console.log('INSTALLED_READ_121_PHASE', 'request-found');
   const result = run.result('answer');
   const description = await result.describe();
@@ -55,7 +56,7 @@ try {
   console.log('INSTALLED_READ_121_PHASE', 'read', rows.length);
   const attempt = await result.deliveryAttempt(reader.attemptId);
   console.log('INSTALLED_READ_121_PHASE', 'receipt', attempt.record?.state);
-  await writeFile(output, JSON.stringify({ref: run.ref, status, request,
+  await writeFile(output, JSON.stringify({ref: run.ref, submissionRef, status, request,
     description, rows, attempt, readState: reader.state(), computes}));
 } catch (error) {
   console.log('INSTALLED_READ_121_FAILURE', error.code ?? error.name, error.message);
