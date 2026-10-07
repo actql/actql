@@ -131,32 +131,6 @@ pub(all) enum CapturedRunIssuanceIssue {
 } derive(Eq, Debug)
 
 ///|
-fn canonical_string_array(
-  values : Array[String],
-  max_wire_bytes : Int,
-  max_nodes : Int,
-  max_depth : Int,
-) -> @json.CanonicalValue? {
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return None
-  }
-  try {
-    @encode.begin_array(writer)
-    for value in values {
-      @encode.string_value(writer, value)
-    }
-    @encode.end_array(writer)
-  } catch {
-    _ => return None
-  }
-  let wire = @encode.finish(writer) catch { _ => return None }
-  match parse_contract_wire(wire, max_wire_bytes, max_nodes, max_depth) {
-    Ok(value) => Some(value)
-    Err(_) => None
-  }
-}
-
-///|
 fn captured_relation_cid(
   rows : @json.CanonicalValue,
   max_wire_bytes : Int,
@@ -550,156 +524,25 @@ fn seal_effect_context(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@json.CanonicalValue, CapturedRunIssuanceIssue] {
-  let effect_ids = match preview {
-    Some(identity) => identity.member_effect_ids.copy()
-    None => []
-  }
-  effect_ids.sort_by(@canonical.compare_utf16)
-  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  try {
-    @encode.begin_object(writer)
-    @encode.key(writer, "authoring_context")
-    @json.emit_value(authoring.value, writer)
-    @encode.key(writer, "effect_dependency_inventory")
-    let inventory = parse_contract_wire(
-      dependencies.wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ).unwrap()
-    @json.emit_value(inventory, writer)
-    @encode.key(writer, "effect_plan_logical_cids")
-    @encode.begin_object(writer)
-    if preview is Some(identity) {
-      for name in effect_ids {
-        let mut index = -1
-        for position in 0..<identity.member_effect_ids.length() {
-          if identity.member_effect_ids[position] == name {
-            index = position
-            break
-          }
-        }
-        if index >= 0 && identity.member_effect_plan_cids[index] is Some(cid) {
-          @encode.key(writer, name)
-          @encode.string_value(writer, cid)
-        }
-      }
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_plans")
-    @encode.begin_object(writer)
-    for (name, plan) in plans {
-      @encode.key(writer, name)
-      @json.emit_value(plan, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effects")
-    @encode.begin_object(writer)
-    for name in effect_ids {
-      @encode.key(writer, name)
-      @encode.begin_object(writer)
-      @encode.end_object(writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_artifacts")
-    @encode.begin_object(writer)
-    for source in sources {
-      @encode.key(writer, source.effect_id)
-      @json.emit_value(source.artifact.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_holding_cids")
-    @encode.begin_object(writer)
-    for source in sources {
-      @encode.key(writer, source.effect_id)
-      @encode.string_value(writer, source.holding_cid)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "effect_source_local_inventory")
-    @encode.begin_object(writer)
-    for source in local_sources {
-      @encode.key(writer, source.effect_id)
-      @json.emit_value(source.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "model_invocation_evidence")
-    @encode.begin_array(writer)
-    for model in models {
-      @json.emit_value(model.value, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "model_invocation_evidence_cids")
-    @encode.begin_array(writer)
-    for model in models {
-      @encode.string_value(writer, model.identity)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "pending_source_state_advances")
-    @encode.begin_array(writer)
-    for advance in advances {
-      @json.emit_value(advance.value, writer)
-    }
-    @encode.end_array(writer)
-    @encode.key(writer, "result_artifacts")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      @json.emit_value(snapshot.artifact.value, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "result_fields")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      guard canonical_string_array(
-          snapshot.fields,
-          max_wire_bytes,
-          max_nodes,
-          max_depth,
-        )
-        is Some(fields) else {
-        return Err(CaptureIssuanceEncoding)
-      }
-      @json.emit_value(fields, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "result_values")
-    @encode.begin_object(writer)
-    for snapshot in snapshots {
-      @encode.key(writer, snapshot.name)
-      @json.emit_value(snapshot.rows, writer)
-    }
-    @encode.end_object(writer)
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-run-effect-context/0.1")
-    @encode.end_object(writer)
-  } catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body_wire = @encode.finish(writer) catch {
-    _ => return Err(CaptureIssuanceEncoding)
-  }
-  let body = match
-    parse_contract_wire(
-      body_wire,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-      data_keys=true,
+  // Draining form of the private child; outer issuance still blocks here.
+  let workspace = if max_nodes > 268435455 { 2147483647 } else { max_nodes * 8 }
+  let preparation = match
+    start_effect_context_preparation(
+      snapshots, sources, local_sources, dependencies, advances, authoring, models,
+      preview, plans, max_wire_bytes, max_nodes, max_depth, workspace,
     ) {
-    Ok(value) => value
-    Err(_) => return Err(CaptureIssuanceEncoding)
+    Ok(preparation) => preparation
+    Err(issue) => return Err(issue)
   }
-  let identity = @json.cid_value(body, max_wire_bytes, max_nodes, max_depth) catch {
-    _ => return Err(CaptureIssuanceEncoding)
+  while true {
+    match preparation.advance(256) {
+      Err(issue) => return Err(issue)
+      Ok((true, _)) => return preparation.finish()
+      Ok((false, _)) => ()
+    }
+  } nobreak {
+    Err(CaptureIssuanceEncoding)
   }
-  guard @json.object_with_string_field(body, "effect_context_cid", identity)
-    is Some(complete) else {
-    return Err(CaptureIssuanceEncoding)
-  }
-  Ok(complete)
 }
 
 ///|
