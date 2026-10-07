@@ -37,7 +37,7 @@ fn close_native_strategy_unfiled_local_owner(
       Err(_) => return Err(LocalCleanup)
     }
   }
-  Ok(true)
+  Ok((owner.operations.cleanup_refresh)())
 }
 
 ///|
@@ -292,6 +292,9 @@ fn close_native_strategy_local_owner(
       Err(issue) => return Err(FileRelease(issue))
     }
     owner.released = true
+  }
+  if !(owner.operations.cleanup_refresh)() {
+    return Ok(false)
   }
   match owner.operations.output {
     Some(output) => (output.refresh)().map_err(_ => LocalCleanup)

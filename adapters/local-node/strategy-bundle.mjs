@@ -285,7 +285,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       const failureProgress = beginManagedFailureProgress(
         moon,
         createSnapshotLease == null || typeof operations.prepare_carrier_snapshot !== 'function',
-        typeof operations.cleanup_refresh !== 'function',
+        false,
       );
       let available = true;
       let snapshot, snapshotDiagnostic, relationSnapshotDiagnostic;
@@ -500,7 +500,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       const failureProgress = beginManagedFailureProgress(
         moon,
         false,
-        typeof operations.cleanup_refresh !== 'function',
+        false,
       );
       let importedRows = 0, importedBytes = 0n;
       let output;
@@ -541,24 +541,37 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           importedBytes: String(importedBytes),
           ...measuredGuardUsage, ...exported},
           publicationOutput: operations.publication_output?.(),
-          close: output ? async () => {
-            output?.close();
-            operations.close();
-            if (output) {
-              try {
+          close: async () => {
+            try {
+              output?.close();
+              if (output) {
+                // The output refresh verifies a disposed execution ticket.
+                // Close is idempotent; physical cleanup still owns the holding.
+                operations.close();
                 await output.cleanupHandle.retry();
                 if (output.cleanupHandle.status().pending) throw new Error('LocalOutputCleanupPending');
-              } catch (error) {
-                const failure = error instanceof Error ? error : new Error('LocalOutputCleanupFailed');
-                // Failed close must hand over cleanup authority even if the
-                // Store physically finished before a later refresh failed.
-                // The common Site owner observes the handle before release.
-                failure.cleanupPending = true;
-                failure.cleanupHandle = output.cleanupHandle;
-                throw failure;
               }
+            } catch (error) {
+              // Keep both the physical Store and installed execution owner.
+              // Retrying cleanup cannot re-enter Compute or re-import inputs.
+              const failure = settleFailedManagedOperations(operations, checked, error,
+                failureProgress, output == null ? [] : [{
+                  close: () => output.close(), cleanupHandle: output.cleanupHandle,
+                }]);
+              if (failure === error && output != null) {
+                // The common owner has already confirmed cleanup. Still hand
+                // its physical observer to the Site owner so a lost close
+                // acknowledgement cannot strand an otherwise released holding.
+                const reported = error instanceof Error ? error :
+                  new Error('LocalOutputCleanupFailed', {cause: error});
+                reported.cleanupPending = true;
+                reported.cleanupHandle = output.cleanupHandle;
+                throw reported;
+              }
+              throw failure;
             }
-          } : () => operations.close()};
+            closeCompletedLocalManagedOutput(operations, checked, failureProgress);
+          }};
       } catch (error) {
         stopBoundedExecution(operations, checked);
         const stopped = settleFailedManagedOperations(

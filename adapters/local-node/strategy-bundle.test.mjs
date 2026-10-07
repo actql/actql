@@ -52,11 +52,13 @@ function installed(consume, completionFailure, options = {}) {
       events.push('close');
       options.close?.();
     },
+    cleanup_refresh: () => options.cleanupRefresh?.() ?? true,
   };
   const entry = localStrategyContribution({
     ...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
+    strategyHostTask: value => value,
     strategyModule_local_Dispatch: (owner, work) => {
       assert.equal(owner, setup); assert.equal(work, task);
       events.push('reserved'); return ok(operations);
@@ -73,7 +75,7 @@ test('Local contribution admits, reads, executes and completes before exposing i
   assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 1,
     importedBytes: '10', measuredGuardWork: 12, measuredGuardBytes: 34,
     measuredGuardNodes: 5});
-  output.close();
+  await output.close();
   assert.equal(f.events.at(-1), 'close');
 });
 
@@ -83,10 +85,38 @@ test('Local completion does not invent unavailable guard usage', async () => {
   const output = await f.entry.run(f.task);
   assert.deepEqual(output.diagnostic, {realization: 'local', importedRows: 0,
     importedBytes: '2'});
-  output.close();
+  await output.close();
 });
 
-test('standard Local legacy completion observes forced Site loss', async () => {
+test('materializing Local completion retains its cleanup owner without Compute replay', async () => {
+  let released = false, refreshes = 0;
+  const f = installed(async accept => {
+    await accept(new TextEncoder().encode('[{"id":3}]'));
+  }, undefined, {cleanupRefresh() { refreshes++; return released; }});
+  const output = await f.entry.run(f.task);
+  let failure;
+  await assert.rejects(output.close(), error => {
+    failure = error;
+    return error.cleanupPending === true;
+  });
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  const computes = () => f.events.filter(event => event === 'execute').length;
+  const imports = () => f.events.filter(event => Array.isArray(event) && event[0] === 'row').length;
+  assert.equal(computes(), 1);
+  assert.equal(imports(), 1);
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  released = true;
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  const settled = refreshes;
+  await failure.cleanupHandle.retry();
+  assert.equal(refreshes, settled);
+  assert.equal(computes(), 1);
+  assert.equal(imports(), 1);
+});
+
+test('standard Local completion observes forced Site loss', async () => {
   for (const forced of [true, false]) {
     const setup = {}, registration = {}, task = {};
     const selectedSite = createInProcessExecutionSite({
@@ -110,12 +140,14 @@ test('standard Local legacy completion observes forced Site loss', async () => {
         return ok();
       },
       close() {},
+      cleanup_refresh: () => true,
     };
     const entry = localStrategyContribution({
       ...portableRuntime,
       strategyModule_local_Registration: () => registration,
       strategyHostRegistrationSelectionKey: () => 'local-test',
       strategyHostNextTask: () => -1,
+      strategyHostTask: value => value,
       strategyHostManagedProducers: () => [],
       strategyModule_local_Dispatch: (owner, work) => {
         assert.equal(owner, setup);
@@ -191,7 +223,7 @@ test('reader rejection retains its cleanup handle and completion failure does no
   assert.equal(f.events.at(-1), 'close');
 });
 
-test('legacy Local defers settlement until provider cleanup is confirmed',
+test('materializing Local defers settlement until provider cleanup is confirmed',
   async () => {
     let pending = true, retries = 0;
     const cleanupHandle = Object.freeze({
@@ -221,7 +253,7 @@ test('legacy Local defers settlement until provider cleanup is confirmed',
     assert.deepEqual(f.events, ['reserved', 'begin', 'close', 'settle']);
   });
 
-test('legacy Local preserves its primary failure when operation close fails',
+test('materializing Local preserves its primary failure when operation close fails',
   async () => {
     const primary = new Error('provider-read');
     const closeFailure = new Error('operation-close');
