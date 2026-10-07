@@ -69,7 +69,54 @@ const text = (name, tail, extra = {}) => ({
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
   ...extra,
 });
+// Fixed shorthand expectations include cases where grouping-first and
+// aggregate-first sorting would produce different public row orders.
+export const pipeAggregateOrderSuccesses = [
+  {name: 'group-property-shorthand-independent-json', format: 'json',
+    text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
+  text('shorthand-default-null-duplicates',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: aliasedRows, columns: aliasedColumns}),
+  text('shorthand-group-null-suffix-alone',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS bucket NULLS LAST',
+    {expected: [{bucket: 10, n: 1}, {bucket: 20, n: 2}, {bucket: null, n: 2}], columns: aliasedColumns}),
+  text('shorthand-explicit-desc-null-first',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket DESC NULLS FIRST',
+    {expected: [{bucket: null, n: 2}, {bucket: 20, n: 2}, {bucket: 10, n: 1}], columns: aliasedColumns}),
+  text('shorthand-group-before-aggregate',
+    'FROM objects |> AGGREGATE COUNT(*) AS n DESC GROUP BY payload.score AS bucket ASC NULLS LAST',
+    {expected: [{bucket: 10, n: 1}, {bucket: 20, n: 2}, {bucket: null, n: 2}], columns: aliasedColumns}),
+  text('shorthand-computed-key-predicate-limit',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score + 1 AS bucket DESC NULLS LAST |> WHERE bucket > 10 |> LIMIT 1',
+    {expected: [{bucket: 21, n: 2}], columns: aliasedColumns}),
+  text('shorthand-group-only-empty',
+    'FROM objects |> WHERE FALSE |> AGGREGATE GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [], columns: [{name: 'bucket', contract: {...number, nullable: true}}]}),
+  text('shorthand-repeated-key',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS first DESC NULLS LAST, payload.score AS second',
+    {expected: [{first: 20, second: 20, n: 2}, {first: 10, second: 10, n: 1}, {first: null, second: null, n: 2}],
+      columns: [{name: 'first', contract: {...number, nullable: true}},
+        {name: 'second', contract: {...number, nullable: true}}, {name: 'n', contract: number}]}),
+  {name: 'group-property-shorthand-aggregate-only-suffix', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x '
+      + 'UNION ALL SELECT 3 AS x UNION ALL SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'FROM samples |> AGGREGATE COUNT(*) AS n DESC GROUP BY x',
+    expected: [{x: 2, n: 3}, {x: 1, n: 2}, {x: 3, n: 1}],
+    columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+];
+export const pipeAggregateOrderRefusals = [
+  text('shorthand-aggregate-null-suffix-needs-direction',
+    'FROM objects |> AGGREGATE COUNT(*) AS n NULLS FIRST GROUP BY id'),
+  text('shorthand-sql-placement', 'SELECT id FROM objects GROUP AND ORDER BY id'),
+  text('shorthand-malformed-null-order',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY id ASC NULLS MIDDLE'),
+  text('shorthand-removed-range',
+    'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY old.payload.score AS bucket |> SELECT old.payload.score'),
+  text('shorthand-alias-collision',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY id AS n'),
+];
 export const groupPropertySuccesses = [
+  ...pipeAggregateOrderSuccesses,
   {name: 'group-property-key-alias-independent-json', format: 'json',
     text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
   text('key-alias-explicit-null-duplicates',
@@ -186,4 +233,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters}));
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals);
