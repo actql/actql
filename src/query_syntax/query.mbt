@@ -78,7 +78,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum GroupingScope {
   SqlSelect
-  PipeAggregate
+  PipeAggregate(Array[NamePart?])
 } derive(Eq)
 
 ///|
@@ -410,7 +410,16 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Alias(name) => Some(Alias(name))
     RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections, scope) =>
-      Some(Group(keys.copy(), copy_projections(projections), scope))
+      Some(
+        Group(
+          keys.copy(),
+          copy_projections(projections),
+          match scope {
+            SqlSelect => SqlSelect
+            PipeAggregate(names) => PipeAggregate(names.copy())
+          },
+        ),
+      )
     Having(e, calls) =>
       Some(
         Having(
@@ -1307,6 +1316,7 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
 ///|
 fn QueryParser::group_keys(
   self : QueryParser,
+  names? : Array[NamePart?]? = None,
 ) -> Array[Expression] raise QueryAbort {
   self.keyword("GROUP")
   self.keyword("BY")
@@ -1321,6 +1331,9 @@ fn QueryParser::group_keys(
   while true {
     self.node()
     keys.push(self.expression())
+    if names is Some(names) {
+      names.push(self.optional_output_alias())
+    }
     if self.peek().value != Symbol(44) {
       break
     }
@@ -2139,8 +2152,13 @@ fn QueryParser::pipe_tail(
       if aggregates.any(projection => projection.aggregate is None) {
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }
-      let keys = if self.has("GROUP") { self.group_keys() } else { [] }
-      operations.push(Group(keys, aggregates, PipeAggregate))
+      let names : Array[NamePart?] = []
+      let keys = if self.has("GROUP") {
+        self.group_keys(names=Some(names))
+      } else {
+        []
+      }
+      operations.push(Group(keys, aggregates, PipeAggregate(names)))
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")

@@ -765,8 +765,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('e14a88db3f98d88cb24edefca31ecd1c0d63f81e152a61d464756a83c5850329'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('3ed63e2c45d68425784a904b0378099fe284027a35e2c3e78d016bdc854f6903'));
-  assert.equal(current.run.run_definition_cid,
+  // Grouping-only parent remains an immutable full normative preimage.
+  assert.equal(vector(pin('bb311179f5afee3d6e03181b66113f045cbd6190ce4174b32d40ac9a67459a8d'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('af4b746a75926ddcf8a506348a9df55147a10bf9c0b64e4f950d0ec6d513e9d5'));
+  assert.equal(current.run.run_definition_cid,
+    pin('732a5690b7573d96b3c54114780ee1255ddeab06d15514f65ec24236c1107251'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');

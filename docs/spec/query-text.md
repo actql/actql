@@ -350,6 +350,19 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+Pipe grouping items accept an optional output alias, with or without AS,
+including backtick-quoted names. Each grouping expression and aggregate argument
+resolves against the pre-group input scope. A grouping alias does not rebind a
+sibling grouping expression. The existing group operation retains its physical
+keys; the subsequent ordinary projection names the grouped output. Output columns
+are grouping items in authored order followed by aggregates. Duplicate output
+names are rejected under the selected case-insensitive name rules. Repeated key
+references with distinct aliases retain the repeated `by` entries and project the
+same grouped value twice; they do not strengthen uniqueness or duplicate rows.
+After AGGREGATE, only those output columns are visible, and the old input range
+is closed. These aliases belong to Pipe; SQL GROUP BY does not acquire the Pipe
+output-alias grammar.
+
 Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
 to the ordinary group operation with an empty aggregate map: each distinct
 group contributes its grouping columns, in authored key order, with their
