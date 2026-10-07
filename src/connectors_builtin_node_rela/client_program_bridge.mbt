@@ -134,6 +134,23 @@ pub fn client_program_prepare_effect_free_with_parameters(
 }
 
 ///|
+#export_name("clientProgramWithValuesRowLimit")
+pub fn client_program_with_values_row_limit(
+  prepared : @publication_host.PreparedClientProgram,
+  max_rows : Int,
+) -> @publication_host.PreparedClientProgram? {
+  @publication_host.with_prepared_client_values_row_limit(prepared, max_rows)
+}
+
+///|
+#export_name("clientProgramValuesMaxRows")
+pub fn client_program_values_max_rows(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int {
+  @publication_host.prepared_client_values_max_rows(prepared)
+}
+
+///|
 #export_name("clientProgramPreparationReady")
 pub fn client_program_preparation_ready(
   outcome : ClientProgramBridgeOutcome,
@@ -970,7 +987,7 @@ pub fn client_program_local_aoa_steps(
   @publication_host.emit_prepared_client_task_aoa_steps(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -988,7 +1005,7 @@ pub fn client_program_local_values_pipeline_json(
   @publication_host.emit_prepared_client_values_pipeline(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1008,7 +1025,7 @@ pub fn client_program_issue_local_values_aoa_identity(
   @publication_host.issue_prepared_client_values_aoa_identity(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1084,7 +1101,7 @@ pub fn client_program_local_values_unit_source_json(
   @publication_host.emit_prepared_client_values_unit_source(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1104,7 +1121,7 @@ pub fn client_program_issue_local_values_output_schema(
   @publication_host.issue_prepared_client_values_output_schema(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
     100000,
     10000,
@@ -1142,7 +1159,7 @@ pub fn client_program_issue_local_values_fragment(
   @publication_host.issue_prepared_client_values_fragment(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1164,7 +1181,7 @@ pub fn client_program_admit_local_values_fragment(
     prepared,
     task,
     saved_wire,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1207,7 +1224,7 @@ pub fn client_program_issue_local_values_plan_graph(
 ] {
   @publication_host.issue_prepared_client_values_plan_graph(
     prepared,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1226,7 +1243,7 @@ pub fn client_program_admit_local_values_plan_graph(
   @publication_host.admit_prepared_client_values_plan_graph(
     prepared,
     saved_wire,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -1273,7 +1290,7 @@ pub fn client_program_issue_local_values_executable_plan(
     @publication_host.issue_prepared_client_values_executable_plan(
       prepared,
       manifests,
-      client_local_sequence_limits(),
+      @publication_host.prepared_client_values_sequence_limits(prepared),
       1000,
       10000,
       1000000,
@@ -1340,7 +1357,7 @@ pub fn client_program_compile_local_values(
     @publication_host.issue_prepared_client_values_compilation(
       prepared,
       manifests,
-      client_local_sequence_limits(),
+      @publication_host.prepared_client_values_sequence_limits(prepared),
       1000,
       10000,
       1000000,
@@ -1380,7 +1397,7 @@ pub fn client_program_issue_task_executable_plan(
   @publication_host.issue_prepared_client_task_executable_plan(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     1000,
     10000,
     1000000,
@@ -1425,7 +1442,7 @@ pub fn client_program_compile_local_tasks(
   @publication_host.issue_prepared_client_task_compilation(
     prepared,
     manifests,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     1000,
     10000,
     1000000,
@@ -1475,7 +1492,7 @@ pub fn client_program_task_pipeline_wire(
   @publication_host.emit_prepared_client_task_pipeline(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     1000000,
     100000,
     100,
@@ -1494,7 +1511,7 @@ pub fn client_program_issue_task_fragment(
   @publication_host.issue_prepared_client_task_fragment(
     prepared,
     task,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     1000000,
     100000,
     100,
@@ -1519,7 +1536,7 @@ pub fn client_program_issue_task_plan_graph(
 ] {
   @publication_host.issue_prepared_client_task_plan_graph(
     prepared,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -2124,7 +2141,7 @@ pub fn client_program_admit_task_plan_graph(
   @publication_host.admit_prepared_client_task_plan_graph(
     prepared,
     saved_wire,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -2297,7 +2314,7 @@ pub fn client_program_issue_direct_values_result_root(
   @publication_host.issue_prepared_client_direct_values_result_root(
     prepared,
     result,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -2316,7 +2333,7 @@ pub fn client_program_issue_direct_task_result_root(
   @publication_host.issue_prepared_client_direct_task_result_root(
     prepared,
     result,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -2337,7 +2354,7 @@ pub fn client_program_admit_direct_values_result_root(
     prepared,
     result,
     saved_wire,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
@@ -2382,7 +2399,7 @@ pub fn client_program_admit_local_values_aoa_identity(
     task,
     saved_wire,
     claimed_cid,
-    client_local_sequence_limits(),
+    @publication_host.prepared_client_values_sequence_limits(prepared),
     100000,
     10000,
     100,
