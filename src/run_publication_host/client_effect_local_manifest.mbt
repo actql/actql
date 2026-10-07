@@ -82,7 +82,10 @@ pub fn issue_client_effect_local_manifest(
   }
   let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
   for artifact in artifacts {
-    let name = artifact.definition.result_name
+    guard artifact.source is ResultSource(_, definition) else {
+      return Err(ForeignArtifact)
+    }
+    let name = definition.result_name
     if by_name.contains(name) {
       return Err(DuplicateResult)
     }
@@ -92,7 +95,7 @@ pub fn issue_client_effect_local_manifest(
       ) ||
       !physical_equal(artifact.invocation, invocation) ||
       !client_effect_local_result_definition_matches(
-        artifact.definition,
+        definition,
         owner,
         invocation.unit,
         name,

@@ -71,24 +71,50 @@ pub fn issue_source_free_client_effect_local_identity(
     !client_effect_local_artifact_matches_member(artifact, inputs, member_index) {
     return Err(ForeignInput)
   }
-  guard @strategy.captured_effect_input_at(inputs, member_index) is Some(input) else {
-    return Err(MissingMember)
+  let (unit, name, definition_cid, private_input) = match artifact.source {
+    ResultSource(_, definition) => {
+      guard @strategy.captured_effect_input_at(inputs, member_index)
+        is Some(input) else {
+        return Err(MissingMember)
+      }
+      let unit = @strategy.captured_effect_input_stage(input)
+      if !client_effect_local_result_definition_matches(
+          definition,
+          owner,
+          unit,
+          definition.result_name,
+        ) {
+        return Err(ForeignArtifact)
+      }
+      (unit, definition.result_name, definition.unit_definition_cid, false)
+    }
+    TableSource(_, definition) => {
+      guard @strategy.captured_effect_table_input_at(inputs, member_index)
+        is Some(input) else {
+        return Err(MissingMember)
+      }
+      if !client_effect_local_table_definition_matches(definition, owner, input) {
+        return Err(ForeignArtifact)
+      }
+      (definition.unit, definition.name, definition.unit_definition_cid, true)
+    }
   }
-  let unit = @strategy.captured_effect_input_stage(input)
   let headers = @checked.effect_program_static_headers(owner.candidate)
   guard @syntax.effect_header_at(headers, member_index) is Some(header) &&
-    @syntax.effect_header_stage(header) == unit &&
-    @syntax.effect_header_source_result(header) ==
-    Some(artifact.definition.result_name) else {
+    @syntax.effect_header_stage(header) == unit else {
     return Err(MissingMember)
   }
-  if !client_effect_local_result_definition_matches(
-      artifact.definition,
-      owner,
-      unit,
-      artifact.definition.result_name,
-    ) ||
-    !client_effect_local_invocation_matches(artifact.invocation, owner, unit) {
+  if private_input {
+    if @syntax.effect_header_kind(header) != "store" ||
+      @syntax.effect_header_source_table_input(header) != Some(name) ||
+      @syntax.effect_header_source_result(header) is Some(_) {
+      return Err(MissingMember)
+    }
+  } else if @syntax.effect_header_source_result(header) != Some(name) ||
+    @syntax.effect_header_source_table_input(header) is Some(_) {
+    return Err(MissingMember)
+  }
+  if !client_effect_local_invocation_matches(artifact.invocation, owner, unit) {
     return Err(ForeignArtifact)
   }
   let descriptor = match
@@ -103,10 +129,9 @@ pub fn issue_source_free_client_effect_local_identity(
     Err(_) => return Err(MissingMapping)
   }
   let (_, _, _, _, _, resolved_contract_cid, source_result, _) = descriptor
-  if source_result != Some(artifact.definition.result_name) {
+  if source_result != (if private_input { None } else { Some(name) }) {
     return Err(ForeignArtifact)
   }
-  let definition_cid = artifact.definition.unit_definition_cid
   let invocation_cid = artifact.invocation.cid
   let artifact_cid = @publication.publication_contract_identity(
     artifact.artifact,
@@ -238,8 +263,11 @@ pub fn check_source_free_client_effect_preview_identities(
           return Err(MissingIdentity)
         }
         let header = @syntax.effect_header_at(headers, identity.member_index).unwrap()
+        guard identity.artifact.source is ResultSource(_, definition) else {
+          return Err(ForeignPreview)
+        }
         if @syntax.effect_header_source_result(header) != Some(source_result) ||
-          identity.artifact.definition.result_name != source_result ||
+          definition.result_name != source_result ||
           identity.cid != expected_cid {
           return Err(ForeignPreview)
         }
