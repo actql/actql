@@ -1938,14 +1938,16 @@ for (const entrance of ['local', 'http']) {
 }
 
 test('local: check reply custody refuses uncloneable values and copied shape loss', async t => {
-  for (const kind of ['proxy', 'date']) {
-    const client = await contextClient(t, 'local', absentEnvironment, {mutateCheckReply(outcome) {
-      // Both values satisfy the incoming shape; copying must preserve a valid
-      // plain public envelope before the SDK associates any original input.
-      const received = kind === 'proxy' ? new Proxy(outcome, {}) : Object.assign(new Date(0), outcome);
-      assert.equal(validCheckOutcome(received), true);
-      return received;
-    }});
+  const nativeClone = globalThis.structuredClone;
+  let kind;
+  t.mock.method(globalThis, 'structuredClone', received => {
+    if (received?.version !== 'actql-check-outcome/0.1') return nativeClone(received);
+    // Inject a conversion fault after the original DTO has been captured.
+    return kind === 'proxy' ? nativeClone(new Proxy(received, {}))
+      : nativeClone(Object.assign(new Date(0), received));
+  });
+  for (kind of ['proxy', 'date']) {
+    const client = await contextClient(t, 'local', absentEnvironment);
     let refused = false;
     try { await client.check('SELECT', {format: 'sql'}); }
     catch (cause) {
@@ -1955,6 +1957,22 @@ test('local: check reply custody refuses uncloneable values and copied shape los
     assert.equal(refused, true, '[check-mutation:check-copied-shape]');
   }
 });
+
+for (const kind of ['proxy', 'date']) {
+  test(`local: check captures own DTO fields from a ${kind} response`, async t => {
+    const client = await contextClient(t, 'local', absentEnvironment, {mutateCheckReply(outcome) {
+      const received = kind === 'proxy' ? new Proxy(outcome, {}) : Object.assign(new Date(0), outcome);
+      assert.equal(validCheckOutcome(received), true);
+      return received;
+    }});
+    const outcome = await client.check('SELECT', {format: 'sql'});
+    assert.equal(outcome.kind, 'completed');
+    assert.equal(outcome.report.verdict, 'invalid');
+    assert.equal(Object.getPrototypeOf(outcome), Object.prototype);
+    assert.equal(getCheckInput(outcome, 'source').text, 'SELECT');
+    assert.equal(getCheckInput(structuredClone(outcome), 'source'), undefined);
+  });
+}
 
 test('the admitted checker exposes exact selections without private Source inventories', () => {
   const flags = ['text_time', 'veca', 'rela', 'sga', 'tea', 'calendar', 'text_rank'];

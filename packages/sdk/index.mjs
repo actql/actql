@@ -123,12 +123,24 @@ const structuralKey = value => value !== null && typeof value === 'object'
       JSON.stringify(key) + ':' + structuralKey(value[key])).join(',') + '}'
   : JSON.stringify(value);
 
-// Capture the borrowed response once with the platform clone fixed at SDK load.
-// Later conversion uses only owned facts; rereading Host getters cannot change
-// admission. Preserve native rejection of proxies and noncloneable values.
-// This is response custody, not the separate request JSON serializer.
-const cloneHostResponse = globalThis.structuredClone.bind(globalThis);
-const captureHostResponse = value => cloneHostResponse(value);
+// Observe each enumerable response field once, before admission or branching.
+// This is a data capture, not request JSON serialization: no toJSON/coercion,
+// borrowed array methods, or repeated reads of shared nested response objects.
+const captureResponse = (value, captured = new Map()) => {
+  if (['function', 'symbol', 'bigint'].includes(typeof value)) {
+    throw new TypeError('InvalidHostResponseData');
+  }
+  if (value === null || typeof value !== 'object') return value;
+  if (captured.has(value)) return captured.get(value);
+  const copy = Array.isArray(value) ? new Array(value.length) : {};
+  captured.set(value, copy);
+  for (const key of Object.keys(value)) Object.defineProperty(copy, key, {
+    value: captureResponse(value[key], captured),
+    enumerable: true, writable: true, configurable: true,
+  });
+  return copy;
+};
+
 const unordered = values => [...new Map(values.map(value =>
   [structuralKey(value), value])).entries()].sort(([left], [right]) =>
   left < right ? -1 : left > right ? 1 : 0).map(([, value]) => value);
@@ -1123,7 +1135,7 @@ async function connectSelected(selected, port) {
       let state;
       try { state = await controlValue(response); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
-      try { state = captureHostResponse(state); }
+      try { state = captureResponse(state); }
       catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
       const problem = rejectedRunProblem(state);
       try {
@@ -1417,7 +1429,7 @@ async function connectSelected(selected, port) {
             resultName: name,
           };
           try {
-            answer = captureHostResponse(answer);
+            answer = captureResponse(answer);
             if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');
             const observation = answer;
             const observedKey = structuralKey(answer);
@@ -1444,7 +1456,7 @@ async function connectSelected(selected, port) {
       cancel: async ({signal} = {}) => {
         const context = freezeInput({ref: {...ref}});
         let response = await readControl('cancel', {}, signal, context);
-        try { response = captureHostResponse(response); }
+        try { response = captureResponse(response); }
         catch {
           throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),
             context, 'outcome_unknown');
@@ -1504,7 +1516,7 @@ async function connectSelected(selected, port) {
     catch (cause) {
       throw submissionUnknown(context, cause);
     }
-    try { admitted = captureHostResponse(admitted); }
+    try { admitted = captureResponse(admitted); }
     catch { throw submissionUnknown(context, new ClientError('InvalidHostAdmission')); }
     if (admitted?.kind === 'held' &&
         validSubmitReply(admitted, selected.wire, requestId)) {
@@ -1573,7 +1585,7 @@ async function connectSelected(selected, port) {
         if (cause instanceof ClientError) throw cause;
         throw rejectedCheck(body, 'malformed_response');
       }
-      try { outcome = captureHostResponse(outcome); }
+      try { outcome = captureResponse(outcome); }
       catch { throw rejectedCheck(body, 'malformed_response'); }
       const header = rejectedCheckHeader(outcome);
       const reject = () => { throw rejectedCheck(body, rejectedCheckProblem(header)); };
@@ -1655,7 +1667,7 @@ async function connectSelected(selected, port) {
       catch (cause) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
-      try { answer = captureHostResponse(answer); }
+      try { answer = captureResponse(answer); }
       catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }
       if (!validRequestLookup(answer, requestId)) {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
@@ -1696,7 +1708,7 @@ async function connectSelected(selected, port) {
       }
       try { answer = await controlValue(response); }
       catch { throw uninterpretableRequestCancellation(context); }
-      try { answer = captureHostResponse(answer); }
+      try { answer = captureResponse(answer); }
       catch { throw uninterpretableRequestCancellation(context); }
       if (!validRequestCancellation(answer, requestId)) {
         throw uninterpretableRequestCancellation(context);

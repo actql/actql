@@ -41,15 +41,17 @@ const mutations = [
     "physicalStop: state.control?.physical_stop ?? 'unknown',",
     "physicalStop: 'confirmed',", unit, controlCases],
   ['a reused Local response rebinds an earlier observation to another Run',
-    'const captureHostResponse = value => cloneHostResponse(value);',
-    'const captureHostResponse = value => value;', unit, custodyCases, true],
+    'const captureResponse = (value, captured = new Map()) => {',
+    'const captureResponse = (value, captured = new Map()) => { return value;', unit, custodyCases, true],
   ['a Local Effect reply clone failure loses the SDK refusal',
-    "      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }",
-    '      catch (error) { throw error; }', unit, copiedShapeCases(['proxy'])],
+    "        if (runObservationFailures.has(cause)) throw cause;\n" +
+      "        throw rejectedRunObservation(ref, operation, 'malformed_response');",
+    "        if (runObservationFailures.has(cause)) throw cause;\n        throw cause;", unit, copiedShapeCases(['proxy'])],
   ['a Local Effect reply bypasses native shape-loss admission',
-    'const captureHostResponse = value => cloneHostResponse(value);',
-    'const captureHostResponse = value => value;', unit,
-    copiedShapeCases(['date', 'control-date', 'action-date']), true],
+    "        if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);\n" +
+      "        if (structuralKey(state) !== observedKey) {\n" +
+      "          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }",
+    '', unit, copiedShapeCases(['date', 'control-date', 'action-date'])],
 ];
 
 const accepted = (file, expected) => {

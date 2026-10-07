@@ -1086,11 +1086,10 @@ the generic location contract until their domain is defined.
 
 A public Local Host port may reuse its response objects. The SDK captures each
 enumerable response field once before reading a branch or validating the reply.
-It uses the platform `structuredClone` captured at SDK module initialization,
-preserving native refusal of noncloneable values and native handling of built-in
-objects. Later conversion cannot redirect that initial capture. This assumes the
-platform clone is available and intact when the SDK is loaded; it does not defend
-against replacement of the application's platform before module initialization.
+It uses the existing shared data-capture helper without a cached clone, toJSON,
+coercion or borrowed array methods. Valid own DTO data on Date/Proxy containers
+and shared nested objects is captured once into plain data; prototype-named own
+keys remain data. Function, symbol and bigint leaves fail capture.
 Admission, failure classification, input binding and presentation use that owned
 value. Cloning and revalidation additionally reject a well-shaped copy that
 changes any captured fact; comparison never rereads borrowed Host getters.
@@ -1106,7 +1105,7 @@ failure with a valid partial report retains that report's submitted inputs;
 an unavailable outcome establishes no report or input association. Copying a
 report outside the SDK does not reconstruct its private input association.
 
-An uncloneable response or an invalid copied shape fails the existing transport
+Uncapturable response data or an invalid copied shape fails the existing transport
 contract check before any association. This changes neither the checker verdict
 nor the Host's scope/context or disclosure projection. No new source hash,
 persistence, retrieval API, compatibility route or execution state is added.

@@ -273,8 +273,8 @@ const mutations = [
     'received = structuredClone(response);', 'received = response;',
     'cancellation-custody', 'cancel-custody'],
   ['cancellation clone failure leaks an unassociated error',
-    'try { response = captureHostResponse(response); }',
-    'response = captureHostResponse(response); try {}',
+    'try { received = structuredClone(response); }',
+    'received = structuredClone(response); try {}',
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
   ['cancellation clone erasure bypasses shape validation',
     "        if (!validCancellation(received) ||\n" +
@@ -394,11 +394,10 @@ const originals = new Map(selected.map(([, , , phase]) => mutationPath(phase))
 // Redundant capture/copy defenses must both be removed to inject the original
 // custody or copied-value fault. Named assertion targets remain unchanged.
 const captureFaults = {
-  'request-snapshot': ["try { answer = captureHostResponse(answer); }", "catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }"],
-  'request-cancel-snapshot': ["try { answer = captureHostResponse(answer); }", 'catch { throw uninterpretableRequestCancellation(context); }'],
-  'cancellation-custody': ['try { response = captureHostResponse(response); }'],
-  'check-custody': ['try { outcome = captureHostResponse(outcome); }'],
-  'check-shape': ['try { outcome = captureHostResponse(outcome); }'],
+  'request-snapshot': ["try { answer = captureResponse(answer); }", "catch { throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable'); }"],
+  'request-cancel-snapshot': ["try { answer = captureResponse(answer); }", 'catch { throw uninterpretableRequestCancellation(context); }'],
+  'cancellation-custody': ['try { response = captureResponse(response); }'],
+  'check-custody': ['try { outcome = captureResponse(outcome); }'],
 };
 const results = [];
 try {
@@ -411,28 +410,13 @@ try {
       const [capture, following] = captureFaults[phase];
       const anchor = following ? capture + '\n      ' + following : capture;
       if (altered.split(anchor).length !== 2) throw new Error(`Capture fault anchor not unique: ${name}`);
-      altered = altered.replace(anchor, anchor.replace('captureHostResponse(answer)', 'answer')
-        .replace('captureHostResponse(response)', 'response').replace('captureHostResponse(outcome)', 'outcome'));
+      altered = altered.replace(anchor, anchor.replace('captureResponse(answer)', 'answer')
+        .replace('captureResponse(response)', 'response').replace('captureResponse(outcome)', 'outcome'));
     }
     if (phase.startsWith('cancellation-clone:clone changes')) {
       const guard = '            structuralKey(received) !== observedKey ||\n';
       if (altered.split(guard).length !== 2) throw new Error(`Copied cancellation guard not unique: ${name}`);
       altered = altered.replace(guard, '');
-    }
-    if (phase === 'cancellation-clone:clone erases fields') {
-      const admission = "        if (!validCancellation(response) ||\n" +
-        "            response.ref.namespaceId !== ref.namespaceId ||\n" +
-        "            response.ref.authorityScopeCid !== ref.authorityScopeCid ||\n" +
-        "            response.ref.runDefinitionCid !== ref.runDefinitionCid) {\n" +
-        "          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n" +
-        "            context, 'outcome_unknown');\n        }";
-      if (altered.split(admission).length !== 2) throw new Error(`Admission fault anchor not unique: ${name}`);
-      altered = altered.replace(admission, '');
-    }
-    if (phase === 'check-shape') {
-      const copy = 'try { outcome = structuredClone(outcome); }';
-      if (altered.split(copy).length !== 2) throw new Error(`Copy fault anchor not unique: ${name}`);
-      altered = altered.replace(copy, 'try {}');
     }
     writeFileSync(file, altered);
     results.push({name, phase, rejected: !accepted(phase, assertion)});
