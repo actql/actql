@@ -76,12 +76,14 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     complete: () => {assert(bound); events.push('complete'); return ok();},
     guard_usage: () => [0, 0, 0],
     close: () => {events.push('task-close');},
+    cleanup_refresh: () => true,
   };
   const moon = {...portableRuntime,
     strategyModule_local_Registration: () => ({}),
     strategyHostRegistrationSelectionKey: () => 'local-test',
     strategyModule_local_NextCarrierPath: () => false,
     strategyHostNextTask: () => 2,
+    strategyHostTask: value => value,
     strategyHostManagedProducers: () => [],
     strategyHostManagedInputCount: () => 0,
     strategyModule_local_Dispatch: () => {events.push('reserved'); return ok(operations);}};
@@ -146,7 +148,15 @@ test('physical Local output recovery releases Site holdings and permits full cap
     assert.equal(executionSiteStatus(site).holdings, 1);
     assert.equal(executionSiteStatus(site).heldBytes, 100n);
     if (failCleanup) {
-      await assert.rejects(report.close(), /LocalCleanupInjected/);
+      await assert.rejects(report.close(), error => {
+        const primary = failCleanup === 'before' ? error.primaryFailure : error;
+        assert.equal(primary?.message, 'LocalCleanupInjected');
+        if (failCleanup === 'before') {
+          assert.equal(error.cleanupHandle.status().pending, true);
+          assert.equal(typeof error.cleanupHandle.retry, 'function');
+        }
+        return true;
+      });
       const physicallyPending = failCleanup === 'before';
       assert.equal(report.cleanupPending(), physicallyPending);
       assert.equal(executionSiteStatus(site).holdings, physicallyPending ? 1 : 0);
