@@ -66,3 +66,21 @@ bindings are also unchanged separate boundaries.
 - Fresh packed Local/HTTPS execution, required CI and other targets remain
   unverified at this preparation revision. No full Core/proof/performance gate
   has been run for this unit.
+
+## Public fixture preparation correction
+
+The first normal package set was produced at
+`fd0a8e023dc216970b01377d1764dc25cebc6773`. Its Local JSON controls and the
+retained nine starting-node cases passed. The first new source case was rejected
+in checked DAG preparation with `GraphIssue::TaskLimit`: ten unrelated UNION
+branches used to construct the five node/edge rows exceeded the standard 32-task
+limit. This is not evidence of an incorrect node predicate evaluation.
+The complete failed receipt is retained at
+`worktrees/.codex-scratch/public-query-evidence-UmPG5X/summary.json`.
+
+The fixture now constructs the exact same rows and types with the existing
+typed parameter/UNNEST path. All expected rows, column contracts, nullable
+cases, JSON controls and refusal obligations are unchanged; no Host limit or
+Program admission rule was changed. The normal preparation bridge accepts
+both the JSON control and corrected source. That preparation diagnostic does
+not replace the pending Local/HTTPS execution acceptance.

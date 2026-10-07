@@ -3,20 +3,22 @@
 const number = {type: 'number', nullable: false};
 const payload = {type: 'object', nullable: true,
   fields: {score: {...number, nullable: true}}};
-const declarations = Object.fromEntries(['a', 'b', 'c', 'd', 'e'].map(name => [name, payload]));
-const parameters = {a: {score: 0}, b: {score: 10}, c: {score: 20}, d: null, e: {score: null}};
-const nodes = [{id: 1, payload: parameters.a}, {id: 2, payload: parameters.b},
-  {id: 3, payload: parameters.c}, {id: 4, payload: null}, {id: 5, payload: parameters.e}];
+const nodes = [{id: 1, payload: {score: 0}}, {id: 2, payload: {score: 10}},
+  {id: 3, payload: {score: 20}}, {id: 4, payload: null}, {id: 5, payload: {score: null}}];
 const edges = [{key: 10, src: 1, dst: 2}, {key: 11, src: 1, dst: 3},
   {key: 12, src: 1, dst: 4}, {key: 13, src: 3, dst: 2}, {key: 14, src: 1, dst: 5}];
-const data = 'DATA objects = SELECT 1 AS id, @a AS payload '
-  + 'UNION ALL SELECT 2 AS id, @b AS payload UNION ALL SELECT 3 AS id, @c AS payload '
-  + 'UNION ALL SELECT 4 AS id, @d AS payload UNION ALL SELECT 5 AS id, @e AS payload; '
-  + 'DATA links = SELECT 10 AS key, 1 AS src, 2 AS dst '
-  + 'UNION ALL SELECT 11 AS key, 1 AS src, 3 AS dst '
-  + 'UNION ALL SELECT 12 AS key, 1 AS src, 4 AS dst '
-  + 'UNION ALL SELECT 13 AS key, 3 AS src, 2 AS dst '
-  + 'UNION ALL SELECT 14 AS key, 1 AS src, 5 AS dst; ';
+const declarations = {
+  nodes: {type: 'array', nullable: false, max_items: 5,
+    items: {type: 'object', nullable: false, fields: {id: number, payload}}},
+  edges: {type: 'array', nullable: false, max_items: 5,
+    items: {type: 'object', nullable: false, fields: {key: number, src: number, dst: number}}},
+};
+const parameters = {nodes, edges};
+// Existing typed UNNEST constructs the same rows without unrelated UNION
+// branches exhausting the standard 32-task limit. No ceiling is raised.
+const data = 'DATA objects = SELECT item.id AS id, item.payload AS payload '
+  + 'FROM UNNEST(@nodes) AS item; DATA links = SELECT link.key AS key, '
+  + 'link.src AS src, link.dst AS dst FROM UNNEST(@edges) AS link; ';
 const mapping = 'DATA g = PROPERTY GRAPH (NODE TABLES '
   + '(objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES '
   + '(links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) '
