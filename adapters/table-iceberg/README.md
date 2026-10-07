@@ -91,6 +91,24 @@ establish physical custody/send-once behavior, not Program approval, a current
 authorization decision, a common bulk Preview, or public Table-source admission.
 They are optional Table Host diagnostics, not mandatory SDK/Core dependencies.
 
+## Saved commit response admission
+
+The common Table projection admits a sealed original-operation receipt, not
+just HTTP 200 or `accepted: true`. It checks operation, Effect, Catalog, schema,
+mapping, replacement UUID/generation and the captured Relation's immutable row
+count, including zero. The resulting private Effect outcome retains the full
+receipt. Missing, malformed, foreign or unconfirmed responses leave the existing
+dispatch uncertain; they do not certify noncommit or authorize resend/cleanup.
+
+`table-commit-outcome.mjs` reads only the response owned by the exact Ledger
+claim and the opaque checked Table Preview. It retains the common outcome
+receipt before the existing terminal Ledger CAS. Source availability is needed
+for apply, but immutable evidence can still be settled after source release.
+This function performs no commit, approval, target authorization or retries.
+Host-capture tests use explicit response fixtures; separate optional physical
+tests admit actual Catalog receipts. Together these are boundary evidence, not
+a completed Program-to-approved-Catalog execution or public Table reader.
+
 ```sh
 node scripts/local-checks.mjs test node -- adapters/table-iceberg/physical.test.mjs
 node scripts/local-checks.mjs build moon -- --target js --release src/connectors_builtin_node

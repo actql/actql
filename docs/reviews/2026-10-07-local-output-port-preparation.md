@@ -6,7 +6,13 @@ This unit follows the public ordered-binding connection in #744 at
 `2c65fd65b341e0d6edb61f7678356465abddfb39`. Main
 `0f3ce2083bbdfca6a5f7de6eb34f8dfb8157d88b` was normally merged without
 conflicts. Current Graph definitions, contracts and identities remain the
-only production authority. #744 is an unmerged parent, not main adoption.
+only production authority. #744 was an unmerged parent at the start.
+Before publication, #744 reached main at
+`98718f21f6e8c0993189ccde098ed66fa455e54c`; that main was normally merged
+without conflicts. No parent dependency remains. The execution Relation,
+Local connector and selected chain evidence sources are unchanged by this
+second merge. The newer Host/SDK connection is checked on the final source,
+separately from the earlier JS receipt.
 
 The existing bounded Relation driver already resumes expression, row-name
 and sort metadata work. However, its start function called
