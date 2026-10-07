@@ -126,9 +126,6 @@ test('embedded Host reuses equivalent installation options, not object identity'
     const second = await connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory}});
     assert.equal(first.profile.version, second.profile.version);
-    await first.close();
-    await second.close();
-
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, retainedRelationOutput: true}}),
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
@@ -142,6 +139,11 @@ test('embedded Host reuses equivalent installation options, not object identity'
     await assert.rejects(connectEmbeddedLocal({mode: 'local', owner: 'local',
       installation: {directory, sourceProfilePath: foreign}}),
     {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+    await first.close();
+    await second.close();
+    const reopened = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory, retainedRelationOutput: true}});
+    await reopened.close();
   });
 
 test('public source-free Program uses installed retained Relation output',

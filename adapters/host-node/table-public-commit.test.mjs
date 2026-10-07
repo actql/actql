@@ -288,12 +288,15 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
 });
 }
 
-test('Table public lost commit reply reconciles the original Run without another write', async t => {
+for (const lossPoint of ['before', 'after']) {
+test(lossPoint === 'before'
+  ? 'Table public precommit crash remains unknown across repeated reconciliation'
+  : 'Table public lost commit reply reconciles the original Run without another write', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
   const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
   const launcher = join(f.root, 'lost-commit-reply');
-  // The configured optional Python executable runs the product worker. Only
-  // the real Catalog's post-commit hook is faulted; no receipt is fabricated.
+  // The configured optional Python executable runs the product worker. The
+  // crash is before the Catalog write or after publication; no receipt is fabricated.
   await writeFile(launcher, `#!${python}
 import os, sys
 from pathlib import Path
@@ -307,6 +310,8 @@ def factory(*args):
         def write_claimed(self, *args, **kwargs):
             with (root / "writes.log").open("a") as stream:
                 stream.write("write\\n")
+            if ${lossPoint === 'before' ? 'True' : 'False'}:
+                os._exit(9)
             return super().write_claimed(*args, **kwargs)
         def after_publication(self):
             marker = root / "lost-reply"
@@ -351,6 +356,39 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
       sign: bytes => sign(null, bytes, keys.privateKey)}});
     assert.equal((await terminal(run, observations, t)).status, 'needs_reconciliation');
     const original = commits(f.catalog);
+    if (lossPoint === 'before') {
+      assert.equal(original.length, 0, 'The real Catalog has no original receipt');
+      const writes = await readFile(join(f.root, 'writes.log'), 'utf8');
+      assert.equal(writes.split('write').length - 1, 1);
+      const ref = run.ref;
+      await client.close();
+      client = await connectEmbeddedLocal(options);
+      run = await client.attach(ref);
+      const before = await run.status();
+      assert.equal(before.status, 'needs_reconciliation');
+      assert.equal(before.control.physical_stop, 'confirmed');
+      const retained = () => {
+        const database = new DatabaseSync(join(f.root, 'host', 'requests',
+          'client-requests.sqlite3'), {readOnly: true});
+        try { return {...database.prepare(`SELECT revision, reconciliation_state_wire
+          FROM client_requests WHERE run_definition_cid = ?`).get(ref.runDefinitionCid)}; }
+        finally { database.close(); }
+      };
+      const originalState = retained();
+      assert.equal(JSON.parse(originalState.reconciliation_state_wire).status,
+        'needs_reconciliation');
+      for (let observation = 0; observation < 2; observation++) {
+        await delay(20);
+        const state = await run.reconcile();
+        assert.deepEqual(state, before, '[table-still-unknown:original-observation]');
+        assert.deepEqual(retained(), originalState, '[table-still-unknown:journal-custody]');
+        assert.deepEqual(run.ref, ref);
+        assert.equal(commits(f.catalog).length, 0);
+        assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), writes,
+          '[table-still-unknown:no-resend]');
+      }
+      return;
+    }
     if (original.length !== 1) {
       const read = name => readFile(join(f.root, name), 'utf8')
         .catch(error => ({unavailable: error.code}));
@@ -418,6 +456,7 @@ with os.fdopen(3, "r+b", buffering=0) as channel:
     assert.equal(await readFile(join(f.root, 'writes.log'), 'utf8'), 'write\nwrite\n');
   } finally { await client.close(); }
 });
+}
 
 test('Table sparse materialization exposes the existing Result presence boundary before writes', async t => {
   const f = await tablePhysicalFixture(t), declared = declaration('person_key');

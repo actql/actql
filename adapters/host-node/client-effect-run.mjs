@@ -80,8 +80,14 @@ export function installNodeClientEffectRun({moon,
       }
       const runId = JSON.parse(retained.runDefinition.wire).run_id;
       const receipts = issuedEffectSetReceiptWires(issuedSet, ledger, preview);
+      // The journal owns the first unknown observation. Reissue from current
+      // receipt facts at its original time, then retain the strict whole-wire
+      // comparison: a new read must not rewrite that observation or Effect set.
+      const original = journal.lookupReconciliationState(ref);
+      const observedAt = original === undefined
+        ? updatedAt : JSON.parse(original).updated_at;
       const wire = control.effectReconciliationRunState(preview, receipts,
-        {runId, updatedAt, resultNames: retained.resultNames}, limits);
+        {runId, updatedAt: observedAt, resultNames: retained.resultNames}, limits);
       journal.recordReconciliationState(ref, wire);
       return JSON.parse(wire);
     },
