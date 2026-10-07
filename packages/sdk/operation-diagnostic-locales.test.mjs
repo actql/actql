@@ -109,7 +109,7 @@ test('Effect locale retains separate uncertainty, control revision and physical 
   const expected = {observation: 'effect_outcome_unknown',
     summary: '外部Effectの結果は未確定です。計算の停止はEffectの結果や資源解放を示しません。',
     effects: ['save', 'notify'], physicalStop: 'unknown', controlRevision: 7,
-    next: {operation: 'status', ref}};
+    next: {operation: 'reconcile', ref}};
   assert.deepEqual(sdk.explainEffectUncertainty(state, {get locale() {
     state.status = 'succeeded'; state.next_action.effects.length = 0;
     state.control.physical_stop = 'confirmed'; return 'ja';

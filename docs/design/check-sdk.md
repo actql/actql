@@ -952,22 +952,25 @@ The explanation copies those names, the received physical-stop fact and its
 optional control revision into an immutable weak association. An absent
 control observation remains unknown. The control revision is local to that
 component and does not certify atomicity across owners. Old explanations
-remain observations of their original response, with read-only current-status
-advice; no revision is used as an authorization grant or write precondition.
+remain observations of their original response, with a candidate for the
+existing `Execution.reconcile()` operation on the original Run; no revision
+is used as an authorization grant or write precondition.
 
 The helper has no transport or mutation side effect and adds no Host input
 storage, provider evidence, Effect ledger or public input hash. It does not
 infer rollback, resource release, execution success or permission to resend
-from computation stop. Its advice is the existing `status` operation on the
-original Run, requiring current authority if explicitly called. It does not
-advertise reconciliation availability: an installed Host without that
-operation can still report unresolved Effects. Connecting authorized
-reconciliation to that Host belongs to the existing Effect/execution owner.
+from computation stop. The candidate follows the validated Owner-issued
+`next_action.kind === 'reconcile'` branch and retains its original Run reference.
+The existing Host/Effect owners recheck current authority and original
+continuation custody if the user explicitly calls it. Inconclusive evidence
+preserves uncertainty. A candidate neither guarantees that an installed Host
+can resolve the outcome nor supplies a new operation identity or permission
+to resend. The SDK does not implement provider reconciliation.
 
-This SDK presentation addition leaves `actql-run-state/0.1`,
+This SDK presentation change leaves `actql-run-state/0.1`,
 `actql-diagnostics/0.1` and the public check contracts unchanged. It does not
-establish the complete S9 authorized-reconciliation path or the cumulative
-S1–S9/X1–X17/invariant completion gate.
+replace the actual Local/HTTPS authorized-reconciliation acceptance required
+by S9 or the cumulative S1–S9/X1–X17/invariant completion gate.
 
 ### Run cancellation explanations
 

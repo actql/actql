@@ -187,13 +187,16 @@ import {explainEffectUncertainty} from '@actql/sdk';
 const state = await execution.status();
 const explanation = explainEffectUncertainty(state);
 // Display the unresolved Effects and physical stop separately. Any explicit
-// follow-up status request must use the original Client and current authority.
+// reconciliation must use the original Client and current authority.
 ```
 
-The helper performs no transport or write, and its only advice is to observe
-the original Run's current status. It does not promise that the Host offers
-reconciliation, authorize resubmission, infer rollback or assert resource
-release. The immutable explanation preserves what this response reported;
+The helper performs no transport or write. Its `next` candidate is the existing
+`Execution.reconcile()` operation on the original Run. The Host checks current
+authority and original Effect custody when explicitly called. Inconclusive
+evidence leaves the Effect outcome unknown. This candidate does not guarantee
+that reconciliation will resolve the outcome, authorize resubmission, infer
+rollback or assert resource release. The immutable explanation preserves what
+this response reported;
 later observations do not rewrite it. Copied/deserialized states, malformed
 responses, other Run-state branches and user-created errors have no association
 and return `undefined`. This weak association adds no Host storage, execution

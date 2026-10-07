@@ -316,7 +316,8 @@ export type EffectUncertaintyExplanation = Readonly<{
   physicalStop: 'confirmed' | 'unknown';
   /** Absent when this response has no control observation; not a composite revision. */
   controlRevision?: number;
-  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+  /** Candidate only: the existing Host rechecks current authority and original custody. */
+  next: Readonly<{operation: 'reconcile'; ref: Readonly<RunReference>}>;
 }>;
 /** Presentation for the exact validated SDK status/wait/reconcile response.
  * Does not authorize retry, rollback, release or any reconciliation operation.
