@@ -486,8 +486,9 @@ export async function exercisePublicQueryInput(connect, options,
     for (const {name, text, expected, columns, results, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
+      const submissionRef = client.newSubmission({nonce: requestId});
       const beforeSubmit = await counters();
-      const execution = await client.startSource(text, {...input, requestId});
+      const execution = await client.startSource(text, {...input, submissionRef});
       const state = await execution.wait();
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
@@ -526,9 +527,12 @@ export async function exercisePublicQueryInput(connect, options,
       for (const [resultName, result] of Object.entries(expectedResults)) {
         compare(await attached.result(resultName).all(), result.rows, result.unordered);
       }
-      const resent = await client.startSource(text, {...input, requestId});
+      const resent = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(resent.ref, execution.ref);
-      assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.submissionRef, submissionRef);
+      assert.deepEqual(lookup.admission.ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
       await completedCase?.({name, ref: execution.ref, execution, expected, columns,
@@ -537,16 +541,21 @@ export async function exercisePublicQueryInput(connect, options,
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
-        await assert.rejects(client.startSource(text, {...input, requestId,
-          parameters: {minimum: 21}}), {code: 'ClientRequestIntentConflict'});
+        await assert.rejects(client.startSource(text, {...input, submissionRef,
+          parameters: {minimum: 21}}), error => {
+          assert.equal(error.code, 'SubmissionUnknown');
+          assert.equal(error.cause?.code, 'ClientSubmittedIntentConflict');
+          return true;
+        });
         assert.equal((await execution.status()).status, 'succeeded');
       }
     }
     for (const {name, text, resultNames, sourceReadSessionCount, ...input} of executionFailures) {
       await prepareCase?.();
       const requestId = requestPrefix + '-execution-failure-' + name;
+      const submissionRef = client.newSubmission({nonce: requestId});
       const beforeSubmit = await counters();
-      const execution = await client.startSource(text, {...input, requestId});
+      const execution = await client.startSource(text, {...input, submissionRef});
       const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
       assert.equal(state.status, 'failed', JSON.stringify({name, state}));
       const beforeRead = await counters();
@@ -561,10 +570,13 @@ export async function exercisePublicQueryInput(connect, options,
       }
       const attached = await client.attach(execution.ref);
       assert.equal((await attached.status()).status, 'failed');
-      const resent = await client.startSource(text, {...input, requestId});
+      const resent = await client.startSource(text, {...input, submissionRef});
       assert.deepEqual(resent.ref, execution.ref);
       assert.equal((await resent.status()).status, 'failed');
-      assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      const lookup = await client.lookupSubmission(submissionRef);
+      assert.equal(lookup.kind, 'ready');
+      assert.deepEqual(lookup.submissionRef, submissionRef);
+      assert.deepEqual(lookup.admission.ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'failed Result reads, attach and resubmit must not recompute or acquire');
       console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
@@ -572,16 +584,22 @@ export async function exercisePublicQueryInput(connect, options,
     for (const {name, text, expectedCode, ...input} of refusals) {
       await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
+      const submissionRef = client.newSubmission({nonce: requestId});
       const before = await counters();
-      await assert.rejects(client.startSource(text, {...input, requestId}), error => {
-        assert.ok(inputCodes.has(error.code), String(error.code));
-        if (expectedCode !== undefined) assert.equal(error.code, expectedCode);
+      let outcome;
+      await assert.rejects(client.startSource(text, {...input, submissionRef}), error => {
+        assert.equal(error.code, 'SubmissionNotAccepted');
+        outcome = error.outcome;
+        assert.equal(outcome.kind, 'not_accepted');
+        assert.deepEqual(outcome.submissionRef, submissionRef);
+        assert.ok(inputCodes.has(outcome.problem.code), String(outcome.problem.code));
+        if (expectedCode !== undefined) assert.equal(outcome.problem.code, expectedCode);
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
       });
       assert.deepEqual(await counters(), before,
         'rejected source must not accept a Run or perform source I/O');
-      assert.deepEqual(await client.lookupRequest(requestId), {kind: 'not_found'});
+      assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
       if (expectedCode !== undefined) {
         console.log(`Public query refusal passed: ${requestPrefix}/${name} (${expectedCode}); no admission or source I/O`);
       }

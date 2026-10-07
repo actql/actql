@@ -4,6 +4,14 @@ Base: main `c6a1a8e7ab3726cccbf1fddc897bde15a5927e5a`.
 Branch: `feat/frontend-unnest-parameter-paths`. No unmerged parent dependency;
 this is independent of correlated expansion and its common-capacity failure.
 
+Integration adopts main `0fe4e039551f18b3438d485f7aa4019c49f71ff7` by a normal
+merge, preserving current submission epochs and diagnostics. The shared public
+consumer is connected to `newSubmission`/`lookupSubmission`: repeats use the
+same original reference, and refusals inspect the retained `not_accepted`
+problem without mistaking its record for Run acceptance. No legacy request-ID
+submission or older wire fallback is used. Pre-integration checks below remain
+evidence for their original source rather than the integrated HEAD.
+
 ## Counterexample and connection
 
 ```sql
@@ -54,6 +62,13 @@ regression. Final bounded selections are:
 - `node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/query_program --filter '*UNNEST*'`: 10/10, `run-9ulUoT`, `focused-test-9Y7kcL`.
 - `node scripts/local-checks.mjs test node --timeout-seconds 120 -- scripts/unnest-parameter-path-source-input.test.mjs scripts/unnest-source-input.test.mjs scripts/client-values-run-materials-vector.test.mjs scripts/compilation-manifests.test.mjs`: 16/16, `run-bsmITP`, `focused-test-V0mUot`.
 - `node scripts/local-checks.mjs test moon --timeout-seconds 180 -- --target js src/run_publication_host --filter '*run materials rebuild exactly*'`: 1/1, `run-b4HgPZ`, `focused-test-e5vddE`.
+
+After merging current main, the UNNEST selection passed 10/10 again
+(`run-khCfwa`, `focused-test-N48vzk`). The Node selection above, with
+`scripts/acquired-data-acceptance.test.mjs` added for the epoch-bound consumer,
+passed 22/22 (`run-tT6ZW0`, `focused-test-qkSgbh`). Manifest/metadata checks and
+375 canonical vectors also pass after integration. These do not stand in for
+external distribution execution.
 
 Normal manifest/metadata/canonical generators are used. Their read-only checks
 pass, including 375 canonical vectors. The query rules change grammar CID to
