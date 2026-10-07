@@ -2,6 +2,7 @@
 // physical dispatch. Reply loss never supplies evidence of nonacceptance.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
@@ -18,6 +19,7 @@ import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {installNodeClientRequestLookup} from './client-request-lookup.mjs';
+import {installNodeClientSubmission} from './client-submission.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
 
 const scratch = new URL('../../_build/client-submission-input-tests/', import.meta.url).pathname;
@@ -40,6 +42,24 @@ assert.ok(environment);
 const control = runtimeCore(moon).publicationControl;
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const scope = {namespaceId: 'namespace-a', authorityScopeCid: cid('a')};
+// Assemble the documented preimages independently of the product's identity
+// helpers; the Host supplies the authenticated epoch fields, not this digest.
+const submissionRequestId = ({epoch, nonce}) => {
+  const digest = value => 'sha256:' + createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  const epochCid = digest({authority_scope_cid: epoch.authorityScopeCid,
+    epoch_nonce: epoch.epochNonce, expires_at: epoch.expiresAt,
+    not_before: epoch.notBefore, version: 'actql-submission-epoch/0.1'});
+  return digest({caller_nonce: nonce, epoch_cid: epochCid,
+    version: 'actql-submission-identity/0.1'});
+};
+const notAccepted = code => error => {
+  assert.equal(error.code, 'SubmissionNotAccepted');
+  const outcome = sdk.getSubmissionOutcome(error);
+  assert.equal(outcome.kind, 'not_accepted');
+  assert.equal(outcome.problem.code, code);
+  assert.deepEqual(outcome.submissionRef, sdk.getSubmissionInput(error).submissionRef);
+  return true;
+};
 const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local',
   durability: 'durable', scopeRef: 'principal-a', capabilities: ['aql-document'],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
@@ -49,6 +69,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
 async function fixture(t, entrance, loss) {
   const directory = await mkdtemp(join(scratch, 'request-'));
   const journal = openClientRequestJournal(directory);
+  const submissionEpoch = journal.issueSubmissionEpoch({...scope, currentAuthorization: true}, moon);
   const observer = new DatabaseSync(join(directory, 'client-requests.sqlite3'), {readOnly: true});
   let client, server, authorized = true, submits = 0, issues = 0;
   let endpoint = 'actql:embedded';
@@ -77,7 +98,7 @@ async function fixture(t, entrance, loss) {
       return 'principal-a';
     },
     authorizeConnection: () => authorized,
-    negotiate: () => profile,
+    negotiate: () => ({...profile, submissionEpoch}),
     prepareSubmit: request => {
       preparations++;
       received.push(structuredClone({input: request.input, parameters: request.parameters}));
@@ -87,13 +108,14 @@ async function fixture(t, entrance, loss) {
       received.push(structuredClone({input: request.input, parameters: request.parameters}));
       return check(request);
     }, {unavailable: check.unavailable}),
-    async submit({preparedProgram, requestId}) {
+    async submit({preparedProgram, requestId, submission}) {
       submits++;
       const identity = moon.clientProgramRequestIdentity(preparedProgram,
         scope.authorityScopeCid, requestId, cid('b'));
       assert.ok(identity);
       const accepted = await journal.admitOrLookupDefinition(identity, {
-        namespaceId: scope.namespaceId, lookupExpiresAt: '2099-01-01T00:00:00.000Z',
+        namespaceId: scope.namespaceId, submission,
+        lookupExpiresAt: '2099-01-01T00:00:00.000Z',
         issueDefinition: () => {
           issues++;
           return sourceFreeValuesPlan({moon, control, preparedProgram,
@@ -107,13 +129,19 @@ async function fixture(t, entrance, loss) {
       authorizedScope: () => authorized ? scope : undefined}),
     maxRowBytes: 1024,
   };
+  const submission = installNodeClientSubmission({journal, moon,
+    authorizedScope: () => authorized ? scope : undefined,
+    prepareSubmit: configuration.prepareSubmit, submit: configuration.submit,
+    lookupRequest: configuration.lookupRequest});
+  Object.assign(configuration, {submitIntent: submission.submitIntent,
+    lookupSubmission: submission.lookupSubmission});
   let pendingLoss = loss;
   if (entrance === 'local') {
     const port = createNodeInProcessClientHost(configuration);
     client = await sdk.connectInProcess({mode: 'local', owner: 'local'}, {
       async perform(operation, body, signal) {
         operations.push(operation);
-        const phase = operation === 'submit' ? pendingLoss : undefined;
+        const phase = operation === 'submit-intent' ? pendingLoss : undefined;
         if (phase) pendingLoss = undefined;
         if (phase === 'before-dispatch') throw new Error('private-submission-cause');
         const answer = await port.perform(operation, body, signal);
@@ -126,7 +154,7 @@ async function fixture(t, entrance, loss) {
     server = createServer({key: tlsKey, cert: tlsCertificate}, (request, response) => {
       const operation = request.url.split('/').at(-1);
       operations.push(operation);
-      const phase = operation === 'submit' ? pendingLoss : undefined;
+      const phase = operation === 'submit-intent' ? pendingLoss : undefined;
       if (phase) pendingLoss = undefined;
       if (phase === 'before-dispatch') {
         request.resume(); response.destroy(); return;
@@ -166,7 +194,7 @@ for (const entrance of ['local', 'https']) {
       test(`${entrance}: ${kind} submission inputs survive ${loss ?? 'acceptance'}`, async t => {
         const f = await fixture(t, entrance, loss);
         const program = JSON.parse(document), parameters = {};
-        const options = {requestId: 'saved-request', parameters};
+        const options = {submissionRef: f.client.newSubmission({nonce: 'saved-request'}), parameters};
         const operation = kind === 'program' ? f.client.start(program, options)
           : f.client.aql(document, {...options, format: 'json'});
         program.stages[0].steps[0].values.rows[0].id = 9999;
@@ -185,7 +213,7 @@ for (const entrance of ['local', 'https']) {
         assert.equal(stored.length, committed ? 1 : 0);
         assert.deepEqual(f.counts(), {submits: committed ? 1 : 0, issues: committed ? 1 : 0});
         if (committed) {
-          assert.equal(stored[0].caller_request_id, 'saved-request');
+          assert.equal(stored[0].caller_request_id, submissionRequestId(options.submissionRef));
           // Independently assembled current Values Program semantics and
           // Definition preimages include the adopted typed-JSON expression contract.
           assert.equal(stored[0].program_definition_cid,
@@ -193,12 +221,13 @@ for (const entrance of ['local', 'https']) {
           assert.equal(stored[0].dispatch_reserved, 0);
           assert.equal(stored[0].physical_start_reserved, 0);
         }
-        assert.deepEqual(f.operations, ['connect', 'submit']);
+        assert.deepEqual(f.operations, ['connect', 'submit-intent']);
         const snapshot = sdk.getSubmissionInput?.(result);
         assert.deepEqual(snapshot?.input, kind === 'program' ? JSON.parse(document)
           : {text: document, format: 'json'}, '[check-mutation:submission-input]');
         assert.deepEqual(snapshot.parameters, {}, '[check-mutation:submission-input]');
         assert.equal(snapshot.requestId, 'saved-request');
+        assert.deepEqual(snapshot.submissionRef, options.submissionRef);
         assert.equal(snapshot.lookupContext.scopeRef, 'principal-a');
         assert.equal(snapshot.lookupContext.endpoint, f.endpoint);
         assert.equal(Object.isFrozen(snapshot), true);
@@ -210,7 +239,7 @@ for (const entrance of ['local', 'https']) {
         const expectedExplanation = loss ? {
           observation: 'acceptance_unknown',
           summary: 'Submission acceptance is unknown. Work may already have started.',
-          next: {operation: 'lookupRequest', requestId: 'saved-request',
+          next: {operation: 'lookupSubmission', submissionRef: options.submissionRef,
             lookupContext: {endpoint: f.endpoint, scopeRef: 'principal-a'}},
         } : {
           observation: 'run_reference_received',
@@ -248,20 +277,21 @@ for (const entrance of ['local', 'https']) {
           result.requestId = 'edited-request';
           assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
         }
-        const found = await f.client.lookupRequest(snapshot.requestId);
-        assert.equal(found.kind, committed ? 'found' : 'not_found');
-        if (committed) assert.equal(found.ref.runDefinitionCid, stored[0].run_definition_cid);
-        const lookupExplanation = sdk.explainRequestLookup(found);
-        assert.equal(lookupExplanation.observation, committed ? 'run_reference_received' : 'lookup_unresolved',
+        const found = await f.client.lookupSubmission(snapshot.submissionRef);
+        assert.equal(found.kind, committed ? 'ready' : 'unresolvable',
           '[check-mutation:request-public-observation]');
-        assert.equal(Object.hasOwn(lookupExplanation, 'accepted'), false);
-        assert.equal(sdk.explainRequestLookup({...found}), undefined);
+        assert.deepEqual(found.submissionRef, snapshot.submissionRef);
+        if (committed) {
+          assert.equal(found.admission.ref.runDefinitionCid, stored[0].run_definition_cid);
+          if (loss === undefined) assert.deepEqual(found, sdk.getSubmissionOutcome(result));
+          else assert.equal(sdk.getSubmissionOutcome(result), undefined);
+        } else assert.deepEqual(found.problem, {code: 'submission_history_unresolvable'});
         assert.equal(sdk.getSubmissionInput(found), undefined);
         assert.deepEqual(f.stored(), stored);
         f.revoke();
-        await assert.rejects(f.client.lookupRequest(snapshot.requestId), {code: 'ClientConnectionDenied'});
+        await assert.rejects(f.client.lookupSubmission(snapshot.submissionRef), {code: 'ClientConnectionDenied'});
         assert.deepEqual(f.stored(), stored);
-        assert.equal(f.operations.filter(value => value === 'submit').length, 1);
+        assert.equal(f.operations.filter(value => value === 'submit-intent').length, 1);
         assert.equal(sdk.getSubmissionInput(result), snapshot);
         assert.deepEqual(sdk.explainSubmission(result), expectedExplanation);
       });
@@ -280,19 +310,37 @@ for (const entrance of ['local', 'https']) {
       results: {out: {from: {stage: 'main', result: 'out'}}}};
     for (const [index, n] of [0, -1, 1.5, 9007199254740992, null].entries()) {
       for (const kind of ['program', 'aql-json']) {
-        const options = {requestId: `${kind}-${index}`, parameters: {n}};
+        const options = {submissionRef: f.client.newSubmission({nonce: `${kind}-${index}`}), parameters: {n}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
           : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
         error => {
-          assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:bound-count-category]');
+          assert.equal(error.code, 'SubmissionNotAccepted');
+          assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
+            '[check-mutation:bound-count-category]');
           return true;
         });
         assert.deepEqual(f.counts(), {submits: 0, issues: 0});
         assert.deepEqual(f.stored(), []);
       }
     }
-    await assert.rejects(f.client.start(program, {requestId: 'missing-count'}),
-      {code: 'ClientProgramNeedsInputs'});
+    const submissionRef = f.client.newSubmission({nonce: 'missing-count'});
+    let rejected;
+    await assert.rejects(f.client.start(program, {submissionRef}), error => {
+      notAccepted('ClientProgramNeedsInputs')(error);
+      rejected = sdk.getSubmissionOutcome(error);
+      return true;
+    });
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), rejected);
+    const beforeReplay = f.activity();
+    await assert.rejects(f.client.start(program, {submissionRef}), error => {
+      notAccepted('ClientProgramNeedsInputs')(error);
+      assert.deepEqual(sdk.getSubmissionOutcome(error), rejected);
+      return true;
+    });
+    assert.equal(f.activity().preparations, beforeReplay.preparations);
+    await assert.rejects(f.client.start(program, {submissionRef, parameters: {n: 1}}),
+      {code: 'SubmissionUnknown'});
+    assert.deepEqual(await f.client.lookupSubmission(submissionRef), rejected);
     assert.deepEqual(f.counts(), {submits: 0, issues: 0});
     assert.deepEqual(f.stored(), []);
   });
@@ -315,11 +363,13 @@ for (const entrance of ['local', 'https']) {
         : [0, -1, 1.5, 9007199254740992];
       for (const [index, n] of invalid.entries()) {
         for (const kind of ['program', 'aql-json']) {
-          const options = {requestId: `${field}-${kind}-${index}`, parameters: {n}};
+          const options = {submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-${index}`}), parameters: {n}};
           await assert.rejects(kind === 'program' ? f.client.start(program, options)
             : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
           error => {
-            assert.equal(error.code, 'ClientProgramRejected', '[check-mutation:temporal-input-category]');
+            assert.equal(error.code, 'SubmissionNotAccepted');
+            assert.equal(sdk.getSubmissionOutcome(error).problem.code, 'ClientProgramRejected',
+              '[check-mutation:temporal-input-category]');
             return true;
           });
           assert.deepEqual(f.counts(), {submits: 0, issues: 0});
@@ -327,14 +377,14 @@ for (const entrance of ['local', 'https']) {
         }
       }
       for (const kind of ['program', 'aql-json']) {
-        const options = {requestId: `${field}-${kind}-missing`, parameters: {}};
+        const options = {submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-missing`}), parameters: {}};
         await assert.rejects(kind === 'program' ? f.client.start(program, options)
           : f.client.aql(JSON.stringify(program), {...options, format: 'json'}),
-        {code: 'ClientProgramNeedsInputs'});
+        notAccepted('ClientProgramNeedsInputs'));
         await assert.rejects(kind === 'program'
-          ? f.client.start(program, {...options, parameters: {n: null}})
-          : f.client.aql(JSON.stringify(program), {...options, parameters: {n: null}, format: 'json'}),
-        {code: 'ClientProgramRejected'});
+          ? f.client.start(program, {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}})
+          : f.client.aql(JSON.stringify(program), {...options, submissionRef: f.client.newSubmission({nonce: `${field}-${kind}-null`}), parameters: {n: null}, format: 'json'}),
+        notAccepted('ClientProgramRejected'));
       }
       assert.deepEqual(f.counts(), {submits: 0, issues: 0});
       assert.deepEqual(f.stored(), []);
@@ -356,7 +406,7 @@ for (const entrance of ['local', 'https']) {
           results: {out: {from: 'selected', fields: ['id']}}}],
         results: {out: {from: {stage: 'main', result: 'out'}}}};
       for (const kind of ['program', 'aql-json']) {
-        const options = {requestId: `signed-${kind}-${index}`, parameters: {n}};
+        const options = {submissionRef: f.client.newSubmission({nonce: `signed-${kind}-${index}`}), parameters: {n}};
         const result = await (kind === 'program' ? f.client.start(program, options)
           : f.client.aql(JSON.stringify(program), {...options, format: 'json'}));
         assert.equal(typeof result.ref.runDefinitionCid, 'string');
@@ -392,17 +442,17 @@ const numericInputCases = value => {
   const declaration = nestedDeclaration();
   const defaultDeclaration = {...nestedDeclaration(), default: nested};
   return [
-    ['start parameters', 'submit', client => client.start(nestedParameterProgram(declaration),
-      {requestId: 'numeric-start-parameters', parameters: {x: nested}})],
-    ['start Program values', 'submit', client => client.start(scalarProgram(value),
-      {requestId: 'numeric-start-values'})],
-    ['start default', 'submit', client => client.start(nestedParameterProgram(defaultDeclaration),
-      {requestId: 'numeric-start-default', parameters: {}})],
-    ['aql parameters', 'submit', client => client.aql('SELECT @x AS n',
-      {format: 'sql', requestId: 'numeric-aql-parameters',
+    ['start parameters', 'submit-intent', client => client.start(nestedParameterProgram(declaration),
+      {submissionRef: client.newSubmission({nonce: 'numeric-start-parameters'}), parameters: {x: nested}})],
+    ['start Program values', 'submit-intent', client => client.start(scalarProgram(value),
+      {submissionRef: client.newSubmission({nonce: 'numeric-start-values'})})],
+    ['start default', 'submit-intent', client => client.start(nestedParameterProgram(defaultDeclaration),
+      {submissionRef: client.newSubmission({nonce: 'numeric-start-default'}), parameters: {}})],
+    ['aql parameters', 'submit-intent', client => client.aql('SELECT @x AS n',
+      {format: 'sql', submissionRef: client.newSubmission({nonce: 'numeric-aql-parameters'}),
         parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
-    ['aql default', 'submit', client => client.aql('SELECT @x AS n',
-      {format: 'sql', requestId: 'numeric-aql-default',
+    ['aql default', 'submit-intent', client => client.aql('SELECT @x AS n',
+      {format: 'sql', submissionRef: client.newSubmission({nonce: 'numeric-aql-default'}),
         parameterDeclarations: {x: defaultDeclaration}, parameters: {}})],
     ['check parameters', 'check', client => client.check('SELECT @x AS n',
       {format: 'sql', parameterDeclarations: {x: declaration}, parameters: {x: nested}})],
@@ -461,7 +511,7 @@ for (const entrance of ['local', 'https']) {
       assert.equal(checks, 2);
       assert.deepEqual(f.counts(), {submits: 5, issues: 5});
       assert.equal(f.stored().length, 5);
-      assert.equal(f.operations.filter(operation => operation === 'submit').length, submits);
+      assert.equal(f.operations.filter(operation => operation === 'submit-intent').length, submits);
     }
   });
 
@@ -477,9 +527,10 @@ for (const entrance of ['local', 'https']) {
         {text: 'SELECT @x AS n', format: 'sql', parameterDeclarations: structuredClone(declarations)};
       const release = f.pauseNext();
       const pending = operation === 'start'
-        ? f.client.start(program, {requestId: 'one-snapshot', parameters})
+        ? f.client.start(program, {submissionRef: f.client.newSubmission({nonce: 'one-snapshot'}), parameters})
         : f.client[operation]('SELECT @x AS n', {format: 'sql',
-          requestId: 'one-snapshot', parameterDeclarations: declarations, parameters});
+          ...(operation === 'aql' ? {submissionRef: f.client.newSubmission({nonce: 'one-snapshot'})} : {}),
+          parameterDeclarations: declarations, parameters});
       assert.equal(conversions, 1);
       assert.equal(serializations, 1);
       // Mutation during the real Local authentication / HTTPS credential wait

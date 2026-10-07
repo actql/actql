@@ -2339,7 +2339,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
-    negotiate, prepareSubmit, submit, check, attach,
+    negotiate, prepareSubmit, check, attach,
+    // New execution requires the authenticated original intent. Historical
+    // request/Run observation remains available without relabeling its identity.
+    submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},
     submitIntent: submissionService.submitIntent,
     lookupSubmission: submissionService.lookupSubmission,
     lookupRequest: lookupHeld,

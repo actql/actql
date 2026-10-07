@@ -8,62 +8,72 @@ import {createServer} from 'node:https';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
-import {connect as connectRemote, getSubmissionInput} from '../../packages/sdk/index.mjs';
+import {connect as connectRemote, getSubmissionInput, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
 
-for (const [entrance, loseSubmissionReply] of [['local', false], ['https', false], ['https', true]]) {
-  test(`${entrance}${loseSubmissionReply ? ' lost reply' : ''}: ordinary installed Program retains its submission identity and Run after Host restart`, async t => {
-    const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
-    const directory = join(root, 'host');
-    const principalId = userInfo().username;
-    const keys = generateKeyPairSync('ed25519');
-    let computes = 0, client, host, server, loseReply = loseSubmissionReply;
-    const authorization = {
-      accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-        account_id: 'submission-public', entries: [{entry_id: 'acceptance', outcome: 'allow',
-          principal: {all: true}, connection: {all: true}, resource: {all: true},
-          operation: {any_of: ['write']}, exclusions: []}]}),
-      reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
-        publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
-      reviewReaders: [principalId], hostKey: {keyId: 'host',
-        privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
-      observe(name) {if (name === 'computed') computes++;},
-    };
-    const certificates = entrance === 'https' ? await fixtureCertificates(root) : undefined;
-    const originalTrust = getCACertificates('default');
-    if (certificates) setDefaultCACertificates([...originalTrust, certificates.ca.toString('utf8')]);
-    const close = async () => {
-      await client?.close(); client = undefined;
-      if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); server = undefined;}
-      await host?.close(); host = undefined;
-    };
-    t.after(async () => {
-      await close();
-      if (certificates) setDefaultCACertificates(originalTrust);
-      await rm(root, {recursive: true, force: true});
-    });
-    const open = async () => {
-      if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
-        durability: 'durable', installation: {directory, authorization}});
-      else {
-        host = await openInstalledRemoteHttpHost({directory, authorization, authenticate: () => principalId});
-        server = createServer({key: certificates.key, cert: certificates.cert}, (request, response) => {
-          if (loseReply && request.url.endsWith('/submit-intent')) {
-            loseReply = false;
-            // The installed handler commits its answer before calling end.
-            // Drop only that response, without retrying the submission.
-            response.end = () => {response.destroy(); return response;};
-          }
-          return host.handler(request, response);
-        });
-        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-        client = await connectRemote({mode: 'remote', token: 'fixture-principal', durability: 'durable',
-          endpoint: `https://127.0.0.1:${server.address().port}/`});
-      }
-    };
-    await open();
-    const submissionRef = client.newSubmission({nonce: 'ordinary-original'});
+async function installedFixture(t, entrance, {loseSubmissionReply = false, outcome = 'allow'} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'actql-d-submission-public-'));
+  const directory = join(root, 'host');
+  const principalId = userInfo().username;
+  const keys = generateKeyPairSync('ed25519');
+  let computes = 0, client, host, server, loseReply = loseSubmissionReply;
+  const authorization = {
+    accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
+      account_id: 'submission-public', entries: [{entry_id: 'acceptance', outcome,
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['write']}, exclusions: []}]}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    reviewReaders: [principalId], hostKey: {keyId: 'host',
+      privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
+    observe(name) {if (name === 'computed') computes++;},
+  };
+  const certificates = entrance === 'https' ? await fixtureCertificates(root) : undefined;
+  const originalTrust = getCACertificates('default');
+  if (certificates) setDefaultCACertificates([...originalTrust, certificates.ca.toString('utf8')]);
+  const close = async () => {
+    await client?.close(); client = undefined;
+    if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); server = undefined;}
+    await host?.close(); host = undefined;
+  };
+  t.after(async () => {
+    await close();
+    if (certificates) setDefaultCACertificates(originalTrust);
+    await rm(root, {recursive: true, force: true});
+  });
+  const open = async () => {
+    if (entrance === 'local') client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      durability: 'durable', installation: {directory, authorization}});
+    else {
+      host = await openInstalledRemoteHttpHost({directory, authorization, authenticate: () => principalId});
+      server = createServer({key: certificates.key, cert: certificates.cert}, (request, response) => {
+        if (loseReply && request.url.endsWith('/submit-intent')) {
+          loseReply = false;
+          // The installed handler commits its answer before calling end.
+          // Drop only that response, without retrying the submission.
+          response.end = () => {response.destroy(); return response;};
+        }
+        return host.handler(request, response);
+      });
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      client = await connectRemote({mode: 'remote', token: 'fixture-principal', durability: 'durable',
+        endpoint: `https://127.0.0.1:${server.address().port}/`});
+    }
+  };
+  await open();
+  return {get client() {return client;}, get computes() {return computes;},
+    get endpoint() {return server && `https://127.0.0.1:${server.address().port}/`;}, close, open};
+}
+
+for (const [entrance, loseSubmissionReply, defaultSubmission] of [
+  ['local', false, false], ['https', false, false], ['https', true, false],
+  ['local', false, true], ['https', false, true],
+]) {
+  test(`${entrance}${loseSubmissionReply ? ' lost reply' : ''}${defaultSubmission ? ' default submission' : ''}: ordinary installed Program retains its submission identity and Run after Host restart`, async t => {
+    const f = await installedFixture(t, entrance, {loseSubmissionReply});
+    let client = f.client;
+    let submissionRef = defaultSubmission ? undefined : client.newSubmission({nonce: 'ordinary-original'});
     let run;
     if (loseSubmissionReply) {
       await assert.rejects(client.aql('SELECT 1 AS n', {format: 'sql', submissionRef}), error => {
@@ -73,14 +83,22 @@ for (const [entrance, loseSubmissionReply] of [['local', false], ['https', false
       const original = await client.lookupSubmission(submissionRef);
       assert.equal(original.kind, 'ready');
       run = await client.attach(original.admission.ref);
-    } else run = await client.aql('SELECT 1 AS n', {format: 'sql', submissionRef});
+    } else {
+      const pending = client.aql('SELECT 1 AS n', {format: 'sql',
+        ...(submissionRef === undefined ? {} : {submissionRef})});
+      if (defaultSubmission) {
+        submissionRef = getSubmissionInput(pending).submissionRef;
+        assert.deepEqual(submissionRef.epoch, client.profile.submissionEpoch);
+      }
+      run = await pending;
+    }
     assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
     assert.deepEqual(await run.result('answer').all(), [{n: 1}]);
     const first = await client.lookupSubmission(submissionRef);
     assert.equal(first.kind, 'ready');
     assert.deepEqual(first.admission.ref, run.ref);
-    assert.equal(computes, 1);
-    await close(); await open();
+    assert.equal(f.computes, 1);
+    await f.close(); await f.open(); client = f.client;
     assert.notDeepEqual(client.newSubmission({nonce: submissionRef.nonce}), submissionRef);
     const found = await client.lookupSubmission(submissionRef);
     assert.equal(found.kind, 'ready');
@@ -89,6 +107,53 @@ for (const [entrance, loseSubmissionReply] of [['local', false], ['https', false
     const repeated = await client.aql('SELECT 1 AS n', {format: 'sql', submissionRef});
     assert.deepEqual(repeated.ref, run.ref);
     assert.deepEqual(await repeated.result('answer').all(), [{n: 1}]);
-    assert.equal(computes, 1);
+    assert.equal(f.computes, 1);
   });
 }
+
+for (const entrance of ['local', 'https']) {
+  test(`${entrance}: an accepted unsupported pre-Run wait remains a preparation failure after reconnect`, async t => {
+    const f = await installedFixture(t, entrance, {outcome: 'delegate'});
+    const pending = f.client.aql('SELECT 1 AS n', {format: 'sql'});
+    const original = getSubmissionInput(pending);
+    let outcome;
+    await assert.rejects(pending, error => {
+      assert.equal(error.code, 'SubmissionPreparationFailed');
+      assert.deepEqual(getSubmissionInput(error), original);
+      outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'preparation_failed');
+      assert.deepEqual(outcome.submissionRef, original.submissionRef);
+      assert.equal(outcome.problem.code, 'ACTQL_E_DELEGATION_UNAVAILABLE');
+      assert.equal(Object.hasOwn(outcome, 'admission'), false);
+      return true;
+    });
+    assert.equal(f.computes, 0);
+    assert.deepEqual((await f.client.checkpoints()).items, []);
+    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    await f.close(); await f.open();
+    assert.deepEqual(await f.client.lookupSubmission(original.submissionRef), outcome);
+    assert.deepEqual((await f.client.checkpoints()).items, []);
+    await assert.rejects(f.client.aql('SELECT 1 AS n', {format: 'sql',
+      submissionRef: original.submissionRef}), error => {
+      assert.deepEqual(getSubmissionOutcome(error), outcome);
+      return error.code === 'SubmissionPreparationFailed';
+    });
+    assert.equal(f.computes, 0);
+  });
+}
+
+test('installed HTTPS Host refuses epoch-less legacy execution without a Run', async t => {
+  const f = await installedFixture(t, 'https');
+  const response = await fetch(new URL('actql/client/0.1/submit', f.endpoint), {
+    method: 'POST', headers: {'content-type': 'application/json',
+      authorization: 'Bearer fixture-principal'},
+    body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
+      consentRefs: [], runners: [], durability: 'durable'},
+    requestId: 'legacy-unbound', kind: 'aql', input: {text: 'SELECT 1 AS n', format: 'sql'},
+    parameters: null}),
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), {code: 'ClientSubmissionReferenceRequired'});
+  assert.deepEqual(await f.client.lookupRequest('legacy-unbound'), {kind: 'not_found'});
+  assert.equal(f.computes, 0);
+});

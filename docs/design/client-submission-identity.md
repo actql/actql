@@ -96,6 +96,14 @@ to a Run whose binding is independently checked against the same request
 journal. Terminal outcomes are immutable; stale observations cannot replace a
 newer committed outcome.
 
+The initial epoch-bound public path does not admit pre-Run approval waits: its
+complete response, cancellation, expiry and lost-response recovery contract is
+not yet exposed. Preparation and Source-read delegation without an immediate
+permit use the existing authorization gate's unsupported outcome before
+sealing evidence or creating a Checkpoint. A refusal after the intent was
+accepted is a preparation failure. Run-scoped Model and Effect approval paths
+continue to use their existing owners.
+
 An accepted preparing or held intent can finish preparation after its epoch's
 new-admission interval ends. The original persisted receipt establishes this
 fact, rather than a supplied flag. Its current authorization is checked again
@@ -111,8 +119,12 @@ the original Run before projecting a typed preparation failure. The public
 request lookup does not carry a Run control revision: projecting a `ready`
 admission obtains that revision from the authorized journal record.
 
-The SDK allocates an explicit submission reference before sending and retains
-it with the detached input on a lost or malformed reply. Lookup takes that exact
+The SDK allocates a submission reference before sending and retains it with the
+detached input on the returned Promise, Run or original error. Callers can save
+the original before the first send; this in-memory snapshot is not durable
+custody or proof of acceptance. A known unsent local attempt is distinct from
+an unknown response and from an Owner-issued terminal rejection. Lookup takes that exact
 reference; a newly issued connection epoch cannot replace it. Historical
 bare-request observations remain in their existing identity domain and are not
-reinterpreted as epoch-bound receipts.
+reinterpreted as epoch-bound receipts. Starting new work with a bare historical
+request ID or a Host without an epoch does not select a legacy execution path.

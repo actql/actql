@@ -74,6 +74,7 @@ function responseCode(error) {
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'ClientSubmissionReferenceRequired' ||
       error?.code === 'InvalidClientCancellationOperation' ||
       error?.code === 'InvalidClientCancellationLookup' ||
       error?.code === 'ClientProgramInvalidInput' ||

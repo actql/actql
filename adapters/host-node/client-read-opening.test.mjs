@@ -27,7 +27,8 @@ for (const entrance of ['local', 'https']) {
       let ref, attemptId, observed;
       try {
         // Publish the unmodified normal Program through the public submit path.
-        const run = await host.client.start(openingProgram, {requestId: 'opening-run'});
+        const run = await host.client.start(openingProgram,
+          {submissionRef: host.client.newSubmission({nonce: 'opening-run'})});
         ref = run.ref;
         assert.equal((await run.status()).status, 'succeeded');
         const result = run.result('answer');
@@ -128,7 +129,8 @@ for (const entrance of ['local', 'https']) {
           if (completion === 'fail') throw new Error('InjectedReceiptRecordFailure');
         });
         try {
-          const run = await host.client.start(openingProgram, {requestId: 'completion-run'});
+          const run = await host.client.start(openingProgram,
+            {submissionRef: host.client.newSubmission({nonce: 'completion-run'})});
           ref = run.ref;
           assert.equal((await run.status()).status, 'succeeded');
           const result = run.result('answer');

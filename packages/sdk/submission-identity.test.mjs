@@ -90,3 +90,86 @@ test('SDK rejects a response bound to another submission or intent', async () =>
     client.close();
   }
 });
+
+test('ordinary SDK submission exposes its original identity and input before first send', async () => {
+  let release;
+  const answer = new Promise(resolve => {release = resolve;});
+  let received;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation, body) {
+      if (operation === 'connect') return profile;
+      received = {operation, body};
+      await answer;
+      return {kind: 'preparing', submissionRef: body.submissionRef, intentCid: body.intentCid};
+    },
+  });
+  const parameters = {value: 'e\u0301\r\n'};
+  const pending = client.aql('SELECT @value AS n', {format: 'sql', parameters});
+  const input = getSubmissionInput(pending);
+  try {
+    assert.ok(input, 'the pending operation must expose its pre-send original');
+    assert.deepEqual(input.submissionRef.epoch, epoch);
+    assert.equal(typeof input.submissionRef.nonce, 'string');
+    assert.equal(input.input.text, 'SELECT @value AS n');
+    assert.deepEqual(input.parameters, {value: 'e\u0301\r\n'});
+    parameters.value = 'changed after call';
+  } finally {release();}
+  await assert.rejects(pending, error => {
+    assert.deepEqual(getSubmissionInput(error), input);
+    return error.code === 'SubmissionPreparing';
+  });
+  assert.equal(received.operation, 'submit-intent');
+  assert.deepEqual(received.body.submissionRef, input.submissionRef);
+  assert.deepEqual(received.body.parameters, input.parameters);
+  client.close();
+});
+
+test('bare legacy request ID never silently selects a new epoch-bound operation', async () => {
+  let submissions = 0;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation) {
+      if (operation === 'connect') return profile;
+      submissions++;
+      throw new Error('fixture must not receive this ambiguous operation');
+    },
+  });
+  await assert.rejects(client.start({}, {requestId: 'unknown-old-operation'}),
+    {code: 'SubmissionReferenceRequired'});
+  assert.equal(submissions, 0);
+  client.close();
+});
+
+test('a Host without a submission epoch cannot trigger a legacy submission fallback', async () => {
+  let submissions = 0;
+  const {submissionEpoch, ...readOnlyProfile} = profile;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation) {
+      if (operation === 'connect') return readOnlyProfile;
+      submissions++;
+      throw new Error('fixture must not receive a legacy fallback');
+    },
+  });
+  await assert.rejects(client.start({}), {code: 'SubmissionEpochUnavailable'});
+  assert.equal(submissions, 0);
+  client.close();
+});
+
+test('closed Client is known unsent and retains its original submission instead of claiming nonacceptance', async () => {
+  let submissions = 0;
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, {
+    async perform(operation) {
+      if (operation === 'connect') return profile;
+      submissions++;
+      throw new Error('fixture must not be called after close');
+    },
+  });
+  const submissionRef = client.newSubmission({nonce: 'closed-original'});
+  client.close();
+  const pending = client.start({}, {submissionRef});
+  await assert.rejects(pending, error => {
+    assert.deepEqual(getSubmissionInput(error).submissionRef, submissionRef);
+    assert.equal(error.outcome, undefined);
+    return error.code === 'SubmissionNotSent';
+  });
+  assert.equal(submissions, 0);
+});

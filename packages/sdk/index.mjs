@@ -1,13 +1,13 @@
 import {selectCheckReasonPresentation} from './check-reason-catalog.generated.js';
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry} from './check-reason-catalog.generated.js';
 // The transport Client delegates admission, state and delivery to the Host.
-import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCancellation,
+import {checkpointLimits, clientSourceFormats, validCancellation,
   validCancellationRef, validCancellationLookup, validCheckpointPage,
   validCheckpointReview, validClientAdmission, validClientConnection,
   validClientProfile, validDeliveryAttemptLookup, validRequestCancellation,
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
-  validSubmitReply, validClientBody, validResourceInspection,
+  validClientBody, validResourceInspection,
   validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
   validResultDescription, validCheckOutcome, snapshotClientRequest, checkOutcomeProtocol, runStateProtocol} from
@@ -84,6 +84,7 @@ const checkFrontiers = new WeakMap();
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.
 const submissionInputs = new WeakMap();
+const submissionOutcomes = new WeakMap();
 const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
@@ -242,6 +243,11 @@ export function getSubmissionInput(result) {
   return submissionInputs.get(result);
 }
 
+// Only an admitted response for this exact SDK operation supplies Owner facts.
+export function getSubmissionOutcome(result) {
+  return submissionOutcomes.get(result);
+}
+
 // Local observation of this SDK read only. Lookup rechecks current authority;
 // this explanation proves neither publication nor execution nor resource release.
 export function explainReadFailure(result, options) {
@@ -372,8 +378,9 @@ const heldRequestExplanation = (answer, context) => freezeInput({
     resuming: 'The Host reports that preparation of this held request is resuming. No Run reference was returned.',
     ended: 'The Host reports that preparation of this held request ended. No Run reference was returned.',
   }[answer.state], hint: requestObservationHint,
-  next: {operation: 'lookupRequest', requestId: context.requestId,
-    lookupContext: context.lookupContext},
+  next: context.submissionRef === undefined
+    ? {operation: 'lookupRequest', requestId: context.requestId, lookupContext: context.lookupContext}
+    : {operation: 'lookupSubmission', submissionRef: context.submissionRef, lookupContext: context.lookupContext},
 });
 const retainRequestLookupExplanation = (answer, context) => {
   const observation = answer.kind === 'found' ? 'run_reference_received' :
@@ -856,6 +863,12 @@ const submissionUnknown = (context, cause) => {
     submissionLookupExplanation('acceptance_unknown', input));
   return result;
 };
+const submissionNotSent = (context, cause) => {
+  const result = new ClientError('SubmissionNotSent', {...context, cause});
+  const input = submissionContexts.get(context);
+  if (input) submissionInputs.set(result, input);
+  return result;
+};
 const retainReadExplanation = (result, context, rowsYielded, observation, cleanupUnknown = false) => {
   const quantity = `${rowsYielded} ${rowsYielded === 1 ? 'row' : 'rows'}`;
   readExplanations.set(result, freezeInput({observation,
@@ -1063,6 +1076,7 @@ export async function connectInProcess(options, port) {
 async function connectSelected(selected, port) {
   let closed = false;
   const dispatchedCancellations = new WeakSet();
+  const dispatchedSubmissions = new WeakSet();
   const exchange = async (operation, body = {}, signal, submitContext, cancellationContext) => {
     if (closed) fail('ClientClosed');
     if (port !== undefined) {
@@ -1074,6 +1088,10 @@ async function connectSelected(selected, port) {
           signal?.throwIfAborted();
           dispatchedCancellations.add(cancellationContext);
         }
+        if (operation === 'submit-intent') {
+          signal?.throwIfAborted();
+          dispatchedSubmissions.add(submitContext);
+        }
         const value = await port.perform(operation, request, signal);
         if (value instanceof Response) {
           throw retainCancellationExplanation(new ClientError('InvalidLocalHostPortResponse'),
@@ -1082,9 +1100,9 @@ async function connectSelected(selected, port) {
         return value;
       }
       catch (cause) {
-        if (operation === 'submit' || operation === 'submit-intent') {
-          if (operation === 'submit' && isClientSubmitRejection(cause?.code)) {
-            throw new ClientError(cause.code, {cause});
+        if (operation === 'submit-intent') {
+          if (!dispatchedSubmissions.has(submitContext)) {
+            throw submissionNotSent(submitContext, cause);
           }
           throw submissionUnknown(submitContext, cause);
         }
@@ -1108,6 +1126,10 @@ async function connectSelected(selected, port) {
       signal?.throwIfAborted();
       dispatchedCancellations.add(cancellationContext);
     }
+    if (operation === 'submit-intent') {
+      signal?.throwIfAborted();
+      dispatchedSubmissions.add(submitContext);
+    }
     try {
       response = await fetch(new URL(
         `actql/client/0.1/${operation}`, selected.endpoint,
@@ -1120,7 +1142,7 @@ async function connectSelected(selected, port) {
         redirect: 'error',
       });
     } catch (cause) {
-      if (operation === 'submit' || operation === 'submit-intent') {
+      if (operation === 'submit-intent') {
         throw submissionUnknown(submitContext, cause);
       }
       throw retainCancellationExplanation(new ClientError('ClientTransportUnknown', {cause}),
@@ -1132,8 +1154,7 @@ async function connectSelected(selected, port) {
       const code = typeof error?.code === 'string' &&
         /^[A-Za-z][A-Za-z0-9_]{0,79}$/u.test(error.code)
         ? error.code : `HostHTTP${response.status}`;
-      if (operation === 'submit-intent' || operation === 'submit' && (response.status >= 500 ||
-          !isClientSubmitRejection(code))) {
+      if (operation === 'submit-intent') {
         throw submissionUnknown(submitContext, new ClientError(code));
       }
       throw new ClientError(code, {status: response.status});
@@ -1604,7 +1625,7 @@ async function connectSelected(selected, port) {
     });
   };
 
-  const submitIntent = async (kind, input, options) => {
+  const submitIntent = (kind, input, options) => {
     let body;
     try {
       body = freezeInput(snapshotClientRequest({submissionRef: options.submissionRef,
@@ -1618,93 +1639,72 @@ async function connectSelected(selected, port) {
     const snapshot = freezeInput({...body, requestId, connection: selected.wire,
       lookupContext: context.lookupContext});
     submissionContexts.set(context, snapshot);
-    const intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
-      intent: {kind, input: body.input, parameters: body.parameters},
-      version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));
-    let outcome;
-    try {
-      const response = await exchange('submit-intent', {...body, intentCid}, options.signal, context);
-      outcome = detachResponse(captureResponse(await controlValue(response)));
-      if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid)) {
-        fail('InvalidHostSubmissionOutcome');
-      }
-    } catch (cause) {
-      if (cause?.code === 'SubmissionUnknown') throw cause;
-      throw submissionUnknown(context, cause);
-    }
-    outcome = freezeInput(outcome);
-    if (outcome.kind === 'ready') {
-      const run = execution(outcome.admission);
-      submissionInputs.set(run, snapshot);
-      return run;
-    }
-    const error = outcome.kind === 'held'
-      ? new RequestHeld(outcome.held, context.lookupContext)
-      : new ClientError(outcome.kind === 'not_accepted' ? 'SubmissionNotAccepted'
-        : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed' : 'SubmissionPreparing',
-      {requestId, submissionRef: body.submissionRef, outcome});
-    submissionInputs.set(error, snapshot);
-    throw error;
-  };
-  const submit = async (kind, input, options = {}) => {
-    if (options.submissionRef !== undefined) return submitIntent(kind, input, options);
-    const requestId = options.requestId ?? crypto.randomUUID();
-    if (typeof requestId !== 'string' || !requestId) fail('InvalidRequestId');
-    const context = {requestId, lookupContext: Object.freeze({
-      endpoint: selected.endpoint, scopeRef: confirmed.scopeRef,
-    })};
-    let body;
-    try {
-      body = freezeInput(snapshotClientRequest({requestId, kind, input,
-        parameters: options.parameters ?? null}));
-    } catch { fail('InvalidClientPayload'); }
-    const snapshot = freezeInput({...body, connection: selected.wire,
-      lookupContext: context.lookupContext});
-    submissionContexts.set(context, snapshot);
-    const response = await exchange('submit', body, options.signal, context);
-    let admitted;
-    try { admitted = await controlValue(response); }
-    catch (cause) {
-      throw submissionUnknown(context, cause);
-    }
-    try { admitted = captureResponse(admitted); }
-    catch { throw submissionUnknown(context, new ClientError('InvalidHostAdmission')); }
-    if (admitted?.kind === 'held' &&
-        validSubmitReply(admitted, selected.wire, requestId)) {
-      const observation = admitted;
+    const pending = (async () => {
+      let intentCid;
+      try {intentCid = await bytesCid(new TextEncoder().encode(canonicalJson({
+        intent: {kind, input: body.input, parameters: body.parameters},
+        version: 'actql-submitted-intent/0.1'}, {dataKeys: true})));}
+      catch (cause) {throw submissionNotSent(context, cause);}
+      let outcome;
       try {
-        const observedKey = structuralKey(admitted);
-        admitted = structuredClone(admitted);
-        if (admitted?.kind !== 'held' || !validSubmitReply(admitted, selected.wire, requestId) || structuralKey(admitted) !== observedKey) fail('InvalidHostAdmission');
-        if (structuralKey(observation) !== observedKey) fail('InvalidHostAdmission');
-      } catch (cause) { throw submissionUnknown(context, cause); }
-      admitted = observation;
-      const held = new RequestHeld(freezeInput(admitted), context.lookupContext);
-      submissionInputs.set(held, snapshot);
-      submissionExplanations.set(held, heldRequestExplanation(admitted, snapshot));
-      throw held;
-    }
-    let result;
-    try { result = execution(admitted); }
-    catch (cause) {
-      throw submissionUnknown(context, cause);
-    }
-    submissionInputs.set(result, snapshot);
-    submissionExplanations.set(result, freezeInput({
-      observation: 'run_reference_received',
-      summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
-      next: {operation: 'status', ref: result.ref},
-    }));
-    return result;
+        const response = await exchange('submit-intent', {...body, intentCid}, options.signal, context);
+        outcome = detachResponse(captureResponse(await controlValue(response)));
+        if (!validSubmissionOutcome(outcome, selected.wire, body.submissionRef, intentCid)) {
+          fail('InvalidHostSubmissionOutcome');
+        }
+      } catch (cause) {
+        if (cause?.code === 'SubmissionUnknown' || cause?.code === 'SubmissionNotSent') throw cause;
+        throw dispatchedSubmissions.has(context) ? submissionUnknown(context, cause) : submissionNotSent(context, cause);
+      }
+      outcome = freezeInput(outcome);
+      if (outcome.kind === 'ready') {
+        let run;
+        try {run = execution(outcome.admission);}
+        catch (cause) {throw submissionUnknown(context, cause);}
+        submissionInputs.set(run, snapshot);
+        submissionOutcomes.set(run, outcome);
+        submissionExplanations.set(run, freezeInput({
+          observation: 'run_reference_received',
+          summary: 'The Host returned a validated Run reference. Check the current Run state for execution progress.',
+          next: {operation: 'status', ref: run.ref},
+        }));
+        return run;
+      }
+      const error = outcome.kind === 'held'
+        ? new RequestHeld(outcome.held, context.lookupContext)
+        : new ClientError(outcome.kind === 'not_accepted' ? 'SubmissionNotAccepted'
+          : outcome.kind === 'preparation_failed' ? 'SubmissionPreparationFailed' : 'SubmissionPreparing',
+        {requestId, submissionRef: body.submissionRef, outcome});
+      submissionInputs.set(error, snapshot);
+      submissionOutcomes.set(error, outcome);
+      if (outcome.kind === 'held') submissionExplanations.set(error,
+        heldRequestExplanation(outcome.held, snapshot));
+      throw error;
+    })();
+    submissionInputs.set(pending, snapshot);
+    return pending;
+  };
+  const newSubmission = ({nonce = crypto.randomUUID()} = {}) => {
+    if (confirmed.submissionEpoch === undefined) fail('SubmissionEpochUnavailable');
+    const ref = freezeInput(snapshotClientRequest({epoch: confirmed.submissionEpoch, nonce}));
+    if (!validSubmissionRef(ref)) fail('InvalidSubmissionRef');
+    return ref;
+  };
+  const submit = (kind, input, options = {}) => {
+    try {
+      // A bare legacy ID cannot recover its original epoch on reconnect.
+      // Never reinterpret it as new work under the latest connection ticket.
+      if (options.submissionRef === undefined && options.requestId !== undefined) {
+        fail('SubmissionReferenceRequired');
+      }
+      return submitIntent(kind, input, {...options,
+        submissionRef: options.submissionRef ?? newSubmission()});
+    } catch (cause) {return Promise.reject(cause);}
   };
   return Object.freeze({
     profile: confirmed,
     requestedDurability: selected.wire.durability ?? null,
-    newSubmission: ({nonce = crypto.randomUUID()} = {}) => {
-      const ref = freezeInput(snapshotClientRequest({epoch: confirmed.submissionEpoch, nonce}));
-      if (!validSubmissionRef(ref)) fail('SubmissionEpochUnavailable');
-      return ref;
-    },
+    newSubmission,
     lookupSubmission: async (submissionRef, {signal} = {}) => {
       let owned;
       try {owned = freezeInput(snapshotClientRequest(submissionRef));}
