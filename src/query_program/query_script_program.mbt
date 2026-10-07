@@ -154,6 +154,7 @@ fn lower_script_relation_term(
     false,
     output,
     retained~,
+    parameter_declarations=context.parameter_declarations,
   )
   steps.append(body)
   let name = if body.is_empty() { input.name } else { output }

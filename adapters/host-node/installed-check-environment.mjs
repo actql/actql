@@ -84,20 +84,14 @@ function mergeManifest(left, right) {
 export function composeInstalledCheckEnvironment(moon, baseWire,
   sourceWire, effectWire) {
   const base = admittedDocument(moon, baseWire);
-  if (sourceWire === undefined && effectWire === undefined) return baseWire;
-  if (sourceWire === undefined) {
-    admittedDocument(moon, effectWire);
-    return effectWire;
-  }
-  if (effectWire === undefined) {
-    admittedDocument(moon, sourceWire);
-    return sourceWire;
-  }
-  const source = admittedDocument(moon, sourceWire);
-  const effect = admittedDocument(moon, effectWire);
+  const source = sourceWire === undefined ? undefined : admittedDocument(moon, sourceWire);
+  const effect = effectWire === undefined ? undefined : admittedDocument(moon, effectWire);
   const allowedKeys = new Set([...Object.keys(base),
     'connector_manifest']);
+  // Adapter publications extend this Host's base facts. Their number never
+  // grants permission to replace its policy, version or supported sections.
   for (const member of [source, effect]) {
+    if (member === undefined) continue;
     if (member.version !== base.version ||
         canonicalJson(member.host_policy_profile) !==
           canonicalJson(base.host_policy_profile) ||
@@ -106,6 +100,9 @@ export function composeInstalledCheckEnvironment(moon, baseWire,
       refuse('EnvironmentBase');
     }
   }
+  if (source === undefined && effect === undefined) return baseWire;
+  if (source === undefined) return effectWire;
+  if (effect === undefined) return sourceWire;
   rejectConflictingSelectors([...source.connector_catalogs,
     ...effect.connector_catalogs], value => value.connector_id);
   rejectConflictingSelectors([...source.source_views,

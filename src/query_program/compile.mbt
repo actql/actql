@@ -1626,6 +1626,7 @@ fn compile_steps(
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
+  parameter_declarations? : @parameters.Declarations? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1730,11 +1731,12 @@ fn compile_steps(
         if offset is Some(name) && same_name(element, name) {
           raise Abort(DuplicateOutput)
         }
-        // Value-table star expansion depends on the admitted element type;
-        // do not reinterpret a STRUCT value table as one object column.
+        // Use declared element contracts, not payload samples, to distinguish
+        // a scalar value column from STRUCT field expansion.
         if selected_projections(query).any(projection => {
             projection.star is Some(_)
-          }) {
+          }) &&
+          !unnest_scalar_parameter(expression, parameter_declarations) {
           raise Abort(UnsupportedProjection)
         }
         let physical = ["aql_source_free_unit", element.value]
@@ -4232,6 +4234,7 @@ pub fn compile(
       nearest_inputs=[input] +
         dependencies.filter(other => other.name != input.name),
       retained=Some(retained),
+      parameter_declarations=context.parameter_declarations,
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -4837,6 +4840,7 @@ fn compile_cte_stage(
     body_start,
     input.source is Captured(_),
     final_alias,
+    parameter_declarations=context.parameter_declarations,
   )
   // A CTE with no remaining computation binds the existing producer after
   // scope validation. compile_steps may emit a synthetic identity projection
