@@ -2517,25 +2517,23 @@ fn serve_holder_output(
         ])
         if line.has_prefix("release ") {
           let target = line.unsafe_substring(start=8, end=line.length())
-          guard tasks.get(target) is Some(selected) else {
-            report("holder-input-invalid", [])
-            continue
-          }
-          selected.release_requested = true
-          // Exact child cleanup precedes its producer. An earlier release
-          // request is remembered while a later task still owns that input.
-          for index = order.length() - 1; index >= 0; index = index - 1 {
-            let task = tasks.get(order[index]).unwrap()
-            if task.release_requested && !task.released {
+          // Exact child cleanup precedes its producer. Replayed releases
+          // also retry the current durable observation after cleanup.
+          if !handle_holder_release_frame(tasks, order, target, task => {
               if !release_holder_task(
                   task, tasks, environment, execution, resources,
                 ) {
                 report("producer-release-pending", [
-                  ("request_cid", order[index]),
+                  (
+                    "request_cid",
+                    @remote.dispatch_request_identity(task.request),
+                  ),
                   ("reason", "consumer-custody"),
                 ])
               }
-            }
+            }) {
+            report("holder-input-invalid", [])
+            continue
           }
           if original.released {
             serving = false

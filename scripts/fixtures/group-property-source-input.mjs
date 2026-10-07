@@ -34,6 +34,18 @@ const json = {version: 'actql/0.1', id: 'fixture.group_property', stages: [
     {select: [{score: 'key'}, 'n'], as: 'summary'},
   ], results: {rows: {from: 'summary', fields: ['score', 'n']}}},
 ], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+const aliasedColumns = [{name: 'bucket', contract: {...number, nullable: true}},
+  {name: 'n', contract: number}];
+const aliasedRows = [{bucket: null, n: 2}, {bucket: 10, n: 1}, {bucket: 20, n: 2}];
+const aliasedJson = {version: 'actql/0.1', id: 'fixture.group_key_alias', stages: [
+  {id: 'main', inputs: {}, steps: [
+    {values: {schema: {id: number, payload, other}, rows}, as: 'objects'},
+    {from: 'objects', derive: {key: {property: {name: 'score', value: {field: 'payload'}}}}},
+    {group: {by: ['key'], aggregates: {n: {fn: 'count'}}}},
+    {sort: [{field: 'key', dir: 'asc', nulls: 'first'}]},
+    {select: [{bucket: 'key'}, 'n'], as: 'summary'},
+  ], results: {rows: {from: 'summary', fields: ['bucket', 'n']}}},
+], results: {answer: {from: {stage: 'main', result: 'rows'}}}};
 const groupingOnlyRows = [{score: null}, {score: 10}, {score: 20}];
 const groupingOnlyColumns = [{name: 'score', contract: {...number, nullable: true}}];
 const groupingOnlyJson = {version: 'actql/0.1', id: 'fixture.group_only', stages: [
@@ -57,7 +69,84 @@ const text = (name, tail, extra = {}) => ({
   parameterDeclarations, parameters, expected, columns, sourceReadCount: 0,
   ...extra,
 });
+// Fixed shorthand expectations include cases where grouping-first and
+// aggregate-first sorting would produce different public row orders.
+export const pipeAggregateOrderSuccesses = [
+  {name: 'group-property-shorthand-independent-json', format: 'json',
+    text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
+  text('shorthand-default-null-duplicates',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket',
+    {expected: aliasedRows, columns: aliasedColumns}),
+  text('shorthand-group-null-suffix-alone',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS bucket NULLS LAST',
+    {expected: [{bucket: 10, n: 1}, {bucket: 20, n: 2}, {bucket: null, n: 2}], columns: aliasedColumns}),
+  text('shorthand-explicit-desc-null-first',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS bucket DESC NULLS FIRST',
+    {expected: [{bucket: null, n: 2}, {bucket: 20, n: 2}, {bucket: 10, n: 1}], columns: aliasedColumns}),
+  text('shorthand-group-before-aggregate',
+    'FROM objects |> AGGREGATE COUNT(*) AS n DESC GROUP BY payload.score AS bucket ASC NULLS LAST',
+    {expected: [{bucket: 10, n: 1}, {bucket: 20, n: 2}, {bucket: null, n: 2}], columns: aliasedColumns}),
+  text('shorthand-computed-key-predicate-limit',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score + 1 AS bucket DESC NULLS LAST |> WHERE bucket > 10 |> LIMIT 1',
+    {expected: [{bucket: 21, n: 2}], columns: aliasedColumns}),
+  text('shorthand-group-only-empty',
+    'FROM objects |> WHERE FALSE |> AGGREGATE GROUP AND ORDER BY payload.score AS bucket',
+    {expected: [], columns: [{name: 'bucket', contract: {...number, nullable: true}}]}),
+  text('shorthand-repeated-key',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY payload.score AS first DESC NULLS LAST, payload.score AS second',
+    {expected: [{first: 20, second: 20, n: 2}, {first: 10, second: 10, n: 1}, {first: null, second: null, n: 2}],
+      columns: [{name: 'first', contract: {...number, nullable: true}},
+        {name: 'second', contract: {...number, nullable: true}}, {name: 'n', contract: number}]}),
+  {name: 'group-property-shorthand-aggregate-only-suffix', format: 'aql-text',
+    text: 'DATA samples = SELECT 2 AS x UNION ALL SELECT 1 AS x UNION ALL SELECT 2 AS x '
+      + 'UNION ALL SELECT 3 AS x UNION ALL SELECT 2 AS x UNION ALL SELECT 1 AS x; '
+      + 'FROM samples |> AGGREGATE COUNT(*) AS n DESC GROUP BY x',
+    expected: [{x: 2, n: 3}, {x: 1, n: 2}, {x: 3, n: 1}],
+    columns: [{name: 'x', contract: number}, {name: 'n', contract: number}], sourceReadCount: 0},
+];
+export const pipeAggregateOrderRefusals = [
+  text('shorthand-aggregate-null-suffix-needs-direction',
+    'FROM objects |> AGGREGATE COUNT(*) AS n NULLS FIRST GROUP BY id'),
+  text('shorthand-sql-placement', 'SELECT id FROM objects GROUP AND ORDER BY id'),
+  text('shorthand-malformed-null-order',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY id ASC NULLS MIDDLE'),
+  text('shorthand-removed-range',
+    'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY old.payload.score AS bucket |> SELECT old.payload.score'),
+  text('shorthand-alias-collision',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP AND ORDER BY id AS n'),
+];
 export const groupPropertySuccesses = [
+  ...pipeAggregateOrderSuccesses,
+  {name: 'group-property-key-alias-independent-json', format: 'json',
+    text: JSON.stringify(aliasedJson), expected: aliasedRows, columns: aliasedColumns, sourceReadCount: 0},
+  text('key-alias-explicit-null-duplicates',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS bucket |> ORDER BY bucket NULLS FIRST',
+    {expected: aliasedRows, columns: aliasedColumns}),
+  text('key-alias-implicit-quoted',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score `GROUP` |> ORDER BY `GROUP` NULLS FIRST',
+    {expected: [{GROUP: null, n: 2}, {GROUP: 10, n: 1}, {GROUP: 20, n: 2}],
+      columns: [{name: 'GROUP', contract: {...number, nullable: true}}, {name: 'n', contract: number}]}),
+  text('key-alias-group-only-empty',
+    'FROM objects |> WHERE FALSE |> AGGREGATE GROUP BY payload.score AS bucket |> ORDER BY bucket',
+    {expected: [], columns: [{name: 'bucket', contract: {...number, nullable: true}}]}),
+  text('key-alias-sibling-input-scope',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS id, id AS original_id |> ORDER BY original_id',
+    {expected: [{id: 20, original_id: 1, n: 1}, {id: 10, original_id: 2, n: 1},
+      {id: null, original_id: 3, n: 1}, {id: 20, original_id: 4, n: 1},
+      {id: null, original_id: 5, n: 1}],
+      columns: [{name: 'id', contract: {...number, nullable: true}}, {name: 'original_id', contract: number},
+        {name: 'n', contract: number}]}),
+  text('key-alias-repeated-physical-key',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS first, payload.score AS second |> ORDER BY first NULLS FIRST',
+    {expected: [{first: null, second: null, n: 2}, {first: 10, second: 10, n: 1}, {first: 20, second: 20, n: 2}],
+      columns: [{name: 'first', contract: {...number, nullable: true}},
+        {name: 'second', contract: {...number, nullable: true}}, {name: 'n', contract: number}]}),
+  text('key-alias-set-retained-input',
+    'FROM objects AS before |> SET payload = other |> AGGREGATE COUNT(*) AS n GROUP BY before.payload.score AS bucket |> ORDER BY bucket NULLS FIRST',
+    {expected: aliasedRows, columns: aliasedColumns}),
+  text('key-alias-computed-predicate-limit',
+    'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score + 1 AS bucket |> WHERE bucket > 15 |> ORDER BY bucket |> LIMIT 1',
+    {expected: [{bucket: 21, n: 2}], columns: aliasedColumns}),
   {name: 'group-property-group-only-global-independent-json', format: 'json',
     text: JSON.stringify(globalGroupingOnlyJson), expected: [{marker: 1}], columns: [{name: 'marker', contract: number}], sourceReadCount: 0},
   text('group-only-global-nonempty', 'FROM objects |> AGGREGATE GROUP BY () |> EXTEND 1 AS marker',
@@ -127,6 +216,11 @@ export const groupPropertySuccesses = [
     {expected: []}),
 ];
 export const groupPropertyRefusals = [
+  'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS n',
+  'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS bucket, id AS `BUCKET`',
+  'FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score AS bucket |> SELECT score',
+  'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score AS bucket |> SELECT old.payload.score',
+
   'FROM objects AS original |> AGGREGATE GROUP BY original.payload.score |> SELECT original.payload.score',
   'FROM objects |> AGGREGATE',
   'SELECT payload AS value, COUNT(*) AS n FROM objects GROUP BY payload.score',
@@ -139,4 +233,4 @@ export const groupPropertyRefusals = [
   'FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score',
   'FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score',
 ].map((tail, index) => ({name: 'group-property-invalid-' + index,
-  format: 'aql-text', text: source + tail, parameterDeclarations, parameters}));
+  format: 'aql-text', text: source + tail, parameterDeclarations, parameters})).concat(pipeAggregateOrderRefusals);

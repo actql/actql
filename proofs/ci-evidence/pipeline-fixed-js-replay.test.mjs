@@ -9,7 +9,8 @@ import {join} from 'node:path';
 import {hash, gitTree} from './inputs.mjs';
 import {pipelineFixedJsSourcePaths, checkLocalImageDefinition, localIsolatedRunArguments, isolatedCoreBuildMetadata} from './isolation.mjs';
 import {snapshotFromGit, checkIsolatedInputs, imageRuntime} from './isolated-runtime.mjs';
-import {checkPipelineFixedJsResult} from './isolated-execution.mjs';
+import {checkPipelineFixedJsResult} from './isolated-pipeline-results.mjs';
+import {checkIsolatedExecutionResult} from './isolated-execution.mjs';
 import {validateFixedJsReport, fixedJsScientificObservation, fixedJsExecutions} from '../relation-pipeline/fixed-js-replay.mjs';
 import {inspectMutationPart} from '../relation-pipeline/mutation-parts.mjs';
 import {verifyFixedJsTamperRefusals, eraseFixedJsDetection} from './local-isolated-acceptance.mjs';
@@ -46,6 +47,13 @@ test('the actual immutable fixed campaign admits all twelve raw originals with f
   assert.deepEqual(original.answer.payload.report.closure,{mutable:true,pristine:true,restoration:true,sourceRestored:true});
   const paths=new Set(original.answer.payload.root.entries.map(entry=>entry.path));
   for(const path of isolatedCoreBuildMetadata)assert(!paths.has(`runtime/moonbit/${path}`));
+});
+test('the executor awaits its registered fixed-campaign scientific consumer and propagates rejection',async()=>{
+  const inputs={profile:'pipeline-fixed-js',payload:original.answer.payload,manifest:original.prepared.manifest,before:source,tree};
+  assert(await checkIsolatedExecutionResult(inputs));
+  const payload=structuredClone(inputs.payload);payload.sourcePreserved=false;
+  await assert.rejects(checkIsolatedExecutionResult({...inputs,payload}));
+  await assert.rejects(checkIsolatedExecutionResult({...inputs,profile:'pipeline-pristine'}));
 });
 test('actual normal and image campaigns agree without discarding values, types, ordering, NULL, work or detected faults',()=>{
   assert(validateFixedJsReport({report:normal.report,files:normal.files,...context}));
