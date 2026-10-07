@@ -8,6 +8,22 @@ fn join_step_binding(bindings : Map[String, String], role : String) -> String {
 }
 
 ///|
+// The specialized CTE JOIN consumes two already-retained Results. A right
+// Values input instead needs the existing shared input-binding path.
+// Resolve the actual producer kind; names alone do not establish retention.
+fn join_requires_input_binding(
+  query : @query.Query,
+  context : Context,
+) -> Bool raise Abort {
+  if @query.join_part_count(query) != 1 {
+    return false
+  }
+  let part = @query.join_part_at(query, 0).unwrap()
+  let right = selected_relation(part.relation, context)
+  right.source is GeneratedValues(_)
+}
+
+///|
 fn script_join_bindings(reserved : Array[String]) -> Map[String, String] {
   let bindings : Map[String, String] = Map([])
   for
