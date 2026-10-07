@@ -51,12 +51,14 @@ A Cloud-owned Hybrid connection names at least one selected Runner and its
 movement policy instead. These references identify intended connections and
 policy; the Host still checks current scope, grants and movement permission.
 
-`snapshotCheckRequest(value)` detaches a check request through ordinary JSON
+`snapshotClientRequest(value)` detaches a Client request through ordinary JSON
 serialization. It throws if a number would become null or lose negative zero,
 including boxed Numbers and numbers returned by `toJSON`. Boxed Numbers use
 the same numeric conversion as JSON, exactly once, before number admission. It performs no query
 checking or authorization and does not normalize text or keys. SDK and public
-Local/HTTPS ingress use it before checking; Local takes the snapshot before
+Local/HTTPS ingress use this owner before checking; SDK `start` and `aql` also
+use it before credentials or exchange. `snapshotCheckRequest` remains the
+existing check entry point, with its original TypeError spelling. Local takes the snapshot before
 awaiting authentication. Parser/decode/binding limits still belong to the
 existing checker. A serialization refusal is request admission, not a checker
 verdict. No snapshot is retained beyond the caller's existing request custody.

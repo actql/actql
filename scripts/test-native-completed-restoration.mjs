@@ -7,6 +7,14 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
+const args = process.argv.slice(2);
+const consumerCustody = args[0] === '--consumer-custody';
+if (consumerCustody) {
+  args.shift();
+  if (!process.env.ACTQL_TEST_DUCKDB_LIBRARY) {
+    throw new Error('Consumer custody requires ACTQL_TEST_DUCKDB_LIBRARY');
+  }
+}
 const parent = process.env.ACTQL_TEST_SCRATCH_ROOT ?? tmpdir();
 mkdirSync(parent, {recursive: true});
 const root = mkdtempSync(join(parent, 'actql-completed-restoration-'));
@@ -37,14 +45,20 @@ for (const name of ['store', 'sqlite', 'bundles']) {
 let passed = false;
 try {
   const result = spawnSync(process.execPath, [
-    'scripts/local-checks.mjs', 'test', 'moon', '--timeout-seconds', '300',
+    'scripts/local-checks.mjs', 'test', 'moon', '--timeout-seconds', consumerCustody ? '180' : '300',
     '--', '--target', 'native',
-    'src/platform_native/remote_standard_host/native_test', ...process.argv.slice(2),
+    ...(consumerCustody ? ['--strip', 'src/platform_native/remote_resident_source_compute_tests']
+      : ['src/platform_native/remote_standard_host/native_test']), ...args,
   ], {
     cwd: repositoryRoot,
     stdio: 'inherit',
     env: {
       ...process.env,
+      ...(consumerCustody ? {
+        ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS: '1',
+        ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT: join(root, 'store'),
+        ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET: 'aarch64-apple-darwin',
+      } : {}),
       ACTQL_TEST_NATIVE_STORE_ROOT: join(root, 'store'),
       ACTQL_TEST_NATIVE_SQLITE_ROOT: join(root, 'sqlite'),
       ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT: join(root, 'bundles'),

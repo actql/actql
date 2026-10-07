@@ -230,5 +230,7 @@ export declare function validResourcePeek(value: unknown,
     fields: readonly string[]; maxRows: number; maxBytes: number}>):
   value is WireResourcePeek;
 
-/** Detach a JSON check request; throws before lossy source-number conversion. */
+/** Detach a JSON Client request; throws before lossy source-number conversion. */
+export declare function snapshotClientRequest(value: unknown): unknown;
+/** Existing check entry point into the same request snapshot owner. */
 export declare function snapshotCheckRequest(value: unknown): unknown;
