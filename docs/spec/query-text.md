@@ -216,8 +216,50 @@ LIMIT/OFFSET is removed to admit a statistical call.
 
 ## Scope and lowering
 
+SQL `QUALIFY boolean_expression` filters the evaluated inline-window outputs
+after WHERE, grouping/HAVING and analytic computation, before final DISTINCT,
+ORDER and LIMIT/OFFSET. At least one window function must occur in SELECT or
+QUALIFY. Only TRUE retains a row; FALSE and SQL NULL discard it. Calls in
+QUALIFY use the same supported inline OVER signatures and common analytic
+contract as SELECT; their private output slots are omitted from Result fields.
+Window calls need not appear in SELECT. Group aggregates inside the condition
+use the ordinary grouped input and aggregate checking rather than a separate
+query evaluator. Broader OVER signatures remain existing profile gaps. This follows the selected
+[GoogleSQL QUALIFY clause](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#qualify_clause).
+
+SQL `WINDOW name AS specification, ...` declares query-local window
+specifications. `OVER name` and `OVER (name ...clauses...)` resolve against
+that SELECT's declarations and lower to the same ordinary analytic operation
+as an inline specification. Declarations can inherit only earlier declarations;
+name lookup is case-insensitive, including backtick names. Duplicates, unknown
+references, forward references and cycles are refused without falling back to
+a Relation or DATA producer. CTEs, derived tables and set operands each have
+their own window scope. The specifications do not create execution slots,
+acquire data, or add a storage boundary.
+
+Inheriting a window forbids a new PARTITION BY; an inherited ORDER BY cannot
+be replaced or repeated. A specification that inherits a frame cannot add
+ORDER BY or another frame. Plain aliases retain the inherited frame. Names
+inside partition/order/frame expressions continue to use SELECT's input
+snapshot, never its output aliases. Missing ordering, frame and signature
+support remains subject to the current common analytic contract; naming a
+window does not add RANGE, unbounded frames or default aggregate frames.
+Unused declarations are checked for declaration conflicts but do not execute
+their expressions. These rules follow
+[GoogleSQL named windows](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls#rules_for_using_a_named_window_in_the_window_specification)
+and the selected resolver's declaration flattening. Parsed operation snapshots
+copy mutable window/aggregate lists and cannot mutate the admitted syntax owner.
+
+QUALIFY resolves SELECT aliases to their evaluated slots before same-name
+inputs. Qualified input references retain their input meaning. A scalar alias
+needed by the condition is evaluated once against SELECT's input snapshot and
+reused by final projection; unrelated scalar projections are evaluated after
+the condition. No alias is made visible inside its own or a sibling SELECT
+expression, or inside an OVER specification. Ordinary Boolean and aggregate
+typing, failure, capacity and parameter rules remain common-owner decisions.
+
 `WHERE` and siblings in one SELECT list see the input snapshot, not aliases
-introduced by that list. In `GROUP BY`, `HAVING` and the query's final
+introduced by that list. In `GROUP BY`, `HAVING`, `QUALIFY` and the query's final
 `ORDER BY`, a visible SELECT alias takes precedence over an input column of
 the same name. Duplicate aliases, qualified references and aggregate
 visibility still undergo their own ambiguity and validity checks. Names in

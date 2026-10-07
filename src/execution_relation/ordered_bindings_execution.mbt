@@ -5,7 +5,7 @@
 /// transition; it never drains a second transition implicitly.
 priv struct OrderedBindingsExecution {
   bindings : Array[(String, @lower.Expression)]
-  snapshot : Map[String, Value]
+  snapshot : ExpressionInput
   control : ControlBudget
   workspace : RowWorkspace
   scope : ExpressionRoots
@@ -28,6 +28,27 @@ priv enum OrderedBindingsAdvance {
 fn start_bindings_execution(
   bindings : Array[(String, @lower.Expression)],
   snapshot : Map[String, Value],
+  control : ControlBudget,
+  workspace : RowWorkspace,
+  scope : ExpressionRoots,
+  row : Int,
+  ordered : Bool,
+) -> OrderedBindingsExecution {
+  start_bindings_with_input(
+    bindings,
+    MapExpressionInput(snapshot),
+    control,
+    workspace,
+    scope,
+    row,
+    ordered,
+  )
+}
+
+///|
+fn start_bindings_with_input(
+  bindings : Array[(String, @lower.Expression)],
+  snapshot : ExpressionInput,
   control : ControlBudget,
   workspace : RowWorkspace,
   scope : ExpressionRoots,
@@ -61,20 +82,6 @@ fn start_ordered_bindings_execution(
 ) -> OrderedBindingsExecution {
   start_bindings_execution(
     bindings, snapshot, control, workspace, scope, row, true,
-  )
-}
-
-///|
-fn start_snapshot_bindings_execution(
-  bindings : Array[(String, @lower.Expression)],
-  snapshot : Map[String, Value],
-  control : ControlBudget,
-  workspace : RowWorkspace,
-  scope : ExpressionRoots,
-  row : Int,
-) -> OrderedBindingsExecution {
-  start_bindings_execution(
-    bindings, snapshot, control, workspace, scope, row, false,
   )
 }
 
@@ -155,7 +162,7 @@ fn advance_ordered_bindings_execution(
   }
   let expression = execution.bindings[execution.slot].1
   execution.active = match
-    expression_frame(
+    expression_frame_with_input(
       expression,
       execution.snapshot,
       if execution.ordered {

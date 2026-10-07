@@ -3812,6 +3812,20 @@ test('resource gate rejects derive without its ordinary bounded route', () => {
   }), /RelA derive: ordinary derive Host timer evidence is missing/);
 });
 
+test('indexed row assurance requires name limits stop and public evidence', () => {
+  for (const [kind, role] of [
+    ['boundary_tests', 'derive_indexed_snapshot_limits'],
+    ['boundary_tests', 'derive_row_name_limits'],
+    ['boundary_tests', 'derive_row_name_stop'],
+    ['environment_tests', 'derive_indexed_snapshot_public'],
+  ]) {
+    assert.match(run(undefined, routes => {
+      const derive = routes.routes.find(entry => entry.family === 'RelA' && entry.operation === 'derive');
+      derive[kind] = derive[kind].filter(entry => entry.role !== role);
+    }), /(?:derive_(?:indexed_snapshot_limits|row_name_limits|row_name_stop)|indexed snapshot public) fixture is missing/u);
+  }
+});
+
 test('string aggregation assurance requires limits stop and public evidence', () => {
   for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
     ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {

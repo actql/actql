@@ -6270,3 +6270,23 @@ assembly, aggregate physical byte custody and unexecuted target/packed
 campaigns remain distinct. See the
 [JSON-name record](2026-10-07-local-json-name-rechecks.md) for the fixed main,
 counterexample, fixture connection and verification limitations.
+
+### Indexed retained row snapshots (2026-10-07)
+
+The existing Relation owner no longer hashes every input spelling into a new
+Map per row. Indexed snapshots use the existing field-name expression cursor
+for wide/long-name inputs. Input, snapshot, output and capture name accounting
+now yields between scalars; atomic Value charges and borrowed input custody
+remain unchanged. Output-cell sources are cached with admitted metadata slots.
+Small-row exact budgets retain their existing bounded metadata footprint.
+
+A normal nine-field Values -> derive -> select Program publishes three
+independent Named Results through the real Store and delivers cancellation
+after positive fused-task progress. Common fixtures additionally stop inside
+each of the four name phases. The evidence gate requires these fixtures.
+
+Initial metadata/map preparation, sort/key setup, availability scans and the
+installed projected-read metadata ceiling remain separate. This is neither
+all-start boundedness nor Native physical capacity certification. See the
+[indexed row record](2026-10-07-local-indexed-row-snapshots.md) for the
+counterexample, independent budgets, public shape and unverified coverage.

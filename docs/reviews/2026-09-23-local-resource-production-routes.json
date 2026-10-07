@@ -1521,6 +1521,27 @@
           "fixture": "constructed object names preserve exact work live and workspace bounds"
         },
         {
+          "role": "derive_indexed_snapshot_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "indexed expression input preserves NULL missing and wide-row work bounds"
+        },
+        {
+          "role": "derive_row_name_limits",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "row name cursor preserves exact UTF8 budgets and atomic Value accounting"
+        },
+        {
+          "role": "derive_row_name_stop",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/indexed_snapshot_wbtest.mbt",
+          "fixture": "retained row names stop in input snapshot output and capture phases"
+        },
+        {
           "role": "derive_raw_text_child_limits",
           "suite": "moon:execution_relation",
           "targets": ["js", "wasm", "native"],
@@ -1667,6 +1688,13 @@
           "targets": ["node"],
           "path": "adapters/host-node/public-property-name-retention.test.mjs",
           "fixture": "public retained constructed object names publish NULL and deliver cancellation after progress"
+        },
+        {
+          "role": "derive_indexed_snapshot_public",
+          "suite": "node:embedded_property_names",
+          "targets": ["node"],
+          "path": "adapters/host-node/public-property-name-retention.test.mjs",
+          "fixture": "public retained wide indexed snapshots preserve rows and post-progress custody"
         },
         {
           "role": "derive_raw_text_child_public",

@@ -1815,7 +1815,9 @@ export function validateResourceAccounting({
       for (const role of ['derive_property_name_limits', 'derive_property_name_stop',
         'derive_field_name_limits', 'derive_field_name_stop',
         'derive_object_name_limits', 'derive_object_name_stop',
-        'derive_raw_text_child_limits', 'derive_raw_text_child_stop']) {
+        'derive_raw_text_child_limits', 'derive_raw_text_child_stop',
+        'derive_indexed_snapshot_limits', 'derive_row_name_limits',
+        'derive_row_name_stop']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('derive_property_name_public')) {
@@ -1829,6 +1831,9 @@ export function validateResourceAccounting({
       }
       if (!environmentRoles.has('derive_raw_text_child_public')) {
         fail(`${label}: raw Text child public fixture is missing`);
+      }
+      if (!environmentRoles.has('derive_indexed_snapshot_public')) {
+        fail(`${label}: indexed snapshot public fixture is missing`);
       }
       if (!fs.readFileSync(path.join(root, 'adapters/host-node/embedded-installation.test.mjs'), 'utf8')
         .includes("import './public-property-name-retention.test.mjs';")) {
