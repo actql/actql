@@ -18,7 +18,11 @@ Planned files: `proofs/relation-pipeline/mutation-actions.mjs` and its focused
 regressions; `audit.mjs` for the existing final scientific consumer connection;
 `fixtures/audit-batch-driver.mjs` for its controlled orchestration diagnostic;
 `history.mjs` and a per-change foundation declaration to protect the new inputs;
-and this review record. Reuse `proofs/ci-evidence/inputs.mjs` for immutable Git
+and this review record. The `pipeline-evidence` final consumer also installs the
+existing audited Lean pin before its audit; no selector or producer changes.
+The shared checker, its 30-second limit, model,
+theorem types, axiom audit and required inventory remain unchanged.
+Reuse `proofs/ci-evidence/inputs.mjs` for immutable Git
 reads and `check.mjs` / `Reuse.lean` for the actual plan checker. Do not implement
 a second checker, dispatcher, workflow selector, parallel producer or Owner.
 No edits to dot's selector/workflow sections are planned in this first unit.
