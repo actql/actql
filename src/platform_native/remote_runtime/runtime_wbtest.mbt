@@ -80,6 +80,18 @@ test "remote output admits the exact physical manifest contract" {
     () => true,
   )
   assert_true(admitted is Ok(NativeRemoteOutputReady(_)))
+  let handoffs = Ref(0)
+  assert_true(
+    prepare_native_remote_output(
+      output_facts(schema, view, codec, manifest),
+      () => Err("unused"),
+      () => Err("unused"),
+      () => true,
+      file_handoff_committed=Some(() => handoffs.val += 1),
+    )
+    is Err(OutputRejected),
+  )
+  assert_eq(handoffs.val, 0)
   let foreign_schema = output_contract_cid(
     "4444444444444444444444444444444444444444444444444444444444444444",
   )

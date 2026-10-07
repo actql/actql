@@ -49,11 +49,12 @@ fn table_sealed_value(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  max_allowed_nodes? : Int = 4096,
 ) -> Result[(@json.CanonicalValue, String), TableContractIssue] {
   if max_bytes < 1 ||
     max_bytes > 65536 ||
     max_nodes < 1 ||
-    max_nodes > 4096 ||
+    max_nodes > max_allowed_nodes ||
     max_depth < 1 ||
     max_depth > 16 {
     return Err(InvalidLimits)

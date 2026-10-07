@@ -28,6 +28,7 @@ struct NativeRemoteOutput {
   release : () -> Bool
   source_observation : @remote.RemoteSourceObservation?
   file_custody : @journal.NativeOutputFileCustody?
+  file_handoff_committed : (() -> Unit)?
 }
 
 ///|
@@ -261,7 +262,11 @@ pub fn prepare_native_remote_output(
   ],
   release : () -> Bool,
   file_custody? : @journal.NativeOutputFileCustody? = None,
+  file_handoff_committed? : (() -> Unit)? = None,
 ) -> Result[NativeRemotePhysicalExecution, NativeRemoteRuntimeIssue] {
+  if file_handoff_committed is Some(_) && file_custody is None {
+    return Err(OutputRejected)
+  }
   let manifest = facts.physical_manifest
   guard readmit_native_remote_output_manifest(manifest)
     is Some(admitted_manifest) else {
@@ -313,6 +318,7 @@ pub fn prepare_native_remote_output(
           release,
           source_observation: None,
           file_custody,
+          file_handoff_committed,
         }),
       )
     Err(_) => Err(OutputRejected)
@@ -1490,6 +1496,12 @@ fn NativeRemoteRuntime::run_success(
             owner.evidence = Some(evidence)
             owner.subject = Some(subject)
             owner.measurement = Some(measurement)
+            // The exact sealed file custody is now durable. Optional physical
+            // cleanup may retire its replaced input/Compute owner, but pending
+            // cleanup cannot change the accepted output into a task failure.
+            if output.file_handoff_committed is Some(confirm) {
+              confirm()
+            }
             continue
           }
           Err(issue) =>

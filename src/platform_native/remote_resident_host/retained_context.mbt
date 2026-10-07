@@ -39,7 +39,7 @@ pub fn prepare_resident_retained_producer_context(
     return Err(EnvelopeMissing)
   }
   let materials = match
-    admit_materials(
+    admit_resident_chain_materials(
       admission,
       request,
       body,
@@ -49,11 +49,9 @@ pub fn prepare_resident_retained_producer_context(
     Ok(value) => value
     Err(issue) => return Err(Refused(issue))
   }
-  // The initial profile is one acquisition and its checked consumer. The
-  // existing source-role admission verifies the graph; the intent cannot
-  // select another task or introduce an aggregate binding.
-  if !(resident_source_dispatch_role(materials, request)
-    is Ok(InternalSourceProducer)) {
+  guard resident_linear_task_index(materials, request) is Some(task) &&
+    task + 1 <
+    @strategy.graph_task_count(@host.prepared_client_graph(materials.prepared)) else {
     return Err(Refused(@resident.UnsupportedTask))
   }
   guard materials.compilation is @host.Tasks(compilation) else {
@@ -65,7 +63,7 @@ pub fn prepare_resident_retained_producer_context(
       compilation,
       materials.admission,
       materials.run_definition,
-      1,
+      task + 1,
       0,
     ) {
     Ok(value) => value

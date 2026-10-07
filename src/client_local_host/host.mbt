@@ -248,7 +248,10 @@ fn open_checked_local_host(
   for task in first_compute..<generated.length() {
     compute_sequences.push(generated[task])
   }
-  let (values, execution, measurement) = client_local_execution_limits()
+  let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
+  let (values, execution, measurement) = client_local_execution_limits(
+    max_rows~,
+  )
   let graph = @publication_host.prepared_client_graph(prepared)
   let retained_inputs = if retained_output {
     let inputs = Array::make(compute_sequences.length(), 0)
@@ -267,6 +270,7 @@ fn open_checked_local_host(
       compute_sequences,
       task_count,
       retained_inputs~,
+      max_rows~,
     )
     is Some((limits, retained_bytes, execution_bytes)) else {
     return None
@@ -293,7 +297,7 @@ fn open_checked_local_host(
   }
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-    max_rows: 100,
+    max_rows,
     max_value_bytes: 10000,
     common_fragment: None,
   }

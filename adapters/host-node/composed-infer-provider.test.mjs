@@ -90,7 +90,7 @@ test('composed Local start retains the original Model before Run and dispatch bi
   assert.equal(opened.provider, port);
   assert.deepEqual(events, []);
   assert.equal(start(inputs), active);
-  assert.deepEqual(events, ['start', 'quantity', 'suffix', 'preflight', 'egress', 'retain', 'run', 'dispatch']);
+  assert.deepEqual(events, ['start', 'retain', 'quantity', 'suffix', 'preflight', 'egress', 'run', 'dispatch']);
   assert.equal(opened.operation(), retained);
   assert.equal(allowCleanup(active), false, 'Local cannot discard pending Host evidence');
   assert.equal(allowCleanup({}), false, 'another component cannot grant cleanup');
@@ -105,4 +105,32 @@ test('composed Local start retains the original Model before Run and dispatch bi
   assert.equal(allowCleanup(active), true, 'only the original reclaimed owner releases Local custody');
   assert.equal(start(inputs), undefined);
   assert.equal(events.filter(value => value === 'start').length, 1);
+});
+
+test('failed composed binding leaves cleanup to the already retained evidence owner', () => {
+  const active = {}, cause = {refusal: 'ComposedInputBindingRefused'};
+  let start, retained, cleanups = 0, stopped = false;
+  const moon = {
+    clientProgramComposedInferLocalProvider(_occurrence, open) { start = open; return {}; },
+    clientProgramStartComposedInferExecution: () => ({$tag: 1, _0: active}),
+    clientProgramBindInferQuantityCapacity: () => ({$tag: 0, _0: cause}),
+    clientProgramCancelInferExecution() { stopped = true; },
+    clientProgramAdvanceInferExecution: () => ({$tag: 1, _0: 'stopped'}),
+    clientProgramInferExecutionPollKind: value => value,
+    clientProgramInferExecutionStopped: () => stopped,
+    clientProgramCleanupInferExecution() { cleanups++; return {$tag: 1, _0: true}; },
+  };
+  const component = openNodeComposedInferProvider({moon,
+    selected: {occurrence: {}, graph: {}, provider: {}, quantityCapacity: {
+      limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
+      perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}}},
+    retainOperation(owner) { retained = owner; },
+  });
+  assert.equal(start([]), undefined);
+  assert.equal(component.operation(), retained);
+  assert.equal(component.failure().cause, cause);
+  assert.equal(component.failure().cleanupOwner, retained);
+  assert.equal(cleanups, 0, 'constructor cannot bypass the parent evidence custody');
+  assert.equal(retained.cleanup(), true);
+  assert.equal(cleanups, 1);
 });
