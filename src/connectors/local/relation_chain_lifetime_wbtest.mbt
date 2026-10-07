@@ -147,6 +147,7 @@ fn chain_lifetime_generated(
 /// ProducerRead, so Values is not accidentally included in the fast whitelist.
 fn chain_lifetime_fixture(
   body : String,
+  source_name? : String = "id",
 ) -> (
   @execution.GeneratedSequence,
   @execution.ProducerRead,
@@ -163,7 +164,15 @@ fn chain_lifetime_fixture(
   let source_owner = chain_lifetime_bind(
     @pipeline.check(
       chain_lifetime_cursor(
-        "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":2},{\"id\":1},{\"id\":2}]},\"as\":\"seed\"}]",
+        "[{\"values\":{\"schema\":{\"" +
+        source_name +
+        "\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"" +
+        source_name +
+        "\":2},{\"" +
+        source_name +
+        "\":1},{\"" +
+        source_name +
+        "\":2}]},\"as\":\"seed\"}]",
       ),
       [],
       None,
@@ -504,7 +513,8 @@ test "unaudited chain steps keep conservative capacity and child custody" {
   let measure = chain_lifetime_measurement()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   let count = @execution.generated_sequence_step_count(sequence)
-  let mut overlap = count.to_int64() * 256L
+  // Existing parent handles plus the two fixed metadata preparation handles.
+  let mut overlap = count.to_int64() * 256L + 512L
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()

@@ -1,26 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parentStartupLayout, inspectParentStartup } from './parent-layout.mjs';
-// Synthetic validator fixture, not the saved native execution result.
-const fact = () => ({ kind: 'parent control investigation', count: 2, rootBytes: 208,
-  callbackBytes: 248, childrenContainerBytes: 40, completedContainerBytes: 48, knownOwnedLowerBytes: 544,
-  matchedEnvironment: 1, environmentBytes: 120, unclassifiedCaptures: 0,
-  unclassifiedRegularBytes: 0, embeddedCaptures: 0, allowance: 512 });
-test('source field layout exposes the unsupported two-child component allowance', () => {
-  const model = parentStartupLayout();
-  assert.equal(model.blocks.startEnvironment, 120);
-  assert.equal(model.blocks.advance, 96);
-  assert.equal(model.startupLower, 664);
-  const claim = inspectParentStartup(fact(), 'native');
-  assert.equal(claim.componentBoundContradicted, true);
-  assert.equal(claim.totalReservationViolationProven, false);
-  assert.equal(claim.completePipelineUpper, false);
+import {readFileSync} from 'node:fs';
+import {parentStartupLayout,inspectParentStartup} from './parent-layout.mjs';
+const fixture=JSON.parse(readFileSync(new URL('../parent-control/chain-records.fixture.json',import.meta.url)));
+const fact=()=>structuredClone(fixture.records.find(r=>r.kind==='startup'));
+test('current source/ABI requests include aggregated state and padded captures',()=>{
+  const model=parentStartupLayout();
+  assert.equal(model.references,64);assert.equal(model.blocks.state,56);
+  assert.equal(model.blocks.startEnvironment,80);assert.equal(model.blocks.advance,104);
+  assert.equal(model.startupLower,600);
+  const result=inspectParentStartup(fact(),'native');
+  assert(result.componentBoundContradicted);assert.equal(result.totalReservationViolationProven,false);
 });
-test('byte equality does not replace actual capture identity or target correspondence', () => {
-  for (const mutate of [f => f.matchedEnvironment = 0, f => f.count = 3,
-    f => f.unclassifiedCaptures = 1, f => f.environmentBytes = 112,
-    f => f.knownOwnedLowerBytes = 496, f => delete f.completedContainerBytes]) {
-    const f = fact(); mutate(f); assert.throws(() => inspectParentStartup(f, 'native'));
+test('the old ten-Ref layout and a portable target cannot enter current arithmetic',()=>{
+  for(const mutate of [f=>f.count=3,f=>f.environments[0].requestedBytes=120,
+    f=>f.state.requestedBytes=0,f=>f.callbacks[0].requestedBytes=96]) {
+    const f=fact();mutate(f);assert.throws(()=>inspectParentStartup(f,'native'));
   }
-  for (const target of ['js', 'wasm']) assert.throws(() => inspectParentStartup(fact(), target));
+  for(const target of ['js','wasm'])assert.throws(()=>inspectParentStartup(fact(),target));
 });
