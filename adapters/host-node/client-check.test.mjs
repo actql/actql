@@ -1080,6 +1080,49 @@ for (const [entrance, open] of Object.entries(entrances)) {
         unresolved: []}}, '[check-mutation:construction-budget]');
   });
 
+  test(`${entrance}: original submission retains a disclosed analysis budget without input blame`, async t => {
+    const text = 'SELECT id FROM records' + ' UNION ALL SELECT id FROM records'.repeat(50);
+    const problems = [];
+    for (const configuration of [configurations.allowed, configurations.absent, configurations.denied]) {
+      const client = await open(t, configuration);
+      const original = await client.newSubmission();
+      let error;
+      try { await client.startSource(text, {format: 'sql', submissionRef: original}); }
+      catch (cause) { error = cause; }
+      const outcome = sdk.getSubmissionOutcome(error);
+      const checked = await client.check(text, {format: 'sql'});
+      const publicBudget = configuration === configurations.allowed;
+      // Missing visible relations stop lowering before this construction
+      // budget is proven. Absence and denied access are the same obligation;
+      // they cannot borrow the budget fact from the authorized configuration.
+      assert.equal(checked.report.verdict, 'undetermined');
+      assert.deepEqual(checked.report.coverage, publicBudget
+        ? {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}
+        : {limits: [], unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+      assert.equal(outcome?.kind, 'not_accepted');
+      assert.deepEqual(outcome.problem, publicBudget
+        ? {code: 'ClientProgramAnalysisLimit', classification: 'implementation_limit'}
+        : {code: 'ClientProgramRejected', classification: 'operation_failed'},
+        '[check-mutation:submission-budget-public]');
+      problems.push(outcome.problem);
+      const explanation = sdk.explainSubmission(error);
+      assert.equal(explanation.observation, 'not_accepted');
+      assert.equal(explanation.preparationIssue?.kind, publicBudget ? 'analysis_budget_exhausted' : undefined);
+      assert.deepEqual(explanation.next.submissionRef, original);
+      assert.deepEqual(await client.lookupSubmission(original), outcome);
+      let invalid;
+      try {
+        await client.startSource(text, {format: 'sql',
+          parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 'twenty'}});
+      } catch (cause) { invalid = cause; }
+      assert.deepEqual(sdk.getSubmissionOutcome(invalid)?.problem,
+        {code: 'ClientProgramInvalidInput', classification: 'invalid_input'},
+        '[check-mutation:submission-budget-independent]');
+      client.assertNoExecution();
+    }
+    assert.deepEqual(problems[1], problems[2]);
+  });
+
   test(`${entrance}: an undecided source is hidden exactly like an absent ` +
     'one and withholds nothing else', async t => {
     const seen = {};

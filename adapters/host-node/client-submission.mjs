@@ -8,7 +8,8 @@ const fail = code => {throw Object.assign(new Error(code), {code});};
 const classification = code => ({
   ClientProgramInvalidInput: 'invalid_input', ClientParametersInvalid: 'invalid_input',
   ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',
-  ClientParametersTooLarge: 'implementation_limit', ClientProgramRejected: 'operation_failed',
+  ClientParametersTooLarge: 'implementation_limit', ClientProgramAnalysisLimit: 'implementation_limit',
+  ClientProgramRejected: 'operation_failed',
 })[code] ?? 'operation_failed';
 const immutable = value => {
   if (value && typeof value === 'object') {
@@ -42,7 +43,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     submissionRef: retained.submissionRef, intentCid: retained.intentCid});
   const discloseOutcome = async (value, outcome, fields, retained) => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind) ||
-        outcome.problem.code !== 'ClientProgramInvalidInput') return outcome;
+        !['ClientProgramInvalidInput', 'ClientProgramAnalysisLimit'].includes(outcome.problem.code)) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
@@ -53,8 +54,10 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const report = await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, input: intent.input, parameters: intent.parameters});
       const observed = report?.report ?? report?.partial_report;
-      disclosable = validCheckOutcome(report) &&
-        observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid';
+      disclosable = validCheckOutcome(report) && (outcome.problem.code === 'ClientProgramInvalidInput'
+        ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
+        : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
+          limit => limit.code === 'analysis_budget_exhausted'));
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.
@@ -115,6 +118,33 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
+  const replayReady = async (value, retained, fields, original) => {
+    const requestId = retained.requestId;
+    if (flights.has(requestId)) return original;
+    // A ready receipt establishes acceptance, not physical dispatch. Only
+    // explicit replay re-enters the existing Run owner; lookup stays read-only.
+    const flight = (async () => {
+      const preparedProgram = await prepareSubmit({...value, requestId});
+      const current = await authorize(value);
+      if (current.authorityScopeCid !== fields.authorityScopeCid ||
+          current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      const reply = await submit({...value, requestId, preparedProgram,
+        submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
+          intentCid: value.intentCid, currentAuthorization: true}});
+      const observed = await authorize(value);
+      if (observed.authorityScopeCid !== fields.authorityScopeCid ||
+          observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+      if (reply.kind === 'held' || ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+        .some(key => reply.ref?.[key] !== original.admission.ref[key])) {
+        fail('InvalidClientHostSubmissionOutcome');
+      }
+      // Dispatch revalidation cannot replace an immutable acceptance receipt,
+      // including when the existing owner refuses a changed Source binding.
+      return original;
+    })().finally(() => {if (flights.get(requestId) === flight) flights.delete(requestId);});
+    flights.set(requestId, flight);
+    return await flight;
+  };
   const submitIntent = async request => {
     const value = snapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
@@ -129,6 +159,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (retained.intentCid !== value.intentCid) fail('ClientSubmittedIntentConflict');
       const result = await refresh(value, retained, fields);
       if (result.kind === 'unresolvable') fail('ClientSubmissionUnresolvable');
+      if (result.kind === 'ready') return await replayReady(value, retained, fields, result);
       if (result.kind !== 'preparing') return await discloseOutcome(value, result, fields, retained);
     }
     if (retained === undefined) {

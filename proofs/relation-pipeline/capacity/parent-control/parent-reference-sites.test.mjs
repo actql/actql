@@ -85,9 +85,10 @@ test('object and executed caller cannot silently differ in Ref roles',()=>{
 test('missing or unsupported correspondence cannot become an established extent',()=>{
   const noRead=()=>{throw Error('Unresolved platform must not inspect an artifact');};
   assert.throws(()=>auditParentReferenceCode({runtime:{platform:'linux-x64'}},startup(),'/unused',noRead),/Missing primitive/);
-  const proof={status:'unresolved',reason:'primitive Ref code decoder currently covers linux-x64 only'};
+  const proof={status:'unresolved',reason:'primitive Ref code decoder currently covers linux-x64 and darwin-arm64 only'};
   assert.throws(()=>auditParentReferenceCode({runtime:{platform:'linux-x64'},parentReferenceCode:proof},startup(),'/unused',noRead),/Supported/);
-  assert.deepEqual(auditParentReferenceCode({runtime:{platform:'darwin-arm64'},parentReferenceCode:proof},startup(),'/unused',noRead),
+  assert.throws(()=>auditParentReferenceCode({runtime:{platform:'darwin-arm64'},parentReferenceCode:proof},startup(),'/unused',noRead),/Supported/);
+  assert.deepEqual(auditParentReferenceCode({runtime:{platform:'unregistered-native'},parentReferenceCode:proof},startup(),'/unused',noRead),
     {status:'unresolved',completePhysicalLifetimeUpper:false});
 });
 

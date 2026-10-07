@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { snapshot as sessionSnapshot, artifacts, targets } from '../bounded-session/evidence.mjs';
+import { snapshot as sessionSnapshot, artifacts, targets, includesObligations } from '../bounded-session/evidence.mjs';
 export { artifacts, targets };
 export const fixture = 'src/query_integration/relation_chain_evidence_wbtest.mbt';
+export const pauseFixture = 'src/query_integration/relation_chain_stop_pause_wbtest.mbt';
 export const stopFixture = 'src/query_integration/relation_chain_delayed_work_wbtest.mbt';
 export const stopPremises = Object.freeze([
   'accepted stop-only deltas are representable, bounded by quantum; nonterminal Continue work is positive',
@@ -49,6 +50,19 @@ const reviewedStop = Object.freeze({
   provider: 'src/connectors/local/selected_relation_provider.mbt',
   children: [stopFixture],
 });
+const reviewedPause = Object.freeze({
+  operation: 'registered-child/stop-pause', variant: 'request-or-budget-exhaustion',
+  profile: 'one productive unit; Waiting(0), Settling(slot=7,work=1), Settling(slot=7,work=0), Stopped(0); same child cleanup false/error/true',
+  length: 2, stopContract: 'explicit-pause-kind-and-slot-without-stop-authority',
+  entrypoint: 'bounded_relation_chain_execution',
+  provider: 'src/connectors/local/selected_relation_provider.mbt', children: [pauseFixture],
+});
+export const pausePremises = Object.freeze([...stopPremises,
+  'Waiting/Settling preserve their explicit kind and slot; no stop authority from zero work',
+]);
+export const pauseGuarantees = Object.freeze([...stopGuarantees,
+  'zero-work pause preserves accounting and child custody; accepted positive pause work is charged once',
+]);
 const clone = value => JSON.parse(JSON.stringify(value));
 export const executedCoverage = () => ({ fixture, scopes: clone(reviewed) });
 export const executedStopCoverage = () => ({fixture: stopFixture, scopes: [clone(reviewedStop)]});
@@ -56,25 +70,42 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const keys = Object.keys(reviewed[0]);
 const matches = (a, b) => keys.every(key => same(a?.[key], b[key]));
 const isStop = binding => matches(binding, reviewedStop);
-export const stopBindings = () => [{...clone(reviewedStop), premises: [...stopPremises], residual: [
+const isPause = binding => matches(binding, reviewedPause);
+const isStopping = binding => isStop(binding) || isPause(binding);
+const stoppingPremises = binding => isPause(binding) ? pausePremises : stopPremises;
+const stoppingGuarantees = binding => isPause(binding) ? pauseGuarantees : stopGuarantees;
+const connectionRun = (binding, target) =>
+  `${isPause(binding) ? 'pause-connection' : isStop(binding) ? 'stop-connection' : 'connection'}-${target}`;
+export const pauseResidual = Object.freeze([
+  'finite diagnostic child only; no arbitrary Model/Store provider refinement or eventual stop',
+  'slot/schema authority, machine overflow, invalid reports and physical capacity remain separate obligations',
+  'holding marker checks callback custody; it is not a physical allocation measurement',
+]);
+export const pauseBindings = () => [{...clone(reviewedPause), premises: [...pausePremises], residual: [...pauseResidual]}];
+export const executedPauseCoverage = () => ({fixture: pauseFixture, scopes: [clone(reviewedPause)]});
+export const stopResidual = Object.freeze([
   'finite registered diagnostic child only; no arbitrary delayed-stop provider refinement or liveness',
   'machine overflow, invalid-report handling and capacity/physical retirement remain runtime obligations',
-  'Waiting/Settling zero-work pause transitions are outside this model and finite fixture scope',
+  'Waiting/Settling zero-work pause transitions are outside this six-case execution scope; use the separate pause claim',
   'early scratch retirement and semantic values are outside the stop-accounting model',
-]}];
-export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
-  premises: [...premises], residual: [
+]);
+export const stopBindings = () => [{...clone(reviewedStop), premises: [...stopPremises], residual: [...stopResidual]}];
+export const promptResidual = Object.freeze([
     'child semantic and logical work contracts remain operation-specific',
     'capacity sum soundness, machine overflow and physical backend remain separate obligations',
     'finite real traces are tested refinement, not an implementation correspondence proof',
-  ],
+]);
+const residualFor = scope => isPause(scope) ? pauseResidual : isStop(scope) ? stopResidual : promptResidual;
+export const bindings = () => reviewed.map(scope => ({ ...clone(scope),
+  premises: [...premises], residual: [...promptResidual],
 }));
 
 export function checkBindings(root, requested, {read = path => readFileSync(join(root, path), 'utf8')} = {}) {
   if (!requested.length) throw new Error('Missing chain bindings');
   for (const binding of requested) {
-    if (!isStop(binding) && !reviewed.some(scope => matches(binding, scope))) throw new Error('Unverified chain execution scope');
-    if (!(isStop(binding) ? stopPremises : premises).every(p => binding.premises?.includes(p))) throw new Error('Missing child premise');
+    if (!isStopping(binding) && !reviewed.some(scope => matches(binding, scope))) throw new Error('Unverified chain execution scope');
+    if (!includesObligations(binding.premises, isStopping(binding) ? stoppingPremises(binding) : premises)) throw new Error('Missing child premise');
+    if (!includesObligations(binding.residual, residualFor(binding))) throw new Error('Missing chain residual obligation');
   }
   // Reviewed real route, not a provider name or a reported capability flag.
   const chain = read(reviewed[0].provider);
@@ -104,9 +135,9 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
       !compact.includes('@execution.generated_sequence_step_index_at(cursor.sequence,position)==Some(producer)')) {
     throw new Error('Missing exact predecessor completion selection');
   }
-  if (requested.some(isStop)) {
+  if (requested.some(isStopping)) {
     const stop = read(stopFixture);
-    for (const name of [
+    if (requested.some(isStop)) for (const name of [
       'delayed-stop work audit preserves final physical stop work',
       'delayed-stop work audit confirms a zero-work terminal stop control',
       'budget stop retains cleanup when a stopped child rejects further polling',
@@ -118,6 +149,23 @@ export function checkBindings(root, requested, {read = path => readFileSync(join
       'Stopped(progress~, work~) => (progress, work)', 'managed_provider_stopped_poll(progress, work)',
       'managed_provider_stopped(active)']) {
       if (!chain.includes(symbol)) throw new Error(`Missing actual stop work route: ${symbol}`);
+    }
+  }
+  if (requested.some(isPause)) {
+    const pause = read(pauseFixture);
+    for (const name of [
+      'explicit stop preserves Waiting and Settling custody through cleanup retry',
+      'budget stop preserves Waiting and Settling custody through cleanup retry',
+    ]) if (!pause.includes(`test "${name}"`)) throw new Error('Missing reviewed pause correspondence fixture');
+    const begin = chain.indexOf('if cancelled.val || used.val >= execution.max_work.to_int64() {');
+    const end = chain.indexOf('let remaining = execution.max_work.to_int64() - used.val', begin);
+    const stopRoute = chain.slice(begin, end).replace(/\s+/gu, '');
+    if (begin < 0 || end <= begin || !stopRoute.includes('Waiting(..)|Settling(_,..)=>Ok(poll)')) {
+      throw new Error('Missing exact stop pause forwarding route');
+    }
+    const driver = read('src/connectors/local/managed_provider.mbt').replace(/\s+/gu, '');
+    if (!driver.includes('(pollisContinue(..)&&work==0L)')) {
+      throw new Error('Missing distinct pause/Continue work acceptance');
     }
   }
 }
@@ -143,12 +191,12 @@ export function graph(requested, target) {
     const scope = Object.fromEntries(keys.map(key => [key, clone(binding[key])]));
     scope.target = target;
     const id = binding.operation;
-    const stopping = isStop(binding);
+    const stopping = isStopping(binding);
     nodes.push({ id: `${id}:connection`, kind: 'tested-refinement', scope: clone(scope),
-      dependencies: ['model'], run: `${stopping ? 'stop-connection' : 'connection'}-${target}` });
+      dependencies: ['model'], run: connectionRun(binding, target) });
     nodes.push({ id, kind: 'derived', scope: clone(scope),
       dependencies: [stopping ? 'model' : 'session', `${id}:connection`],
-      premises: clone(binding.premises), guarantees: [...(stopping ? stopGuarantees : guarantees)], residual: clone(binding.residual) });
+      premises: clone(binding.premises), guarantees: [...(stopping ? stoppingGuarantees(binding) : guarantees)], residual: clone(binding.residual) });
   }
   return nodes;
 }
@@ -169,7 +217,7 @@ export function validate(nodes, report, current, target) {
       if (node.kind !== 'tested-refinement' || node.run !== `session-${target}` ||
           !same(node.dependencies, ['model'])) throw new Error('Invalid Session correspondence');
     } else if (node.id.endsWith(':connection')) {
-      if (node.kind !== 'tested-refinement' || node.run !== `${isStop(node.scope) ? 'stop-connection' : 'connection'}-${target}` ||
+      if (node.kind !== 'tested-refinement' || node.run !== connectionRun(node.scope, target) ||
           !same(node.dependencies, ['model'])) throw new Error('Invalid connection evidence');
     } else if (node.kind !== 'derived') throw new Error('Unknown evidence role');
     if (node.scope.target !== (model ? 'model' : target)) throw new Error('Claim target mismatch');
@@ -181,10 +229,10 @@ export function validate(nodes, report, current, target) {
       visit(dep);
     }
     if (node.kind === 'derived') {
-      const stopping = isStop(node.scope);
+      const stopping = isStopping(node.scope);
       if (!stopping && !reviewed.some(scope => matches(node.scope, scope))) throw new Error('Unverified derived execution scope');
-      if (!same(node.guarantees, stopping ? stopGuarantees : guarantees) || !(stopping ? stopPremises : premises).every(p => node.premises?.includes(p)) ||
-          !node.residual?.length) throw new Error('Missing or unsupported obligations');
+      if (!same(node.guarantees, stopping ? stoppingGuarantees(node.scope) : guarantees) || !includesObligations(node.premises, stopping ? stoppingPremises(node.scope) : premises) ||
+          !includesObligations(node.residual, residualFor(node.scope))) throw new Error('Missing or unsupported obligations');
       for (const id of [stopping ? 'model' : 'session', `${node.id}:connection`]) {
         if (!node.dependencies.includes(id)) throw new Error('Missing derivation premise');
       }
@@ -192,13 +240,14 @@ export function validate(nodes, report, current, target) {
       const result = report.runs[node.run];
       const suite = node.run === `session-${target}` ? 'src/bounded_execution'
         : node.run === `connection-${target}` ? fixture
-        : node.run === `stop-connection-${target}` ? stopFixture : null;
+        : node.run === `stop-connection-${target}` ? stopFixture
+        : node.run === `pause-connection-${target}` ? pauseFixture : null;
       const command = model ? [process.execPath, 'proofs/relation-chain/check.mjs']
         : ['moon', 'test', suite, '--target', target, '--deny-warn'];
       if (!result?.passed || result.exit !== 0 || result.sourceDigest !== current.digest ||
           !same(result.command, command)) throw new Error('Missing or unrelated executed evidence');
       if (!model) {
-        if (!suite || result.target !== target || !(result.count >= (suite === stopFixture ? 6 : suite === fixture ? 4 : 1)) ||
+        if (!suite || result.target !== target || !(result.count >= (suite === pauseFixture ? 2 : suite === stopFixture ? 6 : suite === fixture ? 4 : 1)) ||
             !Object.keys(result.artifacts ?? {}).length) throw new Error('Invalid executed target/artifact');
         for (const [path, digest] of Object.entries(result.artifacts)) {
           if (current.builtArtifacts?.[path] !== digest) throw new Error('Stale built artifact');
@@ -211,6 +260,10 @@ export function validate(nodes, report, current, target) {
       if (suite === stopFixture && (!same(result.coverage, executedStopCoverage()) ||
           !result.coverage.scopes.some(scope => matches(node.scope, scope)))) {
         throw new Error('Stop scope not independently verified by execution fixture');
+      }
+      if (suite === pauseFixture && (!same(result.coverage, executedPauseCoverage()) ||
+          !result.coverage.scopes.some(scope => matches(node.scope, scope)))) {
+        throw new Error('Pause scope not independently verified by execution fixture');
       }
     }
     visiting.delete(node.id); visited.add(node.id);

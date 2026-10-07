@@ -267,6 +267,13 @@ an analytic `OVER` clause resolve against the input snapshot, not the final
 ORDER BY scope. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+In a grouped SELECT, a grouping expression may occur inside a larger scalar
+expression. Its input references must resolve to the same pre-group value slots
+and property members as the grouping key. The evaluated key is reused; retaining
+`payload.score + 1` does not restore `payload` or permit `payload.score` alone.
+SELECT siblings still use the input scope, including when an output alias shadows
+an input receiver. Nullable keys keep their common value contract and NULLs.
+
 Pipe range variables bind immutable input value slots. `SET` replaces the
 current unqualified columns; every assignment sees the same pre-SET row.
 `DROP` removes current names, and `RENAME` changes current names. These three
@@ -362,6 +369,35 @@ same grouped value twice; they do not strengthen uniqueness or duplicate rows.
 After AGGREGATE, only those output columns are visible, and the old input range
 is closed. These aliases belong to Pipe; SQL GROUP BY does not acquire the Pipe
 output-alias grammar.
+
+Pipe aggregate outputs may contain scalar expressions around aggregate calls,
+including multiple calls in one expression. Each named output must contain an
+aggregate call; analytic calls are not admitted in this expression list. Calls
+resolve against the pre-group input and lower to the existing group operation.
+Identical calls may share an evaluated slot only when their input bindings and
+arguments agree. The enclosing scalar expression uses ordinary derive after
+grouping and before output aliases are installed. It can read retained grouped
+inputs and proven evaluated grouping subexpressions, including nullable property
+paths, but cannot read ungrouped inputs or sibling output aliases. Reusing a
+key requires the same resolved input meaning, not just matching text. Private
+aggregate and scalar fields are removed by the output projection. Output order
+remains grouping items followed by authored aggregate expressions, and ordinary
+WHERE/ORDER/LIMIT operate on that output scope. These rules do not introduce an
+aggregate evaluator, new numeric law or row-based type inference.
+
+Pipe AGGREGATE accepts the adopted shorthand ordering. `GROUP AND ORDER BY`
+sorts every grouping output, left to right, using ASC NULLS FIRST by default.
+A grouping item's ASC/DESC and NULLS FIRST/LAST suffix overrides its default;
+without AND ORDER, only suffixed grouping items participate. Ordering suffixes
+on aggregate outputs follow all ordered grouping outputs, regardless of their
+source-list placement. Aggregate suffixes require ASC or DESC; grouping suffixes
+may specify NULLS FIRST/LAST alone, as in the pinned GoogleSQL parser profile.
+The Frontend emits an ordinary Order operation on evaluated output positions:
+no grouping expression is recomputed, old range revived or hidden value exposed.
+No suffix and no AND ORDER means no implicit ordering. Empty global grouping has
+no grouping output to sort; an explicit aggregate suffix still orders its output.
+These forms do not extend SQL GROUP BY's grammar. See the pinned reference
+[shorthand ordering](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md#shorthand_order_pipe_syntax).
 
 Pipe `AGGREGATE GROUP BY` may omit the aggregate expression list. It lowers
 to the ordinary group operation with an empty aggregate map: each distinct
