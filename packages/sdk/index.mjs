@@ -107,6 +107,9 @@ const submissionContexts = new WeakMap();
 // Presentation is bound by the validated submit branch, never an error string.
 const submissionExplanations = new WeakMap();
 const requestLookupExplanations = new WeakMap();
+// Keep this call's lookup target even when a found observation explains the
+// Run instead. This association is not an admission record or replay grant.
+const requestLookupContexts = new WeakMap();
 const requestCancellationExplanations = new WeakMap();
 // Validated observations keep only a weak, immutable presentation snapshot.
 // This is not an Effect ledger or a certificate joining Owner revisions.
@@ -391,6 +394,7 @@ const submissionObservationHint = 'Keep the original submission reference and us
 const submissionTarget = context => ({operation: 'lookupSubmission',
   submissionRef: context.submissionRef, lookupContext: context.lookupContext});
 const retainSubmissionExplanation = (result, outcome, context) => {
+  requestLookupContexts.set(result, context);
   // Called only after admitting the exact Owner response and its binding.
   // Acceptance phase follows its typed branch, never its problem code.
   let explanation;
@@ -432,6 +436,7 @@ const retainSubmissionLookupFailure = (cause, context, observation) => {
   let error;
   try {error = requestCancellationCause(cause);}
   catch {error = new ClientError('ClientTransportUnknown');}
+  requestLookupContexts.set(error, context);
   submissionExplanations.set(error, freezeInput({observation,
     summary: observation === 'lookup_unavailable'
       ? 'The submission lookup could not be completed. Acceptance and execution remain unresolved.'
@@ -454,6 +459,7 @@ const heldRequestExplanation = (answer, context) => freezeInput({
     : {operation: 'lookupSubmission', submissionRef: context.submissionRef, lookupContext: context.lookupContext},
 });
 const retainRequestLookupExplanation = (answer, context) => {
+  requestLookupContexts.set(answer, context);
   const observation = answer.kind === 'found' ? 'run_reference_received' :
     answer.kind === 'not_found' ? 'lookup_unresolved' : 'lookup_unavailable';
   requestLookupExplanations.set(answer, answer.kind === 'held'
@@ -477,6 +483,7 @@ const retainRequestLookupFailure = (error, context, observation) => {
   const status = error instanceof ClientError ? error.status : undefined;
   const retained = new ClientError(code,
     Number.isInteger(status) && status >= 100 && status <= 599 ? {status} : {});
+  requestLookupContexts.set(retained, context);
   requestLookupExplanations.set(retained, freezeInput({observation,
     summary: observation === 'lookup_uninterpretable'
       ? 'This SDK could not interpret the request lookup response. Acceptance and execution remain unresolved.'
@@ -905,6 +912,39 @@ const ownedClientFailure = (code, details) => {
   return error;
 };
 const fail = code => { throw ownedClientFailure(code); };
+// Saved lookup targets are untrusted data. Never evaluate a getter, toJSON,
+// inherited error property or conversion while selecting the original target.
+const recoveryData = (value, keys) => {
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return undefined;
+  const fields = Object.getOwnPropertyDescriptors(value);
+  if (Reflect.ownKeys(fields).length !== keys.length ||
+      keys.some(key => !Object.hasOwn(fields, key) ||
+        !Object.hasOwn(fields[key], 'value'))) return undefined;
+  return Object.fromEntries(keys.map(key => [key, fields[key].value]));
+};
+const requestRecoveryTarget = value => {
+  const retained = submissionInputs.get(value) ?? requestLookupContexts.get(value);
+  if (retained) return retained.submissionRef === undefined
+    ? {operation: 'lookupRequest', requestId: retained.requestId, lookupContext: retained.lookupContext}
+    : {operation: 'lookupSubmission', submissionRef: retained.submissionRef,
+      lookupContext: retained.lookupContext};
+  try {
+    const submitted = recoveryData(value, ['operation', 'submissionRef', 'lookupContext']);
+    const target = submitted ?? recoveryData(value, ['operation', 'requestId', 'lookupContext']);
+    const context = recoveryData(target?.lookupContext, ['endpoint', 'scopeRef']);
+    if (!context) return undefined;
+    if (submitted?.operation === 'lookupSubmission') {
+      const ref = recoveryData(submitted.submissionRef, ['epoch', 'nonce']);
+      const epoch = recoveryData(ref?.epoch, ['version', 'authorityScopeCid', 'epochNonce',
+        'notBefore', 'expiresAt', 'authenticator']);
+      if (!epoch || !validSubmissionRef({...ref, epoch})) return undefined;
+      return {...submitted, submissionRef: {...ref, epoch}, lookupContext: context};
+    }
+    if (target?.operation !== 'lookupRequest') return undefined;
+    return {...target, lookupContext: context};
+  } catch { return undefined; }
+};
 // Read only own data properties: classification never evaluates untrusted
 // getters or keeps private reply content. Proxy failures give no usable header.
 const rejectedCheckHeader = value => {
@@ -2056,7 +2096,7 @@ async function connectSelected(selected, port) {
     const failure = runObservationFailures.get(cause);
     if (failure) runObservationFailures.set(error, failure);
   };
-  return Object.freeze({
+  const client = Object.freeze({
     profile: confirmed,
     requestedDurability: selected.wire.durability ?? null,
     startSource,
@@ -2216,6 +2256,41 @@ async function connectSelected(selected, port) {
       } catch {
         throw retainRequestLookupFailure(new ClientError('InvalidHostRequestLookup'), context, 'lookup_uninterpretable');
       }
+    },
+    // One explicit lookup target across pre-Run and Run observations. Creating
+    // or restoring this handle performs no I/O and grants no retry authority.
+    recoverRequest: observationOrTarget => {
+      if (closed) fail('ClientClosed');
+      const captured = requestRecoveryTarget(observationOrTarget);
+      if (closed) fail('ClientClosed');
+      if (!captured || (captured.operation === 'lookupRequest' &&
+          (typeof captured.requestId !== 'string' || captured.requestId.length < 1 ||
+          captured.requestId.length > 256 || /[\u0000-\u001f\u007f]/u.test(captured.requestId))) ||
+          typeof captured.lookupContext.endpoint !== 'string' ||
+          typeof captured.lookupContext.scopeRef !== 'string') {
+        fail('InvalidRequestRecoveryTarget');
+      }
+      if (captured.lookupContext.endpoint !== selected.endpoint ||
+          captured.lookupContext.scopeRef !== confirmed.scopeRef) {
+        fail('RequestRecoveryScopeMismatch');
+      }
+      const target = freezeInput(captured);
+      const found = new WeakSet();
+      return Object.freeze({target,
+        lookup: async options => {
+          const observation = target.operation === 'lookupSubmission'
+            ? await client.lookupSubmission(target.submissionRef, options)
+            : await client.lookupRequest(target.requestId, options);
+          if (observation.kind === 'found' || observation.kind === 'ready') found.add(observation);
+          return observation;
+        },
+        attach: async (observation, options) => {
+          if (closed) fail('ClientClosed');
+          if (!found.has(observation)) fail('InvalidRequestRecoveryObservation');
+          // Custody of a lookup is not authority: attach rechecks the Host now.
+          return client.attach(observation.kind === 'ready' ? observation.admission.ref : observation.ref, options);
+        },
+      });
     },
     // Cancel a request by its ID, before or after its Run exists; a Run is
     // cancelled through its own cancellation. `accepted` means the Host
@@ -2443,6 +2518,7 @@ async function connectSelected(selected, port) {
     close,
     [Symbol.asyncDispose]: close,
   });
+  return client;
 }
 
 
