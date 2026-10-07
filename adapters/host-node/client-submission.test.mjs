@@ -154,7 +154,8 @@ test('reference-only lookup returns original acceptance without diagnostic enric
   // reference-only operation; unrelated exceptions remain infrastructure errors.
   await assert.doesNotReject(async () => {
     lookup = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
-  }, {code: 'InvalidClientHostSubmissionLookup'}, '[check-mutation:submission-check-lookup-contract]');
+  }, error => error?.code === 'InvalidClientHostSubmissionLookup',
+  '[check-mutation:submission-check-lookup-contract]');
   assertReferenceOnly(lookup, original);
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
 });
