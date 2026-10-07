@@ -195,6 +195,22 @@ export type DeliveryObservationExplanation = Readonly<{
 export declare function explainDeliveryAttempt(result: unknown,
   options?: OperationExplanationOptions): DeliveryObservationExplanation | undefined;
 
+export type RequestCancellationExplanation = Readonly<{
+  requestId: string;
+  summary: string;
+  hint: string;
+}> & (Readonly<{
+  observation: 'accepted' | 'already_requested' | 'already_terminal';
+}> & (Readonly<{
+  revision: number;
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}> | Readonly<{next: RequestObservationTarget}>) | Readonly<{
+  observation: 'outcome_unknown';
+  problem: 'exchange_failed' | 'response_uninterpretable';
+  next: RequestObservationTarget;
+}>);
+/** Original request-cancellation observation; no cancel-operation identity or stop/release certificate. */
+export declare function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions): RequestCancellationExplanation | undefined;
 export type CancellationExplanation = Readonly<{
   summary: string;
   next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
@@ -477,6 +493,7 @@ export type OperationFormatOptions = OperationExplanationOptions & Readonly<{
 export declare function formatSubmission(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatRequestLookup(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatCancellation(result: unknown, options?: OperationFormatOptions): string | undefined;
+export declare function formatRequestCancellation(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatReadFailure(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatDeliveryAttempt(result: unknown, options?: OperationFormatOptions): string | undefined;
 export declare function formatEffectUncertainty(result: unknown, options?: OperationFormatOptions): string | undefined;

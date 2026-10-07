@@ -94,6 +94,12 @@ export function createIcebergPhysicalBridge({python, run, catalog,
       preflight('reconcile', payload);
       return invoke('reconcile', payload, signal);
     },
+    async inspect(prepared, signal) {
+      const owned = own(prepared);
+      const payload = {operation: owned.payload.operation};
+      preflight('inspect', payload);
+      return invoke('inspect', payload, signal);
+    },
     async cleanup(prepared, signal) {
       const owned = own(prepared);
       if (!owned.attempted || !owned.stopped) fail('TableWriterNotStopped');

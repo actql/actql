@@ -301,6 +301,53 @@ pub fn admit_captured_effect_source_artifact(
   artifact : PublicationContract,
   store_authority_cid : String,
 ) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  admit_captured_effect_source_binding(
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    artifact.identity,
+    store_authority_cid,
+  )
+}
+
+///|
+/// A Preview may name the checked semantic Result Artifact while its private
+/// holding retains the Run-bound physical Effect-source Artifact. Their exact
+/// logical content/schema/measurement must agree; a matching CID is not custody.
+pub fn admit_captured_effect_source_from_result(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  result : PublicationContract,
+  store_authority_cid : String,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
+  guard effect_preview_member_source_result(preview, member_index) is Some(name) &&
+    effect_source_contract_matches_result_facts(artifact, result, name) else {
+    return Err(
+      CaptureIssuanceReferenceMismatch("effect_source_result_artifact"),
+    )
+  }
+  admit_captured_effect_source_binding(
+    preview,
+    member_index,
+    invocation,
+    artifact,
+    result.identity,
+    store_authority_cid,
+  )
+}
+
+///|
+fn admit_captured_effect_source_binding(
+  preview : EffectPreviewIdentity,
+  member_index : Int,
+  invocation : PublicationContract,
+  artifact : PublicationContract,
+  preview_artifact_cid : String,
+  store_authority_cid : String,
+) -> Result[CapturedEffectSourceArtifact, CapturedRunIssuanceIssue] {
   guard effect_preview_member_effect_id(preview, member_index)
     is Some(effect_id) &&
     effect_preview_member_source_result(preview, member_index)
@@ -313,7 +360,7 @@ pub fn admit_captured_effect_source_artifact(
   }
   if invocation.name != "run_invocation" ||
     artifact.name != "effect_source_artifact" ||
-    artifact.identity != artifact_cid ||
+    preview_artifact_cid != artifact_cid ||
     contract_string(artifact, "store_authority_cid") !=
     Some(store_authority_cid) ||
     contract_string(artifact, "source_result") != Some(source_result) ||

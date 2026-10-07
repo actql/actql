@@ -413,33 +413,37 @@ fn compile_join_chain_stage_body(
   let declarations : Array[(String, @builder.Node)] = []
   let inputs : Array[(Input, String)] = []
   let reserved : Array[String] = []
+  let seeds : Array[@builder.Node] = []
   for index in 0..<selected.length() {
     let input = selected[index]
-    guard input.source is StageResult(stage, result) else {
-      raise Abort(UnsupportedJoin)
-    }
     let name = "aql_chain_input_" + index.to_string()
     reserved.push(name)
-    declarations.push(
-      (
-        name,
-        construction.object([
+    match input.source {
+      StageResult(stage, result) =>
+        declarations.push(
           (
-            "result",
+            name,
             construction.object([
-              ("stage", construction.text(stage)),
-              ("result", construction.text(result)),
+              (
+                "result",
+                construction.object([
+                  ("stage", construction.text(stage)),
+                  ("result", construction.text(result)),
+                ]),
+              ),
             ]),
           ),
-        ]),
-      ),
-    )
+        )
+      GeneratedValues(source) =>
+        seeds.push(import_script_seed(construction, source, name))
+      _ => raise Abort(UnsupportedJoin)
+    }
     inputs.push((input, name))
   }
   let (steps, output, from) = compile_join_chain_steps(
     construction, query, inputs, limits, reserved, retained,
   )
-  (steps, output, declarations, from)
+  (seeds + steps, output, declarations, from)
 }
 
 ///|

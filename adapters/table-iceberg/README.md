@@ -1,11 +1,11 @@
 # Optional local Iceberg Table I/O
 
-This is an internal physical boundary, not an installed public Table Effect.
-Do not invoke `write_claimed` from user input. The future bulk adapter must first
-admit the request in common Core, bind the checked/captured whole Relation and
-effective policy, obtain approval, recheck current authority, and durably claim
-the existing Effect Ledger. No Python component issues approval or schedules
-work. The normal Program unsupported guards remain until that integration lands.
+This is an optional internal Table boundary, not an installed public Table
+Effect or Source. Do not invoke `write_claimed` from user input. The internal
+approved-commit connection binds a checked/captured whole Relation and sealed
+Preview, resumes the existing approval journal, rechecks the current target and
+durably claims the existing Effect Ledger. No Python component issues approval
+or schedules work. The public installer and Source remain separate integration.
 
 ## Dependencies and scope
 
@@ -129,3 +129,48 @@ authority boundary, bounded streaming of captured input, Host process-stop
 integration for staged-file cleanup/retry, immutable
 Table acquisition into a new Run, and packed Local/HTTPS approval/restart/release
 acceptance. Do not mark the full Table task complete from these physical tests.
+
+## Approved captured commit connection
+
+`adapters/host-node/table-commit-apply.mjs` connects the existing captured Effect
+apply owner to the optional physical writer. It is a trusted Host connection,
+not a public installer or a second Run, approval or Ledger owner.
+
+Material comes only from the exact admitted physical source holding through
+the Store's active read owner. Its bytes and semantic Relation CID must match
+the checked Result Artifact. The common publication owner validates the semantic
+Result against the separate Run-bound physical Effect-source Artifact; neither
+CID replaces the other. Holding preparation accepts actual Result tokens, not
+caller-authored rows or copied objects. Initial material is bounded by the
+existing private-frame limit, not an unbounded streaming implementation.
+
+The apply owner's current target-read authorization precedes readonly Catalog
+inspection. Create observes an unused name; replace checks the approved UUID,
+generation and unchanged schema/mapping. The atomic Catalog commit repeats the
+condition, so a race after inspection cannot authorize a different replacement.
+Only an opaque dispatch decision resumed from the approval journal for the exact
+sealed Set can bind a send. An account allow or copied decision is insufficient.
+One fresh durable Ledger claim sends one whole Relation, including an empty one.
+The saved original-operation receipt alone settles the terminal outcome.
+The same opaque preparation retains access to the managed process's stop facts
+and Catalog-fenced cleanup. A cleanup failure leaves it reachable for retry;
+committed files remain retained. Unsent pure material can be invalidated without
+claiming that a writer ran or allocating fictitious cleanup responsibility.
+
+The optional `table-approved-commit.test.mjs` uses an actual checked Program,
+capture, sealed Preview, signed approval, reopened Checkpoint service, two
+independent source-member holdings, managed Python process, real Catalog and
+the existing send-once Ledger. It checks no staging/commit before approval,
+one commit per member, empty/nonempty rows, Ledger reopen without resend and
+frozen generation reads after input holdings retire. Its installed target
+Mapping is a fixture. It does **not** establish public Client installation,
+whole Host/Run reconstruction, origin Run release, a new Run's Table Source,
+approved replacement, lost-reply settlement through that installer, or packed
+Local/HTTPS coverage. Those are still required for the full task.
+
+```sh
+ACTQL_TABLE_PYTHON=/absolute/path/to/.venv-table/bin/python \
+node scripts/local-checks.mjs test node --timeout-seconds 300 -- \
+  --test-name-pattern '^approved captured Table' \
+  adapters/host-node/table-approved-commit.test.mjs
+```
