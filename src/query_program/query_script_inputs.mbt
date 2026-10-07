@@ -4,6 +4,7 @@ priv struct ScriptSources {
   stages : Array[@builder.Node]
   bound : Map[String, Input]
   unshared : Array[String]
+  ranges : Map[String, JoinChainScope]
 }
 
 ///|

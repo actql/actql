@@ -344,9 +344,7 @@ fn effect_context_preview_inventory_matches(
     if effect_preview_member_source_result(preview, index) is Some(name) {
       let effect_id = preview.member_effect_ids[index]
       expected_source_names.push(effect_id)
-      guard effect_preview_member_result_artifact_cid(preview, index)
-        is Some(expected_artifact) &&
-        effect_preview_member_source_binding_cid(preview, index)
+      guard effect_preview_member_source_binding_cid(preview, index)
         is Some(source_binding_cid) &&
         @json.object_field(source_artifacts, effect_id) is Some(artifact) &&
         evidence_identity_valid(
@@ -354,8 +352,7 @@ fn effect_context_preview_inventory_matches(
         ) &&
         evidence_string(artifact, "version") ==
         Some("actql-effect-source-artifact/0.1") &&
-        evidence_string(artifact, "result_artifact_cid") ==
-        Some(expected_artifact) &&
+        evidence_string(artifact, "result_artifact_cid") is Some(physical_cid) &&
         evidence_string(artifact, "source_result") == Some(name) &&
         evidence_string(artifact, "source_binding_cid") ==
         Some(source_binding_cid) &&
@@ -364,7 +361,7 @@ fn effect_context_preview_inventory_matches(
         evidence_string(artifact, "store_authority_cid")
         is Some(store_authority_cid) &&
         effect_source_holding_identity(
-          expected_artifact,
+          physical_cid,
           effect_id,
           preview.run_identity_cid,
           store_authority_cid,
@@ -378,10 +375,9 @@ fn effect_context_preview_inventory_matches(
           max_nodes, max_depth,
         )
         is Some(physical) &&
-        validate_captured_local_effect_source_value(
-          local_source, physical, max_wire_bytes, max_nodes, max_depth,
-        )
-        is Ok(_) else {
+        captured_local_effect_source_matches_preview(
+          preview, index, physical, local_source, max_wire_bytes, max_nodes, max_depth,
+        ) else {
         return false
       }
     }

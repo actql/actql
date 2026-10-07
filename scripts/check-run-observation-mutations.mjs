@@ -30,6 +30,22 @@ const mutations = [
   {name: 'malformed known state admission bypass', path, file: publicTests, occurrences: 2,
     from: 'if (!validRunState(state)) throw rejectedRunObservation(ref, operation, problem);',
     to: "if (state.status !== 'running' && !validRunState(state)) throw rejectedRunObservation(ref, operation, problem);", targets: publicTargets},
+  {name: 'valid copied Run facts replace the received observation', path, file: unit,
+    from: "        if (structuralKey(state) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }",
+    to: '', targets: ['status', 'wait', 'reconcile'].flatMap(operation =>
+      ['execution and publication', 'Run identity', 'observation time', 'control revision',
+        'physical stop', 'Effect identity', 'Result availability'].map(fact => target(
+        `${operation}: copied Run observation cannot replace ${fact}`, 'run-copy-preservation')))},
+  {name: 'Effect presentation replaces admitted facts with a secondary copy', path, file: unit,
+    from: '    effectUncertainties.set(state, freezeInput({',
+    to: '    state = structuredClone(state);\n    effectUncertainties.set(state, freezeInput({',
+    targets: ['status', 'wait', 'reconcile'].map(operation => target(
+      `${operation}: later Effect projection cannot replace admitted Run facts`,
+      'run-effect-projection-copy', 'deepStrictEqual'))},
+  {name: 'public copied Run facts replace their original owner facts', path, file: publicTests,
+    from: "        if (structuralKey(state) !== observedKey) {\n          throw rejectedRunObservation(ref, operation, 'malformed_response');\n        }",
+    to: '', targets: ['local', 'https'].map(entrance => target(
+      `${entrance}: copied Run observations retain original owner facts`, 'run-copy-public'))},
 ];
 const args = process.argv.slice(2);
 if (args.length && (args.length !== 2 || args[0] !== '--match' || !args[1])) {

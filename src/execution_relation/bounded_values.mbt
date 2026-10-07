@@ -1,5 +1,6 @@
 ///|
 priv enum BoundedValuesPhase {
+  PrepareCompletionPort
   ChargeNames
   BeginRow
   BuildCell
@@ -23,7 +24,8 @@ priv struct BoundedValuesState {
   rows : Ref[AdmittedOutputRows?]
   live : Ref[Bool]
   accepted : Ref[Bool]
-  port : TrustedOutputPort[Unit]
+  mut port : TrustedOutputPort[Unit]?
+  mut port_preparation : TrustedOutputPreparation?
   mut phase : BoundedValuesPhase
   mut name : Int
   mut row : Int
@@ -67,6 +69,10 @@ pub enum BoundedValuesPoll {
 
 ///|
 fn cleanup_bounded_values_state(state : BoundedValuesState) -> Bool {
+  if state.port_preparation is Some(cursor) {
+    cancel_trusted_output_preparation(cursor)
+    state.port_preparation = None
+  }
   if state.input_measure is Some(cursor) {
     clear_stepped_measure(cursor)
     state.input_measure = None
@@ -106,6 +112,35 @@ fn bounded_values_step(
       return @bounded.Stopped(reason, progress, used)
     }
     match state.phase {
+      PrepareCompletionPort => {
+        guard state.port_preparation is Some(cursor) else {
+          return @bounded.Failed(InvalidExecution, progress, used)
+        }
+        match advance_trusted_output_preparation(cursor) {
+          Err(issue) =>
+            return @bounded.Failed(Completion(issue), progress, used + 1)
+          Ok(false) => ()
+          Ok(true) => {
+            let live = state.live
+            let rows = state.rows
+            state.port = match
+              finish_trusted_output_preparation(cursor, fn(_) {
+                if live.val {
+                  rows.val
+                } else {
+                  None
+                }
+              }) {
+              Ok(port) => Some(port)
+              Err(issue) =>
+                return @bounded.Failed(Completion(issue), progress, used + 1)
+            }
+            state.port_preparation = None
+            state.phase = ChargeNames
+          }
+        }
+        used += 1
+      }
       ChargeNames => {
         if state.name == state.width {
           state.phase = BeginRow
@@ -305,7 +340,10 @@ fn bounded_values_step(
         state.rows.val = Some(rows)
         state.phase = Terminal
         used += 1
-        return match complete_trusted_output(state.port, ()) {
+        guard state.port is Some(port) else {
+          return @bounded.Failed(InvalidExecution, progress, used)
+        }
+        return match complete_trusted_output(port, ()) {
           Ok(value) => @bounded.Complete(value, progress, used)
           Err(issue) => @bounded.Failed(Completion(issue), progress, used)
         }
@@ -371,14 +409,13 @@ pub fn start_bounded_values(
   let rows : Ref[AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    prepare_trusted_output_port(
+  let port_preparation = match
+    start_trusted_output_preparation(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs=[],
+      Some([]),
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -404,8 +441,9 @@ pub fn start_bounded_values(
     rows,
     live,
     accepted,
-    port,
-    phase: ChargeNames,
+    port: None,
+    port_preparation: Some(port_preparation),
+    phase: PrepareCompletionPort,
     name: 0,
     row: 0,
     column: 0,
@@ -471,7 +509,8 @@ pub fn cleanup_bounded_values(
       value.state.workspace.live != 0 ||
       value.state.input_measure is Some(_) ||
       value.state.output_recheck is Some(_) ||
-      value.state.output_charge is Some(_)
+      value.state.output_charge is Some(_) ||
+      value.state.port_preparation is Some(_)
     ) {
     return Err(InvalidExecution)
   }

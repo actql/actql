@@ -275,6 +275,28 @@ pub fn NativeRetainedTaskFile::release_confirmed(
 }
 
 ///|
+/// Confirm a missing original file through its cleanup Owner. This operation
+/// never removes an existing file, including a replacement at the same name.
+/// Absence alone is provisional until the existing release operation confirms
+/// directory durability. It grants no payload access or execution permission.
+pub fn NativeRetainedTaskFile::confirm_missing_release(
+  self : NativeRetainedTaskFile,
+) -> Result[Bool, NativeRetainedTaskFileIssue] {
+  if self.writer is Some(_) || self.usable.val || self.readers.val != 0 {
+    return Err(InvalidState)
+  }
+  match self.root.inspect_generation(self.name) {
+    Ok(None) => ()
+    Ok(Some(_)) => return Ok(false)
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  match self.release() {
+    Ok(_) => Ok(self.release_confirmed())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 pub fn NativeRetainedTaskFile::open_reader(
   self : NativeRetainedTaskFile,
 ) -> Result[NativeRetainedTaskReader, NativeRetainedTaskFileIssue] {

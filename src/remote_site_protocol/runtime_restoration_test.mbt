@@ -73,6 +73,77 @@ fn completed_runtime_fixture(
 }
 
 ///|
+test "completed cleanup observation remains exact after release without permitting live restoration" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "cleanup-released-original",
+  )
+  verify_remote_completed_cleanup_observation(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_begin_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  verify_remote_completed_cleanup_observation(
+    record, evidence, subject, measurement,
+  ).unwrap()
+  commit_dispatch_transition(
+    prepare_confirm_remote_release(record).unwrap(),
+    true,
+  ).unwrap()
+  let original = dispatch_record_state_codes(record)
+  let revision = dispatch_record_revision(record)
+  assert_eq(original[3], 0)
+  for _ in 0..<2 {
+    verify_remote_completed_cleanup_observation(
+      record, evidence, subject, measurement,
+    ).unwrap()
+    assert_true(
+      restore_remote_runtime_completed_custody(
+        record, evidence, subject, measurement,
+      )
+      is Err(InvalidTransition),
+    )
+  }
+  assert_eq(dispatch_record_state_codes(record), original)
+  assert_eq(dispatch_record_revision(record), revision)
+  assert_false(remote_runtime_record_startable(record))
+}
+
+///|
+test "completed cleanup observation refuses foreign uncommitted and force-lost evidence" {
+  let (record, evidence, subject, measurement) = completed_runtime_fixture(
+    "cleanup-proof-original",
+  )
+  let (_, foreign, output, measured) = completed_runtime_fixture(
+    "cleanup-proof-foreign",
+  )
+  assert_true(
+    verify_remote_completed_cleanup_observation(
+      record, foreign, output, measured,
+    )
+    is Err(DispatchIdentityMismatch),
+  )
+  let (incomplete, proof, output, measured) = completed_runtime_fixture(
+    "cleanup-proof-uncommitted",
+    commit_evidence=false,
+  )
+  assert_true(
+    verify_remote_completed_cleanup_observation(
+      incomplete, proof, output, measured,
+    )
+    is Err(InvalidTransition),
+  )
+  commit_force_loss(prepare_force_loss(journal(), record, true).unwrap(), true).unwrap()
+  assert_true(
+    verify_remote_completed_cleanup_observation(
+      record, evidence, subject, measurement,
+    )
+    is Err(InvalidTransition),
+  )
+}
+
+///|
 test "completed runtime restoration acquires no resources or execution permission" {
   let (record, evidence, subject, measurement) = completed_runtime_fixture(
     "restore-original",

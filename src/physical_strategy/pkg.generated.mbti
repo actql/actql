@@ -184,6 +184,8 @@ pub fn captured_effect_run_source_at(CapturedEffectRunDAG, Int) -> CheckedEffect
 
 pub fn captured_effect_run_source_count(CapturedEffectRunDAG) -> Int
 
+pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootStatistics?
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -374,6 +376,10 @@ pub fn confirm_resident_environment(CapturedDAG, ResidentEnvironment, Int64) -> 
 
 pub fn confirm_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, RunIssue]
 
+pub fn control_edge_consumer(ControlEdge) -> Int
+
+pub fn control_edge_predecessor(ControlEdge) -> Int
+
 pub fn data_edge_consumer(DataEdge) -> Int
 
 pub fn data_edge_input(DataEdge) -> Int
@@ -381,6 +387,8 @@ pub fn data_edge_input(DataEdge) -> Int
 pub fn data_edge_operation_input(DataEdge) -> (Int, Int)?
 
 pub fn data_edge_producer(DataEdge) -> Int
+
+pub fn data_edge_target(DataEdge) -> @pipeline_typing.Target
 
 pub fn execute_captured_synchronous_task(CapturedDAG, Int, @connector_sdk.SynchronousCompute) -> Result[Unit, RunIssue]
 
@@ -438,6 +446,8 @@ pub fn graph_task_operation_at(CheckedDAG, Int, Int) -> TaskOperationRequirement
 
 pub fn graph_task_operation_count(CheckedDAG, Int) -> Int?
 
+pub fn graph_task_original_index(CheckedDAG, Int) -> Int?
+
 pub fn graph_task_owner(CheckedDAG, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn graph_task_prefix_end(CheckedDAG, Int) -> Int?
@@ -475,6 +485,8 @@ pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.Captur
 pub fn open_multi_captured_dag(CheckedDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_multi_captured_effect_run_dag(CheckedEffectRunDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
+
+pub fn open_retained_task_dag(RetainedTaskProjection, @execution_relation.CompletedOutput, @physical_resources.Ledger, canonical_wire_bytes~ : Int) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
@@ -533,6 +545,8 @@ pub fn prepare_resident_inputs(CapturedDAG, ResidentEnvironment, Int, Array[Resi
 pub fn prepare_resident_profile(CapturedDAG, @connector_sdk.ResourceBinding, Int64, SharedWorkEstimate, SharedWorkEstimate, Array[ResidentImportEstimate]) -> Result[ResidentProfile, SearchIssue]
 
 pub fn prepare_resident_storage(CapturedDAG, ResidentEnvironment, Int, Int64, Int, Int, (@execution_relation.ProducerStorage, Int) -> Result[@execution_relation.ProducerStorage, RunIssue]) -> Result[ResidentTable, RunIssue]
+
+pub fn prepare_retained_task_projection(CheckedDAG, Int) -> Result[RetainedTaskProjection, RunIssue]
 
 pub fn prepare_shared_work(CapturedDAG, Int, Array[@physical_cost.SerialEstimateLine], Int) -> Result[SharedWorkEstimate, SearchIssue]
 
@@ -647,6 +661,16 @@ pub fn resident_task_offer(CapturedDAG, TaskOffer, ResidentProfile, Int64) -> Re
 pub fn retain_captured_task_allocation(CapturedDAG, Int, @physical_resources.Holding, release_confirmed? : () -> Bool) -> Result[Unit, @physical_resources.LedgerIssue]
 
 pub fn retain_task_execution_allocation(CapturedDAG, TaskExecution, Int64) -> Result[TaskRetainedAllocation, @physical_resources.LedgerIssue]
+
+pub fn retained_task_projection_consumer(RetainedTaskProjection) -> Int
+
+pub fn retained_task_projection_matches_output(RetainedTaskProjection, @execution_relation.CompletedOutput) -> Bool
+
+pub fn retained_task_projection_producer(RetainedTaskProjection) -> Int
+
+pub fn retained_task_projection_reference(RetainedTaskProjection, Int, Int) -> Result[CheckedTaskReference, CheckedTaskReferenceIssue]
+
+pub fn retained_task_projection_target(RetainedTaskProjection) -> @pipeline_typing.Target
 
 pub fn retire_resident_table(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
@@ -877,6 +901,11 @@ pub(all) enum CapturedEffectRiskIssue {
 
 type CapturedEffectRunDAG
 
+pub struct CapturedExecutionRootStatistics {
+  rows : Int
+  canonical_wire_bytes : Int
+}
+
 type CapturedOutputPin
 
 type CapturedResidentResultBorrow
@@ -1093,6 +1122,8 @@ type ResidentRead
 type ResidentTable
 
 type ResidentTransfer
+
+type RetainedTaskProjection
 
 pub(all) enum RunIssue {
   UnsupportedGraph
