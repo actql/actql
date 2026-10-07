@@ -246,7 +246,8 @@ export async function runManagedColumnStrategyHostCompute(
     if (preservesCheckedValues) {
       const selection = checked(moon.managedStrategySelection(run, occurrences));
       output = checked(moon.managedStrategySelectedOutputBegin(run, selection));
-      checked(moon.managedStrategyOutputFinish(run, output));
+      await finishManagedOutputReceipt(quantum => checked(
+        moon.managedStrategyOutputAdvanceFinish(run, output, quantum)), signal);
     }
     body = await writer.sealPhysical();
     checked(moon.managedOutputRetain(output, BigInt(body.bytes), () => body.available()));
