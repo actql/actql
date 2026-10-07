@@ -7,153 +7,164 @@ import { shrink } from './engine.mjs';
 import { fixedCorpus } from './corpus.mjs';
 import { registrations } from './obligations.mjs';
 import { registry } from './registry.mjs';
-import { createExecutor, executions, root, toolchain } from './execute.mjs';
+import { fileURLToPath } from 'node:url';
+import { mutationCampaignScope, fixedJsAction } from './fixed-js-scope.mjs';
 import { mutationNamesByPart } from './proof-parts.mjs';
 import { mutationPart, inspectMutationPart } from './mutation-parts.mjs';
 import { mutationWorkspaces, workspaceIdentity } from './workspaces.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { compareSemantics } from './evidence.mjs';
 import { decision } from './exploration-impact.mjs';
-const mode = process.argv[2] ?? 'explore';
-const partId = process.env.ACTQL_PIPELINE_PART;
-const part = partId ? mutationPart(partId) : null;
-const selectedVariants = part ? part.variants.map(name => {
-  const variant = variants.find(variant => variant.name === name);
-  assert(variant, `Missing reviewed mutation ${name}`); return variant;
-}) : variants;
-if (part) assert.deepEqual(variants.map(v => v.name), Object.values(mutationNamesByPart).flat(), 'Static mutation plan differs from registry');
-assert(['fixed', 'explore', 'auto', 'verify'].includes(mode));
-const impact = decision(root);
-writeFileSync(join(root, '.artifacts/relation-pipeline/exploration-decision.json'), JSON.stringify(impact, null, 2) + '\n');
-if (mode === 'auto' && !impact.required) {
-  console.log(`Fresh exploration skipped: ${impact.reason}`);
-  process.exit(0);
-}
-// Keep both obligations distinct, but visit each mutated source only once.
-// Every replay still invokes Moon and records fresh observations. Only the
-// unchanged incremental build is reused; no receipt or passing log is reused.
-const modes = mode === 'verify' ? (impact.required ? ['fixed', 'explore'] : ['fixed'])
-  : [mode === 'fixed' ? 'fixed' : 'explore'];
-const source = snapshot(root);
-checkBaseline(root);
-const cases = fixedCorpus(registry, registrations);
-const regressions = JSON.parse(readFileSync(join(root, 'proofs/relation-pipeline/regressions.json')));
-assert.deepEqual(regressions.map(r => r.name), variants.map(v => v.name));
-const workspaces = await mutationWorkspaces(root);
-const mutatedExecutor = createExecutor(workspaces.mutable);
-const pristineExecutor = createExecutor(workspaces.pristine);
-const execute = mutatedExecutor.execute;
-let restoredExecutor, restorationOwner;
-const results = Object.fromEntries(modes.map(mode => [mode, []]));
-try {
-for (const variant of selectedVariants) {
-  const path = join(workspaces.mutable.root, variant.path);
-  const original = readFileSync(path);
-  const mutated = applyMutation(original.toString('utf8'), variant);
-  const witnesses = [];
-  const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
+export async function runMutations(options = {}) {
+  const {profile, mode, partId, revision, targets} = mutationCampaignScope(options);
+  const {createExecutor, executions, root, toolchain} = await import('./execute.mjs');
+  const part = partId ? mutationPart(partId) : null;
+  const selectedVariants = part ? part.variants.map(name => {
+    const variant = variants.find(variant => variant.name === name);
+    assert(variant, `Missing reviewed mutation ${name}`); return variant;
+  }) : variants;
+  if (part) assert.deepEqual(variants.map(v => v.name), Object.values(mutationNamesByPart).flat(), 'Static mutation plan differs from registry');
+  assert(['fixed', 'explore', 'auto', 'verify'].includes(mode));
+  const impact = profile === 'full' ? decision(root) : {revision, localOnly: true};
+  if (profile === 'full') writeFileSync(join(root, '.artifacts/relation-pipeline/exploration-decision.json'), JSON.stringify(impact, null, 2) + '\n');
+  if (mode === 'auto' && !impact.required) {
+    console.log(`Fresh exploration skipped: ${impact.reason}`);
+    return [];
+  }
+  // Keep both obligations distinct, but visit each mutated source only once.
+  // Every replay still invokes Moon and records fresh observations. Only the
+  // unchanged incremental build is reused; no receipt or passing log is reused.
+  const modes = mode === 'verify' ? (impact.required ? ['fixed', 'explore'] : ['fixed'])
+    : [mode === 'fixed' ? 'fixed' : 'explore'];
+  const source = snapshot(root);
+  checkBaseline(root);
+  const cases = fixedCorpus(registry, registrations);
+  const regressions = JSON.parse(readFileSync(join(root, 'proofs/relation-pipeline/regressions.json')));
+  assert.deepEqual(regressions.map(r => r.name), variants.map(v => v.name));
+  const workspaces = await mutationWorkspaces(root);
+  const mutatedExecutor = createExecutor(workspaces.mutable, {targets});
+  const pristineExecutor = createExecutor(workspaces.pristine, {targets});
+  const execute = mutatedExecutor.execute;
+  let restoredExecutor, restorationOwner;
+  const results = Object.fromEntries(modes.map(mode => [mode, []]));
   try {
-    writeFileSync(path, mutated);
-    for (const selectedMode of modes) {
+  for (const variant of selectedVariants) {
+    const path = join(workspaces.mutable.root, variant.path);
+    const original = readFileSync(path);
+    const mutated = applyMutation(original.toString('utf8'), variant);
+    const witnesses = [];
+    const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
+    try {
+      writeFileSync(path, mutated);
+      for (const selectedMode of modes) {
+        const exploratory = selectedMode === 'explore';
+        const start = executions.length;
+        const timing = {};
+        let chosen, minimized;
+        if (exploratory) {
+          const searchCases = cases.filter(variant.eligible);
+          assert(searchCases.length, `Empty reviewed search domain ${variant.name}`);
+          let began = performance.now();
+          const observations = execute(searchCases, registry, 'js', false, `${variant.name}-search`);
+          timing.searchMs = performance.now() - began;
+          const available = searchCases.map((testCase, i) => ({ testCase, observed: observations[i], anchor: variant.anchor(testCase, observations[i], registry) }))
+            .filter(x => x.anchor && preserves(x.testCase, x.observed, x.anchor))
+            .sort((a, b) => (b.testCase.steps.length + b.testCase.rows.length) - (a.testCase.steps.length + a.testCase.rows.length));
+          assert(available.length, `No real detection of ${variant.name}`);
+          chosen = available[0];
+          began = performance.now();
+          minimized = await shrink(chosen.testCase, registry,
+            values => execute(values, registry, 'js', false, `${variant.name}-shrink`),
+            (c, o) => preserves(c, o, chosen.anchor));
+          timing.shrinkMs = performance.now() - began;
+        } else {
+          const fixed = regressions.find(r => r.name === variant.name);
+          chosen = { testCase: fixed.testCase, anchor: fixed.anchor };
+          minimized = { original: fixed.testCase, minimal: fixed.testCase, localMinimal: false };
+        }
+        const replay = {};
+        timing.mutatedReplayMs = {};
+        for (const target of targets) {
+          const began = performance.now();
+          const actual = execute([minimized.minimal], registry, target, false, `${variant.name}-${exploratory ? 'minimal' : 'fixed'}`)[0];
+          assert(preserves(minimized.minimal, actual, chosen.anchor), `${variant.name}: missing ${target} detection`);
+          replay[target] = actual;
+          timing.mutatedReplayMs[target] = performance.now() - began;
+        }
+        const witness = { ...(part ? { owner: partId } : {}), name: variant.name, site: variant.path, originalDigest: hash(original), mutatedDigest: hash(mutated),
+          source: snapshot(workspaces.mutable.root), anchor: chosen.anchor, ...minimized, replay, killed: true,
+          executions: executions.slice(start) };
+        witnesses.push({ selectedMode, witness, timing });
+      }
+    } finally {
+      writeFileSync(path, original);
+      assert.deepEqual(workspaces.mutable.check(), source, 'Source not restored exactly');
+      assert.deepEqual(snapshot(root), source, 'Original source changed');
+    }
+    for (const { selectedMode, witness, timing } of witnesses) {
       const exploratory = selectedMode === 'explore';
-      const start = executions.length;
-      const timing = {};
-      let chosen, minimized;
-      if (exploratory) {
-        const searchCases = cases.filter(variant.eligible);
-        assert(searchCases.length, `Empty reviewed search domain ${variant.name}`);
-        let began = performance.now();
-        const observations = execute(searchCases, registry, 'js', false, `${variant.name}-search`);
-        timing.searchMs = performance.now() - began;
-        const available = searchCases.map((testCase, i) => ({ testCase, observed: observations[i], anchor: variant.anchor(testCase, observations[i], registry) }))
-          .filter(x => x.anchor && preserves(x.testCase, x.observed, x.anchor))
-          .sort((a, b) => (b.testCase.steps.length + b.testCase.rows.length) - (a.testCase.steps.length + a.testCase.rows.length));
-        assert(available.length, `No real detection of ${variant.name}`);
-        chosen = available[0];
-        began = performance.now();
-        minimized = await shrink(chosen.testCase, registry,
-          values => execute(values, registry, 'js', false, `${variant.name}-shrink`),
-          (c, o) => preserves(c, o, chosen.anchor));
-        timing.shrinkMs = performance.now() - began;
-      } else {
-        const fixed = regressions.find(r => r.name === variant.name);
-        chosen = { testCase: fixed.testCase, anchor: fixed.anchor };
-        minimized = { original: fixed.testCase, minimal: fixed.testCase, localMinimal: false };
-      }
-      const replay = {};
-      timing.mutatedReplayMs = {};
-      for (const target of ['js', 'wasm', 'native']) {
+      const healthy = {};
+      timing.restoredReplayMs = {};
+      const healthyStart = executions.length;
+      for (const target of targets) {
         const began = performance.now();
-        const actual = execute([minimized.minimal], registry, target, false, `${variant.name}-${exploratory ? 'minimal' : 'fixed'}`)[0];
-        assert(preserves(minimized.minimal, actual, chosen.anchor), `${variant.name}: missing ${target} detection`);
-        replay[target] = actual;
-        timing.mutatedReplayMs[target] = performance.now() - began;
+        const actual = pristineExecutor.execute([witness.minimal], registry, target, true, `${variant.name}-restored`)[0];
+        compareSemantics(witness.minimal, actual, registry);
+        assert(!preserves(witness.minimal, actual, witness.anchor));
+        healthy[target] = actual;
+        timing.restoredReplayMs[target] = performance.now() - began;
       }
-      const witness = { ...(part ? { owner: partId } : {}), name: variant.name, site: variant.path, originalDigest: hash(original), mutatedDigest: hash(mutated),
-        source: snapshot(workspaces.mutable.root), anchor: chosen.anchor, ...minimized, replay, killed: true,
-        executions: executions.slice(start) };
-      witnesses.push({ selectedMode, witness, timing });
+      results[selectedMode].push({ ...witness, timing, healthy, healthyExecutions: executions.slice(healthyStart) });
+      console.log(`${variant.name}: ${exploratory ? 'fresh JS search and local-minimum shrink' : 'fixed regression replay; no fresh search/minimality claim'}; actual mutated/restored replay on ${targets.length} targets`);
     }
+  }
   } finally {
-    writeFileSync(path, original);
-    assert.deepEqual(workspaces.mutable.check(), source, 'Source not restored exactly');
-    assert.deepEqual(snapshot(root), source, 'Original source changed');
+    try { mutatedExecutor.close(); } finally { pristineExecutor.close(); }
   }
-  for (const { selectedMode, witness, timing } of witnesses) {
+  // Recovery observations must not borrow the mutated builder or its fixture.
+  // A new owner observes restored bytes in the SAME mutable source/build root.
+  // These are limited assigned minima checks, not another full normal corpus.
+  assert.deepEqual(workspaces.mutable.check(), source, 'Mutable source not restored before new owner');
+  const restoredWorkspace = workspaceIdentity(workspaces.mutable.root, 'mutable', source);
+  restorationOwner = { id: restoredWorkspace.id, root: restoredWorkspace.root };
+  restoredExecutor = createExecutor(restoredWorkspace, {targets});
+  try {
+    for (const selectedMode of modes) for (const witness of results[selectedMode]) {
+      const variant = selectedVariants.find(v => v.name === witness.name);
+      const start = executions.length, observations = {};
+      witness.timing.postRestoreReplayMs = {};
+      for (const target of targets) {
+        const began = performance.now();
+        const actual = restoredExecutor.execute([witness.minimal], registry, target, true,
+          `${variant.name}-${selectedMode}-post-restore`)[0];
+        compareSemantics(witness.minimal, actual, registry);
+        assert(!variant.preserves(witness.minimal, actual, witness.anchor, registry));
+        observations[target] = actual;
+        witness.timing.postRestoreReplayMs[target] = performance.now() - began;
+      }
+      witness.postRestore = { observations, executions: executions.slice(start) };
+    }
+  } finally { restoredExecutor.close(); }
+  workspaces.passed();
+  const reports = [];
+  for (const selectedMode of modes) {
     const exploratory = selectedMode === 'explore';
-    const healthy = {};
-    timing.restoredReplayMs = {};
-    const healthyStart = executions.length;
-    for (const target of ['js', 'wasm', 'native']) {
-      const began = performance.now();
-      const actual = pristineExecutor.execute([witness.minimal], registry, target, true, `${variant.name}-restored`)[0];
-      compareSemantics(witness.minimal, actual, registry);
-      assert(!preserves(witness.minimal, actual, witness.anchor));
-      healthy[target] = actual;
-      timing.restoredReplayMs[target] = performance.now() - began;
-    }
-    results[selectedMode].push({ ...witness, timing, healthy, healthyExecutions: executions.slice(healthyStart) });
-    console.log(`${variant.name}: ${exploratory ? 'fresh JS search and local-minimum shrink' : 'fixed regression replay; no fresh search/minimality claim'}; actual mutated/restored replay on 3 targets`);
+    const report = {
+      version: profile === 'full' ? 'actql-relation-pipeline-mutations/0.1' : 'actql-pipeline-fixed-js-campaign/0.1',
+      ...(profile === 'full' ? {} : {action: fixedJsAction, reuseAuthorized: false}), ...(part ? { part } : {}),
+      closure: { mutable: true, pristine: true, restoration: true, sourceRestored: true },
+      restorationOwner, source, workspaces: workspaces.evidence, revision: impact.revision, toolchain,
+      mode: exploratory ? 'explore' : 'fixed', decision: impact, seed: exploratory ? 105106 : null,
+      explorationTarget: exploratory ? 'js' : null, searchDomain: 'fixed typed corpus filtered by reviewed mutation eligibility',
+      meaning: 'known-site anchored mismatches; local minimum only under enumerated reductions and same anchor', results: results[selectedMode],
+    };
+    if (part && profile === 'full') inspectMutationPart(report);
+    reports.push(report);
+    if (profile === 'full') writeFileSync(join(root, `.artifacts/relation-pipeline/${exploratory ? 'mutations' : 'fixed-mutations'}${part ? `-${partId}` : ''}.json`), JSON.stringify(report, null, 2) + '\n');
   }
+  return reports;
 }
-} finally {
-  try { mutatedExecutor.close(); } finally { pristineExecutor.close(); }
-}
-// Recovery observations must not borrow the mutated builder or its fixture.
-// A new owner observes restored bytes in the SAME mutable source/build root.
-// These are limited assigned minima checks, not another full normal corpus.
-assert.deepEqual(workspaces.mutable.check(), source, 'Mutable source not restored before new owner');
-const restoredWorkspace = workspaceIdentity(workspaces.mutable.root, 'mutable', source);
-restorationOwner = { id: restoredWorkspace.id, root: restoredWorkspace.root };
-restoredExecutor = createExecutor(restoredWorkspace);
-try {
-  for (const selectedMode of modes) for (const witness of results[selectedMode]) {
-    const variant = selectedVariants.find(v => v.name === witness.name);
-    const start = executions.length, observations = {};
-    witness.timing.postRestoreReplayMs = {};
-    for (const target of ['js', 'wasm', 'native']) {
-      const began = performance.now();
-      const actual = restoredExecutor.execute([witness.minimal], registry, target, true,
-        `${variant.name}-${selectedMode}-post-restore`)[0];
-      compareSemantics(witness.minimal, actual, registry);
-      assert(!variant.preserves(witness.minimal, actual, witness.anchor, registry));
-      observations[target] = actual;
-      witness.timing.postRestoreReplayMs[target] = performance.now() - began;
-    }
-    witness.postRestore = { observations, executions: executions.slice(start) };
-  }
-} finally { restoredExecutor.close(); }
-workspaces.passed();
-for (const selectedMode of modes) {
-  const exploratory = selectedMode === 'explore';
-  const report = {
-    version: 'actql-relation-pipeline-mutations/0.1', ...(part ? { part } : {}),
-    closure: { mutable: true, pristine: true, restoration: true, sourceRestored: true },
-    restorationOwner, source, workspaces: workspaces.evidence, revision: impact.revision, toolchain,
-    mode: exploratory ? 'explore' : 'fixed', decision: impact, seed: exploratory ? 105106 : null,
-    explorationTarget: exploratory ? 'js' : null, searchDomain: 'fixed typed corpus filtered by reviewed mutation eligibility',
-    meaning: 'known-site anchored mismatches; local minimum only under enumerated reductions and same anchor', results: results[selectedMode],
-  };
-  if (part) inspectMutationPart(report);
-  writeFileSync(join(root, `.artifacts/relation-pipeline/${exploratory ? 'mutations' : 'fixed-mutations'}${part ? `-${partId}` : ''}.json`), JSON.stringify(report, null, 2) + '\n');
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  await runMutations({mode: process.argv[2] ?? 'explore', partId: process.env.ACTQL_PIPELINE_PART ?? null});
 }
