@@ -1806,6 +1806,15 @@ export function validateResourceAccounting({
       !environmentRoles.has('ordinary_derive_in_flight_host_timer')) {
       fail(`${label}: ordinary derive Host timer evidence is missing`);
     }
+    if (route.family === 'RelA' && ['sort', 'take'].includes(route.operation)) {
+      for (const role of ['ordered_metadata_quantum', 'ordered_metadata_stop',
+        ...(route.operation === 'sort' ? ['ordered_metadata_term_limits'] : [])]) {
+        if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
+      }
+      if (!environmentRoles.has('ordered_metadata_public')) {
+        fail(`${label}: ordered metadata public fixture is missing`);
+      }
+    }
     if (route.family === 'RelA' && route.operation === 'derive' &&
       (!environmentRoles.has('same_stage_values_derive_timer_cancel_cleanup') ||
         !boundaryRoles.has('same_stage_values_derive_two_consumers'))) {

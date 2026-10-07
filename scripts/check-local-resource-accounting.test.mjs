@@ -3837,6 +3837,23 @@ test('row metadata assurance requires lookup phase stop projection and quantum e
   }
 });
 
+test('ordered metadata assurance requires limits stop quantum and public evidence', () => {
+  for (const [operation, kind, role] of [
+    ['sort', 'boundary_tests', 'ordered_metadata_term_limits'],
+    ...['sort', 'take'].flatMap(operation => [
+      [operation, 'boundary_tests', 'ordered_metadata_quantum'],
+      [operation, 'boundary_tests', 'ordered_metadata_stop'],
+      [operation, 'environment_tests', 'ordered_metadata_public'],
+    ]),
+  ]) {
+    assert.match(run(undefined, routes => {
+      const route = routes.routes.find(entry => entry.family === 'RelA' &&
+        entry.operation === operation);
+      route[kind] = route[kind].filter(entry => entry.role !== role);
+    }), /(?:ordered_metadata_(?:term_limits|quantum|stop)|ordered metadata public) fixture is missing/u);
+  }
+});
+
 test('string aggregation assurance requires limits stop and public evidence', () => {
   for (const [kind,role] of [['boundary_tests','group_string_cursor_limits'],
     ['boundary_tests','group_string_cursor_stop'],['environment_tests','group_string_cursor_public']]) {
