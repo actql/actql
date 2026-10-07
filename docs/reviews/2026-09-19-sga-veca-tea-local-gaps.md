@@ -6322,3 +6322,34 @@ request and delivers cancellation after positive progress. This does not
 close initial preparation, availability, JSON/window metadata or Native
 physical capacity correspondence. The unmerged #704 owner remains a
 dependency. See the [order metadata record](2026-10-07-local-row-order-metadata.md).
+
+### Resumable generated row metadata (2026-10-07)
+
+JSON Pick, fixed Watermark rows and Lag prepare wide/long-name schemas and
+operation sources in the existing bounded Relation owner. Exact generated
+roles are matched once with retained UTF-16 cursors and cached for output
+copying. Canonical schema order no longer requires generated columns last.
+Short-lane budgets, cumulative logical work and borrowed-input custody remain
+unchanged. Independent JSON preparation/work limits and stops inside role
+matching/source lookup supplement existing whole-operation evidence.
+
+Normal real-Store Programs publish three fixed Named Results, use two
+consumers and deliver post-progress cancellation without early release or
+partial publication. The evidence gate requires these connected fixtures.
+This dependent unit follows #704/#708; it does not close initial preparation,
+availability validation, projected-read capacity or Native correspondence.
+See the [generated metadata record](2026-10-07-local-generated-row-metadata.md).
+
+### Borrowed JSON Pick path (2026-10-07)
+
+Local capability, obligation, selected-provider inspection and bounded start
+use an opaque read-only JSON Pick view rather than copying its complete path.
+The original defensive body API and logical entry admission remain intact.
+The existing scalar field-probe cursor preserves NULL demand, segment order,
+Unicode work and cancellation; no new evaluator or policy is introduced.
+Independent 15/14 NULL and 555/554 Unicode work limits, a later-segment stop
+and normal retained-Store publication are connected to the evidence gate.
+
+This dependent unit follows #717. Other copied kernel views, initial producer
+preparation, availability/static analysis and Native capacity correspondence
+remain distinct. See the [borrowed path record](2026-10-07-local-borrowed-json-path.md).
