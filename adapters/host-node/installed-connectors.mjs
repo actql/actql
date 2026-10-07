@@ -15,7 +15,8 @@
 //   installed source adapter (`installed-source.mjs`);
 // - optionally `publish(checked, options)`: the explicit publication step.
 //
-// An Effect installation module (optional `effect` section) exports the same
+// Source and Effect are independent optional roles; an entry has at least one.
+// An Effect installation module (`effect` section) exports the same
 // entries; its `identityParts(profile, read)` takes the profile only, and its
 // `load` also receives the Host's own `ledgerRoot` and returns the Effect
 // Site hooks (`installed-effect.mjs`).
@@ -31,9 +32,10 @@ const profileVersionPattern = /^actql-installed-[a-z0-9-]+\/0\.1$/u;
 function checkEntry(entry) {
   if (!entry || typeof entry !== 'object' || !text(entry.name) ||
       !registrationPattern.test(entry.name) ||
-      !entry.source || typeof entry.source !== 'object' ||
-      !profileVersionPattern.test(entry.source.profileVersion ?? '') ||
-      typeof entry.source.load !== 'function' ||
+      (entry.source === undefined && entry.effect === undefined) ||
+      (entry.source !== undefined && (!entry.source || typeof entry.source !== 'object' ||
+        !profileVersionPattern.test(entry.source.profileVersion ?? '') ||
+        typeof entry.source.load !== 'function')) ||
       (entry.registration !== undefined && (entry.registration !== entry.name ||
         !text(entry.revision) ||
         !entry.revision.startsWith(`${entry.registration}/`))) ||
@@ -45,7 +47,7 @@ function checkEntry(entry) {
       (entry.effect !== undefined && (!entry.effect ||
         typeof entry.effect !== 'object' ||
         !profileVersionPattern.test(entry.effect.profileVersion ?? '') ||
-        entry.effect.profileVersion === entry.source.profileVersion ||
+        entry.effect.profileVersion === entry.source?.profileVersion ||
         typeof entry.effect.load !== 'function'))) {
     fail('InvalidInstalledConnectorEntry');
   }
@@ -88,6 +90,7 @@ export function installedConnectorTable(entries) {
   const table = new Map();
   for (const entry of entries) {
     const checked = checkEntry(entry);
+    if (checked.source === undefined) continue;
     if (table.has(checked.source.profileVersion)) {
       fail('InstalledConnectorVersionAmbiguous');
     }

@@ -1,3 +1,4 @@
+import {submissionEpoch, originalSubmission, readySubmission, heldSubmission} from '../packages/sdk/submission-fixture.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createServer} from 'node:https';
@@ -82,7 +83,7 @@ const deliveryReplies = {
   'failed-with-receipt': deliveryReply('failed-with-receipt',
     {state: 'failed'}),
 };
-const profile = {version: 'actql-client-host/0.1',
+const profile = {submissionEpoch, version: 'actql-client-host/0.1',
   mode: 'remote', owner: 'remote', durability: 'durable',
   scopeRef: 'principal-a', capabilities: ['aql-document', 'result-jsonl'],
   limits: {maxReadWireBytes: 4096, maxRowWireBytes: 1024,
@@ -140,38 +141,40 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   let raw = '';
   for await (const chunk of request) raw += chunk;
   const body = JSON.parse(raw);
+  const requestId = body.submissionRef?.nonce ?? body.requestId;
   requests.push({operation, body, authorization: request.headers.authorization});
   assert.equal(request.headers.authorization, 'Bearer scoped-token');
   assert.equal(request.method, 'POST');
   assert.deepEqual(body.connection, body.connection.durability === 'durable'
     ? {...connection, durability: 'durable'} : connection);
-  if ((operation === 'submit' || operation === 'lookup-request') &&
-      heldReplies[body.requestId]) {
+  if ((operation === 'submit-intent' || operation === 'lookup-request') &&
+      heldReplies[requestId]) {
     response.writeHead(200, {'content-type': 'application/json'});
-    response.end(JSON.stringify(heldReplies[body.requestId]));
+    response.end(JSON.stringify(operation === 'submit-intent' ? heldSubmission(body, heldReplies[requestId]) : heldReplies[requestId]));
     return;
   }
-  if (operation === 'submit' && body.requestId.startsWith('input-refusal-')) {
-    const code = body.requestId.slice('input-refusal-'.length);
-    response.writeHead(400, {'content-type': 'application/json'});
-    response.end(JSON.stringify({code}));
+  if (operation === 'submit-intent' && requestId.startsWith('input-refusal-')) {
+    const code = requestId.slice('input-refusal-'.length);
+    response.writeHead(preparationCodes.includes(code) ? 200 : 400, {'content-type': 'application/json'});
+    response.end(JSON.stringify(preparationCodes.includes(code)
+      ? {kind: 'not_accepted', submissionRef: body.submissionRef, intentCid: body.intentCid, problem: {code, classification: 'invalid_input'}} : {code}));
     return;
   }
-  if (operation === 'submit' && body.requestId === 'lost-ack') {
+  if (operation === 'submit-intent' && requestId === 'lost-ack') {
     response.destroy();
     return;
   }
-  if (operation === 'submit' && body.requestId === 'invalid-utf8-ack') {
+  if (operation === 'submit-intent' && requestId === 'invalid-utf8-ack') {
     response.writeHead(200, {'content-type': 'application/json'});
     response.end(Buffer.from([0xff]));
     return;
   }
-  if (operation === 'submit' && body.requestId === 'malformed-ack') {
+  if (operation === 'submit-intent' && requestId === 'malformed-ack') {
     response.writeHead(200, {'content-type': 'application/json'});
     response.end('{"bad":true}');
     return;
   }
-  if (operation === 'submit' && body.requestId === 'redirect-ack') {
+  if (operation === 'submit-intent' && requestId === 'redirect-ack') {
     response.writeHead(307, {location: `https://127.0.0.1:` +
       `${server.address().port}/actql/client/0.1/submit-redirect-target`});
     response.end();
@@ -182,18 +185,18 @@ const server = createServer({key: await readFile(join(root, 'server.key')),
   if (operation === 'connect') response.end(JSON.stringify(
     body.connection.durability === 'durable'
       ? {...profile, durability: 'volatile'} : profile));
-  else if (operation === 'submit' || operation === 'attach') {
-    response.end(JSON.stringify({ref: operation === 'attach'
-      ? attachReplyRef : ref, durability: 'durable', revision: 1}));
+  else if (operation === 'submit-intent' || operation === 'attach') {
+    response.end(JSON.stringify(operation === 'attach' ? {ref: attachReplyRef, durability: 'durable', revision: 1}
+      : readySubmission(body, {ref, durability: 'durable', revision: 1})));
   } else if (operation === 'lookup-request') {
-    response.end(JSON.stringify(body.requestId === 'bad-lookup'
+    response.end(JSON.stringify(requestId === 'bad-lookup'
       ? {kind: 'found', ref: {...ref, runDefinitionCid: 'bad'},
         durability: 'durable', lookupExpiresAt: 'tomorrow'}
-      : body.requestId === 'found-request'
-        ? {kind: 'found', requestId: body.requestId, ref,
+      : requestId === 'found-request'
+        ? {kind: 'found', requestId: requestId, ref,
           durability: 'durable',
           lookupExpiresAt: '2026-09-24T00:00:00Z'}
-        : body.requestId === 'foreign-request'
+        : requestId === 'foreign-request'
           ? {kind: 'found', requestId: 'OTHER', ref,
             durability: 'durable',
             lookupExpiresAt: '2026-09-24T00:00:00Z'}
@@ -254,8 +257,15 @@ function runProcess(command, commandArgs) {
     child.once('close', code => resolve({code, stdout, stderr}));
   });
 }
-const runWith = (commonArgs, ...args) =>
-  runProcess(executable, [...commonArgs, ...args]);
+const runWith = async (commonArgs, ...args) => {
+  if (['aql', 'start'].includes(args[0])) {
+    const nonce = args[args.indexOf('--request-id') + 1];
+    const filename = `submission-${nonce}.json`;
+    await writeFile(join(root, filename), JSON.stringify(originalSubmission(nonce)));
+    args.push('--submission-ref-file', filename);
+  }
+  return runProcess(executable, [...commonArgs, ...args]);
+};
 const run = (...args) => runWith(common, ...args);
 
 try {
@@ -283,8 +293,8 @@ try {
   assert.equal(submitted.code, 0, submitted.stderr);
   assert.deepEqual(JSON.parse(submitted.stdout),
     {ref, durability: 'durable', revision: 1});
-  const sent = requests.find(item => item.operation === 'submit');
-  assert.equal(sent.body.requestId, 'saved-id');
+  const sent = requests.find(item => item.operation === 'submit-intent');
+  assert.equal(sent.body.submissionRef.nonce, 'saved-id');
   assert.equal(sent.body.kind, 'aql');
   assert.equal(sent.body.input.format, 'json');
   assert.deepEqual(sent.body.parameters, {minimum: 1});
@@ -295,22 +305,22 @@ try {
     '--parameters-file', 'parameters.json', '--format', 'sql',
     '--request-id', 'saved-query-id');
   assert.equal(query.code, 0, query.stderr);
-  const querySubmit = requests.find(item => item.operation === 'submit' &&
-    item.body.requestId === 'saved-query-id');
+  const querySubmit = requests.find(item => item.operation === 'submit-intent' &&
+    item.body.submissionRef.nonce === 'saved-query-id');
   assert.deepEqual(querySubmit.body.input, {
     text: 'SELECT id FROM records WHERE id = @minimum', format: 'sql',
     parameterDeclarations: {minimum: {type: 'number'}},
   });
   assert.deepEqual(querySubmit.body.parameters, {minimum: 1});
   const beforeInvalid = requests.filter(item =>
-    item.operation === 'submit').length;
+    item.operation === 'submit-intent').length;
   const invalid = await run('aql', '--program-file', 'program.json',
     '--parameter-declarations-file', 'parameter-declarations.json',
     '--format', 'json', '--request-id', 'invalid-query-id');
   assert.notEqual(invalid.code, 0);
   assert.match(invalid.stderr, /external declarations require/);
   assert.equal(requests.filter(item =>
-    item.operation === 'submit').length, beforeInvalid);
+    item.operation === 'submit-intent').length, beforeInvalid);
   for (const code of [...preparationCodes, 'UnregisteredInputFailure']) {
     const requestId = 'input-refusal-' + code;
     const rejected = await run('aql', '--program-file', 'query.sql',
@@ -321,7 +331,7 @@ try {
       assert.doesNotMatch(rejected.stderr, /SubmissionUnknown/);
     } else {
       assert.ok(rejected.stderr.includes(
-        'SubmissionUnknown request-id=' + requestId), rejected.stderr);
+        'SubmissionUnknown submission-ref-file=submission-' + requestId), rejected.stderr);
     }
   }
   for (const [requestId, reply] of Object.entries(heldReplies)) {
@@ -342,12 +352,12 @@ try {
       } else {
         assert.notEqual(result.code, 0);
         assert.ok(result.stderr.includes(operation === 'aql'
-          ? 'SubmissionUnknown request-id=' + requestId
+          ? 'SubmissionUnknown submission-ref-file=submission-' + requestId
           : 'InvalidHostRequestLookup'), result.stderr);
       }
     }
-    assert.equal(requests.filter(item => item.operation === 'submit' &&
-      item.body.requestId === requestId).length, 1);
+    assert.equal(requests.filter(item => item.operation === 'submit-intent' &&
+      item.body.submissionRef.nonce === requestId).length, 1);
   }
   const status = await run('status', '--ref-file', 'ref.json');
   assert.equal(status.code, 0, status.stderr);
@@ -461,29 +471,29 @@ try {
   assert.equal(started.code, 0, started.stderr);
   assert.deepEqual(JSON.parse(started.stdout),
     {ref, durability: 'durable', revision: 1});
-  assert.equal(requests.find(item => item.operation === 'submit' &&
-    item.body.requestId === 'program-id').body.kind, 'program');
+  assert.equal(requests.find(item => item.operation === 'submit-intent' &&
+    item.body.submissionRef.nonce === 'program-id').body.kind, 'program');
   const malformed = await run('aql', '--program-file', 'program.json',
     '--format', 'json', '--request-id', 'malformed-ack');
   assert.notEqual(malformed.code, 0);
   assert.match(malformed.stderr,
-    /SubmissionUnknown request-id=malformed-ack/);
+    /SubmissionUnknown submission-ref-file=submission-malformed-ack/);
   const invalidUtf8 = await run('aql', '--program-file', 'query.sql',
     '--format', 'sql', '--request-id', 'invalid-utf8-ack');
   assert.notEqual(invalidUtf8.code, 0);
   assert.match(invalidUtf8.stderr,
-    /SubmissionUnknown request-id=invalid-utf8-ack/);
-  assert.equal(requests.filter(item => item.operation === 'submit' &&
-    item.body.requestId === 'invalid-utf8-ack').length, 1);
+    /SubmissionUnknown submission-ref-file=submission-invalid-utf8-ack/);
+  assert.equal(requests.filter(item => item.operation === 'submit-intent' &&
+    item.body.submissionRef.nonce === 'invalid-utf8-ack').length, 1);
   const uncertain = await run('aql', '--program-file', 'program.json',
     '--format', 'json', '--request-id', 'lost-ack');
   assert.notEqual(uncertain.code, 0);
-  assert.match(uncertain.stderr, /SubmissionUnknown request-id=lost-ack/);
+  assert.match(uncertain.stderr, /SubmissionUnknown submission-ref-file=submission-lost-ack/);
   const redirected = await run('start', '--program-file', 'program.json',
     '--request-id', 'redirect-ack');
   assert.notEqual(redirected.code, 0);
   assert.match(redirected.stderr,
-    /SubmissionUnknown request-id=redirect-ack/);
+    /SubmissionUnknown submission-ref-file=submission-redirect-ack/);
   assert.equal(requests.filter(item =>
     item.operation === 'submit-redirect-target').length, 0);
   const lookedUp = await run('lookup-request', '--request-id', 'lost-ack');
@@ -504,8 +514,8 @@ try {
   const badLookup = await run('lookup-request', '--request-id', 'bad-lookup');
   assert.notEqual(badLookup.code, 0);
   assert.match(badLookup.stderr, /InvalidHostRequestLookup/);
-  assert.equal(requests.filter(item => item.operation === 'submit' &&
-    item.body.requestId === 'lost-ack').length, 1);
+  assert.equal(requests.filter(item => item.operation === 'submit-intent' &&
+    item.body.submissionRef.nonce === 'lost-ack').length, 1);
   for (const [index, item] of requests.entries()) {
     if (item.operation !== 'connect') {
       assert.equal(requests[index - 1]?.operation, 'connect');

@@ -64,6 +64,11 @@ export interface RunAdmission {
   readonly [admissionBrand]: true;
 }
 
+declare const cancellationIdentityBrand: unique symbol;
+export interface RunCancellationIdentity {
+  readonly [cancellationIdentityBrand]: true;
+}
+
 export interface RunDefinition {
   readonly [definitionBrand]: true;
 }
@@ -933,6 +938,21 @@ export function prepareRunPreStartFailure(requested: RequestIdentity,
 export function prepareRunCancellation(definition: RunDefinition,
   definitionCid: string, authorized: boolean, terminal: boolean,
   requested: boolean): 'accepted' | 'already_requested' | 'already_terminal';
+/** Identity only; persist its original outcome in the existing Run CAS.
+ * Admission does not authorize physical stop, execution or resource release. */
+export function prepareRunCancellationIdentity(definition: RunDefinition,
+  scope: Readonly<{namespaceId: string; authorityScopeCid: string;
+    cancelId: string; expectedRevision: number}>): RunCancellationIdentity;
+/** Checksum only, not storage provenance or authorization. */
+export function runCancellationIntentCid(identity: RunCancellationIdentity): string;
+/** Exact replay returns replay_original: read the saved outcome unchanged.
+ * Recheck authorization and Run revision after asynchronous work and before CAS. */
+export function prepareRunCancellationOperation(definition: RunDefinition,
+  requested: RunCancellationIdentity, facts: Readonly<{
+    retained?: RunCancellationIdentity; currentRevision: number;
+    currentAuthorization: boolean; terminalObserved: boolean;
+    cancellationRequested: boolean;
+  }>): 'accepted' | 'already_requested' | 'already_terminal' | 'replay_original';
 export function issueRunControlObservation(revision: number,
   observation: Readonly<{requested: boolean; unstarted: boolean;
     stopped: boolean}>): Readonly<{

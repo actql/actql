@@ -19,15 +19,28 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
 test('public wire accepts the exact connected request shapes', () => {
-  // The Run, request, check, Checkpoint and three Resource discovery
-  // operations.
-  assert.equal(clientHostOperations.length, 20);
+  // Run, request, submission-intent, check, Checkpoint and Resource operations.
+  assert.equal(clientHostOperations.length, 22);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
   assert.equal(validClientBody('submit', {connection, requestId: 'saved-a',
     kind: 'aql', input: {text: 'version: actql/0.1\n', format: 'yaml'},
     parameters: null}), true);
+  const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
+    authorityScopeCid: ref.authorityScopeCid, epochNonce: 'c'.repeat(64),
+    notBefore: 1800000000000, expiresAt: 1800000001000, authenticator: 'd'.repeat(64)},
+  nonce: 'original-submission'};
+  const submitted = {connection, submissionRef,
+    intentCid: 'sha256:5ad281d9145e26cfb0bf5b7b0fa37c11cb2b065687350ae53a36f714bca0fe44',
+    kind: 'program', input: {}, parameters: null};
+  assert.equal(validClientBody('submit-intent', submitted), true);
+  assert.equal(validClientBody('lookup-submission', {connection, submissionRef}), true);
+  for (const changed of [{requestId: 'unbound'}, {intentCid: 'invalid'},
+    {submissionRef: {...submissionRef, epoch: {...submissionRef.epoch, expiresAt: 1800000000000}}},
+    {submissionRef: {...submissionRef, nonce: 'e\u0301'}}]) {
+    assert.equal(validClientBody('submit-intent', {...submitted, ...changed}), false);
+  }
   assert.equal(validClientBody('read', {connection, ref,
     resultName: 'answer', format: 'jsonl', attemptId: 'read-a'}), true);
   const description = {connection, ref, resultName: 'answer', format: 'jsonl',
