@@ -357,12 +357,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
                     if (field === 'prepare') return () => {
                       const result = exporter.prepare(1);
                       if (result.$tag === 1) {
-                        exportPreparationSteps += result._0[1];
+                        exportPreparationSteps += result._0._1;
                         if (exportPreparationTrace.length < 16) exportPreparationTrace.push({
-                          complete: result._0[0], steps: result._0[1]});
+                          complete: result._0._0, steps: result._0._1});
                         if (mode === 'cancel-during-export-preparation' && !scheduled &&
                             exportPreparationSteps === 10) {
-                          assert.equal(result._0[0], false);
+                          assert.equal(result._0._0, false);
                           scheduled = true;
                           setTimeout(() => cancellation.abort(), 0);
                         }

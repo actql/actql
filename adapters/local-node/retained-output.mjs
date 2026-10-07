@@ -28,13 +28,13 @@ export function prepareLocalRetainedOutput(
       for (;;) {
         signal?.throwIfAborted();
         const poll = checked(prepare(64));
-        if (!Array.isArray(poll) || poll.length !== 2 || typeof poll[0] !== 'boolean' ||
-            !Number.isSafeInteger(poll[1]) || poll[1] < 0 || poll[1] > 64 ||
-            (!poll[0] && poll[1] === 0)) {
+        if (poll == null || typeof poll._0 !== 'boolean' ||
+            !Number.isSafeInteger(poll._1) || poll._1 < 0 || poll._1 > 64 ||
+            (!poll._0 && poll._1 === 0)) {
           throw new Error('InvalidLocalOutputPreparation');
         }
         signal?.throwIfAborted();
-        if (poll[0]) break;
+        if (poll._0) break;
         await yieldToHost();
       }
       store = await createLease(key, limits.wire.max_bytes, limits.max_batch_bytes, signal);

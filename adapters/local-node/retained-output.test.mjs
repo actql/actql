@@ -19,7 +19,7 @@ import * as portableRuntime from
 const ok = value => ({$tag: 1, _0: value});
 function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
   lease, requireDisposedRefresh = false, exportSteps = 0, onExportAdvance,
-  preparationSteps = 0, onExportPrepare} = {}) {
+  preparationSteps = 0, onExportPrepare, preparationPoll} = {}) {
   const events = [], material = {}, input = {};
   let releaseCheck, closed = false, clean = false, bound = false, allocated = false, index = 0;
   let advanced = 0, stopRequested = false, stopped = false, disposed = false;
@@ -52,7 +52,8 @@ function fixture({seal = async () => {}, cleanup = async () => {}, steps = 1,
     prepare: () => {
       events.push('export-prepare');
       onExportPrepare?.();
-      return ok(preparationSteps-- > 0 ? [false, 1] : [true, 0]);
+      return ok(preparationPoll ?? (preparationSteps-- > 0
+        ? {_0: false, _1: 1} : {_0: true, _1: 0}));
     },
     next: () => ok(index++ === 0 ? '[{"n":1}' : undefined),
     advance: () => {
@@ -165,6 +166,23 @@ test('Local output cancels during metadata preparation before Store acquisition'
   assert.equal(f.events.includes('stopped'), true);
   assert.equal(f.events.filter(event => event === 'task-close').length, 1);
   assert.equal(f.released(), true);
+});
+
+test('Local output rejects malformed preparation progress before Store acquisition', async () => {
+  for (const preparationPoll of [[true, 0], {}, {_0: 1, _1: 1},
+    {_0: false, _1: 0}, {_0: false, _1: 65}, {_0: true, _1: -1},
+    {_0: false, _1: 0.5}]) {
+    const f = fixture({preparationPoll});
+    await assert.rejects(f.entry.run({}), error =>
+      error.message === 'InvalidLocalOutputPreparation' ||
+      error.primaryFailure?.message === 'InvalidLocalOutputPreparation');
+    assert.equal(f.events.includes('lease'), false);
+    assert.equal(f.events.includes('export-advance'), false);
+    assert.equal(f.events.includes('complete'), false);
+    assert.equal(f.events.includes('stopped'), true);
+    assert.equal(f.events.filter(event => event === 'task-close').length, 1);
+    assert.equal(f.released(), true);
+  }
 });
 
 test('Local output seals exact content before completion and retains cleanup until physical confirmation', async () => {
