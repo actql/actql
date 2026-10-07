@@ -9,6 +9,24 @@ const unit = 'packages/sdk/operation-formats.test.mjs';
 const target = (name, id, operator = 'strictEqual') => ({name, assertions: [{id, operator}]});
 const facts = 'operation formats retain typed facts, original lookup references and unknown outcomes without I/O';
 const mutations = [
+  {name: 'submission disclosure reuses a previously visible Source problem',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: '    if (disclosable) return outcome;', to: '    if (true) return outcome;',
+    targets: [target('retained Source input problems recheck original intent and current disclosure without preparation',
+      'submission-disclosure', 'deepStrictEqual')]},
+  {name: 'submission disclosure hides independent violations only for absent Sources',
+    path: 'adapters/host-node/client-program-preparation.mjs', file: 'adapters/host-node/client-check.test.mjs',
+    from: "['source_invalid_input', 'source_unresolved'].includes(category)",
+    to: "['source_invalid_input'].includes(category)",
+    targets: ['local', 'http'].map(entrance => target(
+      `${entrance}: original submission explanations hide private resolution and preserve independent input violations`,
+      'submission-private-input', 'deepStrictEqual'))},
+  {name: 'submission disclosure treats an undetermined report as invalid input',
+    path: 'adapters/host-node/client-submission.mjs', file: 'adapters/host-node/client-submission.test.mjs',
+    from: "report.report.scope.kind === 'bound_input' && report.report.verdict === 'invalid'",
+    to: "report.report.scope.kind === 'bound_input' && ['invalid', 'undetermined'].includes(report.report.verdict)",
+    targets: [target('submission disclosure does not derive invalid input from undetermined reporting',
+      'submission-reporting', 'deepStrictEqual')]},
   {name: 'submission explanation converts accepted preparation failure into nonacceptance',
     path: 'packages/sdk/index.mjs', file: 'adapters/host-node/submission-epoch-public.test.mjs',
     from: "const observation = outcome.kind === 'unresolvable' ? 'history_unresolvable' : outcome.kind;",

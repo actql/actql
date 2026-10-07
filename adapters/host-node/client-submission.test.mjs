@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -8,6 +8,16 @@ import {openClientRequestJournal} from './client-request-journal.mjs';
 import {installNodeClientSubmission} from './client-submission.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {validSubmissionLookup} from '../../packages/client-wire/index.mjs';
+import {installNodeClientCheck} from './client-check.mjs';
+import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+
+const valuesWire = JSON.parse(await readFile(new URL(
+  '../../packages/sdk/fixtures/values.environment.json', import.meta.url), 'utf8'));
+const valuesEnvironment = moon.clientProgramCheckEnvironment(canonicalText(valuesWire),
+  valuesWire.evidence_bundle_cid, false, false, true, false, false, false, false);
+assert.ok(valuesEnvironment);
+const checkValues = installNodeClientCheck({moon, environment: valuesEnvironment});
 
 const authorityScopeCid = `sha256:${'a'.repeat(64)}`;
 const connection = {mode: 'local', owner: 'local', durability: 'durable', consentRefs: [], runners: []};
@@ -25,6 +35,7 @@ async function fixture(t, callbacks = {}) {
     prepareSubmit: async value => {prepareCount++; return callbacks.prepare?.(value) ?? {};},
     submit: async value => {submitCount++; return await callbacks.submit(value);},
     lookupRequest: async value => callbacks.lookup?.(value) ?? {kind: 'not_found'},
+    checkSubmissionInput: callbacks.check ?? checkValues,
   });
   install();
   const ref = {epoch: await service.issueEpoch({principalId, connection}), nonce: 'original-nonce'};
@@ -57,6 +68,91 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   assert.deepEqual(f.counts, {prepare: 1, submit: 0});
   await assert.rejects(f.service.submitIntent(f.body('SELECT 1 AS value')), {code: 'ClientSubmittedIntentConflict'});
 });
+
+test('retained Source input problems recheck original intent and current disclosure without preparation', async t => {
+  const wire = JSON.parse(await readFile(new URL(
+    './fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
+  const environment = moon.clientProgramCheckEnvironment(canonicalText(wire),
+    wire.evidence_bundle_cid, false, false, true, true, false, false, false);
+  assert.ok(environment);
+  const view = wire.source_views[0];
+  const sourceRef = 'connector://crm/main/r#v';
+  const publication = {environmentCid: moon.clientProgramCheckingEnvironmentCid(environment),
+    aliases: [{name: 'records', sourceRef, sourceViewContractCid: view.contract_cid,
+      schemaContractCid: view.output.schema.cid}]};
+  let visible = true, checks = 0;
+  const checker = installNodeClientCheck({moon, environment, publication,
+    sourceAccesses: [{sourceRef, resource: 'records', connection: {}, authorization: {
+      authorize() {return {action: visible ? 'dispatch' : 'deny'};},
+    }}]});
+  const prepare = installNodeClientProgramPreparation({moon, environment, sourcePublication: publication});
+  const f = await fixture(t, {prepare, check(value) {
+    checks++;
+    assert.deepEqual(value.input, {format: 'aql-text', text: 'SELECT missing AS n FROM records'});
+    assert.equal(value.parameters, null);
+    return checker(value);
+  }});
+  const expected = {code: 'ClientProgramInvalidInput', classification: 'invalid_input'};
+  const first = await f.service.submitIntent(f.body('SELECT missing AS n FROM records'));
+  assert.deepEqual(first.problem, expected, '[check-mutation:submission-disclosure]');
+  f.restart();
+  visible = false;
+  const hidden = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  assert.deepEqual(hidden.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+    '[check-mutation:submission-disclosure]');
+  assert.equal(hidden.kind, 'not_accepted');
+  assert.deepEqual(hidden.submissionRef, first.submissionRef);
+  assert.deepEqual(await f.service.submitIntent(f.body('SELECT missing AS n FROM records')), hidden);
+  visible = true;
+  const restored = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  assert.deepEqual(restored, first, '[check-mutation:submission-disclosure]');
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  assert.ok(checks >= 4);
+});
+
+test('submission disclosure refuses authorization lost during its awaited check', async t => {
+  let entered, resume;
+  const checking = new Promise(resolve => {entered = resolve;});
+  const paused = new Promise(resolve => {resume = resolve;});
+  let calls = 0;
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('typed input fixture'), {code: 'ClientProgramInvalidInput'});
+  }, async check(value) {
+    if (++calls === 1) {entered(); await paused;}
+    return checkValues(value);
+  }});
+  const pending = f.service.submitIntent(f.body('SELECT missing AS n'));
+  await checking;
+  f.authorize(false); resume();
+  await assert.rejects(pending, {code: 'ClientRequestLookupDenied'});
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  f.authorize(true);
+  const original = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  assert.equal(original.kind, 'unresolvable');
+});
+
+for (const mode of ['undetermined', 'failed', 'unavailable', 'malformed', 'exception', 'missing']) {
+  test(`submission disclosure does not derive invalid input from ${mode} reporting`, async t => {
+    const f = await fixture(t, {prepare() {
+      throw Object.assign(new Error('typed input fixture'), {code: 'ClientProgramInvalidInput'});
+    }, async check(value) {
+      if (mode === 'missing') return undefined;
+      if (mode === 'exception') throw new Error('private-reporting-failure');
+      if (mode === 'unavailable') return checkValues.unavailable();
+      const report = await checkValues(value);
+      if (mode === 'malformed') return {...report, outcome: 'malformed'};
+      if (mode === 'failed') return {...report, outcome: 'failed'};
+      return checkValues({...value, input: {format: 'sql', text: 'SELECT id FROM absent'}});
+    }});
+    const result = await f.service.submitIntent(f.body('SELECT missing AS n'));
+    assert.equal(result.kind, 'not_accepted');
+    assert.deepEqual(result.problem, {code: 'ClientProgramRejected', classification: 'operation_failed'},
+      '[check-mutation:submission-reporting]');
+    f.restart();
+    assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), result);
+    assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+  });
+}
 
 test('accepted preparation failure remains accepted with no invented Run identity', async t => {
   const f = await fixture(t, {submit() {throw Object.assign(new Error('missing fixture input'), {code: 'ClientProgramNeedsInputs'});}});
