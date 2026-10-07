@@ -17,8 +17,10 @@ pub struct Stage {
   predecessor : Predecessor
   priv imports : Array[(String, ImportPort)]
   priv results : Array[String]
+  priv table_inputs : Array[String]
   priv effects : Array[String]
   priv result_index : Map[String, Bool]
+  priv table_input_index : Map[String, Bool]
   priv effect_index : Map[String, Bool]
   priv body : @wire.Cursor
 }
@@ -188,7 +190,7 @@ fn decode(
   let seen : Map[String, Stage] = Map([])
   for node in nodes {
     let stage = object(node, [
-      "id", "meta", "after", "inputs", "from", "steps", "results", "effects",
+      "id", "meta", "after", "inputs", "from", "steps", "results", "effects", "table_inputs",
     ])
     let stage_id = name(required(stage, "id"))
     metadata(stage)
@@ -264,6 +266,10 @@ fn decode(
       },
     )
     let results = names(required(stage, "results"), true)
+    let table_inputs = match @wire.lookup(stage, "table_inputs") {
+      Some(value) => names(value, true)
+      None => []
+    }
     let effects = match @wire.lookup(stage, "effects") {
       Some(value) => names(value, false)
       None => []
@@ -273,8 +279,10 @@ fn decode(
       predecessor,
       imports,
       results,
+      table_inputs,
       effects,
       result_index: name_index(results),
+      table_input_index: name_index(table_inputs),
       effect_index: name_index(effects),
       body: node,
     }
@@ -310,6 +318,16 @@ pub fn stages(program : Program) -> Array[Stage] {
 /// Read the source Stage count without allocating a copy.
 pub fn stage_count(program : Program) -> Int {
   program.stages.length()
+}
+
+///|
+pub fn stage_table_input_count(stage : Stage) -> Int {
+  stage.table_inputs.length()
+}
+
+///|
+pub fn stage_table_input_at(stage : Stage, index : Int) -> String? {
+  stage.table_inputs.get(index)
 }
 
 ///|
