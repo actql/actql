@@ -6679,3 +6679,28 @@ cancellation. Connecting them to existing incremental buffer reclamation is
 the next concrete boundary. Availability and retired-Carrier walks, other
 scratch and Native correspondence remain. See the
 [input stop collection record](2026-10-07-local-input-stop-slices.md).
+
+### Incremental private managed import buffers (2026-10-07)
+
+The preceding unfinished-buffer gap is now connected for managed input bridges,
+retained imports and the registered snapshot-reload importer. Existing common
+buffer reclamation resumes through the input-stop cursor; each pending owner
+keeps its cursor entry and cleanup root. Successful handoff/conversion is tracked
+separately so accepted rows cannot be mutated. The existing common reservation
+and logical work rules are unchanged.
+
+At clean implementation `d3dcaa495f405d2f14ac5012c01bd763fcb6e15b`, the managed
+import ownership selection passed 3/3. Common-owner/direct-caller preparation
+passed 32/32 on dirty source. After normally adopting merged #830/#832 and main
+`32870dd0812a809955917ef924d859ade2f51967`, clean integrated
+`7e6565aa132bd129cfcc7ccb216b712f023de030` passed public real-Store Host/source
+guards 34/34 with regenerated consuming runtimes. The first two-root build timed
+out; separate bounded root diagnostics then completed. No old receipt is relabeled
+as latest-SHA execution.
+
+The old materializing lane still cancels imports synchronously; its cleanup
+connection is the next boundary. Managed publication buffers, an actual cancelled
+snapshot-reload acceptance case, availability/Carrier walks, other scratch and
+Native physical allocation correspondence remain. This is not a whole-callback
+wall-clock bound or all-Local completion. See the
+[private import reclamation record](2026-10-07-local-import-buffer-reclamation.md).
