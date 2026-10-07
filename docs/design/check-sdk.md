@@ -1042,7 +1042,7 @@ retrieval API. Existing per-call input custody and destruction conditions apply.
 ### Known Requirement frontier and bounded check supplementation
 
 The SDK exposes a comparable observation only for an exact completed check
-response retained by that SDK call. Current public Requirements are declared
+response retained by that SDK call. The comparable frontier supports declared
 parameter values: their obligation key and expected type are typed facts;
 constraints and supplied bindings remain bound by the existing opaque
 `context_ref`. Compare bound scope/context, reason schema, the unordered typed
@@ -1410,3 +1410,35 @@ and family data without authorization or action claims. Unknown codes retain
 safe fallback; malformed known transported facts still reject through the
 existing wire/SDK admission. No legacy compiler catalog or operation outcome
 is relabelled as this public check catalog.
+
+
+### Known checking-context capacity requirement
+
+The existing checker can stop at `NeedsInputs(HostCapacityPolicy)`. Public check
+projects that known, disclosable selection as `host_capacity_policy_required`
+in `report.requirements`, with `checking_context_missing` in coverage limits.
+The complete bound-input scope stays `undetermined`; the unvisited remainder is
+not certified. A missing Host policy is not a caller parameter violation.
+
+The closed facts identify the existing `actql-capacity-host-policy/0.1` contract
+and its `/schema` by independent contract/schema CIDs, with supplier
+`checking_context_owner` and stage `checking`. They convey the admission
+condition, not private policy values, an environment path, authority to change
+configuration, or a SQL location. Source disclosure runs before projection;
+protected Source resolution cannot expose this selection or fabricate a position.
+Other checker requests still need their own reviewed public projection.
+
+`getCheckContextRequirements(outcome)` returns immutable selections only for the
+original completed response held by that SDK call. Copies do not acquire input
+custody. The parameter supplementation frontier deliberately remains unavailable
+for nonparameter requirements; adding a parameter cannot satisfy this obligation.
+A separately supplied admitted environment leads to ordinary rechecking of the
+whole input under a different context reference. No Host mutation or input
+persistence API is added.
+
+This extends the public check Reason facts and outcome requirement schemas,
+their content identities, validators, generated types, catalog and fixtures.
+Requirement codes are rejected in the violation list. Previous schema pins are
+rejected explicitly, including an older SDK paired with a new Host. The separate
+`actql-diagnostics/0.1` contract and its frozen evidence are unchanged; no
+compatibility adapter or legacy execution path is introduced.

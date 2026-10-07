@@ -2429,6 +2429,126 @@ fn send_durable_direct_transfer_operation(
 }
 
 ///|
+/// Reconcile only an already started direct occurrence. The physical query
+/// must return the original committed destination; no payload reads, writes,
+/// new admission or commit requests are allowed by this continuation.
+fn reconcile_durable_direct_operation(
+  journal : @journal.Journal,
+  request : @transfer.RemoteTransferRequest,
+  source : NativeRemoteTransferChunkSource,
+  current : () -> Bool,
+  query : () -> Result[
+    @transfer.RemoteTransferRecord,
+    NativeRemoteTransferClientIssue,
+  ],
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferClientIssue] {
+  let projection = @transfer.request_projection(request)
+  if projection[1] != "direct" ||
+    source.index != 0 ||
+    projection[6] != source.material_generation ||
+    projection[7] != source.physical_manifest_cid {
+    return Err(SourceMismatch)
+  }
+  if !current() {
+    return Err(ReconciliationRequired)
+  }
+  let mut record = match require_durable_record(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let progress = @transfer.direct_transfer_progress(record)
+  if progress != @transfer.DirectTransferCopying &&
+    progress != @transfer.DirectTransferSourceSettled &&
+    progress != @transfer.DirectTransferCommitted {
+    return Err(ReconciliationRequired)
+  }
+  let remote = match query() {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !current() {
+    return Err(ReconciliationRequired)
+  }
+  if @transfer.record_request_identity(remote) != @transfer.request_cid(request) {
+    return Err(SourceMismatch)
+  }
+  if !@transfer.record_is_destination_committed(remote) {
+    return Err(ReconciliationRequired)
+  }
+  // Local stop is independently confirmed by the actual source owner. An
+  // observed receiver commit is not evidence that a local reader has stopped.
+  match source.close_source() {
+    Ok(_) => ()
+    Err(issue) => return Err(Consumer(issue))
+  }
+  if !current() {
+    return Err(ReconciliationRequired)
+  }
+  // Reload after physical access: another observer may have committed or
+  // cancelled this occurrence. Never apply a stale pre-query revision.
+  record = match require_durable_record(journal, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let progress = @transfer.direct_transfer_progress(record)
+  if progress == @transfer.DirectTransferCommitted {
+    return Ok(record)
+  }
+  if progress == @transfer.DirectTransferCopying {
+    let settled = match @transfer.prepare_source_settled(record, true, false) {
+      Ok(value) => value
+      Err(issue) => return Err(Protocol(issue))
+    }
+    match commit_durable_transition(journal, settled) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    record = match require_durable_record(journal, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else if progress != @transfer.DirectTransferSourceSettled {
+    return Err(ReconciliationRequired)
+  }
+  let committed = match @transfer.prepare_destination_commit(record) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match commit_durable_transition(journal, committed) {
+    Ok(_) => require_durable_record(journal, request)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Query the original direct destination and reconcile a saved sender whose
+/// commit response was lost. An uncommitted destination remains unresolved;
+/// this API never uploads payload, creates an attempt or sends a commit.
+/// Current authorization/lifetime must be checked by the trusted caller port.
+pub fn reconcile_durable_direct_transfer_from_source(
+  journal : @journal.Journal,
+  client : @http.Client,
+  origin : String,
+  request : @transfer.RemoteTransferRequest,
+  source : NativeRemoteTransferChunkSource,
+  current : () -> Bool,
+) -> Result[@transfer.RemoteTransferRecord, NativeRemoteTransferSendFailure] {
+  let operation = () => {
+    let (_, transfer_url) = match direct_location(origin, request) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    reconcile_durable_direct_operation(journal, request, source, current, () => {
+      transfer_exchange(client, @http.Get, transfer_url, [], b"", request)
+    })
+  }
+  match operation() {
+    Ok(record) => Ok(record)
+    Err(issue) => Err(failed_stream_send(issue, source))
+  }
+}
+
+///|
 pub fn send_durable_direct_transfer_from_source(
   journal : @journal.Journal,
   client : @http.Client,
