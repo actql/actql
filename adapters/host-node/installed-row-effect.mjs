@@ -763,7 +763,10 @@ export async function createInstalledRowEffect({moon, mappings,
         effect_identity_cid: identity.identity,
         source_result: descriptor._6,
         ...(planCid === undefined ? {} : {effect_plan_logical_cid: planCid}),
-        result_artifact_cid: source._0, preview_strength: 'full_diff',
+        // The identity names the checked semantic Result. Its physical
+        // export is bound separately by the existing captured-source owner.
+        result_artifact_cid: payloads[index].localResultArtifact.identity,
+        preview_strength: 'full_diff',
         source_binding_cid: source._1,
         capability_evidence_cid: capabilities[index].identity,
         authority_scope_cid: requestAuthority,
@@ -961,7 +964,8 @@ export async function createInstalledRowEffect({moon, mappings,
       plan.contractLimits);
     const holdings = await preparePinnedEffectSourceHoldings({
       sources: sourceSet, store, control, preview: admittedPreview,
-      invocation: plan.invocation}).commit();
+      invocation: plan.invocation,
+      resultArtifacts: payloads.map(payload => payload.localResultArtifact)}).commit();
     const previewInputs = checked(moon.clientProgramBindEffectPreviewInputs(
       checkedHost, inputs, previewContext.runInvocation,
       moon.clientProgramEffectInputStage(

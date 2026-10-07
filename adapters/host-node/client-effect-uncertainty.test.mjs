@@ -47,15 +47,21 @@ for (const entrance of ['local', 'https']) {
       // private fixture configuration. Observation has its own thin child.
       const step = await setup.embedded(requestId, setup.program());
       assert.deepEqual(await step('submit'), {held: true});
+      assert.equal(setup.writes().length, 0);
+      assert.equal(setup.queries(), 1);
       assert.deepEqual(await step('answer'), {answered: ['committed']});
       assert.deepEqual(await step('resume'), {status: 'needs_reconciliation'});
       observe = () => localObservation(join(setup.root,
         `embedded-${requestId}.json`));
     } else {
       const first = await setup.openHost();
+      const client = await first.as('owner-token');
+      const submissionRef = await setup.persistSubmission(client.newSubmission({nonce: requestId}));
       const execution = await submitReadComputeEffect(
-        await first.as('owner-token'), setup.program(), requestId);
+        client, setup.program(), submissionRef);
       await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+      assert.equal(setup.writes().length, 0);
+      assert.equal(setup.queries(), 1);
       await first.close();
       const second = await setup.openHost();
       await approveHeldSet(second, execution);
@@ -63,7 +69,12 @@ for (const entrance of ['local', 'https']) {
       observe = async () => {
         const host = await setup.openHost();
         try {
-          const attached = await (await host.as('owner-token')).attach(execution.ref);
+          const client = await host.as('owner-token');
+          const lookup = await client.lookupSubmission(submissionRef);
+          assert.equal(lookup.kind, 'ready');
+          assert.deepEqual(lookup.submissionRef, submissionRef);
+          assert.deepEqual(lookup.admission.ref, execution.ref);
+          const attached = await client.attach(lookup.admission.ref);
           const state = await waitFor(async () => {
             const value = await attached.status();
             return value.status === 'needs_reconciliation' && value.control?.physical_stop === 'confirmed' ? value : undefined;
@@ -146,9 +157,14 @@ test('https: stale Effect reconciliation advice does not grant current authority
   const setup = await readComputeEffectInstallation(t, {
     org: {loseReplyAfterApply: [2]}});
   const submittedHost = await setup.openHost();
+  const submittingClient = await submittedHost.as('owner-token');
+  const submissionRef = await setup.persistSubmission(
+    submittingClient.newSubmission({nonce: 'effect-current-authority'}));
   const submitted = await submitReadComputeEffect(
-    await submittedHost.as('owner-token'), setup.program(), 'effect-current-authority');
+    submittingClient, setup.program(), submissionRef);
   await waitFor(async () => (await submitted.status()).status === 'waiting_checkpoint');
+  assert.equal(setup.writes().length, 0);
+  assert.equal(setup.queries(), 1);
   await submittedHost.close();
   const approvingHost = await setup.openHost();
   await approveHeldSet(approvingHost, submitted);
@@ -158,6 +174,10 @@ test('https: stale Effect reconciliation advice does not grant current authority
   let credential = 'owner-token';
   const client = await observingHost.as(() => credential);
   try {
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, submitted.ref);
     const execution = await client.attach(submitted.ref);
     const state = await waitFor(async () => {
       const current = await execution.status();

@@ -523,7 +523,11 @@ export async function openSalesforceEffectSiteFixture(t, {
   t.after(async () => {
     installed.close();
     await new Promise(resolve => server.close(resolve));
-    await rm(root, {recursive: true, force: true});
+    if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+      console.error(`Salesforce Effect fixture custody retained: ${root}`);
+    } else {
+      await rm(root, {recursive: true, force: true});
+    }
   });
   const control = installed.credential.control;
   const dispatch = {runInvocationCid, taskAttempt: 2, dispatchRequestCid};
