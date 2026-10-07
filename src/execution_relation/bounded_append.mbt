@@ -100,7 +100,9 @@ fn cleanup_bounded_append_state(state : BoundedAppendState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    cancel_admitted_output(output) |> ignore
+    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
     state.output = None
   }
   state.names = []
@@ -336,7 +338,6 @@ fn bounded_append_step(
         guard state.output is Some(output) else {
           return bounded_append_failure(InvalidExecution, progress, used)
         }
-        state.output = None
         let rows = match finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -417,7 +418,7 @@ pub fn start_bounded_append(
     return Err(InvalidExecution)
   }
   let output = match
-    prepare_admitted_output(
+    prepare_bounded_admitted_output(
       owner,
       @pipeline.Step(step),
       max_rows,
@@ -519,6 +520,12 @@ pub fn advance_bounded_append(
       Ok(BoundedAppendStopped(reason, progress~, work~))
     }
   }
+}
+
+///|
+/// Observe outstanding custody independently from cleanup's change result.
+pub fn bounded_append_cleanup_pending(value : BoundedAppendExecution) -> Bool {
+  @bounded.cleanup_pending(value.session)
 }
 
 ///|

@@ -114,11 +114,12 @@ fn cleanup_asof_provider(
     return Ok(true)
   }
   match @execution.cleanup_bounded_asof_join(state.active) {
-    Ok(true) => {
-      state.reclaimed = true
-      Ok(true)
+    Ok(_) => {
+      state.reclaimed = !@execution.bounded_asof_join_cleanup_pending(
+        state.active,
+      )
+      Ok(state.reclaimed)
     }
-    Ok(false) => Ok(false)
     Err(_) => Err(asof_provider_issue())
   }
 }

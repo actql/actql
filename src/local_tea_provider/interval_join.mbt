@@ -103,11 +103,12 @@ fn cleanup_interval_provider(
     return Ok(true)
   }
   match @execution.cleanup_bounded_interval_join(state.active) {
-    Ok(true) => {
-      state.reclaimed = true
-      Ok(true)
+    Ok(_) => {
+      state.reclaimed = !@execution.bounded_interval_join_cleanup_pending(
+        state.active,
+      )
+      Ok(state.reclaimed)
     }
-    Ok(false) => Ok(false)
     Err(_) => Err(interval_provider_issue())
   }
 }

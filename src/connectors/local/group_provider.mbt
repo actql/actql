@@ -158,11 +158,12 @@ fn group_provider(
               return Ok(true)
             }
             match @execution.cleanup_bounded_group_execution(active) {
-              Ok(true) => {
-                reclaimed.val = true
-                Ok(true)
+              Ok(_) => {
+                reclaimed.val = !@execution.bounded_group_cleanup_pending(
+                  active,
+                )
+                Ok(reclaimed.val)
               }
-              Ok(false) => Ok(false)
               Err(issue) => Err(bounded_group_issue(issue, step))
             }
           },

@@ -125,11 +125,10 @@ fn selected_join_execution(
           return Ok(true)
         }
         match @execution.cleanup_bounded_join(active) {
-          Ok(true) => {
-            reclaimed.val = true
-            Ok(true)
+          Ok(_) => {
+            reclaimed.val = !@execution.bounded_join_cleanup_pending(active)
+            Ok(reclaimed.val)
           }
-          Ok(false) => Ok(false)
           Err(issue) => Err(selected_join_issue(issue, step))
         }
       },
