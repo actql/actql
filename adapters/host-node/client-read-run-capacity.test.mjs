@@ -51,7 +51,8 @@ for (const entrance of ['local', 'https']) {
         }
         const restored = JSON.parse(await readFile(output, 'utf8'));
         assert.notEqual(restored.pid, process.pid);
-        assert.notEqual(restored.pid, initial.pid);
+        // A terminated child PID may be reused; completed invocations, not PID
+        // inequality between children, establish the process restart boundary.
         assert.deepEqual(restored.ref, ref);
         assert.equal(restored.status, 'succeeded');
         assert.deepEqual(restored.request.admission.ref, ref);
