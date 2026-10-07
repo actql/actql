@@ -142,6 +142,23 @@ test('public Local submission lookup returns a durable pre-admission refusal aft
   await assert.rejects(f.service.submitIntent(f.body('SELECT 1 AS value')), {code: 'ClientSubmittedIntentConflict'});
 });
 
+test('reference-only lookup returns original acceptance without diagnostic enrichment', async t => {
+  const f = await fixture(t, {prepare() {
+    throw Object.assign(new Error('independent syntax fixture'), {code: 'ClientProgramInvalidInput'});
+  }});
+  const original = await f.service.submitIntent(f.body('SELECT ('));
+  assert.equal(original.checkObservation.report.verdict, 'invalid');
+  f.restart();
+  let lookup;
+  // A known closed-schema rejection is an assertion failure for this valid
+  // reference-only operation; unrelated exceptions remain infrastructure errors.
+  await assert.doesNotReject(async () => {
+    lookup = await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref});
+  }, {code: 'InvalidClientHostSubmissionLookup'}, '[check-mutation:submission-check-lookup-contract]');
+  assertReferenceOnly(lookup, original);
+  assert.deepEqual(f.counts, {prepare: 1, submit: 0});
+});
+
 test('retained Source input problems recheck original intent and current disclosure without preparation', async t => {
   const wire = JSON.parse(await readFile(new URL(
     './fixtures/query-amount-environment.json', import.meta.url), 'utf8'));
