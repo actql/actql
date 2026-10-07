@@ -298,26 +298,28 @@ for (const transport of ['in-process', 'http']) {
 }
 
 
-for (const [scenario, transformCancelReply] of [
+for (const [scenario, transformCancelReply, copiedField] of [
   ['clone erases fields', value => Object.assign(new Date(0), value)],
   ['clone throws', value => new Proxy(value, {})],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field =>
-    [`clone changes ${field}`, value => {
-      const original = value.ref[field];
-      let reads = 0;
-      return {...value, ref: Object.defineProperty({...value.ref}, field, {
-        enumerable: true,
-        // The schema check and Run comparison see the issued field. Cloning
-        // receives a different, still well-formed field from the Local getter.
-        get: () => ++reads <= 2 ? original
-          : field === 'namespaceId' ? 'foreign-namespace' : cid('f'),
-      })};
-    }]),
+    [`clone changes ${field}`, value => value, field]),
 ]) {
   test(`in-process: cancellation ${scenario} retains original Run uncertainty`, async t => {
     const f = await fixture(t, 'in-process', undefined, {
       physicalStart: true, transformCancelReply});
     const ref = {...f.execution.ref};
+    if (copiedField) {
+      const nativeClone = globalThis.structuredClone;
+      t.mock.method(globalThis, 'structuredClone', value => {
+        const copy = nativeClone(value);
+        if (value?.kind === 'accepted' && value.ref?.runDefinitionCid === ref.runDefinitionCid) {
+          // The captured Owner reply names this Run; the verification copy
+          // substitutes another well-shaped association after admission.
+          copy.ref[copiedField] = copiedField === 'namespaceId' ? 'foreign-namespace' : cid('f');
+        }
+        return copy;
+      });
+    }
     const result = await f.execution.cancel().then(value => ({value}), error => ({error}));
     assert.equal(result.error?.code, 'InvalidHostCancellation', '[check-mutation:cancel-clone-invalid]');
     const expected = {observation: 'outcome_unknown',
@@ -338,6 +340,30 @@ for (const [scenario, transformCancelReply] of [
     assert.deepEqual(f.stored(), committed);
     assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
     assert.deepEqual(f.operations, ['connect', 'attach', 'cancel', 'status']);
+  });
+}
+
+for (const field of ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']) {
+  test(`in-process: cancellation captures the first getter-backed ${field} association`, async t => {
+    let reads = 0;
+    const f = await fixture(t, 'in-process', undefined, {physicalStart: true,
+      transformCancelReply(value) {
+        const original = value.ref[field];
+        return {...value, ref: Object.defineProperty({...value.ref}, field, {
+          enumerable: true,
+          get: () => ++reads <= 2 ? original
+            : field === 'namespaceId' ? 'foreign-namespace' : cid('f'),
+        })};
+      }});
+    const ref = {...f.execution.ref};
+    const result = await f.execution.cancel().then(value => ({value}), error => ({error}));
+    assert.equal(result.error, undefined, '[check-mutation:cancel-reference-capture]');
+    assert.deepEqual(result.value.ref, ref);
+    assert.deepEqual(sdk.explainCancellation(result.value).next, {operation: 'status', ref});
+    assert.equal(reads, 1);
+    assert.deepEqual(f.stored(), [{...f.before[0], cancellation_requested: 1,
+      revision: f.before[0].revision + 1}]);
+    assert.deepEqual(f.counts(), {cancelCalls: 1, submits: 0});
   });
 }
 

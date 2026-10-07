@@ -33,6 +33,12 @@ const validationCopyFaults = [
     'return retainRequestCancellationExplanation(freezeInput(answer), context, answer.kind);'],
 ];
 const mutations = [
+  {name: 'borrowed cancellation reference getters replace the first captured facts', path, file: publicTests,
+    from: 'const captureHostResponse = value => cloneHostResponse(value);',
+    to: 'const captureHostResponse = value => value;',
+    targets: ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => target(
+      `in-process: cancellation captures the first getter-backed ${field} association`,
+      'cancel-reference-capture'))},
   ...validationCopyFaults.map(([operations, id, operator, from, to]) => ({
     name: `validation copy replaces the captured ${operations.join('/')} observation`, path, file: unit, from, to,
     targets: operations.map(operation => target(

@@ -273,12 +273,18 @@ const mutations = [
     'received = structuredClone(response);', 'received = response;',
     'cancellation-custody', 'cancel-custody'],
   ['cancellation clone failure leaks an unassociated error',
-    'try { received = structuredClone(response); }',
-    'received = structuredClone(response); try {}',
+    'try { response = captureHostResponse(response); }',
+    'response = captureHostResponse(response); try {}',
     'cancellation-clone:clone throws', 'cancel-clone-invalid'],
   ['cancellation clone erasure bypasses shape validation',
-    'if (!validCancellation(received) ||',
-    'if (false ||',
+    "        if (!validCancellation(received) ||\n" +
+      "            structuralKey(received) !== observedKey ||\n" +
+      "            received.ref.namespaceId !== ref.namespaceId ||\n" +
+      "            received.ref.authorityScopeCid !== ref.authorityScopeCid ||\n" +
+      "            received.ref.runDefinitionCid !== ref.runDefinitionCid) {\n" +
+      "          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n" +
+      "            context, 'outcome_unknown');\n        }",
+    '',
     'cancellation-clone:clone erases fields', 'cancel-clone-invalid'],
   ...['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].map(field => [
     `cancellation clone bypasses ${field} association`,
@@ -408,10 +414,20 @@ try {
       altered = altered.replace(anchor, anchor.replace('captureHostResponse(answer)', 'answer')
         .replace('captureHostResponse(response)', 'response').replace('captureHostResponse(outcome)', 'outcome'));
     }
-    if (phase.startsWith('cancellation-clone:') && !phase.endsWith('clone throws')) {
+    if (phase.startsWith('cancellation-clone:clone changes')) {
       const guard = '            structuralKey(received) !== observedKey ||\n';
       if (altered.split(guard).length !== 2) throw new Error(`Copied cancellation guard not unique: ${name}`);
       altered = altered.replace(guard, '');
+    }
+    if (phase === 'cancellation-clone:clone erases fields') {
+      const admission = "        if (!validCancellation(response) ||\n" +
+        "            response.ref.namespaceId !== ref.namespaceId ||\n" +
+        "            response.ref.authorityScopeCid !== ref.authorityScopeCid ||\n" +
+        "            response.ref.runDefinitionCid !== ref.runDefinitionCid) {\n" +
+        "          throw retainCancellationExplanation(new ClientError('InvalidHostCancellation'),\n" +
+        "            context, 'outcome_unknown');\n        }";
+      if (altered.split(admission).length !== 2) throw new Error(`Admission fault anchor not unique: ${name}`);
+      altered = altered.replace(admission, '');
     }
     if (phase === 'check-shape') {
       const copy = 'try { outcome = structuredClone(outcome); }';
