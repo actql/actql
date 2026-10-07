@@ -11,6 +11,7 @@ struct RetainedCleanupFixture {
   consumer_subject : @remote.RemoteManagedOutputSubject
   measurement : @remote.RemoteManagedOutputMeasurement
   transfer : @transfer.RemoteTransferRequest
+  transfer_record : @transfer.RemoteTransferRecord
   receipt : @transfer.RemoteTransferDestinationReceipt
 }
 
@@ -141,6 +142,7 @@ fn retained_cleanup_fixture(
     consumer_subject,
     measurement,
     transfer: request,
+    transfer_record,
     receipt,
   }
 }
