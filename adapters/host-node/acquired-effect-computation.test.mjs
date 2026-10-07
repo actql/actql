@@ -7,7 +7,12 @@ import {openAcquiredEffectComputation as openEffectComputation} from './acquired
 
 // These single-source failure fixtures stop before the compiled runtime.
 const openAcquiredEffectComputation = options => openEffectComputation({
-  moon: {clientProgramEffectAcquisitionCount: () => 1}, ...options,
+  moon: {clientProgramEffectAcquisitionCount: () => 1,
+    clientProgramEffectPrepareLocalQueryRequirement: () => ({$tag: 1, _0: 'selected'}),
+    clientProgramQueryRequirementSourceRef: value => value}, ...options,
+  sourceProfile: options.sourceProfile?.sources === undefined
+    ? {admitsSource: ref => ref === 'selected', ...options.sourceProfile}
+    : options.sourceProfile,
 });
 
 test('source-free composed Model admission retains custody without opening an installed Source', async () => {
@@ -32,10 +37,11 @@ test('source-free composed Model admission retains custody without opening an in
       }}},
     infer: {occurrence: {}}, now: () => '2026-10-04T00:00:00.000Z',
     retainComputationOwner(value) { custody = value; },
-    sourceProfile: {
+    sourceProfile: {sources: Array.from({length: 3}, () => ({
+      admitsSource() { sourceCalls++; throw new Error('UnexpectedSourceSelection'); },
       prepare() { sourceCalls++; throw new Error('UnexpectedSourcePreparation'); },
       open() { sourceCalls++; throw new Error('UnexpectedSourceOpen'); },
-    },
+    }))},
   }), error => error === failure);
   assert.equal(sourceCalls, 0);
   assert.equal(await custody.cleanup(), false);
@@ -241,7 +247,7 @@ test('source evidence failure retains capture cleanup until release succeeds',
     ], 'cleanup retries do not emit another physical acquisition');
   });
 
-test('plural Effect preparation retains custody before either read can start', async () => {
+test('two-of-three Effect preparation retains custody before either selected read can start', async () => {
   const prepared = {};
   const failure = new Error('SecondSourcePreparationUnavailable');
   let custody;
@@ -264,6 +270,13 @@ test('plural Effect preparation retains custody before either read can start', a
       async open() { reads++; throw new Error('UnexpectedRead'); },
     };
   });
+  sources.splice(1, 0, {
+    realizationKey: 'installed-row-source',
+    admitsSource: ref => ref === 'unused',
+    prepare() { assert.fail('UnusedSourcePreparation'); },
+    open() { assert.fail('UnusedSourceRead'); },
+    resolveSecret() { assert.fail('UnusedSourceSecret'); },
+  });
   await assert.rejects(openAcquiredEffectComputation({
     moon: {
       clientProgramEffectAcquisitionCount: () => 2,
@@ -279,4 +292,90 @@ test('plural Effect preparation retains custody before either read can start', a
   await custody.close();
   assert.equal(await custody.cleanup(), true);
   assert.equal(custody.cleanupPending(), false);
+});
+
+test('one-of-three Effect opens only its checked Source and preserves its access and capture custody', async () => {
+  const prepared = {};
+  const access = {authorization: {authorize() { assert.fail('UnexpectedReadGate'); }}};
+  const approvedAccess = {authorization: {authorize() { assert.fail('UnexpectedApprovalGate'); }}};
+  const failure = new Error('EvidenceUnavailable');
+  const operations = [];
+  let custody;
+  const untouched = ref => ({realizationKey: 'installed-row-source',
+    admitsSource: value => value === ref,
+    prepare() { operations.push(`${ref}:prepare`); assert.fail('UnusedPreparation'); },
+    open() { operations.push(`${ref}:read`); assert.fail('UnusedRead'); },
+    resolveSecret() { operations.push(`${ref}:secret`); assert.fail('UnusedSecret'); }});
+  const source = {realizationKey: 'duckdb-acquired', sourceAccess: access,
+    admitsSource: ref => ref === 'selected',
+    prepare(options) {
+      operations.push('prepare');
+      assert.equal(options.preparedEffect, prepared);
+      assert.equal(options.sourceAccess, approvedAccess);
+      return {};
+    },
+    open(options) {
+      operations.push('read');
+      assert.equal(options.sourceAccess, approvedAccess);
+      assert.equal(options.preparedEffect, prepared);
+      return {checkedSource: {sourceDataPolicyCid: 'policy'},
+        issueSourceEvidence() { throw failure; },
+        close() { operations.push('release'); }};
+    }};
+  await assert.rejects(openAcquiredEffectComputation({
+    acquired: {prepared, authorityScopeCid: 'scope'},
+    sourceProfile: {realizationKey: 'installed-multi-acquired',
+      sources: [untouched('unused-first'), source, untouched('unused-last')]},
+    retainComputationOwner(value) { custody = value; },
+    now: () => '2026-10-07T00:00:00.000Z',
+    sourceContinuation: {
+      accessFor(actual, occurrence) {
+        assert.equal(actual, access);
+        assert.deepEqual(occurrence, {stage: 0, input: 0, task: 0});
+        return approvedAccess;
+      },
+      prepared(sources) { assert.deepEqual(sources.map(value => value.adapter), [source]); },
+      times: () => ({}), beforeRead: () => ({enter() { operations.push('enter'); }}),
+      close() { operations.push('continuation-release'); },
+    },
+  }), error => error === failure);
+  assert.deepEqual(operations, ['prepare', 'enter', 'read']);
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
+  assert.deepEqual(operations, ['prepare', 'enter', 'read', 'release', 'continuation-release']);
+});
+
+for (const fault of ['duplicate-owner', 'unsupported-realization', 'ambiguous-owner', 'missing-owner']) {
+  test(`selected Effect ${fault} rejects before any preparation or provider I/O`, async () => {
+    let custody;
+    const calls = [];
+    const adapter = (name, refs, realizationKey = 'duckdb-acquired') => ({realizationKey,
+      admitsSource: ref => refs.includes(ref),
+      prepare() { calls.push(`${name}:prepare`); }, open() { calls.push(`${name}:open`); },
+      resolveSecret() { calls.push(`${name}:secret`); }});
+    const first = adapter('first', fault === 'duplicate-owner' ? ['first', 'second'] : ['first']);
+    const second = adapter('second', fault === 'duplicate-owner' || fault === 'missing-owner'
+      ? ['other'] : ['second'], fault === 'unsupported-realization' ? 'installed-row-source' : undefined);
+    const unused = adapter('unused', fault === 'ambiguous-owner' ? ['second'] : ['unused']);
+    await assert.rejects(openEffectComputation({
+      moon: {clientProgramEffectAcquisitionCount: () => 2,
+        clientProgramEffectPrepareLocalQueryRequirement: (_, task) => ({$tag: 1, _0: ['first', 'second'][task]}),
+        clientProgramQueryRequirementSourceRef: ref => ref},
+      acquired: {prepared: {}}, sourceProfile: {sources: [first, unused, second]},
+      retainComputationOwner(value) { custody = value; },
+    }), {message: fault === 'duplicate-owner' ? 'DuplicateEffectSourceOwner'
+      : fault === 'unsupported-realization' ? 'UnsupportedEffectSourceRealization'
+        : 'InstalledSourceProgramMismatch'});
+    assert.deepEqual(calls, []);
+    await custody.close();
+    assert.equal(await custody.cleanup(), true);
+  });
+}
+
+test('three Effect acquisitions remain unsupported with three installed Sources', async () => {
+  await assert.rejects(openEffectComputation({
+    moon: {clientProgramEffectAcquisitionCount: () => 3}, acquired: {prepared: {}},
+    sourceProfile: {sources: [{}, {}, {}]},
+    retainComputationOwner() { assert.fail('UnsupportedAcquisitionCount'); },
+  }), {message: 'InvalidAcquiredEffectComputationPort'});
 });
