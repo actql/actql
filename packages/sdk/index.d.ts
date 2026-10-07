@@ -327,6 +327,7 @@ export interface Result {
   all(options?: ReadOptions): Promise<unknown[]>;
   one(options?: ReadOptions): Promise<unknown>;
   scalar(options?: ReadOptions): Promise<unknown>;
+  /** Detached, recursively frozen snapshot of this lookup's admitted response. */
   deliveryAttempt(attemptId: string,
     options?: {signal?: AbortSignal}): Promise<DeliveryAttemptLookup>;
 }

@@ -16,10 +16,31 @@ const syntax = ['rows', 'all'].map(operation => ({
   assertions: [{id: 'read-row-syntax', operator: 'strictEqual'},
     {id: 'read-row-count', operator: 'strictEqual'}],
 }));
+const lookupSnapshots = ['local', 'https'].map(entrance => ({
+  name: `${entrance}: delivery lookup snapshots survive reused owner record containers`,
+  assertions: ['snapshot', 'freeze', 'detached'].map(id => ({
+    id: `delivery-lookup-${id}`, operator: 'strictEqual',
+  })),
+}));
+const lookupAdmission = ['clone changes a previously valid field', 'reply cannot be cloned']
+  .map(fault => ({
+    name: `local: delivery lookup rejects ${fault}`,
+    assertions: [{id: 'delivery-lookup-admission', operator: 'strictEqual'}],
+  }));
+const lookupCopy = "            answer = structuredClone(answer);\n" +
+  "            if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n" +
+  "            return freezeInput(answer);";
 const mutations = [
   ['non-object frames become successful rows', [
     ["                  if (row === null || typeof row !== 'object' ||\n                      Array.isArray(row)) fail('InvalidResultFrame');", ''],
   ], shape],
+  ['lookup responses retain shared mutable owner records', [
+    [lookupCopy, '            return Object.freeze(answer);'],
+  ], lookupSnapshots],
+  ['lookup clone skips its contract revalidation', [
+    [lookupCopy, '            answer = structuredClone(answer);\n' +
+      '            return freezeInput(answer);'],
+  ], lookupAdmission],
   ['malformed JSON loses its typed refusal', [
     ["                  catch { fail('InvalidResultFrame'); }", '                  catch (cause) { throw cause; }'],
   ], syntax],
@@ -50,6 +71,6 @@ try {
 } finally {
   writeFileSync(path, original);
 }
-const restoredAccepted = accepted([...shape, ...syntax]);
+const restoredAccepted = accepted([...shape, ...syntax, ...lookupSnapshots, ...lookupAdmission]);
 console.log(JSON.stringify({mutations: results, restoredAccepted}, null, 2));
 if (!restoredAccepted || results.some(result => !result.rejected)) process.exitCode = 1;
