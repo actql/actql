@@ -4,6 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdirSync, mkdtempSync, rmSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 execFileSync(process.execPath, ['--test', 'scripts/build-runtime-packages.test.mjs'],
@@ -12,11 +13,7 @@ const expected = {
   'run-host-core': ['dist/client_values_host_abi.js'],
   'coordinator-core': ['dist/remote_coordinator_abi.js'],
   'transfer-core': ['dist/remote_transfer_abi.js'],
-  'local-node': ['connectors_builtin_node/connectors_builtin_node.js',
-    'connectors/duckdb/host_node/host_node.js',
-    'retained_host_bridge/retained_host_bridge.js',
-    'process_host_bridge/process_host_bridge.js',
-    'checkpoint_runtime_node/checkpoint_runtime_node.js']
+  'local-node': localNodePackageInputs(root).runtimeFiles
     .map(path => `_build/js/release/build/${path}`),
 };
 mkdirSync(join(root, '_build'), {recursive: true});

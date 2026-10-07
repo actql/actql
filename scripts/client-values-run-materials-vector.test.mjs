@@ -718,11 +718,32 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('4ce6abb00008cc0752dda4797487ef815287e30d21bc6e1ae5fca3941f7005a9'),
     cid(aoaContract), beforeSavedSchemaDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('26501230bde03bc47e0e4e772e4971b048de85af47b9626771a1904375eddd92'));
+  // Keep the finite-quantifier predecessor under its original source closure.
+  assert.equal(vector(pin('883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135'),
+    cid(aoaContract), beforeTableDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('ea1d3abc7d1e52de2b35574a26c62cfe8fea84beed67a4e1c6c0afba5d30ffa2'));
+  // Preserve main's abbreviated-edge vector with the current Table closure.
   assert.equal(vector(pin('e855c6be158d29cc88c3e1e7fd01eb1940cbc6a1301c49414fbe024c20a4bea3'),
     cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('d16ec26dbce7f1c96129d0810e11e437583e31560e3ad7b3e5bf681b0599107a'));
-  assert.equal(current.run.run_definition_cid,
+  // Keep both independently authored parent closures after integration.
+  assert.equal(vector(pin('3fe077253a1f7ec230316eb1d6cca21d464c5292ea63f95f19ca53052b03ee9f'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
     pin('d7a36674c603fb1d3a1b9216e9284222315552dc40d8660b942c308af4c24f48'));
+  assert.equal(vector(pin('883c032ce81e5a9f4a192a1d3c5af36bfa48a3d108945f832d9e1c4e7c13b135'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('ebd0959e213d515f8fe993989cc39976660e5a45918ea6fa8951a5a41e08cc4c'));
+  // Keep the independently pinned literal-membership parent; it did not
+  // include the adopted finite Graph spelling grammar.
+  assert.equal(vector(pin('2fca45d69a94d9d91a6903f72007bccb09bf2c945cfca7187d61808222eac60f'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('1e580903177ae141bc703bead4e9164bd200f4d60e7cde63d89dd04ea5be3bf6'));
+  // Preserve the combined ARRAY/finite Graph parent before this integration.
+  assert.equal(vector(pin('422c4edd4dd34bbf715e3d464a07f8654e51af7bf5bba74c93a13aa6de999968'),
+    cid(aoaContract), currentDependencies, barrierCid, currentIdentity).run.run_definition_cid,
+    pin('082b73d16ed8513f88c55ce75cd1d1a78043ec08c57c02a757a3eba5e0e4dd54'));
+  assert.equal(current.run.run_definition_cid,
+    pin('8eb2bb63ec3c66f0457ad25820daa0e49bce63c368536b640b2e38b6d79e7bc3'));
   const outputSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt','utf8');
   assert.ok(outputSource.includes(current.run.run_definition_cid));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
