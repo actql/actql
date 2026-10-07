@@ -67,6 +67,8 @@ pub fn port_orders(ResultPort) -> CheckedOrders
 
 pub fn port_projection_count(ResultPort) -> Int
 
+pub fn port_projection_field_at(ResultPort, Int) -> @relation_typing.ProjectionField?
+
 pub fn port_projection_input_at(ResultPort, Int) -> @relation_schema.FieldName?
 
 pub fn port_publication(ResultPort) -> @pipeline_typing.ResultPublication
