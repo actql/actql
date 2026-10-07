@@ -1308,11 +1308,7 @@ pub(all) enum PublicationUnknownRetryAction {
   PublicationUnknownRetryInvalid
 } derive(Eq, @debug.Debug)
 
-pub struct RecordedRunPublication {
-  admission : RunPublicationAdmission
-  definition : PublicationContract
-  result : ResultDefinition
-}
+type RecordedRunPublication
 
 type ResultAccessProgress
 
