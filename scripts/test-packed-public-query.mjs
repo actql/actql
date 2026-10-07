@@ -148,6 +148,8 @@ assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'fixtures'));
+await writeFile(join(root, 'fixtures/graph-delta-application.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/graph-delta-application.mjs')));
 await writeFile(join(root, 'fixtures/graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/graph-parallel.program.json')));
 await writeFile(join(root, 'fixtures/graph-presence.program.json'),
