@@ -24,6 +24,8 @@ priv enum CheckFinding {
   UndeclaredParameter(String, (Int, Int)?)
   UnusedParameter(String, String?)
   RequiredValue(@parameter_binding.Declaration, String)
+  CapacityPolicyRequired
+  NumericProfileRequired
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
@@ -424,7 +426,22 @@ fn check_source_findings(
       client_program_standard_limits().checking,
     ) {
     Checked(_) => ()
-    NeedsInputs(_) => findings.push(Limit("bound_values_missing"))
+    NeedsInputs(requests) => {
+      // Project only the existing owner's known public context conditions.
+      // No environment probing, raw policy values or generated input location.
+      let capacity_required = @program_check.input_request_at(requests, 0)
+        is Some({ kind: HostCapacityPolicy, .. })
+      if capacity_required {
+        findings.push(CapacityPolicyRequired)
+        findings.push(Limit("checking_context_missing"))
+      } else if @program_check.input_request_at(requests, 0)
+        is Some({ kind: NumericReductionProfile(_), .. }) {
+        findings.push(NumericProfileRequired)
+        findings.push(Limit("checking_context_missing"))
+      } else {
+        findings.push(Limit("bound_values_missing"))
+      }
+    }
     Rejected(diagnostic) =>
       match @program_check.diagnostic_category(diagnostic) {
         InvalidInput =>
@@ -1008,7 +1025,8 @@ fn write_check_report(
   @encode.end_array(writer)
   let mut required_count = 0
   for finding in findings {
-    if finding is RequiredValue(_, _) {
+    if finding
+      is (RequiredValue(_, _) | CapacityPolicyRequired | NumericProfileRequired) {
       required_count = required_count + 1
     }
   }
@@ -1323,6 +1341,42 @@ fn write_check_report(
   for finding in findings {
     if written_requirements >= requirement_limit {
       continue
+    }
+    if finding is NumericProfileRequired {
+      written_requirements = written_requirements + 1
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "numeric_reduction_profile_required")
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "profile_cid")
+      @encode.string_value(writer, check_numeric_profile_cid)
+      @encode.key(writer, "supplier")
+      @encode.string_value(writer, "checking_context_owner")
+      @encode.key(writer, "stage")
+      @encode.string_value(writer, "checking")
+      @encode.end_object(writer)
+      @encode.end_object(writer)
+    }
+    if finding is CapacityPolicyRequired {
+      written_requirements = written_requirements + 1
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "host_capacity_policy_required")
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "contract_cid")
+      @encode.string_value(writer, check_capacity_contract_cid)
+      @encode.key(writer, "schema_cid")
+      @encode.string_value(writer, check_capacity_schema_cid)
+      @encode.key(writer, "schema_pointer")
+      @encode.string_value(writer, "/schema")
+      @encode.key(writer, "supplier")
+      @encode.string_value(writer, "checking_context_owner")
+      @encode.key(writer, "stage")
+      @encode.string_value(writer, "checking")
+      @encode.end_object(writer)
+      @encode.end_object(writer)
     }
     if finding is RequiredValue(declaration, expected) {
       let name = declaration.name

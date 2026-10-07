@@ -63,6 +63,7 @@ fn bounded_binding_rows_receiver(
   assert_unique? : Bool = false,
   unique_text? : Bool = false,
   select? : Bool = false,
+  select_name? : String? = None,
   rename? : Bool = false,
   drop? : Bool = false,
   take? : Bool = false,
@@ -75,6 +76,7 @@ fn bounded_binding_rows_receiver(
   dedupe? : Bool = false,
   distinct_keyed? : Bool = false,
   derive_scalar? : Bool = false,
+  derive_name? : String = "next",
   derive_text? : Bool = false,
   compare_text? : Bool = false,
   membership_text? : Bool = false,
@@ -113,7 +115,12 @@ fn bounded_binding_rows_receiver(
         (if unique_text { "tag" } else { "id" }) +
         "\"]},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if select {
-        "{\"select\":[\"right\",\"id\"],\"from\":\"rows\",\"as\":\"derived\"}"
+        "{\"select\":" +
+        (match select_name {
+          Some(name) => "[\"" + name + "\"]"
+          None => "[\"right\",\"id\"]"
+        }) +
+        ",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if rename {
         "{\"rename\":{\"left\":\"alias\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if drop {
@@ -131,7 +138,9 @@ fn bounded_binding_rows_receiver(
       } else if filter {
         "{\"filter\":\"id > 1\",\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_scalar {
-        "{\"derive\":{\"next\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
+        "{\"derive\":{\"" +
+        derive_name +
+        "\":\"id + 1\"},\"from\":\"rows\",\"as\":\"derived\"}"
       } else if derive_text {
         "{\"derive\":{\"copy\":{\"field\":\"tag\"}},\"from\":\"rows\",\"as\":\"derived\"}"
       } else {

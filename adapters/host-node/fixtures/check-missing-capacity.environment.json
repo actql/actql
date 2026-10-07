@@ -1,0 +1,13 @@
+{
+  "command_contracts": [],
+  "connector_capabilities": [],
+  "connector_catalogs": [],
+  "contract_registry": [],
+  "host_policy_profile": {},
+  "mapping_contracts": [],
+  "model_task_contracts": [],
+  "schema_snapshots": [],
+  "source_views": [],
+  "version": "actql-check-environment/0.1",
+  "evidence_bundle_cid": "sha256:bf3e299a7386f7442aa04abc23901a1b3f580b490e6c625fe4ea686dce61032c"
+}

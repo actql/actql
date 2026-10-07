@@ -1,5 +1,9 @@
 ///|
-fn indexed_snapshot_fixture(name : String) -> BoundedBindingRowsExecution raise {
+fn indexed_snapshot_fixture(
+  name : String,
+  derive_name? : String = "next",
+  projection? : Bool = false,
+) -> BoundedBindingRowsExecution raise {
   let source_owner = bound_pipeline(
     "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"" +
     name +
@@ -20,12 +24,22 @@ fn indexed_snapshot_fixture(name : String) -> BoundedBindingRowsExecution raise 
     execute_generated_sequence(source_generated, [], compute_test_limits()).unwrap(),
     @pipeline.Step(0),
   ).unwrap()
-  let receiver = bounded_binding_rows_receiver(source_owner, derive_scalar=true)
+  let receiver = bounded_binding_rows_receiver(
+    source_owner,
+    derive_scalar=!projection,
+    derive_name~,
+    select=projection,
+    select_name=Some(name),
+  )
   let sequence = prepared_sequence(receiver)
   let generated = prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
-    [sequence_fragment_context(sequence, 0, 1L)],
+    if projection {
+      []
+    } else {
+      [sequence_fragment_context(sequence, 0, 1L)]
+    },
     [
       @lower.node_id(
         @lower.node_at(@lower.bound_preparation(receiver), 0).unwrap(),

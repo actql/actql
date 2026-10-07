@@ -59,7 +59,26 @@ test "empty map remains a kernel and select keeps authored column order" {
     fail("select")
   }
   assert_eq(fields.map(f => @schema.reference_name(f.output)), ["z", "id"])
+  let view = @lowering_relation.prepare_projection(
+    @lowering_relation.kernel_checked(projection),
+  ).unwrap()
+  let first = @lowering_relation.projection_field_at(view, 0).unwrap()
+  assert_eq(
+    (first.output, first.input),
+    (@schema.Unqualified("z"), @schema.Unqualified("z")),
+  )
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 1).unwrap().output,
+    @schema.Unqualified("id"),
+  )
+  assert_true(@lowering_relation.projection_field_at(view, -1) is None)
+  assert_true(@lowering_relation.projection_field_at(view, 2) is None)
   fields.clear()
+  assert_eq(@lowering_relation.projection_field_count(view), 2)
+  assert_eq(
+    @lowering_relation.projection_field_at(view, 0).unwrap().output,
+    @schema.Unqualified("z"),
+  )
   guard @lowering_relation.kernel_body(projection)
     is @lowering_relation.Select(again) else {
     fail("select")
