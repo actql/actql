@@ -36,6 +36,21 @@ test('Native cancellation shapes retain each registered operation boundary', () 
   }
 });
 
+test('Native submission shapes include original identity and all durable outcomes', () => {
+  const original = buildClientHostWire(registry, protocol).native;
+  for (const name of ['submission_epoch', 'submission_ref', 'submission_outcome', 'submission_lookup']) {
+    assert.match(original, new RegExp(`fn wire_${name}_shape\\(`));
+    const changed = structuredClone(registry);
+    const shape = changed.schemas[name];
+    const reference = name === 'submission_epoch' ? undefined
+      : name === 'submission_ref' ? shape : shape.oneOf[0].properties.submissionRef;
+    if (name === 'submission_epoch') shape.properties.epochNonce.const = 'd'.repeat(64);
+    else reference.properties.nonce.maxLength = 255;
+    assert.notEqual(buildClientHostWire(changed, protocol).native, original,
+      `Native freshness includes ${name}, independently of profile and JavaScript output`);
+  }
+});
+
 test('schema and operation mutations invalidate generated Client–Host wire',
   () => {
     const original = buildClientHostWire(registry, protocol);

@@ -93,7 +93,12 @@ fn json_file(
       max_depth: 32,
     }) {
     Ok(_) => @json.parse(text) catch { _ => stop("invalid JSON file " + name) }
-    Err(_) => stop("invalid JSON file " + name)
+    Err(error) =>
+      match error.issue {
+        InputLimit | NodeLimit | DepthLimit =>
+          stop("JSON file exceeds configured bounds " + name)
+        _ => stop("invalid JSON file " + name)
+      }
   }
 }
 
@@ -151,33 +156,114 @@ fn admitted_run(wire : String, connection : Json) -> Bool {
 }
 
 ///|
-// The closed submit_preparation_error contract is tested against its
-// registered schema. Unknown HTTP errors do not prove non-admission.
-fn preparation_refusal(bytes : Bytes) -> String? {
-  let text = @utf8.decode(bytes) catch { _ => return None }
-  if @source.parse_json(text, {
-      max_input_bytes: 4096,
-      max_nodes: 16,
-      max_depth: 4,
-    })
-    is Err(_) {
-    return None
+fn json_number(fields : Map[String, Json], name : String) -> Double? {
+  match fields.get(name) {
+    Some(Number(value, ..)) => Some(value)
+    _ => None
   }
-  let value = @json.parse(text) catch { _ => return None }
-  guard value is Object(fields) && fields.length() == 1 else { return None }
-  match json_text(fields, "code") {
-    Some(code) =>
-      match code {
-        "ClientProgramInvalidInput"
-        | "ClientParametersInvalid"
-        | "ClientParametersTooLarge"
-        | "ClientProgramUnsupported"
-        | "ClientProgramNeedsInputs"
-        | "ClientProgramRejected" => Some(code)
-        _ => None
+}
+
+///|
+fn valid_submission_reference(value : Json) -> Bool {
+  guard wire_submission_ref_shape(value) &&
+    value is Object(fields) &&
+    fields.get("epoch") is Some(Object(epoch)) &&
+    json_text(fields, "nonce") is Some(nonce) &&
+    json_text(epoch, "authorityScopeCid") is Some(authority) &&
+    json_text(epoch, "epochNonce") is Some(epoch_nonce) &&
+    json_number(epoch, "notBefore") is Some(not_before) &&
+    json_number(epoch, "expiresAt") is Some(expires_at) else {
+    return false
+  }
+  match
+    @submission.prepare_submission_epoch(
+      authority, epoch_nonce, not_before, expires_at,
+    ) {
+    Err(_) => false
+    Ok(epoch) => @submission.submission_request_id(epoch, nonce) is Ok(_)
+  }
+}
+
+///|
+fn same_submission_reference(actual : Json, expected : Json) -> Bool {
+  guard valid_submission_reference(actual) &&
+    valid_submission_reference(expected) &&
+    actual is Object(actual_fields) &&
+    expected is Object(expected_fields) &&
+    actual_fields.get("epoch") is Some(Object(actual_epoch)) &&
+    expected_fields.get("epoch") is Some(Object(expected_epoch)) else {
+    return false
+  }
+  json_text(actual_fields, "nonce") == json_text(expected_fields, "nonce") &&
+  ["version", "authorityScopeCid", "epochNonce", "authenticator"].all(fn(name) {
+    json_text(actual_epoch, name) == json_text(expected_epoch, name)
+  }) &&
+  ["notBefore", "expiresAt"].all(fn(name) {
+    json_number(actual_epoch, name) == json_number(expected_epoch, name)
+  })
+}
+
+///|
+fn valid_submission_reply(
+  value : Json,
+  request : Json,
+  connection : Json,
+  lookup : Bool,
+) -> Bool {
+  guard (if lookup {
+      wire_submission_lookup_shape(value)
+    } else {
+      wire_submission_outcome_shape(value)
+    }) &&
+    value is Object(fields) &&
+    request is Object(requested) &&
+    requested.get("submissionRef") is Some(expected) &&
+    fields.get("submissionRef") is Some(actual) &&
+    same_submission_reference(actual, expected) &&
+    expected is Object(reference) &&
+    reference.get("epoch") is Some(Object(epoch)) else {
+    return false
+  }
+  if !lookup && fields.get("intentCid") != requested.get("intentCid") {
+    return false
+  }
+  match json_text(fields, "kind") {
+    Some("ready") => {
+      guard fields.get("admission") is Some(admission) &&
+        wire_admission(admission, connection) &&
+        admission is Object(admitted) &&
+        admitted.get("ref") is Some(Object(run)) else {
+        return false
       }
-    None => None
+      json_text(run, "authorityScopeCid") ==
+      json_text(epoch, "authorityScopeCid")
+    }
+    Some("held") => {
+      guard fields.get("held") is Some(held) &&
+        json_text(reference, "nonce") is Some(nonce) &&
+        wire_held(held, nonce) &&
+        held is Object(retained) &&
+        connection is Object(selected) else {
+        return false
+      }
+      !(json_text(selected, "durability") == Some("durable") &&
+      json_text(retained, "durability") != Some("durable"))
+    }
+    _ => true
   }
+}
+
+///|
+fn submission_unknown(body : Bytes) -> String {
+  let text = @utf8.decode(body) catch { _ => return "SubmissionUnknown" }
+  let value = @json.parse(text) catch { _ => return "SubmissionUnknown" }
+  guard value is Object(fields) &&
+    fields.get("submissionRef") is Some(reference) else {
+    return "SubmissionUnknown"
+  }
+  "SubmissionUnknown submission-ref=" +
+  reference.stringify() +
+  " lookup=lookup-submission"
 }
 
 ///|
@@ -209,20 +295,6 @@ fn attached_reference_matches(
   json_text(returned, "authorityScopeCid") &&
   json_text(requested, "runDefinitionCid") ==
   json_text(returned, "runDefinitionCid")
-}
-
-///|
-fn held_reply(text : String, request_id : String) -> Bool {
-  if @source.parse_json(text, {
-      max_input_bytes: 8192,
-      max_nodes: 64,
-      max_depth: 4,
-    })
-    is Err(_) {
-    return false
-  }
-  let value = @json.parse(text) catch { _ => return false }
-  wire_held(value, request_id)
 }
 
 ///|
@@ -429,7 +501,7 @@ fn request_body(
 ) -> Bytes raise ClientStop {
   let fields : Map[String, Json] = Map([("connection", connection)])
   match operation {
-    "connect" => ()
+    "connect" | "new-submission" => ()
     "aql" => {
       let format = required(child, "format")
       if format != "json" &&
@@ -440,7 +512,6 @@ fn request_body(
         format != "sql" {
         stop("unsupported AQL source format")
       }
-      fields["requestId"] = Json::string(required(child, "request-id"))
       fields["kind"] = Json::string("aql")
       let source : Map[String, Json] = Map([
         (
@@ -468,7 +539,6 @@ fn request_body(
       }
     }
     "start" => {
-      fields["requestId"] = Json::string(required(child, "request-id"))
       fields["kind"] = Json::string("program")
       fields["input"] = json_file(
         root,
@@ -482,6 +552,17 @@ fn request_body(
     }
     "lookup-request" =>
       fields["requestId"] = Json::string(required(child, "request-id"))
+    "lookup-submission" => {
+      let reference = json_file(
+        root,
+        required(child, "submission-ref-file"),
+        8192L,
+      )
+      if !valid_submission_reference(reference) {
+        stop("InvalidSubmissionReference")
+      }
+      fields["submissionRef"] = reference
+    }
     "attach" | "status" | "reconcile" =>
       fields["ref"] = json_file(root, required(child, "ref-file"), 8192L)
     "cancel" | "lookup-cancellation" => {
@@ -522,6 +603,38 @@ fn request_body(
       }
     }
     _ => stop("unsupported Client operation")
+  }
+  if operation == "start" || operation == "aql" {
+    let reference = json_file(
+      root,
+      required(child, "submission-ref-file"),
+      8192L,
+    )
+    if !valid_submission_reference(reference) {
+      stop("InvalidSubmissionReference")
+    }
+    let original : Map[String, Json] = Map([])
+    for name in ["kind", "input", "parameters"] {
+      guard fields.get(name) is Some(value) else {
+        stop("InvalidSubmittedIntent")
+      }
+      original[name] = value
+    }
+    let intent = match
+      @intent.prepare_client_submitted_intent(
+        Json::object(original).stringify(),
+        maximum,
+        8192,
+        32,
+      ) {
+      Ok(value) => value
+      Err(@intent.Limit) => stop("submitted intent exceeds configured bounds")
+      Err(_) => stop("InvalidSubmittedIntent")
+    }
+    fields["submissionRef"] = reference
+    fields["intentCid"] = Json::string(
+      @intent.client_submitted_intent_cid(intent),
+    )
   }
   let writer = @encode.writer(maximum, 8192, 32) catch {
     _ => stop("request exceeds configured bounds")
@@ -565,17 +678,23 @@ fn command() -> @argparse.Command {
     ],
     subcommands=[
       @argparse.Command("connect"),
+      @argparse.Command("new-submission", options=[
+        @argparse.OptionArg("nonce", required=true),
+      ]),
       @argparse.Command("aql", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
         @argparse.OptionArg("format", required=true),
-        @argparse.OptionArg("request-id", required=true),
+        @argparse.OptionArg("submission-ref-file", required=true),
       ]),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
-        @argparse.OptionArg("request-id", required=true),
+        @argparse.OptionArg("submission-ref-file", required=true),
+      ]),
+      @argparse.Command("lookup-submission", options=[
+        @argparse.OptionArg("submission-ref-file", required=true),
       ]),
       @argparse.Command("lookup-request", options=[
         @argparse.OptionArg("request-id", required=true),
@@ -673,7 +792,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     Err(_) => stop("native HTTPS client unavailable")
   }
   let route = if operation == "aql" || operation == "start" {
-    "submit"
+    "submit-intent"
   } else {
     operation
   }
@@ -692,10 +811,28 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       let text = @utf8.decode(value.body) catch {
         _ => stop("invalid Client Host profile")
       }
-      ignore(confirmed_profile(text, connection))
+      let profile = confirmed_profile(text, connection)
       if operation == "connect" {
         ignore(client.close())
         return text
+      }
+      if operation == "new-submission" {
+        guard profile is Object(fields) &&
+          fields.get("submissionEpoch") is Some(epoch) &&
+          wire_submission_epoch_shape(epoch) else {
+          stop("SubmissionEpochUnavailable")
+        }
+        let reference = Json::object(
+          Map([
+            ("epoch", epoch),
+            ("nonce", Json::string(required(child, "nonce"))),
+          ]),
+        )
+        if !valid_submission_reference(reference) {
+          stop("InvalidSubmissionReference")
+        }
+        ignore(client.close())
+        return reference.stringify()
       }
       text
     }
@@ -712,21 +849,15 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   ignore(client.close())
   let result = match response {
     Ok(value) => value
-    Err(_) if route == "submit" =>
-      stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+    Err(_) if route == "submit-intent" => stop(submission_unknown(body))
     Err(_) if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
     Err(_) if route == "cancel" => stop(cancellation_unknown(body))
     Err(_) => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
-    if route == "submit" {
-      if result.status >= 400 && result.status < 500 {
-        if preparation_refusal(result.body) is Some(code) {
-          stop(code)
-        }
-      }
-      stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+    if route == "submit-intent" {
+      stop(submission_unknown(body))
     }
     if route == "read" {
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
@@ -738,8 +869,8 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   let text = @utf8.decode(result.body) catch {
     _ =>
-      if route == "submit" {
-        stop("SubmissionUnknown request-id=" + required(child, "request-id"))
+      if route == "submit-intent" {
+        stop(submission_unknown(body))
       } else if route == "read" {
         stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
       } else if route == "cancel" {
@@ -747,11 +878,6 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
       } else {
         stop("invalid UTF-8 Host response")
       }
-  }
-  if route == "submit" &&
-    !held_reply(text, required(child, "request-id")) &&
-    !admitted_run(text, connection) {
-    stop("SubmissionUnknown request-id=" + required(child, "request-id"))
   }
   if route == "attach" && !admitted_run(text, connection) {
     stop("InvalidHostAdmission")
@@ -774,13 +900,68 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     }
     text[:text.length() - 1].to_owned()
   } else {
+    if (route == "submit-intent" || route == "lookup-submission") &&
+      @source.parse_json(text, {
+        max_input_bytes: response_max,
+        max_nodes: 8192,
+        max_depth: 32,
+      })
+      is Err(_) {
+      if route == "submit-intent" {
+        stop(submission_unknown(body))
+      }
+      stop("InvalidHostSubmissionLookup")
+    }
     let value = @json.parse(text) catch {
       _ =>
         if route == "cancel" || route == "lookup-cancellation" {
           stop("InvalidHostCancellation " + cancellation_unknown(body))
+        } else if route == "submit-intent" {
+          stop(submission_unknown(body))
         } else {
           stop("invalid JSON Host response")
         }
+    }
+    if route == "submit-intent" || route == "lookup-submission" {
+      let request_text = @utf8.decode(body) catch {
+        _ => stop("InvalidSubmittedIntent")
+      }
+      let requested = @json.parse(request_text) catch {
+        _ => stop("InvalidSubmittedIntent")
+      }
+      if !valid_submission_reply(
+          value,
+          requested,
+          connection,
+          route == "lookup-submission",
+        ) {
+        if route == "submit-intent" {
+          stop(submission_unknown(body))
+        }
+        stop("InvalidHostSubmissionLookup")
+      }
+      // Emit the admitted Owner fact before a rejected/preparing exit. The
+      // immutable reference file remains the input to a later exact lookup.
+      if route == "submit-intent" &&
+        value is Object(fields) &&
+        json_text(fields, "kind") is Some(kind) &&
+        (
+          kind == "not_accepted" ||
+          kind == "preparation_failed" ||
+          kind == "preparing"
+        ) {
+        let bytes = @utf8.encode(text + "\n")
+        if !write_stdout_ffi(bytes, bytes.length()) {
+          stop("failed to write submission outcome")
+        }
+        stop(
+          match kind {
+            "not_accepted" => "SubmissionNotAccepted"
+            "preparation_failed" => "SubmissionPreparationFailed"
+            _ => "SubmissionPreparing"
+          },
+        )
+      }
     }
     if (route == "cancel" || route == "lookup-cancellation") &&
       !valid_cancellation_reply(value, body, route == "lookup-cancellation") {

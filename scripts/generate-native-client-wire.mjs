@@ -66,7 +66,8 @@ export function nativeClientWire(schemas, rules, requestRules) {
     functions.push(`///|\nfn ${name}(value : Json) -> Bool {\n  ${lines.join('\n  ')}\n  true\n}\n`);
     return name;
   }
-  for (const name of ['connection','profile','admission','run_ref',
+  for (const name of ['submission_epoch','submission_ref','submission_outcome','submission_lookup',
+    'connection','profile','admission','run_ref',
     'lookup_found','lookup_not_found','lookup_unknown','held',
     'cancellation_ref','cancellation','cancellation_lookup']) emit(schemas[name], `wire_${name}_shape`);
   functions.push('///|\nenum WireResponseIssue {\n  InvalidShape\n  ConnectionMismatch\n  RequestedValueUnavailable\n}\n');

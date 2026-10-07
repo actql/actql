@@ -23,17 +23,25 @@ const {connect} = await import(pathToFileURL(requireInstalled.resolve('@actql/no
 const sourceOnly = process.argv.includes('--authored-source-only');
 // Reuse independently authored public sources/expectations, without converting
 // them to machine Programs before submission. Keep the JSON control separate.
-const cases = sourceOnly ? graphSourceSuccesses
+const caseSelection = process.argv.indexOf('--case');
+const refusalSelection = process.argv.indexOf('--refusal');
+const allCases = sourceOnly ? graphSourceSuccesses
   : [{name: 'graph-parallel', format: 'json',
     text: await readFile(join(installation, 'fixtures/graph-parallel.program.json'), 'utf8'),
     results: {answer: {rows: [{key: 10}, {key: 11}], columns: [
       {name: 'key', contract: {type: 'number', nullable: false}},
     ]}}}, ...graphSourceSuccesses];
+const cases = caseSelection < 0 ? allCases
+  : allCases.filter(entry => entry.name === process.argv[caseSelection + 1]);
+const refusals = refusalSelection < 0 ? graphSourceRefusals
+  : graphSourceRefusals.filter(entry => entry.name === process.argv[refusalSelection + 1]);
+assert.ok(cases.length > 0 && refusals.length > 0, 'Native public selection must discover success and refusal cases');
 let providerIo = 0, dispatches = 0;
-const {DuckDBPreparedStatement} = createRequire(
-  requireInstalled.resolve('@actql/local-node'))('@duckdb/node-api');
-const stream = DuckDBPreparedStatement.prototype.stream;
-DuckDBPreparedStatement.prototype.stream = function(...args) {
+// Values-only authored sources do not install or borrow an unused provider.
+const DuckDBPreparedStatement = sourceOnly ? undefined : createRequire(
+  requireInstalled.resolve('@actql/local-node'))('@duckdb/node-api').DuckDBPreparedStatement;
+const stream = DuckDBPreparedStatement?.prototype.stream;
+if (DuckDBPreparedStatement) DuckDBPreparedStatement.prototype.stream = function(...args) {
   providerIo++;
   return Reflect.apply(stream, this, args);
 };
@@ -48,10 +56,19 @@ const host = await openInstalledRemoteHttpHost({
   authenticate: header => header === 'Bearer fixture-token'
     ? userInfo().username : undefined,
 });
+let loseReply = process.argv.includes('--lose-submission-reply');
 const server = createServer({
   key: await readFile(join(installation, 'remote.key')),
   cert: await readFile(join(installation, 'remote.crt')),
-}, host.handler);
+}, (request, response) => {
+  if (loseReply && request.url.endsWith('/submit-intent')) {
+    loseReply = false;
+    // The normal handler persists its outcome before ending the response.
+    // Lose only that response; lookup must not submit the input again.
+    response.end = () => {response.destroy(); return response;};
+  }
+  return host.handler(request, response);
+});
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const endpoint = `https://127.0.0.1:${server.address().port}/`;
 let client;
@@ -77,14 +94,33 @@ const common = ['--endpoint', endpoint,
   '--cert', join(installation, 'remote.crt'),
   '--key', join(installation, 'remote.key')];
 const log = [];
+const observations = [];
 const run = (...args) => new Promise((resolve, reject) => {
   execFile(executable, [...common, ...args], {cwd: installation,
     timeout: 60000, maxBuffer: 1024 * 1024}, (error, stdout, stderr) => {
     log.push({args, code: error?.code ?? 0, stdout, stderr});
-    if (error) reject(new Error(`${args[0]}: ${stderr}`, {cause: error}));
+    if (error) {
+      const failure = new Error(`${args[0]}: ${stderr}`, {cause: error});
+      failure.outcome = stdout === '' ? undefined : JSON.parse(stdout);
+      reject(failure);
+    }
     else resolve(stdout);
   });
 });
+async function saveSubmission(name, nonce) {
+  const issued = JSON.parse(await run('new-submission', '--nonce', nonce));
+  assert.equal(issued.nonce, nonce);
+  const file = `${name}.native-submission.json`;
+  await writeFile(join(installation, file), JSON.stringify(issued));
+  return {file, reference: issued};
+}
+function assertOriginalUnknown(error, original) {
+  const match = error.message.match(/SubmissionUnknown submission-ref=(.+) lookup=lookup-submission/);
+  assert.ok(match, error.message);
+  assert.deepEqual(JSON.parse(match[1]), original.reference);
+  assert.equal(error.outcome, undefined);
+  return true;
+}
 try {
   const profile = JSON.parse(await run('connect'));
   assert.equal(profile.mode, 'remote');
@@ -93,9 +129,18 @@ try {
     const sourceFile = `${name}.native-source`;
     await writeFile(join(installation, sourceFile), text);
     const requestId = `sga-native-${name}-${randomUUID()}`;
+    const original = await saveSubmission(name, requestId);
     const beforeSubmit = observe();
-    const accepted = JSON.parse(await run('aql', '--program-file',
-      sourceFile, '--format', format, '--request-id', requestId));
+    let outcome;
+    if (loseReply) {
+      await assert.rejects(run('aql', '--program-file', sourceFile, '--format', format,
+        '--submission-ref-file', original.file), error => assertOriginalUnknown(error, original));
+      outcome = JSON.parse(await run('lookup-submission', '--submission-ref-file', original.file));
+    } else outcome = JSON.parse(await run('aql', '--program-file',
+      sourceFile, '--format', format, '--submission-ref-file', original.file));
+    assert.equal(outcome.kind, 'ready');
+    assert.deepEqual(outcome.submissionRef, original.reference);
+    const accepted = outcome.admission;
     assert.ok(accepted.ref, name);
     const refFile = `${name}.native-ref.json`;
     await writeFile(join(installation, refFile), JSON.stringify(accepted.ref));
@@ -120,35 +165,55 @@ try {
         result.columns, `${name}.${resultName} declared columns/types/nullability`);
     }
     assert.deepEqual(JSON.parse(await run('aql', '--program-file', sourceFile,
-      '--format', format, '--request-id', requestId)).ref, accepted.ref);
-    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id', requestId)).ref, accepted.ref);
+      '--format', format, '--submission-ref-file', original.file)).admission.ref, accepted.ref);
+    const restored = JSON.parse(await run('lookup-submission', '--submission-ref-file', original.file));
+    assert.deepEqual(restored.submissionRef, original.reference);
+    assert.equal(restored.kind, 'ready');
+    assert.deepEqual(restored.admission.ref, accepted.ref);
+    const changedSourceFile = `${name}.native-conflicting-source`;
+    await writeFile(join(installation, changedSourceFile), text + '\n-- distinct submitted bytes');
+    await assert.rejects(run('aql', '--program-file', changedSourceFile, '--format', format,
+      '--submission-ref-file', original.file), error => assertOriginalUnknown(error, original));
+    assert.deepEqual(JSON.parse(await run('lookup-submission', '--submission-ref-file', original.file)), restored);
     assert.deepEqual(observe(), beforeRead, 'read/describe/identical resubmit must not start execution again');
+    observations.push({name, original: original.reference, run: accepted.ref,
+      beforeSubmit, afterSubmit: beforeRead, afterReadAndLookup: observe(),
+      conflictingInputRefused: true, originalLookupUnchanged: true});
     console.log(`native ${name} ${format === 'json' ? 'machine Program' : 'authored source'} and Named Results passed`);
   }
   const inputCodes = new Set(['ClientProgramInvalidInput', 'ClientParametersInvalid',
     'ClientParametersTooLarge', 'ClientProgramUnsupported', 'ClientProgramNeedsInputs', 'ClientProgramRejected']);
-  for (const {name, text, format} of graphSourceRefusals) {
+  for (const {name, text, format} of refusals) {
     const sourceFile = `${name}.native-source`;
     await writeFile(join(installation, sourceFile), text);
     const requestId = `sga-native-refuse-${name}-${randomUUID()}`;
+    const original = await saveSubmission(name, requestId);
     const before = observe();
+    let refusal;
     await assert.rejects(run('aql', '--program-file', sourceFile, '--format', format,
-      '--request-id', requestId), error => {
-      const code = /^aql: actql-native-client: (\w+)\s*$/u.exec(String(error.message))?.[1];
-      assert.ok(inputCodes.has(code), `confirmed typed preparation refusal: ${code}`);
+      '--submission-ref-file', original.file), error => {
+      refusal = error.outcome;
+      assert.ok(['not_accepted', 'preparation_failed'].includes(refusal?.kind),
+        `durable preparation outcome: ${error.message}`);
+      assert.deepEqual(refusal.submissionRef, original.reference);
+      assert.ok(inputCodes.has(refusal.problem.code),
+        `confirmed typed preparation refusal: ${refusal.problem.code}`);
       return true;
     });
-    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id', requestId)), {kind: 'not_found'});
+    assert.deepEqual(JSON.parse(await run('lookup-submission', '--submission-ref-file', original.file)), refusal);
     assert.deepEqual(observe(), before, 'refused source must not admit a Run, dispatch or perform provider I/O');
+    observations.push({name, original: original.reference, refusal,
+      beforeSubmit: before, afterRefusalAndLookup: observe()});
     console.log(`native ${name} typed pre-admission refusal passed`);
   }
 } finally {
   await writeFile(join(evidenceDirectory, 'native-sga.log'),
     JSON.stringify({binaryCid, cases: cases.map(({name, format}) => ({name, format})),
-      refusals: graphSourceRefusals.map(({name, format}) => ({name, format})), log}, null, 2));
-  client?.close();
+      refusals: refusals.map(({name, format}) => ({name, format})),
+      lostSubmissionReply: process.argv.includes('--lose-submission-reply'), observations, log}, null, 2));
+  await client?.close();
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
   await host.close();
-  DuckDBPreparedStatement.prototype.stream = stream;
+  if (DuckDBPreparedStatement) DuckDBPreparedStatement.prototype.stream = stream;
 }

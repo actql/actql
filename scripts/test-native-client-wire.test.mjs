@@ -66,7 +66,19 @@ await writeFile(join(root, 'token.txt'), 'scoped-token');
 let reply = profile;
 let active;
 const requests = [];
-function responseValue(entry) {
+const epoch = {version: 'actql-submission-epoch/0.1',
+  authorityScopeCid: ref.authorityScopeCid, epochNonce: 'c'.repeat(64),
+  authenticator: 'd'.repeat(64), notBefore: 1800000000000, expiresAt: 1800000010000};
+const submissionReference = entry => ({epoch, nonce: entry.requestId ?? 'fixed-request'});
+function usesSubmission(entry) {
+  // Historical request IDs count UTF-16 units; submission nonces have a
+  // separate UTF-8 limit. Keep that historical positive control on lookup.
+  return entry.operation === 'start' && Buffer.byteLength(entry.requestId) <= 256;
+}
+function responseValue(entry, body) {
+  if (usesSubmission(entry)) return {kind: 'held',
+    submissionRef: submissionReference(entry), intentCid: body.intentCid,
+    held: entry.value};
   return entry.kind === 'run_ref'
     ? {kind: 'found', requestId: 'fixed-request', ref: entry.value,
       durability: 'durable', lookupExpiresAt: '2026-10-04T10:00:00Z'}
@@ -80,11 +92,12 @@ const server = createServer({
 }, async (request, response) => {
   let raw = '';
   for await (const chunk of request) raw += chunk;
+  const body = JSON.parse(raw);
   requests.push({url: request.url, method: request.method,
-    authorization: request.headers.authorization, body: JSON.parse(raw)});
+    authorization: request.headers.authorization, body});
   response.writeHead(200, {'content-type': 'application/json'});
   response.end(JSON.stringify(request.url.endsWith('/connect')
-    ? reply : responseValue(active)));
+    ? reply : responseValue(active, body)));
 });
 const builtExecutable = new URL(
   '../_build/native/release/build/cmd/native_client/native_client.exe',
@@ -142,17 +155,21 @@ function jsOutcomes(entry, selected) {
 }
 function commandArgs(entry) {
   const requestId = entry.requestId ?? 'fixed-request';
-  if (entry.operation === 'attach') return ['attach', '--ref-file', 'ref.json'];
-  if (entry.operation === 'start' || entry.kind === 'admission') {
-    return ['start', '--program-file', 'program.json', '--request-id', requestId];
+  if (entry.operation === 'attach' || entry.kind === 'admission') {
+    return ['attach', '--ref-file', 'ref.json'];
   }
-  if (entry.operation === 'lookup-request' || entry.kind === 'run_ref') {
+  if (usesSubmission(entry)) {
+    return ['start', '--program-file', 'program.json',
+      '--submission-ref-file', 'submission-ref.json'];
+  }
+  if (entry.operation === 'lookup-request' || entry.operation === 'start' ||
+      entry.kind === 'run_ref') {
     return ['lookup-request', '--request-id', requestId];
   }
   return ['connect'];
 }
 function assertResponseBoundary(entry, selected, actual) {
-  const route = entry.operation === 'start' ? 'submit' : 'lookup-request';
+  const route = usesSubmission(entry) ? 'submit-intent' : 'lookup-request';
   assert.equal(actual.signal, null, 'Native must finish normally');
   assert.deepEqual(requests.map(request => request.url),
     ['/actql/client/0.1/connect', `/actql/client/0.1/${route}`],
@@ -162,21 +179,26 @@ function assertResponseBoundary(entry, selected, actual) {
     assert.equal(request.authorization, 'Bearer scoped-token');
     assert.deepEqual(request.body.connection, selected);
   }
-  assert.equal(requests[1].body.requestId, entry.requestId,
-    'the requested identity must reach the response endpoint unchanged');
-  if (route === 'submit') assert.equal(requests[1].body.kind, 'program');
+  if (usesSubmission(entry)) {
+    assert.deepEqual(requests[1].body.submissionRef, submissionReference(entry),
+      'the saved original reference must reach the submit endpoint unchanged');
+    assert.equal(requests[1].body.kind, 'program');
+  } else assert.equal(requests[1].body.requestId, entry.requestId,
+    'the historical identity must reach lookup unchanged');
   if (entry.expected) {
     assert.equal(actual.code, 0,
       `Native must accept the independent positive control: ${actual.stderr}`);
     assert.equal(actual.stderr, '');
-    assert.deepEqual(JSON.parse(actual.stdout), entry.value,
+    assert.deepEqual(JSON.parse(actual.stdout), responseValue(entry, requests[1].body),
       'Native must return the admitted response unchanged');
   } else {
     assert.equal(actual.code, 1,
       `Native must reject at response validation: ${actual.stderr}`);
-    const diagnostic = entry.failureCode === 'SubmissionUnknown'
-      ? `${entry.failureCode} request-id=${entry.requestId}` : entry.failureCode;
-    assert.equal(actual.stderr, `actql-native-client: ${diagnostic}\n`,
+    if (usesSubmission(entry)) {
+      const match = actual.stderr.match(/^actql-native-client: SubmissionUnknown submission-ref=(.+) lookup=lookup-submission\n$/);
+      assert.ok(match, 'only response validation constitutes this rejection');
+      assert.deepEqual(JSON.parse(match[1]), submissionReference(entry));
+    } else assert.equal(actual.stderr, 'actql-native-client: InvalidHostRequestLookup\n',
       'argument, profile, transport, and spawn failures are not rejections');
     assert.equal(actual.stdout, '', 'a rejected response must not escape');
   }
@@ -184,7 +206,8 @@ function assertResponseBoundary(entry, selected, actual) {
 
 try {
   await writeFile(join(root, 'program.json'), '{}');
-  for (const entry of corpus) await test(entry.name, async () => {
+  for (const entry of corpus) await test(entry.operation === 'start' && !usesSubmission(entry)
+    ? `${entry.name} (historical lookup; separate nonce boundary)` : entry.name, async () => {
     active = entry;
     requests.length = 0;
     const selected = entry.kind === 'connection'
@@ -193,7 +216,10 @@ try {
       : {...profile, mode: selected?.mode, owner: selected?.owner};
     await writeFile(join(root, 'connection.json'), JSON.stringify(selected));
     await writeFile(join(root, 'ref.json'),
-      JSON.stringify(entry.kind === 'run_ref' ? entry.value : ref));
+      JSON.stringify(entry.kind === 'run_ref' ? entry.value
+        : entry.kind === 'admission' ? entry.value?.ref ?? ref : ref));
+    await writeFile(join(root, 'submission-ref.json'),
+      JSON.stringify(submissionReference(entry)));
     const outcomes = jsOutcomes(entry, selected);
     const actual = await run(...commandArgs(entry));
     for (const [validator, accepted] of outcomes) {
@@ -209,7 +235,7 @@ try {
     if (entry.kind === 'profile' && !entry.expected) {
       requests.length = 0;
       const subsequent = await run('start', '--program-file', 'program.json',
-        '--request-id', 'blocked-request');
+        '--submission-ref-file', 'submission-ref.json');
       assert.notEqual(subsequent.code, 0);
       assert.deepEqual(requests.map(request => request.url),
         ['/actql/client/0.1/connect'], 'malformed profile stops before submit');

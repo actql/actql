@@ -8,6 +8,8 @@ import {
   "actql/actql/source_value" @source,
   "actql/actql/encode_core" @encode,
   "actql/actql/run_publication" @publication,
+  "actql/actql/logical_request_scope" @submission,
+  "actql/actql/run_publication_host" @intent,
   "moonbitlang/core/argparse",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
