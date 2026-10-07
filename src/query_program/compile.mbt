@@ -807,9 +807,11 @@ fn pipe_physical_name(physical : Array[String], prefix : String) -> String {
 }
 
 ///|
-fn projection_output_name(projection : @query.Projection) -> String raise Abort {
+// One authored-name rule for SELECT output and its GROUP/HAVING alias tables.
+// Anonymous expressions do not gain a synthetic alias or an input binding.
+fn projection_alias(projection : @query.Projection) -> @query.NamePart? {
   match projection.name {
-    Some(name) => name.value
+    Some(name) => Some(name)
     None =>
       match projection.expression {
         Some(expression) =>
@@ -818,12 +820,20 @@ fn projection_output_name(projection : @query.Projection) -> String raise Abort 
               expression,
               @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) => path.last().unwrap().value
-            Property(_, name) => name.value
-            _ => raise Abort(UnsupportedProjection)
+            Reference(path) => path.last()
+            Property(_, name) => Some(name)
+            _ => None
           }
-        None => raise Abort(UnsupportedProjection)
+        None => None
       }
+  }
+}
+
+///|
+fn projection_output_name(projection : @query.Projection) -> String raise Abort {
+  match projection_alias(projection) {
+    Some(name) => name.value
+    None => raise Abort(UnsupportedProjection)
   }
 }
 
@@ -1155,9 +1165,11 @@ fn group_key_expression(
   guard root.kind is Reference(path) && path.length() == 1 else { return key }
   let mut matched : @query.Expression? = None
   for projection in projections {
-    match projection.name {
+    match projection_alias(projection) {
       Some(name) if same_name(name, path[0]) => {
-        if matched is Some(_) || projection.aggregate is Some(_) {
+        if matched is Some(_) ||
+          projection.aggregate is Some(_) ||
+          projection.analytic is Some(_) {
           raise Abort(UnsupportedGrouping)
         }
         matched = projection.expression
@@ -1588,12 +1600,12 @@ fn having_column(
     let mut matched = false
     let mut ambiguous = false
     for projection in projections {
-      match projection.name {
+      match projection_alias(projection) {
         Some(name) if same_name(name, path[0]) => {
-          matched = true
-          if selected is Some(_) {
+          if matched {
             ambiguous = true
           }
+          matched = true
           if projection.aggregate is Some(_) {
             selected = Some(name.value)
           } else {
@@ -2493,7 +2505,7 @@ fn compile_steps(
         }
         let order_reserved = active_fields.copy() + key_names
         for projection in projections {
-          if projection.name is Some(name) {
+          if projection_alias(projection) is Some(name) {
             order_reserved.push(name.value)
           }
         }
@@ -2649,7 +2661,7 @@ fn compile_steps(
           let physical = active_fields +
             key_names +
             projections.filter_map(projection => {
-              projection.name.map(name => name.value)
+              projection_alias(projection).map(name => name.value)
             })
           let references : Array[Array[@query.NamePart]] = []
           for (_, call) in hidden_calls {
@@ -2664,7 +2676,7 @@ fn compile_steps(
             }
           }
           for projection in projections {
-            guard projection.name is Some(column_name) &&
+            guard projection_alias(projection) is Some(column_name) &&
               projection.expression is Some(expression) else {
               continue
             }
@@ -2720,7 +2732,8 @@ fn compile_steps(
               return input_resolve(path)
             }
             let matches = projections.filter(projection => {
-              projection.name is Some(name) && same_name(name, path[0])
+              projection_alias(projection) is Some(name) &&
+              same_name(name, path[0])
             })
             if matches.is_empty() {
               return input_resolve(path)
@@ -2730,7 +2743,7 @@ fn compile_steps(
               return None
             }
             for (name, slot) in aliases {
-              if name == matches[0].name.unwrap().value {
+              if name == projection_alias(matches[0]).unwrap().value {
                 return Some(slot)
               }
             }
@@ -2974,12 +2987,12 @@ fn compile_steps(
         let derives : Array[(String, @builder.Node)] = []
         let physical = active_fields.copy()
         for projection in projections {
-          if projection.name is Some(name) {
+          if projection_alias(projection) is Some(name) {
             physical.push(name.value)
           }
         }
         for projection in projections {
-          guard projection.name is Some(name) &&
+          guard projection_alias(projection) is Some(name) &&
             projection.expression is Some(expression) &&
             projection.aggregate is None &&
             projection.analytic is None else {
@@ -3043,7 +3056,11 @@ fn compile_steps(
                 )
               } else {
                 append_pipe_expression(
-                  construction, expression, input_scope.visible, input_scope.ranges, max_work,
+                  construction,
+                  expression,
+                  input_scope.visible,
+                  input_scope.ranges,
+                  max_work,
                 )
               },
             ),
@@ -3090,7 +3107,8 @@ fn compile_steps(
           ) -> String? {
             if path.length() == 1 {
               let matches = projections.filter(projection => {
-                projection.name is Some(name) && same_name(name, path[0])
+                projection_alias(projection) is Some(name) &&
+                same_name(name, path[0])
               })
               if !matches.is_empty() {
                 guard matches.length() == 1 &&
