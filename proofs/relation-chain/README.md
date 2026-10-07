@@ -281,3 +281,22 @@ each selected target; local JS acceptance does not claim Wasm/Native execution.
 No semantic operation matrix, product owner, test retirement or CI reuse policy
 is introduced. Model/Store authority, arbitrary provider refinement, machine
 faults, physical capacity and eventual stopping remain separate obligations.
+
+## Existing lifetime assertions detect intermediate-retirement faults
+
+The normal mutation command retains all nine original accounting/ownership
+recipes and adds three shared intermediate-retirement faults. It uses the
+existing eight-case lifetime fixture, without per-operation protocol copies:
+cleanup skipped, cleanup repeated and successor admission while cleanup is
+pending. Each new mutant must fail exactly its selected authored test at the
+expected cleanup-count or Waiting assertion. Compile errors, unwrap failures,
+zero discovery and process interruption are not accepted as detections.
+
+`node proofs/relation-chain/mutations.mjs retirement` is an explicit local
+subset and writes `mutations-retirement.json`; the unchanged default workflow
+command executes all twelve and writes `mutations.json`. Original source bytes
+and the broad snapshot must be restored. All eight lifetime cases run before
+and after the new faults; separate normal/mutant JS artifacts and source
+identities remain retained. This does not introduce another execution owner,
+weaken existing tests, retire a test or authorize cached evidence. Model scope,
+physical capacity and three-target/hosted acceptance remain separate.
