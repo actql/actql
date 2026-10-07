@@ -162,24 +162,31 @@ fn QueryParser::graph_edge(
     ignore(self.advance())
   }
   self.graph_symbol(45)
-  self.graph_symbol(91)
-  let variable = if self.has("WHERE") {
-    None
-  } else {
-    match self.peek().value {
-      Word(_) | QuotedName(_) => Some(self.name())
-      _ => None
+  let (variable, label, constraint) = if self.peek().value == Symbol(91) {
+    self.graph_symbol(91)
+    let variable = if self.has("WHERE") {
+      None
+    } else {
+      match self.peek().value {
+        Word(_) | QuotedName(_) => Some(self.name())
+        _ => None
+      }
     }
-  }
-  let label = if self.peek().value == Symbol(58) {
-    self.graph_symbol(58)
-    Some(self.name())
+    let label = if self.peek().value == Symbol(58) {
+      self.graph_symbol(58)
+      Some(self.name())
+    } else {
+      None
+    }
+    let constraint = self.graph_constraint()
+    self.graph_symbol(93)
+    self.graph_symbol(45)
+    (variable, label, constraint)
   } else {
-    None
+    // Abbreviated edges have no filler; direction and finite bounds use the
+    // same AST and common lowering as the corresponding full empty edge.
+    (None, None, None)
   }
-  let constraint = self.graph_constraint()
-  self.graph_symbol(93)
-  self.graph_symbol(45)
   let direction = if incoming {
     "in"
   } else if self.peek().value == Operator(">") {

@@ -102,6 +102,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/graph-property-predicate-source-input.mjs', 'graph-property-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-hop-node-predicate-source-input.mjs', 'graph-hop-node-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-any-direction-source-input.mjs', 'graph-any-direction-source-input.mjs'],
+  ['scripts/fixtures/graph-abbreviated-edge-source-input.mjs', 'graph-abbreviated-edge-source-input.mjs'],
   ['scripts/fixtures/graph-edge-predicate-source-input.mjs', 'graph-edge-predicate-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-source-input.mjs', 'graph-traverse-source-input.mjs'],
   ['scripts/fixtures/graph-traverse-path-source-input.mjs', 'graph-traverse-path-source-input.mjs'],
@@ -199,6 +200,9 @@ if (process.argv.includes('--graph-source-only')) {
 }
 if (process.argv.includes('--graph-any-direction-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_ANY_DIRECTION_ONLY = '1';
+}
+if (process.argv.includes('--graph-abbreviated-only')) {
+  runtimeEnvironment.ACTQL_TEST_GRAPH_ABBREVIATED_ONLY = '1';
 }
 if (process.argv.includes('--graph-property-predicate-only')) {
   runtimeEnvironment.ACTQL_TEST_GRAPH_PROPERTY_PREDICATE_ONLY = '1';
@@ -476,6 +480,7 @@ const narrowPublicQuery = process.argv.some(flag => ['--unnest-source-only', '--
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--graph-any-direction-only',
+  '--graph-abbreviated-only',
   '--group-property-only',
   '--quoted-identifiers-only', '--order-property-only', '--order-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only',
   '--alias-scope-only', '--scoped-order-only', '--infer-refusal-only', '--two-source-only',
@@ -543,6 +548,7 @@ if (!process.argv.some(flag => ['--select-all-only', '--typed-json-literal-only'
   '--graph-projection-property-only',
   '--graph-property-predicate-only',
   '--graph-any-direction-only',
+  '--graph-abbreviated-only',
   '--group-property-only',
   '--order-property-only', '--order-ordinal-only', '--join-order-only', '--group-scope-only', '--group-select-scope-only', '--having-projection-only', '--implicit-property-only', '--computed-object-property-only', '--group-star-only', '--group-ordinal-only', '--distinct-order-only', '--query-composition-only', '--pipe-result-only',
   '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
@@ -566,6 +572,7 @@ if (process.argv.includes('--select-all-only') || process.argv.includes('--typed
     process.argv.includes('--graph-projection-property-only') ||
     process.argv.includes('--graph-property-predicate-only') ||
     process.argv.includes('--graph-any-direction-only') ||
+    process.argv.includes('--graph-abbreviated-only') ||
     process.argv.includes('--group-property-only') ||
     process.argv.includes('--distinct-order-only') ||
     process.argv.includes('--implicit-property-only') ||
