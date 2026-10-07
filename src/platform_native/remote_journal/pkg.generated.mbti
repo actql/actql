@@ -88,6 +88,7 @@ pub fn Journal::request_cancellation(Self, @remote_site_protocol.DispatchRequest
 pub fn Journal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
 pub fn Journal::require_completed_cleanup(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
 pub fn Journal::reserve_output_report(Self, @remote_site_protocol.RemotePollOutput) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::reserved_output(Self, @remote_site_protocol.DispatchRequest, String) -> Result[@remote_site_protocol.RemotePollOutput?, NativeRemoteJournalIssue]
 pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
 pub fn Journal::retain_dispatch_envelope(Self, @remote_site_protocol.DispatchRequest, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]

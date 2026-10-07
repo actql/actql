@@ -43,3 +43,34 @@ export const distinctOrderRefusals = [
   'FROM records AS original |> SELECT DISTINCT -amount AS amount |> ORDER BY original.amount',
 ].map((text, index) => ({name: 'distinct-order-unselected-' + index,
   format: 'aql-text', text}));
+
+// The shared Source is read once; JOIN duplicates are removed using only the
+// public amount before an ORDER helper negates its evaluated output value.
+const joinedProgram = structuredClone(program);
+joinedProgram.id = 'fixture.join_distinct_output_order';
+joinedProgram.stages[0].steps[0].filter = {literal: true};
+joinedProgram.stages[1].steps.unshift(
+  {from: 'records', join: {with: 'records', kind: 'inner',
+    on: [{left: 'id', right: 'id'}], max_output_rows: 20,
+    select: {amount: 'left.amount', id: 'left.id'}}},
+  {filter: {gt: [{field: 'id'}, {literal: 0}]}},
+);
+delete joinedProgram.stages[1].steps[2].from;
+const joinedSql = 'SELECT DISTINCT -l.amount AS amount FROM records AS l '
+  + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 '
+  + 'WHERE l.id > 0 ORDER BY -amount';
+distinctOrderSuccesses.push(
+  success('join-json-control', 'json', JSON.stringify(joinedProgram), limitedRows),
+  success('join-sql-limited', 'sql', joinedSql + ' LIMIT 2 OFFSET 1', limitedRows),
+  success('join-pipe-limited', 'aql-text', 'FROM records AS l '
+    + '|> JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 '
+    + '|> WHERE l.id > 0 |> SELECT DISTINCT -l.amount AS amount '
+    + '|> ORDER BY -amount |> LIMIT 2 OFFSET 1', limitedRows),
+  success('join-sql-null-duplicates', 'sql', joinedSql, fullRows),
+  success('join-sql-empty', 'sql', joinedSql, [], []),
+);
+for (const [index, order] of ['l.amount', 'l.id + 1', 'r.amount + 1'].entries()) {
+  distinctOrderRefusals.push({name: 'distinct-order-join-unselected-' + index,
+    format: 'sql', text: 'SELECT DISTINCT -l.amount AS amount FROM records AS l '
+      + 'JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 ORDER BY ' + order});
+}

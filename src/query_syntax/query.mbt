@@ -1244,12 +1244,23 @@ fn QueryParser::aggregate(self : QueryParser) -> AggregateCall raise QueryAbort 
     Some(self.expression())
   }
   let delimiter = if function_name == "STRING_AGG" {
-    if self.advance().value != Symbol(44) {
-      raise QueryAbort("STRING_AGG requires a delimiter", token.start)
-    }
-    match self.advance().value {
-      Text(value) => Some(value)
-      _ => raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+    if self.peek().value == Symbol(44) {
+      ignore(self.advance())
+      guard self.peek().value is Text(_) else {
+        raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+      }
+      // Literal chunks use the ordinary expression parser's decoding,
+      // separation, origins and budgets. Computed delimiters remain outside
+      // this profile; the common aggregate still receives one String value.
+      let expression = self.expression()
+      match
+        expression_node(expression, expression_root(expression)).unwrap().kind {
+        StringLiteral(value) => Some(value)
+        _ =>
+          raise QueryAbort("STRING_AGG delimiter must be literal", token.start)
+      }
+    } else {
+      Some(",")
     }
   } else {
     None

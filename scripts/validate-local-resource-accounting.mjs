@@ -1817,7 +1817,9 @@ export function validateResourceAccounting({
         'derive_object_name_limits', 'derive_object_name_stop',
         'derive_raw_text_child_limits', 'derive_raw_text_child_stop',
         'derive_indexed_snapshot_limits', 'derive_row_name_limits',
-        'derive_row_name_stop']) {
+        'derive_row_name_stop', 'derive_metadata_lookup',
+        'derive_metadata_prepare_stop', 'derive_metadata_projection_stop',
+        'derive_metadata_quantum']) {
         if (!boundaryRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
       }
       if (!environmentRoles.has('derive_property_name_public')) {

@@ -37,6 +37,13 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     state.slot_roots.length() + state.output_row.length() +
     state.checked_row.length() + state.capture_row.length()
   let unmodeled = state.bindings.length() + state.dedupe_orders.length() +
+    // These new holdings are outside the restricted short-name DISTINCT
+    // model. Count their presence instead of silently extending its scope.
+    state.row_sources.length() +
+    (if state.stepped_metadata { 1 } else { 0 }) +
+    state.metadata_projection.map(_ => 1).unwrap_or(0) +
+    state.metadata_lookup.map(_ => 1).unwrap_or(0) +
+    state.name_charge.map(_ => 1).unwrap_or(0) +
     state.watermark_times.length() + state.lag_values.length() +
     state.json_path.map(a => a.length()).unwrap_or(0) +
     state.unique_keys.map(a => a.length()).unwrap_or(0)
@@ -72,14 +79,19 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"outputRow\":" + state.output_row.capacity().to_string() +
     ",\"checkedRow\":" + state.checked_row.capacity().to_string() +
     ",\"captureRow\":" + state.capture_row.capacity().to_string() +
+    ",\"snapshot\":" + state.snapshot.capacity().to_string() +
+    ",\"rowSources\":" + state.row_sources.capacity().to_string() +
+    "},\"metadataPreparation\":{\"stepped\":" + state.stepped_metadata.to_string() +
+    ",\"lookup\":" + (state.metadata_lookup is Some(_)).to_string() +
+    ",\"nameCharge\":" + (state.name_charge is Some(_)).to_string() +
+    ",\"snapshotEntries\":" + state.snapshot.length().to_string() +
+    ",\"sourceEntries\":" + state.row_sources.length().to_string() +
     "},\"mapCapacity\":{\"inputOrdinals\":" + state.input_ordinals.capacity().to_string() +
     ",\"bindingOrdinals\":" + state.binding_ordinals.capacity().to_string() +
     ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.capacity()).unwrap_or(0).to_string() +
-    ",\"snapshot\":" + state.snapshot.capacity().to_string() +
     "},\"mapEntries\":{\"inputOrdinals\":" + state.input_ordinals.length().to_string() +
     ",\"bindingOrdinals\":" + state.binding_ordinals.length().to_string() +
     ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.length()).unwrap_or(0).to_string() +
-    ",\"snapshot\":" + state.snapshot.length().to_string() +
     "},\"mapAliases\":{\"inputBinding\":" + physical_equal(state.input_ordinals, state.binding_ordinals).to_string() +
     ",\"inputProjection\":" + state.projection_ordinals.map(m => physical_equal(state.input_ordinals, m)).unwrap_or(false).to_string() +
     ",\"bindingProjection\":" + state.projection_ordinals.map(m => physical_equal(state.binding_ordinals, m)).unwrap_or(false).to_string() + "}" + capacity_native_map_fields(state) + "}")

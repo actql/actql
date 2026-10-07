@@ -19,6 +19,7 @@ fn retained_consumer_holder_case(
   destination_bytes : Int64,
   current_query : @remote.RemotePollRetainedCurrent,
   cancel_before_start? : Bool = false,
+  output_unavailable? : Bool = false,
 ) -> Unit raise {
   let environment = @host.admit_client_check_environment(
     resident_effect_source_environment,
@@ -113,6 +114,19 @@ fn retained_consumer_holder_case(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
   )
+  let configuration = {
+    ..configuration,
+    source: {
+      ..configuration.source,
+      retained_output_root: Some(
+        if output_unavailable {
+          root_path + "/missing-output-root"
+        } else {
+          root_path
+        },
+      ),
+    },
+  }
   let (bundles, active, journal) = retained_runtime_owners(
     sqlite, site, root_path, name,
   )
@@ -189,6 +203,26 @@ fn retained_consumer_holder_case(
     assert_true(bundles.close().unwrap())
     return
   }
+  if output_unavailable {
+    assert_true(run() is Err(_))
+    assert_eq(entries.val, 1)
+    // Missing physical output is not permission to enter Compute again.
+    assert_true(run() is Err(_))
+    assert_eq(entries.val, 1)
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(owner.close())
+    assert_true(owner.close())
+    assert_eq(
+      destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
+      destination_bytes,
+    )
+    assert_true(journal.close())
+    assert_true(bundles.close().unwrap())
+    return
+  }
   let executed = run().unwrap()
   assert_true(executed.result_definition_cid is Some(_))
   assert_eq(entries.val, 1)
@@ -215,6 +249,173 @@ fn retained_consumer_holder_case(
     executed.completion.evidence_cid,
   )
   assert_eq(entries.val, 1)
+  // Saved-report preparation uses this real completed consumer. Missing
+  // Output custody is a refusal, never permission to enter Compute again.
+  let delegated : @resident_protocol.ResidentSiteDelegation = {
+    coordinator_authority: @remote.dispatch_request_journal_key(dispatch)[0],
+    site_key: scope[0],
+    runtime_bundle_cid: scope[2],
+    connector_registration: scope[3],
+    connector_revision: scope[4],
+    strategy_revision: scope[5],
+    grant_cid: scope[6],
+    evidence_issuer_capability_cid: scope[7],
+    budget_cids: [@remote.dispatch_request_budget_cid(dispatch)],
+  }
+  let attempt = @remote.dispatch_request_attempt_identity(dispatch).unwrap()
+  let missing_intent = "sha256:" + "e".repeat(64)
+  let saved_revision = @remote.dispatch_record_revision(
+    journal.require(dispatch).unwrap(),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Runtime(@runtime.CompletedRestorationPending)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => false,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      "another-attempt",
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.EnvelopeMissing),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      {
+        ..admission,
+        source: Some(("connector://other/source#v", "sha256:" + "0".repeat(64))),
+      },
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.ForeignSource)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      { ..delegated, coordinator_authority: "foreign-coordinator", },
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2100-01-01T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  let foreign_site = @site.create_site(
+    scope[0],
+    2,
+    scope[2],
+    4,
+    4,
+    1048576L,
+    1048576L,
+  ).unwrap()
+  assert_true(
+    @resident.prepare_resident_saved_output(
+      journal,
+      foreign_site,
+      admission,
+      delegated,
+      attempt,
+      missing_intent,
+      () => "2026-10-05T00:00:00.000Z",
+      () => true,
+    )
+    is Err(@resident.Refused(@resident_protocol.NotCurrent)),
+  )
+  assert_eq(
+    @remote.dispatch_record_revision(journal.require(dispatch).unwrap()),
+    saved_revision,
+  )
+  assert_eq(entries.val, 1)
+  assert_true(journal.pending_output_intents().unwrap().is_empty())
+  // Completion must name the original file custody before it is available for
+  // Output. A process-local completion alone cannot survive holder loss.
+  let custody = @dispatch_journal.recovered_site_dispatch_file_custody(
+    journal.observation(dispatch).unwrap(),
+  ).unwrap()
+  assert_true(
+    @dispatch_journal.native_output_file_custody_matches_request(
+      custody, dispatch,
+    ),
+  )
+  let occurrence = @dispatch_journal.native_output_file_custody_occurrence(
+    custody,
+  )
+  let generation = @dispatch_journal.native_output_file_custody_generation(
+    custody,
+  )
+  let file_root = @filesystem.open_root(root_path).unwrap()
+  assert_true(file_root.verify_generation("output-" + occurrence, generation))
+  let read_back = @dispatch_journal.open_journal(
+    sqlite,
+    root_path + "/" + name + ".runtime/execution.sqlite3",
+    1048576L,
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
+  ).unwrap()
+  let durable_custody = @dispatch_journal.recovered_site_dispatch_file_custody(
+    read_back.observation(dispatch).unwrap(),
+  ).unwrap()
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_occurrence(durable_custody),
+    occurrence,
+  )
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_generation(durable_custody),
+    generation,
+  )
+  assert_eq(
+    @dispatch_journal.native_output_file_custody_content_cid(durable_custody),
+    @dispatch_journal.native_output_file_custody_content_cid(custody),
+  )
+  assert_true(read_back.close())
   let subject = @dispatch_journal.recovered_site_dispatch_subject(
     journal.observation(dispatch).unwrap(),
   ).unwrap()
@@ -233,6 +434,7 @@ fn retained_consumer_holder_case(
     .open_output_reader(dispatch, fields[1], 128)
     .unwrap()
   assert_false(owner.close())
+  assert_true(file_root.verify_generation("output-" + occurrence, generation))
   assert_eq(
     destination_journal.destination_capacity_usage().unwrap().reserved_bytes,
     destination_bytes,
@@ -255,6 +457,8 @@ fn retained_consumer_holder_case(
   assert_true(reader.finish().unwrap())
   assert_true(owner.close())
   assert_true(owner.close())
+  let file_root = @filesystem.open_root(root_path).unwrap()
+  assert_false(file_root.verify_generation("output-" + occurrence, generation))
   assert_true(run() is Err(_))
   assert_eq(entries.val, 1)
   let (_, _, cleanup, _, _) = @remote.dispatch_record_state(

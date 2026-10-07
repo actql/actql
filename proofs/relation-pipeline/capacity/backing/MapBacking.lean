@@ -43,8 +43,8 @@ theorem finite_trace (maximum : Nat) (s : State) (bound : maximum ≤ 6)
   | update s prior ih => exact ih
   | clear s prior ih => exact ⟨ih.1, Nat.zero_le _⟩
 
--- Four independent current tables; construction before replacing the snapshot
--- can keep one additional old/new pair live. No GC/reclamation claim follows.
-theorem replacement_overlap : 4 * empty.slots + empty.slots = 40 := rfl
+-- Three independent ordinal tables. Snapshot is an Array, outside this model.
+-- No GC/reclamation or lifetime-overlap claim follows.
+theorem three_tables : 3 * empty.slots = 24 := rfl
 
 end MapBacking
