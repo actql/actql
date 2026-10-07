@@ -1,6 +1,7 @@
 export {getCheckReasonCatalogInfo, getCheckReasonCatalogEntry,
   type CheckReasonCatalogInfo, type CheckReasonCatalogEntry, type KnownCheckReasonCode} from './check-reason-catalog.generated.js';
-import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireClientProfile,
+import type {ClientSourceFormat, WireCancellation, WireCancellationRef,
+  WireCancellationLookup, WireCheckpointSummary, WireClientProfile,
   WireConnection,
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
@@ -10,6 +11,8 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
+export type CancellationReference = WireCancellationRef;
+export type CancellationLookup = WireCancellationLookup;
 /** actql-check-outcome/0.1. */
 export type CheckOutcome = WireCheckOutcome;
 type CheckReportScope = Extract<CheckOutcome, {outcome: 'completed'}>['report']['scope'];
@@ -213,11 +216,13 @@ export type RequestCancellationExplanation = Readonly<{
 export declare function explainRequestCancellation(result: unknown, options?: OperationExplanationOptions): RequestCancellationExplanation | undefined;
 export type CancellationExplanation = Readonly<{
   summary: string;
-  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
 }> & (Readonly<{
   observation: 'accepted' | 'already_requested' | 'already_terminal'; revision: number;
-}> | Readonly<{observation: 'outcome_unknown'}>);
-/** Read-only advice for this exact Execution.cancel result; no cancellation-operation identity or stop/release proof. */
+  next: Readonly<{operation: 'status'; ref: Readonly<RunReference>}>;
+}> | Readonly<{observation: 'outcome_unknown';
+  next: Readonly<{operation: 'lookupCancellation'; cancelRef: Readonly<CancellationReference>}>;
+}>);
+/** Read-only advice; an operation reference does not certify stop or release. */
 export declare function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined;
 /** Omitted for unavailable/stale input or a pointer without a submitted JSON node. No edits are applied. */
 export declare function resolveCheckLocation(outcome: CheckOutcome,
@@ -339,6 +344,8 @@ export declare class ClientError extends Error {
   readonly hint?: string;
   readonly requestId?: string;
   readonly attemptId?: string;
+  /** Original immutable cancellation target on uncertainty or refusal. */
+  readonly cancelRef?: Readonly<CancellationReference>;
   /** Complete rows returned by the failed call; aggregate calls return none. */
   readonly rowsYielded?: number;
   readonly cleanupError?: unknown;
@@ -400,7 +407,12 @@ export interface Execution {
   readonly profile: ConfirmedProfile;
   status(options?: {signal?: AbortSignal}): Promise<RunState>;
   wait(options?: {until?: string; signal?: AbortSignal}): Promise<RunState>;
-  cancel(options?: {signal?: AbortSignal}): Promise<WireCancellation>;
+  /** A new operation observes the current control revision when omitted.
+   * A lost response retains cancelRef; lookup never resends the cancellation. */
+  cancel(options?: {signal?: AbortSignal; cancelId?: string;
+    expectedRevision?: number}): Promise<WireCancellation>;
+  lookupCancellation(ref: CancellationReference,
+    options?: {signal?: AbortSignal}): Promise<CancellationLookup>;
   reconcile(options?: {signal?: AbortSignal}): Promise<RunState>;
   result(name: string): Result;
 }

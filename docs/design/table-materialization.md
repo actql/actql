@@ -280,6 +280,39 @@ remains separate. The installed Source caller must check current read authority
 before and after I/O and admit decoded rows through the common presence-aware
 Relation owner; this physical primitive alone is not public Source acceptance.
 
+The installed Table row adapter restores SourceViews from the exact saved
+logical schema and an explicit Table selector, without Catalog I/O during
+installation or Check. Selector identity preserves namespace/name data bytes;
+configuration text normalization cannot alias different physical Tables. The
+existing installed row Source owner checks current authority before acquisition
+and again after metadata and data I/O, admits the entire decoded input through
+its presence-aware row contract, and owns page/capture accounting and cleanup.
+A read freezes one generation before subsequent data access. Its close releases
+only temporary acquisition custody, never Catalog-owned files. The optional Host
+installation loader supplies its trusted local Site/read-approval boundary;
+this adapter does not issue authority or implement another scheduler.
+
+The closed `actql-installed-table-source/0.1` and
+`actql-installed-table-effect/0.1` profiles enter the existing generic Host
+installation tables. Host configuration, never Program input, selects the
+absolute Python path, bounded physical Catalog configuration, logical
+connection, account configuration, finite targets and runtime limits. Loading
+performs no physical Catalog I/O. Effect installation independently admits its
+Check Environment and requires the exact installed Mapping CID and target with
+mandatory approval. The existing capture, approval, Effect Ledger and receipt
+owners remain the runtime path. Source installation derives its schema from
+the saved contract and only admits opaque current read decisions or a
+Checkpoint decision for its exact physical target, field subset and principal.
+
+The adapter package carries only the reviewed Python worker modules and pinned
+requirements. It carries no virtualenv, Catalog, credential, fixture data or
+automatic dependency installer. Python libraries remain an explicit dependency
+only of the Host opting into Table I/O. Installing either role is distinct from
+completing the packed public create/replace and different-Run read path. The
+existing managed identity policy still refuses direct acquisition Result
+publication; the initial read path uses acquisition followed by a Compute task
+and ordinary Named Result publication rather than weakening that policy.
+
 ## Implementation boundary
 
 The narrow machine contract and bounded common admission below specify the
