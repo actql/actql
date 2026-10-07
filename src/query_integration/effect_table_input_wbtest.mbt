@@ -1,9 +1,39 @@
 ///|
-fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
+fn verify_captured_private_table_input(
+  empty : Bool,
+  repeated? : Bool = false,
+) -> Unit raise {
   let (document, environment, limits) = local_effect_export_fixture(
     table=true,
     empty~,
   )
+  let document = if repeated {
+    let ordinary = "\"copy\":{\"store\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"result\":\"other\"}}}"
+    let ordinary = if document.contains(ordinary) {
+      ordinary
+    } else {
+      ordinary.replace(old="\"store\":", new="\"create\":")
+    }
+    document.replace(
+      old=ordinary,
+      new=ordinary +
+        ",\"again\":{\"store\":{\"target\":\"connector://crm/account\",\"mapping\":\"mapping:crm.account.v1\",\"from\":{\"table_input\":\"out\"}}}",
+    )
+  } else {
+    document
+  }
+  if repeated {
+    assert_true(document.contains("\"again\":"))
+  }
+  let limits = if repeated {
+    {
+      ..limits,
+      max_members: 3,
+      effects: { ..limits.effects, max_members: 3, },
+    }
+  } else {
+    limits
+  }
   let prepared = match
     @publication_host.prepare_client_effect_computation(
       document,
@@ -43,12 +73,20 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
   )
   // Two ordinary Manifest/Effect Result views have been pinned when the
   // Table pin reaches the same per-task ceiling. Failure rolls both back.
+  let pins = if repeated { 4 } else { 3 }
   assert_true(
-    @strategy.pin_captured_effect_sources(effect_run, 2)
+    @strategy.pin_captured_effect_sources(effect_run, pins - 1)
     is Err(@strategy.Physical(@resources.HoldingLimit)),
   )
-  let inputs = @strategy.pin_captured_effect_sources(effect_run, 3).unwrap()
-  assert_eq(@strategy.captured_effect_inputs_count(inputs), 2)
+  let inputs = @strategy.pin_captured_effect_sources(effect_run, pins).unwrap()
+  assert_eq(
+    @strategy.captured_effect_inputs_count(inputs),
+    if repeated {
+      3
+    } else {
+      2
+    },
+  )
   assert_true(@strategy.captured_effect_input_at(inputs, 0) is None)
   assert_true(@strategy.captured_effect_table_input_at(inputs, 1) is None)
   let table = @strategy.captured_effect_table_input_at(inputs, 0).unwrap()
@@ -57,10 +95,25 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
   assert_eq(@strategy.captured_effect_table_input_task(table), 0)
   let ordinary = @strategy.captured_effect_input_at(inputs, 1).unwrap()
   assert_eq(@strategy.captured_effect_local_result_count(inputs), 2)
+  let borrow = @strategy.captured_effect_table_input_borrow(table)
+  let second_borrow = @strategy.borrow_captured_table_input_output(
+    run,
+    @strategy.captured_effect_table_input_task(table),
+    @strategy.captured_effect_table_input_occurrence(table),
+    pins + 1,
+  ).unwrap()
+  assert_true(
+    @strategy.captured_table_input_borrows_share_view(borrow, second_borrow),
+  )
+  assert_true(@strategy.release_captured_table_input_borrow(second_borrow))
+  assert_false(@strategy.release_captured_table_input_borrow(second_borrow))
+  assert_false(
+    @strategy.captured_table_input_borrows_share_view(borrow, second_borrow),
+  )
+  assert_true(@strategy.captured_table_input_borrow_available(borrow))
   assert_true(@strategy.close_captured_effect_source_port(inputs, 0))
   assert_true(@strategy.captured_effect_input_at(inputs, 1) is Some(_))
   assert_true(@strategy.captured_effect_table_input_at(inputs, 0) is Some(_))
-  let borrow = @strategy.captured_effect_table_input_borrow(table)
   assert_true(
     @strategy.captured_table_input_borrow_matches_managed(borrow, completed),
   )
@@ -277,8 +330,8 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
     )
     is Err(@publication_host.ForeignInput),
   )
-  // A private Artifact cannot satisfy the ordinary member or full Result
-  // Manifest, even when names, schemas and content are equal.
+  // A private Artifact cannot satisfy an ordinary member or the Result
+  // namespace of the Manifest, even when names and content are equal.
   assert_true(
     @publication_host.issue_source_free_client_effect_local_identity(
       prepared, inputs, 1, artifact, 100, 65536, 4096, 32,
@@ -294,7 +347,7 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
       4096,
       32,
     )
-    is Err(@publication_host.ForeignArtifact),
+    is Err(@publication_host.DuplicateTableInput),
   )
   let (ordinary_preparation, ordinary_receipt) = local_effect_export_receipt(
     output,
@@ -317,6 +370,177 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
   let ordinary_identity = @publication_host.issue_source_free_client_effect_local_identity(
     prepared, inputs, 1, ordinary_artifact, 100, 65536, 4096, 32,
   ).unwrap()
+  if repeated {
+    let second = @strategy.captured_effect_table_input_at(inputs, 2).unwrap()
+    assert_true(
+      @strategy.captured_table_input_borrows_share_view(
+        borrow,
+        @strategy.captured_effect_table_input_borrow(second),
+      ),
+    )
+    let second_definition = @publication_host.issue_captured_client_effect_local_table_definition(
+      prepared, inputs, 2, 4096, 32, 8,
+    ).unwrap()
+    assert_eq(
+      @publication_host.client_effect_local_table_definition_cid(
+        second_definition,
+      ),
+      @publication_host.client_effect_local_table_definition_cid(definition),
+    )
+    // One semantic Artifact serves the same checked view, not a copied payload.
+    // The second member still has a separate pin and a distinct Effect identity.
+    let second_identity = @publication_host.issue_source_free_client_effect_local_identity(
+      prepared, inputs, 2, artifact, 100, 65536, 4096, 32,
+    ).unwrap()
+    assert_true(
+      @publication_host.client_effect_local_identity_matches(
+        second_identity, prepared, 2, artifact,
+      ),
+    )
+  }
+  let mut out_index = -1
+  for index in 0..<@strategy.captured_effect_local_result_count(inputs) {
+    let result = @strategy.captured_effect_local_result_at(inputs, index).unwrap()
+    if @execution.managed_result_occurrence_name(
+        @strategy.captured_any_result_borrow_occurrence(
+          @strategy.captured_effect_local_result_borrow(result),
+        ),
+      ) ==
+      "out" {
+      out_index = index
+    }
+  }
+  assert_true(out_index >= 0)
+  let out_result = @strategy.captured_effect_local_result_at(inputs, out_index).unwrap()
+  let (out_preparation, out_receipt) = local_effect_export_receipt(
+    output,
+    @strategy.captured_any_result_borrow_occurrence(
+      @strategy.captured_effect_local_result_borrow(out_result),
+    ),
+  )
+  let out_export = @strategy.bind_captured_effect_local_result_managed_export(
+    inputs, out_index, completed, bridge, out_preparation,
+  ).unwrap()
+  let out_definition = @publication_host.issue_client_effect_local_result_definition(
+    prepared, 0, "out", 4096, 32, 8,
+  ).unwrap()
+  let out_artifact = @publication_host.issue_source_free_exported_client_effect_local_result_artifact(
+    prepared, inputs, out_export, out_definition, invocation, out_receipt, retention,
+    admission, run_definition, run_invocation, observation, 65536, 4096, 32,
+  ).unwrap()
+  let all_artifacts = [out_artifact, ordinary_artifact, artifact]
+  let manifest = @publication_host.issue_client_effect_local_manifest(
+    prepared, invocation, all_artifacts, 65536, 4096, 32,
+  ).unwrap()
+  let result_artifact_cid = @publication_host.client_effect_local_result_artifact_cid
+  let invocation_cid = @publication_host.client_effect_local_invocation_cid(
+    invocation,
+  )
+  // Independent preimage uses both namespaces, including the same authored
+  // name. Neither inventory is inferred from the other or from sample rows.
+  let prefix = "{\"local_invocation_cid\":\"" +
+    invocation_cid +
+    "\",\"results\":{\"other\":\"" +
+    result_artifact_cid(ordinary_artifact) +
+    "\",\"out\":\"" +
+    result_artifact_cid(out_artifact) +
+    "\"},"
+  let suffix = "\"table_inputs\":{\"out\":\"" +
+    result_artifact_cid(artifact) +
+    "\"},\"unit_definition_cid\":\"" +
+    unit_cid +
+    "\",\"version\":\"actql-local-result-manifest/0.1\"}"
+  let manifest_cid = native_publication_cid(prefix + suffix)
+  assert_eq(
+    @publication_host.client_effect_local_manifest_cid(manifest),
+    manifest_cid,
+  )
+  assert_eq(
+    @publication_host.client_effect_local_manifest_json(manifest),
+    prefix + "\"self_cid\":\"" + manifest_cid + "\"," + suffix,
+  )
+  assert_eq(
+    @publication_host.client_effect_local_manifest_json(
+      @publication_host.issue_client_effect_local_manifest(
+        prepared,
+        invocation,
+        [artifact, ordinary_artifact, out_artifact],
+        65536,
+        4096,
+        32,
+      ).unwrap(),
+    ),
+    @publication_host.client_effect_local_manifest_json(manifest),
+  )
+  assert_true(
+    @publication_host.client_effect_local_manifest_matches(
+      manifest, prepared, invocation, all_artifacts,
+    ),
+  )
+  assert_false(
+    @publication_host.client_effect_local_manifest_matches(
+      manifest,
+      prepared,
+      invocation,
+      [out_artifact, ordinary_artifact],
+    ),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      invocation,
+      [out_artifact, ordinary_artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.IncompleteTableInputs),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      invocation,
+      [artifact, ordinary_artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.IncompleteResults),
+  )
+  assert_true(
+    @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      invocation,
+      [out_artifact, ordinary_artifact, artifact, artifact],
+      65536,
+      4096,
+      32,
+    )
+    is Err(@publication_host.DuplicateTableInput),
+  )
+  if repeated {
+    // Close each occurrence without replaying compute, dropping the common
+    // producer, or treating inventory deduplication as physical release.
+    @execution.cancel_completed_relation_export_receipt(ordinary_receipt)
+    @execution.cancel_completed_result_relation_export(ordinary_preparation)
+    |> ignore
+    @execution.cancel_completed_relation_export_receipt(out_receipt)
+    @execution.cancel_completed_result_relation_export(out_preparation)
+    |> ignore
+    assert_true(@strategy.release_captured_effect_inputs(inputs))
+    assert_false(@strategy.release_captured_effect_inputs(inputs))
+    assert_false(@strategy.captured_table_input_borrow_available(borrow))
+    @execution.cancel_completed_relation_export_receipt(receipt)
+    @execution.close_managed_publication_bridge(bridge)
+    available.val = false
+    (operations.cleanup_refresh)() |> ignore
+    @strategy.refresh_captured_retention(run)
+    let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_eq(usage.held_bytes, 0L)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_eq(usage.reserved_execution_bytes, 0L)
+    return
+  }
   let (preview_wire, preview, authoring_cid) = private_table_test_preview(
     prepared,
     admission,
@@ -457,6 +681,8 @@ fn verify_captured_private_table_input(empty : Bool) -> Unit raise {
     is Err(@publication_host.ForeignPreview),
   )
   @execution.cancel_completed_relation_export_receipt(ordinary_receipt)
+  @execution.cancel_completed_relation_export_receipt(out_receipt)
+  @execution.cancel_completed_result_relation_export(out_preparation) |> ignore
   @execution.cancel_completed_result_relation_export(ordinary_preparation)
   |> ignore
   assert_true(@strategy.release_captured_effect_inputs(inputs))
@@ -663,4 +889,9 @@ test "checked Effect capture distinguishes private Table input from its same-nam
 ///|
 test "checked Effect capture retains an empty typed private Table input" {
   verify_captured_private_table_input(true)
+}
+
+///|
+test "checked Effect capture inventories a repeated private Table input once but holds both occurrences" {
+  verify_captured_private_table_input(false, repeated=true)
 }

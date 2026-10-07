@@ -1,7 +1,7 @@
 ///|
 /// Issue a private Table projection through the same Relation Artifact owner.
-/// Its Definition has a separate namespace; it cannot enter a Result-only
-/// Manifest or Preview. Wire inventory/recovery admission remains separate.
+/// Its Definition and Manifest entry have a private namespace; neither can
+/// satisfy an ordinary Result source. Wire recovery admission remains separate.
 /// This issuer establishes content binding, never approval or write authority.
 pub fn issue_source_free_client_effect_local_table_artifact(
   owner : PreparedClientEffectComputation,

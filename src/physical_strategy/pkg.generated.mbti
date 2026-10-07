@@ -264,6 +264,8 @@ pub fn[T] captured_table_input_borrow_matches_managed(CapturedTableInputBorrow, 
 
 pub fn captured_table_input_borrow_occurrence(CapturedTableInputBorrow) -> @execution_relation.ManagedTableInputOccurrence
 
+pub fn captured_table_input_borrows_share_view(CapturedTableInputBorrow, CapturedTableInputBorrow) -> Bool
+
 pub fn captured_table_input_output_set_borrow_at(CapturedTableInputOutputSet, Int) -> CapturedTableInputBorrow?
 
 pub fn captured_task_activation_granted(CapturedDAG, Int) -> Bool

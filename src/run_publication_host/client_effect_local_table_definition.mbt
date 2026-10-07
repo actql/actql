@@ -124,9 +124,17 @@ fn client_effect_local_table_definition_matches(
 ) -> Bool {
   physical_equal(value.owner, owner) &&
   value.unit == @strategy.captured_effect_table_input_stage(input) &&
-  @execution.managed_table_input_occurrence_same(
-    value.occurrence,
-    @strategy.captured_effect_table_input_occurrence(input),
+  physical_equal(
+    @execution.managed_table_input_occurrence_owner(value.occurrence),
+    @execution.managed_table_input_occurrence_owner(
+      @strategy.captured_effect_table_input_occurrence(input),
+    ),
+  ) &&
+  physical_equal(
+    @execution.managed_table_input_occurrence_definition(value.occurrence),
+    @execution.managed_table_input_occurrence_definition(
+      @strategy.captured_effect_table_input_occurrence(input),
+    ),
   ) &&
   @checked.unit_definition_cid(
     @checked.effect_program_static_checked_computation(owner.candidate),

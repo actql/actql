@@ -462,7 +462,7 @@ fn client_effect_local_artifact_matches_member(
         is Some(input) else {
         return false
       }
-      physical_equal(
+      @strategy.captured_table_input_borrows_share_view(
         borrow,
         @strategy.captured_effect_table_input_borrow(input),
       )

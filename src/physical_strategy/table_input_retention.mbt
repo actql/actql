@@ -79,6 +79,44 @@ pub fn captured_table_input_borrow_available(
 }
 
 ///|
+/// Semantic inventory may name a private input once, but every consumer still
+/// owns its own pin. Equal content or names cannot substitute another task,
+/// checked declaration, Run or retained generation.
+pub fn captured_table_input_borrows_share_view(
+  first : CapturedTableInputBorrow,
+  second : CapturedTableInputBorrow,
+) -> Bool {
+  if !captured_table_input_borrow_available(first) ||
+    !captured_table_input_borrow_available(second) {
+    return false
+  }
+  let same_producer = match (first.kind, second.kind) {
+    (Cells(a), Cells(b)) =>
+      physical_equal(a.run, b.run) &&
+      a.task == b.task &&
+      physical_equal(a.output, b.output)
+    (Resident(a), Resident(b)) =>
+      physical_equal(a.run, b.run) &&
+      a.task == b.task &&
+      (match (a.reference, b.reference) {
+        (Managed(first), Managed(second)) => physical_equal(first, second)
+        (Carrier(first), Carrier(second)) => physical_equal(first, second)
+        _ => false
+      })
+    _ => false
+  }
+  same_producer &&
+  physical_equal(
+    @execution.managed_table_input_occurrence_owner(first.occurrence),
+    @execution.managed_table_input_occurrence_owner(second.occurrence),
+  ) &&
+  physical_equal(
+    @execution.managed_table_input_occurrence_definition(first.occurrence),
+    @execution.managed_table_input_occurrence_definition(second.occurrence),
+  )
+}
+
+///|
 pub fn[T] captured_table_input_borrow_matches_managed(
   value : CapturedTableInputBorrow,
   output : @execution.ManagedCompletedOutput[T],

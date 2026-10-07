@@ -3,13 +3,16 @@ pub(all) enum ClientEffectLocalManifestIssue {
   ForeignInvocation
   MissingUnit
   IncompleteResults
+  IncompleteTableInputs
   ForeignArtifact
   DuplicateResult
+  DuplicateTableInput
   Encoding
 } derive(Eq, Debug)
 
 ///|
-/// The complete semantic Result inventory of one checked local Unit. This
+/// The complete Result inventory and Effect-consumed private Table inputs of
+/// one checked local Unit. Private inputs have a separate namespace. This
 /// does not attest current physical availability or publication custody.
 struct ClientEffectLocalManifest {
   owner : PreparedClientEffectComputation
@@ -26,6 +29,8 @@ fn emit_client_effect_local_manifest(
   invocation_cid : String,
   names : Array[String],
   artifacts : Map[String, ClientEffectLocalResultArtifact],
+  table_names : Array[String],
+  table_artifacts : Map[String, ClientEffectLocalResultArtifact],
   self_cid : String?,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
@@ -45,6 +50,21 @@ fn emit_client_effect_local_manifest(
     @encode.key(writer, "self_cid")
     @encode.string_value(writer, cid)
   }
+  // Omitting the absent private inventory preserves ordinary-only preimages.
+  if !table_names.is_empty() {
+    @encode.key(writer, "table_inputs")
+    @encode.begin_object(writer)
+    for name in table_names {
+      @encode.key(writer, name)
+      @encode.string_value(
+        writer,
+        @publication.publication_contract_identity(
+          table_artifacts[name].artifact,
+        ),
+      )
+    }
+    @encode.end_object(writer)
+  }
   @encode.key(writer, "unit_definition_cid")
   @encode.string_value(writer, unit_definition_cid)
   @encode.key(writer, "version")
@@ -54,7 +74,9 @@ fn emit_client_effect_local_manifest(
 
 ///|
 /// Require every declared Result of the checked Unit. A Manifest of only the
-/// Effect-consumed subset would falsely claim a complete local projection.
+/// Effect-consumed Result subset would falsely claim a complete projection.
+/// Private inputs instead cover every distinct declaration consumed by an
+/// Effect in this Unit. Unused private declarations do not invent a capture.
 pub fn issue_client_effect_local_manifest(
   owner : PreparedClientEffectComputation,
   invocation : ClientEffectLocalInvocation,
@@ -77,32 +99,70 @@ pub fn issue_client_effect_local_manifest(
     return Err(MissingUnit)
   }
   let expected_count = @results.count(stage)
-  if expected_count == 0 || artifacts.length() != expected_count {
+  let table_members : Map[String, Int] = Map([])
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  for index in 0..<@syntax.effect_header_count(headers) {
+    let header = @syntax.effect_header_at(headers, index).unwrap()
+    if @syntax.effect_header_stage(header) == invocation.unit &&
+      @syntax.effect_header_source_table_input(header) is Some(name) &&
+      !table_members.contains(name) {
+      table_members[name] = index
+    }
+  }
+  if expected_count + table_members.length() == 0 {
     return Err(IncompleteResults)
   }
   let by_name : Map[String, ClientEffectLocalResultArtifact] = Map([])
+  let by_table : Map[String, ClientEffectLocalResultArtifact] = Map([])
   for artifact in artifacts {
-    guard artifact.source is ResultSource(_, definition) else {
-      return Err(ForeignArtifact)
-    }
-    let name = definition.result_name
-    if by_name.contains(name) {
-      return Err(DuplicateResult)
-    }
     if !@strategy.captured_effect_inputs_match_computation(
         artifact.inputs,
         owner.graph,
       ) ||
-      !physical_equal(artifact.invocation, invocation) ||
-      !client_effect_local_result_definition_matches(
-        definition,
-        owner,
-        invocation.unit,
-        name,
-      ) {
+      !physical_equal(artifact.invocation, invocation) {
       return Err(ForeignArtifact)
     }
-    by_name[name] = artifact
+    match artifact.source {
+      ResultSource(_, definition) => {
+        let name = definition.result_name
+        if by_name.contains(name) {
+          return Err(DuplicateResult)
+        }
+        if !client_effect_local_result_definition_matches(
+            definition,
+            owner,
+            invocation.unit,
+            name,
+          ) {
+          return Err(ForeignArtifact)
+        }
+        by_name[name] = artifact
+      }
+      TableSource(_, definition) => {
+        let name = definition.name
+        if by_table.contains(name) {
+          return Err(DuplicateTableInput)
+        }
+        guard table_members.get(name) is Some(index) &&
+          @strategy.captured_effect_table_input_at(artifact.inputs, index)
+          is Some(input) &&
+          client_effect_local_table_definition_matches(definition, owner, input) &&
+          client_effect_local_artifact_matches_member(
+            artifact,
+            artifact.inputs,
+            index,
+          ) else {
+          return Err(ForeignArtifact)
+        }
+        by_table[name] = artifact
+      }
+    }
+  }
+  if by_name.length() != expected_count {
+    return Err(IncompleteResults)
+  }
+  if by_table.length() != table_members.length() {
+    return Err(IncompleteTableInputs)
   }
   let names : Array[String] = []
   for index in 0..<expected_count {
@@ -114,6 +174,14 @@ pub fn issue_client_effect_local_manifest(
     names.push(name)
   }
   names.sort_by(@canonical_value.compare_utf16)
+  let table_names : Array[String] = []
+  for name, _ in table_members {
+    if !by_table.contains(name) {
+      return Err(IncompleteTableInputs)
+    }
+    table_names.push(name)
+  }
+  table_names.sort_by(@canonical_value.compare_utf16)
   let hash = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -123,6 +191,8 @@ pub fn issue_client_effect_local_manifest(
     invocation.cid,
     names,
     by_name,
+    table_names,
+    by_table,
     None,
   ) catch {
     _ => return Err(Encoding)
@@ -138,6 +208,8 @@ pub fn issue_client_effect_local_manifest(
     invocation.cid,
     names,
     by_name,
+    table_names,
+    by_table,
     Some(cid),
   ) catch {
     _ => return Err(Encoding)

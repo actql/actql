@@ -1214,8 +1214,10 @@ pub(all) enum ClientEffectLocalManifestIssue {
   ForeignInvocation
   MissingUnit
   IncompleteResults
+  IncompleteTableInputs
   ForeignArtifact
   DuplicateResult
+  DuplicateTableInput
   Encoding
 } derive(Eq, @debug.Debug)
 

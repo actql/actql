@@ -395,7 +395,20 @@ test('corrected schemas have independently fixed canonical identities', () => {
       run_state:
         'sha256:bee392c34643093d135c15a094c27b62745f5ef0282f7fe41692791676f59f5e',
       captured_run:
-        'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7',
+        'sha256:a9530fa01bf5d3f8a7a97142138c16ac85031d405a9c7aed3c26ad4f9f11ec4d',
     },
   );
+  // Independently recomputed from the fixed 58404afe source schema with only
+  // the authored private Manifest map added. Removing that exact extension
+  // must still reproduce the historical schema pin; unrelated changes fail.
+  const previous = structuredClone(registry.artifact_schemas.captured_run);
+  const manifest = previous.properties.effect_context.properties
+    .effect_source_local_inventory.additionalProperties.properties.manifest;
+  assert.deepEqual(manifest.properties.table_inputs, {
+    type: 'object', minProperties: 1,
+    additionalProperties: {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'},
+  });
+  delete manifest.properties.table_inputs;
+  assert.equal(machineCid(previous),
+    'sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7');
 });

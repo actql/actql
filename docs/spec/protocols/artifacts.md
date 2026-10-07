@@ -193,7 +193,7 @@ midstream resume or exactly-once delivery.
 That Run-bound Manifest remains an audit/delivery index; its shape and CID law
 are unchanged. A local semantic dependency MUST instead use the registered
 `actql-local-result-manifest/0.1` projection: `{version, unit_definition_cid,
-local_invocation_cid, results, self_cid}`, where results maps every declared
+local_invocation_cid, results, table_inputs?, self_cid}`, where results maps every declared
 Result name to its exact Result Artifact CID, sorted by name. No Run Definition,
 start/deadline, graph membership or approval is a member. Local Invocation is
 `actql-local-computation-semantics/0.1`, binding the local unit, used values,
@@ -216,6 +216,34 @@ checked Result contracts/evidence, never guessed defaults. The artifact and
 local Manifest each bind their complete canonical body. Projection context and
 the source Run-bound Manifest are retained and authenticated; unavailable
 metadata blocks projection.
+
+<!-- requirement-block: result-artifacts.local-table-input-definition result-artifacts.local-table-input-manifest result-artifacts.local-table-input-reference-kind -->
+A private Table input MUST use the distinct producer
+`actql-local-table-input-definition/0.1` with the closed body
+`{version, unit_definition_cid, table_input_name, self_cid}`. Its semantic
+preimage is the entire canonical body except `self_cid`; the checked Unit
+declares the exact source and projection under that private name. It does not
+become an ordinary Result, export or Result import. Its Relation schema retains
+presence separately from nullability; the all-Required publication requirement
+for ordinary Named Results is unchanged.
+
+The local Manifest MUST additionally map every distinct private input consumed
+by a checked Effect in its Unit to its exact Artifact CID in `table_inputs`.
+Unused private declarations do not invent capture responsibility. Both maps
+are sorted independently by name and remain separate even for equal names or
+values. `results` still covers every declared ordinary Result, not merely
+Effect-consumed Results. `table_inputs` is omitted when no private input is
+consumed and, when present, is nonempty; ordinary-only Manifest preimages are
+unchanged. Repeated consumption shares the semantic inventory entry, not the
+physical pin or per-occurrence holding responsibility.
+
+The stage registry's `local_table_input_artifact` role MUST resolve its
+`result_definition_cid` to `local_table_input_definition`, rather than
+`local_result_definition`. It reuses the same sealed semantic Artifact shape,
+local Invocation, ordering, policy and retention owners. The private producer
+role cannot be inferred from equal payload bytes or substituted for an ordinary
+Result role. Missing inventory or unavailable typed dependency bodies block
+recovery; a private source is never downgraded to a source-free Effect.
 
 The reference-role table in the stage registry is normative for these
 projections; reference_graph is generated from it. Every listed CID must resolve
@@ -986,15 +1014,17 @@ These exact schema/law references are owned here. Their identities do not includ
 ```text
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/receipt_view sha256:411418a07c7422158e47cd3ca5cd9befe12d50b0de056206eae0596a12e9df1e
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/model_slot_capture sha256:a9d707b52b274a066a3b30d196c2b2da4144db960b5eae9695ac86e1fd3f503a
-../../../spec/contracts/actql-stage-contracts.json#/schemas/local_manifest sha256:6cbac35670ed81677b720381efee43a8f1aeccff4fa331e0dde27e0f018d5098
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_manifest sha256:1c04239d415476440f1badf2f229e49b3d40e543fdf8e03e35b540d503277922
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_computation sha256:22055f9d843378b5a5d98a9b882a69bcc4229a448f97e1022685613e4340cbd3
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_definition sha256:a4e97bbb8865697510ec0d0eff6664081da9cc5b7c1546c2af107b8d743392f4
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_table_input_definition sha256:22699f824d1ed8137b7e62797bc636255823acdd803b944d61104354e4ba706b
+../../../spec/contracts/actql-stage-contracts.json#/schemas/local_table_input_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/result_import_observation sha256:3a622a55cb9af3939de08583caf298abd7d66b357bcde4a060140e39cccdde8d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_effect_outcome sha256:8a56e3e7d5139fef571da480831e0df45c95beb96c228e737efdb12a1ef0b98d
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/local_result_artifact sha256:16f69bbc38782a3ea42fafcfbbd992f9d1356a68c70dd1182cb102e269db04f1
 ../../../spec/contracts/actql-stage-contracts.json#/schemas/projection_attestation sha256:27c8c8a1215b705b6553f4db128f73c905b1c6a5f0c7d72c398e02541e7dc805
-../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:df7da88a5c55f8cce06b3b58b8d4f0e03fda97f070cf8ef7cb32c01c03ce9973
-../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:7087a971d04d5e0501f5c943907073cd48ca09e4eb008cde74effc3ecf6d30fc
+../../../spec/contracts/actql-stage-contracts.json#/reference_roles sha256:4e2d119f5db52ca112124cfab1e59a1579ce408d704c4fb1d04c2dd093390c2a
+../../../spec/contracts/actql-stage-contracts.json#/reference_graph sha256:f09e6cde8b7140db7534cd1a1730234f37b208b4ba17268b89a32eccfd9b56cb
 ```
 <!-- stage-contract-pins:end -->
 

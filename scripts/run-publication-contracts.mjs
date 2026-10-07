@@ -3,6 +3,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
 import {machineCid} from './actql-spec-family.mjs';
+import {checkLocalTableInputContract} from './local-table-input-contract.mjs';
 
 const registryPath = 'spec/contracts/actql-protocol-schemas.json';
 const cliPath = 'spec/contracts/actql-cli-run-response.schema.json';
@@ -19,8 +20,9 @@ const resultNames = {
 };
 
 const clone = value => structuredClone(value);
-const stageSchemas = JSON.parse(readFileSync(
-  'spec/contracts/actql-stage-contracts.json', 'utf8')).schemas;
+const stageRegistry = JSON.parse(readFileSync(
+  'spec/contracts/actql-stage-contracts.json', 'utf8'));
+const stageSchemas = stageRegistry.schemas;
 const publicationSchemas = JSON.parse(readFileSync(
   'spec/contracts/actql-run-publication.json', 'utf8')).schemas;
 
@@ -513,6 +515,7 @@ export function correctedContracts(registry, cli) {
 }
 
 export function checkContracts(registry, cli) {
+  checkLocalTableInputContract(stageRegistry);
   const expected = correctedContracts(registry, cli);
   assert.deepEqual(registry, expected.registry, 'Run publication schemas are stale');
   assert.deepEqual(cli, expected.cli, 'CLI Run state embedding is stale');
