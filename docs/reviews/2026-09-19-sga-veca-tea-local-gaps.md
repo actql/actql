@@ -7011,9 +7011,10 @@ Results have independently fixed content/order. Cancellation during context
 or row checking prevents publication with no contract writes or attempt
 creation; final cleanup has no additional Compute dispatch.
 
-This depends on unmerged #931 and retains that dependency until main adopts
-it. Metadata leaf validators and Effectful commit checks still have
-synchronous boundaries. This record does not establish full metadata
+The development prerequisite #931 has now merged; the next PR targets main
+and preserves the tested source provenance. Metadata leaf validators and
+Effectful commit checks still have synchronous boundaries. This record does
+not establish full metadata
 boundedness, all-target or packed/HTTPS acceptance, hosted CI success, or
 whole-Local completion. Earlier synchronous entries remain historical rather
 than current descriptions of the newly connected payload-validation path.

@@ -4,11 +4,14 @@
 
 This connects the existing context-hash and captured-row continuations to
 Effect-free publication validation. It is not whole publication or whole
-Local completion. The dependency is PR #931, source
+Local completion. The development prerequisite was PR #931, source
 `a3dca321a2d0865c2c434f6994fc482fe9843968`, on main
 `c54e157b5caa1ad981eb9393f64fd0815fb5a434`.
-Review the stacked change against that dependency; the final merge target is
-main after the dependency is merged, not the dependency branch.
+That prerequisite has now merged. Its source is an ancestor of fetched
+origin/main `c28c05d941f4a3dadaa98a287015fd46721e79f0`; the PR targets main
+without an unmerged parent dependency. The tests below remain evidence of
+this branch's fixed source, not independent verification of every newer
+main change.
 
 The verified implementation/test source is
 `5f963c44bf51753928942faf71239aca7697725b`. Later record-only changes do not
