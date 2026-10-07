@@ -50,6 +50,74 @@ fn settle_stopped_holder_custody(
           Err(_) => return false
         }
     }
+    if owner.recorded_source is Some(original) {
+      guard root_path is Some(path) &&
+        root is Some(retained_root) &&
+        owner.recorded_consumer is Some((consumer_attempt, expected_consumer)) else {
+        return false
+      }
+      let envelope = match owner.journal.dispatch_envelope(consumer_attempt) {
+        Ok(Some(value)) => value
+        _ => return false
+      }
+      guard @remote.admit_remote_poll_dispatch_json(envelope) is Ok(consumer) &&
+        @remote.dispatch_request_identity(
+          @remote.remote_poll_dispatch_request(consumer),
+        ) ==
+        expected_consumer else {
+        return false
+      }
+      let delegated = delegation(matches, budget(matches))
+      if !saved_output_bundle_current(
+          owner.bundles,
+          delegated,
+          required(matches, "target-triple"),
+        ) {
+        return false
+      }
+      guard @site.create_site(
+          environment.site_key,
+          environment.site_generation,
+          environment.runtime_bundle_cid,
+          environment.max_operations,
+          environment.max_transfers,
+          environment.max_bytes,
+          environment.max_bytes,
+        )
+        is Some(site) else {
+        return false
+      }
+      let producer_attempt = match
+        @remote.dispatch_request_attempt_identity(request) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      // Source, receiver and borrow responsibility must be discharged before
+      // the existing formal-release owner can return the producer capability.
+      match
+        @resident_host.reclaim_stopped_resident_source_output(
+          owner.journal,
+          run_admission(matches),
+          site,
+          delegated,
+          producer_attempt,
+          consumer_attempt,
+          transfers,
+          retained_root,
+          path,
+          {
+            max_binding_bytes: 1048576,
+            max_chunks: 65536,
+            max_manifest_bytes: 1048576,
+            max_referenced_bytes: environment.max_bytes,
+          },
+          cleanup_current,
+          recorded=Some(original),
+        ) {
+        Ok(_) => ()
+        Err(_) => return false
+      }
+    }
     let input = match
       @resident_host.prepare_resident_saved_input_cleanup(
         owner.journal,
@@ -59,6 +127,7 @@ fn settle_stopped_holder_custody(
         request,
         environment.max_bytes,
         cleanup_current,
+        recorded_source=owner.recorded_source,
       ) {
       Ok(value) => value
       Err(_) => return false

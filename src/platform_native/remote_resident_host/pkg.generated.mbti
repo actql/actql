@@ -69,7 +69,7 @@ pub fn prepare_resident_retained_producer_context(@remote_journal.Journal, Resid
 
 pub fn prepare_resident_retained_transfer(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.DispatchRequest, @run_publication_host.ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest, @run_publication_host.ClientRetainedInputCurrent, @execution_site.ExecutionSite, @remote_transfer_journal.Journal, @filesystem.Root, Int, Int64, Int64) -> Result[ResidentRetainedTransfer, ResidentRetainedTransferIssue]
 
-pub fn prepare_resident_saved_input_cleanup(@remote_journal.Journal, @remote_transfer_journal.Journal, @filesystem.Root?, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, Int64, () -> Bool) -> Result[(() -> Bool)?, ResidentHostIssue]
+pub fn prepare_resident_saved_input_cleanup(@remote_journal.Journal, @remote_transfer_journal.Journal, @filesystem.Root?, ResidentRunAdmission, @remote_site_protocol.DispatchRequest, Int64, () -> Bool, recorded_source? : @run_publication.RecordedRunPublication?) -> Result[(() -> Bool)?, ResidentHostIssue]
 
 pub fn prepare_resident_saved_output(@remote_journal.Journal, @execution_site.ExecutionSite, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, String, String, () -> String, () -> Bool) -> Result[ResidentSavedOutput, ResidentHostIssue]
 
@@ -83,7 +83,7 @@ pub fn reclaim_stopped_resident_source_output(@remote_journal.Journal, ResidentR
 
 pub fn resident_completed_holder_claimant(@remote_journal.Journal, ResidentRunAdmission, @remote_resident_site.ResidentSiteDelegation, Int, String, String) -> Result[String?, ResidentHostIssue]
 
-pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String) -> Result[String, ResidentHostIssue]
+pub fn resident_holder_process_hold_identity(@remote_journal.Journal, ResidentRunAdmission, String, String, recorded_source? : @run_publication.RecordedRunPublication?) -> Result[String, ResidentHostIssue]
 
 pub fn resident_output_checkpoints() -> Array[String]
 
